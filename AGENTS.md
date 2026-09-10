@@ -104,6 +104,10 @@ Code Rules provides rule files and review instructions those systems can use.
 
 ## Working in this repository
 
+Before implementing or reviewing code, consult [Fabrica's engineering rules](https://github.com/fabricahq/app/tree/main/_rules) and read the individual rules relevant to the change.
+For TypeScript implementation, start with the [TypeScript rule index](https://github.com/fabricahq/app/blob/main/_rules/typescript/AGENTS.md), then read the applicable source files.
+Apply the portable guidance; identify app-specific assumptions and explain any adaptation needed for this CLI.
+
 The docs are a working design preview; the CLI and installable authoring skill have not shipped.
 Describe proposed behavior honestly, and consult [project status](docs/src/content/docs/status.md) before claiming availability.
 

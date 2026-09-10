@@ -3,10 +3,12 @@ title: "Project status"
 description: "What this documentation describes and what remains to be built."
 ---
 
-**Code Rules is in design.**
+**Code Rules is in early implementation.**
 These docs describe the intended first release so teams can review the experience before implementation.
 The documentation site, authoring rubric, and template are available.
-The importer, CLI commands, and installable authoring skill do not exist yet.
+The offline Builds module can combine in-memory library snapshots and local rules into generated files.
+It has focused automated tests and a runnable example for development.
+Library fetching, workspace installation and consistency checks, CLI commands, and the installable authoring skill remain unimplemented.
 
 ## What is settled
 
