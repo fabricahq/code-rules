@@ -1,0 +1,20 @@
+---
+import PrototypeFabricaMark from './PrototypeFabricaMark.astro';
+---
+<div class="cr-brand" aria-label="Fabrica / Code Rules">
+  <a class="brand-parent" href="https://fabricahq.com">{import.meta.env.DEV && <PrototypeFabricaMark />}<span>Fabrica</span></a>
+  <span class="brand-separator" aria-hidden="true">/</span>
+  <a class="brand-product" href="/" aria-label="Code Rules home">Code Rules</a>
+</div>
+<style>
+  .cr-brand { gap: .5rem; align-items: baseline; }
+  .cr-brand a { color: inherit; text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
+  .cr-brand .brand-parent { position: relative; gap: .4rem; color: var(--sl-color-gray-3); font-size: .85em; font-weight: 400; }
+  .brand-separator { color: var(--cr-muted); font-weight: 400; }
+  .cr-brand a:hover { text-decoration: none; }
+  .cr-brand .brand-product:hover { color: #ffffff; }
+  :global(:root[data-theme="light"]) .cr-brand .brand-product:hover { color: #000000; }
+  .cr-brand .brand-parent:hover { color: var(--cr-ink); text-decoration: none; }
+  :global(html[data-logo-variant]) .brand-parent { padding-left: 22px; }
+  .brand-parent :global(.prototype-mark) { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
+</style>

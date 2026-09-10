@@ -1,0 +1,54 @@
+import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
+import starlight from '@astrojs/starlight';
+import accessibleAsideTitles from './src/plugins/accessible-aside-titles.mjs';
+
+export default defineConfig({
+  devToolbar: { enabled: false },
+  // FileTree's parser loads a platform binding relative to its package.
+  vite: { ssr: { external: ['satteri'] } },
+  redirects: { '/guides/customize/': '/guides/select-rules/' },
+  markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
+  integrations: [starlight({
+    title: 'Code Rules',
+    description: 'Shared engineering standards for the agents building your software.',
+    favicon: '/favicon.svg',
+    disable404Route: true,
+    customCss: ['./src/styles/custom.css', './src/styles/home.css'],
+    components: {
+      Hero: './src/components/HomeHero.astro',
+      SiteTitle: './src/components/SiteTitle.astro',
+      SocialIcons: './src/components/NavLinks.astro',
+      PageTitle: './src/components/PageTitle.astro',
+      Footer: './src/components/Footer.astro',
+    },
+    sidebar: [
+      { label: 'Start here', items: [
+        { label: 'What is Code Rules?', slug: 'overview' },
+        { label: 'Use rules in a project', slug: 'guides/use-rules' },
+        { label: 'Project status', slug: 'status' },
+      ] },
+      { label: 'Concepts', items: [
+        { label: 'Rule', slug: 'concepts/rule' },
+        { label: 'Group', slug: 'concepts/groups' },
+        { label: 'Library', slug: 'concepts/libraries' },
+      ] },
+      { label: 'Guides', items: [
+        { label: 'Import rules', slug: 'guides/select-rules' },
+        { label: 'Make a rule', slug: 'guides/write-rules' },
+        { label: 'Update rules', slug: 'guides/update' },
+        { label: 'Conflicting guidance', slug: 'guides/conflicting-guidance' },
+        { label: 'License rules', slug: 'guides/license-rules' },
+      ] },
+      { label: 'Reference', items: [
+        { label: 'Configuration', slug: 'reference/configuration' },
+        { label: 'Files and formats', slug: 'reference/files' },
+        { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
+        { label: 'CLI commands', slug: 'reference/cli' },
+        { label: 'How imports work', slug: 'reference/imports' },
+      ] },
+      { label: 'For agents', items: [{ label: 'Plan, write, and review', slug: 'for-agents' }] },
+    ],
+    tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
+  })],
+});

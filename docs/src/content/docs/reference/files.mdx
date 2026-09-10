@@ -1,0 +1,157 @@
+---
+title: "Files and formats"
+description: "Library source files, project-owned inputs, and generated agent-facing output."
+---
+
+import { FileTree } from '@astrojs/starlight/components';
+
+Code Rules separates authored input from imported source and generated output.
+All paths below describe the proposed format.
+
+## Library layout
+
+<FileTree>
+
+- rule-library.json
+- LICENSE.md
+- techs/
+  - typescript/
+    - _group.json
+    - prefer-type-aliases.md
+- practices/
+  - testing/
+    - _group.json
+    - verify-retry-limits.md
+
+</FileTree>
+
+`rule-library.json` declares the library format:
+
+```json
+{ "formatVersion": 1, "license": { "file": "LICENSE.md", "notices": [] } }
+```
+
+Discover groups only under `techs/` and `practices/`.
+Misplaced rule files should fail validation rather than disappear from imports.
+
+## Library license metadata
+
+The optional `license` object declares the library's default terms:
+
+| Field | Meaning |
+| --- | --- |
+| `license.file` | Path to the actual license text, relative to the library root. |
+| `license.notices` | Paths to accompanying notices, relative to the library root; use an empty array when none apply. |
+
+When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
+The importer preserves these files from the resolved source commit and includes them in snapshot digests.
+If the declaration is absent, report licensing as unspecified rather than assuming permission or assigning a license.
+
+Rule-specific terms and attribution remain with the rule and reference any additional applicable license files.
+Preserve those files and links too; a library default does not erase per-rule differences.
+See [License rules](/guides/license-rules/) for publisher guidance and the boundary with the consuming project's license.
+
+## Group metadata
+
+Each `_group.json` provides selection guidance:
+
+```json
+{
+  "name": "Testing",
+  "description": "Verify behavior with meaningful tests.",
+  "whenToRead": [
+    "Adding or changing behavior, even when no test files are in the diff.",
+    "Fixing a bug or modifying tests."
+  ]
+}
+```
+
+The directory supplies the group's ID and type.
+The generated index includes its description and when-to-read guidance.
+
+## Rule metadata
+
+Each rule has `title`, `impact`, `impactDescription`, and `tags` frontmatter, followed by its Markdown body.
+Use the existing impact vocabulary: `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`.
+Impact describes the rule's importance; a reviewer still evaluates the actual consequence and evidence of a finding.
+
+See [Make a rule](/guides/write-rules/) for a complete example.
+
+## Attribution
+
+Keep source attribution with the rule, in its metadata or Markdown body.
+Imports preserve that attribution in both the vendored source and the generated group file.
+A separate attribution file is not required by the format.
+
+When a library includes applicable library-level license or notice files, preserve those files with its vendored snapshot.
+Keep references to them valid after import.
+
+## Project layout
+
+<FileTree>
+
+- AGENTS.md
+- code-rules/
+  - config.json
+  - local/
+    - techs/typescript/
+      - prefer-interfaces.md
+  - vendor/
+    - fabrica/
+      - _source.json
+      - rule-library.json
+      - LICENSE.md
+      - techs/typescript/
+        - ...
+      - practices/testing/
+        - ...
+    - acme/
+      - _source.json
+      - rule-library.json
+      - LICENSE.md
+      - techs/react/
+        - ...
+      - practices/testing/
+        - ...
+      - practices/observability/
+        - ...
+  - generated/
+    - RULES.md
+    - provenance.json
+    - techs/
+      - typescript.md
+      - react.md
+    - practices/
+      - testing.md
+      - observability.md
+
+</FileTree>
+
+The project authors configuration and local rules.
+The importer owns the entire `vendor/` and `generated/` directories.
+Commit those directories so coding, review, and consistency checks can work offline.
+
+## Generated index and rules
+
+`generated/RULES.md` links every installed group under Technologies or Practices and explains when to load it.
+It lists exclusions and replacement reasons separately from active obligations.
+
+Each group file combines its effective rules from all selected sources and the project.
+Rules include source-qualified IDs, active source links, and upstream provenance where applicable.
+The index retains each contributing source's group descriptions and when-to-read guidance, labeled by source.
+Each imported rule links to its applicable preserved license, and the index summarizes the separately licensed sources.
+The consuming repository's root license is not rewritten.
+
+## Provenance records
+
+Each `vendor/<source-name>/_source.json` records the source name, repository, requested `ref`, full `resolvedCommit`, imported groups, and file digests.
+Offline commands verify that the recorded repository, ref, and groups match configuration and that file digests match the snapshot.
+For a commit-valued ref, the resolved commit must equal that SHA.
+For a tag, offline checks use the recorded commit and do not verify the tag's current remote target.
+
+`generated/provenance.json` records the tool version, every named source with its requested ref and resolved commit, and active rule origins.
+A replacement retains both its targeted source-qualified ID and the local definition's origin.
+Generated output excludes changing timestamps and machine-specific paths.
+
+These metadata files support repeatability and diagnosis.
+They do not independently authenticate a locally modified snapshot against GitHub.

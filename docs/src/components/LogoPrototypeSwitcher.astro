@@ -1,0 +1,136 @@
+---
+import PrototypeFabricaMark from './PrototypeFabricaMark.astro';
+import { seededLogos } from './SeededLogoStudies';
+import { tinkerLogos } from './TinkerLogoStudies';
+import { smallLogos } from './SmallLogoStudies';
+import { socketLogos } from './SocketLogoStudies';
+import { vectorLogos } from './VectorLogoStudies';
+---
+<aside id="logo-prototype" aria-label="Fabrica logo study" hidden>
+  <div class="study-preview"><PrototypeFabricaMark large /></div>
+  <div class="study-content">
+    <span class="study-eyebrow">FABRICA / LOGO STUDY</span>
+    <div class="study-controls">
+      <button type="button" data-step="-1" aria-label="Previous logo">←</button>
+      <select id="logo-choice" aria-label="Logo concept">
+        <optgroup label="Your favorites">
+          <option value="extrude">Extrude</option>
+          <option value="sweep">Sweep</option>
+        </optgroup>
+        <optgroup label="Small vector studies">
+          {vectorLogos.map(item => <option value={item.id}>{item.name}</option>)}
+        </optgroup>
+        <optgroup label="Socket expressions">
+          {socketLogos.map(item => <option value={item.id}>{item.name}</option>)}
+        </optgroup>
+        <optgroup label="Small cube variations">
+          {smallLogos.map(item => <option value={item.id}>{item.name}</option>)}
+        </optgroup>
+        <optgroup label="Tinker variations">
+          {tinkerLogos.map(item => <option value={item.id}>{item.name}</option>)}
+        </optgroup>
+        <optgroup label="Ten new directions">
+          {seededLogos.map(item => <option value={item.id}>{item.name}</option>)}
+        </optgroup>
+      </select>
+      <button type="button" data-step="1" aria-label="Next logo">→</button>
+    </div>
+    <p id="logo-description" aria-live="polite"></p>
+    <label class="zoom-control">Header zoom <select id="logo-zoom" aria-label="Header preview zoom"><option value="1">100%</option><option value="0.75">75%</option><option value="0.5">50%</option></select></label>
+    <a class="study-link" href="/logo-study/vector/">Compare new variations ↗</a>
+    <a class="study-link" href="/logo-study/small/">Earlier cubes ↗</a>
+    <a class="study-link" href="/logo-study/seeded/">Earlier concepts ↗</a>
+  </div>
+</aside>
+<script>
+  import { seededLogos } from './SeededLogoStudies';
+import { tinkerLogos } from './TinkerLogoStudies';
+import { smallLogos } from './SmallLogoStudies';
+import { socketLogos } from './SocketLogoStudies';
+import { vectorLogos } from './VectorLogoStudies';
+  const concepts = [
+    { id: 'extrude', name: 'Extrude', description: 'Broad, folded bands.' },
+    { id: 'sweep', name: 'Sweep', description: 'Three tools turning together.' },
+    ...vectorLogos,
+    ...socketLogos,
+    ...smallLogos,
+    ...tinkerLogos,
+    ...seededLogos,
+  ];
+  const choices = concepts.map(item => item.id);
+  const descriptions = concepts.map((item, index) => `${index + 1} / ${concepts.length} · ${item.name}: ${item.description}`);
+  const panel = document.querySelector<HTMLElement>('#logo-prototype');
+  function selectLogo(value: string, updateUrl = true) {
+    const index = choices.indexOf(value);
+    if (index < 0 || !panel) return;
+    document.documentElement.dataset.logoVariant = value;
+    panel.hidden = false;
+    const selector = panel.querySelector<HTMLSelectElement>('#logo-choice');
+    if (selector) selector.value = value;
+    const description = panel.querySelector('#logo-description');
+    if (description) description.textContent = descriptions[index] ?? '';
+    if (updateUrl) {
+      const url = new URL(location.href);
+      url.searchParams.set('variant', value);
+      history.replaceState(null, '', url);
+    }
+    document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach(link => {
+      const url = new URL(link.href, location.href);
+      if (url.origin !== location.origin) return;
+      url.searchParams.set('variant', value);
+      link.href = url.href;
+    });
+  }
+  function cycle(step: number) {
+    const index = choices.indexOf(document.documentElement.dataset.logoVariant ?? 'extrude');
+    selectLogo(choices[(index + step + choices.length) % choices.length] ?? 'extrude');
+  }
+  panel?.addEventListener('click', event => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button');
+    if (button?.dataset.variant) selectLogo(button.dataset.variant);
+    else if (button?.dataset.step) cycle(Number(button.dataset.step));
+  });
+  panel?.querySelector<HTMLSelectElement>('#logo-choice')?.addEventListener('change', event => {
+    selectLogo((event.target as HTMLSelectElement).value);
+  });
+  document.addEventListener('keydown', event => {
+    if (!panel || panel.hidden || (event.target as HTMLElement).closest('input, textarea, select, [contenteditable], [role="dialog"]')) return;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      cycle(event.key === 'ArrowLeft' ? -1 : 1);
+    }
+  });
+  panel?.querySelector<HTMLSelectElement>('#logo-zoom')?.addEventListener('change', event => {
+    document.documentElement.style.setProperty('--logo-preview-zoom', (event.target as HTMLSelectElement).value);
+  });
+  const initial = new URL(location.href).searchParams.get('variant') ?? '';
+  const retired = ['junction', 'converge', 'interlock', 'relay', 'launch', 'splice', 'ratchet', 'ignition', 'die', 'press', 'fold', 'coil', 'phase', 'spring'];
+  const migrated = retired.includes(initial) ? 'extrude' : initial;
+  selectLogo(migrated, initial !== migrated);
+</script>
+<style>
+  #logo-prototype[hidden] { display: none; }
+  #logo-prototype { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 30; width: 480px; max-width: calc(100vw - 24px); display: flex; gap: 1.25rem; align-items: center; padding: 1rem 1.25rem; color: var(--cr-ink); background: var(--cr-paper); border: 1px solid var(--cr-line); border-radius: 18px; box-shadow: 0 8px 40px #0002; }
+  .study-preview { display: flex; padding-right: 1.25rem; border-right: 1px solid var(--cr-line); }
+  .study-content { min-width: 0; }
+  .study-eyebrow { display: block; color: var(--cr-muted); font-size: .65rem; letter-spacing: .12em; }
+  .study-controls { display: flex; gap: .25rem; align-items: center; margin-top: .35rem; }
+  .study-controls [role='group'] { display: flex; flex-wrap: wrap; justify-content: center; min-width: 0; gap: .25rem; }
+  button { font: inherit; font-size: .8rem; color: var(--cr-muted); background: none; border: 0; border-radius: 7px; min-height: 36px; padding: .4rem .7rem; cursor: pointer; }
+  button:hover { color: var(--cr-ink); background: var(--cr-surface); }
+  button[aria-pressed='true'] { color: var(--cr-button-text); background: var(--cr-button); }
+  #logo-choice { font: inherit; font-size: .85rem; color: var(--cr-ink); background: var(--cr-surface); border: 1px solid var(--cr-line); border-radius: 7px; min-height: 38px; min-width: 160px; max-width: 100%; padding: .4rem .7rem; }
+  .study-link { display: inline-block; color: var(--cr-muted); font-size: .7rem; margin-top: .5rem; margin-right: .8rem; text-decoration: none; }
+  .study-link:hover { color: var(--cr-ink); }
+  .zoom-control { display: flex; gap: .5rem; align-items: center; margin-top: .65rem; color: var(--cr-muted); font-size: .7rem; }
+  #logo-zoom { font: inherit; color: var(--cr-ink); background: var(--cr-surface); border: 1px solid var(--cr-line); border-radius: 5px; padding: .3rem; }
+  :global(html[data-logo-variant] .cr-brand) { zoom: var(--logo-preview-zoom, 1); }
+  #logo-description { font-size: .75rem; color: var(--cr-muted); margin: .4rem 0 0; }
+  :global(html[data-logo-variant] body) { padding-bottom: 180px; }
+  @media(max-width: 540px) {
+    #logo-prototype { padding: .75rem; gap: .5rem; bottom: 12px; }
+    .study-preview { display: none; }
+    button { min-height: 44px; padding-inline: .5rem; }
+    #logo-description { font-size: .7rem; }
+  }
+</style>

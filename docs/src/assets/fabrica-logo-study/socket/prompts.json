@@ -1,0 +1,29 @@
+[
+  {
+    "id": "tinker-smile",
+    "name": "Socket Smile",
+    "description": "A small smile gives the familiar dots a warmer expression.",
+    "prompt": "Use case: logo-brand. Edit the supplied Socket logo into ONE more charming relatable expression for Fabrica, an industrial software tools brand. Keep the CLOSED hexagonal cube outline, top and bottom points, vertical sidewalls, weight, proportions and large black interior. Gently round the six vertices just a little so it feels crafted and approachable, not sharp or padded. Only change the interior facial expression as described. Strict flat WHITE #ffffff artwork on a solid pure BLACK #000000 square background. No texture, no gradient, no shadow, no checkerboard, no transparency, no text or presentation. Complete mark centered with generous 15 percent margins. This must work at 16px and 12px: very simple bold shapes, large black gaps around all facial elements, no tiny pupils, no eyelashes, no eyebrows, no nose, no cheek marks or extra details. Warm competent workshop companion, understated charm, not a spooky mask. SMILE: keep two simple round eyes but make each slightly smaller than in the reference and move their row slightly upward. Add a short, clearly upturned U-shaped smile centered beneath them, with thick rounded stroke and rounded terminals. Its width is roughly the eye-center separation. Smile is gentle, not a huge grin; no teeth or tongue. Ensure a large vertical gap between eyes and smile and between smile and bottom outline. Total four white shapes: frame, two eyes, smile.",
+    "path": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-50559625-ea4a-42e8-a1d5-3039f97e384f.png",
+    "scale": 135.1111,
+    "position": "50.0000% 44.9367%"
+  },
+  {
+    "id": "tinker-wink",
+    "name": "Socket Wink",
+    "description": "One round eye and a relaxed wink add a little mischief.",
+    "prompt": "Use case: logo-brand. Edit the supplied Socket logo into ONE more charming relatable expression for Fabrica, an industrial software tools brand. Keep the CLOSED hexagonal cube outline, top and bottom points, vertical sidewalls, weight, proportions and large black interior. Gently round the six vertices just a little so it feels crafted and approachable, not sharp or padded. Only change the interior facial expression as described. Strict flat WHITE #ffffff artwork on a solid pure BLACK #000000 square background. No texture, no gradient, no shadow, no checkerboard, no transparency, no text or presentation. Complete mark centered with generous 15 percent margins. This must work at 16px and 12px: very simple bold shapes, large black gaps around all facial elements, no tiny pupils, no eyelashes, no eyebrows, no nose, no cheek marks or extra details. Warm competent workshop companion, understated charm, not a spooky mask. WINK: retain the left circular eye; replace the right circle with ONE short thick horizontal pill tilted very slightly upward toward the right, as a friendly relaxed wink. Keep their visual centers on the same eye line. Slightly smaller left dot than the reference, but still large and substantial. Wink pill width similar to circle diameter; pill height about half the dot diameter, with semicircular ends. NO mouth, no other details. Only three white shapes: frame, dot, wink. The asymmetric eyes should feel inviting and resourceful, not smug or angry.",
+    "path": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-46ed926a-834e-4ff4-8bca-e476bfd107ee.png",
+    "scale": 135.2629,
+    "position": "50.1529% 44.1881%"
+  },
+  {
+    "id": "tinker-beam",
+    "name": "Socket Beam",
+    "description": "Two smiling eyes replace the fixed stare without adding a mouth.",
+    "prompt": "Use case: logo-brand. Edit the supplied Socket logo into ONE more charming relatable expression for Fabrica, an industrial software tools brand. Keep the CLOSED hexagonal cube outline, top and bottom points, vertical sidewalls, weight, proportions and large black interior. Gently round the six vertices just a little so it feels crafted and approachable, not sharp or padded. Only change the interior facial expression as described. Strict flat WHITE #ffffff artwork on a solid pure BLACK #000000 square background. No texture, no gradient, no shadow, no checkerboard, no transparency, no text or presentation. Complete mark centered with generous 15 percent margins. This must work at 16px and 12px: very simple bold shapes, large black gaps around all facial elements, no tiny pupils, no eyelashes, no eyebrows, no nose, no cheek marks or extra details. Warm competent workshop companion, understated charm, not a spooky mask. BEAM: replace BOTH round dots with two identical smiling closed eyes, each a simple low upward arch shaped like an inverted U or rainbow, thick uniform stroke and fully rounded ends. These must clearly feel happy eyes, not angry chevrons or eyebrows. Each arch broad and shallow with large black area beneath its curve, plenty of spacing between arches and frame. Use about the same visual size as the original dots. No dots beneath the arches. NO mouth. Only three white shapes: closed cube frame, two friendly bold arch eyes. Quiet delight from a little maker companion.",
+    "path": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-d69c872e-86f6-4bf5-afc6-31a77f5ac32a.png",
+    "scale": 137.5817,
+    "position": "49.8540% 44.5992%"
+  }
+]

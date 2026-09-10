@@ -1,0 +1,35 @@
+[
+  {
+    "id": "tinker-hex",
+    "name": "Tinker Hex",
+    "description": "The original, with a wider opening and larger eyes.",
+    "prompt": "Use case: logo-brand. Edit the supplied Tinker logo reference into ONE refined Fabrica symbol. Preserve the idea of a curious workshop companion: an open geometric enclosure and two eyes. Pure flat black shape on actual transparent alpha background, including transparent openings. No text, mockup, shadow, gradient, texture, checkerboard, extra symbols or presentation. Center the complete mark with 15% clear margins on a square canvas. Optically balanced, immaculate flat vector-like edges. Crucial use is a 16px docs header: bold shapes, generous negative spaces, two distinctly separated large eyes; eliminate tiny details. Variation HEX: keep the open hexagonal C-shaped frame, but make the hexagon symmetric with crisp corners, a uniform heavy frame about 1/7 of total width, a substantial gap at the middle right. Two round eyes, each about 1/6 of total mark width, centered horizontally inside the frame and clearly separated from it. A precise industrial socket with a quietly curious face. No rounding on outer hexagon corners. Simplify and balance the original geometry.",
+    "path": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-e43aee81-b766-4d05-868d-3245a208b56f.png",
+    "originalPath": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-7ea55ce8-979b-4d2d-82ab-89f7a22dfc71.png",
+    "maskPrompt": "Create a strict two-color stencil from this reference. The entire background must be perfectly solid BLACK #000000, edge to edge. The logo shape that is currently black must become pure WHITE #ffffff. All checkerboard regions, including inside eyes or open frame, become solid BLACK. Preserve the exact silhouette, eyes, proportions and placement. No checkerboard anywhere. No cloth texture. No shadows. No gradients. Just a clean white logo silhouette on a flat black square.",
+    "scale": 132.7432,
+    "position": "50.0000% 47.7370%"
+  },
+  {
+    "id": "tinker-frame",
+    "name": "Tinker Frame",
+    "description": "A square tool frame with two crisp, curious eyes.",
+    "prompt": "Use case: logo-brand. Edit the supplied Tinker logo reference into ONE refined Fabrica symbol. Preserve the idea of a curious workshop companion: an open geometric enclosure and two eyes. Pure flat black shape on actual transparent alpha background, including transparent openings. No text, mockup, shadow, gradient, texture, checkerboard, extra symbols or presentation. Center the complete mark with 15% clear margins on a square canvas. Optically balanced, immaculate flat vector-like edges. Crucial use is a 16px docs header: bold shapes, generous negative spaces, two distinctly separated large eyes; eliminate tiny details. Variation FRAME: replace the hexagon with a compact square frame with gently chamfered corners and a wide opening in the middle of the right wall. Flat horizontal top and bottom and flat vertical left edge. Heavy consistent wall thickness about 1/7 of mark width. Two substantial square eyes with subtly softened corners, side by side, each about 1/6 of width, evenly spaced, generous clear air around them. Swiss industrial precision, like a small open toolbox with personality. Retain the reference's open enclosure and curious face; do not use a speech bubble tail.",
+    "path": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-580ad8f8-2972-4296-b89f-172b08fbbb71.png",
+    "originalPath": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-9b21b284-7d31-481b-8d3c-286f6c18cb1c.png",
+    "maskPrompt": "Create a strict two-color stencil from this reference. The entire background must be perfectly solid BLACK #000000, edge to edge. The logo shape that is currently black must become pure WHITE #ffffff. All checkerboard regions, including inside eyes or open frame, become solid BLACK. Preserve the exact silhouette, eyes, proportions and placement. No checkerboard anywhere. No cloth texture. No shadows. No gradients. Just a clean white logo silhouette on a flat black square.",
+    "scale": 160.8131,
+    "position": "50.1054% 49.8946%"
+  },
+  {
+    "id": "tinker-block",
+    "name": "Tinker Block",
+    "description": "A solid workshop companion with eyes cut through it.",
+    "prompt": "Use case: logo-brand. Edit the supplied Tinker logo reference into ONE refined Fabrica symbol. Preserve the idea of a curious workshop companion: an open geometric enclosure and two eyes. Pure flat black shape on actual transparent alpha background, including transparent openings. No text, mockup, shadow, gradient, texture, checkerboard, extra symbols or presentation. Center the complete mark with 15% clear margins on a square canvas. Optically balanced, immaculate flat vector-like edges. Crucial use is a 16px docs header: bold shapes, generous negative spaces, two distinctly separated large eyes; eliminate tiny details. Variation BLOCK: reinterpret the open frame as a bold compact solid hexagonal block with two large transparent circular eyes punched through its upper middle, and a broad transparent horizontal slot entering from the right lower middle like an open jaw. This slot ends near the left quarter, leaving a thick spine. A curious precision-machined part with face, monolithic bold silhouette, no outline strokes, very large readable eye cutouts, no pupils, no extra details. Keep the angular hexagon silhouette, but prioritize a distinctive compact block over matching the original exactly.",
+    "path": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-1086847c-a619-43ec-80b0-18ddb19a231b.png",
+    "originalPath": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-ce42ab83-1d74-4b23-ab12-55491c669da3.png",
+    "maskPrompt": "Create a strict two-color stencil from this reference. The entire background must be perfectly solid BLACK #000000, edge to edge. The logo shape that is currently black must become pure WHITE #ffffff. All checkerboard regions, including inside eyes or open frame, become solid BLACK. Preserve the exact silhouette, eyes, proportions and placement. No checkerboard anywhere. No cloth texture. No shadows. No gradients. Just a clean white logo silhouette on a flat black square.",
+    "scale": 123.4304,
+    "position": "50.0000% 49.7900%"
+  }
+]

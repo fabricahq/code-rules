@@ -1,0 +1,29 @@
+[
+  {
+    "id": "tinker-socket",
+    "name": "Socket",
+    "description": "Closed cube outline, two large dots, no small breaks.",
+    "prompt": "Use case: logo-brand. Create ONE refined variation of this Fabrica Tinker cube-outline logo, specifically for tiny UI rendering. Reference image is for the concept only. Output pure WHITE logo on perfectly solid BLACK #000000 background, flat two-color stencil. No transparency request, no checkerboard, no mockup, no texture, no shadows, no gradients, no typography. Square canvas with centered full logo and 15% margin. Bold precisely geometric hexagonal outer silhouette suggests a cube/socket. No internal cube dividing lines. The interior dots must stay distinct when the whole mark is only 8 pixels tall: huge simple dots, very generous black clearance, moderately bold frame rather than choking it with weight. Make mark almost as wide as tall to maximize interior room. SOCKET: a closed, symmetric hexagonal ring, point at top and bottom, flat vertical sides. Consistent wall thickness around 12 percent of overall width. Two large circular dots side by side, each 20 percent of overall width, their centers separated by 35 percent of overall width. Spacious interior. No opening in frame. Total only three white connected shapes: hexagonal ring and two circles. Elegant friendly precision.",
+    "path": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-b95a3c4a-4acf-466e-9350-d6d04c03f7c6.png",
+    "scale": 136.0271,
+    "position": "50.0000% 45.0320%"
+  },
+  {
+    "id": "tinker-open",
+    "name": "Open",
+    "description": "An open side gives two bold dots more breathing room.",
+    "prompt": "Use case: logo-brand. Create ONE refined variation of this Fabrica Tinker cube-outline logo, specifically for tiny UI rendering. Reference image is for the concept only. Output pure WHITE logo on perfectly solid BLACK #000000 background, flat two-color stencil. No transparency request, no checkerboard, no mockup, no texture, no shadows, no gradients, no typography. Square canvas with centered full logo and 15% margin. Bold precisely geometric hexagonal outer silhouette suggests a cube/socket. No internal cube dividing lines. The interior dots must stay distinct when the whole mark is only 8 pixels tall: huge simple dots, very generous black clearance, moderately bold frame rather than choking it with weight. Make mark almost as wide as tall to maximize interior room. OPEN: an open cube outline like a hexagonal C, but remove the entire right vertical side. Top and bottom diagonal arms end cleanly at their rightmost tips, NO short dangling vertical terminals, no fussy notch. Moderate uniform frame thickness 12 percent of width. Two large rounded-square dots horizontally aligned, each 20 percent of mark width, with 16 percent gap between them, inside the enclosure. Slightly softened hexagon vertices, strong flat left spine. Keep wide open right side and lots of black clearance, welcoming curious tool creature.",
+    "path": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-a1dff7f9-42c8-4a80-8fd9-68e7b7ad2f66.png",
+    "scale": 127.7962,
+    "position": "50.0000% 47.0669%"
+  },
+  {
+    "id": "tinker-offset",
+    "name": "Offset",
+    "description": "Two diagonal dots turn the cube into a small maker\u2019s stamp.",
+    "prompt": "Use case: logo-brand. Create ONE refined variation of this Fabrica Tinker cube-outline logo, specifically for tiny UI rendering. Reference image is for the concept only. Output pure WHITE logo on perfectly solid BLACK #000000 background, flat two-color stencil. No transparency request, no checkerboard, no mockup, no texture, no shadows, no gradients, no typography. Square canvas with centered full logo and 15% margin. Bold precisely geometric hexagonal outer silhouette suggests a cube/socket. No internal cube dividing lines. The interior dots must stay distinct when the whole mark is only 8 pixels tall: huge simple dots, very generous black clearance, moderately bold frame rather than choking it with weight. Make mark almost as wide as tall to maximize interior room. OFFSET: a CLOSED chunky hexagonal outline ring with softly blunted top and bottom points, almost equal width and height, uniform wall thickness 12 percent of width. Exactly TWO very large perfectly circular dots, each 22 percent of overall width, arranged on a short diagonal: one upper left and one lower right. Their centers around (40%,40%) and (60%,60%) inside the full symbol bounding box. Leave generous separation between dots and ring; adjust diagonal spacing so they never touch each other or ring. A minimal precision cube with dice-like playful workshop energy. No face, no mouth, no eyes details, no internal dividing lines.",
+    "path": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-ff548433-095b-4f3e-a054-7f0c33fa9ce2.png",
+    "scale": 136.4898,
+    "position": "50.1491% 47.6137%"
+  }
+]

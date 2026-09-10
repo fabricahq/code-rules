@@ -1,0 +1,92 @@
+---
+import { seededLogos } from './SeededLogoStudies';
+import { tinkerLogos } from './TinkerLogoStudies';
+import { smallLogos } from './SmallLogoStudies';
+import { socketLogos } from './SocketLogoStudies';
+import { vectorLogos } from './VectorLogoStudies';
+import phase from '../assets/fabrica-logo-study/phase.png';
+import spring from '../assets/fabrica-logo-study/spring.png';
+import coil from '../assets/fabrica-logo-study/coil.png';
+import fold from '../assets/fabrica-logo-study/fold.png';
+import sweep from '../assets/fabrica-logo-study/sweep-refined.png';
+import die from '../assets/fabrica-logo-study/die.png';
+import press from '../assets/fabrica-logo-study/press.png';
+import extrude from '../assets/fabrica-logo-study/extrude.png';
+// Logo studies are generated concept images, not approved production assets.
+// CSS masks let the same silhouettes inherit the header color in both themes.
+// Previous hand-drawn experiments below remain available as source history.
+// Temporary logo study. Random hex seeds suggest turns and segment lengths;
+// the resulting lines are curated into compact, optically balanced silhouettes.
+// Splice: 0CE39E3A, mixed turns and 6/10/14/12 lengths, folded into joined ribbons.
+// Ratchet: 0AACCE84, repeated positive turns and 6/6/6/10 lengths, advancing cuts.
+// Ignition: BC21B76F, alternating turns and 8/10/10/8 lengths, a split launch wedge.
+const { large = false } = Astro.props;
+---
+<span class:list={['prototype-mark', { large }]} aria-hidden="true">
+  {[...seededLogos, ...tinkerLogos, ...smallLogos, ...socketLogos, ...vectorLogos].map(item => <span class={`generated seeded ${item.id}`} style={`--study-image: url("${item.src}"); --seeded-scale: ${item.scale}%; --seeded-position: ${item.position}`}></span>)}
+  <span class="generated phase" style={`--study-image: url(${phase.src})`}></span>
+  <span class="generated spring" style={`--study-image: url(${spring.src})`}></span>
+
+  <span class="generated coil" style={`--study-image: url(${coil.src})`}></span>
+  <span class="generated fold" style={`--study-image: url(${fold.src})`}></span>
+  <span class="generated sweep" style={`--study-image: url(${sweep.src})`}></span>
+
+  <span class="generated die" style={`--study-image: url(${die.src})`}></span>
+  <span class="generated press" style={`--study-image: url(${press.src})`}></span>
+  <span class="generated extrude" style={`--study-image: url(${extrude.src})`}></span>
+  <svg class="splice" viewBox="0 0 32 32" fill="currentColor">
+    <path d="M3 18 12 3h17l-5 8h-8l-7 12zM29 14 20 29H3l5-8h8l7-12z" />
+  </svg>
+  <svg class="ratchet" viewBox="0 0 32 32" fill="currentColor">
+    <path d="m2 15 5-5 5 6-5 6-5-5 3-1zm9-5 5-5 9 11-9 11-5-5 5-6zm10-7h6l5 13-5 13h-6l6-13z" />
+  </svg>
+  <svg class="ignition" viewBox="0 0 32 32" fill="currentColor">
+    <path d="M2 15 30 2 14 18zm15 5L30 5 21 30zM2 26l7-7 3 3-7 7z" />
+  </svg>
+</span>
+<style>
+  .prototype-mark { display: none; width: 16px; height: 16px; flex-shrink: 0; align-self: center; }
+  .prototype-mark.large { width: 40px; height: 40px; }
+  .prototype-mark svg { width: 100%; height: 100%; display: none; overflow: visible; }
+  .generated { display: none; width: 100%; height: 100%; background: currentColor; mask-image: var(--study-image); mask-size: 125%; mask-position: center; mask-repeat: no-repeat; }
+  .coil, .fold, .sweep, .phase, .spring { mask-size: 120%; }
+  .tinker-smile, .tinker-wink, .tinker-beam, .tinker-socket, .tinker-open, .tinker-offset, .tinker-hex, .tinker-frame, .tinker-block { mask-mode: luminance; }
+  .tinker-smile, .tinker-wink, .tinker-beam, .tinker-socket, .tinker-open, .tinker-offset { background: var(--cr-ink); }
+  .quiet, .pebble, .shelter, .glow { background: var(--cr-ink); }
+  .generated.seeded { mask-size: var(--seeded-scale); mask-position: var(--seeded-position); }
+  :global(html[data-logo-variant='tinker-hex']) .tinker-hex,
+  :global(html[data-logo-variant='tinker-frame']) .tinker-frame,
+  :global(html[data-logo-variant='tinker-block']) .tinker-block,
+  :global(html[data-logo-variant='tinker-socket']) .tinker-socket,
+  :global(html[data-logo-variant='tinker-open']) .tinker-open,
+  :global(html[data-logo-variant='tinker-offset']) .tinker-offset,
+  :global(html[data-logo-variant='tinker-smile']) .tinker-smile,
+  :global(html[data-logo-variant='tinker-wink']) .tinker-wink,
+  :global(html[data-logo-variant='tinker-beam']) .tinker-beam,
+  :global(html[data-logo-variant='quiet']) .quiet,
+  :global(html[data-logo-variant='pebble']) .pebble,
+  :global(html[data-logo-variant='shelter']) .shelter,
+  :global(html[data-logo-variant='glow']) .glow,
+  :global(html[data-logo-variant='toggle']) .toggle,
+  :global(html[data-logo-variant='arcade']) .arcade,
+  :global(html[data-logo-variant='carve']) .carve,
+  :global(html[data-logo-variant='ember']) .ember,
+  :global(html[data-logo-variant='ligature']) .ligature,
+  :global(html[data-logo-variant='tinker']) .tinker,
+  :global(html[data-logo-variant='graft']) .graft,
+  :global(html[data-logo-variant='resonance']) .resonance,
+  :global(html[data-logo-variant='jig']) .jig,
+  :global(html[data-logo-variant='column']) .column,
+  :global(html[data-logo-variant='phase']) .phase,
+  :global(html[data-logo-variant='spring']) .spring,
+  :global(html[data-logo-variant='coil']) .coil,
+  :global(html[data-logo-variant='fold']) .fold,
+  :global(html[data-logo-variant='sweep']) .sweep,
+  :global(html[data-logo-variant='die']) .die,
+  :global(html[data-logo-variant='press']) .press,
+  :global(html[data-logo-variant='extrude']) .extrude { display: block; }
+  :global(html[data-logo-variant]) .prototype-mark { display: inline-flex; }
+  :global(html[data-logo-variant='splice']) .splice,
+  :global(html[data-logo-variant='ratchet']) .ratchet,
+  :global(html[data-logo-variant='ignition']) .ignition { display: block; }
+</style>

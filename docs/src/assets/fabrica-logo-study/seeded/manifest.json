@@ -1,0 +1,314 @@
+{
+  "seed": "f9e5d10460fc680107a2bb9998587bf94ac84d62f6a92a65697b2888c0a61d43",
+  "algorithm": "Read ten consecutive six-character chunks as three bytes. For each dimension select byte modulo remaining list length, then remove that choice, so each concept uses a different combination. The final four characters select a shared finishing constraint modulo four.",
+  "tables": {
+    "metaphors": [
+      "a seed becoming a machine",
+      "a precision tooling jig",
+      "paper folded into a useful structure",
+      "a modular construction toy",
+      "an architectural arch",
+      "a lens focusing light",
+      "thread becoming fabric",
+      "a chisel carving material",
+      "a comet at ignition",
+      "a switch connecting energy",
+      "a makers stamp",
+      "a friendly abstract workshop creature",
+      "a tightly tied useful knot",
+      "magnetic attraction",
+      "a musical tuning fork",
+      "a structure growing from one pixel"
+    ],
+    "forms": [
+      "one bold compact silhouette",
+      "two unequal complementary pieces",
+      "three repeated solid elements",
+      "an expressive asymmetric shape",
+      "a block with one large negative-space cut",
+      "a continuous broad ribbon",
+      "a stepped pixel-grid silhouette",
+      "a soft monolithic form",
+      "an open geometric frame",
+      "a compact vertical totem"
+    ],
+    "characters": [
+      "radical retro-computing charm",
+      "Swiss precision and restraint",
+      "playful rebellious workshop energy",
+      "architectural weight and permanence",
+      "futuristic experimental typography without letters",
+      "organic growth and curiosity",
+      "brutalist industrial confidence",
+      "kinetic tension and release",
+      "quiet order and simplicity",
+      "unexpected friendly personality"
+    ]
+  },
+  "lastFour": "1d43",
+  "finishingConstraint": "one unexpected offset",
+  "concepts": [
+    {
+      "index": 1,
+      "chunk": "f9e5d1",
+      "bytes": [
+        249,
+        229,
+        209
+      ],
+      "metaphor": "a switch connecting energy",
+      "form": "a compact vertical totem",
+      "character": "unexpected friendly personality",
+      "id": "toggle",
+      "name": "Toggle",
+      "integration": "A compact upright switch becomes a tiny abstract workshop companion. One off-center negative-space eye and a strong connection between top and bottom give personality without illustration. A bold vertical emblem with a friendly purposeful stance. Avoid ordinary on/off buttons and robot faces inside a square.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk f9e5d1. Assigned metaphor: a switch connecting energy. Assigned formal structure: a compact vertical totem. Assigned character: unexpected friendly personality. Shared finishing constraint: one unexpected offset. Coherent art direction: A compact upright switch becomes a tiny abstract workshop companion. One off-center negative-space eye and a strong connection between top and bottom give personality without illustration. A bold vertical emblem with a friendly purposeful stance. Avoid ordinary on/off buttons and robot faces inside a square.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-d151df4a-3db5-48c4-8fcd-b3e10ed714b7.png",
+      "scale": 123.0438,
+      "position": "50.0000% 50.0000%",
+      "description": "A switch with a little personality.",
+      "bounds": [
+        361,
+        148,
+        893,
+        1106
+      ]
+    },
+    {
+      "index": 2,
+      "chunk": "0460fc",
+      "bytes": [
+        4,
+        96,
+        252
+      ],
+      "metaphor": "an architectural arch",
+      "form": "a stepped pixel-grid silhouette",
+      "character": "radical retro-computing charm",
+      "id": "arcade",
+      "name": "Arcade",
+      "integration": "An architectural doorway rendered as a bold stepped pixel arch. Use a chunky low-resolution silhouette, a generous open doorway and one intentionally displaced top block. Feels like a passage from idea into a built world. Radically retro-digital and playful, but compact and premium. Avoid a space invader, game controller, castle, house or letter A.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk 0460fc. Assigned metaphor: an architectural arch. Assigned formal structure: a stepped pixel-grid silhouette. Assigned character: radical retro-computing charm. Shared finishing constraint: one unexpected offset. Coherent art direction: An architectural doorway rendered as a bold stepped pixel arch. Use a chunky low-resolution silhouette, a generous open doorway and one intentionally displaced top block. Feels like a passage from idea into a built world. Radically retro-digital and playful, but compact and premium. Avoid a space invader, game controller, castle, house or letter A.",
+      "retryPrompt": "Create a simple black geometric logo on a transparent background for a software tools brand. Concept name for context only: Arcade. Do not render text. Combine a stepped pixel-grid architectural arch with a cheerful early-computer aesthetic. One bold compact silhouette made from a few large rectangular blocks, one generous empty doorway, one top block slightly offset. Pure flat graphic, no gradients or texture, no people, no scene, no objects other than this abstract architectural symbol. Square canvas, centered symbol occupying 78% of the canvas, crisp edges and large negative space suitable for a 16px icon. Keep the background and interior opening truly transparent with an alpha channel. This is a friendly abstract doorway logo.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-c3b3eb08-e2e6-4602-bda3-60dc8d8b8cdc.png",
+      "scale": 130.828,
+      "position": "50.0000% 49.8308%",
+      "description": "A pixel arch from idea to something built.",
+      "bounds": [
+        202,
+        176,
+        1052,
+        1077
+      ]
+    },
+    {
+      "index": 3,
+      "chunk": "680107",
+      "bytes": [
+        104,
+        1,
+        7
+      ],
+      "metaphor": "a chisel carving material",
+      "form": "two unequal complementary pieces",
+      "character": "quiet order and simplicity",
+      "id": "carve",
+      "name": "Carve",
+      "integration": "Two unequal solid pieces fit around the space left by a single chisel cut. A strong compact silhouette with a surprising diagonal negative-space seam. Calm and exact, with a precise off-center alignment. The missing material is the important idea. No arrows, chevrons, cube or simple slash.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk 680107. Assigned metaphor: a chisel carving material. Assigned formal structure: two unequal complementary pieces. Assigned character: quiet order and simplicity. Shared finishing constraint: one unexpected offset. Coherent art direction: Two unequal solid pieces fit around the space left by a single chisel cut. A strong compact silhouette with a surprising diagonal negative-space seam. Calm and exact, with a precise off-center alignment. The missing material is the important idea. No arrows, chevrons, cube or simple slash.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-dbd5f373-d17a-4401-a54c-bfba91e3598f.png",
+      "scale": 121.7727,
+      "position": "50.0000% 49.7770%",
+      "description": "Two pieces defined by the cut between them.",
+      "bounds": [
+        143,
+        150,
+        1111,
+        1103
+      ]
+    },
+    {
+      "index": 4,
+      "chunk": "a2bb99",
+      "bytes": [
+        162,
+        187,
+        153
+      ],
+      "metaphor": "a comet at ignition",
+      "form": "a soft monolithic form",
+      "character": "kinetic tension and release",
+      "id": "ember",
+      "name": "Ember",
+      "integration": "A soft solid mass seems compressed just before release. One deep curved notch and an off-axis rounded lobe convey a comet's stored motion. Bold almost organic pebble form with a deliberate tension in its silhouette. One main solid shape, not a comet pictogram, flame, rocket or droplet icon.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk a2bb99. Assigned metaphor: a comet at ignition. Assigned formal structure: a soft monolithic form. Assigned character: kinetic tension and release. Shared finishing constraint: one unexpected offset. Coherent art direction: A soft solid mass seems compressed just before release. One deep curved notch and an off-axis rounded lobe convey a comet's stored motion. Bold almost organic pebble form with a deliberate tension in its silhouette. One main solid shape, not a comet pictogram, flame, rocket or droplet icon.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-d1affce5-34bd-41e1-b507-3f9cb09f4678.png",
+      "scale": 116.7089,
+      "position": "53.8990% 59.1906%",
+      "description": "A soft mass ready to release its energy.",
+      "bounds": [
+        129,
+        185,
+        1139,
+        1102
+      ]
+    },
+    {
+      "index": 5,
+      "chunk": "98587b",
+      "bytes": [
+        152,
+        88,
+        123
+      ],
+      "metaphor": "a tightly tied useful knot",
+      "form": "a continuous broad ribbon",
+      "character": "futuristic experimental typography without letters",
+      "id": "ligature",
+      "name": "Ligature",
+      "integration": "One broad continuous ribbon knots into a compact experimental typographic glyph without being any letter. Two generous irregular counters, confident flattened curves, one off-center crossing. Strange, sculptural and tightly resolved. Think a mark from an experimental type foundry. Not infinity, chain links, a pretzel or a Celtic knot.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk 98587b. Assigned metaphor: a tightly tied useful knot. Assigned formal structure: a continuous broad ribbon. Assigned character: futuristic experimental typography without letters. Shared finishing constraint: one unexpected offset. Coherent art direction: One broad continuous ribbon knots into a compact experimental typographic glyph without being any letter. Two generous irregular counters, confident flattened curves, one off-center crossing. Strange, sculptural and tightly resolved. Think a mark from an experimental type foundry. Not infinity, chain links, a pretzel or a Celtic knot.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-286f868c-2c7d-4ab8-b235-4c6ca00166ac.png",
+      "scale": 129.6766,
+      "position": "53.3103% 52.4392%",
+      "description": "A useful knot becomes an unfamiliar glyph.",
+      "bounds": [
+        182,
+        184,
+        1091,
+        1084
+      ]
+    },
+    {
+      "index": 6,
+      "chunk": "f94ac8",
+      "bytes": [
+        249,
+        74,
+        200
+      ],
+      "metaphor": "a friendly abstract workshop creature",
+      "form": "an open geometric frame",
+      "character": "Swiss precision and restraint",
+      "id": "tinker",
+      "name": "Tinker",
+      "integration": "An open geometric frame subtly feels like a small curious workshop creature. Extremely restrained Swiss geometry: two or three sturdy planar strokes, two simple negative-space eyes or one asymmetric visual cue, no literal illustrated body. Frame remains open, with one unexpected offset giving life. A useful little tool companion, not a smiling chatbot square, robot head, animal drawing or medical cross.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk f94ac8. Assigned metaphor: a friendly abstract workshop creature. Assigned formal structure: an open geometric frame. Assigned character: Swiss precision and restraint. Shared finishing constraint: one unexpected offset. Coherent art direction: An open geometric frame subtly feels like a small curious workshop creature. Extremely restrained Swiss geometry: two or three sturdy planar strokes, two simple negative-space eyes or one asymmetric visual cue, no literal illustrated body. Frame remains open, with one unexpected offset giving life. A useful little tool companion, not a smiling chatbot square, robot head, animal drawing or medical cross.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-d1091211-7e96-4fdb-a51c-ae6802af9007.png",
+      "scale": 139.4982,
+      "position": "54.0838% 54.6471%",
+      "description": "A geometric frame with a creature's curiosity.",
+      "bounds": [
+        258,
+        221,
+        1025,
+        1066
+      ]
+    },
+    {
+      "index": 7,
+      "chunk": "4d62f6",
+      "bytes": [
+        77,
+        98,
+        246
+      ],
+      "metaphor": "magnetic attraction",
+      "form": "an expressive asymmetric shape",
+      "character": "organic growth and curiosity",
+      "id": "graft",
+      "name": "Graft",
+      "integration": "Organic magnetic attraction: a bold asymmetric growing form whose two lobes lean toward a large open channel. Shape feels alive and curious, as if separate materials are being drawn into one working organism. Keep one purposeful offset. Biomorphic and surprising, with solid untextured curves. Avoid leaves, yin-yang, hearts, infinity loops or an ordinary horseshoe magnet.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk 4d62f6. Assigned metaphor: magnetic attraction. Assigned formal structure: an expressive asymmetric shape. Assigned character: organic growth and curiosity. Shared finishing constraint: one unexpected offset. Coherent art direction: Organic magnetic attraction: a bold asymmetric growing form whose two lobes lean toward a large open channel. Shape feels alive and curious, as if separate materials are being drawn into one working organism. Keep one purposeful offset. Biomorphic and surprising, with solid untextured curves. Avoid leaves, yin-yang, hearts, infinity loops or an ordinary horseshoe magnet.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-18bc273a-5b3d-48bc-a02f-e5d4c4a27c5a.png",
+      "scale": 124.2107,
+      "position": "50.2046% 55.1140%",
+      "description": "Separate forms growing toward each other.",
+      "bounds": [
+        153,
+        187,
+        1102,
+        1092
+      ]
+    },
+    {
+      "index": 8,
+      "chunk": "a92a65",
+      "bytes": [
+        169,
+        42,
+        101
+      ],
+      "metaphor": "a musical tuning fork",
+      "form": "one bold compact silhouette",
+      "character": "brutalist industrial confidence",
+      "id": "resonance",
+      "name": "Resonance",
+      "integration": "A tuning fork becomes a brutalist industrial maker's mark. One bold compact silhouette, thick squared arms with one arm deliberately offset or shortened, deep open notch, powerful planted base. Architectural mass rather than musical illustration. Spare and arresting, no letter F, trident, pitchfork, medical cross or audio waveform.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk a92a65. Assigned metaphor: a musical tuning fork. Assigned formal structure: one bold compact silhouette. Assigned character: brutalist industrial confidence. Shared finishing constraint: one unexpected offset. Coherent art direction: A tuning fork becomes a brutalist industrial maker's mark. One bold compact silhouette, thick squared arms with one arm deliberately offset or shortened, deep open notch, powerful planted base. Architectural mass rather than musical illustration. Spare and arresting, no letter F, trident, pitchfork, medical cross or audio waveform.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-481e76bc-08b3-48ed-9144-2d9ad04fd5a5.png",
+      "scale": 132.5939,
+      "position": "50.0000% 49.8378%",
+      "description": "A tuning fork with architectural weight.",
+      "bounds": [
+        384,
+        182,
+        870,
+        1071
+      ]
+    },
+    {
+      "index": 9,
+      "chunk": "697b28",
+      "bytes": [
+        105,
+        123,
+        40
+      ],
+      "metaphor": "a precision tooling jig",
+      "form": "a block with one large negative-space cut",
+      "character": "playful rebellious workshop energy",
+      "id": "jig",
+      "name": "Jig",
+      "integration": "A precision tooling jig becomes a rebellious graphic stamp: one dense near-square solid block with one large eccentric cutout, cheeky asymmetry and a deliberate offset. Shape is engineered but playful, like a custom tool you immediately want to pick up. The negative space has one unexpected notch. Avoid a letter, maze, QR code, lock, flask, bracket set or generic rounded app tile.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk 697b28. Assigned metaphor: a precision tooling jig. Assigned formal structure: a block with one large negative-space cut. Assigned character: playful rebellious workshop energy. Shared finishing constraint: one unexpected offset. Coherent art direction: A precision tooling jig becomes a rebellious graphic stamp: one dense near-square solid block with one large eccentric cutout, cheeky asymmetry and a deliberate offset. Shape is engineered but playful, like a custom tool you immediately want to pick up. The negative space has one unexpected notch. Avoid a letter, maze, QR code, lock, flask, bracket set or generic rounded app tile.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-c6c27189-9a23-430f-b6b2-1fb8f789993b.png",
+      "scale": 132.2963,
+      "position": "50.1633% 48.6934%",
+      "description": "An eccentric cut in a solid maker's stamp.",
+      "bounds": [
+        182,
+        184,
+        1073,
+        1062
+      ]
+    },
+    {
+      "index": 10,
+      "chunk": "88c0a6",
+      "bytes": [
+        136,
+        192,
+        166
+      ],
+      "metaphor": "a lens focusing light",
+      "form": "three repeated solid elements",
+      "character": "architectural weight and permanence",
+      "id": "column",
+      "name": "Column",
+      "integration": "Three repeated solid elements act like architectural light-focusing fins. A compact sculptural silhouette made from three bold curved or tapered slabs with clearly separated generous channels. Their rhythm suggests light or ideas being brought into alignment. One slab is slightly offset. Monumental, precise and permanent. No literal lens rings, camera aperture, eye, wifi fan, cube or skyline.",
+      "prompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. Seed chunk 88c0a6. Assigned metaphor: a lens focusing light. Assigned formal structure: three repeated solid elements. Assigned character: architectural weight and permanence. Shared finishing constraint: one unexpected offset. Coherent art direction: Three repeated solid elements act like architectural light-focusing fins. A compact sculptural silhouette made from three bold curved or tapered slabs with clearly separated generous channels. Their rhythm suggests light or ideas being brought into alignment. One slab is slightly offset. Monumental, precise and permanent. No literal lens rings, camera aperture, eye, wifi fan, cube or skyline.",
+      "asset": "/Users/personal/.codex/generated_images/01a08cf8-e64e-77d0-9b4d-5b589ae2c1af/exec-a156b1b6-dbc0-4c24-8f71-418d16249bfe.png",
+      "scale": 114.8889,
+      "position": "50.0000% 49.6923%",
+      "description": "Three solid fins bringing ideas into alignment.",
+      "bounds": [
+        114,
+        196,
+        1140,
+        1057
+      ]
+    }
+  ],
+  "sharedPrompt": "Use case: logo-brand. Create ONE original logo symbol for FABRICA, an umbrella brand of modular software tools for technical teams building their own software factories. The user wants this round to depart radically from conventional tech logos in some directions. Combine the three assigned idea ingredients into a COHERENT logo, not a collage of three objects. Flat opaque BLACK artwork on genuinely transparent alpha background, transparent internal gaps. Vector-like edges, absolutely no 3D, shading, gradients, textures, checkerboard pixels or background. One symbol only, no text, names, labels or wordmarks. Readable at 16px; use large simple shapes and bold negative spaces, no hairlines or intricate detail. Center on square canvas; longest extent exactly about 78 percent of canvas, all edges visibly inside generous margins. Avoid F monograms, medical crosses and generic AI sparkle stars. "
+}

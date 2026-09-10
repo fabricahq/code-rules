@@ -1,0 +1,17 @@
+{
+  "name": "code-rules",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "docs"
+  ],
+  "scripts": {
+    "docs:dev": "bun run --cwd docs dev",
+    "docs:check": "bun run --cwd docs check",
+    "docs:build": "bun run --cwd docs build",
+    "docs:preview": "bun run --cwd docs preview",
+    "check": "bun run docs:check && bun run docs:build && bun run docs:links",
+    "docs:links": "python3 _tools/check-doc-links.py"
+  },
+  "packageManager": "bun@1.4.2"
+}

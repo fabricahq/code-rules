@@ -1,0 +1,56 @@
+---
+title: "Library"
+description: "Understand who owns shared rules, project exceptions, and the tooling that connects them."
+---
+
+A **library** is a Git repository containing rule groups.
+The Code Rules tool imports its content at a specific commit.
+
+## Keep tooling and opinions separate
+
+[Code Rules](https://github.com/fabricahq/code-rules) owns the conventions, importer, and documentation.
+A library owns its engineering opinions and their provenance.
+A consuming project owns the versions and exceptions it adopts.
+
+The importer works with compatible libraries independently of who publishes them.
+A public tool can import a private library through the caller's existing Git credentials.
+
+## Name an organization library
+
+We recommend `<organization>/.code-rules`, such as `acme/.code-rules`.
+The name is a convention, not automatic discovery.
+A project's configuration explicitly names each source repository, commit-or-tag ref, and selected groups.
+
+The consuming project's local directory remains `code-rules/`.
+Its name does not depend on the remote repository name.
+
+## Share only what applies
+
+An organization may maintain rules for many projects.
+A rule naming one application's internal packages or contracts does not automatically apply to the rest of the organization.
+Keep that obligation local to the applicable project, or give its group an explicit scope.
+
+## Private content stays private only if consumers do
+
+Vendoring copies source rules and generated text into the consuming repository's Git history.
+Use a library only in projects authorized to receive and distribute its content.
+Preserve required attribution and license notices during imports.
+See [License rules](/guides/license-rules/) for what library terms should cover and how consumers retain them.
+
+## Import multiple canonical sources
+
+The first-release design supports multiple libraries imported directly by a project.
+For example, a project can import `fabricahq/.code-rules-example` as `fabrica` and `acme/.code-rules` as `acme`.
+Each source owns its rules, and the project selects each source's ref independently.
+Sync records each resolved commit so offline work uses the exact imported snapshot.
+The repository names illustrate the configuration; verify available rules before selecting groups.
+
+Rules from sources that share a group combine into one effective group file.
+Source-qualified IDs keep their origins distinct, and source order grants no override priority.
+Use explicit project exclusions or replacements to resolve competing obligations.
+
+## Leave room for another level
+
+The longer-term model allows an organization to inherit a shared library, adapt it, and publish rules for its projects.
+That publishing mechanism will need to preserve rule identities and provenance across levels.
+It is outside the first release.
