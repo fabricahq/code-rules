@@ -4,89 +4,95 @@ Use this file to understand the product we are building and the decisions it sho
 The [README](README.md) owns repository setup and validation commands.
 The [project status](docs/src/content/docs/status.md) distinguishes working capabilities from proposed interfaces.
 
-## Mission
+## Product
 
-Help teams turn engineering best practices into shared rules that agents can follow and reviewers can check.
+### Motivation
 
-Teams should be able to turn a best practice into a rule, share it across projects, and expect agents to apply it when relevant.
-Success means fewer repeated corrections, clearer engineering decisions, and reviews grounded in the team's declared expectations.
-Generating a document is a means to that outcome.
+Agents generate code quickly, but that code often conflicts with the team's engineering best practices. Finding those mismatches in review is expensive and frustrating: reviewers must explain expectations, request changes, and check the revised implementation.
+Repeated corrections consume the time and attention that agents were supposed to save.
 
-## Vision
+Giving agents the right guidance before they write code helps teams avoid that rework. Code that aligns with the team's practices earlier in the process makes software development easier, less expensive, and more enjoyable.
 
-Code Rules is the shared engineering-standards layer for software factories.
-A software factory uses agents and repeatable workflows to carry software from an idea through implementation, validation, and delivery.
-Code Rules supplies the standards those workflows apply.
+### Mission
 
-A useful best practice can begin in one project, become a shared organization rule, and reach other projects through deliberate imports.
-Projects can combine several canonical libraries while retaining local requirements and explicit exceptions.
-Implementing and reviewing agents work from the same resolved rules, with clear applicability and traceable sources.
+Help human organizations generate code with AI that aligns with their best practices.
 
-The authoring experience is part of the product.
-A shared rubric, Markdown template, and authoring skill help people and agents create instructions that are clear, scoped, and verifiable.
-Correct examples and counterexamples explain both the intended behavior and plausible mistakes.
-Reviewing agents use the same rubric to improve the rules themselves.
+### Vision
 
-Code Rules belongs to Fabrica's collection of tools for building software factories.
-Code Rules should work across agent tools and workflows without requiring the Fabrica app or a hosted service.
+When an individual or team starts a software project, they select the technologies and engineering practices they want to apply.
 
-## Ideal customer profile
+From then on:
+During implementation, all agents follow the organization's best practices, as declared in the project's rules.
+During validation, code is checked explicitly for compliance with those rules.
 
-Our initial target is a technical founder, engineering lead, or platform engineer using coding agents to ship and maintain software.
-The strongest fit is a team with several repositories that share technologies and engineering practices but also have project-specific requirements.
+Organizations quickly gain confidence that agents will apply their best practices throughout implementation and review.
 
-These teams already have opinions about quality.
-Their standards are scattered across documents, prompts, code reviews, and individual experience.
-They repeatedly correct agents for the same mistakes and want consistent implementation and review without restating every expectation in every task.
+When code does fall short, teams capture the lesson in a new rule for that project or share it across projects. Insights and best practices spread across projects and teams, so a lesson learned in one place improves future work elsewhere.
 
-The human maintainer decides which policies to adopt and owns exceptions.
-Agents are direct consumers of the product: they need to find relevant rules, interpret their scope, and cite evidence when reviewing work.
-Serve both audiences with readable files and explicit conventions.
+### Ideal customer profiles
 
-A single-project user should still benefit from authoring and applying local rules before adopting a shared library.
-Treat this customer profile as an initial product hypothesis, not evidence of validated demand or a commitment to a pricing model.
+## Humans
 
-## Core concepts
+Our ideal customer is an individual or software team that wants to produce correct, maintainable, and secure code using AI. They are dissatisfied with the code their agents produce or find that enforcing their best practices is painful, ineffective, or both.
 
-### Rule
+The strongest fit is an individual or team with several repositories that share technologies and engineering practices but also have project-specific requirements. At the same time, a single-project user should still benefit from authoring and applying local rules before adopting a shared library.
 
-A rule expresses one independently adoptable engineering expectation in a Markdown file.
-It states what to do, when it applies, and what evidence would demonstrate compliance.
-Rules can govern code, tests, plans, documentation, and other engineering work.
+Their best practices may be scattered across documents, prompts, code reviews, and individual experience. They repeatedly correct agents for the same mistakes and want consistent implementation and review without restating every expectation in every task.
 
-A rule retains its identity and provenance when imported or included in an aggregate.
-See [Rule](docs/src/content/docs/concepts/rule.md) for the concept and [the rubric and template](docs/src/content/docs/reference/rule-authoring.md) for the authoring standard.
+Humans will decide which policies to adopt, and when to create an exception. They benefit from readable files and explicit conventions.
 
-### Group
+## Agents
 
-A group collects related rules and explains when an agent should read them.
-Technology groups live under `techs/` and cover named languages, frameworks, tools, platforms, or protocols.
-Practice groups live under `practices/` and cover concerns such as testing, observability, error handling, and architecture.
+Agents need to find relevant rules, interpret their scope, and cite evidence when reviewing work. Agents should get clear, unambiguous guidance on how to write the code or adopt a practice. When agents are confused, they should speak up and suggest an update to the rules.
 
-Groups guide selection; individual rules determine applicability.
-A testing rule may matter even when a change touches no test files.
-See [Group](docs/src/content/docs/concepts/groups.md).
+### Core concepts
 
-### Library
+#### Rule
 
-A library is a versioned collection of rule groups published in a Git repository.
-Libraries own their engineering opinions and can be public or private.
-An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries and groups to import.
+A rule expresses one independently adoptable engineering expectation in a Markdown file. It states what to do, when it applies, and what evidence would demonstrate compliance. Rules can govern code, tests, plans, documentation, and other engineering work.
+
+A rule retains its identity and provenance when imported or included in an aggregate. See [Rule](docs/src/content/docs/concepts/rule.md) for the concept and [the rubric and template](docs/src/content/docs/reference/rule-authoring.md) for the authoring standard.
+
+#### Group
+
+A group collects related rules and explains when an agent should read them. There are two types of groups:
+
+1. Technology groups live under `techs/` and cover named languages, frameworks, tools, platforms, or protocols.
+2. Practice groups live under `practices/` and cover concerns such as testing, observability, error handling, and architecture.
+
+Groups guide selection; individual rules determine applicability. A testing rule may matter even when a change touches no test files. See [Group](docs/src/content/docs/concepts/groups.md).
+
+#### Library
+
+A library is a versioned collection of groups published in a Git repository. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries and groups to import.
 
 Projects may import multiple sources, select a commit or tag for each, and add or override rules locally.
 Source-qualified IDs distinguish rules from different libraries; they do not resolve contradictory instructions.
 See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](docs/src/content/docs/reference/configuration.md).
 
-## Product principles
+### Principles
 
-- **Make the relevant guidance available before agents act.** The generated index helps agents select groups from the task, behavior, and technologies involved.
-- **Make shared standards adaptable.** Projects own their adopted versions, local rules, exclusions, and replacements; source order does not silently establish policy precedence.
-- **Make changes deliberate and traceable.** Imports record resolved revisions and preserve attribution and licensing information; generated files combine the project's active rules by group.
-- **Keep deterministic work in the tool.** The CLI resolves imports, validates structure, and generates consistent files; agents interpret applicability, assess implementations, and investigate conflicting guidance.
-- **Distinguish evidence from guarantees.** File consistency does not establish application compliance, and an agent review with no findings does not prove the absence of violations.
-- **Keep the files useful on their own.** Markdown, Git, and committed aggregates let people inspect changes and agents work offline without a proprietary runtime.
+1. **Prevent mistakes before they become rework.**
+   Give agents relevant guidance before they write code.
+   Aim to get the implementation right the first time, when correcting a mistake is cheapest.
 
-## Ownership and boundaries
+2. **Turn lessons into lasting improvements.**
+   When code falls short, use the observation to improve a rule, its enforcement, or how agents discover it.
+   Capture lessons locally and share them across projects when they apply more broadly.
+
+3. **Reuse shared practices; customize deliberately.**
+   Teams should adopt shared best practices without redefining them for every project.
+   Projects can add requirements and make explicit exceptions when their needs differ.
+
+4. **Guide implementation, then verify the result.**
+   Giving an agent a rule does not guarantee that it will follow it.
+   Use the same rules to guide implementation and independently validate the resulting code.
+
+5. **Make compliance mechanically enforceable wherever possible.**
+   When a rule can be enforced reliably through a linter, type checker, test, or structural constraint, establish that enforcement.
+   Use agent judgment for the parts that require interpretation.
+
+### Ownership and boundaries
 
 This public repository owns the Code Rules conventions, importer, authoring tools, and documentation.
 Independently owned libraries supply the engineering policies.
