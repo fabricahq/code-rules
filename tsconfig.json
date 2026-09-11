@@ -17,6 +17,8 @@
   },
   "include": [
     "src/**/*.ts",
-    "_tools/*.ts"
+    "_tools/*.ts",
+    "docs/_tools/*.ts",
+    "tests/manual/**/*.ts"
   ]
 }

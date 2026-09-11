@@ -3,15 +3,15 @@
 import type {
   ActiveRule,
   BuildInput,
-  Configuration,
+  ProjectConfig,
   Group,
   GroupMetadata,
   LibrarySnapshot,
-  Origin,
-  Replacement,
+  RuleOrigin,
+  RuleReplacement,
   ResolvedRules,
   Rule,
-  Source,
+  LibrarySource,
   SourceRecord,
 } from './types';
 import {
@@ -34,7 +34,7 @@ type GroupAccumulator = {
 };
 /** A validated source snapshot with selected definitions and guidance in selection order. */
 type SelectedLibrary = {
-  source: Source;
+  source: LibrarySource;
   snapshot: LibrarySnapshot;
   files: ReadonlyMap<string, string>;
   licenseFiles: ReadonlyArray<string>;
@@ -44,10 +44,10 @@ type SelectedLibrary = {
 
 /** Record an imported rule's source alias, definition path, and pinned repository revision. */
 function origin(
-  source: Source,
+  source: LibrarySource,
   snapshot: LibrarySnapshot,
   path: string,
-): Origin {
+): RuleOrigin {
   return {
     source: source.name,
     file: path,
@@ -58,7 +58,7 @@ function origin(
 }
 
 /** Identify a local rule by its local-root-relative path, with no upstream repository or revision. */
-function localOrigin(path: string): Origin {
+function localOrigin(path: string): RuleOrigin {
   return {
     source: 'local',
     file: path,
@@ -71,7 +71,7 @@ function localOrigin(path: string): Origin {
 /** Return the matching source snapshot, or throw BuildError when it is missing, inconsistent, or has an invalid commit. */
 function snapshotFor(
   snapshots: BuildInput['snapshots'],
-  source: Source,
+  source: LibrarySource,
 ): LibrarySnapshot {
   const snapshot = Object.hasOwn(snapshots, source.name)
     ? snapshots[source.name]
@@ -121,7 +121,7 @@ function addGroup(
 
 /** Reject extra snapshots before interpreting any source's contents. */
 function requireDeclaredSnapshots(
-  config: Configuration,
+  config: ProjectConfig,
   snapshots: BuildInput['snapshots'],
 ): void {
   for (const name of Object.keys(snapshots)) {
@@ -143,7 +143,7 @@ function readGroupMetadata(
 
 /** Load licensing, then each selected group's guidance and rules; excluded rules are still validated. */
 function selectedLibrary(
-  source: Source,
+  source: LibrarySource,
   snapshot: LibrarySnapshot,
 ): SelectedLibrary {
   const sourceFiles = files(snapshot.files, source.name);
@@ -191,7 +191,7 @@ function requireExceptionTargets(library: SelectedLibrary): void {
 /** Reserve a replacement file and return its local definition under the upstream ID; reject reuse or a different group first. */
 function replacementRule(
   parsed: Rule,
-  replacement: Replacement,
+  replacement: RuleReplacement,
   library: SelectedLibrary,
   localFiles: ReadonlyMap<string, string>,
   usedReplacements: Set<string>,
@@ -303,7 +303,7 @@ function requireLocalMetadata(
 
 /** Resolve sources then local rules into ID-sorted groups without mutating inputs; throw BuildError for invalid selections or stale snapshots. */
 export function resolveRules(
-  config: Configuration,
+  config: ProjectConfig,
   snapshots: BuildInput['snapshots'],
   localFiles: ReadonlyMap<string, string>,
 ): ResolvedRules {

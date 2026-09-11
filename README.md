@@ -36,12 +36,20 @@ All examples in these docs are illustrative; this repository does not contain Fa
 It returns the complete generated file set without fetching libraries or writing project files.
 The [Builds scope note](_internal/builds.md) explains the interface, subsystem responsibilities, and verification.
 
-Run the original example to create a temporary workspace with an index, an aggregate, local rules, and provenance:
+Run the [manual Builds scenario](tests/manual/builds.ts) to create a temporary workspace with an index, an aggregate, local rules, and provenance:
 
 ```sh
 bun run builds:example
 ```
 
-Inspect the printed `generated/RULES.md` path, then its linked testing group.
-The example replaces an upstream rule while retaining its ID and adds a separate local rule.
-Source repository names and commits are illustrative.
+The script creates files for inspection and makes no automated assertions.
+After running it:
+
+1. Open the printed `generated/RULES.md` path and follow its testing-group link.
+2. Confirm the group contains exactly two active rules: the project retry budget and stopping retries after success.
+3. Confirm the retry-budget replacement retains ID `example:practices/testing/verify-retries` and links to its local definition.
+4. Inspect `generated/provenance.json`: the replacement should have a local origin and an imported upstream origin; the additional local rule should have no upstream origin.
+
+Source repository names and commits are illustrative, so upstream GitHub links do not point to a real fixture library.
+The temporary workspace remains available after the script exits.
+Automated behavior checks remain in `src/builds/build.test.ts`.

@@ -1,6 +1,6 @@
 /** @fileoverview Interprets project configuration and source-scoped exception policies in deterministic validation order. */
 
-import type { Configuration, Replacement, Source } from './types';
+import type { ProjectConfig, RuleReplacement, LibrarySource } from './types';
 import {
   compare,
   field,
@@ -85,7 +85,7 @@ function replacementDeclaration(
   rawReplacement: unknown,
   id: string,
   where: string,
-): Replacement {
+): RuleReplacement {
   const replacement = object(rawReplacement, `${where}.replace.${id}`);
   knownFields(replacement, ['file', 'reason'], `${where}.replace.${id}`);
   const location = `${where}.replace.${id}.file`;
@@ -106,8 +106,8 @@ function replacementDeclaration(
 function replacementDecisions(
   value: unknown,
   where: string,
-): ReadonlyMap<string, Replacement> {
-  const replace = new Map<string, Replacement>(
+): ReadonlyMap<string, RuleReplacement> {
+  const replace = new Map<string, RuleReplacement>(
     Object.entries(object(value, `${where}.replace`))
       .sort(([a], [b]) => compare(a, b))
       .map(([id, rawReplacement]) => [
@@ -133,7 +133,7 @@ function sourceConfiguration(
   name: string,
   raw: unknown,
   repositories: Set<string>,
-): Source {
+): LibrarySource {
   const where = `sources.${name}`;
   if (!/^[a-z][a-z0-9-]*$/u.test(name) || name === 'local')
     return invalid(where, 'invalid or reserved source name');
@@ -167,7 +167,7 @@ function sourceConfiguration(
  * Rejects abbreviated-commit-shaped refs unless explicitly qualified as refs/tags/<name>.
  * This offline syntax check does not resolve refs or establish their existence in Git.
  */
-export function configuration(input: unknown): Configuration {
+export function configuration(input: unknown): ProjectConfig {
   const config = object(input, 'configuration');
   knownFields(
     config,
@@ -177,7 +177,7 @@ export function configuration(input: unknown): Configuration {
   if (field(config, 'schemaVersion') !== 1)
     return invalid('schemaVersion', 'only version 1 is supported');
   const repositories = new Set<string>();
-  const sources: Array<Source> = Object.entries(
+  const sources: Array<LibrarySource> = Object.entries(
     object(field(config, 'sources'), 'sources'),
   )
     .sort(([a], [b]) => compare(a, b))

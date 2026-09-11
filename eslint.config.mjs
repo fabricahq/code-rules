@@ -6,7 +6,9 @@ import jsdoc from 'eslint-plugin-jsdoc';
 
 const sourceFiles = [
   'src/**/*.ts',
+  'tests/manual/**/*.ts',
   '_tools/**/*.ts',
+  'docs/_tools/**/*.ts',
   'docs/src/**/*.{ts,astro,mjs}',
   'docs/*.mjs',
   'eslint.config.mjs',

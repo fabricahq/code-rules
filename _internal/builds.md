@@ -47,7 +47,7 @@ Replacement configuration retains its documented `local/` prefix.
 The snapshot envelope contains `repository`, `ref`, `resolvedCommit`, `groups`, and `files`.
 Workspace is responsible for mapping verified `_source.json` records into that envelope.
 
-Run `bun run builds:example` to create a temporary workspace from original example rules.
+Run `bun run builds:example` to execute `tests/manual/builds.ts` and create a temporary workspace from original example rules.
 Inspect its index and group Markdown, checking source labels, active obligations, exception reasons, and provenance.
 Compare a second build with reordered sources to confirm that its bytes are identical.
 
