@@ -49,7 +49,7 @@ Generated files add the configured source name, such as `fabrica:practices/testi
 That prefix distinguishes matching paths from different libraries.
 
 Agents use group applicability indexes to select individual effective rule files, where imported and local choices have already been resolved.
-Each rule keeps its identity and provenance even though several rules share one generated file.
+Each rule keeps its identity and provenance even when several rules share a group applicability index.
 Agents select relevant groups, then apply each individual rule's conditions and exceptions.
 
 See [Group](/concepts/groups/) for how rules are organized, or [Make a rule](/guides/write-rules/) to create one.

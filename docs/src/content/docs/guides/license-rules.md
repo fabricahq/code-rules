@@ -78,17 +78,21 @@ Include the preserved files in snapshot digests so offline checks can detect mis
 License changes belong in the update report alongside rule changes.
 
 Each individual effective rule identifies its source and applicable preserved license.
-For example, inside `generated/rules/fabrica/practices/testing/verify-retry-limits.md`:
+For example, `generated/rules/fabrica/practices/testing/verify-retry-limits.md` begins with the following header.
+The repository and commit in this example are illustrative.
 
 ```markdown
 # Verify retry limits
 
-Rule ID: fabrica:practices/testing/verify-retry-limits
-License: [Fabrica library terms](../../../../../vendor/fabrica/LICENSE.md)
+Rule ID: `fabrica:practices/testing/verify-retry-limits`
 
-[The rule's original copyright notices and attribution appear here.]
+[Active definition](https://github.com/example/rules/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/practices/testing/verify-retry-limits.md)
+
+Library default license and notices:
+- [LICENSE.md](../../../../../vendor/fabrica/LICENSE.md)
 ```
 
+The rule's metadata and body follow this header, retaining its original copyright notices and attribution.
 Generated rule files link to their applicable preserved terms.
 The index links to provenance, which records source libraries and their declared license paths.
 When a group includes multiple libraries, retain each rule's licensing information instead of assigning one upstream license to the group.
