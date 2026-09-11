@@ -1,6 +1,10 @@
 /** @fileoverview Interprets project configuration and source-scoped exception policies in deterministic validation order. */
 
-import type { ProjectConfig, RuleReplacement, LibrarySource } from './types';
+import type {
+  ProjectConfig,
+  RuleReplacement,
+  LibrarySource,
+} from './configuration-types';
 import {
   compare,
   field,
@@ -11,7 +15,7 @@ import {
   relativePath,
   ruleGroup,
   strings,
-} from './validation';
+} from './formats/validation';
 
 /** Reject unknown own fields before interpreting a configuration object. */
 function knownFields(
@@ -169,7 +173,7 @@ function sourceConfiguration(
 
 /**
  * Return validated configuration with sources, groups, and exception keys sorted.
- * Throws an invalid-input BuildError for unsupported fields, malformed values, or conflicting declarations.
+ * Throws an invalid-input ValidationError for unsupported fields, malformed values, or conflicting declarations.
  * Rejects abbreviated-commit-shaped refs unless explicitly qualified as refs/tags/<name>.
  * This offline syntax check does not resolve refs or establish their existence in Git.
  */

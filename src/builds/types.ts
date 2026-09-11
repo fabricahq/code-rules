@@ -1,5 +1,18 @@
 /** @fileoverview Defines input, output, and resolution contracts for the offline Builds subsystem. */
 
+import type { LibrarySource, GroupSelection } from '../configuration-types';
+export type {
+  RuleReplacement,
+  LibrarySource,
+  ProjectConfig,
+  GroupPattern,
+  GroupSelection,
+} from '../configuration-types';
+import type { GroupMetadata } from '../formats/validation';
+export type { GroupMetadata } from '../formats/validation';
+import type { LicenseDeclaration } from '../formats/manifest';
+export type { LicenseDeclaration } from '../formats/manifest';
+
 /** Paths are relative to the snapshot root or local/; values are UTF-8 text. */
 export type FileContents = Readonly<Record<string, string>>;
 
@@ -18,11 +31,6 @@ export type LibrarySnapshot = {
   readonly files: FileContents;
 };
 
-/** Supported discovery scopes: all groups or every group of one kind. */
-export type GroupPattern = '*' | 'techs/*' | 'practices/*';
-/** A supported discovery scope or concrete IDs; arbitrary globs and mixed wildcard lists are unsupported. */
-export type GroupSelection = GroupPattern | ReadonlyArray<string>;
-
 /** In-memory configuration, source snapshots keyed by alias, and local files rooted at local/; the builder validates their relationships. */
 export type BuildInput = {
   readonly configuration: unknown;
@@ -40,40 +48,9 @@ export type BuildOutput = {
   readonly files: FileContents;
 };
 
-/** Local replacement path including its local/ prefix, with the project decision explaining the override. */
-export type RuleReplacement = {
-  readonly file: string;
-  readonly reason: string;
-};
-/** Validated source selection; exclusion/replacement keys are library-relative rule paths without .md. */
-export type LibrarySource = {
-  readonly name: string;
-  readonly repository: string;
-  readonly ref: string;
-  readonly groups: GroupSelection;
-  readonly exclude: ReadonlyMap<string, string>;
-  readonly replace: ReadonlyMap<string, RuleReplacement>;
-};
 /** Source policy after wildcard expansion has produced concrete, validated group IDs. */
 export type ExpandedLibrarySource = Omit<LibrarySource, 'groups'> & {
   readonly groups: ReadonlyArray<string>;
-};
-/** Validated sources sorted by alias and local-only group IDs sorted by code-unit order. */
-export type ProjectConfig = {
-  readonly sources: ReadonlyArray<LibrarySource>;
-  readonly localGroups: ReadonlyArray<string>;
-};
-/** Display name and selection guidance for deciding when agents should read a group. */
-export type GroupMetadata = {
-  readonly name: string;
-  readonly description: string;
-  readonly whenToRead: ReadonlyArray<string>;
-};
-/** Declared terms and retained files, relative to the owning library root; null expression means legacy unidentified terms. */
-export type LicenseDeclaration = {
-  readonly spdxExpression: string | null;
-  readonly files: ReadonlyArray<string>;
-  readonly attributionFiles: ReadonlyArray<string>;
 };
 
 /** Publisher-supplied external citation and explanation of the adaptation; separate from effective origin. */

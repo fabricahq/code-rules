@@ -30,7 +30,7 @@ import {
 } from './validation';
 import { generatedLicenseFiles } from './license-output';
 import { rule } from './rule-document';
-import { readLibraryLicenses, licensePaths } from './library-licenses';
+import { readLibraryLicenses, licensePaths } from '../formats/manifest';
 
 /** Mutable group storage owned by resolution; renderers receive read-only groups. */
 type GroupAccumulator = {
