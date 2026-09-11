@@ -52,9 +52,7 @@ Each rule keeps its source-qualified ID and each source retains its selection gu
 
 Each group supplies a name, description, and `whenToRead` guidance.
 For testing, that guidance should include behavior changes even when no test files change.
-Keep reading cues short and describe the intended work, so agents can select the group before code exists.
-Add an example or boundary when it prevents a likely selection mistake; longer descriptions alone do not ensure correct selection.
-Keep detailed implementation advice and evidence of violations in the individual rules.
+Use the canonical [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) to describe intended work, add recognizable examples, and check selection against representative tasks.
 
 Group applicability is deliberately broad: it helps an agent decide what to load.
 Individual rule applicability is precise: it determines what the agent should enforce.

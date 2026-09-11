@@ -48,13 +48,13 @@ const otherRules = {
     name: 'Code design',
     description: 'Keep multi-step operations understandable.',
     whenToRead: [
-      'When designing, changing, reviewing, or diagnosing a function that coordinates multiple steps.',
+      'Before planning, writing, changing, or reviewing a function that coordinates multiple steps, such as parsing input, validating it, calling another operation, or constructing a result.',
     ],
   }),
   [`${designGroup}/name-retry-stages.md`]: exampleRule(
     'Name the retry stages',
     'Make request execution, retry decisions, and final results recognizable as separate steps.',
-    'When planning, writing, changing, or reviewing an operation that coordinates several steps.',
+    'Before planning, writing, changing, or reviewing an operation that coordinates request execution, retry decisions, and final results.',
     'Read the operation in order and identify any stage whose purpose is obscured. A short, cohesive function does not need extraction merely to become smaller; helper count alone is insufficient evidence of a violation.',
     'Make each step understandable. Extract parsing, validation, or result construction when those details obscure the operation. Keep cohesive inline steps when their purpose is already clear.',
   ),
