@@ -1,14 +1,6 @@
-/** @fileoverview Validates Builds input shapes, rule metadata, and paths before aggregation. */
+/** @fileoverview Provides shared input guards, path checks, and group metadata parsing for Builds. */
 
-import { parseDocument } from 'yaml';
-import type {
-  Configuration,
-  FileContents,
-  GroupMetadata,
-  Replacement,
-  Rule,
-  Source,
-} from './types';
+import type { FileContents, GroupMetadata } from './types';
 
 /** Identifies invalid input or a snapshot requiring sync; the message includes the failing location. */
 export class BuildError extends Error {
@@ -40,16 +32,6 @@ export function object(
 /** Return an own property value, or undefined when the property is absent or inherited. */
 export function field(value: Record<string, unknown>, name: string): unknown {
   return Object.hasOwn(value, name) ? value[name] : undefined;
-}
-
-function knownFields(
-  value: Record<string, unknown>,
-  allowed: ReadonlyArray<string>,
-  location: string,
-): void {
-  for (const name of Object.keys(value)) {
-    if (!allowed.includes(name)) invalid(location, `unknown field ${name}`);
-  }
 }
 
 /** Return non-blank text unchanged, including surrounding whitespace; throw an invalid-input BuildError otherwise. */
@@ -153,138 +135,6 @@ export function compare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/**
- * Return validated configuration with sources, groups, and exception keys sorted.
- * Throws an invalid-input BuildError for unsupported fields, malformed values, or conflicting declarations.
- * Rejects abbreviated-commit-shaped refs unless explicitly qualified as refs/tags/<name>.
- * This offline syntax check does not resolve refs or establish their existence in Git.
- */
-export function configuration(input: unknown): Configuration {
-  const config = object(input, 'configuration');
-  knownFields(
-    config,
-    ['schemaVersion', 'sources', 'localGroups'],
-    'configuration',
-  );
-  if (field(config, 'schemaVersion') !== 1)
-    return invalid('schemaVersion', 'only version 1 is supported');
-  const repositories = new Set<string>();
-  const sources: Array<Source> = Object.entries(
-    object(field(config, 'sources'), 'sources'),
-  )
-    .sort(([a], [b]) => compare(a, b))
-    .map(([name, raw]) => {
-      const where = `sources.${name}`;
-      if (!/^[a-z][a-z0-9-]*$/u.test(name) || name === 'local')
-        return invalid(where, 'invalid or reserved source name');
-      const source = object(raw, where);
-      knownFields(
-        source,
-        ['repository', 'ref', 'groups', 'exclude', 'replace'],
-        where,
-      );
-      const repository = nonempty(
-        field(source, 'repository'),
-        `${where}.repository`,
-      );
-      if (
-        !/^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/u.test(repository) ||
-        /\/(\.|\.\.)$/u.test(repository)
-      )
-        return invalid(where, 'repository must use owner/name form');
-      if (repositories.has(repository.toLowerCase()))
-        return invalid(
-          where,
-          `repository ${repository} is declared more than once`,
-        );
-      repositories.add(repository.toLowerCase());
-      const ref = nonempty(field(source, 'ref'), `${where}.ref`);
-      if (
-        /\s|[~^:?*\[\\]|\.\.|@\{|\/$|\.$|\.lock$|^refs\/(?!tags\/)/u.test(
-          ref,
-        ) ||
-        ref === '@' ||
-        ref.startsWith('-') ||
-        ref.endsWith('/') ||
-        ref === 'refs/tags/'
-      )
-        return invalid(
-          `${where}.ref`,
-          'expected a full commit SHA or exact tag name',
-        );
-      if (/^[a-f0-9]{4,39}$/iu.test(ref))
-        return invalid(
-          `${where}.ref`,
-          'abbreviated commits are unsupported; use a full SHA or refs/tags/<name>',
-        );
-      const groups = strings(field(source, 'groups'), `${where}.groups`)
-        .map((id) => groupId(id, where))
-        .sort(compare);
-      const exclude = new Map(
-        Object.entries(object(field(source, 'exclude'), `${where}.exclude`))
-          .sort(([a], [b]) => compare(a, b))
-          .map(([id, reason]) => [
-            id,
-            nonempty(reason, `${where}.exclude.${id}`),
-          ]),
-      );
-      const replace = new Map<string, Replacement>(
-        Object.entries(object(field(source, 'replace'), `${where}.replace`))
-          .sort(([a], [b]) => compare(a, b))
-          .map(([id, rawReplacement]) => {
-            const replacement = object(
-              rawReplacement,
-              `${where}.replace.${id}`,
-            );
-            knownFields(
-              replacement,
-              ['file', 'reason'],
-              `${where}.replace.${id}`,
-            );
-            const path = relativePath(
-              nonempty(
-                field(replacement, 'file'),
-                `${where}.replace.${id}.file`,
-              ),
-              where,
-            );
-            if (!path.startsWith('local/'))
-              return invalid(where, 'replacement files must be under local/');
-            return [
-              id,
-              {
-                file: path,
-                reason: nonempty(
-                  field(replacement, 'reason'),
-                  `${where}.replace.${id}.reason`,
-                ),
-              },
-            ];
-          }),
-      );
-      for (const id of [...exclude.keys(), ...replace.keys()]) {
-        ruleGroup(`${id}.md`, where);
-        if (exclude.has(id) && replace.has(id))
-          return invalid(
-            `${where}:${id}`,
-            'rule is both excluded and replaced',
-          );
-      }
-      return { name, repository, ref, groups, exclude, replace };
-    });
-  const localGroups = strings(field(config, 'localGroups'), 'localGroups')
-    .map((id) => groupId(id, 'localGroups'))
-    .sort(compare);
-  for (const id of localGroups) {
-    if (sources.some((source) => source.groups.includes(id)))
-      return invalid(
-        id,
-        'an imported group cannot also be declared in localGroups',
-      );
-  }
-  return { sources, localGroups };
-}
-
 /** Parse group selection guidance, preserving when-to-read order; throw BuildError for invalid JSON or required fields. */
 export function groupMetadata(text: string, location: string): GroupMetadata {
   const data = object(json(text, location), location);
@@ -295,56 +145,5 @@ export function groupMetadata(text: string, location: string): GroupMetadata {
       `${location}.description`,
     ),
     whenToRead: strings(field(data, 'whenToRead'), `${location}.whenToRead`),
-  };
-}
-
-/**
- * Parse a rule into its source-qualified identity, metadata text, and Markdown body.
- * Preserves extra frontmatter fields and body whitespace; requires supported impact and non-blank content.
- * Throws an invalid-input BuildError for invalid paths/frontmatter, duplicate YAML keys, or aliases.
- */
-export function rule(text: string, path: string, source: string): Rule {
-  const location = `${source}:${path}`;
-  const group = ruleGroup(path, location);
-  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/u.exec(text);
-  const metadata = match?.[1];
-  const body = match?.[2];
-  if (metadata === undefined || body === undefined)
-    return invalid(location, 'expected YAML frontmatter followed by Markdown');
-  const parsed = parseDocument(metadata, { uniqueKeys: true });
-  if (parsed.errors.length)
-    return invalid(location, `invalid YAML: ${parsed.errors[0]?.message}`);
-  let raw: unknown;
-  try {
-    raw = parsed.toJS({ maxAliasCount: 0 });
-  } catch {
-    return invalid(location, 'YAML aliases are unsupported');
-  }
-  const data = object(raw, location);
-  const title = nonempty(field(data, 'title'), `${location}.title`);
-  const impact = nonempty(field(data, 'impact'), `${location}.impact`);
-  if (
-    ![
-      'CRITICAL',
-      'HIGH',
-      'MEDIUM-HIGH',
-      'MEDIUM',
-      'LOW-MEDIUM',
-      'LOW',
-    ].includes(impact)
-  )
-    return invalid(location, `unknown impact ${impact}`);
-  nonempty(field(data, 'impactDescription'), `${location}.impactDescription`);
-  const tags = field(data, 'tags');
-  if (typeof tags === 'string') nonempty(tags, `${location}.tags`);
-  else strings(tags, `${location}.tags`);
-  nonempty(body, `${location}.body`);
-  return {
-    id: `${source}:${path.slice(0, -3)}`,
-    group,
-    path,
-    title,
-    metadata,
-    body,
   };
 }

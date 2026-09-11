@@ -8,6 +8,7 @@ export default function accessibleAsideTitles() {
   return (tree) => {
     const ids = new Set();
     const asides = [];
+    /** Collect all existing IDs before generating labels so later elements cannot collide. */
     function visit(node) {
       if (node.type === 'element') {
         if (node.properties?.id) ids.add(node.properties.id);

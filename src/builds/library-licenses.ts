@@ -1,0 +1,104 @@
+/** @fileoverview Validates library license declarations and resolves their files within an in-memory source snapshot. */
+
+import {
+  compare,
+  field,
+  invalid,
+  json,
+  nonempty,
+  object,
+  relativePath,
+  requiredFile,
+} from './validation';
+
+const LIBRARY_MANIFEST = 'rule-library.json';
+const SUPPORTED_FORMAT_VERSION = 1;
+
+/** A validated source-relative path paired with the manifest field that declared it for diagnostics. */
+type DeclaredPath = {
+  readonly path: string;
+  readonly location: string;
+};
+
+/** Parse the library manifest into an object with a supported formatVersion, or throw BuildError. */
+function libraryManifest(
+  sourceFiles: ReadonlyMap<string, string>,
+  sourceName: string,
+): Record<string, unknown> {
+  const location = `${sourceName}/${LIBRARY_MANIFEST}`;
+  const text = requiredFile(sourceFiles, LIBRARY_MANIFEST, sourceName);
+  const parsed = json(text, location);
+  const manifest = object(parsed, location);
+  if (field(manifest, 'formatVersion') !== SUPPORTED_FORMAT_VERSION) {
+    return invalid(
+      `${location}: formatVersion`,
+      `only library formatVersion ${SUPPORTED_FORMAT_VERSION} is supported`,
+    );
+  }
+  return manifest;
+}
+
+/** Validate a library file path and retain its location for error reporting. */
+function declaredPath(value: unknown, location: string): DeclaredPath {
+  const text = nonempty(value, location);
+  return { path: relativePath(text, location), location };
+}
+
+/** Validate notice paths in declaration order, retaining indexed locations for diagnostics; throw BuildError for invalid entries. */
+function noticePaths(
+  value: unknown,
+  location: string,
+): ReadonlyArray<DeclaredPath> {
+  if (!Array.isArray(value)) {
+    return invalid(location, 'expected an array of notice paths');
+  }
+  const entries: ReadonlyArray<unknown> = value;
+  return entries.map((entry, index) =>
+    declaredPath(entry, `${location}[${index}]`),
+  );
+}
+
+/**
+ * Return the validated license path followed by notice paths in declaration order, retaining duplicates.
+ * Return an empty array when licensing is unspecified; throw BuildError for an invalid declaration.
+ */
+function licenseAndNoticeDeclarations(
+  manifest: Record<string, unknown>,
+  sourceName: string,
+): ReadonlyArray<DeclaredPath> {
+  const value = field(manifest, 'license');
+  if (value === undefined) return [];
+  const location = `${sourceName}/${LIBRARY_MANIFEST}: license`;
+  const license = object(value, location);
+  const file = declaredPath(field(license, 'file'), `${location}.file`);
+  const notices = noticePaths(field(license, 'notices'), `${location}.notices`);
+  return [file, ...notices];
+}
+
+/** Throw BuildError at the first declaration whose path is absent from the snapshot; empty files count as present. */
+function requireDeclaredFiles(
+  sourceFiles: ReadonlyMap<string, string>,
+  declarations: ReadonlyArray<DeclaredPath>,
+): void {
+  for (const { path, location } of declarations) {
+    if (!sourceFiles.has(path)) {
+      invalid(location, `missing declared file ${JSON.stringify(path)}`);
+    }
+  }
+}
+
+/**
+ * Validate the library manifest and collect its declared license and notice paths.
+ * Return unique paths in code-unit order, or an empty array when licensing is unspecified.
+ * Throw BuildError for an invalid manifest or a declared file missing from the snapshot.
+ */
+export function collectLibraryLicensePaths(
+  sourceFiles: ReadonlyMap<string, string>,
+  sourceName: string,
+): ReadonlyArray<string> {
+  const manifest = libraryManifest(sourceFiles, sourceName);
+  const declarations = licenseAndNoticeDeclarations(manifest, sourceName);
+  requireDeclaredFiles(sourceFiles, declarations);
+  const uniquePaths = new Set(declarations.map(({ path }) => path));
+  return [...uniquePaths].sort(compare);
+}

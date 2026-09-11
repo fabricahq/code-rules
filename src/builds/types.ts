@@ -77,12 +77,28 @@ export type ActiveRule = {
   readonly licenseFiles: ReadonlyArray<string>;
   readonly sourceFiles: ReadonlyMap<string, string>;
 };
-/** Resolution accumulator combining source-labeled selection guidance and active rules for one group ID. */
+/** Resolved collection combining source-labeled selection guidance and active rules for one group ID. */
 export type Group = {
   readonly id: string;
-  readonly guidance: Array<{
+  readonly guidance: ReadonlyArray<{
     readonly source: string;
     readonly metadata: GroupMetadata;
   }>;
-  readonly rules: Array<ActiveRule>;
+  readonly rules: ReadonlyArray<ActiveRule>;
+};
+
+/** Snapshot identity and library terms retained for provenance, even when no rules remain active. */
+export type SourceRecord = {
+  readonly name: string;
+  readonly repository: string;
+  readonly ref: string;
+  readonly resolvedCommit: string;
+  readonly groups: ReadonlyArray<string>;
+  readonly licenseFiles: ReadonlyArray<string>;
+};
+
+/** Completed resolution with sources and groups sorted by ID; each active rule belongs to exactly one group. */
+export type ResolvedRules = {
+  readonly sources: ReadonlyArray<SourceRecord>;
+  readonly groups: ReadonlyArray<Group>;
 };

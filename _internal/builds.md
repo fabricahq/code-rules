@@ -16,6 +16,24 @@ Workspace will load files, verify recorded digests and filesystem containment, d
 Builds checks snapshot identity against configuration but cannot authenticate caller-supplied content or identify symlinks from a string map.
 The CLI and both other subsystems remain unimplemented.
 
+## Internal operations
+
+`build.ts` coordinates configuration validation, rule resolution, and generated-file rendering.
+Keep `index.ts` as the caller-facing interface; the modules below are implementation details.
+
+- `configuration.ts` interprets source selections and exception declarations, retaining field locations in diagnostics.
+- `resolve.ts` validates snapshots and resolves imported, replaced, and local definitions into groups.
+  Each active rule is stored in its group once; provenance derives its rule list from those groups.
+- `render.ts` builds the index, group documents, and provenance without mutating resolved groups.
+- `rule-document.ts` validates YAML and rule metadata while retaining the original frontmatter and body text.
+- `library-licenses.ts` validates license declarations and verifies the declared files exist.
+- `markdown.ts` relocates references and renders active definitions.
+  Its rewrite traversal edits children before serializing their owning outer node, then applies non-overlapping source edits from right to left.
+- `validation.ts` supplies shared shape and path guards, errors, and group metadata parsing.
+
+Preserve validation order during refactors, including malformed excluded rules and duplicate repositories preceding later source-field errors.
+Test through `buildRules` so internal helpers can move without changing caller-facing tests.
+
 ## Implementation and verification
 
 1. Define the in-memory interface and validate configuration, snapshot identities, group metadata, and rule frontmatter.

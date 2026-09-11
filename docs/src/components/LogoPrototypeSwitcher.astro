@@ -72,6 +72,10 @@ import { vectorLogos } from './VectorLogoStudies';
     if (selector) selector.value = value;
     const description = panel.querySelector('#logo-description');
     if (description) description.textContent = descriptions[index] ?? '';
+    updateNavigation(value, updateUrl);
+  }
+  /** Preserve the selected variant on same-origin navigation, optionally replacing the current URL. */
+  function updateNavigation(value: string, updateUrl: boolean): void {
     if (updateUrl) {
       const url = new URL(location.href);
       url.searchParams.set('variant', value);
@@ -84,6 +88,7 @@ import { vectorLogos } from './VectorLogoStudies';
       link.href = url.href;
     });
   }
+  /** Move through the available concepts with wraparound, preserving the normal selection behavior. */
   function cycle(step: number) {
     const index = choices.indexOf(document.documentElement.dataset.logoVariant ?? 'extrude');
     selectLogo(choices[(index + step + choices.length) % choices.length] ?? 'extrude');

@@ -15,12 +15,12 @@ export function escapeText(value: string): string {
 }
 
 /** Percent-encode each path segment while preserving slash separators. */
-export function encodedPath(value: string): string {
+function encodedPath(value: string): string {
   return value.split('/').map(encodeURIComponent).join('/');
 }
 
 /** Return a commit-pinned GitHub link for an imported origin, or a local link relative to a generated group file. */
-export function sourceLink(origin: Origin): string {
+function sourceLink(origin: Origin): string {
   if (origin.repository !== null && origin.resolvedCommit !== null) {
     return `https://github.com/${origin.repository}/blob/${origin.resolvedCommit}/${encodedPath(origin.file)}`;
   }
@@ -71,94 +71,140 @@ function relocatedUrl(url: string, active: ActiveRule, image: boolean): string {
   return invalid(active.rule.id, `missing local link destination: ${url}`);
 }
 
+/** A replacement span measured against the untouched source Markdown. */
+type SourceEdit = {
+  readonly start: number;
+  readonly end: number;
+  readonly value: string;
+};
+/** Markdown nodes whose URLs or reference labels need source-aware rewriting. */
+type RewriteNode = Extract<
+  RootContent,
+  { type: 'link' | 'image' | 'definition' | 'linkReference' | 'imageReference' }
+>;
+
+/** Identify nodes requiring rewriting, including their nested content when serialized. */
+function requiresRewrite(node: Root | RootContent): node is RewriteNode {
+  return (
+    node.type === 'link' ||
+    node.type === 'image' ||
+    node.type === 'definition' ||
+    node.type === 'linkReference' ||
+    node.type === 'imageReference'
+  );
+}
+
+/** Mutate a parsed node's URL and reference identity; source Markdown is never changed here. */
+function rewriteNode(
+  node: RewriteNode,
+  active: ActiveRule,
+  referencePrefix: string,
+): void {
+  if (
+    node.type === 'link' ||
+    node.type === 'image' ||
+    node.type === 'definition'
+  )
+    node.url = relocatedUrl(node.url, active, node.type === 'image');
+  if (
+    node.type === 'definition' ||
+    node.type === 'linkReference' ||
+    node.type === 'imageReference'
+  ) {
+    node.identifier = referencePrefix + node.identifier;
+    node.label = node.identifier;
+    if (node.type !== 'definition') node.referenceType = 'full';
+  }
+}
+
+/** Serialize one rewritten node with its children, omitting the serializer's trailing newline. */
+function serializedNode(node: RewriteNode): string {
+  const content: RootContent =
+    node.type === 'definition' ? node : { type: 'paragraph', children: [node] };
+  return toMarkdown({ type: 'root', children: [content] }).trimEnd();
+}
+
+/** Create an edit only when the parser supplied both offsets into the original source. */
+function sourceEdit(node: RootContent, value: string): SourceEdit | undefined {
+  const start = node.position?.start.offset;
+  const end = node.position?.end.offset;
+  return start === undefined || end === undefined
+    ? undefined
+    : { start, end, value };
+}
+
+/** Reject relative raw-HTML references, which cannot be safely relocated as Markdown nodes. */
+function requireSupportedHtml(node: Root | RootContent, ruleId: string): void {
+  if (
+    node.type === 'html' &&
+    /\b(?:href|src)\s*=\s*["'](?![a-z][a-z0-9+.-]*:|\/\/)/iu.test(node.value)
+  )
+    invalid(
+      ruleId,
+      'use Markdown links for relative references so Builds can relocate them',
+    );
+}
+
+/** Rewrite children before parents and collect only outermost replacement spans; invalid references throw BuildError. */
+function collectRewrites(tree: Root, active: ActiveRule): Array<SourceEdit> {
+  const edits: Array<SourceEdit> = [];
+  // Aggregated rules share one reference namespace, so labels must include the source-qualified rule ID.
+  const referencePrefix = `code-rules-${encodeURIComponent(active.rule.id)}-`;
+  /** Visit in postorder; an ancestor's edit includes rewritten children, so child edits must not overlap it. */
+  function visit(node: Root | RootContent, ancestorOwnsEdit: boolean): void {
+    const rewritesNode = requiresRewrite(node);
+    if ('children' in node)
+      for (const child of node.children)
+        visit(child, ancestorOwnsEdit || rewritesNode);
+    if (rewritesNode) {
+      rewriteNode(node, active, referencePrefix);
+      if (!ancestorOwnsEdit) {
+        const edit = sourceEdit(node, serializedNode(node));
+        if (edit !== undefined) edits.push(edit);
+      }
+    }
+    requireSupportedHtml(node, active.rule.id);
+  }
+  visit(tree, false);
+  return edits;
+}
+
+/** Remove a first heading only when its plain text exactly matches the rule title. */
+function redundantTitleEdit(tree: Root, title: string): SourceEdit | undefined {
+  const first = tree.children[0];
+  if (
+    first?.type !== 'heading' ||
+    !first.children.every((child) => child.type === 'text')
+  )
+    return undefined;
+  const text = first.children
+    .map((child) => (child.type === 'text' ? child.value : ''))
+    .join('');
+  return text === title ? sourceEdit(first, '') : undefined;
+}
+
+/** Apply non-overlapping source spans right to left, preserving all untouched text and trimming outer whitespace. */
+function applySourceEdits(
+  body: string,
+  edits: ReadonlyArray<SourceEdit>,
+): string {
+  let result = body;
+  for (const edit of [...edits].sort((a, b) => b.start - a.start))
+    result = result.slice(0, edit.start) + edit.value + result.slice(edit.end);
+  return result.trim();
+}
+
 /**
  * Return a body with relocated links, namespaced references, and a matching leading title removed.
  * Trims outer whitespace while preserving text outside the rewritten nodes.
  * Throws an invalid-input BuildError for unsafe/missing local targets or relative links in raw HTML.
  */
-export function ruleBody(active: ActiveRule): string {
+function ruleBody(active: ActiveRule): string {
   const tree = fromMarkdown(active.rule.body);
-  const edits: Array<{ start: number; end: number; value: string }> = [];
-  // Reference labels share one Markdown document after aggregation, so each rule needs its own namespace.
-  const referencePrefix = `code-rules-${encodeURIComponent(active.rule.id)}-`;
-  function visit(node: Root | RootContent, captured = false): void {
-    const changed =
-      node.type === 'link' ||
-      node.type === 'image' ||
-      node.type === 'definition' ||
-      node.type === 'linkReference' ||
-      node.type === 'imageReference';
-    if ('children' in node)
-      for (const child of node.children) visit(child, captured || changed);
-    if (
-      node.type === 'link' ||
-      node.type === 'image' ||
-      node.type === 'definition'
-    ) {
-      node.url = relocatedUrl(node.url, active, node.type === 'image');
-    }
-    if (
-      node.type === 'definition' ||
-      node.type === 'linkReference' ||
-      node.type === 'imageReference'
-    ) {
-      node.identifier = referencePrefix + node.identifier;
-      node.label = node.identifier;
-      if (node.type !== 'definition') node.referenceType = 'full';
-    }
-    if (changed && !captured) {
-      const start = node.position?.start.offset;
-      const end = node.position?.end.offset;
-      if (start !== undefined && end !== undefined) {
-        // Capture a whole link so nested images are rewritten without overlapping edits.
-        if (
-          node.type === 'link' ||
-          node.type === 'image' ||
-          node.type === 'definition' ||
-          node.type === 'linkReference' ||
-          node.type === 'imageReference'
-        ) {
-          const content: RootContent =
-            node.type === 'definition'
-              ? node
-              : { type: 'paragraph', children: [node] };
-          edits.push({
-            start,
-            end,
-            value: toMarkdown({ type: 'root', children: [content] }).trimEnd(),
-          });
-        }
-      }
-    }
-    if (
-      node.type === 'html' &&
-      /\b(?:href|src)\s*=\s*["'](?![a-z][a-z0-9+.-]*:|\/\/)/iu.test(node.value)
-    ) {
-      invalid(
-        active.rule.id,
-        'use Markdown links for relative references so Builds can relocate them',
-      );
-    }
-  }
-  visit(tree);
-  const first = tree.children[0];
-  if (
-    first?.type === 'heading' &&
-    first.children.every((child) => child.type === 'text') &&
-    first.children
-      .map((child) => (child.type === 'text' ? child.value : ''))
-      .join('') === active.rule.title
-  ) {
-    const start = first.position?.start.offset;
-    const end = first.position?.end.offset;
-    if (start !== undefined && end !== undefined)
-      edits.push({ start, end, value: '' });
-  }
-  let result = active.rule.body;
-  for (const edit of edits.sort((a, b) => b.start - a.start)) {
-    result = result.slice(0, edit.start) + edit.value + result.slice(edit.end);
-  }
-  return result.trim();
+  const edits = collectRewrites(tree, active);
+  const titleEdit = redundantTitleEdit(tree, active.rule.title);
+  if (titleEdit !== undefined) edits.push(titleEdit);
+  return applySourceEdits(active.rule.body, edits);
 }
 
 /**

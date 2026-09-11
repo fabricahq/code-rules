@@ -13,6 +13,7 @@ const metadata = JSON.stringify({
   whenToRead: ['Changing behavior, including production code.'],
 });
 
+/** Create a complete Markdown rule with an optional body for public Builds tests. */
 function ruleText(
   title: string,
   body = 'Verify the retry limit before shipping.',
@@ -20,6 +21,7 @@ function ruleText(
   return `---\ntitle: ${title}\nimpact: HIGH\nimpactDescription: Prevent unbounded retries.\ntags: testing, retries\n---\n\n## ${title}\n\n${body}\n`;
 }
 
+/** Declare one imported testing group with source-scoped exceptions. */
 function source(
   repository: string,
   exclude: Record<string, string> = {},
@@ -28,6 +30,7 @@ function source(
   return { repository, ref: 'v1.0.0', groups: [group], exclude, replace };
 }
 
+/** Create a pinned library snapshot with optional files overriding the defaults. */
 function snapshot(
   repository: string,
   title: string,
@@ -47,6 +50,7 @@ function snapshot(
   };
 }
 
+/** Create two independent libraries sharing a testing group and rule path. */
 function input(): BuildInput {
   return {
     configuration: {
@@ -63,18 +67,38 @@ function input(): BuildInput {
   };
 }
 
+/** Read one generated file through Builds, failing when the expected path is absent. */
 function generated(build: BuildInput, path: string): string {
   const content = buildRules(build).files[path];
   if (content === undefined) throw new Error(`Expected generated ${path}`);
   return content;
 }
 
+/** Create a project with one local-only testing group and supplied definitions. */
 function localInput(localFiles: FileContents): BuildInput {
   return {
     configuration: { schemaVersion: 1, sources: {}, localGroups: [group] },
     snapshots: {},
     localFiles: { [`${group}/_group.json`]: metadata, ...localFiles },
     toolVersion: 'test',
+  };
+}
+
+/** Replace Fabrica's manifest and supplied files while retaining the standard two-library fixture. */
+function withLibraryManifest(
+  manifest: string,
+  libraryFiles: FileContents = {},
+): BuildInput {
+  const build = input();
+  return {
+    ...build,
+    snapshots: {
+      ...build.snapshots,
+      fabrica: snapshot('fabrica/rules', 'Licensed retries', {
+        ...libraryFiles,
+        'rule-library.json': manifest,
+      }),
+    },
   };
 }
 
@@ -254,6 +278,137 @@ describe('buildRules', () => {
     expect(output).toContain(`../../vendor/fabrica/${ruleId}.md#verification`);
     expect(output).toContain('Credit: original fixture author.');
   });
+
+  test('should record no license paths when the manifest omits licensing', () => {
+    const output = buildRules(withLibraryManifest('{"formatVersion":1}'));
+    const provenance: unknown = JSON.parse(
+      output.files['provenance.json'] ?? 'null',
+    );
+    expect(provenance).toMatchObject({
+      sources: expect.arrayContaining([
+        expect.objectContaining({ name: 'fabrica', licenseFiles: [] }),
+      ]),
+    });
+  });
+
+  test('should emit unique sorted license paths when declarations repeat or change order', () => {
+    /** Encode a supported manifest with the supplied notice order and a fixed license path. */
+    const manifest = (notices: ReadonlyArray<string>): string =>
+      JSON.stringify({
+        formatVersion: 1,
+        license: { file: 'LICENSE.md', notices },
+      });
+    const files = {
+      'LICENSE.md': '',
+      'A-NOTICE.txt': 'A',
+      'Z-NOTICE.txt': 'Z',
+    };
+    const first = withLibraryManifest(
+      manifest(['Z-NOTICE.txt', 'LICENSE.md', 'A-NOTICE.txt', 'A-NOTICE.txt']),
+      files,
+    );
+    const second = withLibraryManifest(
+      manifest(['A-NOTICE.txt', 'Z-NOTICE.txt']),
+      files,
+    );
+    const output = buildRules(first);
+    expect(output).toEqual(buildRules(second));
+    const provenance: unknown = JSON.parse(
+      output.files['provenance.json'] ?? 'null',
+    );
+    expect(provenance).toMatchObject({
+      sources: expect.arrayContaining([
+        expect.objectContaining({
+          name: 'fabrica',
+          licenseFiles: ['A-NOTICE.txt', 'LICENSE.md', 'Z-NOTICE.txt'],
+        }),
+      ]),
+    });
+  });
+
+  test.each([
+    {
+      name: 'invalid JSON',
+      manifest: '{',
+      location: 'fabrica/rule-library.json: invalid JSON',
+    },
+    {
+      name: 'non-object manifest',
+      manifest: 'null',
+      location: 'fabrica/rule-library.json: expected an object',
+    },
+    {
+      name: 'missing version',
+      manifest: '{}',
+      location: 'fabrica/rule-library.json: formatVersion',
+    },
+    {
+      name: 'unsupported version',
+      manifest: '{"formatVersion":2}',
+      location: 'fabrica/rule-library.json: formatVersion',
+    },
+    {
+      name: 'null license',
+      manifest: '{"formatVersion":1,"license":null}',
+      location: 'fabrica/rule-library.json: license',
+    },
+    {
+      name: 'missing license path',
+      manifest: '{"formatVersion":1,"license":{"notices":[]}}',
+      location: 'fabrica/rule-library.json: license.file',
+    },
+    {
+      name: 'escaping license path',
+      manifest:
+        '{"formatVersion":1,"license":{"file":"../LICENSE.md","notices":[]}}',
+      location: 'fabrica/rule-library.json: license.file',
+    },
+    {
+      name: 'missing notices',
+      manifest: '{"formatVersion":1,"license":{"file":"LICENSE.md"}}',
+      location: 'fabrica/rule-library.json: license.notices',
+    },
+    {
+      name: 'non-array notices',
+      manifest:
+        '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":"NOTICE.txt"}}',
+      location: 'fabrica/rule-library.json: license.notices',
+    },
+    {
+      name: 'non-string notice',
+      manifest:
+        '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":["NOTICE.txt",7]}}',
+      location: 'fabrica/rule-library.json: license.notices[1]',
+    },
+    {
+      name: 'blank notice',
+      manifest:
+        '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":["NOTICE.txt"," "]}}',
+      location: 'fabrica/rule-library.json: license.notices[1]',
+    },
+    {
+      name: 'escaping notice',
+      manifest:
+        '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":["NOTICE.txt","../other.txt"]}}',
+      location: 'fabrica/rule-library.json: license.notices[1]',
+    },
+    {
+      name: 'missing notice file',
+      manifest:
+        '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":["NOTICE.txt","MISSING.txt"]}}',
+      location:
+        'fabrica/rule-library.json: license.notices[1]: missing declared file "MISSING.txt"',
+    },
+  ])(
+    'should identify the manifest field when rejecting $name',
+    ({ manifest, location }) => {
+      const build = withLibraryManifest(manifest, {
+        'LICENSE.md': 'Terms',
+        'NOTICE.txt': 'Notice',
+      });
+      expect(() => buildRules(build)).toThrow(location);
+    },
+  );
 
   test('should relocate reference definitions and images while leaving fenced code unchanged', () => {
     const body =
@@ -580,4 +735,147 @@ describe('buildRules', () => {
       expect(error.message).toContain(`local:${ruleId}.md`);
     }
   });
+});
+
+/** Freeze nested fixture data so accidental mutations fail at the public Builds boundary. */
+function freezeInput(value: unknown): void {
+  if (value === null || typeof value !== 'object') return;
+  for (const child of Object.values(value)) freezeInput(child);
+  Object.freeze(value);
+}
+
+test('should build repeatedly without mutating frozen configuration or snapshots', () => {
+  const build = input();
+  const before = structuredClone(build);
+  freezeInput(build);
+  expect(buildRules(build)).toEqual(buildRules(build));
+  expect(build).toEqual(before);
+});
+
+test('should report duplicate repositories before an invalid ref on the same source', () => {
+  const build = input();
+  const configuration = {
+    schemaVersion: 1,
+    sources: {
+      acme: source('acme/rules'),
+      fabrica: { ...source('ACME/rules'), ref: 'bad ref' },
+    },
+    localGroups: [],
+  };
+  expect(() => buildRules({ ...build, configuration })).toThrow(
+    'sources.fabrica: repository ACME/rules is declared more than once',
+  );
+});
+
+test('should validate malformed excluded rules before applying exclusions', () => {
+  const build = input();
+  const excluded = {
+    ...build,
+    configuration: {
+      schemaVersion: 1,
+      sources: { fabrica: source('fabrica/rules', { [ruleId]: 'Unused' }) },
+      localGroups: [],
+    },
+    snapshots: {
+      fabrica: snapshot('fabrica/rules', 'Invalid', {
+        [`${ruleId}.md`]: 'missing frontmatter',
+      }),
+    },
+  };
+  expect(() => buildRules(excluded)).toThrow(
+    'expected YAML frontmatter followed by Markdown',
+  );
+});
+
+test('should preserve surrounding Markdown while relocating nested images and multiple links', () => {
+  const body =
+    'Keep  double spaces and **strong** text.\n\n[![icon](./icon.png)](./guide.md?mode=1#part) then [guide][doc].\n\n[doc]: ./guide.md#other\n\n```md\n[untouched](./missing.md)\n```';
+  const result = generated(
+    localInput({
+      [`${group}/sample.md`]: ruleText('Sample', body),
+      [`${group}/icon.png`]: 'image bytes',
+      [`${group}/guide.md`]: ruleText('Guide'),
+    }),
+    `${group}.md`,
+  );
+  expect(result).toContain('Keep  double spaces and **strong** text.');
+  expect(result).toContain(
+    `[![icon](../../local/${group}/icon.png)](../../local/${group}/guide.md?mode=1#part)`,
+  );
+  expect(result).toContain(`../../local/${group}/guide.md#other`);
+  expect(result).toContain('```md\n[untouched](./missing.md)\n```');
+});
+
+test.each([
+  { body: '[bad](./%GG)', message: 'invalid encoded link' },
+  {
+    body: '<a href="./file.md">file</a>',
+    message: 'use Markdown links for relative references',
+  },
+  { body: '[bad](./%5Cfile)', message: 'unsafe relative link' },
+])('should reject unsupported references: $message', ({ body, message }) => {
+  expect(() =>
+    buildRules(
+      localInput({ [`${group}/sample.md`]: ruleText('Sample', body) }),
+    ),
+  ).toThrow(message);
+});
+
+test('should reject YAML aliases through the public builder', () => {
+  const text = ruleText('Sample').replace(
+    'tags: testing, retries',
+    'attribution: &author Example\ntags: *author',
+  );
+  expect(() =>
+    buildRules(localInput({ [`${group}/sample.md`]: text })),
+  ).toThrow('YAML aliases are unsupported');
+});
+
+test.each([
+  {
+    change: { groups: ['practices/testing', 'invalid/group'] },
+    expected: 'sources.fabrica.groups[1]: invalid group ID',
+  },
+  {
+    change: {
+      replace: {
+        [ruleId]: { file: 'local/../outside.md', reason: 'Override' },
+      },
+    },
+    expected: `sources.fabrica.replace.${ruleId}.file: expected a contained relative path`,
+  },
+  {
+    change: {
+      replace: { [ruleId]: { file: 'elsewhere/rule.md', reason: 'Override' } },
+    },
+    expected: `sources.fabrica.replace.${ruleId}.file: replacement files must be under local/`,
+  },
+  {
+    change: { exclude: { 'wrong/group/rule': 'Unused' } },
+    expected: 'sources.fabrica.exclude.wrong/group/rule: invalid group ID',
+  },
+])(
+  'should retain the configuration field location: $expected',
+  ({ change, expected }) => {
+    const build = input();
+    const configuration = {
+      schemaVersion: 1,
+      sources: { fabrica: { ...source('fabrica/rules'), ...change } },
+      localGroups: [],
+    };
+    expect(() => buildRules({ ...build, configuration })).toThrow(expected);
+  },
+);
+
+test('should retain local group indices before output sorting', () => {
+  expect(() =>
+    buildRules({
+      ...input(),
+      configuration: {
+        schemaVersion: 1,
+        sources: {},
+        localGroups: ['techs/typescript', 'invalid/group'],
+      },
+    }),
+  ).toThrow('localGroups[1]: invalid group ID');
 });

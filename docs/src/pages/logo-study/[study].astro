@@ -2,24 +2,18 @@
 /** @fileoverview Renders a development-only logo comparison page with size samples and a background-theme toggle. */
 
 import '../../styles/custom.css';
-import { seededLogos, seed, mappingMethod } from '../../components/SeededLogoStudies';
+import { seed, mappingMethod } from '../../components/SeededLogoStudies';
 import { vectorLogos } from '../../components/VectorLogoStudies';
 import { socketLogos } from '../../components/SocketLogoStudies';
 import { smallLogos } from '../../components/SmallLogoStudies';
-import { tinkerLogos } from '../../components/TinkerLogoStudies';
+import { logoStudies, logoStudy } from '../../components/LogoStudy';
 import extrude from '../../assets/fabrica-logo-study/extrude.png';
 import sweep from '../../assets/fabrica-logo-study/sweep-refined.png';
 /** Return the five logo-study routes in development and no routes in production builds. */
 export function getStaticPaths() {
-  return import.meta.env.DEV ? [{ params: { study: 'seeded' } }, { params: { study: 'tinker' } }, { params: { study: 'small' } }, { params: { study: 'socket' } }, { params: { study: 'vector' } }] : [];
+  return import.meta.env.DEV ? logoStudies.map(({ id }) => ({ params: { study: id } })) : [];
 }
-const isVector = Astro.params.study === 'vector';
-const isSocket = Astro.params.study === 'socket';
-const isSmall = Astro.params.study === 'small' || isSocket || isVector;
-const isTinker = Astro.params.study === 'tinker' || isSmall;
-const title = isVector ? 'Less face. More character.' : isSocket ? 'A friendlier Socket.' : isSmall ? 'A cube that reads small.' : isTinker ? 'A little more Tinker.' : 'Ten different directions.';
-const original = seededLogos.find(item => item.id === 'tinker')!;
-const concepts = isVector ? vectorLogos.map(item => ({ ...item, combination: null })) : isSocket ? [{ ...smallLogos[0]!, name: 'Socket Original' }, ...socketLogos].map(item => ({ ...item, combination: null })) : isSmall ? [{ ...tinkerLogos[0]!, name: 'Previous Hex' }, ...smallLogos].map(item => ({ ...item, combination: null })) : isTinker ? [{ ...original, name: 'Tinker Original' }, ...tinkerLogos].map(item => ({ ...item, combination: null })) : seededLogos.map(item => ({ ...item, combination: item }));
+const study = logoStudy(Astro.params.study);
 const favorites = [
   { id: 'extrude', name: 'Extrude', description: 'Broad, folded bands.', src: extrude.src, scale: 125, position: '50% 50%' },
   { id: 'sweep', name: 'Sweep', description: 'Three tools turning together.', src: sweep.src, scale: 120, position: '50% 50%' },
@@ -27,28 +21,28 @@ const favorites = [
 ---
 <!doctype html>
 <html lang="en" data-theme="light">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /><title>Fabrica / {isVector ? "Small vector studies" : isSocket ? "Socket expressions" : isTinker ? "Tinker variations" : "Ten new directions"}</title></head>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /><title>Fabrica / {study.pageTitle}</title></head>
   <body>
     <header class="lab-header">
       <a class="home-link" href="/?variant=sweep"><span>Fabrica</span><span class="slash">/</span><strong>Logo study</strong></a>
       <button type="button" id="theme-toggle" aria-pressed="false">Dark background</button>
     </header>
     <main>
-      <div class="intro"><p class="eyebrow">{isVector ? 'FABRICA / FOUR SMALL MARKS' : isSocket ? 'SOCKET / THREE EXPRESSIONS' : isSmall ? 'TINKER / SMALL SIZE EXPLORATION' : isTinker ? 'TINKER / THREE VARIATIONS' : 'SEEDED EXPLORATION / TEN NEW CONCEPTS'}</p><h1>{title}</h1><p class="lead">{isVector ? 'Closed eyes, no smile. Four quieter expressions, drawn around the space available in a tiny header.' : isSocket ? 'Keep the cube. Give the little maker a warmer expression. The original stays here for comparison at the same sizes.' : isSmall ? 'Larger dots, simpler outlines. Compare each at 16px, 12px and 8px before judging it enlarged.' : isTinker ? 'The same curious workshop companion, with simpler geometry and more room to breathe at 16px.' : 'A wider search, from a pixel arch to a workshop creature. Your two favorites stay here as reference points.'}</p><a class="overview-link" href={isVector ? '/logo-study/socket/' : isSocket ? '/logo-study/vector/' : isSmall ? '/logo-study/socket/' : isTinker ? '/logo-study/small/' : '/logo-study/tinker/'}>{isVector ? '← Previous Socket expressions' : isSocket ? 'Explore four small vector marks ↗' : isSmall ? 'Explore friendlier Socket expressions ↗' : isTinker ? 'Explore smaller cube variations ↗' : 'Explore Tinker variations ↗'}</a></div>
-      {!isTinker && <section aria-labelledby="favorites-title" class="favorites-section">
+      <div class="intro"><p class="eyebrow">{study.eyebrow}</p><h1>{study.title}</h1><p class="lead">{study.description}</p><a class="overview-link" href={study.next.href}>{study.next.label}</a></div>
+      {study.showRecipe && <section aria-labelledby="favorites-title" class="favorites-section">
         <div class="section-heading"><h2 id="favorites-title">Your favorites so far</h2><span>Unchanged</span></div>
         <div class="favorites">
           {favorites.map(item => <a class="favorite" href={`/?variant=${item.id}`} style={`--mark: url("${item.src}"); --mask-scale: ${item.scale}%; --mask-position: ${item.position}; --mask-mode: ${item.id.startsWith('tinker-') ? 'luminance' : 'alpha'}; --small-ink: ${[...smallLogos, ...socketLogos, ...vectorLogos].some(logo => logo.id === item.id) ? 'var(--cr-ink)' : 'var(--cr-muted)'}`}><span class="mark medium" aria-hidden="true"></span><div><h3>{item.name}</h3><p>{item.description}</p></div><span class="arrow" aria-hidden="true">↗</span></a>)}
         </div>
       </section>}
-      {isVector && <div class="reference-strip" style={`--mark: url(${socketLogos[2]!.src}); --mask-scale: ${socketLogos[2]!.scale}%; --mask-position: ${socketLogos[2]!.position}; --mask-mode: luminance`}><span>Previous Beam</span>{[32,16,12,8].map(size => <span class="mark" style={`width:${size}px;height:${size}px`} aria-hidden="true"></span>)}<a href="/?variant=tinker-beam">Try original ↗</a></div>}
+      {study.reference && <div class="reference-strip" style={`--mark: url(${study.reference.src}); --mask-scale: ${study.reference.scale}%; --mask-position: ${study.reference.position}; --mask-mode: luminance`}><span>Previous Beam</span>{[32,16,12,8].map(size => <span class="mark" style={`width:${size}px;height:${size}px`} aria-hidden="true"></span>)}<a href="/?variant=tinker-beam">Try original ↗</a></div>}
       <section aria-labelledby="concepts-title">
-        <div class="section-heading"><h2 id="concepts-title">{isVector ? "Four new variations" : isTinker ? "Reference + three variations" : "The new concepts"}</h2><span>{isSmall ? '16px / 12px / 8px' : 'Large silhouette + actual 16px header mark'}</span></div>
+        <div class="section-heading"><h2 id="concepts-title">{study.sectionTitle}</h2><span>{study.smallSamples ? '16px / 12px / 8px' : 'Large silhouette + actual 16px header mark'}</span></div>
         <div class="concept-grid">
-          {concepts.map((item, index) => <article class="concept" style={`--mark: url("${item.src}"); --mask-scale: ${item.scale}%; --mask-position: ${item.position}; --mask-mode: ${item.id.startsWith('tinker-') ? 'luminance' : 'alpha'}; --small-ink: ${[...smallLogos, ...socketLogos, ...vectorLogos].some(logo => logo.id === item.id) ? 'var(--cr-ink)' : 'var(--cr-muted)'}`}>
+          {study.concepts.map((item, index) => <article class="concept" style={`--mark: url("${item.src}"); --mask-scale: ${item.scale}%; --mask-position: ${item.position}; --mask-mode: ${item.id.startsWith('tinker-') ? 'luminance' : 'alpha'}; --small-ink: ${[...smallLogos, ...socketLogos, ...vectorLogos].some(logo => logo.id === item.id) ? 'var(--cr-ink)' : 'var(--cr-muted)'}`}>
             <div class="card-heading"><span class="number">{String(index + 1).padStart(2, '0')}</span><h3>{item.name}</h3></div>
             <div class="art-stage"><span class="mark large" aria-hidden="true"></span><span class="reverse-sample"><span class="mark" aria-hidden="true"></span></span></div>
-            {isSmall && <div class="size-samples">{[16, 12, 8].map(size => <div><span class="mark" style={`width:${size}px;height:${size}px`} aria-hidden="true"></span><span>{size}px</span></div>)}</div>}
+            {study.smallSamples && <div class="size-samples">{[16, 12, 8].map(size => <div><span class="mark" style={`width:${size}px;height:${size}px`} aria-hidden="true"></span><span>{size}px</span></div>)}</div>}
             <div class="header-sample" aria-label={`${item.name} at 16 pixels`}><span class="mark tiny" aria-hidden="true"></span><span class="parent-name">Fabrica</span><span class="slash">/</span><strong>Code Rules</strong></div>
             <p class="description">{item.description}</p>
             {item.combination && <details><summary>Idea combination</summary><p>{item.combination.metaphor}<br /><span>+</span> {item.combination.form}<br /><span>+</span> {item.combination.character}</p><code>{item.combination.chunk}</code></details>}
@@ -56,8 +50,8 @@ const favorites = [
           </article>)}
         </div>
       </section>
-      {!isTinker && <details class="method"><summary>How the random seed shaped this round</summary><code class="seed">{seed}</code><p>{mappingMethod}</p><p>Each combination became an art direction, then a generated image. The mapping is repeatable; image generation is not deterministic. All marks share one finishing cue: an unexpected offset.</p></details>}
-      {isSmall && <p class="size-note">At a 16px header size, 75% zoom leaves 12px and 50% leaves 8px. The new marks also use stronger contrast. These samples show those dimensions; the docs preview also lets you scale the full header branding.</p>}
+      {study.showRecipe && <details class="method"><summary>How the random seed shaped this round</summary><code class="seed">{seed}</code><p>{mappingMethod}</p><p>Each combination became an art direction, then a generated image. The mapping is repeatable; image generation is not deterministic. All marks share one finishing cue: an unexpected offset.</p></details>}
+      {study.smallSamples && <p class="size-note">At a 16px header size, 75% zoom leaves 12px and 50% leaves 8px. The new marks also use stronger contrast. These samples show those dimensions; the docs preview also lets you scale the full header branding.</p>}
       <footer>Temporary exploration. No logo has final approval.</footer>
     </main>
     <script>
