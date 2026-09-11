@@ -1,0 +1,140 @@
+# Walk through rule applicability indexes
+
+Explore the Builds deliverable in [PR #3](https://github.com/fabricahq/code-rules/pull/3) through one retry-client example. Allow about 10 minutes. Each button runs the real builder with illustrative library data.
+
+You will follow the same path an agent follows: **choose groups, scan rule applicability, then read the full rules**. You can repeat the chapters independently. Results appear in the **Files** panel, with a separate folder for each experiment.
+
+## 1. Generate the deliverable
+
+Start this runbook from the Code Rules checkout containing this PR, after `bun install --frozen-lockfile`. The commands below use that checkout as their working directory. They generate local examples; no library is fetched. The Code Rules CLI and workspace installer are still planned work.
+
+<Check
+  id="prerequisites"
+  command="bun --version && test -f tests/manual/applicability-walkthrough.ts && test -d node_modules"
+  title="Check the walkthrough prerequisites"
+  successMessage="Bun, the walkthrough, and dependencies are available."
+  failMessage="From this PR's checkout root, install dependencies with bun install --frozen-lockfile, then launch the runbook using the README command."
+/>
+
+<Command
+  id="build-example"
+  command="bun tests/manual/applicability-walkthrough.ts build"
+  title="Generate the example rule files"
+  description="Builds indexes and complete definitions, then checks exclusions, the local addition, and the replacement."
+  successMessage="Open 01-deliverable in the Files panel."
+/>
+
+Open these files under `01-deliverable` in order. The paths below are relative to that folder:
+
+| Open | What to notice |
+| --- | --- |
+| `generated/RULES.md` | The root index describes when each technology or practice group matters. |
+| `generated/practices/testing.md` | Each active rule has an ID, title, impact, when-to-read description, and relative link. Its full body lives elsewhere. |
+| `generated/rules/example/practices/testing/verify-retries.md` | The effective rule says exactly three attempts and retains the upstream ID. |
+| `config.json` | The project excludes the backoff rule and replaces the retry-limit rule. |
+| `generated/provenance.json` | Replacement origin, upstream origin, and local additions remain traceable. |
+
+The testing index should contain **two** rules: the project retry budget and stopping after success. The excluded backoff rule has no generated definition. Upstream repository names and commits are illustrative, so their GitHub links are not live library sources.
+
+## 2. Try implementation and review
+
+Choose a situation and click **Submit**, then run the walkthrough. Change the selection and run it again to compare both situations.
+
+<Inputs id="scenario">
+
+```yaml
+variables:
+  - name: Situation
+    type: enum
+    description: Which task is the agent doing?
+    options:
+      - Before writing code
+      - Reviewing changed behavior
+    default: Before writing code
+```
+
+</Inputs>
+
+<Command
+  id="explore-scenario"
+  inputsId="scenario"
+  command='bun tests/manual/applicability-walkthrough.ts scenario {{ if eq .inputs.Situation "Before writing code" }}implementation{{ else }}validation{{ end }}'
+  title="Walk through the selected situation"
+  successMessage="Read the explanation below or open START-HERE.md in the new 02 folder."
+/>
+
+Before writing code, TypeScript, testing, and code-design rules all matter. A rule whose trigger only describes an existing defect would be easy to miss at this stage.
+
+During review, a change from three attempts to five makes the testing rule relevant even if no test file changed. Read the full replacement to establish the actual requirement. Reading a design rule, or counting helpers, does not establish a design violation.
+
+## 3. Make pagination visible
+
+This experiment builds a larger group with **40 illustrative rules**. Choose a budget, submit it, and generate. Try **Small** after **Default** to see the same rules delivered through numbered parts.
+
+<Inputs id="pagination">
+
+```yaml
+variables:
+  - name: Budget
+    type: enum
+    description: Maximum UTF-8 bytes per generated index page
+    options:
+      - Default (24 KiB)
+      - Small (2000 bytes)
+      - Too small (100 bytes)
+    default: Small (2000 bytes)
+```
+
+</Inputs>
+
+<Command
+  id="explore-budget"
+  inputsId="pagination"
+  command='bun tests/manual/applicability-walkthrough.ts budget {{ if eq .inputs.Budget "Default (24 KiB)" }}default{{ else if eq .inputs.Budget "Small (2000 bytes)" }}small{{ else }}tiny{{ end }}'
+  title="Build with this index budget"
+  successMessage="The selected behavior was verified. Open the new 03 folder for its result."
+/>
+
+For Default or Small, open `SIZES.md`, then `generated/practices/testing.md` in the corresponding `03-budget` folder. A split index lists every numbered part. Each part contains complete entries and links back to the directory; all 40 full definitions remain available.
+
+Too small demonstrates an **expected refusal**. The button succeeds when it confirms that Builds rejects the request. It does not mean a 100-byte build succeeded. This experiment returns no partial build output.
+
+## 4. Author a discoverable rule
+
+<Command
+  id="inspect-authoring"
+  command="bun tests/manual/applicability-walkthrough.ts authoring"
+  title="Open the shared rubric and example rule"
+  successMessage="Open the two files under 04-authoring."
+/>
+
+The canonical authoring document supplies one flexible template for technology and practice rules. The example uses a broad activity trigger and a precise obligation:
+
+| Question | Where the answer belongs |
+| --- | --- |
+| Is this relevant before I write code, or during review? | Required `whenToRead` metadata. For example: when planning, writing, changing, or reviewing an operation that coordinates several steps. |
+| How do I implement it? | Useful choices, steps, and examples in the body. A separate Implementation heading is optional. |
+| What would demonstrate compliance or a violation? | Observable evidence and boundaries in the body. A separate Validation heading is optional. |
+
+For the retry-stage rule, understandable inline steps can comply. Extracting helpers merely to shorten a function is not the requirement. Authors should consider implementation and validation separately, while avoiding sections that repeat what the obligation already says.
+
+<Check
+  id="reject-missing-metadata"
+  command="bun tests/manual/applicability-walkthrough.ts metadata"
+  title="Verify that missing whenToRead is rejected"
+  description="Removes metadata in memory from an example source rule that has a local replacement, then checks the error."
+  successMessage="Builds rejected the invalid source rule, including though it was replaced."
+  failMessage="The expected metadata validation did not occur; inspect the output."
+/>
+
+Existing source snapshots and local rules need rule-level `whenToRead` before rebuilding. Group-level selection hints do not satisfy this requirement.
+
+## 5. Review the result
+
+You have inspected real output for group discovery, rule selection, replacements, exclusions, local additions, bounded index pages, and authoring guidance.
+
+The walkthrough's assertions establish file behavior. The implementation and review chapters explain how an agent should use those files; they do not prove that an agent will select every relevant rule or comply with it.
+
+The complete repository gate is `bun run check`. The focused walkthrough test is `runbooks test tests/manual/runbooks/applicability-index`. Imports fetching, workspace installation and stale-file removal, the CLI, and private-library migration remain separate work.
+
+Runbook format: [Gruntwork Command blocks](https://runbooks.gruntwork.io/authoring/blocks/command/), [Inputs](https://runbooks.gruntwork.io/authoring/blocks/inputs/), and [runbook tests](https://runbooks.gruntwork.io/authoring/testing/).

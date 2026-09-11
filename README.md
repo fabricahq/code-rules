@@ -54,3 +54,23 @@ After running it:
 Source repository names and commits are illustrative, so upstream GitHub links do not point to a real fixture library.
 The temporary workspace remains available after the script exits.
 Automated behavior checks remain in `src/builds/build.test.ts`.
+
+### Interactive walkthrough
+
+The [applicability-index runbook](tests/manual/runbooks/applicability-index/runbook.mdx) walks through the same example in [Gruntwork Runbooks](https://runbooks.gruntwork.io/).
+It includes implementation and review scenarios, a configurable pagination demonstration, and the shared authoring rubric.
+With Runbooks installed, launch it from this checkout's root after installing dependencies:
+
+```sh
+runbooks open tests/manual/runbooks/applicability-index --working-dir . --output-path .runbook-output/interactive
+```
+
+The buttons run the real builder and put inspectable files in the Runbooks Files panel.
+Examples are written under the ignored `.runbook-output/` directory; library names and source commits remain illustrative.
+The runbook requires this full checkout and its dependencies, so use the local command above instead of opening the runbook directory as a remote URL.
+
+Validate every walkthrough choice with Runbooks installed:
+
+```sh
+runbooks test tests/manual/runbooks/applicability-index
+```

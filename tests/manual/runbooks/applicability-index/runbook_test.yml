@@ -1,0 +1,56 @@
+version: 1
+settings:
+  use_temp_working_dir: false
+  working_dir: ../../../..
+  output_path: .runbook-output/test
+  timeout: 2m
+  parallelizable: false
+tests:
+  - name: complete-walkthrough
+    inputs:
+      scenario.Situation: Before writing code
+      pagination.Budget: Small (2000 bytes)
+    steps:
+      - block: prerequisites
+      - block: build-example
+      - block: explore-scenario
+      - block: explore-budget
+      - block: inspect-authoring
+      - block: reject-missing-metadata
+    assertions:
+      - type: file_contains
+        path: 01-deliverable/generated/practices/testing.md
+        contains: Verify the project retry budget
+      - type: file_not_exists
+        path: 01-deliverable/generated/rules/example/practices/testing/legacy-backoff.md
+      - type: file_contains
+        path: 02-implementation/START-HERE.md
+        contains: No function exists yet.
+      - type: file_exists
+        path: 03-budget-small/generated/practices/testing.part-1.md
+      - type: file_contains
+        path: 04-authoring/rule-rubric-and-template.md
+        contains: Every author considers three questions separately
+  - name: review-and-default-budget
+    inputs:
+      scenario.Situation: Reviewing changed behavior
+      pagination.Budget: Default (24 KiB)
+    steps:
+      - block: explore-scenario
+      - block: explore-budget
+    assertions:
+      - type: file_contains
+        path: 02-validation/START-HERE.md
+        contains: No test file changed.
+      - type: file_contains
+        path: 03-budget-default/SIZES.md
+        contains: 40 full definitions, 0 numbered index parts.
+  - name: expected-budget-refusal
+    inputs:
+      pagination.Budget: Too small (100 bytes)
+    steps:
+      - block: explore-budget
+    assertions:
+      - type: file_contains
+        path: 03-budget-tiny/RESULT.md
+        contains: No build output is returned.
