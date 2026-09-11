@@ -28,7 +28,7 @@ Open these files under `01-deliverable` in order. The paths below are relative t
 
 | Open | What to notice |
 | --- | --- |
-| `generated/RULES.md` | The root index describes when each technology or practice group matters. |
+| `generated/RULES.md` | Each group has an explicit **When to read this group** cue and a **Next** instruction pointing you to its rule index. |
 | `generated/practices/testing.md` | Each active rule has an ID, title, impact, when-to-read description, and relative link. Its full body lives elsewhere. |
 | `generated/rules/example/practices/testing/verify-retries.md` | The effective rule says exactly three attempts and retains the upstream ID. |
 | `config.json` | The project excludes the backoff rule and replaces the retry-limit rule. |
@@ -117,6 +117,8 @@ The canonical authoring document supplies one flexible template for technology a
 | What would demonstrate compliance or a violation? | Observable evidence and boundaries in the body. A separate Validation heading is optional. |
 
 For the retry-stage rule, understandable inline steps can comply. Extracting helpers merely to shorten a function is not the requirement. Authors should consider implementation and validation separately, while avoiding sections that repeat what the obligation already says.
+
+Open `name-retry-stages.md` to compare its three parts: `whenToRead` triggers reading before code exists; Implementation explains when to extract details; Validation identifies evidence and exceptions.
 
 <Check
   id="reject-missing-metadata"

@@ -8,8 +8,12 @@ function exampleRule(
   obligation: string,
   whenToRead = 'When planning, implementing, or reviewing retry behavior.',
   validation = 'Check the retry count and final result with a deterministic test.',
+  implementation?: string,
 ): string {
-  return `---\ntitle: ${title}\nwhenToRead: ${whenToRead}\nimpact: HIGH\nimpactDescription: Catch retry failures before they reach users.\ntags: testing, retries\n---\n\n## ${title}\n\n${obligation}\n\n### Validation\n\n${validation}\n`;
+  const implementationSection = implementation
+    ? `\n\n### Implementation\n\n${implementation}`
+    : '';
+  return `---\ntitle: ${title}\nwhenToRead: ${whenToRead}\nimpact: HIGH\nimpactDescription: Catch retry failures before they reach users.\ntags: testing, retries\n---\n\n## ${title}\n\n${obligation}${implementationSection}\n\n### Validation\n\n${validation}\n`;
 }
 
 const group = 'practices/testing';
@@ -42,14 +46,15 @@ const otherRules = {
     name: 'Code design',
     description: 'Keep multi-step operations understandable.',
     whenToRead: [
-      'Planning, writing, or reviewing a function that coordinates several steps.',
+      'Before planning, writing, changing, or reviewing a function that coordinates multiple steps, such as parsing input, validating it, calling another operation, or constructing a result.',
     ],
   }),
   [`${designGroup}/name-retry-stages.md`]: exampleRule(
     'Name the retry stages',
-    'Make request execution, retry decisions, and final results recognizable as separate steps. Inline steps can comply when their purpose is clear.',
+    'Make request execution, retry decisions, and final results recognizable as separate steps.',
     'When planning, writing, changing, or reviewing an operation that coordinates several steps.',
-    'Read the operation in order. Identify any stage whose purpose is obscured; helper count alone is insufficient evidence.',
+    'Read the operation in order and identify any stage whose purpose is obscured. A short, cohesive function does not need extraction merely to become smaller; helper count alone is insufficient evidence of a violation.',
+    'Make each step understandable. Extract parsing, validation, or result construction when those details obscure the operation. Keep cohesive inline steps when their purpose is already clear.',
   ),
   [`${unrelatedGroup}/_group.json`]: JSON.stringify({
     name: 'Go',

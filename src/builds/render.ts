@@ -18,11 +18,15 @@ function groupEntry(group: Group): string {
     sections.push(
       `**${guidance.source}: ${escapeText(guidance.metadata.name)}**`,
       escapeText(guidance.metadata.description),
+      '**When to read this group:**',
       ...guidance.metadata.whenToRead.map(
         (reason) => `- ${escapeText(reason)}`,
       ),
     );
   }
+  sections.push(
+    "**Next:** Open this group's index to select relevant rules and read their full guidance.",
+  );
   return sections.join('\n\n');
 }
 
