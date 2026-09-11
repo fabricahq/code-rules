@@ -1,7 +1,7 @@
 # Imports implementation plan
 
 Status: approved implementation plan for the second subsystem, following [Builds](builds.md).
-This plan describes the next implementation PR; Imports does not exist yet.
+This plan records the approved scope of the Imports implementation PR.
 
 ## Outcome
 
@@ -139,7 +139,7 @@ Do not recurse into submodules or download Git LFS objects; report unsupported s
 
 Apply contained-path validation before returning files, including reserved metadata paths and paths that collide on the supported filesystem.
 Bound fetch duration, tree size, file count, and retained bytes; expose named limits and test their failure behavior.
-Choose the concrete limits against the manual fixtures and document them before merging.
+Use a 120-second deadline, 10,000 tree entries, an 8 MiB tree listing, 8 MiB per retained file, and 64 MiB retained per library.
 Cancellation or failure must terminate child processes and remove temporary repositories.
 
 ## Implementation sequence
@@ -220,6 +220,7 @@ The manual scenario uses temporary Git repositories and isolated environment-bas
 A public example library remains an optional network smoke test.
 
 Read blobs through Git's batch protocol and check declared sizes before retaining content.
+Use one batch process per dependency wave; recursive discovery does not require a long-lived mutable subprocess interface.
 Use separate limits for retained data and subprocess output.
 A shallow fetch can still download a large tree; post-fetch blob limits do not bound network traffic or Git's temporary disk usage.
 Cancellation and all failures share process termination and temporary-directory cleanup.

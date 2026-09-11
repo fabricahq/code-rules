@@ -59,7 +59,7 @@ Before adapting material from a book, article, or another library, establish the
 
 ## What imports preserve
 
-The planned import workflow copies license and declared notice files from the same resolved commit as the rules.
+Imports copies license and declared notice files from the same resolved commit as the rules.
 The offline builder accepts preassembled snapshots and checks that declared files are present.
 It returns unchanged license and notice copies at generated paths, but does not fetch source files or write them to disk.
 The consuming workspace will retain them alongside the imported rules:
@@ -130,7 +130,6 @@ Private libraries can document internal permissions without adopting a public li
 The builder validates declared paths, preserves text and notices, records provenance, and constructs links to the retained files.
 It rejects unsafe or unresolved local Markdown references, but does not check whether external URLs are reachable.
 It cannot establish ownership, decide legal compatibility, or certify that the chosen terms permit a consumer's intended use.
-The offline generator validates declarations and emits this provenance today. Automated downloading, snapshot installation, and update reporting remain part of the proposed importer design.
-
+Imports implements file preservation; Workspace installation, update reporting, and offline integrity checks remain proposed.
 
 For source material that does not use this format, follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules). Keep a separate adapted definition with its source citation and retained terms; do not relabel edited content as an unchanged upstream snapshot.

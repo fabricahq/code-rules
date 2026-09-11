@@ -1,6 +1,7 @@
 /** @fileoverview Interprets project configuration and source-scoped exception policies in deterministic validation order. */
 
 import type {
+  LibraryRef,
   ProjectConfig,
   RuleReplacement,
   LibrarySource,
@@ -49,15 +50,25 @@ function sourceRepository(
   return repository;
 }
 
-/** Validate offline ref syntax without resolving it; reject abbreviated-commit-shaped bare tags. */
-function sourceRef(value: unknown, where: string): string {
-  const ref = nonempty(value, `${where}.ref`);
+/** Classify a full commit or exact tag, rejecting invalid Git ref components without I/O. */
+function sourceRef(ref: string, where: string): LibraryRef {
+  if (/^[a-f0-9]{40}$/iu.test(ref))
+    return { kind: 'commit', sha: ref.toLowerCase() };
+  const tag = ref.startsWith('refs/tags/') ? ref.slice(10) : ref;
   if (
-    /\s|[~^:?*\[\\]|\.\.|@\{|\/$|\.$|\.lock$|^refs\/(?!tags\/)/u.test(ref) ||
-    ref === '@' ||
-    ref.startsWith('-') ||
-    ref.endsWith('/') ||
-    ref === 'refs/tags/'
+    /[\x00-\x20\x7f~^:?*\[\\]|\.\.|@\{/u.test(tag) ||
+    tag === '@' ||
+    tag.startsWith('-') ||
+    (ref.startsWith('refs/') && !ref.startsWith('refs/tags/')) ||
+    tag
+      .split('/')
+      .some(
+        (part) =>
+          !part ||
+          part.startsWith('.') ||
+          part.endsWith('.lock') ||
+          part.endsWith('.'),
+      )
   )
     return invalid(
       `${where}.ref`,
@@ -68,7 +79,7 @@ function sourceRef(value: unknown, where: string): string {
       `${where}.ref`,
       'abbreviated commits are unsupported; use a full SHA or refs/tags/<name>',
     );
-  return ref;
+  return { kind: 'tag', name: `refs/tags/${tag}` };
 }
 
 /** Read nonempty exclusion reasons in sorted rule-ID order. */
@@ -152,7 +163,8 @@ function sourceConfiguration(
     where,
     repositories,
   );
-  const ref = sourceRef(field(source, 'ref'), where);
+  const ref = nonempty(field(source, 'ref'), `${where}.ref`);
+  const parsedRef = sourceRef(ref, where);
   const requestedGroups = field(source, 'groups');
   const groups =
     requestedGroups === '*' ||
@@ -168,7 +180,7 @@ function sourceConfiguration(
     if (exclude.has(id) && replace.has(id))
       return invalid(`${where}:${id}`, 'rule is both excluded and replaced');
   }
-  return { name, repository, ref, groups, exclude, replace };
+  return { name, repository, ref, parsedRef, groups, exclude, replace };
 }
 
 /**

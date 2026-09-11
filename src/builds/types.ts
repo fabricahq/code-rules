@@ -29,6 +29,8 @@ export type LibrarySnapshot = {
   /** Original selection intent; pattern snapshots must declare completeness within their selected scope. Omitted legacy values mean the concrete groups list. */
   readonly groupSelection?: GroupSelection;
   readonly files: FileContents;
+  /** All retained file paths, including binary attachments; omitted inventories use the text keys. */
+  readonly filePaths?: ReadonlyArray<string>;
 };
 
 /** In-memory configuration, source snapshots keyed by alias, and local files rooted at local/; the builder validates their relationships. */
@@ -88,6 +90,7 @@ export type ActiveRule = {
   readonly reason: string | null;
   readonly licenses: ReadonlyArray<LicenseDeclaration>;
   readonly sourceFiles: ReadonlyMap<string, string>;
+  readonly sourcePaths: ReadonlySet<string>;
 };
 /** Resolved collection combining source-labeled selection guidance and active rules for one group ID. */
 export type Group = {

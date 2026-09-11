@@ -11,24 +11,24 @@ Configuration and authored JSON/YAML metadata are validated before rules are com
 All source groups remain independent until explicit exclusions and replacements determine the active rules.
 Output ordering, provenance, and relocated Markdown links must be deterministic.
 
-Imports will fetch libraries and establish snapshot identity.
+Imports fetches libraries and establishes snapshot identity.
 Workspace will load files, verify recorded digests and filesystem containment, detect concurrent changes, and safely install or compare results.
 Builds checks snapshot identity against configuration but cannot authenticate caller-supplied content or identify symlinks from a string map.
-The CLI and both other subsystems remain unimplemented.
+Workspace and the CLI remain unimplemented.
 
 ## Internal operations
 
 `build.ts` coordinates configuration validation, rule resolution, and generated-file rendering.
 Keep `index.ts` as the caller-facing interface; the modules below are implementation details.
 
-- `configuration.ts` interprets source selections and exception declarations, retaining field locations in diagnostics.
+- `../configuration.ts` interprets source selections and exception declarations, retaining field locations in diagnostics.
 - `resolve.ts` validates snapshots and resolves imported, replaced, and local definitions into groups.
   Each active rule is stored in its group once; provenance derives its rule list from those groups.
 - `render.ts` builds the root index, adaptive group pages, individual effective definitions, library READMEs, and provenance without mutating resolved groups.
 - `index-pages.ts` splits oversized indexes at entry boundaries and checks every output page against its UTF-8 byte budget.
 - `rule-document.ts` validates YAML and rule metadata while retaining the original frontmatter and body text.
 - `rule-attribution.ts` validates optional external attribution entries.
-- `library-licenses.ts` validates library-wide SPDX declarations and verifies the declared files exist.
+- `../formats/manifest.ts` validates library-wide SPDX declarations and verifies the declared files exist.
 - `license-output.ts` maps source license and notice files to fixed paths under `generated/libraries/<source>/licenses/` and preserves their contents.
 - `markdown.ts` relocates references and renders active definitions.
   Its rewrite traversal edits children before serializing their owning outer node, then applies non-overlapping source edits from right to left.
@@ -70,7 +70,9 @@ App-specific React, Wails, and logger requirements do not apply to this offline 
 ## Initial implementation limits
 
 The snapshot envelope is an internal Builds interface, not a finalized `_source.json` wire format.
-Source maps contain UTF-8 text; Imports and Workspace will own copying binary attachments.
+Snapshot `files` contains UTF-8 text; optional `filePaths` lists all retained files, including binary attachments.
+Builds uses the inventory for declared-license checks and Markdown links and rejects inventories that omit supplied text or hide selected rule text.
+Imports preserves original file bytes; Workspace will own installing and verifying them.
 The Markdown renderer relocates standard Markdown links, images, and reference definitions while preserving unrelated body text.
 Relative links in raw HTML are rejected with an instruction to use Markdown syntax.
 Per-rule attribution and extra frontmatter are retained; library license files must be present when declared.

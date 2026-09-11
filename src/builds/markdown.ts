@@ -1,6 +1,7 @@
 /** @fileoverview Renders active rules with source-aware links for individual generated files. */
 
 import { posix } from 'node:path';
+import { relativeTarget } from '../formats/markdown-links';
 import { licenseFileMappings, licenseOutputPaths } from './license-output';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toMarkdown } from 'mdast-util-to-markdown';
@@ -42,40 +43,15 @@ function relocatedUrl(
   image: boolean,
   outputPath: string,
 ): string {
-  // External references and schemes retain their author's meaning.
-  if (
-    /^[a-z][a-z0-9+.-]*:/iu.test(url) ||
-    url.startsWith('//') ||
-    url.startsWith('#')
-  )
-    return url;
-  const split = /^([^?#]*)([\s\S]*)$/u.exec(url);
-  const pathname = split?.[1] ?? '';
-  const suffix = split?.[2] ?? '';
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(pathname);
-  } catch {
-    return invalid(active.rule.id, `invalid encoded link ${url}`);
-  }
-  if (/[\\\x00-\x1f]/u.test(decoded))
-    return invalid(active.rule.id, `unsafe relative link ${url}`);
-  const target =
-    decoded === ''
-      ? active.origin.file
-      : posix.normalize(
-          decoded.startsWith('/')
-            ? decoded.slice(1)
-            : posix.join(posix.dirname(active.origin.file), decoded),
-        );
-  if (target === '..' || target.startsWith('../'))
-    return invalid(active.rule.id, `link escapes source root: ${url}`);
+  const link = relativeTarget(url, active.origin.file, active.rule.id);
+  if (link === null) return url;
+  const { target, suffix } = link;
   const licenseFile = active.licenses
     .flatMap((license) => licenseFileMappings(active.origin.source, license))
     .find((file) => file.sourcePath === target);
   if (licenseFile !== undefined)
     return `${encodedPath(posix.relative(posix.dirname(outputPath), licenseFile.generatedPath))}${suffix}`;
-  if (active.sourceFiles.has(target)) {
+  if (active.sourcePaths.has(target)) {
     const base =
       active.origin.source === 'local'
         ? 'local'

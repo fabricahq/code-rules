@@ -23,8 +23,8 @@ The shared authoring rubric and template are also available.
 Try the [development example](/guides/use-rules/#try-the-working-builder) or read the [offline API contract](/reference/files/#offline-builder-api).
 Automated tests exercise both rule-delivery formats, licenses, and group selectors.
 
-[Imports PR #2](https://github.com/fabricahq/code-rules/pull/2) covers network fetching and Git repository URL handling.
-They are not part of this checkout's offline builder.
+The `importLibraries` API fetches exact commits or tags from Git libraries and returns original bytes plus snapshots for `buildRules`.
+Imports requires macOS or Linux and Git 2.30 or later. It preserves selected rules, relative Markdown dependencies, and declared license files without installing a consuming workspace.
 Workspace installation, digest verification, generated-file consistency checks, CLI commands, and the installable authoring skill remain planned.
 
 ## What is settled
@@ -52,7 +52,7 @@ They are not installation instructions for a published package.
 
 The first release will import multiple named libraries directly into a project. Each source has its own commit-or-tag ref, group selection, and exceptions.
 The initial proof uses original example rules, local exceptions, and generated files that a person can inspect.
-Reliable imports and a private-project pilot follow that proof.
+Workspace installation and a private-project pilot follow that proof.
 
 The final implementation phase standardizes library authoring with `library init`, `library add group`, `library add rule`, and `library check`.
 It includes the authoring skill's adaptation workflow and a walkthrough from an empty library to importable rules with retained terms.

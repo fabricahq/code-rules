@@ -98,11 +98,11 @@ function licenseFields(
 
 /** Throw ValidationError at the first declaration whose path is absent from the snapshot; empty files count as present. */
 function requireDeclaredFiles(
-  sourceFiles: ReadonlyMap<string, string>,
+  sourcePaths: ReadonlySet<string>,
   declarations: ReadonlyArray<DeclaredPath>,
 ): void {
   for (const { path, location } of declarations) {
-    if (!sourceFiles.has(path)) {
+    if (!sourcePaths.has(path)) {
       invalid(location, `missing declared file ${JSON.stringify(path)}`);
     }
   }
@@ -116,11 +116,12 @@ function requireDeclaredFiles(
 export function readLibraryLicenses(
   sourceFiles: ReadonlyMap<string, string>,
   sourceName: string,
+  sourcePaths: ReadonlySet<string> = new Set(sourceFiles.keys()),
 ): ReadonlyArray<LicenseDeclaration> {
   const manifest = libraryManifest(sourceFiles, sourceName);
   const fields = licenseFields(manifest, sourceName);
   if (fields === null) return [];
-  requireDeclaredFiles(sourceFiles, [fields.file, ...fields.notices]);
+  requireDeclaredFiles(sourcePaths, [fields.file, ...fields.notices]);
   return [normalizedLicense(fields)];
 }
 
@@ -175,4 +176,15 @@ export function licensePaths(
       ]),
     ),
   ].sort(compare);
+}
+
+/** Validate the library declaration and return unique retained license paths in code-unit order. */
+export function collectLibraryLicensePaths(
+  sourceFiles: ReadonlyMap<string, string>,
+  sourceName: string,
+  sourcePaths: ReadonlySet<string> = new Set(sourceFiles.keys()),
+): ReadonlyArray<string> {
+  return licensePaths(
+    readLibraryLicenses(sourceFiles, sourceName, sourcePaths),
+  );
 }

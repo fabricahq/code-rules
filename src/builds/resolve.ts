@@ -26,6 +26,7 @@ import {
   requiredFile,
   ruleGroup,
   groupId,
+  relativePath,
   strings,
 } from './validation';
 import { generatedLicenseFiles } from './license-output';
@@ -43,6 +44,7 @@ type SelectedLibrary = {
   source: ExpandedLibrarySource;
   snapshot: LibrarySnapshot;
   files: ReadonlyMap<string, string>;
+  paths: ReadonlySet<string>;
   licenses: ReadonlyArray<LicenseDeclaration>;
   licenseFiles: ReadonlyArray<string>;
   guidance: ReadonlyArray<{ id: string; metadata: GroupMetadata }>;
@@ -123,8 +125,8 @@ function snapshotFor(
   if (!/^[a-f0-9]{40}$/iu.test(snapshot.resolvedCommit))
     return invalid(source.name, 'resolvedCommit must be a full commit SHA');
   if (
-    /^[a-f0-9]{40}$/iu.test(source.ref) &&
-    source.ref.toLowerCase() !== snapshot.resolvedCommit.toLowerCase()
+    source.parsedRef.kind === 'commit' &&
+    source.parsedRef.sha !== snapshot.resolvedCommit.toLowerCase()
   ) {
     throw new BuildError(
       'needs-sync',
@@ -220,8 +222,30 @@ function selectedLibrary(
   snapshot: LibrarySnapshot,
 ): SelectedLibrary {
   const sourceFiles = files(snapshot.files, source.name);
-  const licenses = readLibraryLicenses(sourceFiles, source.name);
+  const paths = new Set(
+    snapshot.filePaths === undefined
+      ? sourceFiles.keys()
+      : strings(snapshot.filePaths, `${source.name}.filePaths`),
+  );
+  for (const path of paths) relativePath(path, source.name);
+  for (const path of sourceFiles.keys()) {
+    if (!paths.has(path))
+      invalid(source.name, `text file missing from inventory: ${path}`);
+  }
+  const licenses = readLibraryLicenses(sourceFiles, source.name, paths);
   const licenseFiles = licensePaths(licenses);
+  for (const path of paths) {
+    if (
+      (typeof source.groups === 'string'
+        ? matchesGroupPattern(path, source.groups)
+        : source.groups.some((group) => path.startsWith(`${group}/`))) &&
+      path.endsWith('.md') &&
+      !path.split('/').at(-1)?.startsWith('_') &&
+      !licenseFiles.includes(path) &&
+      !sourceFiles.has(path)
+    )
+      invalid(source.name, `rule text missing from snapshot: ${path}`);
+  }
   const guidance: Array<{ id: string; metadata: GroupMetadata }> = [];
   const candidates = [...sourceFiles.keys()].filter(
     (path) =>
@@ -262,6 +286,7 @@ function selectedLibrary(
     source: expandedSource,
     snapshot,
     files: sourceFiles,
+    paths,
     licenses,
     licenseFiles,
     guidance,
@@ -310,6 +335,7 @@ function replacementRule(
     reason: replacement.reason,
     licenses: [],
     sourceFiles: localFiles,
+    sourcePaths: new Set(localFiles.keys()),
   };
 }
 
@@ -333,6 +359,7 @@ function importedRules(
             reason: null,
             licenses: library.licenses,
             sourceFiles: library.files,
+            sourcePaths: library.paths,
           }
         : replacementRule(
             parsed,
@@ -371,6 +398,7 @@ function localRules(
       reason: null,
       licenses: [],
       sourceFiles: localFiles,
+      sourcePaths: new Set(localFiles.keys()),
     });
   }
   return active;

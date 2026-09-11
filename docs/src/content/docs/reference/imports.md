@@ -3,9 +3,12 @@ title: "How imports work"
 description: "From pinned library snapshots to one effective ruleset per group."
 ---
 
-The proposed import workflow resolves each configured commit or tag and combines the resulting upstream snapshots with explicit project decisions.
+The Imports module implements fetching and file preservation.
+The complete workflow below also depends on Builds and the proposed Workspace subsystem; the `sync` command has not shipped.
+
+An import resolves each configured commit or tag and combines the resulting upstream snapshots with explicit project decisions.
 It produces ordinary files that agents can read without running the importer.
-This checkout implements the offline builder described below. Fetching, digest checks, and safe installation belong to separate work; see [Project status](/status/).
+This checkout implements fetching and offline generation. Digest checks and safe installation remain planned; see [Project status](/status/).
 
 ## Resolve the active rules
 
@@ -69,3 +72,23 @@ Authors and reviewers still need to identify conflicting obligations and declare
 Agents start at the generated index, choose relevant groups, and apply each rule within its scope.
 The same files support both writing and review.
 Projects choose their own review and enforcement workflow; the import format does not prescribe one.
+
+## Fetching implementation limits
+
+Imports requires Git 2.30 or later on macOS or Linux.
+It reads original blobs without checking out a library or running checkout filters.
+Selected symlinks, submodules, and Git LFS pointers are unsupported.
+Imports rejects ambiguous retained paths, including case-insensitive NFC-normalized collisions in directory names.
+
+Each library has a 120-second deadline and may contain at most 10,000 tree entries.
+The tree listing may occupy up to 8 MiB; retained files may occupy up to 8 MiB each and 64 MiB in total.
+Those file limits apply after fetching and do not cap network traffic or Git's temporary disk use.
+
+Imports follows standard relative Markdown links, images, and reference definitions to existing files in the same commit.
+It also follows links in retained Markdown attachments, without adopting those attachments as rules.
+All Markdown inspected for references must be UTF-8.
+It does not discover dependencies in arbitrary prose or custom frontmatter.
+
+Within a selected group, ordinary `.md` files are rules, including files in nested directories.
+Markdown filenames starting with `_` and manifest-declared license files are attachments instead.
+Use `_README.md` for group introduction text that does not follow the rule template.

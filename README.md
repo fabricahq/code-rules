@@ -5,7 +5,7 @@ Code Rules manages which versioned engineering rules a codebase adopts, includin
 It generates rule files for agents and other tools to consume. Your project chooses how to apply, validate, and enforce them through agent prompts or separate tooling. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
 
 The project is in early implementation.
-The offline Builds module and documentation site are available for development; the CLI is not implemented.
+Imports, offline Builds, and the documentation site are available for development; the CLI is not implemented.
 
 ## Documentation
 
@@ -56,3 +56,54 @@ After running it:
 Source repository names and commits are illustrative, so upstream GitHub links do not point to a real fixture library.
 The temporary workspace remains available after the script exits.
 Automated behavior checks live beside the implementation in `src/builds/build*.test.ts`, grouped by core behavior, selection, input validation, indexes, group delivery, Markdown, and licensing. Each suite tests through the public `buildRules` interface; shared fixture factories live in `build-test-fixtures.ts`.
+
+## Imports
+
+[`importLibraries`](src/imports/index.ts) accepts raw project configuration and optional cancellation.
+It fetches exact Git commits or tags and returns each library's original bytes plus a text snapshot for Builds.
+The operation never installs files in a consuming project.
+Workspace installation and the `sync` CLI command remain unimplemented.
+
+Imports requires macOS or Linux and Git 2.30 or later.
+Private libraries use your configured Git credentials; imports disable terminal prompts and do not print Git stderr.
+
+```ts
+import { importLibraries } from './src/imports';
+import { buildRules } from './src/builds';
+
+const libraries = await importLibraries(configuration);
+const snapshots = Object.fromEntries(
+  Object.entries(libraries).map(([name, library]) => [name, library.snapshot]),
+);
+const generated = buildRules({
+  configuration,
+  snapshots,
+  localFiles: {},
+  toolVersion: 'development',
+});
+```
+
+Run the [manual Imports scenario](tests/manual/imports.ts):
+
+```sh
+bun run imports:example
+```
+
+The scenario creates two temporary Git libraries, imports them, and writes a temporary workspace for inspection.
+Both libraries contain a rule with the same path; the generated testing group identifies each source separately.
+Check its image and license links against `vendor/`, then inspect `generated/provenance.json` for resolved commits.
+The fixture repository names are illustrative, so GitHub links do not resolve to those local libraries.
+The script removes its Git fixtures and leaves the printed workspace for inspection.
+It does not write `_source.json` or implement Workspace's installation guarantees.
+
+### Import limits and failures
+
+Each library has a 120-second deadline, at most 10,000 tree entries, and an 8 MiB tree-listing limit.
+Retained files may occupy up to 64 MiB in total, with an 8 MiB limit per file.
+A shallow fetch may still download a large tree; retained-file limits do not bound network traffic or Git's temporary disk use.
+Imports rejects symlinks, submodules, Git LFS pointers, reserved paths, and case-insensitive NFC-normalized path collisions in retained files.
+Required text and Markdown inspected for dependencies must be UTF-8.
+
+`ImportError.code` distinguishes invalid configuration or libraries, unavailable Git, inaccessible repositories, missing or refused refs, unsupported content, resource limits, cancellation, timeouts, Git failures, and I/O failures.
+Failures return no partial library mapping.
+The [Imports plan](_internal/imports.md) records ownership and verification decisions.

@@ -15,6 +15,7 @@ export type LibrarySource = {
   readonly name: string;
   readonly repository: string;
   readonly ref: string;
+  readonly parsedRef: LibraryRef;
   readonly groups: GroupSelection;
   readonly exclude: ReadonlyMap<string, string>;
   readonly replace: ReadonlyMap<string, RuleReplacement>;
@@ -24,3 +25,8 @@ export type ProjectConfig = {
   readonly sources: ReadonlyArray<LibrarySource>;
   readonly localGroups: ReadonlyArray<string>;
 };
+
+/** An exact commit or fully qualified tag, with no branch or range interpretation. */
+export type LibraryRef =
+  | { readonly kind: 'commit'; readonly sha: string }
+  | { readonly kind: 'tag'; readonly name: string };
