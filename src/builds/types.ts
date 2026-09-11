@@ -24,6 +24,8 @@ export type BuildInput = {
   readonly toolVersion: string;
   /** Maximum UTF-8 bytes per generated index file; defaults to 24 KiB. Full rule bodies are never truncated. */
   readonly indexMaxBytes?: number;
+  /** Inline a complete group page when it fits this UTF-8 byte budget and indexMaxBytes; defaults to 8 KiB. Zero forces summaries. */
+  readonly groupInlineMaxBytes?: number;
 };
 
 /** Complete generated text files keyed by paths relative to generated/, ready for the caller to install. */
@@ -63,6 +65,7 @@ export type Rule = {
   readonly path: string;
   readonly title: string;
   readonly impact: string;
+  readonly impactDescription: string;
   readonly whenToRead: string;
   readonly metadata: string;
   readonly body: string;

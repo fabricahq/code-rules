@@ -13,10 +13,12 @@ Add this section to the project's existing `AGENTS.md` after adopting Code Rules
 ```markdown
 Before planning, implementing, or reviewing a change, read `code-rules/generated/RULES.md`.
 Select technology and practice groups using the task, affected behavior, and code.
-Inspect every part of the selected group indexes and use each rule's whenToRead guidance to choose full definitions.
+Inspect the selected group pages, including every part of a split index, and use each rule's whenToRead guidance to select rules.
+Read full definitions where included, or follow each applicable rule's Read full rule link.
 Read every relevant or plausibly relevant definition completely before relying on it.
 Complete truncated reads. Revisit rule selection when scope changes and reload needed rules after compaction.
-When reviewing, select groups independently and cite rule IDs with evidence for findings.
+Follow every applicable rule regardless of impact, including its exceptions.
+When reviewing, select groups independently and cite rule IDs with evidence for findings. Assess finding severity from concrete consequences.
 Report missing relevant groups as coverage gaps.
 ```
 
@@ -27,8 +29,8 @@ Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules
 
 1. Read the task and the generated index.
 2. Identify affected technologies and engineering practices.
-3. Inspect all parts of the matching group indexes.
-4. Read full definitions for relevant or plausibly relevant rules, using their `whenToRead` descriptions.
+3. Inspect matching group pages, including all parts of any summary index.
+4. Use `whenToRead` to select relevant or plausibly relevant rules. Read their complete definitions inline or through explicit **Read full rule** links.
 5. Account for applicable obligations in the plan and implementation.
 6. Revisit selection if the work expands.
 
@@ -51,6 +53,9 @@ Reading the index alone is not enough.
 
 Select groups from the requested behavior and implementation, rather than accepting the writing agent's selection as complete.
 For each finding, cite the effective rule ID, applicable condition, observed evidence, and practical consequence.
+
+Impact describes the consequence a rule helps prevent; it does not determine applicability, override exceptions, or set finding severity.
+Read **Why it matters** for context and assess the actual consequence of each finding.
 
 Separate confirmed failures from hypotheses that need verification.
 A successful `code-rules check` establishes file consistency, not application compliance.

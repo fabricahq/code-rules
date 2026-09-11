@@ -74,7 +74,10 @@ Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#wri
 
 Each rule has `title`, `whenToRead`, `impact`, `impactDescription`, and `tags` frontmatter, followed by its Markdown body.
 Use the existing impact vocabulary: `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`.
-Impact describes the rule's importance; a reviewer still evaluates the actual consequence and evidence of a finding.
+Impact describes the significance of the consequence a rule helps prevent.
+Follow the canonical [impact authoring guidance](/reference/rule-authoring/#describe-impact-through-consequences) for level definitions and examples.
+Agents select rules using `whenToRead`, follow the full guidance and exceptions, and assess finding severity from concrete evidence.
+All applicable rules matter regardless of impact.
 
 `whenToRead` is a required non-empty string describing work that should trigger reading, including before code exists.
 The group field of the same name remains an array of group-selection cues.
@@ -144,23 +147,34 @@ Commit those directories so coding, review, and consistency checks can work offl
 ## Generated index and rules
 
 `generated/RULES.md` introduces the project's declared practices and explains how to select technology and practice groups.
-Each entry contains a linked group name and **When to read** guidance.
+Each entry contains a group name, **When to read** guidance, and an explicit **Open group** link.
 When multiple sources contribute to a group, their reading cues remain separate and labeled by source.
 One instruction above the entries directs the agent to open relevant group indexes and read applicable rules in full.
 It links to `provenance.json` for source versions and rule origins.
 
-Each group entry, such as `generated/practices/testing.md`, is an applicability index.
-Every active rule appears once with its source-qualified ID, title, impact, `whenToRead`, and a relative link to the full effective definition.
-The index contains selection guidance, not every rule body.
-Read full definitions before implementation or validation; index descriptions alone do not establish compliance or a violation.
+Each group page, such as `generated/practices/testing.md`, states whether it contains full rules or summaries only.
+A small group includes every active rule's complete effective definition inline.
+A larger group lists each active rule's source-qualified ID, plain title, **When to read**, **Impact**, **Why it matters**, and an explicit **Read full rule** link.
+Reading instructions appear first; navigation, provenance, and regeneration instructions appear at the bottom.
+Read every relevant or plausibly relevant rule completely before planning, implementation, validation, or diagnosis.
+Selection alone establishes neither compliance nor a violation; impact supplies consequence context rather than automatic finding severity.
+
+`BuildInput.groupInlineMaxBytes` defaults to 8 KiB and accepts non-negative safe integers; zero forces summaries.
+The complete rendered group page must fit both this limit and `indexMaxBytes` to include full rules inline.
+The measurement counts UTF-8 bytes, including instructions, metadata, examples, attribution, and the footer.
+Rule count and line count do not determine the format. A single large rule can require a summary index.
+This is a provisional delivery default, not an empirically validated threshold for agent compliance.
 
 Full definitions live under `generated/rules/<source-name>/<rule-path>.md`.
 For example, `fabrica:techs/typescript/prefer-type-aliases` maps to `rules/fabrica/techs/typescript/prefer-type-aliases.md`.
 The source name is a directory so generated paths are portable; the ID retains its colon.
 A replacement retains that path and ID while supplying its local title, applicability, and full body.
 Excluded rules and superseded bodies have no generated rule file.
-Source links, attribution, library license links, and replacement provenance remain with the effective definition.
-Relative links are relocated from the individual output file's actual directory.
+Source links, attribution, library license links, and replacement provenance remain with the effective definition in both formats.
+Individual rule files remain available at stable paths even when the group includes full rules.
+Both copies come from the same resolved definition. Relative links are relocated from the actual output directory.
+Inline rules nest their headings and namespace Markdown reference labels.
+Same-file fragment links in inline rules point to the standalone definition, avoiding ambiguity between repeated headings across rules.
 
 Indexes use stable ordering and a configurable UTF-8 byte budget (`BuildInput.indexMaxBytes`, default 24 KiB in the offline API).
 An oversized index becomes a directory listing every numbered sibling part, such as `testing.part-1.md`.

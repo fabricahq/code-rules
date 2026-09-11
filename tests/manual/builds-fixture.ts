@@ -3,17 +3,25 @@
 import type { BuildInput } from '../../src/builds';
 
 /** Create a complete rule document for the manual test scenario. */
-function exampleRule(
-  title: string,
-  obligation: string,
+function exampleRule({
+  title,
+  obligation,
+  impactDescription,
   whenToRead = 'When planning, implementing, or reviewing retry behavior.',
   validation = 'Check the retry count and final result with a deterministic test.',
-  implementation?: string,
-): string {
+  implementation,
+}: {
+  readonly title: string;
+  readonly obligation: string;
+  readonly impactDescription: string;
+  readonly whenToRead?: string;
+  readonly validation?: string;
+  readonly implementation?: string;
+}): string {
   const implementationSection = implementation
     ? `\n\n### Implementation\n\n${implementation}`
     : '';
-  return `---\ntitle: ${title}\nwhenToRead: ${whenToRead}\nimpact: HIGH\nimpactDescription: Catch retry failures before they reach users.\ntags: testing, retries\n---\n\n## ${title}\n\n${obligation}${implementationSection}\n\n### Validation\n\n${validation}\n`;
+  return `---\ntitle: ${title}\nwhenToRead: ${whenToRead}\nimpact: HIGH\nimpactDescription: ${impactDescription}\ntags: testing, retries\n---\n\n## ${title}\n\n${obligation}${implementationSection}\n\n### Validation\n\n${validation}\n`;
 }
 
 const group = 'practices/testing';
@@ -38,12 +46,16 @@ const otherRules = {
     description: 'Express retry outcomes in TypeScript.',
     whenToRead: ['When the intended or existing code uses TypeScript.'],
   }),
-  [`${technologyGroup}/retry-outcome.md`]: exampleRule(
-    'Represent retry exhaustion explicitly',
-    'Distinguish a successful result from exhausted attempts in the return type.',
-    'When designing or reviewing a TypeScript retry API.',
-    'Check that callers can distinguish exhausted attempts from a successful result using the declared return type.',
-  ),
+  [`${technologyGroup}/retry-outcome.md`]: exampleRule({
+    title: 'Represent retry exhaustion explicitly',
+    obligation:
+      'Distinguish a successful result from exhausted attempts in the return type.',
+    impactDescription:
+      'Ambiguous results can cause callers to treat failed requests as successful.',
+    whenToRead: 'When designing or reviewing a TypeScript retry API.',
+    validation:
+      'Check that callers can distinguish exhausted attempts from a successful result using the declared return type.',
+  }),
   [`${designGroup}/_group.json`]: JSON.stringify({
     name: 'Code design',
     description: 'Keep multi-step operations understandable.',
@@ -51,24 +63,34 @@ const otherRules = {
       'Before planning, writing, changing, or reviewing a function that coordinates multiple steps, such as parsing input, validating it, calling another operation, or constructing a result.',
     ],
   }),
-  [`${designGroup}/name-retry-stages.md`]: exampleRule(
-    'Name the retry stages',
-    'Make request execution, retry decisions, and final results recognizable as separate steps.',
-    'Before planning, writing, changing, or reviewing an operation that coordinates request execution, retry decisions, and final results.',
-    'Read the operation in order and identify any stage whose purpose is obscured. A short, cohesive function does not need extraction merely to become smaller; helper count alone is insufficient evidence of a violation.',
-    'Make each step understandable. Extract parsing, validation, or result construction when those details obscure the operation. Keep cohesive inline steps when their purpose is already clear.',
-  ),
+  [`${designGroup}/name-retry-stages.md`]: exampleRule({
+    title: 'Name the retry stages',
+    obligation:
+      'Make request execution, retry decisions, and final results recognizable as separate steps.',
+    impactDescription:
+      'Mixing orchestration with low-level details can hide important decisions and make behavior harder to verify or change.',
+    whenToRead:
+      'Before planning, writing, changing, or reviewing an operation that coordinates request execution, retry decisions, and final results.',
+    validation:
+      'Read the operation in order and identify any stage whose purpose is obscured. A short, cohesive function does not need extraction merely to become smaller; helper count alone is insufficient evidence of a violation.',
+    implementation:
+      'Make each step understandable. Extract parsing, validation, or result construction when those details obscure the operation. Keep cohesive inline steps when their purpose is already clear.',
+  }),
   [`${unrelatedGroup}/_group.json`]: JSON.stringify({
     name: 'Go',
     description: 'Write Go retry APIs.',
     whenToRead: ['When the intended or existing code uses Go.'],
   }),
-  [`${unrelatedGroup}/retry-errors.md`]: exampleRule(
-    'Return retry errors to the caller',
-    'Return the final failure to the caller of the Go retry function.',
-    'When writing or reviewing a retry function in Go.',
-    'Drive repeated failures and verify that the caller receives the last error.',
-  ),
+  [`${unrelatedGroup}/retry-errors.md`]: exampleRule({
+    title: 'Return retry errors to the caller',
+    obligation:
+      'Return the final failure to the caller of the Go retry function.',
+    impactDescription:
+      'Swallowed retry errors prevent callers from recognizing and handling a failed operation.',
+    whenToRead: 'When writing or reviewing a retry function in Go.',
+    validation:
+      'Drive repeated failures and verify that the caller receives the last error.',
+  }),
 };
 /** Shared illustrative inputs for the manual example and interactive walkthrough. */
 export const buildsExampleInput = {
@@ -103,26 +125,36 @@ export const buildsExampleInput = {
       files: {
         'rule-library.json': '{"formatVersion":1}',
         ...otherRules,
-        [`${group}/legacy-backoff.md`]: exampleRule(
-          'Use the library backoff schedule',
-          'Use the original library backoff schedule.',
-        ),
+        [`${group}/legacy-backoff.md`]: exampleRule({
+          title: 'Use the library backoff schedule',
+          obligation: 'Use the original library backoff schedule.',
+          impactDescription:
+            'Uncoordinated retries can overload a recovering service.',
+        }),
         [`${group}/_group.json`]: groupMetadata,
-        [`${group}/verify-retries.md`]: exampleRule(
-          'Verify retry limits',
-          'Verify that retries stop at the configured limit.',
-        ),
+        [`${group}/verify-retries.md`]: exampleRule({
+          title: 'Verify retry limits',
+          obligation: 'Verify that retries stop at the configured limit.',
+          impactDescription:
+            'Unbounded retries can overload the service and keep callers waiting indefinitely.',
+        }),
       },
     },
   },
   localFiles: {
-    [`${group}/retry-budget.md`]: exampleRule(
-      'Verify the project retry budget',
-      'Assert that a failed request makes exactly three attempts before returning the error.',
-    ),
-    [`${group}/verify-success.md`]: exampleRule(
-      'Stop retries after success',
-      'Assert that a successful request triggers no further attempts.',
-    ),
+    [`${group}/retry-budget.md`]: exampleRule({
+      title: 'Verify the project retry budget',
+      obligation:
+        'Assert that a failed request makes exactly three attempts before returning the error.',
+      impactDescription:
+        'Exceeding the project retry budget can amplify failing requests and delay recovery.',
+    }),
+    [`${group}/verify-success.md`]: exampleRule({
+      title: 'Stop retries after success',
+      obligation:
+        'Assert that a successful request triggers no further attempts.',
+      impactDescription:
+        'Retrying successful requests can duplicate side effects.',
+    }),
   },
 } satisfies BuildInput;

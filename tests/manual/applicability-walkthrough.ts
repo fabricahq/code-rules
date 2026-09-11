@@ -1,7 +1,7 @@
 /** @fileoverview Runs the Runbooks walkthrough against the real builder and captures inspectable examples in its generated-file panel. */
 
 import assert from 'node:assert/strict';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildRules, BuildError } from '../../src/builds';
 import type { BuildInput, FileContents } from '../../src/builds';
@@ -40,6 +40,11 @@ async function captureBuild(
   prefix: string,
 ): Promise<ReturnType<typeof buildRules>> {
   const result = buildRules(input);
+  // Each experiment owns its output directory; remove obsolete parts only after a successful build.
+  await rm(join(captureDirectory, prefix, 'generated'), {
+    recursive: true,
+    force: true,
+  });
   for (const [path, content] of Object.entries(result.files)) {
     await capture(`${prefix}/generated/${path}`, content);
   }
@@ -67,6 +72,9 @@ switch (action) {
       files,
       path: 'rules/example/practices/testing/verify-retries.md',
     });
+    assert(index.includes('Full rules are included below.'));
+    assert(index.includes('exactly three attempts'));
+    assert(index.includes('**Why it matters:**'));
     assert(index.includes('Verify the project retry budget'));
     assert(index.includes('Stop retries after success'));
     assert(!index.includes('legacy-backoff'));
@@ -87,6 +95,23 @@ switch (action) {
     );
     break;
   }
+  case 'delivery': {
+    const inline = buildRules(input).files;
+    input = { ...input, groupInlineMaxBytes: 0 };
+    const { files } = await captureBuild('01-summary-only');
+    const summaries = requireFile({ files, path: 'practices/testing.md' });
+    assert(summaries.includes('This file contains summaries only.'));
+    assert(summaries.includes('**Read full rule:**'));
+    assert(!summaries.includes('exactly three attempts'));
+    for (const [path, content] of Object.entries(files)) {
+      if (path.startsWith('rules/') || path === 'provenance.json')
+        assert.equal(content, inline[path]);
+    }
+    console.log(
+      'Compare 01-deliverable with 01-summary-only. Full rule files and provenance are identical; only group delivery changes.',
+    );
+    break;
+  }
   case 'scenario': {
     assert(
       choice === 'implementation' || choice === 'validation',
@@ -96,8 +121,8 @@ switch (action) {
     await captureBuild(prefix);
     const explanation =
       choice === 'implementation'
-        ? `# Before writing a TypeScript retry client\n\nNo function exists yet. Start at generated/RULES.md.\n\n1. Read techs/typescript.md: designing the retry return type makes the TypeScript rule relevant.\n2. Read practices/testing.md: new behavior needs tests even before test files exist.\n3. Read practices/code-design.md: the operation will coordinate request execution, retry decisions, and its final result.\n4. Skip techs/go.md for this TypeScript task.\n5. Open the linked full definitions before implementing. Plan an explicit exhausted result, exactly three total attempts, and an immediate stop after success.\n\nThe design rule allows cohesive inline steps. Creating helper functions is not itself the goal.\n`
-        : `# Review an attempt-limit change\n\nThe proposed TypeScript change raises total attempts from three to five. No test file changed.\n\n1. Start at generated/RULES.md and include the testing practice because behavior changed.\n2. Read practices/testing.md, then rules/example/practices/testing/verify-retries.md.\n3. The effective replacement requires exactly three attempts. A deterministic all-failure test can demonstrate five calls and establish the mismatch.\n4. Cite example:practices/testing/verify-retries, the changed limit, and that observable behavior.\n5. Code-design relevance alone proves no violation. Inspect whether a step's purpose is obscured; helper count is insufficient evidence.\n\nThis is a guided interpretation of the example, not an automated review of your application.\n`;
+        ? `# Before writing a TypeScript retry client\n\nNo function exists yet. Start at generated/RULES.md.\n\n1. Read techs/typescript.md: designing the retry return type makes the TypeScript rule relevant.\n2. Read practices/testing.md: new behavior needs tests even before test files exist.\n3. Read practices/code-design.md: the operation will coordinate request execution, retry decisions, and its final result.\n4. Skip techs/go.md for this TypeScript task.\n5. Read the full definitions included in these small groups before implementing. Larger groups require following their Read full rule links. Plan an explicit exhausted result, exactly three total attempts, and an immediate stop after success.\n\nThe design rule allows cohesive inline steps. Creating helper functions is not itself the goal.\n`
+        : `# Review an attempt-limit change\n\nThe proposed TypeScript change raises total attempts from three to five. No test file changed.\n\n1. Start at generated/RULES.md and include the testing practice because behavior changed.\n2. Read the full retry-budget rule in practices/testing.md; its separate file is rules/example/practices/testing/verify-retries.md.\n3. The effective replacement requires exactly three attempts. A deterministic all-failure test can demonstrate five calls and establish the mismatch.\n4. Cite example:practices/testing/verify-retries, the changed limit, and that observable behavior.\n5. Code-design relevance alone proves no violation. Inspect whether a step's purpose is obscured; helper count is insufficient evidence. Impact describes why a rule matters, while finding severity depends on the observed consequence.\n\nThis is a guided interpretation of the example, not an automated review of your application.\n`;
     await capture(`${prefix}/START-HERE.md`, explanation);
     console.log(explanation);
     break;
@@ -140,7 +165,7 @@ switch (action) {
       },
     };
     const budget =
-      choice === 'default' ? 24 * 1024 : choice === 'small' ? 2000 : 100;
+      choice === 'default' ? 24 * 1024 : choice === 'small' ? 3000 : 100;
     input = {
       ...input,
       configuration,

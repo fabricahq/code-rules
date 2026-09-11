@@ -4,21 +4,32 @@ import { posix } from 'node:path';
 import { invalid } from './validation';
 
 /** Render blocks with stable spacing and a final newline. */
-function document(header: string, entries: ReadonlyArray<string>): string {
-  return [header, ...entries].join('\n\n') + '\n';
+function document(
+  header: string,
+  entries: ReadonlyArray<string>,
+  footer: string,
+): string {
+  return [header, ...entries, footer].filter(Boolean).join('\n\n') + '\n';
 }
 
 /**
  * Return one index or a directory plus numbered sibling parts, each within the UTF-8 byte budget.
  * Never splits entries; throws BuildError if an entry, header, or complete part directory cannot fit.
  */
-export function indexPages(
-  path: string,
-  header: string,
-  entries: ReadonlyArray<string>,
-  maxBytes: number,
-): ReadonlyMap<string, string> {
-  const whole = document(header, entries);
+export function indexPages({
+  path,
+  header,
+  entries,
+  maxBytes,
+  footer,
+}: {
+  readonly path: string;
+  readonly header: string;
+  readonly entries: ReadonlyArray<string>;
+  readonly maxBytes: number;
+  readonly footer: string;
+}): ReadonlyMap<string, string> {
+  const whole = document(header, entries, footer);
   if (Buffer.byteLength(whole, 'utf8') <= maxBytes)
     return new Map([[path, whole]]);
 
@@ -29,10 +40,11 @@ export function indexPages(
   const partHeader = (): string =>
     `${header}\n\nPart ${part}. [All parts](${posix.basename(path)}).`;
   const fits = (items: ReadonlyArray<string>): boolean =>
-    Buffer.byteLength(document(partHeader(), items), 'utf8') <= maxBytes;
+    Buffer.byteLength(document(partHeader(), items, footer), 'utf8') <=
+    maxBytes;
   const finishPart = (): void => {
     const partPath = `${path.slice(0, -3)}.part-${part}.md`;
-    pages.set(partPath, document(partHeader(), pending));
+    pages.set(partPath, document(partHeader(), pending, footer));
     partLinks.push(`- [Part ${part}](${posix.basename(partPath)})`);
     part += 1;
     pending = [];
@@ -48,10 +60,14 @@ export function indexPages(
     pending.push(entry);
   }
   if (pending.length) finishPart();
-  const directory = document(header, [
-    'Read every numbered part to inspect this complete index. Rule bodies remain in their linked files.',
-    ...partLinks,
-  ]);
+  const directory = document(
+    header,
+    [
+      'Read every numbered part to inspect this complete index. Rule bodies remain in their linked files.',
+      ...partLinks,
+    ],
+    footer,
+  );
   if (Buffer.byteLength(directory, 'utf8') > maxBytes)
     invalid(
       path,

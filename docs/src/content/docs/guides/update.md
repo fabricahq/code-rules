@@ -33,7 +33,7 @@ A single sync performs the download and regeneration together:
 4. Regenerate the group indexes and individual effective rule files under `code-rules/generated/`.
 5. Regenerate `code-rules/generated/RULES.md` and provenance records, then install the complete validated result.
 
-For example, `code-rules/generated/practices/testing.md` indexes the active testing rules from all selected sources and the project, linking to their full definitions.
+For example, `code-rules/generated/practices/testing.md` lists the active testing rules from all selected sources and the project. Small groups include full definitions; larger groups link to them.
 After sync, that index reflects the downloaded versions and the project's local choices.
 You do not need to run `build` separately after sync.
 

@@ -9,15 +9,22 @@ tests:
   - name: complete-walkthrough
     inputs:
       scenario.Situation: Before writing code
-      pagination.Budget: Small (2000 bytes)
+      pagination.Budget: Small (3000 bytes)
     steps:
       - block: prerequisites
       - block: build-example
+      - block: compare-delivery
       - block: explore-scenario
       - block: explore-budget
       - block: inspect-authoring
       - block: reject-missing-metadata
     assertions:
+      - type: file_contains
+        path: 01-deliverable/generated/practices/testing.md
+        contains: Full rules are included below.
+      - type: file_contains
+        path: 01-summary-only/generated/practices/testing.md
+        contains: "**Read full rule:**"
       - type: file_contains
         path: 01-deliverable/generated/practices/testing.md
         contains: Verify the project retry budget

@@ -46,7 +46,7 @@ The script creates files for inspection and makes no automated assertions.
 After running it:
 
 1. Open the printed `generated/RULES.md` path and follow its testing-group link.
-2. Confirm the group index links exactly two active rules: the project retry budget and stopping retries after success.
+2. Confirm the group page includes exactly two complete active rules: the project retry budget and stopping retries after success.
 3. Follow the rule links and confirm the retry-budget replacement retains ID `example:practices/testing/verify-retries` and links to its local definition.
 4. Use the printed `scenarios.md` to inspect pre-implementation selection and a review with no test-file edits. The TypeScript scenario should lead to testing and code-design rules, while Go is unrelated.
 5. Inspect `generated/provenance.json`: the replacement should have a local origin and an imported upstream origin; the additional local rule should have no upstream origin.
@@ -58,7 +58,7 @@ Automated behavior checks remain in `src/builds/build.test.ts`.
 ### Interactive walkthrough
 
 The [applicability-index runbook](tests/manual/runbooks/applicability-index/runbook.mdx) walks through the same example in [Gruntwork Runbooks](https://runbooks.gruntwork.io/).
-It includes implementation and review scenarios, a configurable pagination demonstration, and the shared authoring rubric.
+It includes implementation and review scenarios, full inline rules for small groups, a configurable pagination demonstration for larger groups, and the shared authoring rubric.
 With Runbooks installed, launch it from this checkout's root after installing dependencies:
 
 ```sh

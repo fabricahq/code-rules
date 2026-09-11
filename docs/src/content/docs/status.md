@@ -7,7 +7,7 @@ description: "What this documentation describes and what remains to be built."
 These docs describe the intended first release so teams can review the experience before implementation.
 The documentation site, authoring rubric, and template are available.
 The offline Builds module can combine in-memory library snapshots and local rules into generated files.
-It emits applicability indexes and individual effective definitions, with bounded index parts and required rule-level `whenToRead` metadata.
+It emits a root group index, group pages, and individual effective definitions. Small groups include full rules; larger groups use bounded applicability indexes. Rule-level `whenToRead` metadata is required.
 It has focused automated tests and a runnable example for development.
 Library fetching, workspace installation and consistency checks, CLI commands, and the installable authoring skill remain unimplemented.
 

@@ -45,7 +45,7 @@ function metadataObject(
 function validateRuleMetadata(
   data: Record<string, unknown>,
   location: string,
-): Pick<Rule, 'title' | 'impact' | 'whenToRead'> {
+): Pick<Rule, 'title' | 'impact' | 'impactDescription' | 'whenToRead'> {
   const title = nonempty(field(data, 'title'), `${location}.title`);
   const impact = nonempty(field(data, 'impact'), `${location}.impact`);
   if (
@@ -59,7 +59,10 @@ function validateRuleMetadata(
     ].includes(impact)
   )
     return invalid(location, `unknown impact ${impact}`);
-  nonempty(field(data, 'impactDescription'), `${location}.impactDescription`);
+  const impactDescription = nonempty(
+    field(data, 'impactDescription'),
+    `${location}.impactDescription`,
+  );
   const tags = field(data, 'tags');
   if (typeof tags === 'string') nonempty(tags, `${location}.tags`);
   else strings(tags, `${location}.tags`);
@@ -67,7 +70,7 @@ function validateRuleMetadata(
     field(data, 'whenToRead'),
     `${location}.whenToRead`,
   );
-  return { title, impact, whenToRead };
+  return { title, impact, impactDescription, whenToRead };
 }
 
 /**

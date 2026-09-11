@@ -18,8 +18,8 @@ The [metadata reference](/reference/files/#rule-metadata) defines the frontmatte
 ---
 title: <Short action-oriented title>
 whenToRead: "Before [relevant activities] involving [specific behavior or artifact], such as [representative cases, if helpful]."
-impact: <Allowed impact value>
-impactDescription: <Consequence this rule addresses>
+impact: <Level matching the credible consequence within this rule's scope>
+impactDescription: <Specific consequence the rule helps prevent, supporting the impact level>
 tags: <Relevant topics, separated by commas>
 ---
 
@@ -109,6 +109,32 @@ These checks are an authoring practice, not a required metadata field or proof t
 We adapted these recommendations from the [Agent Skills specification](https://agentskills.io/specification#description-field) and Anthropic's [authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices#writing-effective-descriptions) and [evaluation](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise#evaluating-skills-before-deployment) guidance.
 Those sources address skill discovery; applying them to rule selection is a design inference, not a measured improvement in Code Rules compliance.
 
+## Describe impact through consequences
+
+`impact` describes the significance of the consequence a rule helps prevent.
+Choose the level based on credible consequences within the rule's scope, rather than an imaginable worst case.
+Use `impactDescription` to name that consequence in a focused sentence. Generated pages display it as **Why it matters**.
+
+| Impact | Consequence the rule addresses |
+| --- | --- |
+| CRITICAL | Severe harm, such as irreversible data loss or a major security breach. |
+| HIGH | Substantial correctness, reliability, or maintainability problems. |
+| MEDIUM | Meaningful but bounded defects or recurring development friction. |
+| LOW | Local clarity or consistency improvements with limited consequences. |
+
+`MEDIUM-HIGH` and `LOW-MEDIUM` sit between the adjacent anchors.
+The description should support the chosen level; “important for quality” does not explain a consequence.
+
+For Express Operations as Meaningful Steps, a useful description is:
+
+> Mixing orchestration with low-level details can hide important decisions and make behavior harder to verify or change.
+
+Agents use `whenToRead` to select rules and the full body to understand obligations and exceptions.
+Read and follow every applicable rule, regardless of impact.
+Impact does not determine applicability, override exceptions, resolve conflicting rules, or set a review finding's severity.
+Assess each finding from concrete evidence and the consequences of that specific violation.
+A high-impact design rule does not require extracting every multi-step function or make every readability finding high severity.
+
 ## Authoring rubric
 
 The rubric defines what makes a useful rule; filling every template heading does not establish compliance.
@@ -121,6 +147,7 @@ Revise missing or unclear guidance where the criterion applies; additional headi
 | Clear action | The rule tells the agent what to do. Replace vague instructions such as "use good error handling" with observable behavior. |
 | Discoverable relevance | Use the [selection guidance](#write-whentoread-guidance-that-helps-selection) to name recognizable work, include useful examples, and check both relevant and out-of-scope tasks. |
 | Explicit scope | State the obligation's conditions and exceptions in the full body. An example's language does not implicitly limit a practice rule to that language. |
+| Supported impact | Use the [impact guidance](#describe-impact-through-consequences) to choose a level and name a credible consequence. Keep finding severity dependent on evidence. |
 | Useful rationale | Explain the failure or tradeoff the obligation addresses. Keep context separate from the obligation so it does not introduce hidden requirements. |
 | Concrete examples | Show the expected behavior when prose alone leaves room for interpretation. Label illustrative choices so they do not become accidental requirements. |
 | Counterexamples | Show a plausible violation and explain what goes wrong. Pair it with a correct example of the same situation, keeping unrelated details consistent. Label both clearly. |

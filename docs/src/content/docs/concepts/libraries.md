@@ -45,7 +45,7 @@ Each source owns its rules, and the project selects each source's ref independen
 Sync records each resolved commit so offline work uses the exact imported snapshot.
 The repository names illustrate the configuration; verify available rules before selecting groups.
 
-Rules from sources that share a group combine into one group applicability index, which links to each effective rule file.
+Rules from sources that share a group combine into one group page, which includes full rules for small groups or links to each effective rule from applicability summaries.
 Source-qualified IDs keep their origins distinct, and source order grants no override priority.
 Use explicit project exclusions or replacements to resolve competing obligations.
 

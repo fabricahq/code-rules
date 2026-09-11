@@ -24,7 +24,7 @@ Keep `index.ts` as the caller-facing interface; the modules below are implementa
 - `configuration.ts` interprets source selections and exception declarations, retaining field locations in diagnostics.
 - `resolve.ts` validates snapshots and resolves imported, replaced, and local definitions into groups.
   Each active rule is stored in its group once; provenance derives its rule list from those groups.
-- `render.ts` builds group and rule indexes, individual effective definitions, and provenance without mutating resolved groups.
+- `render.ts` builds the root index, adaptive group pages, individual effective definitions, and provenance without mutating resolved groups.
 - `index-pages.ts` splits oversized indexes at entry boundaries and checks every output page against its UTF-8 byte budget.
 - `rule-document.ts` validates YAML and rule metadata while retaining the original frontmatter and body text.
 - `library-licenses.ts` validates license declarations and verifies the declared files exist.
@@ -79,7 +79,11 @@ Rule selection remains the agent's judgment; metadata must describe the intended
 Full definitions retain obligations, implementation and validation guidance, attribution, and relocated links.
 
 `buildRules` accepts optional `indexMaxBytes` (positive safe integer, default 24 KiB).
-The root index and group indexes fit that UTF-8 byte limit or split into complete numbered sibling parts.
+The root index and group pages fit that UTF-8 byte limit. Oversized summary indexes split into complete numbered sibling parts.
+`groupInlineMaxBytes` (non-negative safe integer, default 8 KiB) selects full inline delivery when the complete group page fits both budgets. Zero forces summary indexes.
+The inline limit counts the entire rendered page, including metadata, examples, attribution, and navigation. It is a provisional delivery default, not a measured compliance threshold.
+Both formats use the same resolved definitions and retain stable individual rule files. Embedded fragment links point to standalone definitions to avoid repeated heading collisions.
+Impact describes credible consequences; it neither selects rules nor assigns finding severity. `impactDescription` appears as **Why it matters**.
 A single oversized entry or part directory fails explicitly; rule bodies are never truncated.
 Output paths use `rules/<source-name>/<rule-path>.md`, preserving replacement IDs independently of local source filenames.
 The complete returned map excludes obsolete definitions; Workspace will own stale-file comparison and installation, including removing obsolete index parts.

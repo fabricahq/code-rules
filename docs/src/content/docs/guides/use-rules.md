@@ -67,7 +67,7 @@ code-rules sync
 
 Sync resolves each ref to a full commit SHA and records it as `resolvedCommit` in `vendor/<source-name>/_source.json`.
 It copies the selected groups from that commit into `vendor/<source-name>/`.
-Sync calls Builds to produce the root group index, an applicability index per group, and individual full rule files under `generated/rules/`.
+Sync calls Builds to produce the root group index, a page per group with full rules or applicability summaries, and individual full rule files under `generated/rules/`.
 Project exclusions and replacements are already applied.
 For example, `generated/practices/testing.md` describes when each active testing rule is relevant and links to its effective definition.
 `generated/RULES.md` helps agents choose groups; oversized indexes link to complete numbered parts.
@@ -77,7 +77,7 @@ A later sync can pick up a moved tag; review resolved-commit changes along with 
 
 ## 4. Review and commit the files
 
-Review the generated indexes and follow their links to the full effective rule files.
+Review the generated group pages. Read applicable rules in full where included; otherwise follow each **Read full rule** link.
 Confirm that replacements contain the intended obligations and that excluded rules are absent from active output.
 Commit configuration, local rules, vendor content, and generated files together.
 

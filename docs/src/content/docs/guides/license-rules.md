@@ -86,6 +86,12 @@ The repository and commit in this example are illustrative.
 
 Rule ID: `fabrica:practices/testing/verify-retry-limits`
 
+**When to read:** When planning, implementing, or reviewing retries.
+
+**Impact:** HIGH
+
+**Why it matters:** Prevent unbounded retries.
+
 [Active definition](https://github.com/example/rules/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/practices/testing/verify-retry-limits.md)
 
 Library default license and notices:

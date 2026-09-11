@@ -28,13 +28,25 @@ Open these files under `01-deliverable` in order. The paths below are relative t
 
 | Open | What to notice |
 | --- | --- |
-| `generated/RULES.md` | Each entry contains a linked group name and **When to read** guidance. One instruction above the list explains what to open next. |
-| `generated/practices/testing.md` | Each active rule has an ID, title, impact, when-to-read description, and relative link. Its full body lives elsewhere. |
+| `generated/RULES.md` | Each entry contains a group name, **When to read** guidance, and an explicit **Open group** link. One instruction above the list explains what to open next. |
+| `generated/practices/testing.md` | This small group includes both full rules, with when-to-read guidance, impact, and **Why it matters**. Separate files remain available. |
 | `generated/rules/example/practices/testing/verify-retries.md` | The effective rule says exactly three attempts and retains the upstream ID. |
 | `config.json` | The project excludes the backoff rule and replaces the retry-limit rule. |
 | `generated/provenance.json` | Replacement origin, upstream origin, and local additions remain traceable. |
 
-The testing index should contain **two** rules: the project retry budget and stopping after success. The excluded backoff rule has no generated definition. Upstream repository names and commits are illustrative, so their GitHub links are not live library sources.
+The testing page should contain **two** rules: the project retry budget and stopping after success. The excluded backoff rule has no generated definition. Upstream repository names and commits are illustrative, so their GitHub links are not live library sources.
+
+Small groups include their complete rules when the rendered page fits 8 KiB and the index page limit. The size includes instructions, metadata, examples, and attribution. This is a provisional delivery default, not a proven agent-compliance threshold.
+
+<Command
+  id="compare-delivery"
+  command="bun tests/manual/applicability-walkthrough.ts delivery"
+  title="Compare the same rules as summaries"
+  description="Sets groupInlineMaxBytes to zero and verifies that full definitions and provenance remain identical."
+  successMessage="Compare practices/testing.md in 01-deliverable and 01-summary-only."
+/>
+
+In `01-summary-only/generated/practices/testing.md`, notice the explicit **Read full rule** action beneath each plain title. Read the linked complete definition before relying on the rule. Navigation and regeneration instructions sit at the bottom in both formats.
 
 ## 2. Try implementation and review
 
@@ -65,7 +77,7 @@ variables:
 
 Before writing code, TypeScript, testing, and code-design rules all matter. A rule whose trigger only describes an existing defect would be easy to miss at this stage.
 
-During review, a change from three attempts to five makes the testing rule relevant even if no test file changed. Read the full replacement to establish the actual requirement. Reading a design rule, or counting helpers, does not establish a design violation.
+During review, a change from three attempts to five makes the testing rule relevant even if no test file changed. Read the full replacement to establish the actual requirement. Reading a design rule, or counting helpers, does not establish a design violation. Impact describes the consequence the rule addresses. Follow every applicable rule regardless of impact, and assign finding severity from concrete evidence and consequences.
 
 ## 3. Make pagination visible
 
@@ -80,9 +92,9 @@ variables:
     description: Maximum UTF-8 bytes per generated index page
     options:
       - Default (24 KiB)
-      - Small (2000 bytes)
+      - Small (3000 bytes)
       - Too small (100 bytes)
-    default: Small (2000 bytes)
+    default: Small (3000 bytes)
 ```
 
 </Inputs>
@@ -90,7 +102,7 @@ variables:
 <Command
   id="explore-budget"
   inputsId="pagination"
-  command='bun tests/manual/applicability-walkthrough.ts budget {{ if eq .inputs.Budget "Default (24 KiB)" }}default{{ else if eq .inputs.Budget "Small (2000 bytes)" }}small{{ else }}tiny{{ end }}'
+  command='bun tests/manual/applicability-walkthrough.ts budget {{ if eq .inputs.Budget "Default (24 KiB)" }}default{{ else if eq .inputs.Budget "Small (3000 bytes)" }}small{{ else }}tiny{{ end }}'
   title="Build with this index budget"
   successMessage="The selected behavior was verified. Open the new 03 folder for its result."
 />
@@ -113,6 +125,7 @@ The canonical authoring document supplies one flexible template for technology a
 | Question | Where the answer belongs |
 | --- | --- |
 | Is this relevant before I write code, or during review? | Required `whenToRead` metadata. For example: when planning, writing, changing, or reviewing an operation that coordinates several steps. |
+| Why does it matter? | `impact` and `impactDescription` describe credible consequences. They do not determine applicability or finding severity. |
 | How do I implement it? | Useful choices, steps, and examples in the body. A separate Implementation heading is optional. |
 | What would demonstrate compliance or a violation? | Observable evidence and boundaries in the body. A separate Validation heading is optional. |
 

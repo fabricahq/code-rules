@@ -19,7 +19,19 @@ export function buildRules(input: BuildInput): BuildOutput {
     input.indexMaxBytes === undefined ? 24 * 1024 : input.indexMaxBytes;
   if (!Number.isSafeInteger(indexMaxBytes) || indexMaxBytes <= 0)
     invalid('indexMaxBytes', 'expected a positive safe integer byte budget');
+  const groupInlineMaxBytes =
+    input.groupInlineMaxBytes === undefined
+      ? 8 * 1024
+      : input.groupInlineMaxBytes;
+  if (!Number.isSafeInteger(groupInlineMaxBytes) || groupInlineMaxBytes < 0)
+    invalid(
+      'groupInlineMaxBytes',
+      'expected a non-negative safe integer byte budget',
+    );
   const localFiles = files(input.localFiles, 'local');
   const resolved = resolveRules(config, input.snapshots, localFiles);
-  return renderGeneratedFiles(resolved, input.toolVersion, indexMaxBytes);
+  return renderGeneratedFiles(resolved, input.toolVersion, {
+    indexMaxBytes,
+    groupInlineMaxBytes,
+  });
 }

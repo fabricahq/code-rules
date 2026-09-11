@@ -117,18 +117,17 @@ function rewriteNode(
   active: ActiveRule,
   referencePrefix: string,
   outputPath: string,
+  standalonePath: string,
 ): void {
   if (
     node.type === 'link' ||
     node.type === 'image' ||
     node.type === 'definition'
   )
-    node.url = relocatedUrl(
-      node.url,
-      active,
-      node.type === 'image',
-      outputPath,
-    );
+    node.url =
+      node.url.startsWith('#') && outputPath !== standalonePath
+        ? `${encodedPath(posix.relative(posix.dirname(outputPath), standalonePath))}${node.url}`
+        : relocatedUrl(node.url, active, node.type === 'image', outputPath);
   if (
     node.type === 'definition' ||
     node.type === 'linkReference' ||
@@ -173,20 +172,44 @@ function collectRewrites(
   tree: Root,
   active: ActiveRule,
   outputPath: string,
+  standalonePath: string,
 ): Array<SourceEdit> {
   const edits: Array<SourceEdit> = [];
   // Keep reference identities stable if a consumer later combines individual rule files.
   const referencePrefix = `code-rules-${encodeURIComponent(active.rule.id)}-`;
+  // Nest source sections below the embedded rule title, retaining their relative hierarchy.
+  const headingOffset =
+    outputPath === standalonePath
+      ? 0
+      : 3 -
+        Math.min(
+          3,
+          ...tree.children.flatMap((node) =>
+            node.type === 'heading' ? [node.depth] : [],
+          ),
+        );
   /** Visit in postorder; an ancestor's edit includes rewritten children, so child edits must not overlap it. */
   function visit(node: Root | RootContent, ancestorOwnsEdit: boolean): void {
     const rewritesNode = requiresRewrite(node);
+    const embedsHeading = node.type === 'heading' && headingOffset > 0;
     if ('children' in node)
       for (const child of node.children)
-        visit(child, ancestorOwnsEdit || rewritesNode);
+        visit(child, ancestorOwnsEdit || rewritesNode || embedsHeading);
     if (rewritesNode) {
-      rewriteNode(node, active, referencePrefix, outputPath);
+      rewriteNode(node, active, referencePrefix, outputPath, standalonePath);
       if (!ancestorOwnsEdit) {
         const edit = sourceEdit(node, serializedNode(node));
+        if (edit !== undefined) edits.push(edit);
+      }
+    }
+    if (node.type === 'heading' && embedsHeading) {
+      for (let shift = 0; shift < headingOffset && node.depth < 6; shift += 1)
+        node.depth += 1;
+      if (!ancestorOwnsEdit) {
+        const edit = sourceEdit(
+          node,
+          toMarkdown({ type: 'root', children: [node] }).trimEnd(),
+        );
         if (edit !== undefined) edits.push(edit);
       }
     }
@@ -226,10 +249,16 @@ function applySourceEdits(
  * Trims outer whitespace while preserving text outside the rewritten nodes.
  * Throws an invalid-input BuildError for unsafe/missing local targets or relative links in raw HTML.
  */
-function ruleBody(active: ActiveRule, outputPath: string): string {
+function ruleBody(
+  active: ActiveRule,
+  outputPath: string,
+  standalonePath: string,
+): string {
   const tree = fromMarkdown(active.rule.body);
-  const edits = collectRewrites(tree, active, outputPath);
   const titleEdit = redundantTitleEdit(tree, active.rule.title);
+  // Remove the matching title before rewriting headings so source spans cannot overlap.
+  if (titleEdit !== undefined) tree.children.shift();
+  const edits = collectRewrites(tree, active, outputPath, standalonePath);
   if (titleEdit !== undefined) edits.push(titleEdit);
   return applySourceEdits(active.rule.body, edits);
 }
@@ -237,8 +266,13 @@ function ruleBody(active: ActiveRule, outputPath: string): string {
 /**
  * Return a Markdown rule section with its identity, active definition, replacement, terms, and preserved metadata.
  * Relocates body links and throws an invalid-input BuildError for unsupported relative references.
+ * When embedded at another path, nests headings and directs same-file fragments to the standalone definition to avoid cross-rule anchor collisions.
  */
-export function renderRule(active: ActiveRule, outputPath: string): string {
+export function renderRule(
+  active: ActiveRule,
+  outputPath: string,
+  standalonePath = outputPath,
+): string {
   const { rule, origin, upstream } = active;
   // The outer fence must exceed every embedded backtick run so metadata cannot close it early.
   const metadataFence = '`'.repeat(
@@ -251,12 +285,23 @@ export function renderRule(active: ActiveRule, outputPath: string): string {
     ),
   );
   const lines = [
-    `# ${escapeText(rule.title)}`,
+    `${outputPath === standalonePath ? '#' : '##'} ${escapeText(rule.title)}`,
     '',
     `Rule ID: \`${rule.id}\``,
     '',
+    `**When to read:** ${escapeText(rule.whenToRead)}`,
+    '',
+    `**Impact:** ${escapeText(rule.impact)}`,
+    '',
+    `**Why it matters:** ${escapeText(rule.impactDescription)}`,
+    '',
     `[Active definition](${sourceLink(origin, outputPath)})`,
   ];
+  if (outputPath !== standalonePath)
+    lines.push(
+      '',
+      `**Separate rule file:** [${escapeText(rule.title)}](${encodedPath(posix.relative(posix.dirname(outputPath), standalonePath))})`,
+    );
   if (upstream !== null)
     lines.push(
       '',
@@ -282,7 +327,7 @@ export function renderRule(active: ActiveRule, outputPath: string): string {
     '',
     `${metadataFence}yaml\n${rule.metadata}\n${metadataFence}`,
     '',
-    ruleBody(active, outputPath),
+    ruleBody(active, outputPath, standalonePath),
   );
   return lines.join('\n');
 }

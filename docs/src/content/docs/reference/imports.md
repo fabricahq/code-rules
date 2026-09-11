@@ -12,7 +12,7 @@ It produces ordinary files that agents can read without running the importer.
 2. Resolve each source's library-relative exclusions to qualified IDs and remove those rules.
 3. Apply each source's replacements as complete local definitions, preserving the qualified target IDs.
 4. Add the remaining local rules.
-5. Pass resolved rules to Builds to generate the root index, group applicability indexes, and individual effective definitions.
+5. Pass resolved rules to Builds to generate the root index, group pages with full rules or applicability summaries, and individual effective definitions.
 
 Sort sources, groups, and rule IDs consistently so reordering configuration does not change the result.
 Preserve source-labeled group metadata and rule provenance; source order does not establish precedence.

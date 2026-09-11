@@ -5,7 +5,7 @@ description: "Choose groups from rule libraries and adapt their rules to your pr
 
 Import the technology and practice groups your project needs from one or more libraries.
 Add local rules and declare exceptions as part of that import configuration.
-Code Rules combines those choices into a root group index, group applicability indexes, and individual full rule files.
+Code Rules combines those choices into a root group index, group pages, and individual full rule files. Small group pages include complete rules; larger ones contain applicability summaries with explicit reading links.
 
 These commands describe the proposed release.
 For a complete setup walkthrough, see [Use rules in a project](/guides/use-rules/).
@@ -31,7 +31,7 @@ In `code-rules/config.json`, set `sources.<name>.groups` separately for each lib
 Each source also has a `repository`, a commit-or-tag `ref`, and its own `exclude` and `replace` objects.
 Use the [complete configuration example](/reference/configuration/#complete-example) as your starting point.
 
-If two sources supply `practices/testing`, their rules combine into one generated testing index, with links to individual effective rules.
+If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual effective rules.
 Source-prefixed IDs keep matching rule paths distinct.
 Neither source automatically overrides the other.
 

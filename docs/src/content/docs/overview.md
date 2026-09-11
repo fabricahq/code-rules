@@ -36,7 +36,8 @@ The planned [Code Rules authoring skill](/guides/write-rules/) uses those refere
 
 We researched how coding agents discover and apply rules, reviewing agent-tool documentation, published studies, and reported tests of reading limits.
 The evidence highlighted two risks: large rule bundles can exceed reading limits, while selective loading can miss relevant rules.
-That informed our design: compact indexes describe when each rule matters and link to its full text.
+That informed our design: small groups include full rules, while larger groups use compact applicability indexes with explicit links to full definitions.
+The configurable size threshold is a delivery choice, not a measured guarantee of compliance.
 Agents consider both technologies and practices before writing code, then independently select relevant rules during review.
 Reading a rule does not prove compliance; review still needs concrete evidence.
 We found no controlled comparison establishing one delivery format as universally best.
@@ -46,7 +47,7 @@ The [agent instructions](/for-agents/) describe how to use this approach.
 
 Your project chooses its libraries, selects each commit or tag, and selects groups from each source.
 Your project can add local rules, exclude inherited rules with a reason, or replace a rule completely.
-Builds resolves those choices into group indexes and individual files containing each effective rule's full text.
+Builds resolves those choices into group pages and individual files containing each effective rule's full text. Small groups include complete rules; larger groups use applicability summaries with explicit reading links.
 
 Writing and reviewing agents use the same files.
 Each agent still decides which groups and individual rules apply to the work at hand.
