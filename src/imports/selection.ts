@@ -18,13 +18,18 @@ function utf8(bytes: Uint8Array, path: string): string {
   }
 }
 
+/** Fold Unicode case variants, including final sigma and sharp S, before comparing retained path spellings. */
+function pathKey(path: string): string {
+  return path.normalize('NFC').toLowerCase().toUpperCase().normalize('NFC');
+}
+
 /** Register portable path spellings and reject metadata replacement or ambiguous directories. */
 function registerPath(path: string, paths: Map<string, string>): void {
   relativePath(path, path);
   const parts = path.split('/');
   if (
-    path.normalize('NFC').toLowerCase() === '_source.json' ||
-    parts.some((part) => part.toLowerCase() === '.git')
+    pathKey(path) === '_SOURCE.JSON' ||
+    parts.some((part) => pathKey(part) === '.GIT')
   )
     throw new ImportError(
       'unsupported-content',
@@ -32,7 +37,7 @@ function registerPath(path: string, paths: Map<string, string>): void {
     );
   for (let length = 1; length <= parts.length; length++) {
     const prefix = parts.slice(0, length).join('/');
-    const key = prefix.normalize('NFC').toLowerCase();
+    const key = pathKey(prefix);
     const existing = paths.get(key);
     if (existing !== undefined && existing !== prefix)
       throw new ImportError(

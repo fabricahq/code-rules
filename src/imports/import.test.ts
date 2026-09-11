@@ -404,3 +404,23 @@ test('does not inherit another checkout object database', async () => {
     ),
   ).toMatchObject({ snapshots: { one: { ref: 'v1' } } });
 });
+
+test.each([
+  ['sigma-σ.txt', 'sigma-ς.txt'],
+  ['sharp-ß.txt', 'sharp-SS.txt'],
+  ['sharp-ẞ.txt', 'sharp-SS.txt'],
+  ['café.txt', 'cafe\u0301.txt'],
+])('rejects colliding Unicode filenames %s and %s', async (first, second) => {
+  const { directory } = await addLibrary(fixture, 'one');
+  const blob = fixtureGit(directory, ['rev-parse', 'HEAD:LICENSE.txt']);
+  for (const name of [first, second])
+    fixtureGit(directory, [
+      'update-index',
+      '--add',
+      '--cacheinfo',
+      `100644,${blob},practices/testing/${name}`,
+    ]);
+  fixtureGit(directory, ['commit', '-m', 'Add Unicode collision']);
+  fixtureGit(directory, ['tag', '-f', 'v1']);
+  failure(config({ one: fixtureSource('one') }), 'unsupported-content');
+});

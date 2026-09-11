@@ -47,6 +47,8 @@ export function fixtureGit(
       '-c',
       'core.hooksPath=/dev/null',
       '-c',
+      'core.precomposeUnicode=false',
+      '-c',
       'user.name=Code Rules Tests',
       '-c',
       'user.email=tests@example.invalid',
