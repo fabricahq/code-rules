@@ -32,11 +32,21 @@ Each rule is a Markdown file.
 A shared [rubric and template](/reference/rule-authoring/) help authors make the obligation clear, scoped, and verifiable.
 The planned [Code Rules authoring skill](/guides/write-rules/) uses those references to help agents draft, revise, and review rules.
 
+## How research shaped rule delivery
+
+We researched how coding agents discover and apply rules, reviewing agent-tool documentation, published studies, and reported tests of reading limits.
+The evidence highlighted two risks: large rule bundles can exceed reading limits, while selective loading can miss relevant rules.
+That informed our design: compact indexes describe when each rule matters and link to its full text.
+Agents consider both technologies and practices before writing code, then independently select relevant rules during review.
+Reading a rule does not prove compliance; review still needs concrete evidence.
+We found no controlled comparison establishing one delivery format as universally best.
+The [agent instructions](/for-agents/) describe how to use this approach.
+
 ## What a project controls
 
 Your project chooses its libraries, selects each commit or tag, and selects groups from each source.
 Your project can add local rules, exclude inherited rules with a reason, or replace a rule completely.
-The importer combines those choices into one effective file per group.
+Builds resolves those choices into group indexes and individual files containing each effective rule's full text.
 
 Writing and reviewing agents use the same files.
 Each agent still decides which groups and individual rules apply to the work at hand.
