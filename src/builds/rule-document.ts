@@ -1,4 +1,4 @@
-/** @fileoverview Parses rule documents while preserving raw frontmatter and body text for aggregation. */
+/** @fileoverview Parses rule documents while preserving raw frontmatter and body text for generated rule files. */
 
 import { parseDocument } from 'yaml';
 import type { Rule } from './types';
@@ -41,11 +41,11 @@ function metadataObject(
   return object(raw, location);
 }
 
-/** Validate required rule metadata and return its title, leaving additional attribution fields untouched. */
+/** Validate required rule metadata and return its selection fields, leaving additional attribution fields untouched. */
 function validateRuleMetadata(
   data: Record<string, unknown>,
   location: string,
-): string {
+): Pick<Rule, 'title' | 'impact' | 'whenToRead'> {
   const title = nonempty(field(data, 'title'), `${location}.title`);
   const impact = nonempty(field(data, 'impact'), `${location}.impact`);
   if (
@@ -63,7 +63,11 @@ function validateRuleMetadata(
   const tags = field(data, 'tags');
   if (typeof tags === 'string') nonempty(tags, `${location}.tags`);
   else strings(tags, `${location}.tags`);
-  return title;
+  const whenToRead = nonempty(
+    field(data, 'whenToRead'),
+    `${location}.whenToRead`,
+  );
+  return { title, impact, whenToRead };
 }
 
 /**
@@ -76,13 +80,13 @@ export function rule(text: string, path: string, source: string): Rule {
   const group = ruleGroup(path, location);
   const { metadata, body } = documentText(text, location);
   const data = metadataObject(metadata, location);
-  const title = validateRuleMetadata(data, location);
+  const selection = validateRuleMetadata(data, location);
   nonempty(body, `${location}.body`);
   return {
     id: `${source}:${path.slice(0, -3)}`,
     group,
     path,
-    title,
+    ...selection,
     metadata,
     body,
   };

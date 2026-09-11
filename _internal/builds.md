@@ -24,7 +24,8 @@ Keep `index.ts` as the caller-facing interface; the modules below are implementa
 - `configuration.ts` interprets source selections and exception declarations, retaining field locations in diagnostics.
 - `resolve.ts` validates snapshots and resolves imported, replaced, and local definitions into groups.
   Each active rule is stored in its group once; provenance derives its rule list from those groups.
-- `render.ts` builds the index, group documents, and provenance without mutating resolved groups.
+- `render.ts` builds group and rule indexes, individual effective definitions, and provenance without mutating resolved groups.
+- `index-pages.ts` splits oversized indexes at entry boundaries and checks every output page against its UTF-8 byte budget.
 - `rule-document.ts` validates YAML and rule metadata while retaining the original frontmatter and body text.
 - `library-licenses.ts` validates license declarations and verifies the declared files exist.
 - `markdown.ts` relocates references and renders active definitions.
@@ -48,7 +49,7 @@ The snapshot envelope contains `repository`, `ref`, `resolvedCommit`, `groups`, 
 Workspace is responsible for mapping verified `_source.json` records into that envelope.
 
 Run `bun run builds:example` to execute `tests/manual/builds.ts` and create a temporary workspace from original example rules.
-Inspect its index and group Markdown, checking source labels, active obligations, exception reasons, and provenance.
+Inspect its group indexes and linked full rule files, checking source labels, active obligations, exception reasons, and provenance.
 Compare a second build with reordered sources to confirm that its bytes are identical.
 
 ## Rules informing the implementation
@@ -70,3 +71,16 @@ The builder does not infer legal obligations from prose or execute imported cont
 
 TypeScript checks project source strictly.
 `skipLibCheck` bypasses upstream declaration errors in Bun 1.4.2's types; it does not disable checking our code.
+
+## Applicability indexes
+
+Every source rule, local addition, and replacement requires a non-empty `whenToRead` string.
+Rule selection remains the agent's judgment; metadata must describe the intended work before a violation exists.
+Full definitions retain obligations, implementation and validation guidance, attribution, and relocated links.
+
+`buildRules` accepts optional `indexMaxBytes` (positive safe integer, default 24 KiB).
+The root index and group indexes fit that UTF-8 byte limit or split into complete numbered sibling parts.
+A single oversized entry or part directory fails explicitly; rule bodies are never truncated.
+Output paths use `rules/<source-name>/<rule-path>.md`, preserving replacement IDs independently of local source filenames.
+The complete returned map excludes obsolete definitions; Workspace will own stale-file comparison and installation, including removing obsolete index parts.
+The CLI `check` command and private-library migration are still future work. The builder tests verify that metadata edits change generated output deterministically.

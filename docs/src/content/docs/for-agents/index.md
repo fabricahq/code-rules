@@ -13,8 +13,9 @@ Add this section to the project's existing `AGENTS.md` after adopting Code Rules
 ```markdown
 Before planning, implementing, or reviewing a change, read `code-rules/generated/RULES.md`.
 Select technology and practice groups using the task, affected behavior, and code.
-Read their effective rules and follow each rule's applicability and exceptions.
-Revisit group selection when the scope changes.
+Inspect every part of the selected group indexes and use each rule's whenToRead guidance to choose full definitions.
+Read every relevant or plausibly relevant definition completely before relying on it.
+Complete truncated reads. Revisit rule selection when scope changes and reload needed rules after compaction.
 When reviewing, select groups independently and cite rule IDs with evidence for findings.
 Report missing relevant groups as coverage gaps.
 ```
@@ -26,9 +27,10 @@ Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules
 
 1. Read the task and the generated index.
 2. Identify affected technologies and engineering practices.
-3. Load the matching effective group files.
-4. Account for applicable obligations in the plan and implementation.
-5. Revisit selection if the work expands.
+3. Inspect all parts of the matching group indexes.
+4. Read full definitions for relevant or plausibly relevant rules, using their `whenToRead` descriptions.
+5. Account for applicable obligations in the plan and implementation.
+6. Revisit selection if the work expands.
 
 ### Example: retry a failed request
 
@@ -36,7 +38,7 @@ For retries in a TypeScript service, consider `techs/typescript`, `practices/tes
 Inspect the intended behavior, dependencies, imports, surrounding code, and changed files.
 Practice groups can apply even when no test files or logging packages change.
 
-Load a group when its guidance matches the work, then apply each rule's conditions and exceptions.
+Inspect a group index when its guidance matches the work, then read the relevant full rules and apply their conditions and exceptions.
 A group match alone is not evidence of a violation.
 
 A behavior change can require testing rules before anyone edits a test file.

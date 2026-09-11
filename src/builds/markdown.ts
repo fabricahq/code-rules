@@ -1,4 +1,4 @@
-/** @fileoverview Renders active rules with source-aware links for generated group files. */
+/** @fileoverview Renders active rules with source-aware links for individual generated files. */
 
 import { posix } from 'node:path';
 import { fromMarkdown } from 'mdast-util-from-markdown';
@@ -19,18 +19,35 @@ function encodedPath(value: string): string {
   return value.split('/').map(encodeURIComponent).join('/');
 }
 
-/** Return a commit-pinned GitHub link for an imported origin, or a local link relative to a generated group file. */
-function sourceLink(origin: RuleOrigin): string {
+/** Return a commit-pinned GitHub link for an imported origin, or a local link relative to the generated rule file. */
+function sourceLink(origin: RuleOrigin, outputPath: string): string {
   if (origin.repository !== null && origin.resolvedCommit !== null) {
     return `https://github.com/${origin.repository}/blob/${origin.resolvedCommit}/${encodedPath(origin.file)}`;
   }
-  return `../../local/${encodedPath(origin.file)}`;
+  return workspaceLink(outputPath, `local/${origin.file}`);
+}
+
+/** Return a workspace-relative link from the actual generated file location. */
+function workspaceLink(outputPath: string, target: string): string {
+  return encodedPath(
+    posix.relative(posix.dirname(`generated/${outputPath}`), target),
+  );
 }
 
 /** Resolve relative references from the rule's source root, using vendored files or pinned remote URLs; missing local targets fail. */
-function relocatedUrl(url: string, active: ActiveRule, image: boolean): string {
+function relocatedUrl(
+  url: string,
+  active: ActiveRule,
+  image: boolean,
+  outputPath: string,
+): string {
   // External references and schemes retain their author's meaning.
-  if (/^[a-z][a-z0-9+.-]*:/iu.test(url) || url.startsWith('//')) return url;
+  if (
+    /^[a-z][a-z0-9+.-]*:/iu.test(url) ||
+    url.startsWith('//') ||
+    url.startsWith('#')
+  )
+    return url;
   const split = /^([^?#]*)([\s\S]*)$/u.exec(url);
   const pathname = split?.[1] ?? '';
   const suffix = split?.[2] ?? '';
@@ -55,9 +72,9 @@ function relocatedUrl(url: string, active: ActiveRule, image: boolean): string {
   if (active.sourceFiles.has(target)) {
     const base =
       active.origin.source === 'local'
-        ? '../../local'
-        : `../../vendor/${active.origin.source}`;
-    return `${base}/${encodedPath(target)}${suffix}`;
+        ? 'local'
+        : `vendor/${active.origin.source}`;
+    return `${workspaceLink(outputPath, `${base}/${target}`)}${suffix}`;
   }
   if (
     active.origin.repository !== null &&
@@ -99,13 +116,19 @@ function rewriteNode(
   node: RewriteNode,
   active: ActiveRule,
   referencePrefix: string,
+  outputPath: string,
 ): void {
   if (
     node.type === 'link' ||
     node.type === 'image' ||
     node.type === 'definition'
   )
-    node.url = relocatedUrl(node.url, active, node.type === 'image');
+    node.url = relocatedUrl(
+      node.url,
+      active,
+      node.type === 'image',
+      outputPath,
+    );
   if (
     node.type === 'definition' ||
     node.type === 'linkReference' ||
@@ -146,9 +169,13 @@ function requireSupportedHtml(node: Root | RootContent, ruleId: string): void {
 }
 
 /** Rewrite children before parents and collect only outermost replacement spans; invalid references throw BuildError. */
-function collectRewrites(tree: Root, active: ActiveRule): Array<SourceEdit> {
+function collectRewrites(
+  tree: Root,
+  active: ActiveRule,
+  outputPath: string,
+): Array<SourceEdit> {
   const edits: Array<SourceEdit> = [];
-  // Aggregated rules share one reference namespace, so labels must include the source-qualified rule ID.
+  // Keep reference identities stable if a consumer later combines individual rule files.
   const referencePrefix = `code-rules-${encodeURIComponent(active.rule.id)}-`;
   /** Visit in postorder; an ancestor's edit includes rewritten children, so child edits must not overlap it. */
   function visit(node: Root | RootContent, ancestorOwnsEdit: boolean): void {
@@ -157,7 +184,7 @@ function collectRewrites(tree: Root, active: ActiveRule): Array<SourceEdit> {
       for (const child of node.children)
         visit(child, ancestorOwnsEdit || rewritesNode);
     if (rewritesNode) {
-      rewriteNode(node, active, referencePrefix);
+      rewriteNode(node, active, referencePrefix, outputPath);
       if (!ancestorOwnsEdit) {
         const edit = sourceEdit(node, serializedNode(node));
         if (edit !== undefined) edits.push(edit);
@@ -199,9 +226,9 @@ function applySourceEdits(
  * Trims outer whitespace while preserving text outside the rewritten nodes.
  * Throws an invalid-input BuildError for unsafe/missing local targets or relative links in raw HTML.
  */
-function ruleBody(active: ActiveRule): string {
+function ruleBody(active: ActiveRule, outputPath: string): string {
   const tree = fromMarkdown(active.rule.body);
-  const edits = collectRewrites(tree, active);
+  const edits = collectRewrites(tree, active, outputPath);
   const titleEdit = redundantTitleEdit(tree, active.rule.title);
   if (titleEdit !== undefined) edits.push(titleEdit);
   return applySourceEdits(active.rule.body, edits);
@@ -211,7 +238,7 @@ function ruleBody(active: ActiveRule): string {
  * Return a Markdown rule section with its identity, active definition, replacement, terms, and preserved metadata.
  * Relocates body links and throws an invalid-input BuildError for unsupported relative references.
  */
-export function renderRule(active: ActiveRule): string {
+export function renderRule(active: ActiveRule, outputPath: string): string {
   const { rule, origin, upstream } = active;
   // The outer fence must exceed every embedded backtick run so metadata cannot close it early.
   const metadataFence = '`'.repeat(
@@ -224,16 +251,16 @@ export function renderRule(active: ActiveRule): string {
     ),
   );
   const lines = [
-    `## ${escapeText(rule.title)}`,
+    `# ${escapeText(rule.title)}`,
     '',
     `Rule ID: \`${rule.id}\``,
     '',
-    `[Active definition](${sourceLink(origin)})`,
+    `[Active definition](${sourceLink(origin, outputPath)})`,
   ];
   if (upstream !== null)
     lines.push(
       '',
-      `[Replaces upstream definition](${sourceLink(upstream)}). Reason: ${escapeText(active.reason ?? '')}`,
+      `[Replaces upstream definition](${sourceLink(upstream, outputPath)}). Reason: ${escapeText(active.reason ?? '')}`,
     );
   if (active.licenseFiles.length) {
     lines.push(
@@ -241,7 +268,7 @@ export function renderRule(active: ActiveRule): string {
       'Library default license and notices:',
       ...active.licenseFiles.map(
         (path) =>
-          `- [${escapeText(path)}](../../vendor/${origin.source}/${encodedPath(path)})`,
+          `- [${escapeText(path)}](${workspaceLink(outputPath, `vendor/${origin.source}/${path}`)})`,
       ),
     );
   } else
@@ -255,7 +282,7 @@ export function renderRule(active: ActiveRule): string {
     '',
     `${metadataFence}yaml\n${rule.metadata}\n${metadataFence}`,
     '',
-    ruleBody(active),
+    ruleBody(active, outputPath),
   );
   return lines.join('\n');
 }

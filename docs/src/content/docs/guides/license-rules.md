@@ -69,28 +69,29 @@ code-rules/
   generated/
     RULES.md
     practices/testing.md
+    rules/fabrica/practices/testing/verify-retry-limits.md
 ```
 
-Preserve copyright notices and per-rule attribution in both the vendored source and the generated aggregate.
+Preserve copyright notices and per-rule attribution in both the vendored source and the generated rule file.
 Keep referenced rule-specific license files with the snapshot and repair their relative links after relocation.
 Include the preserved files in snapshot digests so offline checks can detect missing or changed files.
 License changes belong in the update report alongside rule changes.
 
-Each imported rule in an aggregate identifies its source and applicable preserved license.
-For example, inside `generated/practices/testing.md`:
+Each individual effective rule identifies its source and applicable preserved license.
+For example, inside `generated/rules/fabrica/practices/testing/verify-retry-limits.md`:
 
 ```markdown
-## Verify retry limits
+# Verify retry limits
 
-Source: fabrica:practices/testing/verify-retry-limits
-License: [Fabrica library terms](../../vendor/fabrica/LICENSE.md)
+Rule ID: fabrica:practices/testing/verify-retry-limits
+License: [Fabrica library terms](../../../../../vendor/fabrica/LICENSE.md)
 
 [The rule's original copyright notices and attribution appear here.]
 ```
 
 Generated rule files link to their applicable preserved terms.
 The index links to provenance, which records source libraries and their declared license paths.
-When an aggregate includes multiple libraries, retain each rule's licensing information instead of labeling the whole aggregate with a single upstream license.
+When a group includes multiple libraries, retain each rule's licensing information instead of assigning one upstream license to the group.
 Copied rule text remains subject to its applicable terms even when the project changes its wording or replaces an imported rule with an adaptation.
 Record the applicable terms for the local definition; an ID alone cannot establish its licensing.
 
@@ -101,8 +102,8 @@ Imported content remains separately identified under its applicable terms.
 The index should explain that boundary so the root license does not appear to relicense imported rules.
 Whether a particular combination or redistribution is permitted depends on the actual licenses and use.
 
-Keep the vendored license and notice files when sharing generated aggregates.
-Copying an aggregate by itself can break its license links and omit required notices.
+Keep the vendored license and notice files when sharing generated rule files.
+Copying a rule file by itself can break its license links and omit required notices.
 
 If licensing is undeclared or ambiguous, report it as unspecified and resolve the permissions before redistribution.
 Do not infer a license from the repository's visibility, its source name, or another library's terms.

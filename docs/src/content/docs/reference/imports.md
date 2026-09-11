@@ -12,7 +12,7 @@ It produces ordinary files that agents can read without running the importer.
 2. Resolve each source's library-relative exclusions to qualified IDs and remove those rules.
 3. Apply each source's replacements as complete local definitions, preserving the qualified target IDs.
 4. Add the remaining local rules.
-5. Combine rules with the same group ID into one group file and generate the root index.
+5. Pass resolved rules to Builds to generate the root index, group applicability indexes, and individual effective definitions.
 
 Sort sources, groups, and rule IDs consistently so reordering configuration does not change the result.
 Preserve source-labeled group metadata and rule provenance; source order does not establish precedence.
@@ -38,7 +38,7 @@ Detect concurrent writes and interrupted installations so mixed output cannot pa
 Copy selected upstream group source files into `vendor/<source-name>/`, including rules hidden by project exceptions.
 That retained text lets an update report expose upstream changes that a replacement would otherwise hide.
 
-Preserve each rule's attribution from its metadata or body in the vendored source and generated aggregate.
+Preserve each rule's attribution from its metadata or body in the vendored source and generated rule file.
 Keep declared and otherwise applicable license and notice files with the source snapshot, including files referenced by individual rules.
 Include them in snapshot digests and report changes during updates.
 Generated rules link to their applicable preserved terms; see [License rules](/guides/license-rules/).

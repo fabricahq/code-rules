@@ -67,17 +67,17 @@ code-rules sync
 
 Sync resolves each ref to a full commit SHA and records it as `resolvedCommit` in `vendor/<source-name>/_source.json`.
 It copies the selected groups from that commit into `vendor/<source-name>/`.
-Under `generated/`, sync creates one aggregated Markdown file per group, containing all of that group's active rules from the selected sources and local files.
+Sync calls Builds to produce the root group index, an applicability index per group, and individual full rule files under `generated/rules/`.
 Project exclusions and replacements are already applied.
-For example, `generated/practices/testing.md` brings the project's testing rules together in one file.
-Sync also creates `generated/RULES.md`, an index that helps agents choose which group files to read.
+For example, `generated/practices/testing.md` describes when each active testing rule is relevant and links to its effective definition.
+`generated/RULES.md` helps agents choose groups; oversized indexes link to complete numbered parts.
 The import installs all sources together after validation succeeds.
 A later sync can pick up a moved tag; review resolved-commit changes along with the rule changes.
 [Adapt rules](/guides/select-rules/#adapt-the-import-to-your-project) when the project needs additions or exceptions, then rebuild the output.
 
 ## 4. Review and commit the files
 
-Review the generated index and group files.
+Review the generated indexes and follow their links to the full effective rule files.
 Confirm that replacements contain the intended obligations and that excluded rules are absent from active output.
 Commit configuration, local rules, vendor content, and generated files together.
 

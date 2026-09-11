@@ -22,6 +22,8 @@ export type BuildInput = {
   readonly snapshots: Readonly<Record<string, LibrarySnapshot>>;
   readonly localFiles: FileContents;
   readonly toolVersion: string;
+  /** Maximum UTF-8 bytes per generated index file; defaults to 24 KiB. Full rule bodies are never truncated. */
+  readonly indexMaxBytes?: number;
 };
 
 /** Complete generated text files keyed by paths relative to generated/, ready for the caller to install. */
@@ -60,6 +62,8 @@ export type Rule = {
   readonly group: string;
   readonly path: string;
   readonly title: string;
+  readonly impact: string;
+  readonly whenToRead: string;
   readonly metadata: string;
   readonly body: string;
 };

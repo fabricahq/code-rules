@@ -59,7 +59,7 @@ code-rules conflicts --prompt
 Running `code-rules conflicts` without it exits with a usage error that shows the required flag.
 
 Print a Markdown prompt for an agent to review the project's active rules for contradictory guidance.
-The prompt includes the effective index and group file paths, source refs and resolved commits, and a digest identifying the reviewed inputs and output.
+The prompt includes the effective root index, group index, and rule file paths, source refs and resolved commits, and a digest identifying the reviewed inputs and output.
 Generate it from the configured project paths so the agent can read the exact snapshot.
 The prompt is for an agent with access to those repository files; it does not embed the complete rule corpus.
 
@@ -93,8 +93,8 @@ If an installation cannot be updated automatically, provide the specific command
 A failed upgrade must preserve a working installation.
 
 This command updates the tool itself.
-Library refs, vendored rules, and generated aggregates remain unchanged.
-Use `code-rules sync` to download rule libraries and regenerate their aggregates.
+Library refs, vendored rules, and generated rule files remain unchanged.
+Use `code-rules sync` to download rule libraries and rebuild their indexes and effective definitions.
 
 After upgrading, run `code-rules check` in a consuming project to check its generated files against the new tool version.
 If regeneration is needed, run `code-rules build` and review the output before committing it.

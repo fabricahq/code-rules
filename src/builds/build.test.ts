@@ -1,6 +1,7 @@
 /** @fileoverview Checks offline Builds behavior through its public interface using original rule fixtures. */
 
 import { describe, expect, test } from 'bun:test';
+import { posix } from 'node:path';
 import { buildRules, BuildError } from './index';
 import type { BuildInput, FileContents, LibrarySnapshot } from './index';
 
@@ -18,7 +19,7 @@ function ruleText(
   title: string,
   body = 'Verify the retry limit before shipping.',
 ): string {
-  return `---\ntitle: ${title}\nimpact: HIGH\nimpactDescription: Prevent unbounded retries.\ntags: testing, retries\n---\n\n## ${title}\n\n${body}\n`;
+  return `---\ntitle: ${title}\nwhenToRead: When planning, implementing, or reviewing retries.\nimpact: HIGH\nimpactDescription: Prevent unbounded retries.\ntags: testing, retries\n---\n\n## ${title}\n\n${body}\n`;
 }
 
 /** Declare one imported testing group with source-scoped exceptions. */
@@ -105,8 +106,8 @@ function withLibraryManifest(
 describe('buildRules', () => {
   test('should show each rule title once and keep ordinary prose readable as Markdown', () => {
     const build = localInput({ [`${ruleId}.md`]: ruleText('Local retries') });
-    const output = generated(build, `${group}.md`);
-    expect(output.split('## Local retries').length - 1).toBe(1);
+    const output = generated(build, `rules/local/${ruleId}.md`);
+    expect(output.split('# Local retries').length - 1).toBe(1);
     expect(generated(build, 'RULES.md')).toContain(
       'Check externally visible behavior.',
     );
@@ -120,7 +121,8 @@ describe('buildRules', () => {
     expect(output).toContain(`acme:${ruleId}`);
     expect(output).toContain('Fabrica retries');
     expect(output).toContain('Acme retries');
-    expect(output).toContain(
+    expect(output).toContain(`../rules/fabrica/${ruleId}.md`);
+    expect(generated(input(), `rules/fabrica/${ruleId}.md`)).toContain(
       `https://github.com/fabrica/rules/blob/${commit}/${ruleId}.md`,
     );
     const index = generated(input(), 'RULES.md');
@@ -179,8 +181,9 @@ describe('buildRules', () => {
     expect(output).toContain(`Rule ID: \`fabrica:${ruleId}\``);
     expect(output).not.toContain(`local:${group}/bounded`);
     expect(output).not.toContain('## Fabrica retries');
-    expect(output).toContain(
-      `[Active definition](../../local/${group}/bounded.md)`,
+    expect(output).toContain(`../rules/fabrica/${ruleId}.md`);
+    expect(generated(build, `rules/fabrica/${ruleId}.md`)).toContain(
+      `[Active definition](../../../../../local/${group}/bounded.md)`,
     );
     const provenance = generated(build, 'provenance.json');
     expect(provenance).toContain(`"file": "${group}/bounded.md"`);
@@ -268,14 +271,14 @@ describe('buildRules', () => {
     });
     const output = generated(
       { ...build, snapshots: { ...build.snapshots, fabrica: licensed } },
-      `${group}.md`,
+      `rules/fabrica/${ruleId}.md`,
     );
-    expect(output).toContain('../../vendor/fabrica/LICENSE.md');
-    expect(output).toContain('../../vendor/fabrica/NOTICE.txt');
+    expect(output).toContain('../../../../../vendor/fabrica/LICENSE.md');
+    expect(output).toContain('../../../../../vendor/fabrica/NOTICE.txt');
     expect(output).toContain(
       `https://github.com/fabrica/rules/blob/${commit}/guides/retries.md#limits`,
     );
-    expect(output).toContain(`../../vendor/fabrica/${ruleId}.md#verification`);
+    expect(output).toContain('[This rule](#verification)');
     expect(output).toContain('Credit: original fixture author.');
   });
 
@@ -424,7 +427,7 @@ describe('buildRules', () => {
           }),
         },
       },
-      `${group}.md`,
+      `rules/fabrica/${ruleId}.md`,
     );
     expect(output).toContain(
       `]: https://github.com/fabrica/rules/blob/${commit}/README.md`,
@@ -447,8 +450,11 @@ describe('buildRules', () => {
         [`${ruleId}.md`]: ruleText('Acme references', body),
       }),
     };
-    const output = generated({ ...build, snapshots }, `${group}.md`);
     for (const name of ['fabrica', 'acme']) {
+      const output = generated(
+        { ...build, snapshots },
+        `rules/${name}/${ruleId}.md`,
+      );
       const label = `code-rules-${encodeURIComponent(`${name}:${ruleId}`)}-details`;
       expect(output).toContain(`[Reference][${label}]`);
       expect(output).toContain(
@@ -492,7 +498,7 @@ describe('buildRules', () => {
       .replaceAll('\n', '\r\n');
     const output = generated(
       localInput({ [`${ruleId}.md`]: text }),
-      `${group}.md`,
+      `rules/local/${ruleId}.md`,
     );
     expect(output).toContain('author: Original fixture author');
   });
@@ -796,13 +802,13 @@ test('should preserve surrounding Markdown while relocating nested images and mu
       [`${group}/icon.png`]: 'image bytes',
       [`${group}/guide.md`]: ruleText('Guide'),
     }),
-    `${group}.md`,
+    `rules/local/${group}/sample.md`,
   );
   expect(result).toContain('Keep  double spaces and **strong** text.');
   expect(result).toContain(
-    `[![icon](../../local/${group}/icon.png)](../../local/${group}/guide.md?mode=1#part)`,
+    `[![icon](../../../../../local/${group}/icon.png)](../../../../../local/${group}/guide.md?mode=1#part)`,
   );
-  expect(result).toContain(`../../local/${group}/guide.md#other`);
+  expect(result).toContain(`../../../../../local/${group}/guide.md#other`);
   expect(result).toContain('```md\n[untouched](./missing.md)\n```');
 });
 
@@ -878,4 +884,302 @@ test('should retain local group indices before output sorting', () => {
       },
     }),
   ).toThrow('localGroups[1]: invalid group ID');
+});
+
+/** Follow the Markdown links emitted by an index, keeping destinations relative to generated/. */
+function indexedPaths(path: string, text: string): Array<string> {
+  return Array.from(text.matchAll(/\]\(([^)]+\.md)\)/gu), (match) =>
+    posix.normalize(posix.join(posix.dirname(path), match[1] ?? '')),
+  );
+}
+
+test('should expose selection metadata separately from full effective bodies and preserve replacement identity', () => {
+  const id = `${group}/verify-retries`;
+  const build: BuildInput = {
+    ...input(),
+    configuration: {
+      schemaVersion: 1,
+      sources: {
+        fabrica: source(
+          'fabrica/rules',
+          { [`${group}/obsolete`]: 'No longer applicable.' },
+          {
+            [id]: {
+              file: `local/${group}/replacement.md`,
+              reason: 'Project retry contract.',
+            },
+          },
+        ),
+      },
+      localGroups: [],
+    },
+    snapshots: {
+      fabrica: snapshot('fabrica/rules', 'Superseded', {
+        [`${group}/obsolete.md`]: ruleText('Excluded', 'Excluded body.'),
+      }),
+    },
+    localFiles: {
+      [`${group}/replacement.md`]: ruleText(
+        'Project retries',
+        'Use exactly three attempts.',
+      ).replace(
+        'When planning, implementing, or reviewing retries.',
+        'When adding requests to the project API.',
+      ),
+      [`${group}/success.md`]: ruleText(
+        'Stop after success',
+        'Never retry a successful result.',
+      ),
+    },
+  };
+  const output = buildRules(build).files;
+  const index = output[`${group}.md`] ?? '';
+  expect(index).toContain(
+    'When to read: When adding requests to the project API.',
+  );
+  expect(index).toContain('Impact: HIGH');
+  expect(index).not.toContain('Use exactly three attempts.');
+  expect(output[`rules/fabrica/${id}.md`]).toContain(
+    'Use exactly three attempts.',
+  );
+  expect(
+    Object.keys(output).filter((path) => path.startsWith('rules/')),
+  ).toEqual([`rules/fabrica/${id}.md`, `rules/local/${group}/success.md`]);
+  expect(
+    indexedPaths(`${group}.md`, index).filter((path) =>
+      path.startsWith('rules/'),
+    ),
+  ).toEqual([`rules/fabrica/${id}.md`, `rules/local/${group}/success.md`]);
+  expect(Object.values(output).join('\n')).not.toContain('Excluded body.');
+  expect(Object.values(output).join('\n')).not.toContain('title: Superseded');
+});
+
+test.each(
+  [undefined, '', '   ', null, 7, ['Changing code.']].map((value) => ({
+    value,
+  })),
+)(
+  'should reject missing or invalid rule whenToRead metadata: $value',
+  ({ value }) => {
+    let text = ruleText('Relevant');
+    text = text.replace(
+      'whenToRead: When planning, implementing, or reviewing retries.\n',
+      value === undefined ? '' : `whenToRead: ${JSON.stringify(value)}\n`,
+    );
+    expect(() => buildRules(localInput({ [`${ruleId}.md`]: text }))).toThrow(
+      '.whenToRead',
+    );
+  },
+);
+
+test('should validate applicability on imported definitions even when excluded and on local replacements', () => {
+  const missing = ruleText('Missing').replace(/whenToRead:.*\n/u, '');
+  const base: BuildInput = {
+    ...input(),
+    configuration: {
+      schemaVersion: 1,
+      sources: { fabrica: source('fabrica/rules', { [ruleId]: 'Unused.' }) },
+      localGroups: [],
+    },
+    snapshots: {
+      fabrica: snapshot('fabrica/rules', 'Missing', {
+        [`${ruleId}.md`]: missing,
+      }),
+    },
+  };
+  expect(() => buildRules(base)).toThrow('.whenToRead');
+  expect(() =>
+    buildRules({
+      ...base,
+      configuration: {
+        schemaVersion: 1,
+        sources: {
+          fabrica: source(
+            'fabrica/rules',
+            {},
+            { [ruleId]: { file: `local/${ruleId}.md`, reason: 'Override.' } },
+          ),
+        },
+        localGroups: [],
+      },
+      snapshots: { fabrica: snapshot('fabrica/rules', 'Valid') },
+      localFiles: { [`${ruleId}.md`]: missing },
+    }),
+  ).toThrow('.whenToRead');
+});
+
+test('should split indexes at complete entries with bounded UTF-8 bytes and resolvable links', () => {
+  const files = Object.fromEntries(
+    Array.from({ length: 30 }, (_, index) => [
+      `${group}/rule-${String(index).padStart(2, '0')}.md`,
+      ruleText(`Check retries ${index}`, 'Full guidance '.repeat(400)).replace(
+        'When planning, implementing, or reviewing retries.',
+        'When adding retries. '.repeat(8) + '验证重试。',
+      ),
+    ]),
+  );
+  const build = { ...localInput(files), indexMaxBytes: 2000 };
+  const output = buildRules(build).files;
+  const parts = Object.keys(output).filter((path) =>
+    path.startsWith(`${group}.part-`),
+  );
+  expect(parts.length).toBeGreaterThan(1);
+  expect(
+    indexedPaths(`${group}.md`, output[`${group}.md`] ?? '').filter((path) =>
+      parts.includes(path),
+    ),
+  ).toEqual(
+    parts.sort(
+      (a, b) =>
+        Number(a.match(/part-(\d+)/u)?.[1]) -
+        Number(b.match(/part-(\d+)/u)?.[1]),
+    ),
+  );
+  const linkedRules: Array<string> = [];
+  for (const [path, content] of Object.entries(output)) {
+    if (path.startsWith('rules/') || path === 'provenance.json') continue;
+    expect(Buffer.byteLength(content, 'utf8')).toBeLessThanOrEqual(2000);
+    for (const target of indexedPaths(path, content)) {
+      expect(output[target]).toBeDefined();
+      if (target.startsWith('rules/')) linkedRules.push(target);
+    }
+  }
+  expect(linkedRules.length).toBe(30);
+  expect(new Set(linkedRules).size).toBe(30);
+  for (const path of linkedRules)
+    expect(output[path]).toContain('Full guidance '.repeat(400).trim());
+  const reordered = {
+    ...build,
+    localFiles: Object.fromEntries(Object.entries(build.localFiles).reverse()),
+  };
+  expect(buildRules(reordered).files).toEqual(output);
+});
+
+test('should split the project group index while retaining every group and reading instruction', () => {
+  const groups = Array.from(
+    { length: 20 },
+    (_, index) => `techs/language-${index}`,
+  );
+  const build: BuildInput = {
+    configuration: { schemaVersion: 1, sources: {}, localGroups: groups },
+    snapshots: {},
+    toolVersion: 'test',
+    indexMaxBytes: 2000,
+    localFiles: Object.fromEntries(
+      groups.map((id) => [`${id}/_group.json`, metadata]),
+    ),
+  };
+  const output = buildRules(build).files;
+  const parts = indexedPaths('RULES.md', output['RULES.md'] ?? '').filter(
+    (path) => path.startsWith('RULES.part-'),
+  );
+  expect(parts.length).toBeGreaterThan(1);
+  const destinations = parts
+    .flatMap((path) => indexedPaths(path, output[path] ?? ''))
+    .filter((path) => path.startsWith('techs/'));
+  expect(destinations.sort()).toEqual(groups.map((id) => `${id}.md`).sort());
+  for (const path of ['RULES.md', ...parts])
+    expect(Buffer.byteLength(output[path] ?? '', 'utf8')).toBeLessThanOrEqual(
+      2000,
+    );
+});
+
+test('should retain a single index at the exact byte limit and split below it without truncation', () => {
+  const files = Object.fromEntries(
+    Array.from({ length: 10 }, (_, index) => [
+      `${group}/rule-${index}.md`,
+      ruleText(`Retry ${index}`),
+    ]),
+  );
+  const build = localInput(files);
+  const full = generated(build, `${group}.md`);
+  const boundary = Buffer.byteLength(full, 'utf8');
+  expect(generated({ ...build, indexMaxBytes: boundary }, `${group}.md`)).toBe(
+    full,
+  );
+  expect(
+    generated({ ...build, indexMaxBytes: boundary - 1 }, `${group}.md`),
+  ).toContain('Part 1');
+});
+
+test.each([0, -1, 1.5, NaN, Infinity])(
+  'should reject invalid index byte budgets: %s',
+  (indexMaxBytes) => {
+    expect(() => buildRules({ ...input(), indexMaxBytes })).toThrow(
+      'indexMaxBytes',
+    );
+  },
+);
+
+test('should fail explicitly when a single entry cannot fit its index budget', () => {
+  const text = ruleText('Large metadata').replace(
+    'When planning, implementing, or reviewing retries.',
+    'Read when '.repeat(1000),
+  );
+  expect(() =>
+    buildRules({
+      ...localInput({ [`${ruleId}.md`]: text }),
+      indexMaxBytes: 2000,
+    }),
+  ).toThrow('an index entry');
+});
+
+test('should report an oversized complete part directory rather than drop navigation links', () => {
+  const files = Object.fromEntries(
+    Array.from({ length: 100 }, (_, index) => [
+      `${group}/rule-${index}.md`,
+      ruleText(`Retry ${index}`).replace(
+        'When planning, implementing, or reviewing retries.',
+        'Read when '.repeat(100),
+      ),
+    ]),
+  );
+  expect(() =>
+    buildRules({ ...localInput(files), indexMaxBytes: 2000 }),
+  ).toThrow('complete index part directory');
+});
+
+test('should rebuild changed applicability into the index and full definition while preserving the rule ID', () => {
+  const first = localInput({ [`${ruleId}.md`]: ruleText('Retry') });
+  const next = localInput({
+    [`${ruleId}.md`]: ruleText('Retry').replace(
+      'When planning, implementing, or reviewing retries.',
+      'When changing API retries.',
+    ),
+  });
+  const before = buildRules(first).files;
+  const after = buildRules(next).files;
+  expect(Object.keys(after)).toEqual(Object.keys(before));
+  expect(after[`${group}.md`]).not.toBe(before[`${group}.md`]);
+  expect(after[`rules/local/${ruleId}.md`]).not.toBe(
+    before[`rules/local/${ruleId}.md`],
+  );
+  expect(after['provenance.json']).toBe(before['provenance.json']);
+});
+
+test('should relocate links and attribution correctly for deeply nested individual definitions', () => {
+  const path = `${group}/nested/retry.md`;
+  const build = localInput({
+    [path]: ruleText(
+      'Nested',
+      '[Guide](../guide.md?mode=1#validation)\n\n[Here](#validation)',
+    ),
+    [`${group}/guide.md`]: ruleText('Guide'),
+  });
+  const output = generated(build, `rules/local/${path}`);
+  expect(output).toContain(
+    `../../../../../../local/${group}/guide.md?mode=1#validation`,
+  );
+  expect(output).toContain('[Here](#validation)');
+  expect(output).toContain(
+    `[Active definition](../../../../../../local/${path})`,
+  );
+});
+
+test('should reject generated paths that would require a rule file to also be a directory', () => {
+  const build = localInput({
+    [`${group}/retry.md`]: ruleText('Retry'),
+    [`${group}/retry.md/nested.md`]: ruleText('Nested retry'),
+  });
+  expect(() => buildRules(build)).toThrow('generated path conflicts with file');
 });

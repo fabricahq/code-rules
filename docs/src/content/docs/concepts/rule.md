@@ -48,7 +48,7 @@ The library-relative path without `.md` identifies a rule within its library.
 Generated files add the configured source name, such as `fabrica:practices/testing/verify-retry-limits`.
 That prefix distinguishes matching paths from different libraries.
 
-Agents read the project's generated group files, where imports and local choices have already been combined.
+Agents use group applicability indexes to select individual effective rule files, where imported and local choices have already been resolved.
 Each rule keeps its identity and provenance even though several rules share one generated file.
 Agents select relevant groups, then apply each individual rule's conditions and exceptions.
 

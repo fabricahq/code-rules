@@ -51,7 +51,7 @@ Agents need to find relevant rules, interpret their scope, and cite evidence whe
 
 A rule expresses one independently adoptable engineering expectation in a Markdown file. It states what to do, when it applies, and what evidence would demonstrate compliance. Rules can govern code, tests, plans, documentation, and other engineering work.
 
-A rule retains its identity and provenance when imported or included in an aggregate. See [Rule](docs/src/content/docs/concepts/rule.md) for the concept and [the rubric and template](docs/src/content/docs/reference/rule-authoring.md) for the authoring standard.
+A rule retains its identity and provenance when imported or rendered as an effective definition. See [Rule](docs/src/content/docs/concepts/rule.md) for the concept and [the rubric and template](docs/src/content/docs/reference/rule-authoring.md) for the authoring standard.
 
 #### Group
 

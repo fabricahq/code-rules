@@ -26,7 +26,7 @@ The workflow below describes how the skill is intended to work.
 
 1. Give the agent a best practice, its intended scope, and any supporting context or sources.
 2. The skill reads the rubric, template, and target library's conventions.
-3. The agent drafts one rule per file, making the obligation, applicability, and verification concrete.
+3. The agent drafts one rule per file, specifying `whenToRead` and separately considering implementation and validation guidance.
 4. The agent checks the draft against every rubric criterion and revises unclear passages.
 5. The agent presents the rule and any unresolved policy questions for review.
 
@@ -48,6 +48,7 @@ This original example illustrates the proposed format:
 ````md
 ---
 title: Verify retry limits
+whenToRead: "When planning, implementing, reviewing, or diagnosing bounded retry behavior."
 impact: HIGH
 impactDescription: prevents a transient failure from causing unbounded requests
 tags: testing, retries
@@ -57,9 +58,9 @@ tags: testing, retries
 
 When a change adds bounded retries, test that requests stop after the configured limit.
 
-### Applicability
+### Implementation
 
-Apply this rule when adding or changing retry behavior.
+Write a deterministic test that keeps the request failing until the configured attempt limit.
 It does not require a retry mechanism where none is needed.
 
 ### Rationale
@@ -78,7 +79,7 @@ The test would still pass if the operation allowed unlimited attempts.
 For a limit of three attempts, make every attempt fail.
 Assert that the operation stops after three calls and returns the documented failure.
 
-### Verification
+### Validation
 
 Run the test with the stop condition removed in a disposable checkout.
 The test should fail.
@@ -92,6 +93,6 @@ Renaming or moving the file changes its ID in the first release.
 Consumers must update exclusions and replacements that referenced the old path.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.
-Imports carry that attribution into the generated group file; no separate attribution file is required.
+Builds carries that attribution into the individual generated rule file; no separate attribution file is required.
 The existing nested `source:` metadata describes provenance, not an override target.
 When publishing or adapting rules, follow [License rules](/guides/license-rules/) to make permissions and attribution explicit.

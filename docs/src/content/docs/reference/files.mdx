@@ -71,16 +71,21 @@ The generated index includes its description and when-to-read guidance.
 
 ## Rule metadata
 
-Each rule has `title`, `impact`, `impactDescription`, and `tags` frontmatter, followed by its Markdown body.
+Each rule has `title`, `whenToRead`, `impact`, `impactDescription`, and `tags` frontmatter, followed by its Markdown body.
 Use the existing impact vocabulary: `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`.
 Impact describes the rule's importance; a reviewer still evaluates the actual consequence and evidence of a finding.
+
+`whenToRead` is a required non-empty string describing work that should trigger reading, including before code exists.
+The group field of the same name remains an array of group-selection cues.
+The full body defines obligations, implementation guidance, exceptions, and validation guidance.
+Existing snapshots and local replacements must add rule-level `whenToRead` before building with this format.
 
 See [Make a rule](/guides/write-rules/) for a complete example.
 
 ## Attribution
 
 Keep source attribution with the rule, in its metadata or Markdown body.
-Imports preserve that attribution in both the vendored source and the generated group file.
+Imports preserves attribution in vendored sources; Builds preserves it in each individual generated rule file.
 A separate attribution file is not required by the format.
 
 When a library includes applicable library-level license or notice files, preserve those files with its vendored snapshot.
@@ -124,6 +129,10 @@ Keep references to them valid after import.
     - practices/
       - testing.md
       - observability.md
+    - rules/
+      - fabrica/techs/typescript/prefer-type-aliases.md
+      - acme/techs/react/example.md
+      - local/practices/testing/example.md
 
 </FileTree>
 
@@ -133,21 +142,33 @@ Commit those directories so coding, review, and consistency checks can work offl
 
 ## Generated index and rules
 
-`generated/RULES.md` introduces the project's declared best practices and explains how to use them during implementation and validation.
-It links every installed group under Technologies or Practices and explains when to load it.
+`generated/RULES.md` introduces the project's declared practices and explains how to select technology and practice groups.
+It preserves each contributing source's group descriptions and when-to-read guidance, labeled by source.
 It links to `provenance.json` for source versions and rule origins.
-Exclusions and replacement reasons remain in project configuration.
 
-Each group file combines its effective rules from all selected sources and the project.
-Its introduction explains how to use the aggregate during implementation and validation, and links back to `RULES.md` for project-wide instructions and other relevant groups.
-It also links to `provenance.json` for source versions and rule origins, and directs authors to change source inputs rather than generated output.
-The file identifies its project-level group ID, such as `practices/testing`.
-A group can combine multiple sources, so it has no single source prefix.
-Individual rules include source-qualified IDs, active source links, and upstream provenance where applicable.
-Rule IDs are unique within the consuming project; repository identity and provenance identify the upstream rule.
-The index retains each contributing source's group descriptions and when-to-read guidance, labeled by source.
-Each imported rule links to its applicable preserved license.
-`provenance.json` records source repositories, refs, resolved commits, and declared library license paths.
+Each group entry, such as `generated/practices/testing.md`, is an applicability index.
+Every active rule appears once with its source-qualified ID, title, impact, `whenToRead`, and a relative link to the full effective definition.
+The index contains selection guidance, not every rule body.
+Read full definitions before implementation or validation; index descriptions alone do not establish compliance or a violation.
+
+Full definitions live under `generated/rules/<source-name>/<rule-path>.md`.
+For example, `fabrica:techs/typescript/prefer-type-aliases` maps to `rules/fabrica/techs/typescript/prefer-type-aliases.md`.
+The source name is a directory so generated paths are portable; the ID retains its colon.
+A replacement retains that path and ID while supplying its local title, applicability, and full body.
+Excluded rules and superseded bodies have no generated rule file.
+Source links, attribution, library license links, and replacement provenance remain with the effective definition.
+Relative links are relocated from the individual output file's actual directory.
+
+Indexes use stable ordering and a configurable UTF-8 byte budget (`BuildInput.indexMaxBytes`, default 24 KiB in the offline API).
+An oversized index becomes a directory listing every numbered sibling part, such as `testing.part-1.md`.
+Each part contains complete entries and a link back to the directory; inspect all parts before selecting rules.
+The root group index uses the same mechanism when necessary.
+If one entry or the complete part directory cannot fit, building fails with an actionable error instead of omitting entries.
+Full rule bodies are never shortened to fit an index budget. Complete any truncated reads of those files.
+This budget is a delivery setting, not a measured model-compliance threshold.
+
+Builds returns the complete generated file set. The planned Workspace subsystem must replace obsolete output, including old parts and removed rule files, when installing it.
+Exclusions and replacement reasons remain in project configuration; provenance records active origins and replacement reasons.
 The consuming repository's root license is not rewritten.
 
 ## Provenance records
