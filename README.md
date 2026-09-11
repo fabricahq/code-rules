@@ -106,4 +106,4 @@ Required text and Markdown inspected for dependencies must be UTF-8.
 
 `ImportError.code` distinguishes invalid configuration or libraries, unavailable Git, inaccessible repositories, missing or refused refs, unsupported content, resource limits, cancellation, timeouts, Git failures, and I/O failures.
 Failures return no partial library mapping.
-The [Imports plan](_internal/imports.md) records ownership and verification decisions.
+The [import reference](docs/src/content/docs/reference/imports.md) describes file selection and preservation behavior.
