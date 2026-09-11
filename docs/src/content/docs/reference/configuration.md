@@ -126,7 +126,7 @@ For a group with no imported source, declare it in `localGroups` and provide loc
 Do not list an imported group in `localGroups`.
 Local rules in undeclared groups are errors rather than silently ignored inputs.
 
-The generated index retains each source's group description and applicability guidance, labeled by source.
+The generated index shows linked group names and applicability guidance. When multiple sources contribute to a group, their guidance remains labeled by source.
 It also includes local-only group metadata.
 The importer does not silently choose one library's description over another's.
 

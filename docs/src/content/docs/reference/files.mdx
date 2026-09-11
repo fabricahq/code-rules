@@ -67,7 +67,7 @@ Each `_group.json` provides selection guidance:
 ```
 
 The directory supplies the group's ID and type.
-The generated index includes its description and when-to-read guidance.
+The generated index includes its name and when-to-read guidance. The description remains in the source metadata.
 
 ## Rule metadata
 
@@ -143,8 +143,9 @@ Commit those directories so coding, review, and consistency checks can work offl
 ## Generated index and rules
 
 `generated/RULES.md` introduces the project's declared practices and explains how to select technology and practice groups.
-It preserves each contributing source's group descriptions and when-to-read guidance, labeled by source.
-Each entry labels **When to read this group** and directs the agent to open the group index and read relevant rules in full.
+Each entry contains a linked group name and **When to read** guidance.
+When multiple sources contribute to a group, their reading cues remain separate and labeled by source.
+One instruction above the entries directs the agent to open relevant group indexes and read applicable rules in full.
 It links to `provenance.json` for source versions and rule origins.
 
 Each group entry, such as `generated/practices/testing.md`, is an applicability index.

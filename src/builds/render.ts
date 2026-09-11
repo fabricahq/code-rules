@@ -11,22 +11,29 @@ function rulePath(active: ActiveRule): string {
   return `rules/${active.rule.id.replace(':', '/')}.md`;
 }
 
+/** Keep all contributing group names visible in a stable, escaped heading. */
+function groupTitle(group: Group): string {
+  return [...new Set(group.guidance.map(({ metadata }) => metadata.name))]
+    .sort(compare)
+    .map(escapeText)
+    .join(' / ');
+}
+
 /** Describe all sources contributing selection guidance to a group without merging their policies. */
 function groupEntry(group: Group): string {
-  const sections = [`### [${group.id}](${group.id}.md)`];
+  const sections = [`### [${groupTitle(group)}](${group.id}.md)`];
   for (const guidance of group.guidance) {
+    if (group.guidance.length > 1)
+      sections.push(
+        `**${guidance.source}: ${escapeText(guidance.metadata.name)}**`,
+      );
     sections.push(
-      `**${guidance.source}: ${escapeText(guidance.metadata.name)}**`,
-      escapeText(guidance.metadata.description),
-      '**When to read this group:**',
+      '**When to read:**',
       ...guidance.metadata.whenToRead.map(
         (reason) => `- ${escapeText(reason)}`,
       ),
     );
   }
-  sections.push(
-    "**Next:** Open this group's index to select relevant rules and read their full guidance.",
-  );
   return sections.join('\n\n');
 }
 
@@ -42,19 +49,14 @@ function indexHeader(): string {
     'These files are generated. Edit source rules or configuration and rebuild to change them.',
     '[Source versions and rule origins](provenance.json).',
     '## Technology and practice group indexes',
+    'Open the relevant group indexes below, then select applicable rules and read their full guidance.',
   ].join('\n\n');
 }
 
 /** Render a group's reading instructions and links back to project-wide selection guidance. */
 function groupHeader(group: Group): string {
-  const title = [
-    ...new Set(group.guidance.map(({ metadata }) => metadata.name)),
-  ]
-    .sort(compare)
-    .map(escapeText)
-    .join(' / ');
   return [
-    `# ${title}`,
+    `# ${groupTitle(group)}`,
     `Group ID: \`${group.id}\``,
     'This generated index lists the active rules in this group. Read each relevant or plausibly relevant full rule before implementation, validation, or diagnosis. The description helps selection; the full rule defines its obligation and exceptions.',
     'For other technology and practice groups, read [RULES.md](../RULES.md). See [provenance.json](../provenance.json) for origins. Edit source rules and rebuild to change this index.',

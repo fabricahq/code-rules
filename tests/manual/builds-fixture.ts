@@ -21,7 +21,9 @@ const groupMetadata = JSON.stringify(
   {
     name: 'Testing',
     description: 'Verify behavior with meaningful tests.',
-    whenToRead: ['Changing behavior, including code outside test files.'],
+    whenToRead: [
+      'When adding, changing, reviewing, or diagnosing behavior, even when no test files have changed.',
+    ],
   },
   null,
   2,
@@ -34,7 +36,7 @@ const otherRules = {
   [`${technologyGroup}/_group.json`]: JSON.stringify({
     name: 'TypeScript',
     description: 'Express retry outcomes in TypeScript.',
-    whenToRead: ['Planning, writing, or reviewing TypeScript.'],
+    whenToRead: ['When the intended or existing code uses TypeScript.'],
   }),
   [`${technologyGroup}/retry-outcome.md`]: exampleRule(
     'Represent retry exhaustion explicitly',
@@ -46,7 +48,7 @@ const otherRules = {
     name: 'Code design',
     description: 'Keep multi-step operations understandable.',
     whenToRead: [
-      'Before planning, writing, changing, or reviewing a function that coordinates multiple steps, such as parsing input, validating it, calling another operation, or constructing a result.',
+      'When designing, changing, reviewing, or diagnosing a function that coordinates multiple steps.',
     ],
   }),
   [`${designGroup}/name-retry-stages.md`]: exampleRule(
@@ -59,7 +61,7 @@ const otherRules = {
   [`${unrelatedGroup}/_group.json`]: JSON.stringify({
     name: 'Go',
     description: 'Write Go retry APIs.',
-    whenToRead: ['Planning or changing Go code.'],
+    whenToRead: ['When the intended or existing code uses Go.'],
   }),
   [`${unrelatedGroup}/retry-errors.md`]: exampleRule(
     'Return retry errors to the caller',

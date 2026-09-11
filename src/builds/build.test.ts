@@ -108,9 +108,11 @@ describe('buildRules', () => {
     const build = localInput({ [`${ruleId}.md`]: ruleText('Local retries') });
     const output = generated(build, `rules/local/${ruleId}.md`);
     expect(output.split('# Local retries').length - 1).toBe(1);
-    expect(generated(build, 'RULES.md')).toContain(
-      'Check externally visible behavior.',
-    );
+    const index = generated(build, 'RULES.md');
+    expect(index).toContain('### [Testing](practices/testing.md)');
+    expect(index).toContain('Changing behavior, including production code.');
+    expect(index).not.toContain('**local: Testing**');
+    expect(index).not.toContain('Check externally visible behavior.');
   });
 
   test('should combine overlapping groups while preserving both source-qualified identities', () => {
