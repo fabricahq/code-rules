@@ -1,11 +1,12 @@
-/** @fileoverview Writes an isolated example workspace for inspecting generated agent guidance. */
+/** @fileoverview Writes a temporary workspace for manually inspecting generated agent guidance; leaves files in place for review. */
 
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
-import { buildRules } from '../src/builds';
-import type { BuildInput } from '../src/builds';
+import { buildRules } from '../../src/builds';
+import type { BuildInput } from '../../src/builds';
 
+/** Create a complete rule document for the manual test scenario. */
 function exampleRule(title: string, obligation: string): string {
   return `---\ntitle: ${title}\nimpact: HIGH\nimpactDescription: Catch retry failures before they reach users.\ntags: testing, retries\n---\n\n## ${title}\n\n${obligation}\n\n### Verification\n\nCheck the retry count and final result with a deterministic test.\n`;
 }
@@ -98,7 +99,7 @@ for (const [path, content] of Object.entries(workspaceFiles)) {
   await mkdir(dirname(destination), { recursive: true });
   await writeFile(destination, content);
 }
-console.log(`Example workspace: ${directory}`);
+console.log(`Manual test workspace: ${directory}`);
 console.log(`Agent index: ${join(directory, 'generated/RULES.md')}`);
 console.log(
   'Source repository and commit are illustrative; no libraries were fetched.',

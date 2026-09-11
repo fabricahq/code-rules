@@ -25,6 +25,10 @@ bun run docs:preview
 ```
 
 The output is `docs/dist/`.
+The TypeScript checker and its command-level tests live in `_tools/` beside these docs.
+The root TypeScript, lint, and test commands include these Bun scripts; Astro checks the site code.
+`bun run docs:links` uses Bun and parse5 to check local destinations and fragments in the built HTML.
+For a different build directory, run `bun docs/_tools/check-doc-links.ts <directory>` from the repository root.
 The production build includes the search index.
 Hosting is not configured, and these commands do not publish the site.
 Set Astro's `site` option after selecting a production URL; sitemap generation is skipped until then.

@@ -30,19 +30,22 @@ export type BuildOutput = {
 };
 
 /** Local replacement path including its local/ prefix, with the project decision explaining the override. */
-export type Replacement = { readonly file: string; readonly reason: string };
+export type RuleReplacement = {
+  readonly file: string;
+  readonly reason: string;
+};
 /** Validated source selection; exclusion/replacement keys are library-relative rule paths without .md. */
-export type Source = {
+export type LibrarySource = {
   readonly name: string;
   readonly repository: string;
   readonly ref: string;
   readonly groups: ReadonlyArray<string>;
   readonly exclude: ReadonlyMap<string, string>;
-  readonly replace: ReadonlyMap<string, Replacement>;
+  readonly replace: ReadonlyMap<string, RuleReplacement>;
 };
 /** Validated sources sorted by alias and local-only group IDs sorted by code-unit order. */
-export type Configuration = {
-  readonly sources: ReadonlyArray<Source>;
+export type ProjectConfig = {
+  readonly sources: ReadonlyArray<LibrarySource>;
   readonly localGroups: ReadonlyArray<string>;
 };
 /** Display name and selection guidance for deciding when agents should read a group. */
@@ -61,7 +64,7 @@ export type Rule = {
   readonly body: string;
 };
 /** Source identity and root-relative definition path; local origins have null repository, ref, and commit. */
-export type Origin = {
+export type RuleOrigin = {
   readonly source: string;
   readonly file: string;
   readonly repository: string | null;
@@ -71,8 +74,8 @@ export type Origin = {
 /** Effective definition with optional replaced upstream origin/reason; source files and licenses belong to the active origin. */
 export type ActiveRule = {
   readonly rule: Rule;
-  readonly origin: Origin;
-  readonly upstream: Origin | null;
+  readonly origin: RuleOrigin;
+  readonly upstream: RuleOrigin | null;
   readonly reason: string | null;
   readonly licenseFiles: ReadonlyArray<string>;
   readonly sourceFiles: ReadonlyMap<string, string>;

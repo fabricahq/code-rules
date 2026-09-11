@@ -4,7 +4,7 @@ import { posix } from 'node:path';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toMarkdown } from 'mdast-util-to-markdown';
 import type { Root, RootContent } from 'mdast';
-import type { ActiveRule, Origin } from './types';
+import type { ActiveRule, RuleOrigin } from './types';
 import { invalid } from './validation';
 
 /** Escape Markdown punctuation and flatten LF/CRLF line breaks so metadata renders as inline text. */
@@ -20,7 +20,7 @@ function encodedPath(value: string): string {
 }
 
 /** Return a commit-pinned GitHub link for an imported origin, or a local link relative to a generated group file. */
-function sourceLink(origin: Origin): string {
+function sourceLink(origin: RuleOrigin): string {
   if (origin.repository !== null && origin.resolvedCommit !== null) {
     return `https://github.com/${origin.repository}/blob/${origin.resolvedCommit}/${encodedPath(origin.file)}`;
   }
