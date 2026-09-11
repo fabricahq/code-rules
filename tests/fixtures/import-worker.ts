@@ -1,5 +1,7 @@
 /** @fileoverview Exercises Imports and Builds in a child with isolated Git configuration. */
 
+import { mock } from 'bun:test';
+import * as filesystem from 'node:fs/promises';
 import { importLibraries, ImportError } from '../../src/imports';
 import { buildRules } from '../../src/builds';
 
@@ -8,7 +10,19 @@ const input: {
   build?: boolean;
   localFiles?: Record<string, string>;
   cancel?: boolean;
+  cleanupFailure?: boolean;
 } = JSON.parse(process.argv[2] ?? '{}');
+if (input.cleanupFailure) {
+  const originalRemove = filesystem.rm;
+  mock.module('node:fs/promises', () => ({
+    ...filesystem,
+    /** Simulate a cleanup I/O failure after removing the fixture's temporary data. */
+    rm: async (...args: Parameters<typeof filesystem.rm>): Promise<void> => {
+      await originalRemove(...args);
+      throw new Error('Simulated cleanup failure');
+    },
+  }));
+}
 const controller = new AbortController();
 if (input.cancel) controller.abort();
 try {
@@ -46,6 +60,10 @@ try {
     JSON.stringify({
       error: error instanceof ImportError ? error.code : 'build-error',
       message: error instanceof Error ? error.message : 'Unknown failure',
+      cause:
+        error instanceof Error && error.cause instanceof Error
+          ? error.cause.message
+          : null,
     }),
   );
 }

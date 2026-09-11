@@ -32,7 +32,7 @@ export function relativeTarget(
       ? file
       : posix.normalize(
           decoded.startsWith('/')
-            ? decoded.slice(1)
+            ? decoded.replace(/^\/+/u, '')
             : posix.join(posix.dirname(file), decoded),
         );
   if (target === '..' || target.startsWith('../'))

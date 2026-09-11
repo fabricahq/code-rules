@@ -22,7 +22,20 @@ function projectConfig(input: unknown): ProjectConfig {
   }
 }
 
-/** Retrieve one source with a bounded lifetime and remove temporary Git state on every exit. */
+/** Translate a source failure without publishing arbitrary I/O or subprocess diagnostic text. */
+function sourceFailure(error: unknown, source: string): ImportError {
+  if (error instanceof ImportError)
+    return new ImportError(error.code, error.message, source);
+  if (error instanceof ValidationError)
+    return new ImportError('invalid-library', error.message, source);
+  return new ImportError(
+    'io-error',
+    'Could not read or stage the library in temporary storage.',
+    source,
+  );
+}
+
+/** Retrieve one source and clean up temporary state, preserving the primary error when cleanup also fails. */
 async function importSource(
   source: LibrarySource,
   options: ImportOptions,
@@ -33,6 +46,9 @@ async function importSource(
       ? timeout
       : AbortSignal.any([timeout, options.signal]);
   let temporary: string | undefined;
+  let outcome:
+    { readonly library: ImportedLibrary } | { readonly error: ImportError };
+  let cleanupFailure: ImportError | undefined;
   try {
     requireActive(signal);
     temporary = await mkdtemp(join(tmpdir(), 'code-rules-import-'));
@@ -46,23 +62,15 @@ async function importSource(
       signal,
     );
     requireActive(signal);
-    return library;
+    outcome = { library };
   } catch (error) {
-    if (error instanceof ImportError)
-      throw new ImportError(error.code, error.message, source.name);
-    if (error instanceof ValidationError)
-      throw new ImportError('invalid-library', error.message, source.name);
-    throw new ImportError(
-      'io-error',
-      'Could not read or stage the library in temporary storage.',
-      source.name,
-    );
+    outcome = { error: sourceFailure(error, source.name) };
   } finally {
     if (temporary !== undefined) {
       try {
         await rm(temporary, { recursive: true, force: true });
       } catch {
-        throw new ImportError(
+        cleanupFailure = new ImportError(
           'io-error',
           'Could not remove temporary import storage.',
           source.name,
@@ -70,6 +78,12 @@ async function importSource(
       }
     }
   }
+  if ('error' in outcome) {
+    if (cleanupFailure !== undefined) outcome.error.cause = cleanupFailure;
+    throw outcome.error;
+  }
+  if (cleanupFailure !== undefined) throw cleanupFailure;
+  return outcome.library;
 }
 
 /** Import all configured sources in alias order; return no partial result and never install project files. */

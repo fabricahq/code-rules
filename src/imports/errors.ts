@@ -14,7 +14,7 @@ export type ImportErrorCode =
   | 'git-failed'
   | 'io-error';
 
-/** An Imports failure with a stable code and optional source alias, without partial output. */
+/** An Imports failure with a stable code and optional source alias; cause records a secondary cleanup failure when present. */
 export class ImportError extends Error {
   constructor(
     readonly code: ImportErrorCode,

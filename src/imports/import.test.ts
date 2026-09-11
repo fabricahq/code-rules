@@ -424,3 +424,52 @@ test.each([
   fixtureGit(directory, ['tag', '-f', 'v1']);
   failure(config({ one: fixtureSource('one') }), 'unsupported-content');
 });
+
+test('preserves the primary import error when cleanup also fails', () => {
+  expect(
+    runImport(fixture, config({ one: fixtureSource('absent') }), {
+      cleanupFailure: true,
+    }),
+  ).toMatchObject({
+    error: 'not-found-or-no-access',
+    cause: expect.stringContaining('temporary import storage'),
+  });
+});
+
+test('reports cleanup failure when the import itself succeeds', async () => {
+  await addLibrary(fixture, 'one');
+  expect(
+    runImport(fixture, config({ one: fixtureSource('one') }), {
+      cleanupFailure: true,
+    }),
+  ).toMatchObject({
+    error: 'io-error',
+    message: expect.stringContaining('temporary import storage'),
+  });
+});
+
+test('retains root-relative attachments with encoded leading slashes', async () => {
+  await addLibrary(fixture, 'one', {
+    ...exampleFiles,
+    'practices/testing/verify-retries.md': String(
+      exampleFiles['practices/testing/verify-retries.md'],
+    ).replace('../../images/flow.png', '/%2Fimages/flow.png?size=1#flow'),
+  });
+  expect(
+    runImport(fixture, config({ one: fixtureSource('one') }), { build: true }),
+  ).toMatchObject({
+    generated: {
+      'practices/testing.md': expect.stringContaining(
+        '../../vendor/one/images/flow.png?size=1#flow',
+      ),
+    },
+  });
+});
+
+test('rejects encoded absolute paths that traverse beyond the library root', async () => {
+  await addLibrary(fixture, 'one', {
+    ...exampleFiles,
+    'notes/explanation.md': '[Escape](/%2F../outside.txt)',
+  });
+  failure(config({ one: fixtureSource('one') }), 'invalid-library');
+});
