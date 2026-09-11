@@ -22,6 +22,11 @@ To validate the implementation and documentation:
 bun run check
 ```
 
+The check includes comment-presence linting for authored TypeScript, JavaScript, and Astro files.
+Use `@fileoverview` headers separated from declarations by a blank line; export TSDoc belongs immediately above its declaration.
+For Astro components, the frontmatter overview describes the component's role and rendered result.
+Private-helper documentation stays optional, and review checks comment accuracy and usefulness.
+
 The public tool is independent of any particular rule library.
 All examples in these docs are illustrative; this repository does not contain Fabrica's private rule corpus.
 

@@ -1,3 +1,5 @@
+/** @fileoverview Checks offline Builds behavior through its public interface using original rule fixtures. */
+
 import { describe, expect, test } from 'bun:test';
 import { buildRules, BuildError } from './index';
 import type { BuildInput, FileContents, LibrarySnapshot } from './index';
@@ -88,6 +90,8 @@ describe('buildRules', () => {
 
   test('should combine overlapping groups while preserving both source-qualified identities', () => {
     const output = generated(input(), `${group}.md`);
+    expect(output).toStartWith('# Testing\n');
+    expect(output).toContain(`Group ID: \`${group}\``);
     expect(output).toContain(`fabrica:${ruleId}`);
     expect(output).toContain(`acme:${ruleId}`);
     expect(output).toContain('Fabrica retries');
@@ -96,12 +100,17 @@ describe('buildRules', () => {
       `https://github.com/fabrica/rules/blob/${commit}/${ruleId}.md`,
     );
     const index = generated(input(), 'RULES.md');
+    expect(index).toContain(
+      '[Source versions and rule origins](provenance.json)',
+    );
+    expect(index).not.toContain('## Sources and licenses');
+    expect(index).not.toContain('## Exceptions');
     expect(index).toContain('**acme: Testing**');
     expect(index).toContain('**fabrica: Testing**');
     expect(index).toContain('Changing behavior, including production code');
   });
 
-  test('should exclude only the owning source and explain the decision in the index', () => {
+  test('should exclude only the owning source without listing inactive rules in the index', () => {
     const build = {
       ...input(),
       configuration: {
@@ -116,10 +125,8 @@ describe('buildRules', () => {
     const output = generated(build, `${group}.md`);
     expect(output).not.toContain(`fabrica:${ruleId}`);
     expect(output).toContain(`acme:${ruleId}`);
-    expect(generated(build, 'RULES.md')).toContain(
-      `Excluded \`fabrica:${ruleId}\``,
-    );
-    expect(generated(build, 'RULES.md')).toContain('Covered locally');
+    expect(generated(build, 'RULES.md')).not.toContain(`fabrica:${ruleId}`);
+    expect(generated(build, 'RULES.md')).not.toContain('Covered locally');
   });
 
   test('should preserve the replaced ID and both origins without adding the local definition twice', () => {
@@ -174,7 +181,8 @@ describe('buildRules', () => {
   test('should build a local-only group with one rule', () => {
     const build = localInput({ [`${ruleId}.md`]: ruleText('Local retries') });
     expect(generated(build, `${group}.md`)).toContain(`local:${ruleId}`);
-    expect(generated(build, 'RULES.md')).toContain('Local rules only.');
+    const provenance: unknown = JSON.parse(generated(build, 'provenance.json'));
+    expect(provenance).toMatchObject({ sources: [] });
   });
 
   test('should preserve an empty selected group and support a project with no selected groups', () => {

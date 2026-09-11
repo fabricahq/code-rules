@@ -1,4 +1,5 @@
-// Temporary hand-drawn vector studies. Geometry is authored on a 16-unit grid.
+/** @fileoverview Provides vector logo choices with asset URLs and preview placement. */
+
 import mark0 from '../assets/fabrica-logo-study/vector/quiet.svg?url';
 import mark1 from '../assets/fabrica-logo-study/vector/pebble.svg?url';
 import mark2 from '../assets/fabrica-logo-study/vector/shelter.svg?url';

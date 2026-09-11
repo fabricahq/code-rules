@@ -52,3 +52,13 @@
 .cr-rule-path { margin-top: .5rem; color: var(--cr-muted); font: .75rem/1.6 var(--cr-font-mono); overflow-wrap: anywhere; }
 .cr-rule-file pre { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
 .cr-rule-file pre code { padding: 0; background: none; color: inherit; font: inherit; border: 0; }
+
+.cr-tree-root { margin-top: .75rem; color: var(--cr-ink); font: 600 .85rem/1.6 var(--cr-font-mono); }
+.cr-library-tree pre { margin-top: .5rem; font-size: clamp(.65rem, 1.1vw, .78rem); line-height: 1.7; tab-size: 4; }
+.cr-library-tree pre code { padding: 0; border: 0; background: none; color: inherit; font: inherit; }
+.cr-tree-folder { color: var(--cr-ink); font-weight: 600; }
+.cr-tree-branch, .cr-tree-meta { color: var(--cr-muted); }
+.cr-tree-file { color: var(--cr-ink); }
+@media (min-width: 540px) and (max-width: 799px) {
+  .cr-library-tree pre { font-size: .8rem; }
+}

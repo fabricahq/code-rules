@@ -1,3 +1,5 @@
+/** @fileoverview Provides Tinker logo choices with image paths and preview placement. */
+
 import image0 from '../assets/fabrica-logo-study/tinker/tinker-hex.png';
 import image1 from '../assets/fabrica-logo-study/tinker/tinker-frame.png';
 import image2 from '../assets/fabrica-logo-study/tinker/tinker-block.png';

@@ -1,6 +1,7 @@
 ---
+/** @fileoverview Renders the Starlight footer followed by Fabrica branding and project links. */
+
 import DefaultFooter from '@astrojs/starlight/components/Footer.astro';
-import LogoPrototypeSwitcher from './LogoPrototypeSwitcher.astro';
 ---
 <DefaultFooter />
 <div class="cr-footer">
@@ -10,5 +11,3 @@ import LogoPrototypeSwitcher from './LogoPrototypeSwitcher.astro';
     <a href="https://github.com/fabricahq/code-rules">GitHub <span aria-hidden="true">↗</span></a>
   </nav>
 </div>
-
-{import.meta.env.DEV && <LogoPrototypeSwitcher />}

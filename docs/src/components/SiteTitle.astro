@@ -1,8 +1,8 @@
 ---
-import PrototypeFabricaMark from './PrototypeFabricaMark.astro';
+/** @fileoverview Renders separate Fabrica and Code Rules branding links aligned on their text baselines. */
 ---
 <div class="cr-brand" aria-label="Fabrica / Code Rules">
-  <a class="brand-parent" href="https://fabricahq.com">{import.meta.env.DEV && <PrototypeFabricaMark />}<span>Fabrica</span></a>
+  <a class="brand-parent" href="https://fabricahq.com"><span>Fabrica</span></a>
   <span class="brand-separator" aria-hidden="true">/</span>
   <a class="brand-product" href="/" aria-label="Code Rules home">Code Rules</a>
 </div>
@@ -15,6 +15,4 @@ import PrototypeFabricaMark from './PrototypeFabricaMark.astro';
   .cr-brand .brand-product:hover { color: #ffffff; }
   :global(:root[data-theme="light"]) .cr-brand .brand-product:hover { color: #000000; }
   .cr-brand .brand-parent:hover { color: var(--cr-ink); text-decoration: none; }
-  :global(html[data-logo-variant]) .brand-parent { padding-left: 22px; }
-  .brand-parent :global(.prototype-mark) { position: absolute; left: 0; top: 50%; transform: translateY(-50%); }
 </style>

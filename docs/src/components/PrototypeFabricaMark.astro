@@ -1,4 +1,6 @@
 ---
+/** @fileoverview Renders theme-colored logo studies selected by the document variant attribute; large increases the preview size. */
+
 import { seededLogos } from './SeededLogoStudies';
 import { tinkerLogos } from './TinkerLogoStudies';
 import { smallLogos } from './SmallLogoStudies';
@@ -14,12 +16,6 @@ import press from '../assets/fabrica-logo-study/press.png';
 import extrude from '../assets/fabrica-logo-study/extrude.png';
 // Logo studies are generated concept images, not approved production assets.
 // CSS masks let the same silhouettes inherit the header color in both themes.
-// Previous hand-drawn experiments below remain available as source history.
-// Temporary logo study. Random hex seeds suggest turns and segment lengths;
-// the resulting lines are curated into compact, optically balanced silhouettes.
-// Splice: 0CE39E3A, mixed turns and 6/10/14/12 lengths, folded into joined ribbons.
-// Ratchet: 0AACCE84, repeated positive turns and 6/6/6/10 lengths, advancing cuts.
-// Ignition: BC21B76F, alternating turns and 8/10/10/8 lengths, a split launch wedge.
 const { large = false } = Astro.props;
 ---
 <span class:list={['prototype-mark', { large }]} aria-hidden="true">

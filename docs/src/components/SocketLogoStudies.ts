@@ -1,3 +1,5 @@
+/** @fileoverview Provides Socket expression choices with image paths and preview placement. */
+
 import image0 from '../assets/fabrica-logo-study/socket/tinker-smile.png';
 import image1 from '../assets/fabrica-logo-study/socket/tinker-wink.png';
 import image2 from '../assets/fabrica-logo-study/socket/tinker-beam.png';

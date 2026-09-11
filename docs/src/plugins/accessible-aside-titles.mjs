@@ -1,4 +1,9 @@
-/** Keep visible callout titles in copied HTML and use them to name their asides. */
+/** @fileoverview Adapts Starlight callout titles for accessible labeling and copied HTML. */
+
+/**
+ * Return a transformer that mutates callouts to expose their titles in copied HTML and accessible names.
+ * Preserves existing title IDs and assigns collision-free IDs where missing; hides decorative title icons.
+ */
 export default function accessibleAsideTitles() {
   return (tree) => {
     const ids = new Set();

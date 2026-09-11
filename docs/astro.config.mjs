@@ -1,3 +1,5 @@
+/** @fileoverview Configures the Code Rules documentation site, navigation, and Markdown rendering. */
+
 import { defineConfig } from 'astro/config';
 import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
@@ -5,7 +7,8 @@ import accessibleAsideTitles from './src/plugins/accessible-aside-titles.mjs';
 
 export default defineConfig({
   devToolbar: { enabled: false },
-  // FileTree's parser loads a platform binding relative to its package.
+  // Keep native bindings outside the SSR bundle: https://vite.dev/config/ssr-options.html#ssr-external
+  // Satteri's installed index.js resolves platform binaries relative to its package.
   vite: { ssr: { external: ['satteri'] } },
   redirects: { '/guides/customize/': '/guides/select-rules/' },
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },

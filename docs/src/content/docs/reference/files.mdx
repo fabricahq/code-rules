@@ -133,13 +133,21 @@ Commit those directories so coding, review, and consistency checks can work offl
 
 ## Generated index and rules
 
-`generated/RULES.md` links every installed group under Technologies or Practices and explains when to load it.
-It lists exclusions and replacement reasons separately from active obligations.
+`generated/RULES.md` introduces the project's declared best practices and explains how to use them during implementation and validation.
+It links every installed group under Technologies or Practices and explains when to load it.
+It links to `provenance.json` for source versions and rule origins.
+Exclusions and replacement reasons remain in project configuration.
 
 Each group file combines its effective rules from all selected sources and the project.
-Rules include source-qualified IDs, active source links, and upstream provenance where applicable.
+Its introduction explains how to use the aggregate during implementation and validation, and links back to `RULES.md` for project-wide instructions and other relevant groups.
+It also links to `provenance.json` for source versions and rule origins, and directs authors to change source inputs rather than generated output.
+The file identifies its project-level group ID, such as `practices/testing`.
+A group can combine multiple sources, so it has no single source prefix.
+Individual rules include source-qualified IDs, active source links, and upstream provenance where applicable.
+Rule IDs are unique within the consuming project; repository identity and provenance identify the upstream rule.
 The index retains each contributing source's group descriptions and when-to-read guidance, labeled by source.
-Each imported rule links to its applicable preserved license, and the index summarizes the separately licensed sources.
+Each imported rule links to its applicable preserved license.
+`provenance.json` records source repositories, refs, resolved commits, and declared library license paths.
 The consuming repository's root license is not rewritten.
 
 ## Provenance records

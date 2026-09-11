@@ -1,4 +1,5 @@
-/** Create an isolated example workspace for reviewing generated agent guidance. */
+/** @fileoverview Writes an isolated example workspace for inspecting generated agent guidance. */
+
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';

@@ -10,12 +10,13 @@
     "docs:check": "bun run --cwd docs check",
     "docs:build": "bun run --cwd docs build",
     "docs:preview": "bun run --cwd docs preview",
-    "check": "bun run format:check && bun run typecheck && bun run test && bun run docs:check && bun run docs:build && bun run docs:links",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run docs:check && bun run docs:build && bun run docs:links",
     "docs:links": "python3 _tools/check-doc-links.py",
-    "test": "bun test src",
+    "test": "bun test src _tools/comment-lint.test.ts",
     "typecheck": "tsc --project tsconfig.json",
     "builds:example": "bun _tools/builds-example.ts",
-    "format:check": "prettier --single-quote --check src _tools/builds-example.ts"
+    "format:check": "prettier --single-quote --check src _tools/*.ts eslint.config.mjs",
+    "lint": "eslint ."
   },
   "packageManager": "bun@1.4.2",
   "dependencies": {
@@ -26,6 +27,10 @@
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "@types/mdast": "^4.0.4",
+    "@typescript-eslint/parser": "^8.70.0",
+    "astro-eslint-parser": "^3.1.0",
+    "eslint": "^10.10.0",
+    "eslint-plugin-jsdoc": "^64.3.9",
     "prettier": "^3.9.6",
     "typescript": "6.0.3"
   }

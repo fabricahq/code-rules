@@ -1,3 +1,5 @@
+/** @fileoverview Provides small-logo study choices with image paths and preview placement. */
+
 import image0 from '../assets/fabrica-logo-study/small/tinker-socket.png';
 import image1 from '../assets/fabrica-logo-study/small/tinker-open.png';
 import image2 from '../assets/fabrica-logo-study/small/tinker-offset.png';

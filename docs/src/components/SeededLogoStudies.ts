@@ -1,4 +1,5 @@
-// Temporary shared metadata for the seeded logo study.
+/** @fileoverview Provides the seeded logo study choices and their reproducible selection recipe. */
+
 import toggle from '../assets/fabrica-logo-study/seeded/toggle.png';
 import arcade from '../assets/fabrica-logo-study/seeded/arcade.png';
 import carve from '../assets/fabrica-logo-study/seeded/carve.png';

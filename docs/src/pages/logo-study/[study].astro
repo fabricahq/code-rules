@@ -1,4 +1,6 @@
 ---
+/** @fileoverview Renders a development-only logo comparison page with size samples and a background-theme toggle. */
+
 import '../../styles/custom.css';
 import { seededLogos, seed, mappingMethod } from '../../components/SeededLogoStudies';
 import { vectorLogos } from '../../components/VectorLogoStudies';
@@ -7,6 +9,7 @@ import { smallLogos } from '../../components/SmallLogoStudies';
 import { tinkerLogos } from '../../components/TinkerLogoStudies';
 import extrude from '../../assets/fabrica-logo-study/extrude.png';
 import sweep from '../../assets/fabrica-logo-study/sweep-refined.png';
+/** Return the five logo-study routes in development and no routes in production builds. */
 export function getStaticPaths() {
   return import.meta.env.DEV ? [{ params: { study: 'seeded' } }, { params: { study: 'tinker' } }, { params: { study: 'small' } }, { params: { study: 'socket' } }, { params: { study: 'vector' } }] : [];
 }

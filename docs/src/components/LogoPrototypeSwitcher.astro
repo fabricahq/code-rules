@@ -1,4 +1,6 @@
 ---
+/** @fileoverview Renders hidden logo-preview controls that activate for a recognized variant query and preserve it across local links. */
+
 import PrototypeFabricaMark from './PrototypeFabricaMark.astro';
 import { seededLogos } from './SeededLogoStudies';
 import { tinkerLogos } from './TinkerLogoStudies';
@@ -60,6 +62,7 @@ import { vectorLogos } from './VectorLogoStudies';
   const choices = concepts.map(item => item.id);
   const descriptions = concepts.map((item, index) => `${index + 1} / ${concepts.length} · ${item.name}: ${item.description}`);
   const panel = document.querySelector<HTMLElement>('#logo-prototype');
+  /** Apply a known variant to the preview and local links, optionally updating the current URL; ignore unknown choices. */
   function selectLogo(value: string, updateUrl = true) {
     const index = choices.indexOf(value);
     if (index < 0 || !panel) return;

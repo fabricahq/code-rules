@@ -107,6 +107,8 @@ Code Rules provides rule files and review instructions those systems can use.
 Before implementing or reviewing code, consult [Fabrica's engineering rules](https://github.com/fabricahq/app/tree/main/_rules) and read the individual rules relevant to the change.
 For TypeScript implementation, start with the [TypeScript rule index](https://github.com/fabricahq/app/blob/main/_rules/typescript/AGENTS.md), then read the applicable source files.
 Apply the portable guidance; identify app-specific assumptions and explain any adaptation needed for this CLI.
+For comments, use [the local comment rule](_internal/rules/comment-role-result-and-constraints.md), which supersedes the linked app comment policy.
+Use `@fileoverview` headers here; an Astro component's frontmatter overview also describes its rendered result because its export is implicit.
 
 The docs are a working design preview; the CLI and installable authoring skill have not shipped.
 Describe proposed behavior honestly, and consult [project status](docs/src/content/docs/status.md) before claiming availability.

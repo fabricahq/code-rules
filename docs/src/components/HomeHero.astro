@@ -1,3 +1,6 @@
+---
+/** @fileoverview Renders the docs landing page with product benefits, rule examples, and design-preview status. */
+---
 <section class="cr-hero" aria-labelledby="_top">
   <p class="cr-eyebrow">FABRICA / CODE RULES</p>
   <h1 id="_top" data-page-title>Your engineering standards.<br class="desktop-break" /> In every agent's work.</h1>
@@ -24,7 +27,7 @@
   <article class="cr-feature">
     <div>
       <span class="cr-index">01 / CODIFY</span>
-      <h2>Define a best practice in markdown</h2>
+      <h2>Define a best practice rule in markdown.</h2>
       <p>Turn a best practice into a Markdown rule that tells agents what to do and when it applies.
       The Code Rules skill helps you draft it from a template and check it against a rubric for clarity, scope, and verification.</p>
       <a href="/guides/write-rules/">Learn how to write rules →</a>
@@ -60,22 +63,39 @@ The test should fail.</code></pre>
   <article class="cr-feature">
     <div>
       <span class="cr-index">02 / SHARE</span>
-      <h2>Declare rules organization-wide.</h2>
+      <h2>Declare rules for an organization, or just a single project.</h2>
       <p>Keep a rule in one project, or declare it in your organization's library as a shared default.
       Each project imports the shared rules it needs and can add its own rules or override them for local requirements.</p>
       <a href="/concepts/libraries/">See how rule libraries work →</a>
     </div>
-    <div class="cr-panel">
-      <span class="cr-index">SHARED DEFAULTS. PROJECT CONTROL.</span>
-      <div class="cr-rule"><small>ORGANIZATION LIBRARY</small><p>Declare shared technology and practice rules in your organization's <code>.code-rules</code> repository.</p></div>
-      <div class="cr-rule"><small>PROJECT IMPORTS</small><p>Your web app, API, and background workers import the rules that apply to them.</p></div>
-      <div class="cr-rule"><small>LOCAL RULES</small><p>Each project can add, replace, or exclude rules to fit its needs.</p></div>
+    <div class="cr-panel cr-library-tree">
+      <span class="cr-index">EXAMPLE RULE LIBRARY</span>
+      <div class="cr-tree-root">acme/.code-rules/</div>
+      <pre aria-label="Example library with 8 Markdown rules organized into four technology and practice groups"><code><span class="cr-tree-branch" aria-hidden="true">├── </span><span class="cr-tree-meta">rule-library.json</span>
+<span class="cr-tree-branch" aria-hidden="true">├── </span><span class="cr-tree-folder">techs/</span>
+<span class="cr-tree-branch" aria-hidden="true">│   ├── </span><span class="cr-tree-folder">typescript/</span>
+<span class="cr-tree-branch" aria-hidden="true">│   │   ├── </span><span class="cr-tree-meta">_group.json</span>
+<span class="cr-tree-branch" aria-hidden="true">│   │   ├── </span><span class="cr-tree-file">narrow-unknown-values.md</span>
+<span class="cr-tree-branch" aria-hidden="true">│   │   └── </span><span class="cr-tree-file">model-valid-states.md</span>
+<span class="cr-tree-branch" aria-hidden="true">│   └── </span><span class="cr-tree-folder">react/</span>
+<span class="cr-tree-branch" aria-hidden="true">│       ├── </span><span class="cr-tree-meta">_group.json</span>
+<span class="cr-tree-branch" aria-hidden="true">│       ├── </span><span class="cr-tree-file">keep-state-local.md</span>
+<span class="cr-tree-branch" aria-hidden="true">│       └── </span><span class="cr-tree-file">name-interactive-controls.md</span>
+<span class="cr-tree-branch" aria-hidden="true">└── </span><span class="cr-tree-folder">practices/</span>
+<span class="cr-tree-branch" aria-hidden="true">    ├── </span><span class="cr-tree-folder">testing/</span>
+<span class="cr-tree-branch" aria-hidden="true">    │   ├── </span><span class="cr-tree-meta">_group.json</span>
+<span class="cr-tree-branch" aria-hidden="true">    │   ├── </span><span class="cr-tree-file">verify-retry-limits.md</span>
+<span class="cr-tree-branch" aria-hidden="true">    │   └── </span><span class="cr-tree-file">test-failure-paths.md</span>
+<span class="cr-tree-branch" aria-hidden="true">    └── </span><span class="cr-tree-folder">error-handling/</span>
+<span class="cr-tree-branch" aria-hidden="true">        ├── </span><span class="cr-tree-meta">_group.json</span>
+<span class="cr-tree-branch" aria-hidden="true">        ├── </span><span class="cr-tree-file">preserve-error-context.md</span>
+<span class="cr-tree-branch" aria-hidden="true">        └── </span><span class="cr-tree-file">bound-retries.md</span></code></pre>
     </div>
   </article>
   <article class="cr-feature">
     <div>
       <span class="cr-index">03 / APPLY</span>
-      <h2>Guide implementation.<br />Validate the result.</h2>
+      <h2>Your agents write to your standards, then validate their work.</h2>
       <p>Implementing agents use the relevant rules as guidance while building.
       Reviewing agents use those same rules in validation pipelines to check whether the implementation follows your standards.</p>
       <a href="/for-agents/">See how agents use rules →</a>

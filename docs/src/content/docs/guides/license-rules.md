@@ -88,7 +88,8 @@ License: [Fabrica library terms](../../vendor/fabrica/LICENSE.md)
 [The rule's original copyright notices and attribution appear here.]
 ```
 
-The generated index lists the source libraries and links to their preserved terms.
+Generated rule files link to their applicable preserved terms.
+The index links to provenance, which records source libraries and their declared license paths.
 When an aggregate includes multiple libraries, retain each rule's licensing information instead of labeling the whole aggregate with a single upstream license.
 Copied rule text remains subject to its applicable terms even when the project changes its wording or replaces an imported rule with an adaptation.
 Record the applicable terms for the local definition; an ID alone cannot establish its licensing.
