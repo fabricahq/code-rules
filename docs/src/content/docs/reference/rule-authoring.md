@@ -19,6 +19,7 @@ title: <Short action-oriented title>
 impact: <Allowed impact value>
 impactDescription: <Consequence this rule addresses>
 tags: <Relevant topics, separated by commas>
+whenToApply: <When an agent should apply this rule>
 ---
 
 ## <Short action-oriented title>

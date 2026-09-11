@@ -51,6 +51,7 @@ title: Verify retry limits
 impact: HIGH
 impactDescription: prevents a transient failure from causing unbounded requests
 tags: testing, retries
+whenToApply: Adding or changing bounded retries.
 ---
 
 ## Verify retry limits
