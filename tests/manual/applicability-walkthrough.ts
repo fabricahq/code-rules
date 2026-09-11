@@ -4,20 +4,34 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { buildRules, BuildError } from '../../src/builds';
-import type { BuildInput } from '../../src/builds';
+import type { BuildInput, FileContents } from '../../src/builds';
 import { buildsExampleInput } from './builds-fixture';
 
 const action = process.argv[2];
 const choice = process.argv[3];
-const captureDirectory = process.env.GENERATED_FILES;
+const configuredCaptureDirectory = process.env.GENERATED_FILES;
 assert(
-  captureDirectory,
+  configuredCaptureDirectory,
   'Launch this walkthrough through Runbooks to capture its files.',
 );
+const captureDirectory = configuredCaptureDirectory;
 let input: BuildInput = structuredClone(buildsExampleInput);
 
+/** Return expected file contents, or fail with the missing path; empty files remain valid. */
+function requireFile({
+  files,
+  path,
+}: {
+  readonly files: FileContents;
+  readonly path: string;
+}): string {
+  const content = files[path];
+  assert(content !== undefined, `Missing expected file: ${path}`);
+  return content;
+}
+
 async function capture(path: string, content: string): Promise<void> {
-  const destination = join(captureDirectory!, path);
+  const destination = join(captureDirectory, path);
   await mkdir(join(destination, '..'), { recursive: true });
   await writeFile(destination, content);
 }
@@ -48,9 +62,11 @@ async function captureBuild(
 switch (action) {
   case 'build': {
     const { files } = await captureBuild('01-deliverable');
-    const index = files['practices/testing.md']!;
-    const replacement =
-      files['rules/example/practices/testing/verify-retries.md']!;
+    const index = requireFile({ files, path: 'practices/testing.md' });
+    const replacement = requireFile({
+      files,
+      path: 'rules/example/practices/testing/verify-retries.md',
+    });
     assert(index.includes('Verify the project retry budget'));
     assert(index.includes('Stop retries after success'));
     assert(!index.includes('legacy-backoff'));
@@ -92,7 +108,8 @@ switch (action) {
       'Choose a budget preset.',
     );
     const group = 'practices/testing';
-    const snapshot = input.snapshots.example!;
+    const snapshot = input.snapshots.example;
+    assert(snapshot !== undefined, 'Missing expected snapshot: example');
     const source = buildsExampleInput.configuration.sources.example;
     const configuration = {
       ...buildsExampleInput.configuration,
@@ -105,8 +122,14 @@ switch (action) {
         ...snapshot,
         groups: [group],
         files: {
-          'rule-library.json': snapshot.files['rule-library.json']!,
-          [`${group}/_group.json`]: snapshot.files[`${group}/_group.json`]!,
+          'rule-library.json': requireFile({
+            files: snapshot.files,
+            path: 'rule-library.json',
+          }),
+          [`${group}/_group.json`]: requireFile({
+            files: snapshot.files,
+            path: `${group}/_group.json`,
+          }),
           ...Object.fromEntries(
             Array.from({ length: 40 }, (_, index) => [
               `${group}/scenario-${String(index + 1).padStart(2, '0')}.md`,
@@ -168,14 +191,18 @@ switch (action) {
     break;
   }
   case 'metadata': {
-    const snapshot = input.snapshots.example!;
+    const snapshot = input.snapshots.example;
+    assert(snapshot !== undefined, 'Missing expected snapshot: example');
     const path = 'practices/testing/verify-retries.md';
     const snapshots = {
       example: {
         ...snapshot,
         files: {
           ...snapshot.files,
-          [path]: snapshot.files[path]!.replace(/^whenToRead:.*\n/m, ''),
+          [path]: requireFile({ files: snapshot.files, path }).replace(
+            /^whenToRead:.*\n/m,
+            '',
+          ),
         },
       },
     };
@@ -194,6 +221,8 @@ switch (action) {
     break;
   }
   case 'authoring': {
+    const snapshot = input.snapshots.example;
+    assert(snapshot !== undefined, 'Missing expected snapshot: example');
     const guidance = await readFile(
       new URL(
         '../../docs/src/content/docs/reference/rule-authoring.md',
@@ -204,9 +233,10 @@ switch (action) {
     await capture('04-authoring/rule-rubric-and-template.md', guidance);
     await capture(
       '04-authoring/name-retry-stages.md',
-      input.snapshots.example!.files[
-        'practices/code-design/name-retry-stages.md'
-      ]!,
+      requireFile({
+        files: snapshot.files,
+        path: 'practices/code-design/name-retry-stages.md',
+      }),
     );
     console.log(
       'Open 04-authoring/rule-rubric-and-template.md and name-retry-stages.md.',
