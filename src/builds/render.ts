@@ -13,7 +13,7 @@ function rulePath(active: ActiveRule): string {
 
 /** Describe all sources contributing selection guidance to a group without merging their policies. */
 function groupEntry(group: Group): string {
-  const sections = [`## [${group.id}](${group.id}.md)`];
+  const sections = [`### [${group.id}](${group.id}.md)`];
   for (const guidance of group.guidance) {
     sections.push(
       `**${guidance.source}: ${escapeText(guidance.metadata.name)}**`,
@@ -35,12 +35,13 @@ function indexHeader(): string {
   return [
     '# Code Rules',
     'This project uses [Fabrica Code Rules](https://github.com/fabricahq/code-rules) to declare its adopted engineering practices.',
-    'Before planning or writing code, inspect relevant technology and practice group indexes using the intended task and behavior. Testing guidance can apply even when no test files have changed.',
+    'Before planning or writing code, use the descriptions under **Technology and practice group indexes** below to choose which indexes to open. Consider the intended behavior as well as the technology; testing guidance can apply even when no test files have changed.',
     'Each group index lists every active rule with its when-to-read guidance and a link to the full effective definition. Exclusions and replacements are already applied.',
     'Read the full text of every applicable or plausibly applicable rule before relying on it. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction.',
     'During validation or diagnosis, independently select relevant rules from the task, code, and surrounding contracts. Cite rule IDs and concrete evidence for findings; selection alone is not evidence of a violation.',
     'These files are generated. Edit source rules or configuration and rebuild to change them.',
     '[Source versions and rule origins](provenance.json).',
+    '## Technology and practice group indexes',
   ].join('\n\n');
 }
 
