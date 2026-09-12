@@ -177,17 +177,16 @@ function collectRewrites(
   const edits: Array<SourceEdit> = [];
   // Keep reference identities stable if a consumer later combines individual rule files.
   const referencePrefix = `code-rules-${encodeURIComponent(active.rule.id)}-`;
-  // Nest source sections below the embedded rule title, retaining their relative hierarchy.
+  // Nest source sections below Guidance, retaining their relative hierarchy.
+  const bodyHeadingDepth = outputPath === standalonePath ? 3 : 5;
   const headingOffset =
-    outputPath === standalonePath
-      ? 0
-      : 4 -
-        Math.min(
-          4,
-          ...tree.children.flatMap((node) =>
-            node.type === 'heading' ? [node.depth] : [],
-          ),
-        );
+    bodyHeadingDepth -
+    Math.min(
+      bodyHeadingDepth,
+      ...tree.children.flatMap((node) =>
+        node.type === 'heading' ? [node.depth] : [],
+      ),
+    );
   /** Visit in postorder; an ancestor's edit includes rewritten children, so child edits must not overlap it. */
   function visit(node: Root | RootContent, ancestorOwnsEdit: boolean): void {
     const rewritesNode = requiresRewrite(node);
@@ -264,7 +263,7 @@ function ruleBody(
 }
 
 /**
- * Return a Markdown rule section with its identity, active definition, replacement, terms, and preserved metadata.
+ * Return rule guidance followed by source, replacement, terms, and preserved metadata.
  * Relocates body links and throws an invalid-input BuildError for unsupported relative references.
  * When embedded at another path, nests headings and directs same-file fragments to the standalone definition to avoid cross-rule anchor collisions.
  */
@@ -274,6 +273,8 @@ export function renderRule(
   standalonePath = outputPath,
 ): string {
   const { rule, origin, upstream } = active;
+  const titleHeading = outputPath === standalonePath ? '#' : '###';
+  const sectionHeading = `${titleHeading}#`;
   // The outer fence must exceed every embedded backtick run so metadata cannot close it early.
   const metadataFence = '`'.repeat(
     Math.max(
@@ -285,7 +286,7 @@ export function renderRule(
     ),
   );
   const lines = [
-    `${outputPath === standalonePath ? '#' : '###'} ${escapeText(rule.title)}`,
+    `${titleHeading} ${escapeText(rule.title)}`,
     '',
     `Rule ID: \`${rule.id}\``,
     '',
@@ -295,7 +296,13 @@ export function renderRule(
     '',
     `**Why it matters:** ${escapeText(rule.impactDescription)}`,
     '',
-    `[Active definition](${sourceLink(origin, outputPath)})`,
+    `${sectionHeading} Guidance`,
+    '',
+    ruleBody(active, outputPath, standalonePath),
+    '',
+    `${sectionHeading} Source and attribution`,
+    '',
+    `**Rule source:** [Original rule](${sourceLink(origin, outputPath)})`,
   ];
   if (outputPath !== standalonePath)
     lines.push(
@@ -320,14 +327,14 @@ export function renderRule(
     lines.push(
       '',
       origin.source === 'local'
-        ? 'Project-authored definition; retain any terms and attribution stated below.'
-        : 'Library license: unspecified. Retain any rule-specific terms and attribution stated below.',
+        ? 'Project-authored definition.'
+        : 'Library license: No default license declared.',
     );
   lines.push(
     '',
-    `${metadataFence}yaml\n${rule.metadata}\n${metadataFence}`,
+    `${sectionHeading}# Source metadata`,
     '',
-    ruleBody(active, outputPath, standalonePath),
+    `${metadataFence}yaml\n${rule.metadata}\n${metadataFence}`,
   );
   return lines.join('\n');
 }

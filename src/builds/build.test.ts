@@ -187,7 +187,7 @@ describe('buildRules', () => {
     expect(output).not.toContain('## Fabrica retries');
     expect(output).toContain(`../../rules/fabrica/${ruleId}.md`);
     expect(generated(build, `rules/fabrica/${ruleId}.md`)).toContain(
-      `[Active definition](../../../../../local/${group}/bounded.md)`,
+      `**Rule source:** [Original rule](../../../../../local/${group}/bounded.md)`,
     );
     const provenance = generated(build, 'provenance.json');
     expect(provenance).toContain(`"file": "${group}/bounded.md"`);
@@ -1190,7 +1190,7 @@ test('should relocate links and attribution correctly for deeply nested individu
   );
   expect(output).toContain('[Here](#validation)');
   expect(output).toContain(
-    `[Active definition](../../../../../../local/${path})`,
+    `**Rule source:** [Original rule](../../../../../../local/${path})`,
   );
 });
 
@@ -1303,7 +1303,7 @@ test('should preserve inline licenses, relative links, references, and same-file
   const inline = files[`groups/${group}.md`] ?? '';
   expect(inline).toContain('Full rules are included below.');
   expect(inline).toContain('\n## Rules\n\n### Retry one\n');
-  expect(inline).toContain('\n#### Validation\n');
+  expect(inline).toContain('\n##### Validation\n');
   expect(inline).toContain(
     '```md\n# Preserve this code\n[guide]: untouched\n```',
   );
@@ -1327,9 +1327,9 @@ test('should nest embedded headings while preserving links inside them and code 
   const build = localInput({ [`${ruleId}.md`]: ruleText('Retry', body) });
   const output = generated(build, `groups/${group}.md`);
   expect(output).toContain(
-    `#### [Details](../../rules/local/${ruleId}.md#details)`,
+    `##### [Details](../../rules/local/${ruleId}.md#details)`,
   );
-  expect(output).toContain('\n##### Validation\n');
+  expect(output).toContain('\n###### Validation\n');
   expect(output).toContain('```md\n# Keep this heading literal\n```');
 });
 
@@ -1358,7 +1358,34 @@ test.each([0, 8192])(
     );
     if (groupInlineMaxBytes > 0)
       expect(page).toContain(
-        `[Active definition](../../../local/${ruleId}.md)`,
+        `**Rule source:** [Original rule](../../../local/${ruleId}.md)`,
       );
   },
 );
+
+test('should put complete guidance before source details and preserved metadata in both full-text formats', () => {
+  const body =
+    'Treat caught values as unknown.\n\n## Implementation\n\nNarrow before inspecting.\n\n## Validation\n\nExercise unfamiliar values.';
+  const files = buildRules(
+    localInput({ [`${ruleId}.md`]: ruleText('Retry', body) }),
+  ).files;
+  for (const [path, sectionHeading] of [
+    [`rules/local/${ruleId}.md`, '##'],
+    [`groups/${group}.md`, '####'],
+  ]) {
+    const page = files[path ?? ''] ?? '';
+    const guidance = page.indexOf(`\n${sectionHeading} Guidance\n`);
+    const validation = page.indexOf(`\n${sectionHeading}# Validation\n`);
+    const source = page.indexOf(`\n${sectionHeading} Source and attribution\n`);
+    const metadata = page.indexOf(`\n${sectionHeading}# Source metadata\n`);
+    expect(guidance).toBeGreaterThan(0);
+    expect(validation).toBeGreaterThan(guidance);
+    expect(source).toBeGreaterThan(validation);
+    expect(page.indexOf('**Rule source:**')).toBeGreaterThan(source);
+    expect(metadata).toBeGreaterThan(source);
+    expect(page.indexOf('```yaml')).toBeGreaterThan(metadata);
+    expect(page).toContain('tags: testing, retries');
+    expect(page).toContain('Project-authored definition.');
+    expect(page).not.toContain('stated below');
+  }
+});
