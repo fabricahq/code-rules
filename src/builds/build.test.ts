@@ -1302,8 +1302,8 @@ test('should preserve inline licenses, relative links, references, and same-file
   const files = buildRules(build).files;
   const inline = files[`groups/${group}.md`] ?? '';
   expect(inline).toContain('Full rules are included below.');
-  expect(inline).toContain('## Retry one');
-  expect(inline).toContain('### Validation');
+  expect(inline).toContain('\n## Rules\n\n### Retry one\n');
+  expect(inline).toContain('\n#### Validation\n');
   expect(inline).toContain(
     '```md\n# Preserve this code\n[guide]: untouched\n```',
   );
@@ -1327,9 +1327,9 @@ test('should nest embedded headings while preserving links inside them and code 
   const build = localInput({ [`${ruleId}.md`]: ruleText('Retry', body) });
   const output = generated(build, `groups/${group}.md`);
   expect(output).toContain(
-    `### [Details](../../rules/local/${ruleId}.md#details)`,
+    `#### [Details](../../rules/local/${ruleId}.md#details)`,
   );
-  expect(output).toContain('#### Validation');
+  expect(output).toContain('\n##### Validation\n');
   expect(output).toContain('```md\n# Keep this heading literal\n```');
 });
 
@@ -1348,6 +1348,8 @@ test.each([0, 8192])(
     ).toEqual(['RULES.md', 'groups', 'provenance.json', 'rules']);
     expect(output['RULES.md']).toContain(`(groups/${group}.md)`);
     expect(page).toContain(`Group ID: \`${group}\``);
+    expect(page).toContain('\n## Rules\n\n### Retry\n');
+    expect(output[`rules/local/${ruleId}.md`]).toStartWith('# Retry\n');
     expect(page).toContain(`(../../rules/local/${ruleId}.md)`);
     expect(page).toContain('[RULES.md](../../RULES.md)');
     expect(page).toContain('[provenance.json](../../provenance.json)');

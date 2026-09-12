@@ -79,6 +79,7 @@ function groupHeader(group: Group, mode: 'inline' | 'summaries'): string {
       : '2. For every relevant or plausibly relevant rule, open its “Read full rule” link and read the complete file. Complete truncated reads.',
     '3. Apply the full rule’s guidance and exceptions. Selection alone is insufficient evidence for a review finding.',
     impactGuidance,
+    '## Rules',
   ].join('\n\n');
 }
 
@@ -86,7 +87,7 @@ function groupHeader(group: Group, mode: 'inline' | 'summaries'): string {
 function ruleEntry(active: ActiveRule, indexPath: string): string {
   const link = posix.relative(posix.dirname(indexPath), rulePath(active));
   return [
-    `## ${escapeText(active.rule.title)}`,
+    `### ${escapeText(active.rule.title)}`,
     `Rule ID: \`${active.rule.id}\``,
     `**When to read:** ${escapeText(active.rule.whenToRead)}`,
     `**Impact:** ${escapeText(active.rule.impact)}`,

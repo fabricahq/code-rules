@@ -83,6 +83,7 @@ Full definitions retain obligations, implementation and validation guidance, att
 The root index and group pages fit that UTF-8 byte limit. Oversized summary indexes split into complete numbered sibling parts.
 `groupInlineMaxBytes` (non-negative safe integer, default 8 KiB) selects full inline delivery when the complete group page fits both budgets. Zero forces summary indexes.
 The inline limit counts the entire rendered page, including metadata, examples, attribution, and navigation. It is a provisional delivery default, not a measured compliance threshold.
+Both formats place rule titles at heading level 3 under `## Rules`, following `## How to use this group`. Inline body sections nest below their rule title; standalone heading levels stay unchanged.
 Both formats use the same resolved definitions and retain stable individual rule files. Embedded fragment links point to standalone definitions to avoid repeated heading collisions.
 Impact describes credible consequences; it neither selects rules nor assigns finding severity. `impactDescription` appears as **Why it matters**.
 A single oversized entry or part directory fails explicitly; rule bodies are never truncated.

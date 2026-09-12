@@ -77,6 +77,7 @@ A later sync can pick up a moved tag; review resolved-commit changes along with 
 
 ## 4. Review and commit the files
 
+Group pages separate **How to use this group** from **Rules**, with each rule nested under **Rules**.
 Review the generated group pages. Read applicable rules in full where included; otherwise follow each **Read full rule** link.
 Confirm that replacements contain the intended obligations and that excluded rules are absent from active output.
 Commit configuration, local rules, vendor content, and generated files together.

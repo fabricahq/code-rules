@@ -181,9 +181,9 @@ function collectRewrites(
   const headingOffset =
     outputPath === standalonePath
       ? 0
-      : 3 -
+      : 4 -
         Math.min(
-          3,
+          4,
           ...tree.children.flatMap((node) =>
             node.type === 'heading' ? [node.depth] : [],
           ),
@@ -285,7 +285,7 @@ export function renderRule(
     ),
   );
   const lines = [
-    `${outputPath === standalonePath ? '#' : '##'} ${escapeText(rule.title)}`,
+    `${outputPath === standalonePath ? '#' : '###'} ${escapeText(rule.title)}`,
     '',
     `Rule ID: \`${rule.id}\``,
     '',
