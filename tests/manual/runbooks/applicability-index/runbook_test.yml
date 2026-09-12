@@ -20,6 +20,12 @@ tests:
       - block: reject-missing-metadata
     assertions:
       - type: file_contains
+        path: 01-deliverable/generated/techs/typescript.md
+        contains: This file contains summaries only.
+      - type: file_contains
+        path: 01-deliverable/generated/techs/typescript.md
+        contains: "**Read full rule:**"
+      - type: file_contains
         path: 01-deliverable/generated/practices/testing.md
         contains: Full rules are included below.
       - type: file_contains

@@ -47,7 +47,7 @@ After running it:
 
 1. Open the printed `generated/RULES.md` path and follow its testing-group link.
 2. Confirm the group page includes exactly two complete active rules: the project retry budget and stopping retries after success.
-3. Follow the rule links and confirm the retry-budget replacement retains ID `example:practices/testing/verify-retries` and links to its local definition.
+3. Open `generated/techs/typescript.md` to see the larger group as an index with explicit **Read full rule** links. Follow the testing rule links and confirm the retry-budget replacement retains ID `example:practices/testing/verify-retries` and links to its local definition.
 4. Use the printed `scenarios.md` to inspect pre-implementation selection and a review with no test-file edits. The TypeScript scenario should lead to testing and code-design rules, while Go is unrelated.
 5. Inspect `generated/provenance.json`: the replacement should have a local origin and an imported upstream origin; the additional local rule should have no upstream origin.
 
