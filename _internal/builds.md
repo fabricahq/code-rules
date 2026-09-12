@@ -42,7 +42,8 @@ Test through `buildRules` so internal helpers can move without changing caller-f
 3. Test through `buildRules` using original examples covering multiple sources, exceptions, local-only groups, deterministic output, licensing links, and invalid inputs.
 4. Run strict TypeScript checks, focused Bun tests, and the existing documentation validation.
 
-The builder returns paths relative to `generated/`.
+The builder returns paths relative to `generated/`. Group pages live under `groups/<group-id>.md`, while individual effective definitions live under `rules/`.
+`RULES.md` and `provenance.json` remain at the generated root; group IDs and rule IDs do not change with output layout.
 Snapshot file paths are relative to the library root; local file paths are relative to `local/`.
 Replacement configuration retains its documented `local/` prefix.
 The snapshot envelope contains `repository`, `ref`, `resolvedCommit`, `groups`, and `files`.

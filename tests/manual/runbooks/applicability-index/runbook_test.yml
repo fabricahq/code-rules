@@ -20,19 +20,19 @@ tests:
       - block: reject-missing-metadata
     assertions:
       - type: file_contains
-        path: 01-deliverable/generated/techs/typescript.md
+        path: 01-deliverable/generated/groups/techs/typescript.md
         contains: This file contains summaries only.
       - type: file_contains
-        path: 01-deliverable/generated/techs/typescript.md
+        path: 01-deliverable/generated/groups/techs/typescript.md
         contains: "**Read full rule:**"
       - type: file_contains
-        path: 01-deliverable/generated/practices/testing.md
+        path: 01-deliverable/generated/groups/practices/testing.md
         contains: Full rules are included below.
       - type: file_contains
-        path: 01-summary-only/generated/practices/testing.md
+        path: 01-summary-only/generated/groups/practices/testing.md
         contains: "**Read full rule:**"
       - type: file_contains
-        path: 01-deliverable/generated/practices/testing.md
+        path: 01-deliverable/generated/groups/practices/testing.md
         contains: Verify the project retry budget
       - type: file_not_exists
         path: 01-deliverable/generated/rules/example/practices/testing/legacy-backoff.md
@@ -40,7 +40,7 @@ tests:
         path: 02-implementation/START-HERE.md
         contains: No function exists yet.
       - type: file_exists
-        path: 03-budget-small/generated/practices/testing.part-1.md
+        path: 03-budget-small/generated/groups/practices/testing.part-1.md
       - type: file_contains
         path: 04-authoring/rule-rubric-and-template.md
         contains: Every author considers three questions separately

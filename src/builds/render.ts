@@ -11,6 +11,11 @@ function rulePath(active: ActiveRule): string {
   return `rules/${active.rule.id.replace(':', '/')}.md`;
 }
 
+/** Keep the discovery hierarchy separate from individual effective definitions. */
+function groupPath(group: Group): string {
+  return `groups/${group.id}.md`;
+}
+
 /** Keep all contributing group names visible in a stable, escaped heading. */
 function groupTitle(group: Group): string {
   return [...new Set(group.guidance.map(({ metadata }) => metadata.name))]
@@ -34,7 +39,7 @@ function groupEntry(group: Group): string {
       ),
     );
   }
-  sections.push(`**Open group:** [${groupTitle(group)}](${group.id}.md)`);
+  sections.push(`**Open group:** [${groupTitle(group)}](${groupPath(group)})`);
   return sections.join('\n\n');
 }
 
@@ -57,7 +62,7 @@ const impactGuidance =
   'Use “When to read” to select rules. Read and follow every applicable rule, regardless of impact. Impact describes the consequence the rule addresses; it does not determine applicability, override exceptions, or set a review finding’s severity. Assess findings from concrete evidence and consequences.';
 
 const groupFooter =
-  'For other technology and practice groups, open [RULES.md](../RULES.md). See [provenance.json](../provenance.json) for origins. These files are generated. Edit source rules or configuration and rebuild to change them.';
+  'For other technology and practice groups, open [RULES.md](../../RULES.md). See [provenance.json](../../provenance.json) for origins. These files are generated. Edit source rules or configuration and rebuild to change them.';
 
 /** Identify the delivery mode and give agents an explicit reading procedure. */
 function groupHeader(group: Group, mode: 'inline' | 'summaries'): string {
@@ -98,7 +103,7 @@ function groupPages(
     readonly groupInlineMaxBytes: number;
   },
 ): ReadonlyMap<string, string> {
-  const path = `${group.id}.md`;
+  const path = groupPath(group);
   const rules = [...group.rules].sort((a, b) => compare(a.rule.id, b.rule.id));
   if (budgets.groupInlineMaxBytes > 0 && rules.length > 0) {
     const inline = inlineGroupPage(
@@ -128,7 +133,7 @@ function inlineGroupPage(
   const sections = [groupHeader(group, 'inline')];
   let bytes = Buffer.byteLength(`${sections[0]}\n\n${groupFooter}\n`, 'utf8');
   for (const active of rules) {
-    const section = renderRule(active, `${group.id}.md`, rulePath(active));
+    const section = renderRule(active, groupPath(group), rulePath(active));
     bytes += Buffer.byteLength(section, 'utf8') + 2;
     if (bytes > maxBytes) return null;
     sections.push(section);

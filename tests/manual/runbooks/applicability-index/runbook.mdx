@@ -29,8 +29,8 @@ Open these files under `01-deliverable` in order. The paths below are relative t
 | Open | What to notice |
 | --- | --- |
 | `generated/RULES.md` | Each entry contains a group name, **When to read** guidance, and an explicit **Open group** link. One instruction above the list explains what to open next. |
-| `generated/techs/typescript.md` | Nine active rules make this group exceed the inline threshold. It shows summaries and explicit **Read full rule** links. |
-| `generated/practices/testing.md` | This small group includes both full rules, with when-to-read guidance, impact, and **Why it matters**. Separate files remain available. |
+| `generated/groups/techs/typescript.md` | Nine active rules make this group exceed the inline threshold. It shows summaries and explicit **Read full rule** links. |
+| `generated/groups/practices/testing.md` | This small group includes both full rules, with when-to-read guidance, impact, and **Why it matters**. Separate files remain available. |
 | `generated/rules/example/practices/testing/verify-retries.md` | The effective rule says exactly three attempts and retains the upstream ID. |
 | `config.json` | The project excludes the backoff rule and replaces the retry-limit rule. |
 | `generated/provenance.json` | Replacement origin, upstream origin, and local additions remain traceable. |
@@ -46,10 +46,10 @@ Small groups include their complete rules when the rendered page fits 8 KiB and 
   command="bun tests/manual/applicability-walkthrough.ts delivery"
   title="Compare the same rules as summaries"
   description="Sets groupInlineMaxBytes to zero and verifies that full definitions and provenance remain identical."
-  successMessage="Compare practices/testing.md in 01-deliverable and 01-summary-only."
+  successMessage="Compare groups/practices/testing.md in 01-deliverable and 01-summary-only."
 />
 
-In `01-summary-only/generated/practices/testing.md`, notice the explicit **Read full rule** action beneath each plain title. Read the linked complete definition before relying on the rule. Navigation and regeneration instructions sit at the bottom in both formats.
+In `01-summary-only/generated/groups/practices/testing.md`, notice the explicit **Read full rule** action beneath each plain title. Read the linked complete definition before relying on the rule. Navigation and regeneration instructions sit at the bottom in both formats.
 
 ## 2. Try implementation and review
 
@@ -110,7 +110,7 @@ variables:
   successMessage="The selected behavior was verified. Open the new 03 folder for its result."
 />
 
-For Default or Small, open `SIZES.md`, then `generated/practices/testing.md` in the corresponding `03-budget` folder. A split index lists every numbered part. Each part contains complete entries and links back to the directory; all 40 full definitions remain available.
+For Default or Small, open `SIZES.md`, then `generated/groups/practices/testing.md` in the corresponding `03-budget` folder. A split index lists every numbered part. Each part contains complete entries and links back to the directory; all 40 full definitions remain available.
 
 Too small demonstrates an **expected refusal**. The button succeeds when it confirms that Builds rejects the request. It does not mean a 100-byte build succeeded. This experiment returns no partial build output.
 

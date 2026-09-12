@@ -67,12 +67,15 @@ async function captureBuild(
 switch (action) {
   case 'build': {
     const { files } = await captureBuild('01-deliverable');
-    const index = requireFile({ files, path: 'practices/testing.md' });
+    const index = requireFile({ files, path: 'groups/practices/testing.md' });
     const replacement = requireFile({
       files,
       path: 'rules/example/practices/testing/verify-retries.md',
     });
-    const typescriptIndex = requireFile({ files, path: 'techs/typescript.md' });
+    const typescriptIndex = requireFile({
+      files,
+      path: 'groups/techs/typescript.md',
+    });
     assert(typescriptIndex.includes('This file contains summaries only.'));
     assert(typescriptIndex.includes('**Read full rule:**'));
     assert(index.includes('Full rules are included below.'));
@@ -88,7 +91,7 @@ switch (action) {
       'Built the real example. Open 01-deliverable/generated/RULES.md in Files.',
     );
     console.log(
-      'Compare practices/testing.md (full text) with techs/typescript.md (index), then follow a Read full rule link.',
+      'Compare groups/practices/testing.md (full text) with groups/techs/typescript.md (index), then follow a Read full rule link.',
     );
     console.log(
       'Verified: replacement keeps its ID; excluded backoff rule is absent; local success rule is indexed.',
@@ -102,7 +105,10 @@ switch (action) {
     const inline = buildRules(input).files;
     input = { ...input, groupInlineMaxBytes: 0 };
     const { files } = await captureBuild('01-summary-only');
-    const summaries = requireFile({ files, path: 'practices/testing.md' });
+    const summaries = requireFile({
+      files,
+      path: 'groups/practices/testing.md',
+    });
     assert(summaries.includes('This file contains summaries only.'));
     assert(summaries.includes('**Read full rule:**'));
     assert(!summaries.includes('exactly three attempts'));
@@ -124,8 +130,8 @@ switch (action) {
     await captureBuild(prefix);
     const explanation =
       choice === 'implementation'
-        ? `# Before writing a TypeScript retry client\n\nNo function exists yet. Start at generated/RULES.md.\n\n1. Read techs/typescript.md: designing the retry return type makes the TypeScript rule relevant.\n2. Read practices/testing.md: new behavior needs tests even before test files exist.\n3. Read practices/code-design.md: the operation will coordinate request execution, retry decisions, and its final result.\n4. Skip techs/go.md for this TypeScript task.\n5. Read the full definitions included in the testing and code-design groups. Follow the Read full rule links for relevant rules in the TypeScript index. Plan an explicit exhausted result, exactly three total attempts, and an immediate stop after success.\n\nThe design rule allows cohesive inline steps. Creating helper functions is not itself the goal.\n`
-        : `# Review an attempt-limit change\n\nThe proposed TypeScript change raises total attempts from three to five. No test file changed.\n\n1. Start at generated/RULES.md and include the testing practice because behavior changed.\n2. Read the full retry-budget rule in practices/testing.md; its separate file is rules/example/practices/testing/verify-retries.md.\n3. The effective replacement requires exactly three attempts. A deterministic all-failure test can demonstrate five calls and establish the mismatch.\n4. Cite example:practices/testing/verify-retries, the changed limit, and that observable behavior.\n5. Code-design relevance alone proves no violation. Inspect whether a step's purpose is obscured; helper count is insufficient evidence. Impact describes why a rule matters, while finding severity depends on the observed consequence.\n\nThis is a guided interpretation of the example, not an automated review of your application.\n`;
+        ? `# Before writing a TypeScript retry client\n\nNo function exists yet. Start at generated/RULES.md.\n\n1. Read groups/techs/typescript.md: designing the retry return type makes the TypeScript rule relevant.\n2. Read groups/practices/testing.md: new behavior needs tests even before test files exist.\n3. Read groups/practices/code-design.md: the operation will coordinate request execution, retry decisions, and its final result.\n4. Skip groups/techs/go.md for this TypeScript task.\n5. Read the full definitions included in the testing and code-design groups. Follow the Read full rule links for relevant rules in the TypeScript index. Plan an explicit exhausted result, exactly three total attempts, and an immediate stop after success.\n\nThe design rule allows cohesive inline steps. Creating helper functions is not itself the goal.\n`
+        : `# Review an attempt-limit change\n\nThe proposed TypeScript change raises total attempts from three to five. No test file changed.\n\n1. Start at generated/RULES.md and include the testing practice because behavior changed.\n2. Read the full retry-budget rule in groups/practices/testing.md; its separate file is rules/example/practices/testing/verify-retries.md.\n3. The effective replacement requires exactly three attempts. A deterministic all-failure test can demonstrate five calls and establish the mismatch.\n4. Cite example:practices/testing/verify-retries, the changed limit, and that observable behavior.\n5. Code-design relevance alone proves no violation. Inspect whether a step's purpose is obscured; helper count is insufficient evidence. Impact describes why a rule matters, while finding severity depends on the observed consequence.\n\nThis is a guided interpretation of the example, not an automated review of your application.\n`;
     await capture(`${prefix}/START-HERE.md`, explanation);
     console.log(explanation);
     break;
@@ -198,7 +204,7 @@ switch (action) {
       ([path]) =>
         path === 'RULES.md' ||
         path.startsWith('RULES.part-') ||
-        path.startsWith(`${group}.`),
+        path.startsWith(`groups/${group}.`),
     );
     const bodies = Object.keys(files).filter((path) =>
       path.startsWith('rules/'),
@@ -213,7 +219,7 @@ switch (action) {
       path.includes('.part-'),
     ).length;
     assert(choice === 'small' ? partCount > 0 : partCount === 0);
-    const report = `# Index budget: ${budget} UTF-8 bytes\n\n${bodies.length} full definitions, ${partCount} numbered index parts.\n\n| Index | UTF-8 bytes |\n| --- | ---: |\n${indexes.map(([path, content]) => `| ${path} | ${Buffer.byteLength(content, 'utf8')} |`).join('\n')}\n\nOpen generated/practices/testing.md. If split, read every listed part; all 40 bodies remain available under generated/rules/.\n`;
+    const report = `# Index budget: ${budget} UTF-8 bytes\n\n${bodies.length} full definitions, ${partCount} numbered index parts.\n\n| Index | UTF-8 bytes |\n| --- | ---: |\n${indexes.map(([path, content]) => `| ${path} | ${Buffer.byteLength(content, 'utf8')} |`).join('\n')}\n\nOpen generated/groups/practices/testing.md. If split, read every listed part; all 40 bodies remain available under generated/rules/.\n`;
     await capture(`${prefix}/SIZES.md`, report);
     console.log(report);
     break;

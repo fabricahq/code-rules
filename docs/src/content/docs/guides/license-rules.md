@@ -68,7 +68,7 @@ code-rules/
       practices/testing/...
   generated/
     RULES.md
-    practices/testing.md
+    groups/practices/testing.md
     rules/fabrica/practices/testing/verify-retry-limits.md
 ```
 

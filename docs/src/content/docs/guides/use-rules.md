@@ -69,7 +69,7 @@ Sync resolves each ref to a full commit SHA and records it as `resolvedCommit` i
 It copies the selected groups from that commit into `vendor/<source-name>/`.
 Sync calls Builds to produce the root group index, a page per group with full rules or applicability summaries, and individual full rule files under `generated/rules/`.
 Project exclusions and replacements are already applied.
-For example, `generated/practices/testing.md` describes when each active testing rule is relevant and links to its effective definition.
+For example, `generated/groups/practices/testing.md` describes when each active testing rule is relevant and links to its effective definition.
 `generated/RULES.md` helps agents choose groups; oversized indexes link to complete numbered parts.
 The import installs all sources together after validation succeeds.
 A later sync can pick up a moved tag; review resolved-commit changes along with the rule changes.

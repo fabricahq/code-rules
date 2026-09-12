@@ -109,21 +109,23 @@ describe('buildRules', () => {
     const output = generated(build, `rules/local/${ruleId}.md`);
     expect(output.split('# Local retries').length - 1).toBe(1);
     const index = generated(build, 'RULES.md');
-    expect(index).toContain('**Open group:** [Testing](practices/testing.md)');
+    expect(index).toContain(
+      '**Open group:** [Testing](groups/practices/testing.md)',
+    );
     expect(index).toContain('Changing behavior, including production code.');
     expect(index).not.toContain('**local: Testing**');
     expect(index).not.toContain('Check externally visible behavior.');
   });
 
   test('should combine overlapping groups while preserving both source-qualified identities', () => {
-    const output = generated(input(), `${group}.md`);
+    const output = generated(input(), `groups/${group}.md`);
     expect(output).toStartWith('# Testing\n');
     expect(output).toContain(`Group ID: \`${group}\``);
     expect(output).toContain(`fabrica:${ruleId}`);
     expect(output).toContain(`acme:${ruleId}`);
     expect(output).toContain('Fabrica retries');
     expect(output).toContain('Acme retries');
-    expect(output).toContain(`../rules/fabrica/${ruleId}.md`);
+    expect(output).toContain(`../../rules/fabrica/${ruleId}.md`);
     expect(generated(input(), `rules/fabrica/${ruleId}.md`)).toContain(
       `https://github.com/fabrica/rules/blob/${commit}/${ruleId}.md`,
     );
@@ -150,7 +152,7 @@ describe('buildRules', () => {
         localGroups: [],
       },
     };
-    const output = generated(build, `${group}.md`);
+    const output = generated(build, `groups/${group}.md`);
     expect(output).not.toContain(`fabrica:${ruleId}`);
     expect(output).toContain(`acme:${ruleId}`);
     expect(generated(build, 'RULES.md')).not.toContain(`fabrica:${ruleId}`);
@@ -179,11 +181,11 @@ describe('buildRules', () => {
       },
       localFiles: { [`${group}/bounded.md`]: ruleText('Project retry budget') },
     };
-    const output = generated(build, `${group}.md`);
+    const output = generated(build, `groups/${group}.md`);
     expect(output).toContain(`Rule ID: \`fabrica:${ruleId}\``);
     expect(output).not.toContain(`local:${group}/bounded`);
     expect(output).not.toContain('## Fabrica retries');
-    expect(output).toContain(`../rules/fabrica/${ruleId}.md`);
+    expect(output).toContain(`../../rules/fabrica/${ruleId}.md`);
     expect(generated(build, `rules/fabrica/${ruleId}.md`)).toContain(
       `[Active definition](../../../../../local/${group}/bounded.md)`,
     );
@@ -202,20 +204,20 @@ describe('buildRules', () => {
         ),
       },
     };
-    expect(generated(build, `${group}.md`)).toContain(
+    expect(generated(build, `groups/${group}.md`)).toContain(
       `local:${group}/project-contract`,
     );
   });
 
   test('should build a local-only group with one rule', () => {
     const build = localInput({ [`${ruleId}.md`]: ruleText('Local retries') });
-    expect(generated(build, `${group}.md`)).toContain(`local:${ruleId}`);
+    expect(generated(build, `groups/${group}.md`)).toContain(`local:${ruleId}`);
     const provenance: unknown = JSON.parse(generated(build, 'provenance.json'));
     expect(provenance).toMatchObject({ sources: [] });
   });
 
   test('should preserve an empty selected group and support a project with no selected groups', () => {
-    expect(generated(localInput({}), `${group}.md`)).toContain(
+    expect(generated(localInput({}), `groups/${group}.md`)).toContain(
       'No active rules',
     );
     const build = {
@@ -938,7 +940,7 @@ test.each([0, 8192])(
       },
     };
     const output = buildRules(build).files;
-    const index = output[`${group}.md`] ?? '';
+    const index = output[`groups/${group}.md`] ?? '';
     expect(index).toContain(
       '**When to read:** When adding requests to the project API.',
     );
@@ -958,7 +960,7 @@ test.each([0, 8192])(
       Object.keys(output).filter((path) => path.startsWith('rules/')),
     ).toEqual([`rules/fabrica/${id}.md`, `rules/local/${group}/success.md`]);
     expect(
-      indexedPaths(`${group}.md`, index).filter((path) =>
+      indexedPaths(`groups/${group}.md`, index).filter((path) =>
         path.startsWith('rules/'),
       ),
     ).toEqual([`rules/fabrica/${id}.md`, `rules/local/${group}/success.md`]);
@@ -1034,13 +1036,14 @@ test('should split indexes at complete entries with bounded UTF-8 bytes and reso
   const build = { ...localInput(files), indexMaxBytes: 2000 };
   const output = buildRules(build).files;
   const parts = Object.keys(output).filter((path) =>
-    path.startsWith(`${group}.part-`),
+    path.startsWith(`groups/${group}.part-`),
   );
   expect(parts.length).toBeGreaterThan(1);
   expect(
-    indexedPaths(`${group}.md`, output[`${group}.md`] ?? '').filter((path) =>
-      parts.includes(path),
-    ),
+    indexedPaths(
+      `groups/${group}.md`,
+      output[`groups/${group}.md`] ?? '',
+    ).filter((path) => parts.includes(path)),
   ).toEqual(
     parts.sort(
       (a, b) =>
@@ -1089,8 +1092,10 @@ test('should split the project group index while retaining every group and readi
   expect(parts.length).toBeGreaterThan(1);
   const destinations = parts
     .flatMap((path) => indexedPaths(path, output[path] ?? ''))
-    .filter((path) => path.startsWith('techs/'));
-  expect(destinations.sort()).toEqual(groups.map((id) => `${id}.md`).sort());
+    .filter((path) => path.startsWith('groups/techs/'));
+  expect(destinations.sort()).toEqual(
+    groups.map((id) => `groups/${id}.md`).sort(),
+  );
   for (const path of ['RULES.md', ...parts])
     expect(Buffer.byteLength(output[path] ?? '', 'utf8')).toBeLessThanOrEqual(
       2000,
@@ -1105,13 +1110,13 @@ test('should retain a single index at the exact byte limit and split below it wi
     ]),
   );
   const build = { ...localInput(files), groupInlineMaxBytes: 0 };
-  const full = generated(build, `${group}.md`);
+  const full = generated(build, `groups/${group}.md`);
   const boundary = Buffer.byteLength(full, 'utf8');
-  expect(generated({ ...build, indexMaxBytes: boundary }, `${group}.md`)).toBe(
-    full,
-  );
   expect(
-    generated({ ...build, indexMaxBytes: boundary - 1 }, `${group}.md`),
+    generated({ ...build, indexMaxBytes: boundary }, `groups/${group}.md`),
+  ).toBe(full);
+  expect(
+    generated({ ...build, indexMaxBytes: boundary - 1 }, `groups/${group}.md`),
   ).toContain('Part 1');
 });
 
@@ -1163,7 +1168,7 @@ test('should rebuild changed applicability into the index and full definition wh
   const before = buildRules(first).files;
   const after = buildRules(next).files;
   expect(Object.keys(after)).toEqual(Object.keys(before));
-  expect(after[`${group}.md`]).not.toBe(before[`${group}.md`]);
+  expect(after[`groups/${group}.md`]).not.toBe(before[`groups/${group}.md`]);
   expect(after[`rules/local/${ruleId}.md`]).not.toBe(
     before[`rules/local/${ruleId}.md`],
   );
@@ -1201,21 +1206,30 @@ test('should inline a complete group at the default UTF-8 boundary and use summa
   const file = `${group}/retry.md`;
   const body = '验证重试。\n\n```ts\nconst attempts = 3;\n```\n\nEnd.';
   const initial = localInput({ [file]: ruleText('Retry', body) });
-  const size = Buffer.byteLength(generated(initial, `${group}.md`), 'utf8');
+  const size = Buffer.byteLength(
+    generated(initial, `groups/${group}.md`),
+    'utf8',
+  );
   const build = localInput({
     [file]: ruleText('Retry', body + 'x'.repeat(8192 - size)),
   });
   const inline = buildRules(build).files;
-  expect(Buffer.byteLength(inline[`${group}.md`] ?? '', 'utf8')).toBe(8192);
-  expect(inline[`${group}.md`]).toContain('Full rules are included below.');
-  expect(inline[`${group}.md`]).toContain('const attempts = 3;');
+  expect(Buffer.byteLength(inline[`groups/${group}.md`] ?? '', 'utf8')).toBe(
+    8192,
+  );
+  expect(inline[`groups/${group}.md`]).toContain(
+    'Full rules are included below.',
+  );
+  expect(inline[`groups/${group}.md`]).toContain('const attempts = 3;');
 
   const larger = buildRules(
     localInput({ [file]: ruleText('Retry', body + 'x'.repeat(8193 - size)) }),
   ).files;
-  expect(larger[`${group}.md`]).toContain('This file contains summaries only.');
-  expect(larger[`${group}.md`]).toContain('**Read full rule:** [Retry]');
-  expect(larger[`${group}.md`]).not.toContain('const attempts = 3;');
+  expect(larger[`groups/${group}.md`]).toContain(
+    'This file contains summaries only.',
+  );
+  expect(larger[`groups/${group}.md`]).toContain('**Read full rule:** [Retry]');
+  expect(larger[`groups/${group}.md`]).not.toContain('const attempts = 3;');
   expect(larger[`rules/local/${file}`]).toContain('const attempts = 3;');
 });
 
@@ -1226,9 +1240,11 @@ test('should change only group delivery when inline is disabled or the page budg
   const inline = buildRules(build).files;
   const disabled = buildRules({ ...build, groupInlineMaxBytes: 0 }).files;
   const bounded = buildRules({ ...build, indexMaxBytes: 2000 }).files;
-  expect(inline[`${group}.md`]).toContain('Full rules are included below.');
+  expect(inline[`groups/${group}.md`]).toContain(
+    'Full rules are included below.',
+  );
   for (const output of [disabled, bounded]) {
-    expect(output[`${group}.md`]).toContain(
+    expect(output[`groups/${group}.md`]).toContain(
       'This file contains summaries only.',
     );
     expect(output[`rules/local/${ruleId}.md`]).toBe(
@@ -1238,7 +1254,7 @@ test('should change only group delivery when inline is disabled or the page budg
     expect(output['RULES.md']).toBe(inline['RULES.md']);
   }
   expect(
-    Buffer.byteLength(bounded[`${group}.md`] ?? '', 'utf8'),
+    Buffer.byteLength(bounded[`groups/${group}.md`] ?? '', 'utf8'),
   ).toBeLessThanOrEqual(2000);
 });
 
@@ -1252,7 +1268,7 @@ test.each([-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
 );
 
 test('should keep empty groups explicit without claiming to include full rules', () => {
-  const output = generated(localInput({}), `${group}.md`);
+  const output = generated(localInput({}), `groups/${group}.md`);
   expect(output).toContain('No active rules in this group.');
   expect(output).not.toContain('Full rules are included below.');
 });
@@ -1284,18 +1300,18 @@ test('should preserve inline licenses, relative links, references, and same-file
     },
   };
   const files = buildRules(build).files;
-  const inline = files[`${group}.md`] ?? '';
+  const inline = files[`groups/${group}.md`] ?? '';
   expect(inline).toContain('Full rules are included below.');
   expect(inline).toContain('## Retry one');
   expect(inline).toContain('### Validation');
   expect(inline).toContain(
     '```md\n# Preserve this code\n[guide]: untouched\n```',
   );
-  expect(inline).toContain('[LICENSE.md](../../vendor/fabrica/LICENSE.md)');
+  expect(inline).toContain('[LICENSE.md](../../../vendor/fabrica/LICENSE.md)');
   for (const path of [firstPath, secondPath]) {
-    expect(inline).toContain(`../rules/fabrica/${path}#validation`);
+    expect(inline).toContain(`../../rules/fabrica/${path}#validation`);
     expect(inline).toContain(
-      `../../vendor/fabrica/${posix.dirname(path)}/guide.txt`,
+      `../../../vendor/fabrica/${posix.dirname(path)}/guide.txt`,
     );
     expect(inline).toContain(
       `code-rules-${encodeURIComponent(`fabrica:${path.slice(0, -3)}`)}-guide`,
@@ -1309,10 +1325,38 @@ test('should nest embedded headings while preserving links inside them and code 
   const body =
     '# [Details](#details)\n\n## Validation\n\n```md\n# Keep this heading literal\n```';
   const build = localInput({ [`${ruleId}.md`]: ruleText('Retry', body) });
-  const output = generated(build, `${group}.md`);
+  const output = generated(build, `groups/${group}.md`);
   expect(output).toContain(
-    `### [Details](../rules/local/${ruleId}.md#details)`,
+    `### [Details](../../rules/local/${ruleId}.md#details)`,
   );
   expect(output).toContain('#### Validation');
   expect(output).toContain('```md\n# Keep this heading literal\n```');
 });
+
+test.each([0, 8192])(
+  'should separate group pages from effective rules with inline budget %s',
+  (groupInlineMaxBytes) => {
+    const output = buildRules({
+      ...localInput({ [`${ruleId}.md`]: ruleText('Retry') }),
+      groupInlineMaxBytes,
+    }).files;
+    const page = output[`groups/${group}.md`] ?? '';
+    expect(
+      [
+        ...new Set(Object.keys(output).map((path) => path.split('/')[0])),
+      ].sort(),
+    ).toEqual(['RULES.md', 'groups', 'provenance.json', 'rules']);
+    expect(output['RULES.md']).toContain(`(groups/${group}.md)`);
+    expect(page).toContain(`Group ID: \`${group}\``);
+    expect(page).toContain(`(../../rules/local/${ruleId}.md)`);
+    expect(page).toContain('[RULES.md](../../RULES.md)');
+    expect(page).toContain('[provenance.json](../../provenance.json)');
+    expect(output[`rules/local/${ruleId}.md`]).toContain(
+      `Rule ID: \`local:${ruleId}\``,
+    );
+    if (groupInlineMaxBytes > 0)
+      expect(page).toContain(
+        `[Active definition](../../../local/${ruleId}.md)`,
+      );
+  },
+);

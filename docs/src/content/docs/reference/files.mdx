@@ -129,12 +129,13 @@ Keep references to them valid after import.
   - generated/
     - RULES.md
     - provenance.json
-    - techs/
-      - typescript.md
-      - react.md
-    - practices/
-      - testing.md
-      - observability.md
+    - groups/
+      - techs/
+        - typescript.md
+        - react.md
+      - practices/
+        - testing.md
+        - observability.md
     - rules/
       - fabrica/techs/typescript/prefer-type-aliases.md
       - acme/techs/react/example.md
@@ -154,7 +155,10 @@ When multiple sources contribute to a group, their reading cues remain separate 
 One instruction above the entries directs the agent to open relevant group indexes and read applicable rules in full.
 It links to `provenance.json` for source versions and rule origins.
 
-Each group page, such as `generated/practices/testing.md`, states whether it contains full rules or summaries only.
+`generated/groups/` contains group discovery pages; `generated/rules/` contains individual effective definitions.
+Group IDs such as `practices/testing` remain unchanged. The corresponding page lives at `groups/practices/testing.md` relative to `generated/`.
+
+Each group page, such as `generated/groups/practices/testing.md`, states whether it contains full rules or summaries only.
 A small group includes every active rule's complete effective definition inline.
 A larger group lists each active rule's source-qualified ID, plain title, **When to read**, **Impact**, **Why it matters**, and an explicit **Read full rule** link.
 Reading instructions appear first; navigation, provenance, and regeneration instructions appear at the bottom.
@@ -186,7 +190,7 @@ If one entry or the complete part directory cannot fit, building fails with an a
 Full rule bodies are never shortened to fit an index budget. Complete any truncated reads of those files.
 This budget is a delivery setting, not a measured model-compliance threshold.
 
-Builds returns the complete generated file set. The planned Workspace subsystem must replace obsolete output, including old parts and removed rule files, when installing it.
+Builds returns the complete generated file set. The planned Workspace subsystem must replace obsolete output, including old parts, removed rule files, and the former top-level `techs/` and `practices/` group pages, when installing it.
 Exclusions and replacement reasons remain in project configuration; provenance records active origins and replacement reasons.
 The consuming repository's root license is not rewritten.
 
