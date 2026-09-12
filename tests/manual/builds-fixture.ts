@@ -58,9 +58,10 @@ const otherRules = {
   }),
   [`${designGroup}/_group.json`]: JSON.stringify({
     name: 'Code design',
-    description: 'Keep multi-step operations understandable.',
+    description:
+      'Organize code around clear responsibilities and understandable interactions.',
     whenToRead: [
-      'Before planning, writing, changing, or reviewing a function that coordinates multiple steps, such as parsing input, validating it, calling another operation, or constructing a result.',
+      'Before planning, writing, changing, or reviewing how code is organized, how responsibilities are divided, or how functions and modules work together.',
     ],
   }),
   [`${designGroup}/name-retry-stages.md`]: exampleRule({

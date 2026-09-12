@@ -53,7 +53,9 @@ See [License rules](/guides/license-rules/) for publisher guidance and the bound
 
 ## Group metadata
 
-Each `_group.json` provides selection guidance:
+Library authors define each group's selection guidance in its `_group.json`, before the group is imported.
+Builds reads that source metadata and renders its `whenToRead` cues in the generated root index; it does not infer them from the current rules.
+Use the existing `whenToRead` field for this guidance rather than adding a separate `whenToUse` field.
 
 ```json
 {

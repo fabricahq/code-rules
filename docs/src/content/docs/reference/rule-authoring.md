@@ -76,7 +76,9 @@ Use the [complete example](/guides/write-rules/#example-rule) to see the templat
 ## Write whenToRead guidance that helps selection
 
 Write a cue an agent can match against its task before opening the full rule.
-Use the same guidance for group metadata, with broader cues covering the group's concerns.
+Group cues describe the area of work; rule cues identify the specific situations that warrant reading an individual rule.
+Describe the group's intended scope even when it contains only one rule. Avoid narrowing its cue to that rule's current contents.
+Opening a relevant group does not mean every rule in it applies; use each rule's cue to select what to read next.
 
 - **Name the work and its object.** Identify the behavior, artifact, interface, or technology involved. “When coding” does not distinguish relevant work.
 - **Include prospective work.** Use activities such as planning or writing where relevant. A cue that requires spotting a violation first will miss implementation tasks.
@@ -88,7 +90,11 @@ Use the same guidance for group metadata, with broader cues covering the group's
 In the template, replace the activity and scope placeholders and omit the “such as” clause when examples add nothing.
 The goal is a recognizable trigger, not the shortest possible description.
 
-For a function-design rule, use:
+For the code-design group, use:
+
+> Before planning, writing, changing, or reviewing how code is organized, how responsibilities are divided, or how functions and modules work together.
+
+For an individual function-design rule, use:
 
 > Before planning, writing, changing, or reviewing a function that coordinates multiple steps, such as parsing input, validating it, calling another operation, or constructing a result.
 
