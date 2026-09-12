@@ -154,11 +154,15 @@ const otherRules = {
       exampleRule(rule),
     ]),
   ),
-  [`${technologyGroup}/_group.json`]: JSON.stringify({
-    name: 'TypeScript',
-    description: 'Express retry outcomes in TypeScript.',
-    whenToRead: ['When the intended or existing code uses TypeScript.'],
-  }),
+  [`${technologyGroup}/_group.json`]: JSON.stringify(
+    {
+      name: 'TypeScript',
+      description: 'Express retry outcomes in TypeScript.',
+      whenToRead: ['When the intended or existing code uses TypeScript.'],
+    },
+    null,
+    2,
+  ),
   [`${technologyGroup}/retry-outcome.md`]: exampleRule({
     title: 'Represent retry exhaustion explicitly',
     obligation:
@@ -169,14 +173,18 @@ const otherRules = {
     validation:
       'Check that callers can distinguish exhausted attempts from a successful result using the declared return type.',
   }),
-  [`${designGroup}/_group.json`]: JSON.stringify({
-    name: 'Code design',
-    description:
-      'Organize code around clear responsibilities and understandable interactions.',
-    whenToRead: [
-      'Before planning, writing, changing, or reviewing how code is organized, how responsibilities are divided, or how functions and modules work together.',
-    ],
-  }),
+  [`${designGroup}/_group.json`]: JSON.stringify(
+    {
+      name: 'Code design',
+      description:
+        'Organize code around clear responsibilities and understandable interactions.',
+      whenToRead: [
+        'Before planning, writing, changing, or reviewing how code is organized, how responsibilities are divided, or how functions and modules work together.',
+      ],
+    },
+    null,
+    2,
+  ),
   [`${designGroup}/name-retry-stages.md`]: exampleRule({
     title: 'Name the retry stages',
     obligation:
@@ -190,11 +198,15 @@ const otherRules = {
     implementation:
       'Make each step understandable. Extract parsing, validation, or result construction when those details obscure the operation. Keep cohesive inline steps when their purpose is already clear.',
   }),
-  [`${unrelatedGroup}/_group.json`]: JSON.stringify({
-    name: 'Go',
-    description: 'Write Go retry APIs.',
-    whenToRead: ['When the intended or existing code uses Go.'],
-  }),
+  [`${unrelatedGroup}/_group.json`]: JSON.stringify(
+    {
+      name: 'Go',
+      description: 'Write Go retry APIs.',
+      whenToRead: ['When the intended or existing code uses Go.'],
+    },
+    null,
+    2,
+  ),
   [`${unrelatedGroup}/retry-errors.md`]: exampleRule({
     title: 'Return retry errors to the caller',
     obligation:
