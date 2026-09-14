@@ -161,8 +161,8 @@ test('sync removes retired sources and their rules, assets, and license copies',
   succeeded(run('sync'));
   expect(await readdir(join(root, 'vendor'))).toEqual(['team']);
   expect(await readdir(join(root, 'generated/libraries'))).toEqual(['team']);
-  expect(await readdir(join(root, 'generated/rules'))).toEqual(
-    ['team', 'README.md'].sort(),
+  expect(new Set(await readdir(join(root, 'generated/rules')))).toEqual(
+    new Set(['team', 'README.md']),
   );
 });
 
