@@ -2,6 +2,8 @@
 
 import { expect, test } from 'bun:test';
 import { posix } from 'node:path';
+import type { Definition, LinkReference, Nodes } from 'mdast';
+import { fromMarkdown } from 'mdast-util-from-markdown';
 import { buildRules } from './index';
 import type { BuildInput } from './index';
 import {
@@ -15,6 +17,23 @@ import {
   generated,
   localInput,
 } from './build-test-fixtures';
+
+/** Resolves prose reference links using Markdown's first matching definition. */
+function referenceLinks(markdown: string) {
+  const definitions: Definition[] = [];
+  const references: LinkReference[] = [];
+  function collect(node: Nodes) {
+    if (node.type === 'definition') definitions.push(node);
+    if (node.type === 'linkReference') references.push(node);
+    if ('children' in node) node.children.forEach(collect);
+  }
+  collect(fromMarkdown(markdown));
+  return references.map(({ identifier }) => ({
+    identifier,
+    url: definitions.find((definition) => definition.identifier === identifier)
+      ?.url,
+  }));
+}
 
 test('should show each rule title once and keep ordinary prose readable as Markdown', () => {
   const build = localInput({ [`${ruleId}.md`]: ruleText('Local retries') });
@@ -93,16 +112,17 @@ test('should keep reference labels distinct across rules and relocate images nes
       [`${ruleId}.md`]: ruleText('Acme references', body),
     }),
   };
+  const identifiers = new Set<string>();
   for (const name of ['fabrica', 'acme']) {
     const output = generated(
       { ...build, snapshots },
       `rules/${name}/${ruleId}.md`,
     );
-    const label = `code-rules-${encodeURIComponent(`${name}:${ruleId}`)}-details`;
-    expect(output).toContain(`[Reference][${label}]`);
-    expect(output).toContain(
-      `[${label}]: https://github.com/${name}/rules/blob/${commit}/README.md`,
-    );
+    const references = referenceLinks(output);
+    expect(references.map(({ url }) => url)).toEqual([
+      `https://github.com/${name}/rules/blob/${commit}/README.md`,
+    ]);
+    references.forEach(({ identifier }) => identifiers.add(identifier));
     expect(output).toContain(
       `https://raw.githubusercontent.com/${name}/rules/${commit}/diagram.png`,
     );
@@ -110,6 +130,7 @@ test('should keep reference labels distinct across rules and relocate images nes
       `https://github.com/${name}/rules/blob/${commit}/overview.md`,
     );
   }
+  expect(identifiers.size).toBe(2);
 });
 
 test('should preserve extra attribution metadata and CRLF-authored rules', () => {
@@ -224,14 +245,15 @@ test('should preserve inline licenses, relative links, references, and same-file
   expect(inline).toContain(
     '[LICENSE.md](../../libraries/fabrica/licenses/LICENSE.md)',
   );
+  const references = referenceLinks(inline);
+  expect(references.map(({ url }) => url)).toEqual(
+    [firstPath, secondPath].map(
+      (path) => `../../../vendor/fabrica/${posix.dirname(path)}/guide.txt`,
+    ),
+  );
+  expect(new Set(references.map(({ identifier }) => identifier)).size).toBe(2);
   for (const path of [firstPath, secondPath]) {
     expect(inline).toContain(`../../rules/fabrica/${path}#validation`);
-    expect(inline).toContain(
-      `../../../vendor/fabrica/${posix.dirname(path)}/guide.txt`,
-    );
-    expect(inline).toContain(
-      `code-rules-${encodeURIComponent(`fabrica:${path.slice(0, -3)}`)}-guide`,
-    );
     expect(files[`rules/fabrica/${path}`]).toContain('[Here](#validation)');
     expect(files[`rules/fabrica/${path}`]).toContain('### Validation');
   }
