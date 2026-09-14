@@ -5,6 +5,7 @@ description: "Author a focused engineering obligation with applicability, exampl
 
 Write each rule in Markdown with a rubric that helps agents make it clear, scoped, and verifiable.
 Use the Code Rules skill to turn a best practice into a rule, starting from a shared template.
+To set up a shared library and create groups before adding rules, follow [Create a rule library](/guides/create-library/).
 
 ## Rubric, template, and skill
 
@@ -99,6 +100,8 @@ When publishing or adapting rules, follow [License rules](/guides/license-rules/
 
 
 ## Adapt third-party rules
+
+For a step-by-step example with inspectable license provenance, follow [Adapt a third-party rule](/guides/adapt-rules/).
 
 The original repository does not have to change. The definition you give Code Rules must use its input format: a technology or practice group with `_group.json`, a Markdown rule with the required metadata, and retained supporting files. The body follows the flexible authoring rubric; it does not need every template heading.
 

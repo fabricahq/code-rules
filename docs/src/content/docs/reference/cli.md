@@ -108,6 +108,32 @@ code-rules check --config path/to/code-rules/config.json
 Resolve local paths relative to the chosen configuration directory.
 Keep replacement files within that directory's `local/` tree.
 
+## Author a library
+
+These proposed commands run from the library root, independently of a consuming project's configuration.
+They form the final implementation phase. Follow [Create a rule library](/guides/create-library/) for the complete workflow.
+
+```sh
+code-rules library init
+code-rules library add group techs/javascript
+code-rules library add rule techs/javascript/prefer-for-of
+code-rules library check
+```
+
+- `library init` creates the format manifest and a README pointing to the canonical authoring guidance. It records an explicit license choice and retains the corresponding text and notices. Authors may defer that choice; the manifest then leaves it undeclared.
+- `library add group <group-id>` creates `_group.json` under `techs/` or `practices/`, collecting the name, description, and group-level `whenToRead` cues. A group can exist before it has rules.
+- `library add rule <rule-id>` creates a Markdown draft from the canonical template in an existing group. A missing group produces an error with the command to create it. Required fields need author input; the command does not invent policy.
+- `library check` validates the manifest, all group and rule definitions, and declared license and notice assets offline without writing files. It reports file-specific errors and group and rule counts. Empty groups are valid. Undeclared licenses produce warnings; malformed declarations and missing declared files fail validation.
+
+Scaffolding commands validate paths and detect collisions before writing. They never overwrite existing files or leave partial scaffolds after a failed operation.
+They do not create Git repositories, commit, publish, infer licenses, or convert arbitrary upstream material.
+Interactive prompts collect missing author input. Noninteractive use must accept equivalent explicit inputs and fail with actionable errors when required input is missing.
+Exact input flags will be specified with implementation.
+
+Library validation checks the input format, not the quality of the guidance or legal permissions.
+Consumer `code-rules check` instead verifies generated output against adopted inputs.
+For non-native material, follow [Adapt a third-party rule](/guides/adapt-rules/).
+
 ## Errors
 
 Report the affected file or rule ID and the action needed to resolve the problem.

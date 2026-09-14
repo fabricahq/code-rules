@@ -182,4 +182,6 @@ The definition's effective origin is local because the original repository does 
 
 For a compatible imported library, rules without their own declarations inherit the library's declared default. A local replacement supplies its own applicable terms; retaining the upstream rule ID does not automatically assign the upstream license. Code Rules preserves declarations rather than certifying permissions.
 
-See the canonical guide's third-party adaptation section for the recommended workflow.
+For the full authoring workflow, read `docs/src/content/docs/guides/adapt-rules.md` in the checkout. It walks through choosing a source revision, drafting a local or shared adaptation, retaining terms, inspecting generated provenance, and reviewing later upstream changes.
+
+The planned library commands are `code-rules library init`, `code-rules library add group <group-id>`, `code-rules library add rule <rule-id>`, and `code-rules library check`. They are not implemented; this runbook exercises the working offline generator. The proposed setup flow is in `docs/src/content/docs/guides/create-library.md`.

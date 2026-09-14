@@ -19,6 +19,8 @@ Library fetching, workspace installation and consistency checks, CLI commands, a
 - Commit effective rules under `code-rules/generated/`.
 - Give writing and reviewing agents the same rule-loading guidance.
 - Use one authoring rubric for the template, authoring skill, and rule reviews.
+- Import compatible libraries; adapt other source material explicitly before importing it.
+- Give library authors explicit commands to initialize, add groups, add rules, and validate their files.
 
 ## What is proposed
 
@@ -33,6 +35,10 @@ They are not installation instructions for a published package.
 The first release will support multiple named libraries imported directly by a project, each with its own commit-or-tag ref, group selection, and exceptions.
 The initial proof uses original example rules, local exceptions, and generated files that a person can inspect.
 Reliable imports and a private-project pilot follow that proof.
+
+The final implementation phase standardizes library authoring with `library init`, `library add group`, `library add rule`, and `library check`.
+It includes the authoring skill's adaptation workflow and a walkthrough from an empty library to importable rules with retained terms.
+See [Create a rule library](/guides/create-library/) and [Adapt a third-party rule](/guides/adapt-rules/) for the proposed experience.
 
 Organization libraries that inherit from and republish other libraries, and assisted group selection, are later work.
 ## Outside the product scope

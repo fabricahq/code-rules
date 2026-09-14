@@ -15,6 +15,16 @@ A consuming project owns the versions and exceptions it adopts.
 The importer works with compatible libraries independently of who publishes them.
 A public tool can import a private library through the caller's existing Git credentials.
 
+## Create or adapt a library
+
+The planned [library authoring commands](/guides/create-library/) initialize a library, add groups and rules explicitly, and validate the input format.
+Use them in a new or existing repository; a dedicated repository name is not required.
+
+Code Rules imports libraries that follow its format.
+For guidance from other sources, first [author a compatible adaptation](/guides/adapt-rules/) locally or in a shared library.
+Agents can assist with authoring; automatic conversion of arbitrary repositories is outside the import workflow.
+The adaptation's author maintains its meaning, attribution, retained terms, and updates from the original source.
+
 ## Name an organization library
 
 We recommend `<organization>/.code-rules`, such as `acme/.code-rules`.
