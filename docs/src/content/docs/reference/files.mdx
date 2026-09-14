@@ -45,7 +45,8 @@ The optional `license` object declares the library's default terms:
 | `license.notices` | Paths to accompanying notices, relative to the library root; use an empty array when none apply. |
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
-The importer preserves these files from the resolved source commit and includes them in snapshot digests.
+The planned import and workspace workflow preserves these files from the resolved source commit and includes them in snapshot digests.
+The offline builder accepts supplied snapshots, verifies that declared files exist, and links generated guidance to those retained files. It does not fetch files or compute workspace snapshot digests.
 If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `expression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It checks that supplied expressions are non-blank single-line strings, but does not certify SPDX identifier validity, ownership, or agreement between the label and the license text.
 
 Rule-specific terms and attribution remain with the rule and reference any additional applicable license files.

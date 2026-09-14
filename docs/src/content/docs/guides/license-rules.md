@@ -59,7 +59,9 @@ Before adapting material from a book, article, or another library, establish the
 
 ## What imports preserve
 
-The importer copies the license and declared notice files from the same resolved commit as the rules:
+The planned import workflow copies license and declared notice files from the same resolved commit as the rules.
+The offline builder in this branch accepts preassembled snapshots and checks that declared files are present; it does not fetch or copy them.
+The consuming workspace will retain them alongside the imported rules:
 
 ```text
 code-rules/

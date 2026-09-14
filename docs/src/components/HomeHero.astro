@@ -1,5 +1,7 @@
 ---
 /** @fileoverview Renders the docs landing page with product benefits, rule examples, and design-preview status. */
+import AgentPreview from './AgentPreview.astro';
+import CodeTransformation from './CodeTransformation.astro';
 ---
 <section class="cr-hero" aria-labelledby="_top">
   <p class="cr-eyebrow">FABRICA / CODE RULES</p>
@@ -11,18 +13,7 @@
   </div>
   <p class="cr-preview"><a href="/status/">Design preview</a> · The CLI is not released yet.</p>
 </section>
-<section class="cr-example" aria-labelledby="example-title">
-  <div class="cr-example-label"><span>FROM A TASK TO THE RELEVANT RULES</span><span>Illustrative example</span></div>
-  <div class="cr-example-body">
-    <div class="cr-task"><span class="cr-index">THE CHANGE</span><h2 id="example-title">Retry a failed payment request.</h2><p>A TypeScript service gains retry behavior. The task changes what happens on failure, even if it doesn't touch a test file.</p></div>
-    <div><span class="cr-index">GROUPS AN AGENT SHOULD READ</span><ul class="cr-group-list">
-      <li><a href="/concepts/groups/#technologies">techs/typescript</a><span>The language used by the service.</span></li>
-      <li><a href="/concepts/groups/#practices">practices/testing</a><span>Behavior changes need meaningful verification.</span></li>
-      <li><a href="/concepts/groups/#practices">practices/observability</a><span>Operators need to understand retries and failures.</span></li>
-    </ul></div>
-  </div>
-  <div class="cr-example-caption">The index helps agents select groups. Each rule states when it applies. Writing and reviewing agents make that assessment independently.</div>
-</section>
+<AgentPreview />
 <section aria-label="How Code Rules works">
   <article class="cr-feature">
     <div>
@@ -40,6 +31,7 @@ title: Verify retry limits
 impact: HIGH
 impactDescription: prevents unbounded requests
 tags: testing, retries
+whenToRead: When planning, implementing, reviewing, or diagnosing bounded retry behavior.
 ---
 
 ## Verify retry limits
@@ -108,4 +100,5 @@ The test should fail.</code></pre>
     </div>
   </article>
 </section>
+<CodeTransformation />
 <section class="cr-start" aria-labelledby="start-title"><span class="cr-index">START WITH ONE PROJECT</span><h2 id="start-title">Adopt versioned rules for your project</h2><p>Walk through a library, a project configuration, and the files your agents would read.</p><a class="cr-button" href="/guides/use-rules/">Walk through the setup <span aria-hidden="true">→</span></a></section>

@@ -162,7 +162,7 @@ Generated files and review findings retain source-qualified IDs because they app
 
 Select complete groups separately for each source, then exclude individual rules when necessary.
 Each selected group must exist in that source at its pinned revision.
-Selecting `practices/testing` from two sources combines both sets of rules into one effective testing file.
+Selecting `practices/testing` from two sources combines both sets of rules into one effective testing group, with a group page and individual effective rule files.
 Source order never establishes precedence.
 
 Local rules can join any imported group.
