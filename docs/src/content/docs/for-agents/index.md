@@ -19,6 +19,8 @@ Read full definitions where included, or follow each applicable rule's Read full
 Read every relevant or plausibly relevant definition completely before relying on it.
 Complete truncated reads. Revisit rule selection when scope changes and reload needed rules after compaction.
 Follow every applicable rule regardless of impact, including its exceptions.
+After reading the complete rule, use Implementation guidance when planning or changing code and Validation guidance when reviewing, testing, or diagnosing behavior, when those sections are present.
+Use both when the task includes both activities. These sections support the rule’s guidance; they do not replace it.
 When reviewing, select groups independently and cite rule IDs with evidence for findings. Assess finding severity from concrete consequences.
 Report missing relevant groups as coverage gaps.
 ```

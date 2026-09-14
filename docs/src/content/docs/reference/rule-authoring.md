@@ -63,6 +63,7 @@ Every author considers three questions separately:
 | How should I implement it? | The body supplies useful decisions, procedures, or examples. Add an Implementation section when it contributes information. |
 | How can I check compliance? | The body supplies observable evidence, checks, and boundaries for findings. Add a Validation section when useful. |
 
+The reading sequence is: read the complete rule, including its guidance and exceptions, then use Implementation guidance when planning or changing code and Validation guidance when reviewing, testing, or diagnosing behavior. Use both when the task includes both activities. These sections support the rule’s guidance; they do not replace it.
 Reading a rule does not imply a violation; its full body defines the obligation and exceptions.
 
 Consider implementation and validation separately, but omit extra sections when the obligation or examples already answer their questions.

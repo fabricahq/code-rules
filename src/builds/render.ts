@@ -75,9 +75,9 @@ function groupHeader(group: Group, mode: 'inline' | 'summaries'): string {
       : 'This file contains summaries only. Follow the reading instructions below to load the full rules.',
     '1. Compare each “When to read” cue with your intended task or the behavior you are reviewing.',
     mode === 'inline'
-      ? '2. Read the complete guidance and exceptions for every relevant or plausibly relevant rule below. Complete truncated reads.'
+      ? '2. Read every relevant or plausibly relevant rule below completely, including its guidance and exceptions. Complete truncated reads.'
       : '2. For every relevant or plausibly relevant rule, open its “Read full rule” link and read the complete file. Complete truncated reads.',
-    '3. Apply the full rule’s guidance and exceptions. Selection alone is insufficient evidence for a review finding.',
+    '3. Apply the full rule’s guidance and exceptions. When present, use Implementation guidance when planning or changing code, and Validation guidance when reviewing, testing, or diagnosing behavior. Use both when your task includes both activities. These sections support the rule’s guidance; they do not replace it. Selection alone is insufficient evidence for a review finding.',
     impactGuidance,
     '## Rules',
   ].join('\n\n');

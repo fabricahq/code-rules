@@ -1040,7 +1040,7 @@ test('should split indexes at complete entries with bounded UTF-8 bytes and reso
       ),
     ]),
   );
-  const build = { ...localInput(files), indexMaxBytes: 2000 };
+  const build = { ...localInput(files), indexMaxBytes: 3000 };
   const output = buildRules(build).files;
   const parts = Object.keys(output).filter((path) =>
     path.startsWith(`groups/${group}.part-`),
@@ -1061,7 +1061,9 @@ test('should split indexes at complete entries with bounded UTF-8 bytes and reso
   const linkedRules: Array<string> = [];
   for (const [path, content] of Object.entries(output)) {
     if (path.startsWith('rules/') || path === 'provenance.json') continue;
-    expect(Buffer.byteLength(content, 'utf8')).toBeLessThanOrEqual(2000);
+    expect(Buffer.byteLength(content, 'utf8')).toBeLessThanOrEqual(
+      build.indexMaxBytes,
+    );
     for (const target of indexedPaths(path, content)) {
       expect(output[target]).toBeDefined();
       if (target.startsWith('rules/')) linkedRules.push(target);
