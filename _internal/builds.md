@@ -50,9 +50,6 @@ The snapshot envelope contains `repository`, `ref`, `resolvedCommit`, `groups`, 
 It also accepts `groupSelection`, recording the original list or `"*"`, `"practices/*"`, or `"techs/*"`. Wildcard configuration requires an explicitly marked complete snapshot.
 Resolution expands group metadata and rules within the selected scope, compares their IDs with the recorded `groups`, validates their contents, and applies the existing source-scoped exceptions.
 Legacy snapshots without the field remain valid for explicit lists. A completeness marker is a supplier assertion, not remote authentication.
-Repository addresses use explicit HTTPS or SSH Git syntax, including scp-style addresses. `repository.ts` validates those addresses and derives host-aware duplicate identities without changing the stored transport address.
-It renders pinned file/raw links only for recognized GitHub.com and GitLab.com endpoints. Other hosts use retained source files and reject missing relative targets rather than guessing browser URLs.
-The [Git source research](research/git-repository-sources.md) explains why the parser uses native URL primitives instead of a general-purpose getter dependency. Git fetching remains outside Builds.
 Workspace is responsible for mapping verified `_source.json` records into that envelope.
 
 Run `bun run builds:example` to execute `tests/manual/builds.ts` and create a temporary workspace from original example rules.

@@ -19,7 +19,6 @@ Resolve each source's configured commit or tag to a full commit SHA, validate al
 Record the requested ref and resolved commit in the vendored provenance.
 Each sync resolves tags again and reports changed commit targets, including when the configured tag name stays the same.
 Use the caller's existing Git credentials for private repositories.
-Accept the explicit [Git addresses](/reference/configuration/#repository-addresses) in configuration, independently of the hosting provider.
 Compare updates against the previous vendor snapshot before installing the replacement.
 
 Sync requires access to all configured source repositories.

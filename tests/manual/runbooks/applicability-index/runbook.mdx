@@ -188,8 +188,6 @@ The planned library commands are `code-rules library init`, `code-rules library 
 
 This example packages the same adaptation as a compatible library. The manifest declares MIT once; the rule has no `licenses` field of its own.
 Its source selects `groups: "*"`. The complete snapshot declares that selection, and the builder expands it to `techs/javascript`.
-Its configuration uses `https://gitlab.com/example/engineering/licensed-code-rules.git`, demonstrating an explicit GitLab address with nested groups.
-The generated source link uses GitLab's commit-pinned `/-/blob/` format. Chapter 1 uses an explicit GitHub URL.
 The builder applies that default and retains the rule's original source attribution.
 The library repository and revision are illustrative fixture data, not a fetched upstream library. The retained ESLint Unicorn license and attribution are real.
 

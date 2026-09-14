@@ -1,7 +1,6 @@
 /** @fileoverview Interprets project configuration and source-scoped exception policies in deterministic validation order. */
 
 import type { ProjectConfig, RuleReplacement, LibrarySource } from './types';
-import { repositoryAddress } from './repository';
 import {
   compare,
   field,
@@ -25,20 +24,24 @@ function knownFields(
   }
 }
 
-/** Validate and register a Git address before checking later fields, using host-aware duplicate identities. */
+/** Validate and register a repository before checking the source's later fields; duplicate names are case-insensitive. */
 function sourceRepository(
   value: unknown,
   where: string,
   repositories: Set<string>,
 ): string {
   const repository = nonempty(value, `${where}.repository`);
-  const { identity } = repositoryAddress(repository, `${where}.repository`);
-  if (repositories.has(identity))
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/u.test(repository) ||
+    /\/(\.|\.\.)$/u.test(repository)
+  )
+    return invalid(where, 'repository must use owner/name form');
+  if (repositories.has(repository.toLowerCase()))
     return invalid(
       where,
       `repository ${repository} is declared more than once`,
     );
-  repositories.add(identity);
+  repositories.add(repository.toLowerCase());
   return repository;
 }
 

@@ -57,44 +57,23 @@ function input(): BuildInput {
     configuration: {
       schemaVersion: 1,
       sources: {
-        fabrica: source('https://github.com/fabrica/rules.git'),
-        acme: source('https://github.com/acme/rules.git'),
+        fabrica: source('fabrica/rules'),
+        acme: source('acme/rules'),
       },
       localGroups: [],
     },
     snapshots: {
-      fabrica: snapshot(
-        'https://github.com/fabrica/rules.git',
-        'Fabrica retries',
-      ),
-      acme: snapshot('https://github.com/acme/rules.git', 'Acme retries'),
+      fabrica: snapshot('fabrica/rules', 'Fabrica retries'),
+      acme: snapshot('acme/rules', 'Acme retries'),
     },
     localFiles: {},
     toolVersion: '0.0.0-test',
   };
 }
 
-/** Create one imported rule from an explicit Git address, optionally referencing unvendored documentation and an image. */
-function repositoryInput(repository: string, body: string): BuildInput {
-  return {
-    configuration: {
-      schemaVersion: 1,
-      sources: { remote: source(repository) },
-      localGroups: [],
-    },
-    snapshots: {
-      remote: snapshot(repository, 'Retry guidance', {
-        [`${ruleId}.md`]: ruleText('Retry guidance', body),
-      }),
-    },
-    localFiles: {},
-    toolVersion: 'test',
-  };
-}
-
 /** Supply a complete two-group snapshot with an explicit wildcard selection marker. */
 function wildcardInput(): BuildInput {
-  const repository = 'https://gitlab.com/example/engineering/rules.git';
+  const repository = 'example/rules';
   return {
     configuration: {
       schemaVersion: 1,
@@ -192,10 +171,7 @@ describe('all library groups', () => {
       buildRules({
         ...build,
         snapshots: {
-          all: snapshot(
-            'https://gitlab.com/example/engineering/rules.git',
-            'Partial',
-          ),
+          all: snapshot('example/rules', 'Partial'),
         },
       }),
     ).toThrow('run sync');
@@ -266,7 +242,7 @@ describe('all library groups', () => {
       sources: {
         all: {
           ...source(
-            'https://gitlab.com/example/engineering/rules.git',
+            'example/rules',
             { 'techs/typescript/check-results': 'Covered elsewhere.' },
             { [ruleId]: { file: replacement, reason: 'Three attempts.' } },
           ),
@@ -295,7 +271,7 @@ describe('all library groups', () => {
       schemaVersion: 1,
       sources: {
         all: {
-          ...source('https://gitlab.com/example/engineering/rules.git'),
+          ...source('example/rules'),
           groups: '*',
         },
       },
@@ -322,7 +298,7 @@ describe('all library groups', () => {
         schemaVersion: 1,
         sources: {
           all: {
-            ...source('https://gitlab.com/example/engineering/rules.git'),
+            ...source('example/rules'),
             groups,
           },
         },
@@ -404,232 +380,6 @@ describe('all library groups', () => {
   });
 });
 
-describe('Git repository addresses', () => {
-  test.each([
-    [
-      'https://github.com/example/rules.git',
-      'https://github.com/example/rules/blob',
-      'https://raw.githubusercontent.com/example/rules',
-    ],
-    [
-      'git@github.com:example/rules.git',
-      'https://github.com/example/rules/blob',
-      'https://raw.githubusercontent.com/example/rules',
-    ],
-    [
-      'ssh://git@GITHUB.COM:22/example/rules.git',
-      'https://github.com/example/rules/blob',
-      'https://raw.githubusercontent.com/example/rules',
-    ],
-    [
-      'https://gitlab.com/example/engineering/rules.git',
-      'https://gitlab.com/example/engineering/rules/-/blob',
-      'https://gitlab.com/example/engineering/rules/-/raw',
-    ],
-    [
-      'git@gitlab.com:example/engineering/rules.git',
-      'https://gitlab.com/example/engineering/rules/-/blob',
-      'https://gitlab.com/example/engineering/rules/-/raw',
-    ],
-  ])(
-    'should build pinned document and image links for %s',
-    (repository, fileBase, rawBase) => {
-      const build = repositoryInput(
-        repository,
-        '[Details](../../guide.md#retry) ![Diagram](../../image.png)',
-      );
-      const files = buildRules(build).files;
-      for (const path of [`rules/remote/${ruleId}.md`, `groups/${group}.md`]) {
-        expect(files[path]).toContain(`${fileBase}/${commit}/${ruleId}.md`);
-        expect(files[path]).toContain(`${fileBase}/${commit}/guide.md#retry`);
-        expect(files[path]).toContain(`${rawBase}/${commit}/image.png`);
-      }
-      expect(files['provenance.json']).toContain(JSON.stringify(repository));
-    },
-  );
-
-  test.each([
-    'https://git.example.org:8443/Team/Rules.git',
-    'ssh://alice@git.example.org:2222/srv/git/Rules.git',
-    'git@git.example.org:Team/Rules.git',
-    'git@git.example.org:/srv/Team/Rules.git',
-    'ssh://git@[::1]:2222/Rules.git',
-    'https://gitlab.example.org/team/rules.git',
-    'https://github.com.evil.test/team/rules.git',
-    'ssh://git@github.com:2222/team/rules.git',
-  ])(
-    'should link retained source files without guessing a web interface for %s',
-    (repository) => {
-      const output = generated(
-        repositoryInput(repository, 'Follow the retry contract.'),
-        `rules/remote/${ruleId}.md`,
-      );
-      expect(output).toContain(`../../../../../vendor/remote/${ruleId}.md`);
-      expect(output).not.toContain('/blob/');
-      expect(() =>
-        buildRules(repositoryInput(repository, '[Missing](../../missing.md)')),
-      ).toThrow('include the target in the source snapshot');
-    },
-  );
-
-  test('should relocate retained assets for an unknown host in both group formats', () => {
-    const repository = 'ssh://git@git.example.org/srv/rules.git';
-    const build = repositoryInput(
-      repository,
-      '[Details](../../guide.md#retry) ![Diagram](../../image.png)',
-    );
-    const fixture = build.snapshots.remote;
-    if (!fixture) throw new Error('Missing remote fixture');
-    const complete = {
-      ...build,
-      snapshots: {
-        remote: {
-          ...fixture,
-          files: {
-            ...fixture.files,
-            'guide.md': '# Retry',
-            'image.png': 'fixture image',
-          },
-        },
-      },
-    };
-    const files = buildRules(complete).files;
-    expect(files[`rules/remote/${ruleId}.md`]).toContain(
-      '../../../../../vendor/remote/guide.md#retry',
-    );
-    expect(files[`groups/${group}.md`]).toContain(
-      '../../../vendor/remote/image.png',
-    );
-    const summaries = buildRules({ ...complete, groupInlineMaxBytes: 0 }).files;
-    expect(summaries[`rules/remote/${ruleId}.md`]).toBe(
-      files[`rules/remote/${ruleId}.md`],
-    );
-  });
-
-  test.each([
-    'example/rules',
-    'http://example.org/rules.git',
-    'file:///tmp/rules',
-    'git://example.org/rules.git',
-    'ext::sh -c command',
-    'git::https://github.com/example/rules.git',
-    'https://user:secret@example.org/rules.git',
-    'https://token@example.org/rules.git',
-    'ssh://git:secret@example.org/rules.git',
-    'https://example.org/rules.git?ref=main',
-    'https://example.org/rules.git#main',
-    ' https://example.org/rules.git',
-    'https://example.org/ru\nles.git',
-    'https://example.org/a/../rules.git',
-    'https://example.org/a/%2e%2e/rules.git',
-    'https://example.org/a%2fb/rules.git',
-    'https://example.org/a%5cb/rules.git',
-    'https://example.org/a%00b/rules.git',
-    'https://example.org/%zz/rules.git',
-    'https://example.org//rules.git',
-    'https://example.org\\evil/rules.git',
-    'git@example.org:../rules.git',
-    'ssh://git@example.org/a/./rules.git',
-    'https://example.org/',
-    'ssh://-option.example/rules.git',
-    'https://@example.org/rules.git',
-    'ssh://git:@example.org/rules.git',
-    'https://example.org/\uD800.git',
-    '-git@example.org:rules.git',
-  ])(
-    'should reject unsafe or ambiguous repository syntax: %s',
-    (repository) => {
-      expect(() =>
-        buildRules(repositoryInput(repository, 'Guidance.')),
-      ).toThrow(BuildError);
-      try {
-        buildRules(repositoryInput(repository, 'Guidance.'));
-      } catch (error) {
-        expect(String(error)).not.toContain('secret');
-      }
-    },
-  );
-
-  test('should recognize standard GitHub transport aliases as duplicates', () => {
-    const build = input();
-    const configuration = {
-      schemaVersion: 1,
-      sources: {
-        first: source('https://github.com/Example/Rules.git'),
-        second: source('git@github.com:example/rules'),
-      },
-      localGroups: [],
-    };
-    expect(() => buildRules({ ...build, configuration })).toThrow(
-      'more than once',
-    );
-  });
-
-  test('should canonicalize URL escapes for hosted identity and safely encode browser links', () => {
-    const configuration = {
-      schemaVersion: 1,
-      sources: {
-        first: source('https://github.com/example/rules.git'),
-        second: source('https://github.com/example/%72ules%2egit'),
-      },
-      localGroups: [],
-    };
-    expect(() => buildRules({ ...input(), configuration })).toThrow(
-      'more than once',
-    );
-    const output = generated(
-      repositoryInput('https://github.com/example/rules)text.git', 'Guidance.'),
-      `rules/remote/${ruleId}.md`,
-    );
-    expect(output).toContain(
-      `https://github.com/example/rules%29text/blob/${commit}/`,
-    );
-  });
-
-  test('should preserve literal percent escapes in scp paths', () => {
-    const output = generated(
-      repositoryInput('git@github.com:example/%72ules.git', 'Guidance.'),
-      `rules/remote/${ruleId}.md`,
-    );
-    expect(output).toContain(
-      `https://github.com/example/%2572ules/blob/${commit}/`,
-    );
-  });
-
-  test.each([
-    ['ssh://git@host.example/Rules.git', 'git@host.example:Rules.git'],
-    ['git@host.example:/Rules.git', 'git@host.example:Rules.git'],
-    [
-      'https://host.example/Team/Rules.git',
-      'https://host.example/Team/rules.git',
-    ],
-    [
-      'ssh://git@host.example:2222/Rules.git',
-      'ssh://git@host.example:2223/Rules.git',
-    ],
-  ])(
-    'should preserve distinct generic repository identities: %s and %s',
-    (first, second) => {
-      const build: BuildInput = {
-        configuration: {
-          schemaVersion: 1,
-          sources: { first: source(first), second: source(second) },
-          localGroups: [],
-        },
-        snapshots: {
-          first: snapshot(first, 'First'),
-          second: snapshot(second, 'Second'),
-        },
-        localFiles: {},
-        toolVersion: 'test',
-      };
-      expect(generated(build, `groups/${group}.md`)).toContain(
-        `second:${ruleId}`,
-      );
-    },
-  );
-});
-
 /** Read one generated file through Builds, failing when the expected path is absent. */
 function generated(build: BuildInput, path: string): string {
   const content = buildRules(build).files[path];
@@ -657,14 +407,10 @@ function withLibraryManifest(
     ...build,
     snapshots: {
       ...build.snapshots,
-      fabrica: snapshot(
-        'https://github.com/fabrica/rules.git',
-        'Licensed retries',
-        {
-          ...libraryFiles,
-          'rule-library.json': manifest,
-        },
-      ),
+      fabrica: snapshot('fabrica/rules', 'Licensed retries', {
+        ...libraryFiles,
+        'rule-library.json': manifest,
+      }),
     },
   };
 }
@@ -712,10 +458,8 @@ describe('buildRules', () => {
       configuration: {
         schemaVersion: 1,
         sources: {
-          fabrica: source('https://github.com/fabrica/rules.git', {
-            [ruleId]: 'Covered locally.',
-          }),
-          acme: source('https://github.com/acme/rules.git'),
+          fabrica: source('fabrica/rules', { [ruleId]: 'Covered locally.' }),
+          acme: source('acme/rules'),
         },
         localGroups: [],
       },
@@ -734,7 +478,7 @@ describe('buildRules', () => {
         schemaVersion: 1,
         sources: {
           fabrica: source(
-            'https://github.com/fabrica/rules.git',
+            'fabrica/rules',
             {},
             {
               [ruleId]: {
@@ -743,7 +487,7 @@ describe('buildRules', () => {
               },
             },
           ),
-          acme: source('https://github.com/acme/rules.git'),
+          acme: source('acme/rules'),
         },
         localGroups: [],
       },
@@ -809,8 +553,8 @@ describe('buildRules', () => {
       configuration: {
         schemaVersion: 1,
         sources: {
-          acme: source('https://github.com/acme/rules.git'),
-          fabrica: source('https://github.com/fabrica/rules.git'),
+          acme: source('acme/rules'),
+          fabrica: source('fabrica/rules'),
         },
         localGroups: [],
       },
@@ -833,20 +577,16 @@ describe('buildRules', () => {
 
   test('should retain attribution, license links, and pinned links to documents outside the snapshot', () => {
     const build = input();
-    const licensed = snapshot(
-      'https://github.com/fabrica/rules.git',
-      'Licensed retries',
-      {
-        'rule-library.json':
-          '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":["NOTICE.txt"]}}',
-        'LICENSE.md': 'Example terms.',
-        'NOTICE.txt': 'Original example attribution.',
-        [`${ruleId}.md`]: ruleText(
-          'Licensed retries',
-          '[Terms](../../LICENSE.md)\n\n[Background](../../guides/retries.md#limits)\n\n[This rule](#verification)\n\nCredit: original fixture author.',
-        ),
-      },
-    );
+    const licensed = snapshot('fabrica/rules', 'Licensed retries', {
+      'rule-library.json':
+        '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":["NOTICE.txt"]}}',
+      'LICENSE.md': 'Example terms.',
+      'NOTICE.txt': 'Original example attribution.',
+      [`${ruleId}.md`]: ruleText(
+        'Licensed retries',
+        '[Terms](../../LICENSE.md)\n\n[Background](../../guides/retries.md#limits)\n\n[This rule](#verification)\n\nCredit: original fixture author.',
+      ),
+    });
     const output = generated(
       { ...build, snapshots: { ...build.snapshots, fabrica: licensed } },
       `rules/fabrica/${ruleId}.md`,
@@ -1007,7 +747,7 @@ describe('buildRules', () => {
         ...build,
         snapshots: {
           ...build.snapshots,
-          fabrica: snapshot('https://github.com/fabrica/rules.git', 'Links', {
+          fabrica: snapshot('fabrica/rules', 'Links', {
             [`${ruleId}.md`]: ruleText('Links', body),
           }),
         },
@@ -1028,14 +768,10 @@ describe('buildRules', () => {
     const body =
       '[Reference][details]\n\n[details]: ../../README.md\n\n[![Diagram](../../diagram.png)](../../overview.md)';
     const snapshots = {
-      fabrica: snapshot(
-        'https://github.com/fabrica/rules.git',
-        'Fabrica references',
-        {
-          [`${ruleId}.md`]: ruleText('Fabrica references', body),
-        },
-      ),
-      acme: snapshot('https://github.com/acme/rules.git', 'Acme references', {
+      fabrica: snapshot('fabrica/rules', 'Fabrica references', {
+        [`${ruleId}.md`]: ruleText('Fabrica references', body),
+      }),
+      acme: snapshot('acme/rules', 'Acme references', {
         [`${ruleId}.md`]: ruleText('Acme references', body),
       }),
     };
@@ -1063,7 +799,7 @@ describe('buildRules', () => {
       schemaVersion: 1,
       sources: {
         fabrica: {
-          repository: 'https://github.com/fabrica/rules.git',
+          repository: 'fabrica/rules',
           ref: 'v1.0.0',
           groups: [group],
           exclude: {},
@@ -1095,10 +831,7 @@ describe('buildRules', () => {
   test('should reject a missing or mismatched snapshot with a sync diagnostic', () => {
     expect(() => buildRules({ ...input(), snapshots: {} })).toThrow('run sync');
     const build = input();
-    const mismatch = {
-      ...snapshot('https://github.com/fabrica/rules.git', 'Rule'),
-      ref: 'v2',
-    };
+    const mismatch = { ...snapshot('fabrica/rules', 'Rule'), ref: 'v2' };
     expect(() =>
       buildRules({
         ...build,
@@ -1114,7 +847,7 @@ describe('buildRules', () => {
         schemaVersion: 1,
         sources: {
           fabrica: {
-            repository: 'https://github.com/fabrica/rules.git',
+            repository: 'fabrica/rules',
             ref: 'b'.repeat(40),
             groups: [group],
             exclude: {},
@@ -1124,10 +857,7 @@ describe('buildRules', () => {
         localGroups: [],
       },
       snapshots: {
-        fabrica: {
-          ...snapshot('https://github.com/fabrica/rules.git', 'Rule'),
-          ref: 'b'.repeat(40),
-        },
+        fabrica: { ...snapshot('fabrica/rules', 'Rule'), ref: 'b'.repeat(40) },
       },
     };
     expect(() => buildRules(build)).toThrow('resolvedCommit differs');
@@ -1138,7 +868,7 @@ describe('buildRules', () => {
       'invalid source',
       {
         schemaVersion: 1,
-        sources: { local: source('https://github.com/fabrica/rules.git') },
+        sources: { local: source('fabrica/rules') },
         localGroups: [],
       },
       'reserved source',
@@ -1148,8 +878,8 @@ describe('buildRules', () => {
       {
         schemaVersion: 1,
         sources: {
-          fabrica: source('https://github.com/fabrica/rules.git'),
-          acme: source('https://github.com/Fabrica/Rules.git'),
+          fabrica: source('fabrica/rules'),
+          acme: source('Fabrica/Rules'),
         },
         localGroups: [],
       },
@@ -1159,7 +889,7 @@ describe('buildRules', () => {
       'overlapping local group',
       {
         schemaVersion: 1,
-        sources: { fabrica: source('https://github.com/fabrica/rules.git') },
+        sources: { fabrica: source('fabrica/rules') },
         localGroups: [group],
       },
       'cannot also',
@@ -1174,10 +904,10 @@ describe('buildRules', () => {
       {
         schemaVersion: 1,
         sources: {
-          fabrica: source('https://github.com/fabrica/rules.git', {
+          fabrica: source('fabrica/rules', {
             [`${group}/missing`]: 'Unneeded.',
           }),
-          acme: source('https://github.com/acme/rules.git'),
+          acme: source('acme/rules'),
         },
         localGroups: [],
       },
@@ -1189,7 +919,7 @@ describe('buildRules', () => {
         schemaVersion: 1,
         sources: {
           fabrica: source(
-            'https://github.com/fabrica/rules.git',
+            'fabrica/rules',
             { [ruleId]: 'Omit.' },
             { [ruleId]: { file: `local/${ruleId}.md`, reason: 'Replace.' } },
           ),
@@ -1204,7 +934,7 @@ describe('buildRules', () => {
         schemaVersion: 1,
         sources: {
           fabrica: source(
-            'https://github.com/fabrica/rules.git',
+            'fabrica/rules',
             {},
             { [ruleId]: { file: 'local/../escape.md', reason: 'Replace.' } },
           ),
@@ -1223,12 +953,12 @@ describe('buildRules', () => {
       schemaVersion: 1,
       sources: {
         fabrica: source(
-          'https://github.com/fabrica/rules.git',
+          'fabrica/rules',
           {},
           { [ruleId]: { file, reason: 'Replace.' } },
         ),
         acme: source(
-          'https://github.com/acme/rules.git',
+          'acme/rules',
           {},
           { [ruleId]: { file, reason: 'Replace.' } },
         ),
@@ -1246,7 +976,7 @@ describe('buildRules', () => {
       schemaVersion: 1,
       sources: {
         fabrica: source(
-          'https://github.com/fabrica/rules.git',
+          'fabrica/rules',
           {},
           {
             [ruleId]: {
@@ -1255,7 +985,7 @@ describe('buildRules', () => {
             },
           },
         ),
-        acme: source('https://github.com/acme/rules.git'),
+        acme: source('acme/rules'),
       },
       localGroups: [],
     };
@@ -1310,7 +1040,7 @@ describe('buildRules', () => {
 
   test('should reject missing license text and malformed group metadata', () => {
     const build = input();
-    const missing = snapshot('https://github.com/fabrica/rules.git', 'Rule', {
+    const missing = snapshot('fabrica/rules', 'Rule', {
       'rule-library.json':
         '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":[]}}',
     });
@@ -1358,16 +1088,13 @@ test('should report duplicate repositories before an invalid ref on the same sou
   const configuration = {
     schemaVersion: 1,
     sources: {
-      acme: source('https://github.com/acme/rules.git'),
-      fabrica: {
-        ...source('https://github.com/ACME/rules.git'),
-        ref: 'bad ref',
-      },
+      acme: source('acme/rules'),
+      fabrica: { ...source('ACME/rules'), ref: 'bad ref' },
     },
     localGroups: [],
   };
   expect(() => buildRules({ ...build, configuration })).toThrow(
-    'sources.fabrica: repository https://github.com/ACME/rules.git is declared more than once',
+    'sources.fabrica: repository ACME/rules is declared more than once',
   );
 });
 
@@ -1377,15 +1104,11 @@ test('should validate malformed excluded rules before applying exclusions', () =
     ...build,
     configuration: {
       schemaVersion: 1,
-      sources: {
-        fabrica: source('https://github.com/fabrica/rules.git', {
-          [ruleId]: 'Unused',
-        }),
-      },
+      sources: { fabrica: source('fabrica/rules', { [ruleId]: 'Unused' }) },
       localGroups: [],
     },
     snapshots: {
-      fabrica: snapshot('https://github.com/fabrica/rules.git', 'Invalid', {
+      fabrica: snapshot('fabrica/rules', 'Invalid', {
         [`${ruleId}.md`]: 'missing frontmatter',
       }),
     },
@@ -1468,12 +1191,7 @@ test.each([
     const build = input();
     const configuration = {
       schemaVersion: 1,
-      sources: {
-        fabrica: {
-          ...source('https://github.com/fabrica/rules.git'),
-          ...change,
-        },
-      },
+      sources: { fabrica: { ...source('fabrica/rules'), ...change } },
       localGroups: [],
     };
     expect(() => buildRules({ ...build, configuration })).toThrow(expected);
@@ -1511,7 +1229,7 @@ test.each([0, 8192])(
         schemaVersion: 1,
         sources: {
           fabrica: source(
-            'https://github.com/fabrica/rules.git',
+            'fabrica/rules',
             { [`${group}/obsolete`]: 'No longer applicable.' },
             {
               [id]: {
@@ -1524,13 +1242,9 @@ test.each([0, 8192])(
         localGroups: [],
       },
       snapshots: {
-        fabrica: snapshot(
-          'https://github.com/fabrica/rules.git',
-          'Superseded',
-          {
-            [`${group}/obsolete.md`]: ruleText('Excluded', 'Excluded body.'),
-          },
-        ),
+        fabrica: snapshot('fabrica/rules', 'Superseded', {
+          [`${group}/obsolete.md`]: ruleText('Excluded', 'Excluded body.'),
+        }),
       },
       localFiles: {
         [`${group}/replacement.md`]: ruleText(
@@ -1602,15 +1316,11 @@ test('should validate applicability on imported definitions even when excluded a
     ...input(),
     configuration: {
       schemaVersion: 1,
-      sources: {
-        fabrica: source('https://github.com/fabrica/rules.git', {
-          [ruleId]: 'Unused.',
-        }),
-      },
+      sources: { fabrica: source('fabrica/rules', { [ruleId]: 'Unused.' }) },
       localGroups: [],
     },
     snapshots: {
-      fabrica: snapshot('https://github.com/fabrica/rules.git', 'Missing', {
+      fabrica: snapshot('fabrica/rules', 'Missing', {
         [`${ruleId}.md`]: missing,
       }),
     },
@@ -1623,16 +1333,14 @@ test('should validate applicability on imported definitions even when excluded a
         schemaVersion: 1,
         sources: {
           fabrica: source(
-            'https://github.com/fabrica/rules.git',
+            'fabrica/rules',
             {},
             { [ruleId]: { file: `local/${ruleId}.md`, reason: 'Override.' } },
           ),
         },
         localGroups: [],
       },
-      snapshots: {
-        fabrica: snapshot('https://github.com/fabrica/rules.git', 'Valid'),
-      },
+      snapshots: { fabrica: snapshot('fabrica/rules', 'Valid') },
       localFiles: { [`${ruleId}.md`]: missing },
     }),
   ).toThrow('.whenToRead');
@@ -1899,11 +1607,11 @@ test('should preserve inline licenses, relative links, references, and same-file
     ...input(),
     configuration: {
       schemaVersion: 1,
-      sources: { fabrica: source('https://github.com/fabrica/rules.git') },
+      sources: { fabrica: source('fabrica/rules') },
       localGroups: [],
     },
     snapshots: {
-      fabrica: snapshot('https://github.com/fabrica/rules.git', 'Base', {
+      fabrica: snapshot('fabrica/rules', 'Base', {
         'rule-library.json': JSON.stringify({
           formatVersion: 1,
           license: { file: 'LICENSE.md', notices: [] },
@@ -2160,7 +1868,7 @@ test('should keep replacement licensing independent from upstream defaults', () 
     schemaVersion: 1,
     sources: {
       fabrica: source(
-        'https://github.com/fabrica/rules.git',
+        'fabrica/rules',
         {},
         {
           [ruleId]: {
@@ -2217,14 +1925,12 @@ test('should validate license declarations on excluded rules and reject rule/ass
     configuration: {
       schemaVersion: 1,
       sources: {
-        fabrica: source('https://github.com/fabrica/rules.git', {
-          [ruleId]: 'Not adopted.',
-        }),
+        fabrica: source('fabrica/rules', { [ruleId]: 'Not adopted.' }),
       },
       localGroups: [],
     },
     snapshots: {
-      fabrica: snapshot('https://github.com/fabrica/rules.git', 'Excluded', {
+      fabrica: snapshot('fabrica/rules', 'Excluded', {
         [`${ruleId}.md`]: definition,
       }),
     },

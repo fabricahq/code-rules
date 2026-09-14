@@ -225,7 +225,7 @@ export const buildsExampleInput = {
     schemaVersion: 1,
     sources: {
       example: {
-        repository: 'https://github.com/example/rules.git',
+        repository: 'example/rules',
         ref: 'v1.0.0',
         groups,
         exclude: {
@@ -244,7 +244,7 @@ export const buildsExampleInput = {
   },
   snapshots: {
     example: {
-      repository: 'https://github.com/example/rules.git',
+      repository: 'example/rules',
       ref: 'v1.0.0',
       resolvedCommit: 'a'.repeat(40),
       groups,
