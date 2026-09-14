@@ -90,10 +90,17 @@ Review the guidance and license declarations separately; the check cannot establ
 ## 5. Share through Git
 
 Review and commit the source rules, metadata, and retained terms together.
-Publish the repository through your usual Git workflow and choose a commit or tag for consumers to adopt.
+Publish the repository through your usual Git workflow and publish complete semantic version tags, such as `v1.0.0`, so consumers can use version constraints. Consumers can also pin an exact tag or commit.
 Consumers then [configure the library and selected groups](/guides/select-rules/).
 Use `code-rules library check` in the library's CI once the command is available.
 
 Keep rule paths stable because paths define rule IDs.
 When updating an adapted rule, compare its pinned original source with the newer revision before revising the adaptation.
 Consumers update from your maintained library; they do not automatically track the adaptation's original source.
+
+## Add supporting assets when needed
+
+Keep optional rule-specific material in `assets/<rule-name>/` beside the rule file.
+For example, `practices/testing/verify-retries.md` can link to `assets/verify-retries/example-response.json`.
+Put shared material in the library-root `assets/` directory. Code Rules imports complete owned asset directories and includes shared assets when referenced.
+See [Supporting assets](/reference/files/#supporting-assets) before adding images, explanations, or other files.

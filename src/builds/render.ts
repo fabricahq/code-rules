@@ -161,7 +161,13 @@ function libraryReadme(source: SourceRecord): string {
     web === null
       ? `**Repository:** ${escapeText(source.repository)}`
       : `**Repository:** [${escapeText(source.repository)}](${web.root})`,
-    `**Requested revision:** ${escapeText(source.ref)}`,
+    `**Requested ${source.version === undefined ? 'revision' : 'version'}:** ${escapeText(source.version ?? source.ref ?? '')}`,
+    ...(source.resolvedTag === undefined
+      ? []
+      : [
+          `**Selected tag:** ${escapeText(source.resolvedTag)}`,
+          `**Selected version:** ${escapeText(source.resolvedVersion ?? '')}`,
+        ]),
     web === null
       ? `**Resolved commit:** ${source.resolvedCommit}`
       : `**Resolved commit:** [${source.resolvedCommit}](${web.tree}/${source.resolvedCommit})`,

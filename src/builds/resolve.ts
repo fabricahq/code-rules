@@ -28,8 +28,12 @@ import {
   groupId,
   relativePath,
   strings,
+  nonempty,
 } from './validation';
 import { generatedLicenseFiles } from './license-output';
+import { satisfies } from 'semver';
+import { tagVersion } from '../versions';
+import { isAssetPath, isRuleFile } from '../formats/assets';
 import { rule } from './rule-document';
 import { readLibraryLicenses, licensePaths } from '../formats/manifest';
 
@@ -61,7 +65,7 @@ function origin(
     source: source.name,
     file: path,
     repository: source.repository,
-    ref: source.ref,
+    ref: source.ref ?? snapshot.resolvedTag ?? null,
     resolvedCommit: snapshot.resolvedCommit,
   };
 }
@@ -114,6 +118,7 @@ function snapshotFor(
   if (
     snapshot.repository !== source.repository ||
     snapshot.ref !== source.ref ||
+    snapshot.version !== source.version ||
     !sameGroups ||
     !sameSelection
   ) {
@@ -133,6 +138,26 @@ function snapshotFor(
       `${source.name}: resolvedCommit differs from configured commit; run sync`,
     );
   }
+  if (source.parsedRef.kind === 'version') {
+    if (
+      typeof snapshot.resolvedTag !== 'string' ||
+      typeof snapshot.resolvedVersion !== 'string' ||
+      tagVersion(snapshot.resolvedTag) !== snapshot.resolvedVersion ||
+      !satisfies(snapshot.resolvedVersion, source.parsedRef.range)
+    )
+      return invalid(
+        source.name,
+        'snapshot must record a selected tag and version satisfying the configured constraint',
+      );
+  } else if (
+    snapshot.resolvedTag !== undefined ||
+    snapshot.resolvedVersion !== undefined
+  ) {
+    return invalid(
+      source.name,
+      'exact-ref snapshots must not declare version-selection metadata',
+    );
+  }
   return snapshot;
 }
 
@@ -147,7 +172,7 @@ function patternGroups(
     [...rules.values()].map((definition) => definition.group),
   );
   for (const path of sourceFiles.keys()) {
-    if (!path.endsWith('/_group.json')) continue;
+    if (isAssetPath(path) || !path.endsWith('/_group.json')) continue;
     const parts = path.split('/');
     if (!matchesGroupPattern(path, pattern)) continue;
     const id = parts.slice(0, 2).join('/');
@@ -239,8 +264,7 @@ function selectedLibrary(
       (typeof source.groups === 'string'
         ? matchesGroupPattern(path, source.groups)
         : source.groups.some((group) => path.startsWith(`${group}/`))) &&
-      path.endsWith('.md') &&
-      !path.split('/').at(-1)?.startsWith('_') &&
+      isRuleFile(path) &&
       !licenseFiles.includes(path) &&
       !sourceFiles.has(path)
     )
@@ -252,8 +276,7 @@ function selectedLibrary(
       (typeof source.groups === 'string'
         ? matchesGroupPattern(path, source.groups)
         : source.groups.some((id) => path.startsWith(`${id}/`))) &&
-      path.endsWith('.md') &&
-      !path.split('/').at(-1)?.startsWith('_') &&
+      isRuleFile(path) &&
       !licenseFiles.includes(path),
   );
   const parsed = readRuleFiles(sourceFiles, source.name, candidates);
@@ -380,9 +403,7 @@ function localRules(
   usedReplacements: ReadonlySet<string>,
 ): ReadonlyArray<ActiveRule> {
   const active: Array<ActiveRule> = [];
-  const candidates = [...localFiles.keys()].filter(
-    (path) => path.endsWith('.md') && !path.split('/').at(-1)?.startsWith('_'),
-  );
+  const candidates = [...localFiles.keys()].filter((path) => isRuleFile(path));
   const definitions = readRuleFiles(localFiles, 'local', candidates);
   for (const [path, parsed] of definitions) {
     if (usedReplacements.has(path)) continue;
@@ -410,7 +431,7 @@ function requireLocalMetadata(
   localGroups: ReadonlyArray<string>,
 ): void {
   for (const path of localFiles.keys()) {
-    if (!path.endsWith('/_group.json')) continue;
+    if (isAssetPath(path) || !path.endsWith('/_group.json')) continue;
     const id = path.slice(0, -'/_group.json'.length);
     if (!localGroups.includes(id))
       invalid(
@@ -443,7 +464,13 @@ export function resolveRules(
     sources.push({
       name: source.name,
       repository: source.repository,
-      ref: source.ref,
+      ...(source.version === undefined
+        ? { ref: source.ref }
+        : {
+            version: source.version,
+            resolvedTag: nonempty(snapshot.resolvedTag, source.name),
+            resolvedVersion: nonempty(snapshot.resolvedVersion, source.name),
+          }),
       resolvedCommit: library.snapshot.resolvedCommit,
       groups: library.source.groups,
       groupSelection: source.groups,

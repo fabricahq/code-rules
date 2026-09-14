@@ -25,6 +25,7 @@ function repositoryInput(repository: string, body: string): BuildInput {
     snapshots: {
       remote: snapshot(repository, 'Retry guidance', {
         [`${ruleId}.md`]: ruleText('Retry guidance', body),
+        'assets/image.png': 'fixture image',
       }),
     },
     localFiles: {},
@@ -61,16 +62,20 @@ describe('Git repository addresses', () => {
     ],
   ])(
     'should build pinned document and image links for %s',
-    (repository, fileBase, rawBase) => {
+    (repository, fileBase) => {
       const build = repositoryInput(
         repository,
-        '[Details](../../guide.md#retry) ![Diagram](../../image.png)',
+        '[Details](../../techs/go/guide.md#retry) ![Diagram](../../assets/image.png)',
       );
       const files = buildRules(build).files;
       for (const path of [`groups/${group}.md`]) {
         expect(files[path]).toContain(`${fileBase}/${commit}/${ruleId}.md`);
-        expect(files[path]).toContain(`${fileBase}/${commit}/guide.md#retry`);
-        expect(files[path]).toContain(`${rawBase}/${commit}/image.png`);
+        expect(files[path]).toContain(
+          `${fileBase}/${commit}/techs/go/guide.md#retry`,
+        );
+        expect(files[path]).toContain(
+          '../../../vendor/remote/assets/image.png',
+        );
       }
       const readme = files['libraries/remote/README.md'];
       expect(readme).toContain(
@@ -111,7 +116,9 @@ describe('Git repository addresses', () => {
       expect(readme).toContain(`**Resolved commit:** ${commit}`);
       expect(readme).not.toContain('](https://github.com/');
       expect(() =>
-        buildRules(repositoryInput(repository, '[Missing](../../missing.md)')),
+        buildRules(
+          repositoryInput(repository, '[Missing](../../techs/go/missing.md)'),
+        ),
       ).toThrow('include the target in the source snapshot');
     },
   );
@@ -120,7 +127,7 @@ describe('Git repository addresses', () => {
     const repository = 'ssh://git@git.example.org/srv/rules.git';
     const build = repositoryInput(
       repository,
-      '[Details](../../guide.md#retry) ![Diagram](../../image.png)',
+      '[Details](../../techs/go/guide.md#retry) ![Diagram](../../assets/image.png)',
     );
     const fixture = build.snapshots.remote;
     if (!fixture) throw new Error('Missing remote fixture');
@@ -131,18 +138,18 @@ describe('Git repository addresses', () => {
           ...fixture,
           files: {
             ...fixture.files,
-            'guide.md': '# Retry',
-            'image.png': 'fixture image',
+            'techs/go/guide.md': '# Retry',
+            'assets/image.png': 'fixture image',
           },
         },
       },
     };
     const files = buildRules(complete).files;
     expect(files[`groups/${group}.md`]).toContain(
-      '../../../vendor/remote/guide.md#retry',
+      '../../../vendor/remote/techs/go/guide.md#retry',
     );
     expect(files[`groups/${group}.md`]).toContain(
-      '../../../vendor/remote/image.png',
+      '../../../vendor/remote/assets/image.png',
     );
   });
 

@@ -3,14 +3,14 @@ title: "Update rules"
 description: "Adopt upstream changes deliberately while preserving local decisions."
 ---
 
-To adopt newer rules, select the version you want and run `code-rules sync`.
-Sync downloads the selected rules from your source libraries and rebuilds the indexes and effective rule files that agents read.
+To adopt newer rules, select an exact revision or version constraint and run `code-rules sync`.
+Sync downloads the selected rules from your source libraries and rebuilds the indexes and resolved rule files that agents read.
 The command is part of the proposed CLI and has not shipped yet.
 
 ## Update a library
 
-1. Choose the latest tag or full Git commit SHA you want to adopt from the library.
-2. Set `sources.<name>.ref` in `code-rules/config.json` to that version.
+1. Choose an exact tag or commit, or an npm version constraint such as `^1.2.0`.
+2. Set `sources.<name>.ref` for an exact revision, or `sources.<name>.version` for a constraint. Specify exactly one.
 3. From the project root, run:
 
    ```sh
@@ -19,7 +19,7 @@ The command is part of the proposed CLI and has not shipped yet.
 
 4. Review and commit the configuration, refreshed vendor snapshots, and regenerated files together.
 
-Sync follows the configured refs; it does not automatically choose the newest release.
+For an exact `ref`, sync follows that ref. For a `version` constraint, it selects the highest matching semantic version tag.
 A commit SHA stays fixed, and a tag resolves to its current target.
 To move from `v1.0.0` to `v1.1.0`, change the ref before syncing.
 
@@ -27,10 +27,10 @@ To move from `v1.0.0` to `v1.1.0`, change the ref before syncing.
 
 A single sync performs the download and regeneration together:
 
-1. Resolve each source's ref to an exact commit.
+1. Resolve each source's exact ref or version constraint to a commit.
 2. Download its selected rule groups into `code-rules/vendor/<source-name>/` and record the resolved commit.
 3. Apply source-specific exclusions and replacements, then include the project's local rules.
-4. Regenerate the group indexes and individual effective rule files under `code-rules/generated/`.
+4. Regenerate the group indexes and individual resolved rule files under `code-rules/generated/`.
 5. Regenerate `RULES.md`, library READMEs, declared license copies, and provenance under `code-rules/generated/`, then install the complete validated result.
 
 For example, `code-rules/generated/groups/practices/testing.md` lists the active testing rules from all selected sources and the project. Small groups include full definitions; larger groups link to them.
@@ -40,8 +40,8 @@ You do not need to run `build` separately after sync.
 ## Review the update
 
 Other configured refs remain unchanged.
-Sync resolves every configured tag again, so also review changes to other sources' resolved commits if their tags have moved.
-The report identifies requested refs, old and new resolved commits, and added, removed, and changed rules by source-qualified ID.
+Sync resolves every configured tag and version constraint again, so also review changes to other sources' resolved commits if their tags have moved.
+The report identifies requested refs or version constraints, selected tags, old and new resolved commits, and added, removed, and changed rules by source-qualified ID.
 It also shows upstream changes hidden by exclusions or replacements, plus changes to preserved licenses and notices.
 When a replacement target changes, compare its old and new text before deciding whether the local exception still makes sense.
 

@@ -1,6 +1,8 @@
 /** @fileoverview Fetches one exact Git revision and exposes its tree and original blob contents. */
 
 import type { LibrarySource } from '../configuration-types';
+import { selectVersion } from './version-selection';
+import type { VersionSelection } from './version-selection';
 import { gitProcess } from './git-process';
 import { ImportError } from './errors';
 
@@ -37,12 +39,46 @@ async function command(
   return result.output;
 }
 
-/** Fetch only the configured commit or tag into a fresh bare repository and return its peeled commit. */
+/** A fetched commit plus the selected tag and version when a range was requested. */
+export type FetchedRevision = {
+  readonly commit: string;
+} & (
+  | { readonly resolvedTag: string; readonly resolvedVersion: string }
+  | { readonly resolvedTag?: never; readonly resolvedVersion?: never }
+);
+
+/** Resolve a request to an exact fetch target and preserve advertisement identity for range selections. */
+async function fetchTarget(
+  cwd: string,
+  source: LibrarySource,
+  signal: AbortSignal,
+): Promise<{
+  readonly ref: string;
+  readonly selection: VersionSelection | undefined;
+}> {
+  switch (source.parsedRef.kind) {
+    case 'commit':
+      return { ref: source.parsedRef.sha, selection: undefined };
+    case 'tag':
+      return { ref: source.parsedRef.name, selection: undefined };
+    case 'version': {
+      const selection = await selectVersion(
+        cwd,
+        source.repository,
+        source.parsedRef.range,
+        signal,
+      );
+      return { ref: `refs/tags/${selection.tag}`, selection };
+    }
+  }
+}
+
+/** Fetch a configured exact revision or the highest matching tag and verify its immutable identity. */
 export async function fetchRevision(
   cwd: string,
   source: LibrarySource,
   signal: AbortSignal,
-): Promise<string> {
+): Promise<FetchedRevision> {
   const version = (await command(cwd, ['--version'], signal, 4096)).toString();
   const match = /git version (\d+)\.(\d+)/u.exec(version);
   if (
@@ -58,10 +94,7 @@ export async function fetchRevision(
     4096,
   );
   const remote = source.repository;
-  const ref =
-    source.parsedRef.kind === 'commit'
-      ? source.parsedRef.sha
-      : source.parsedRef.name;
+  const { ref, selection } = await fetchTarget(cwd, source, signal);
   const fetched = await gitProcess(
     cwd,
     [
@@ -92,6 +125,18 @@ export async function fetchRevision(
         : 'Repository not found or no access; check its name and Git credentials.',
     );
   }
+  if (selection !== undefined) {
+    const fetchedObject = (
+      await command(cwd, ['rev-parse', '--verify', 'FETCH_HEAD'], signal, 4096)
+    )
+      .toString()
+      .trim();
+    if (fetchedObject !== selection.object)
+      throw new ImportError(
+        'ref-changed',
+        'The selected version tag changed during import; retry to resolve it again.',
+      );
+  }
   const resolved = await gitProcess(
     cwd,
     ['rev-parse', '--verify', 'FETCH_HEAD^{commit}'],
@@ -112,7 +157,12 @@ export async function fetchRevision(
       'git-failed',
       'Git returned a different or unsupported commit identity.',
     );
-  return commit;
+  return {
+    commit,
+    ...(selection === undefined
+      ? {}
+      : { resolvedTag: selection.tag, resolvedVersion: selection.version }),
+  };
 }
 
 /** Read a bounded recursive tree without checkout filters or filename quoting. */

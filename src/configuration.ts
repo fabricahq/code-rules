@@ -1,5 +1,6 @@
 /** @fileoverview Interprets project configuration and source-scoped exception policies in deterministic validation order. */
 
+import { versionConstraint } from './versions';
 import { repositoryAddress } from './repository';
 import type {
   LibraryRef,
@@ -152,7 +153,7 @@ function sourceConfiguration(
   const source = object(raw, where);
   knownFields(
     source,
-    ['repository', 'ref', 'groups', 'exclude', 'replace'],
+    ['repository', 'ref', 'version', 'groups', 'exclude', 'replace'],
     where,
   );
   const repository = sourceRepository(
@@ -160,8 +161,20 @@ function sourceConfiguration(
     where,
     repositories,
   );
-  const ref = nonempty(field(source, 'ref'), `${where}.ref`);
-  const parsedRef = sourceRef(ref, where);
+  if (Object.hasOwn(source, 'ref') === Object.hasOwn(source, 'version'))
+    return invalid(where, 'specify exactly one of ref or version');
+  const revision = Object.hasOwn(source, 'version')
+    ? {
+        version: versionConstraint(
+          field(source, 'version'),
+          `${where}.version`,
+        ),
+      }
+    : { ref: nonempty(field(source, 'ref'), `${where}.ref`) };
+  const parsedRef: LibraryRef =
+    revision.version !== undefined
+      ? { kind: 'version', range: revision.version }
+      : sourceRef(revision.ref, where);
   const requestedGroups = field(source, 'groups');
   const groups =
     requestedGroups === '*' ||
@@ -177,7 +190,7 @@ function sourceConfiguration(
     if (exclude.has(id) && replace.has(id))
       return invalid(`${where}:${id}`, 'rule is both excluded and replaced');
   }
-  return { name, repository, ref, parsedRef, groups, exclude, replace };
+  return { name, repository, ...revision, parsedRef, groups, exclude, replace };
 }
 
 /**

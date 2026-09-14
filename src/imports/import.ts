@@ -52,7 +52,8 @@ async function importSource(
   try {
     requireActive(signal);
     temporary = await mkdtemp(join(tmpdir(), 'code-rules-import-'));
-    const commit = await fetchRevision(temporary, source, signal);
+    const revision = await fetchRevision(temporary, source, signal);
+    const commit = revision.commit;
     const tree = await libraryTree(temporary, commit, signal);
     const library = await selectLibrary(
       temporary,
@@ -62,7 +63,20 @@ async function importSource(
       signal,
     );
     requireActive(signal);
-    outcome = { library };
+    outcome = {
+      library: {
+        ...library,
+        snapshot: {
+          ...library.snapshot,
+          ...(revision.resolvedTag === undefined
+            ? {}
+            : {
+                resolvedTag: revision.resolvedTag,
+                resolvedVersion: revision.resolvedVersion,
+              }),
+        },
+      },
+    };
   } catch (error) {
     outcome = { error: sourceFailure(error, source.name) };
   } finally {

@@ -37,7 +37,7 @@ All examples in these docs are illustrative; this repository does not contain Fa
 It returns the complete generated file set without fetching libraries or writing project files.
 The [Builds scope note](_internal/builds.md) explains the interface, subsystem responsibilities, and verification.
 
-Run the [manual Builds scenario](tests/manual/builds.ts) to create a temporary workspace with group and rule indexes, individual effective definitions, local rules, and provenance:
+Run the [manual Builds scenario](tests/manual/builds.ts) to create a temporary workspace with group and rule indexes, individual resolved definitions, local rules, and provenance:
 
 ```sh
 bun run builds:example
@@ -60,9 +60,9 @@ Automated behavior checks live beside the implementation in `src/builds/build*.t
 ## Imports
 
 [`importLibraries`](src/imports/index.ts) accepts raw project configuration and optional cancellation.
-It fetches exact Git commits or tags and returns each library's original bytes plus a text snapshot for Builds.
+It fetches exact Git commits, exact tags, or the highest tag matching an npm version constraint and returns each library's original bytes plus a text snapshot for Builds.
 The operation never installs files in a consuming project.
-Workspace installation and the `sync` CLI command remain unimplemented.
+Sync and safe file updates and the `sync` CLI command remain unimplemented.
 
 Imports requires macOS or Linux and Git 2.30 or later.
 Private libraries use your configured Git credentials; imports disable terminal prompts and do not print Git stderr.
@@ -95,7 +95,7 @@ Check image links against `vendor/` and license links against `generated/librari
 The scenario uses illustrative GitHub and nested GitLab addresses, routed to local repositories only in the test process.
 Generated remote source links therefore do not resolve to those local fixture libraries.
 The script removes its Git fixtures and leaves the printed workspace for inspection.
-It does not write `_source.json` or implement Workspace's installation guarantees.
+It does not write `_source.json` or implement the planned safe file-update guarantees.
 
 ### Import limits and failures
 
@@ -105,6 +105,12 @@ A shallow fetch may still download a large tree; retained-file limits do not bou
 Imports rejects symlinks, submodules, Git LFS pointers, reserved paths, and case-insensitive NFC-normalized path collisions in retained files.
 Required text, declared licenses and notices, and Markdown inspected for dependencies must be UTF-8.
 
-`ImportError.code` distinguishes invalid configuration or libraries, unavailable Git, inaccessible repositories, missing or refused refs, unsupported content, resource limits, cancellation, timeouts, Git failures, and I/O failures.
+`ImportError.code` distinguishes invalid configuration or libraries, unavailable Git, inaccessible repositories, missing or refused refs, unmatched or ambiguous version constraints, tags changing during fetch, unsupported content, resource limits, cancellation, timeouts, Git failures, and I/O failures.
 Failures return no partial library mapping.
 The [import reference](docs/src/content/docs/reference/imports.md) describes file selection and preservation behavior.
+
+Imported rule assets follow [two conventional locations](docs/src/content/docs/reference/files.mdx#supporting-assets): an adjacent `assets/<rule-name>/` directory and a shared library-root `assets/` directory.
+Imports preserves complete owned directories and adds the shared directory when referenced. Supporting links outside these locations fail validation; declared library licenses keep their manifest-based paths.
+
+Use an exact `ref` or an npm `version` constraint such as `^1.2.0`, never both. Version imports choose the highest matching complete SemVer tag and record its tag, normalized version, and commit.
+Offline builds use the existing snapshot. See [version constraints](docs/src/content/docs/reference/configuration.md#semantic-version-constraints) for prerelease, alias, and repeatability behavior.

@@ -15,8 +15,8 @@ Use `--config` to identify a configuration file elsewhere.
 code-rules sync
 ```
 
-Resolve each source's configured commit or tag to a full commit SHA, validate all libraries, and generate effective rules together.
-Record the requested ref and resolved commit in the vendored provenance.
+Resolve each source's exact ref or highest matching version tag to a full commit SHA, validate all libraries, and generate resolved rules together.
+Record the requested ref or version constraint, selected version tag when applicable, and resolved commit in the vendored provenance.
 Each sync resolves tags again and reports changed commit targets, including when the configured tag name stays the same.
 Use the caller's existing Git credentials for private repositories.
 Accept the explicit [Git addresses](/reference/configuration/#repository-addresses) in configuration, independently of the hosting provider.
@@ -31,10 +31,10 @@ If any source fails, preserve the previous complete output.
 code-rules build
 ```
 
-Generate effective rules from committed vendor content, local rules, and configuration.
+Generate resolved rules from committed vendor content, local rules, and configuration.
 Build works offline and does not change imported revisions.
 
-If any source repository, requested ref, or imported groups differ from the vendor snapshot, sync before building.
+If any source repository, requested revision selection, or imported groups differ from the vendor snapshot, sync before building.
 
 ## Check
 
@@ -95,7 +95,7 @@ A failed upgrade must preserve a working installation.
 
 This command updates the tool itself.
 Library refs, vendored rules, and generated rule files remain unchanged.
-Use `code-rules sync` to download rule libraries and rebuild their indexes and effective definitions.
+Use `code-rules sync` to download rule libraries and rebuild their indexes and resolved definitions.
 
 After upgrading, run `code-rules check` in a consuming project to check its generated files against the new tool version.
 If regeneration is needed, run `code-rules build` and review the output before committing it.

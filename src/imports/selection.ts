@@ -2,6 +2,13 @@
 
 import type { LibrarySource } from '../configuration-types';
 import { collectLibraryLicensePaths } from '../formats/manifest';
+import {
+  assetDirectory,
+  assetOwner,
+  isAssetPath,
+  isRuleFile,
+  requireAllowedTarget,
+} from '../formats/assets';
 import { markdownTargets } from '../formats/markdown-links';
 import { groupId, groupMetadata, relativePath } from '../formats/validation';
 import { ImportError, requireActive } from './errors';
@@ -88,12 +95,13 @@ function selectedEntries(
   return entries;
 }
 
-/** Preserve requested files and recursively discover standard Markdown dependencies in bounded waves. */
+/** Preserve complete selected directories, adding shared assets only when a permitted Markdown reference requires them. */
 async function retainFiles(
   cwd: string,
   requested: Set<string>,
   tree: ReadonlyMap<string, TreeEntry>,
   signal: AbortSignal,
+  licensePaths: ReadonlyArray<string> = [],
 ): Promise<ReadonlyMap<string, Uint8Array>> {
   const retained = new Map<string, Uint8Array>();
   while (retained.size < requested.size) {
@@ -111,9 +119,19 @@ async function retainFiles(
           `${path}: Git LFS objects are unsupported.`,
         );
       retained.set(path, bytes);
-      if (path.endsWith('.md')) {
+      if (path.endsWith('.md') && !licensePaths.includes(path)) {
         for (const target of markdownTargets(utf8(bytes, path), path)) {
-          if (tree.has(target)) requested.add(target);
+          requireAllowedTarget(path, target, licensePaths);
+          if (!tree.has(target))
+            throw new ImportError(
+              'invalid-library',
+              `${path}: missing link destination: ${target}`,
+            );
+          if (assetDirectory(target) === 'assets/') {
+            for (const shared of tree.keys())
+              if (shared.startsWith('assets/')) requested.add(shared);
+          }
+          // Rule links are references, not an instruction to adopt another group.
         }
       }
     }
@@ -181,7 +199,34 @@ export async function selectLibrary(
     for (const path of tree.keys())
       if (path.startsWith(`${group}/`)) requested.add(path);
   }
-  const files = await retainFiles(cwd, requested, tree, signal);
+  // Validate file kinds before layout, so unsupported Git objects retain their diagnostics.
+  selectedEntries(requested, tree, new Map());
+  for (const path of requested) {
+    if (
+      path === manifestPath ||
+      licensePaths.includes(path) ||
+      groups.some((group) => path === `${group}/_group.json`)
+    )
+      continue;
+    const directory = assetDirectory(path);
+    if (directory !== null) {
+      const owner = assetOwner(directory);
+      if (
+        owner !== null &&
+        (!tree.has(owner) || !isRuleFile(owner) || licensePaths.includes(owner))
+      )
+        throw new ImportError(
+          'invalid-library',
+          `${path}: assets directory has no adjacent owning rule: ${owner}`,
+        );
+    } else if (isAssetPath(path) || !isRuleFile(path)) {
+      throw new ImportError(
+        'invalid-library',
+        `${path}: supporting files must live in an owned assets directory or library-root assets/`,
+      );
+    }
+  }
+  const files = await retainFiles(cwd, requested, tree, signal, licensePaths);
   const textFiles: Array<readonly [string, string]> = [];
   for (const [path, bytes] of files) {
     if (
@@ -190,7 +235,7 @@ export async function selectLibrary(
       groups.some(
         (group) =>
           path === `${group}/_group.json` ||
-          (path.startsWith(`${group}/`) && path.endsWith('.md')),
+          (path.startsWith(`${group}/`) && isRuleFile(path)),
       )
     ) {
       const text = utf8(bytes, path, licensePaths.includes(path));
@@ -203,7 +248,9 @@ export async function selectLibrary(
     files,
     snapshot: {
       repository: source.repository,
-      ref: source.ref,
+      ...(source.version === undefined
+        ? { ref: source.ref }
+        : { version: source.version }),
       resolvedCommit: commit,
       groups,
       groupSelection: source.groups,

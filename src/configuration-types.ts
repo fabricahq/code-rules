@@ -14,19 +14,22 @@ export type RuleReplacement = {
 export type LibrarySource = {
   readonly name: string;
   readonly repository: string;
-  readonly ref: string;
   readonly parsedRef: LibraryRef;
   readonly groups: GroupSelection;
   readonly exclude: ReadonlyMap<string, string>;
   readonly replace: ReadonlyMap<string, RuleReplacement>;
-};
+} & (
+  | { readonly ref: string; readonly version?: never }
+  | { readonly version: string; readonly ref?: never }
+);
 /** Validated sources sorted by alias and local-only group IDs sorted by code-unit order. */
 export type ProjectConfig = {
   readonly sources: ReadonlyArray<LibrarySource>;
   readonly localGroups: ReadonlyArray<string>;
 };
 
-/** An exact commit or fully qualified tag, with no branch or range interpretation. */
+/** A validated exact revision or npm version constraint; branches are never inferred. */
 export type LibraryRef =
   | { readonly kind: 'commit'; readonly sha: string }
-  | { readonly kind: 'tag'; readonly name: string };
+  | { readonly kind: 'tag'; readonly name: string }
+  | { readonly kind: 'version'; readonly range: string };

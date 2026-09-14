@@ -48,13 +48,13 @@ test('imports two libraries, preserves bytes and origins, and builds one group',
     },
     files: {
       fabrica: {
-        'images/flow.png': Buffer.from(
-          exampleFiles['images/flow.png'] ?? '',
+        'assets/images/flow.png': Buffer.from(
+          exampleFiles['assets/images/flow.png'] ?? '',
         ).toString('base64'),
         'LICENSE.txt': Buffer.from(exampleFiles['LICENSE.txt'] ?? '').toString(
           'base64',
         ),
-        'terms/extra.txt': Buffer.from(
+        'assets/extra.txt': Buffer.from(
           'Additional original fixture terms.',
         ).toString('base64'),
       },
@@ -63,8 +63,10 @@ test('imports two libraries, preserves bytes and origins, and builds one group',
   const serialized = JSON.stringify(result);
   expect(serialized).toContain('fabrica:practices/testing/verify-retries');
   expect(serialized).toContain('acme:practices/testing/verify-retries');
-  expect(serialized).toContain('../../../vendor/fabrica/images/flow.png');
-  expect(serialized).toContain('../../../vendor/fabrica/terms/special.pdf');
+  expect(serialized).toContain(
+    '../../../vendor/fabrica/assets/images/flow.png',
+  );
+  expect(serialized).toContain('../../../vendor/fabrica/assets/special.pdf');
   expect(serialized).not.toContain('logging/example`');
   expect(serialized).not.toContain('unselected.txt');
   expect(
@@ -270,7 +272,7 @@ test.each([
   'rule-library.json',
   'practices/testing/_group.json',
   'practices/testing/verify-retries.md',
-  'notes/explanation.md',
+  'assets/notes/explanation.md',
 ])('rejects invalid UTF-8 in interpreted text: %s', async (path) => {
   await addLibrary(fixture, 'one', {
     ...exampleFiles,
@@ -287,23 +289,19 @@ test('rejects invalid library metadata', async () => {
   failure(config({ one: fixtureSource('one') }), 'invalid-library');
 });
 
-test('treats underscore Markdown as an attachment, not a rule', async () => {
+test('rejects supporting Markdown outside assets directories', async () => {
   await addLibrary(fixture, 'one', {
     ...exampleFiles,
     'practices/testing/_README.md': 'An introduction.',
   });
-  expect(
-    runImport(fixture, config({ one: fixtureSource('one') }), { build: true }),
-  ).toMatchObject({
-    generated: { 'groups/practices/testing.md': expect.any(String) },
-  });
+  failure(config({ one: fixtureSource('one') }), 'invalid-library');
 });
 
 test('rejects symlinks reached through an attachment link', async () => {
   const { directory } = await addLibrary(fixture, 'one');
-  await symlink('../LICENSE.txt', join(directory, 'notes/linked.txt'));
+  await symlink('../LICENSE.txt', join(directory, 'assets/notes/linked.txt'));
   await writeFile(
-    join(directory, 'notes/explanation.md'),
+    join(directory, 'assets/notes/explanation.md'),
     '[Link](linked.txt)',
   );
   fixtureGit(directory, ['add', '.']);
@@ -328,7 +326,7 @@ test('rejects submodule entries in selected groups without initializing them', a
 test('rejects Git LFS pointers rather than vendoring missing content', async () => {
   await addLibrary(fixture, 'one', {
     ...exampleFiles,
-    'images/flow.png':
+    'assets/images/flow.png':
       'version https://git-lfs.github.com/spec/v1\noid sha256:abc\nsize 10\n',
   });
   failure(config({ one: fixtureSource('one') }), 'unsupported-content');
@@ -357,7 +355,7 @@ test('rejects retained paths with case collisions in parent directories', async 
 test('rejects files exceeding the size ceiling before retaining them', async () => {
   await addLibrary(fixture, 'one', {
     ...exampleFiles,
-    'images/flow.png': new Uint8Array(8 * 1024 * 1024 + 1),
+    'assets/images/flow.png': new Uint8Array(8 * 1024 * 1024 + 1),
   });
   failure(config({ one: fixtureSource('one') }), 'limit-exceeded');
 });
@@ -365,15 +363,15 @@ test('rejects files exceeding the size ceiling before retaining them', async () 
 test('preserves encoded link targets and rejects links escaping the library', async () => {
   await addLibrary(fixture, 'one', {
     ...exampleFiles,
-    'notes/explanation.md': '[Space](space%20name.txt)',
-    'notes/space name.txt': 'Retain me.',
+    'assets/notes/explanation.md': '[Space](space%20name.txt)',
+    'assets/notes/space name.txt': 'Retain me.',
   });
   expect(
     JSON.stringify(runImport(fixture, config({ one: fixtureSource('one') }))),
-  ).toContain('notes/space name.txt');
+  ).toContain('assets/notes/space name.txt');
   await addLibrary(fixture, 'two', {
     ...exampleFiles,
-    'notes/explanation.md': '[Escape](../../outside)',
+    'assets/notes/explanation.md': '[Escape](../../outside)',
   });
   failure(config({ two: fixtureSource('two') }), 'invalid-library');
 });
@@ -483,14 +481,17 @@ test('retains root-relative attachments with encoded leading slashes', async () 
     ...exampleFiles,
     'practices/testing/verify-retries.md': String(
       exampleFiles['practices/testing/verify-retries.md'],
-    ).replace('../../images/flow.png', '/%2Fimages/flow.png?size=1#flow'),
+    ).replace(
+      '../../assets/images/flow.png',
+      '/%2Fassets/images/flow.png?size=1#flow',
+    ),
   });
   expect(
     runImport(fixture, config({ one: fixtureSource('one') }), { build: true }),
   ).toMatchObject({
     generated: {
       'groups/practices/testing.md': expect.stringContaining(
-        '../../../vendor/one/images/flow.png?size=1#flow',
+        '../../../vendor/one/assets/images/flow.png?size=1#flow',
       ),
     },
   });
@@ -499,7 +500,7 @@ test('retains root-relative attachments with encoded leading slashes', async () 
 test('rejects encoded absolute paths that traverse beyond the library root', async () => {
   await addLibrary(fixture, 'one', {
     ...exampleFiles,
-    'notes/explanation.md': '[Escape](/%2F../outside.txt)',
+    'assets/notes/explanation.md': '[Escape](/%2F../outside.txt)',
   });
   failure(config({ one: fixtureSource('one') }), 'invalid-library');
 });

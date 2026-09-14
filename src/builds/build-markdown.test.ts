@@ -48,7 +48,7 @@ test('should show each rule title once and keep ordinary prose readable as Markd
   expect(index).not.toContain('Check externally visible behavior.');
 });
 
-test('should retain attribution, license links, and pinned links to documents outside the snapshot', () => {
+test('should retain attribution, license links, and pinned links to rules outside the snapshot', () => {
   const build = input();
   const licensed = snapshot(
     'https://github.com/fabrica/rules.git',
@@ -60,7 +60,7 @@ test('should retain attribution, license links, and pinned links to documents ou
       'NOTICE.txt': 'Original example attribution.',
       [`${ruleId}.md`]: ruleText(
         'Licensed retries',
-        '[Terms](../../LICENSE.md)\n\n[Background](../../guides/retries.md#limits)\n\n[This rule](#verification)\n\nCredit: original fixture author.',
+        '[Terms](../../LICENSE.md)\n\n[Background](../../techs/go/retries.md#limits)\n\n[This rule](#verification)\n\nCredit: original fixture author.',
       ),
     },
   );
@@ -73,7 +73,7 @@ test('should retain attribution, license links, and pinned links to documents ou
     '../../../../libraries/fabrica/licenses/notices/001.md',
   );
   expect(output).toContain(
-    `https://github.com/fabrica/rules/blob/${commit}/guides/retries.md#limits`,
+    `https://github.com/fabrica/rules/blob/${commit}/techs/go/retries.md#limits`,
   );
   expect(output).toContain('[This rule](#verification)');
   expect(output).toContain('Credit: original fixture author.');
@@ -81,7 +81,7 @@ test('should retain attribution, license links, and pinned links to documents ou
 
 test('should relocate reference definitions and images while leaving fenced code unchanged', () => {
   const body =
-    '[More][context]\n\n[context]: ../../README.md\n\n![Diagram](../../diagram.png)\n\n```md\n[Literal](../../README.md)\n```';
+    '[More][context]\n\n[context]: ../../techs/go/context.md\n\n![Diagram](../../assets/diagram.png)\n\n```md\n[Literal](../../techs/go/context.md)\n```';
   const build = input();
   const output = generated(
     {
@@ -90,34 +90,35 @@ test('should relocate reference definitions and images while leaving fenced code
         ...build.snapshots,
         fabrica: snapshot('https://github.com/fabrica/rules.git', 'Links', {
           [`${ruleId}.md`]: ruleText('Links', body),
+          'assets/diagram.png': 'image bytes',
         }),
       },
     },
     `rules/fabrica/${ruleId}.md`,
   );
   expect(output).toContain(
-    `]: https://github.com/fabrica/rules/blob/${commit}/README.md`,
+    `]: https://github.com/fabrica/rules/blob/${commit}/techs/go/context.md`,
   );
-  expect(output).toContain(
-    `https://raw.githubusercontent.com/fabrica/rules/${commit}/diagram.png`,
-  );
-  expect(output).toContain('```md\n[Literal](../../README.md)\n```');
+  expect(output).toContain(`../../../../../vendor/fabrica/assets/diagram.png`);
+  expect(output).toContain('```md\n[Literal](../../techs/go/context.md)\n```');
 });
 
 test('should keep reference labels distinct across rules and relocate images nested in links', () => {
   const build = input();
   const body =
-    '[Reference][details]\n\n[details]: ../../README.md\n\n[![Diagram](../../diagram.png)](../../overview.md)';
+    '[Reference][details]\n\n[details]: ../../techs/go/context.md\n\n[![Diagram](../../assets/diagram.png)](../../techs/go/overview.md)';
   const snapshots = {
     fabrica: snapshot(
       'https://github.com/fabrica/rules.git',
       'Fabrica references',
       {
         [`${ruleId}.md`]: ruleText('Fabrica references', body),
+        'assets/diagram.png': 'image bytes',
       },
     ),
     acme: snapshot('https://github.com/acme/rules.git', 'Acme references', {
       [`${ruleId}.md`]: ruleText('Acme references', body),
+      'assets/diagram.png': 'image bytes',
     }),
   };
   const identifiers = new Set<string>();
@@ -128,14 +129,14 @@ test('should keep reference labels distinct across rules and relocate images nes
     );
     const references = referenceLinks(output);
     expect(references.map(({ url }) => url)).toEqual([
-      `https://github.com/${name}/rules/blob/${commit}/README.md`,
+      `https://github.com/${name}/rules/blob/${commit}/techs/go/context.md`,
     ]);
     references.forEach(({ identifier }) => identifiers.add(identifier));
     expect(output).toContain(
-      `https://raw.githubusercontent.com/${name}/rules/${commit}/diagram.png`,
+      `../../../../../vendor/${name}/assets/diagram.png`,
     );
     expect(output).toContain(
-      `https://github.com/${name}/rules/blob/${commit}/overview.md`,
+      `https://github.com/${name}/rules/blob/${commit}/techs/go/overview.md`,
     );
   }
   expect(identifiers.size).toBe(2);
@@ -157,18 +158,18 @@ test('should preserve extra attribution metadata and CRLF-authored rules', () =>
 
 test('should preserve surrounding Markdown while relocating nested images and multiple links', () => {
   const body =
-    'Keep  double spaces and **strong** text.\n\n[![icon](./icon.png)](./guide.md?mode=1#part) then [guide][doc].\n\n[doc]: ./guide.md#other\n\n```md\n[untouched](./missing.md)\n```';
+    'Keep  double spaces and **strong** text.\n\n[![icon](./assets/sample/icon.png)](./guide.md?mode=1#part) then [guide][doc].\n\n[doc]: ./guide.md#other\n\n```md\n[untouched](./missing.md)\n```';
   const result = generated(
     localInput({
       [`${group}/sample.md`]: ruleText('Sample', body),
-      [`${group}/icon.png`]: 'image bytes',
+      [`${group}/assets/sample/icon.png`]: 'image bytes',
       [`${group}/guide.md`]: ruleText('Guide'),
     }),
     `rules/local/${group}/sample.md`,
   );
   expect(result).toContain('Keep  double spaces and **strong** text.');
   expect(result).toContain(
-    `[![icon](../../../../../local/${group}/icon.png)](../../../../../local/${group}/guide.md?mode=1#part)`,
+    `[![icon](../../../../../local/${group}/assets/sample/icon.png)](../../../../../local/${group}/guide.md?mode=1#part)`,
   );
   expect(result).toContain(`../../../../../local/${group}/guide.md#other`);
   expect(result).toContain('```md\n[untouched](./missing.md)\n```');
@@ -220,7 +221,7 @@ test('should preserve inline licenses, relative links, references, and same-file
   const firstPath = `${group}/one/retry.md`;
   const secondPath = `${group}/two/retry.md`;
   const body =
-    '### Validation\n\n[Here](#validation) and [Guide][guide].\n\n[guide]: guide.txt\n\n```md\n# Preserve this code\n[guide]: untouched\n```';
+    '### Validation\n\n[Here](#validation) and [Guide][guide].\n\n[guide]: assets/retry/guide.txt\n\n```md\n# Preserve this code\n[guide]: untouched\n```';
   const build: BuildInput = {
     ...input(),
     configuration: {
@@ -237,8 +238,8 @@ test('should preserve inline licenses, relative links, references, and same-file
         'LICENSE.md': 'Library terms.',
         [firstPath]: ruleText('Retry one', body),
         [secondPath]: ruleText('Retry two', body),
-        [`${group}/one/guide.txt`]: 'First guide.',
-        [`${group}/two/guide.txt`]: 'Second guide.',
+        [`${group}/one/assets/retry/guide.txt`]: 'First guide.',
+        [`${group}/two/assets/retry/guide.txt`]: 'Second guide.',
       }),
     },
   };
@@ -256,7 +257,8 @@ test('should preserve inline licenses, relative links, references, and same-file
   const references = referenceLinks(inline);
   expect(references.map(({ url }) => url)).toEqual(
     [firstPath, secondPath].map(
-      (path) => `../../../vendor/fabrica/${posix.dirname(path)}/guide.txt`,
+      (path) =>
+        `../../../vendor/fabrica/${posix.dirname(path)}/assets/retry/guide.txt`,
     ),
   );
   expect(new Set(references.map(({ identifier }) => identifier)).size).toBe(2);
@@ -313,12 +315,53 @@ test.each([
     'escapes source root',
   ],
   [
-    'missing local link',
-    ruleText('Link', '[Missing](missing.txt)'),
-    'missing local link',
+    'missing asset link',
+    ruleText('Link', '[Missing](assets/verify-retries/missing.txt)'),
+    'missing asset link',
   ],
 ])('should reject %s', (_name, text, message) => {
   expect(() => buildRules(localInput({ [`${ruleId}.md`]: text }))).toThrow(
     message,
   );
 });
+
+test('treats local Markdown assets as supporting text and preserves their links', () => {
+  const files = buildRules(
+    localInput({
+      [`${ruleId}.md`]: ruleText(
+        'Retry',
+        '[Example](assets/verify-retries/example.md)',
+      ),
+      [`${group}/assets/verify-retries/example.md`]:
+        'A supporting explanation without rule metadata.',
+      [`${group}/assets/verify-retries/_group.json`]:
+        'Asset data, not metadata.',
+    }),
+  ).files;
+  expect(
+    Object.keys(files).filter((path) => path.startsWith('rules/local/')),
+  ).toEqual([`rules/local/${ruleId}.md`]);
+  expect(files[`rules/local/${ruleId}.md`]).toContain(
+    `../../../../../local/${group}/assets/verify-retries/example.md`,
+  );
+});
+
+test.each([
+  'assets/missing.png',
+  'notes/explanation.md',
+  `${group}/assets/other/example.md`,
+])(
+  'rejects missing or misplaced supporting references in offline snapshots: %s',
+  (target) => {
+    const build = input();
+    const changed = snapshot('https://github.com/fabrica/rules.git', 'Retry', {
+      [`${ruleId}.md`]: ruleText('Retry', `[Example](/${target})`),
+    });
+    expect(() =>
+      buildRules({
+        ...build,
+        snapshots: { ...build.snapshots, fabrica: changed },
+      }),
+    ).toThrow();
+  },
+);

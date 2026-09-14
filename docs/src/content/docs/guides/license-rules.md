@@ -87,7 +87,7 @@ Keep the library license and declared notices with the snapshot and preserve the
 The planned workspace checks will verify snapshot digests to detect changed files. The offline builder checks declared file presence without computing digests.
 The planned update report should include license changes alongside rule changes.
 
-Each individual effective rule identifies its source and applicable preserved license.
+Each individual resolved rule identifies its source and applicable preserved license.
 For example, `generated/rules/fabrica/practices/testing/verify-retry-limits.md` includes this source footer after its guidance.
 The repository and commit in this example are illustrative.
 
@@ -130,6 +130,6 @@ Private libraries can document internal permissions without adopting a public li
 The builder validates declared paths, preserves text and notices, records provenance, and constructs links to the retained files.
 It rejects unsafe or unresolved local Markdown references, but does not check whether external URLs are reachable.
 It cannot establish ownership, decide legal compatibility, or certify that the chosen terms permit a consumer's intended use.
-Imports implements file preservation; Workspace installation, update reporting, and offline integrity checks remain proposed.
+Imports implements file preservation; Sync and safe file updates, update reporting, and offline integrity checks remain proposed.
 
 For source material that does not use this format, follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules). Keep a separate adapted definition with its source citation and retained terms; do not relabel edited content as an unchanged upstream snapshot.

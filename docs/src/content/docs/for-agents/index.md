@@ -3,7 +3,7 @@ title: "Plan, write, and review"
 description: "A suggested workflow for agents using the project\u2019s effective engineering rules."
 ---
 
-This page suggests an agent workflow for using the project's committed effective rules during planning, implementation, and review.
+This page suggests an agent workflow for using the project's committed resolved rules during planning, implementation, and review.
 Adapt it to your project, or use your own prompts and tooling. Code Rules supplies the rule files; it does not run this workflow or require a particular validation or enforcement method.
 See [product scope](/overview/#scope-rule-management-and-delivery).
 
@@ -55,7 +55,7 @@ Reading the index alone is not enough.
 ## Review independently
 
 Select groups from the requested behavior and implementation, rather than accepting the writing agent's selection as complete.
-For each finding, cite the effective rule ID, applicable condition, observed evidence, and practical consequence.
+For each finding, cite the resolved rule ID, applicable condition, observed evidence, and practical consequence.
 
 Impact describes the consequence a rule helps prevent; it does not determine applicability, override exceptions, or set finding severity.
 Read **Why it matters** for context and assess the actual consequence of each finding.
@@ -66,7 +66,7 @@ The planned `code-rules check` command will establish file consistency, not appl
 ## Handle gaps and conflicts
 
 If a relevant group is missing, report the missing coverage.
-If effective rules conflict, identify both IDs and ask the project owner to resolve the intended policy.
+If resolved rules conflict, identify both IDs and ask the project owner to resolve the intended policy.
 Use [Conflicting guidance](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
 Keep the pinned ruleset during ordinary work; adopting upstream changes is a separate project update.
 

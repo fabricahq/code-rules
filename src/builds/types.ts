@@ -23,7 +23,10 @@ export type FileContents = Readonly<Record<string, string>>;
  */
 export type LibrarySnapshot = {
   readonly repository: string;
-  readonly ref: string;
+  readonly ref?: string;
+  readonly version?: string;
+  readonly resolvedTag?: string;
+  readonly resolvedVersion?: string;
   readonly resolvedCommit: string;
   readonly groups: ReadonlyArray<string>;
   /** Original selection intent; pattern snapshots must declare completeness within their selected scope. Omitted legacy values mean the concrete groups list. */
@@ -51,7 +54,7 @@ export type BuildOutput = {
 };
 
 /** Source policy after wildcard expansion has produced concrete, validated group IDs. */
-export type ExpandedLibrarySource = Omit<LibrarySource, 'groups'> & {
+export type ExpandedLibrarySource = LibrarySource & {
   readonly groups: ReadonlyArray<string>;
 };
 
@@ -106,7 +109,10 @@ export type Group = {
 export type SourceRecord = {
   readonly name: string;
   readonly repository: string;
-  readonly ref: string;
+  readonly ref?: string;
+  readonly version?: string;
+  readonly resolvedTag?: string;
+  readonly resolvedVersion?: string;
   readonly resolvedCommit: string;
   readonly groups: ReadonlyArray<string>;
   readonly groupSelection: GroupSelection;

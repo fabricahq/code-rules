@@ -42,9 +42,11 @@ const snapshot: LibrarySnapshot = {
 };
 
 test('links to binary attachments present only in the inventory', () => {
-  expect(build(snapshot)).toContain('../../../vendor/example/images/flow.png');
   expect(build(snapshot)).toContain(
-    '../../../vendor/example/terms/special.pdf',
+    '../../../vendor/example/assets/images/flow.png',
+  );
+  expect(build(snapshot)).toContain(
+    '../../../vendor/example/assets/special.pdf',
   );
 });
 

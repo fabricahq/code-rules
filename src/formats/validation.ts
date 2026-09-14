@@ -87,6 +87,7 @@ export function ruleGroup(path: string, location: string): string {
   const parts = path.split('/');
   if (
     parts.length < 3 ||
+    parts.includes('assets') ||
     !path.endsWith('.md') ||
     parts.slice(2).some((part) => !/^[a-z0-9][a-z0-9.-]*$/u.test(part))
   ) {

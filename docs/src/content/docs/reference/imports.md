@@ -1,14 +1,25 @@
 ---
 title: "How imports work"
-description: "From pinned library snapshots to one effective ruleset per group."
+description: "From pinned library snapshots to one resolved ruleset per group."
 ---
 
 The Imports module implements fetching and file preservation.
-The complete workflow below also depends on Builds and the proposed Workspace subsystem; the `sync` command has not shipped.
+The complete workflow below also depends on Builds and the proposed sync orchestration; the `sync` command has not shipped.
 
-An import resolves each configured commit or tag and combines the resulting upstream snapshots with explicit project decisions.
+An import resolves each configured exact ref or version constraint and combines the resulting upstream snapshots with explicit project decisions.
 It produces ordinary files that agents can read without running the importer.
 This checkout implements fetching and offline generation. Digest checks and safe installation remain planned; see [Project status](/status/).
+
+## What a vendored library contains
+
+`vendor/<source>/` is a selected copy of original files from one resolved Git commit, not a clone.
+It contains selected groups, their assets, the manifest, and declared license and notice files. It contains no Git history or `.git` directory.
+Imports reads these files through temporary Git storage, then removes that storage. The API returns bytes and a text snapshot; the manual example writes them into `vendor/`.
+
+With unchanged configuration and the same resolved commit, Imports returns the same paths and bytes.
+With unchanged snapshots, local files, tool version, and rendering options, Builds returns the same generated content.
+Re-importing a tag can change the result if that tag moves. Re-importing a version constraint can select a newer matching tag. A full commit pin continues selecting the original content.
+Safe replacement of existing project folders, including removal of stale files, belongs to the planned sync workflow.
 
 ## Resolve the active rules
 
@@ -23,7 +34,7 @@ Reject malformed groups and orphan rule files rather than silently dropping them
 2. Resolve each source's library-relative exclusions to qualified IDs and remove those rules.
 3. Apply each source's replacements as complete local definitions, preserving the qualified target IDs.
 4. Add the remaining local rules.
-5. Render the root index, group pages, individual effective definitions, library summaries and license copies, and provenance.
+5. Render the root index, group pages, individual resolved definitions, library summaries and license copies, and provenance.
 
 Sort sources, groups, and rule IDs consistently so reordering configuration does not change the result.
 Preserve source-labeled group metadata and rule provenance; source order does not establish precedence.
@@ -31,7 +42,7 @@ Preserve source-labeled group metadata and rule provenance; source order does no
 A local replacement is not also an additional rule.
 Replacements stay within their target group in the first release.
 
-Record both the requested ref and resolved commit for every snapshot.
+Record the requested ref or version constraint and resolved commit for every snapshot. Version selections also record the chosen tag and normalized version.
 Use resolved commits for remote source links so a moved tag does not change what a link points to.
 GitHub.com and GitLab.com have recognized file and image URL formats.
 Other hosts use relative links to the retained source files; their repository address and resolved revision remain in provenance.
@@ -41,7 +52,7 @@ Other hosts use relative links to the retained source files; their repository ad
 Reject invalid or reserved source names, repeated repositories, missing groups or targets, and duplicate qualified IDs.
 Reject rules that are both excluded and replaced, and replacement files reused for multiple targets.
 The builder rejects malformed metadata and unsafe relative paths. It validates selected source rules even when exclusions or replacements make them inactive.
-The planned workspace layer must check filesystem containment and symlinks. An in-memory text map cannot establish those properties.
+The planned file-handling helpers must check filesystem containment and symlinks. An in-memory text map cannot establish those properties.
 Treat library contents as data rather than executing their scripts.
 
 The planned installation workflow stages and validates the complete result across all sources before writing project files.
@@ -60,8 +71,8 @@ Library authors must declare the applicable license and notice files in the libr
 The planned import workflow includes those files in snapshot digests and reports changes during updates.
 Generated rules link to copies under `generated/libraries/<source-name>/licenses/`; see [License rules](/guides/license-rules/).
 Keep attribution links valid after relocation.
-For recognized hosts, references to unvendored upstream documents point to the resolved commit.
-For other hosts, retain the referenced documents and images in the snapshot or author explicit URLs. Generation rejects missing relative destinations.
+For recognized hosts, references to unselected rules point to the resolved commit.
+For other hosts, author explicit URLs for unselected rules. Supporting assets must be retained at their conventional paths on every host; generation rejects missing assets.
 
 ## Fetch through Git, independently of the host
 
@@ -101,11 +112,15 @@ Each library has a 120-second deadline and may contain at most 10,000 tree entri
 The tree listing may occupy up to 8 MiB; retained files may occupy up to 8 MiB each and 64 MiB in total.
 Those file limits apply after fetching and do not cap network traffic or Git's temporary disk use.
 
-Imports follows standard relative Markdown links, images, and reference definitions to existing files in the same commit.
-It also follows links in retained Markdown attachments, without adopting those attachments as rules.
-All Markdown inspected for references and declared license and notice files must be UTF-8. Binary attachments are preserved as bytes, but binary license and notice files are unsupported.
-It does not discover dependencies in arbitrary prose or custom frontmatter.
+Imports preserves supporting material only from [the two asset locations](/reference/files/#supporting-assets): each selected rule's adjacent `assets/<rule-name>/` directory and the library-root `assets/` directory.
+Owned directories are copied completely. Shared assets are copied completely only when a selected rule or a retained Markdown asset references them.
+Imports validates standard Markdown links, images, and reference definitions against these boundaries; it does not follow arbitrary repository documents.
+Missing destinations and links into another rule's private assets fail import. Rule references do not adopt additional groups, and external URLs are not fetched.
 
-Within a selected group, ordinary `.md` files are rules, including files in nested directories.
-Markdown filenames starting with `_` and manifest-declared license files are attachments instead.
-Use `_README.md` for group introduction text that does not follow the rule template.
+Markdown assets and declared license and notice files must be UTF-8. Binary assets retain their original bytes, but binary license and notice files are unsupported.
+Within a selected group, Markdown outside asset directories defines rules, including nested rule files. Declared license and notice files are exempt.
+Move supporting files such as `_README.md` into the owning rule's assets directory or the shared root directory.
+
+Version discovery uses the same deadline and Git transport policy as fetching. The tag advertisement is limited to 8 MiB and 20,000 records, including annotated-tag peel records.
+`version-not-found` means no eligible tag satisfies the range. `ambiguous-version` identifies conflicting tags at the highest matching precedence.
+`ref-changed` means the selected tag moved between discovery and fetch. Correct the tags, adjust the constraint, pin an exact ref, or retry as appropriate.

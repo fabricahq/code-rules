@@ -19,19 +19,20 @@ export const exampleFiles: Readonly<Record<string, string | Uint8Array>> = {
   'LICENSE.txt':
     'Original fixture content, released under CC0 for testing.\r\n',
   'NOTICE.txt': 'Original fixture attribution.\r\n',
-  'terms/special.pdf': new Uint8Array([0, 255, 128, 10]),
+  'assets/special.pdf': new Uint8Array([0, 255, 128, 10]),
   'practices/testing/_group.json': JSON.stringify({
     name: 'Testing',
     description: 'Check behavior.',
     whenToRead: ['Changing behavior.'],
   }),
   'practices/testing/verify-retries.md':
-    '---\ntitle: Verify retries\nwhenToRead: When planning, changing, or reviewing retry behavior.\nimpact: HIGH\nimpactDescription: prevents excess requests\ntags: testing, retry\n---\n\nCheck retry limits.\n\n![Flow](../../images/flow.png)\n[Attachment](../../terms/special.pdf)\n[More](../../notes/explanation.md)\n[Unselected](../logging/example.md)\n',
-  'images/flow.png': new Uint8Array([137, 80, 78, 71, 255, 0, 10]),
-  'notes/explanation.md':
-    '[Terms](../terms/extra.txt)\n[Cycle](explanation.md)',
-  'terms/extra.txt': 'Additional original fixture terms.',
-  'practices/logging/example.md': 'This attachment is not an active rule.\n',
+    '---\ntitle: Verify retries\nwhenToRead: When planning, changing, or reviewing retry behavior.\nimpact: HIGH\nimpactDescription: prevents excess requests\ntags: testing, retry\n---\n\nCheck retry limits.\n\n![Flow](../../assets/images/flow.png)\n[Attachment](../../assets/special.pdf)\n[More](../../assets/notes/explanation.md)\n',
+  'assets/images/flow.png': new Uint8Array([137, 80, 78, 71, 255, 0, 10]),
+  'assets/notes/explanation.md':
+    '[Terms](../extra.txt)\n[Cycle](explanation.md)',
+  'assets/extra.txt': 'Additional original fixture terms.',
+  'practices/logging/example.md':
+    '---\ntitle: Logging\nwhenToRead: When logging.\nimpact: HIGH\nimpactDescription: Keep diagnostics.\n---\nLog failures.\n',
   'unselected.txt': 'Do not import this file.',
 };
 

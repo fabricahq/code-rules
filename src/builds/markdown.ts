@@ -1,6 +1,7 @@
 /** @fileoverview Renders active rules with source-aware links for individual generated files. */
 
 import { posix } from 'node:path';
+import { assetDirectory, requireAllowedTarget } from '../formats/assets';
 import { relativeTarget } from '../formats/markdown-links';
 import { licenseFileMappings, licenseOutputPaths } from './license-output';
 import { fromMarkdown } from 'mdast-util-from-markdown';
@@ -55,6 +56,15 @@ function relocatedUrl(
   const link = relativeTarget(url, active.origin.file, active.rule.id);
   if (link === null) return url;
   const { target, suffix } = link;
+  requireAllowedTarget(
+    active.origin.file,
+    target,
+    active.licenses.flatMap((license) =>
+      licenseFileMappings(active.origin.source, license).map(
+        (file) => file.sourcePath,
+      ),
+    ),
+  );
   const licenseFile = active.licenses
     .flatMap((license) => licenseFileMappings(active.origin.source, license))
     .find((file) => file.sourcePath === target);
@@ -67,6 +77,8 @@ function relocatedUrl(
         : `vendor/${active.origin.source}`;
     return `${workspaceLink(outputPath, `${base}/${target}`)}${suffix}`;
   }
+  if (assetDirectory(target) !== null)
+    return invalid(active.rule.id, `missing asset link destination: ${url}`);
   if (
     active.origin.repository !== null &&
     active.origin.resolvedCommit !== null
