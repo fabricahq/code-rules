@@ -1,6 +1,7 @@
 /** @fileoverview Renders active rules with source-aware links for individual generated files. */
 
 import { posix } from 'node:path';
+import { licenseFileMappings, licenseOutputPaths } from './license-output';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toMarkdown } from 'mdast-util-to-markdown';
 import type { Root, RootContent } from 'mdast';
@@ -69,6 +70,11 @@ function relocatedUrl(
         );
   if (target === '..' || target.startsWith('../'))
     return invalid(active.rule.id, `link escapes source root: ${url}`);
+  const licenseFile = active.licenses
+    .flatMap((license) => licenseFileMappings(active.origin.source, license))
+    .find((file) => file.sourcePath === target);
+  if (licenseFile !== undefined)
+    return `${encodedPath(posix.relative(posix.dirname(outputPath), licenseFile.generatedPath))}${suffix}`;
   if (active.sourceFiles.has(target)) {
     const base =
       active.origin.source === 'local'
@@ -322,8 +328,6 @@ export function renderRule(
   }
   if (active.licenses.length) {
     lines.push('', 'Library license and notices:');
-    const sourceRoot =
-      origin.source === 'local' ? 'local' : `vendor/${origin.source}`;
     for (const license of active.licenses) {
       if (license.spdxExpression !== null)
         lines.push(
@@ -331,9 +335,13 @@ export function renderRule(
           `**Declared license:** ${escapeText(license.spdxExpression)}`,
           '',
         );
-      for (const path of [...license.files, ...license.attributionFiles])
+      const paths = licenseOutputPaths(origin.source, license);
+      for (const path of [
+        ...paths.generatedFiles,
+        ...paths.generatedAttributionFiles,
+      ])
         lines.push(
-          `- [${escapeText(path)}](${workspaceLink(outputPath, `${sourceRoot}/${path}`)})`,
+          `- [${escapeText(posix.basename(path))}](${encodedPath(posix.relative(posix.dirname(outputPath), path))})`,
         );
     }
   }

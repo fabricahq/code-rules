@@ -136,6 +136,7 @@ export type SourceRecord = {
 
 /** Completed resolution with sources and groups sorted by ID; each active rule belongs to exactly one group. */
 export type ResolvedRules = {
+  readonly licenseFiles: ReadonlyMap<string, string>;
   readonly sources: ReadonlyArray<SourceRecord>;
   readonly groups: ReadonlyArray<Group>;
 };

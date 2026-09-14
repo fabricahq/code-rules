@@ -4,6 +4,7 @@ import { posix } from 'node:path';
 import type { ActiveRule, BuildOutput, Group, ResolvedRules } from './types';
 import { compare, invalid } from './validation';
 import { escapeText, renderRule } from './markdown';
+import { licenseOutputPaths } from './license-output';
 import { indexPages } from './index-pages';
 
 /** Map source-qualified identity to a portable path without using the replacement's local filename. */
@@ -149,7 +150,13 @@ function renderProvenance(
 ): string {
   const provenance = {
     toolVersion,
-    sources: resolved.sources,
+    sources: resolved.sources.map((source) => ({
+      ...source,
+      licenses: source.licenses.map((license) => ({
+        ...license,
+        ...licenseOutputPaths(source.name, license),
+      })),
+    })),
     rules: resolved.groups
       .flatMap((group) => group.rules)
       .sort((a, b) => compare(a.rule.id, b.rule.id))
@@ -162,6 +169,7 @@ function renderProvenance(
         licenseBasis: active.licenses.length ? 'library' : 'undeclared',
         licenses: active.licenses.map((license) => ({
           spdxExpression: license.spdxExpression,
+          ...licenseOutputPaths(active.origin.source, license),
           files: license.files.map(
             (path) =>
               `${active.origin.source === 'local' ? 'local' : `vendor/${active.origin.source}`}/${path}`,
@@ -222,6 +230,8 @@ export function renderGeneratedFiles(
       'These files are generated. Edit source rules or configuration and rebuild.',
     ].join('\n\n') + '\n',
   );
+  for (const [path, content] of resolved.licenseFiles)
+    output.set(path, content);
   output.set('provenance.json', renderProvenance(resolved, toolVersion));
   for (const path of output.keys()) {
     for (

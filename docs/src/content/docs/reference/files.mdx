@@ -36,7 +36,7 @@ Misplaced rule files should fail validation rather than disappear from imports.
 
 ## Library license metadata
 
-The optional `license` object declares the library's default terms:
+The optional `license` object declares the library-wide terms. Authors should use root-level `LICENSE.md` and optional `NOTICE.md`; the manifest can identify other source locations:
 
 | Field | Meaning |
 | --- | --- |
@@ -46,8 +46,18 @@ The optional `license` object declares the library's default terms:
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
 The planned import and workspace workflow preserves these files from the resolved source commit and includes them in snapshot digests.
-The offline builder accepts supplied snapshots, verifies that declared files exist, and links generated guidance to those retained files. It does not fetch files or compute workspace snapshot digests.
+The offline builder accepts supplied snapshots, verifies that declared files exist, and copies their unchanged contents to standard generated paths and links generated guidance to those copies. It does not fetch files or compute workspace snapshot digests.
 If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
+
+The manifest paths select **source files**, not output locations. Code Rules always writes:
+
+```text
+generated/licenses/<source-name>/LICENSE.md
+generated/licenses/<source-name>/notices/001.md
+generated/licenses/<source-name>/notices/002.md
+```
+
+`<source-name>` is the configured library alias. Unique notice files are numbered in declaration order; repeated paths and a notice path identical to the license path are copied only once. No notice files are generated when none are declared. Contents, including whitespace and line endings, are preserved. Output paths are not configurable. Vendored snapshots retain the original names for traceability. Declared terms are retained even when exclusions or replacements leave no active rules from that library.
 
 One library-wide license declaration covers every group and rule. Rule- and group-level `license` or `licenses` fields are rejected.
 Keep original attribution with each rule and include required notices in the library manifest. Material requiring a different declaration belongs in a separate library.
@@ -147,6 +157,12 @@ Keep references to them valid after import.
   - generated/
     - RULES.md
     - provenance.json
+    - licenses/
+      - fabrica/
+        - LICENSE.md
+        - notices/001.md
+      - acme/
+        - LICENSE.md
     - groups/
       - README.md
       - techs/
@@ -236,7 +252,7 @@ They do not independently authenticate a locally modified snapshot against its r
 ### License declarations in provenance
 
 Source records include `licenses` with library-relative paths and retain `licenseFiles` for compatibility. The array contains the single library declaration, or is empty when licensing is undeclared.
-Each active imported rule records that same declaration, its `attribution`, and `licenseBasis: "library"`. Its license paths start with `vendor/<source>/` and resolve from the configuration directory, above `generated/`.
+Each active imported rule records that same declaration, its `attribution`, and `licenseBasis: "library"`. Its original `files` and `attributionFiles` paths start with `vendor/<source>/` and resolve from the configuration directory, above `generated/`. Both source and rule declarations add `generatedFiles` and `generatedAttributionFiles`, relative to `generated/`. Each generated path corresponds to the original path at the same array position. Generated rule links use these standardized copies.
 Local additions and original local replacements have no imported library license: their `licenses` array is empty and `licenseBasis` is `undeclared`. An upstream rule ID does not assign the upstream license to a local replacement. Its source library's declaration remains in the source record.
 
 For example, the licensed-library walkthrough produces:
@@ -247,7 +263,9 @@ For example, the licensed-library walkthrough produces:
   "licenses": [{
     "spdxExpression": "MIT",
     "files": ["vendor/licensed/LICENSE.md"],
-    "attributionFiles": ["vendor/licensed/NOTICE.md"]
+    "attributionFiles": ["vendor/licensed/NOTICE.md"],
+    "generatedFiles": ["licenses/licensed/LICENSE.md"],
+    "generatedAttributionFiles": ["licenses/licensed/notices/001.md"]
   }],
   "attribution": [{
     "url": "https://github.com/sindresorhus/eslint-plugin-unicorn/blob/5d9d745c5365b6fdb824db1122ff982dd824b11a/docs/rules/no-for-each.md",

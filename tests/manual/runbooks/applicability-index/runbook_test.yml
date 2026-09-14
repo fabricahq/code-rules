@@ -86,7 +86,7 @@ tests:
         contains: '"licenseBasis": "library"'
       - type: file_contains
         path: 05-licensed-library/generated/provenance.json
-        contains: vendor/licensed/LICENSE.md
+        contains: licenses/licensed/LICENSE.md
       - type: file_contains
         path: 05-licensed-library/generated/rules/licensed/techs/javascript/prefer-for-of.md
         contains: '**Declared license:** MIT'
@@ -94,10 +94,10 @@ tests:
         path: 05-licensed-library/generated/groups/techs/javascript.md
         contains: '**Declared license:** MIT'
       - type: file_contains
-        path: 05-licensed-library/vendor/licensed/LICENSE.md
+        path: 05-licensed-library/generated/licenses/licensed/LICENSE.md
         contains: Copyright (c) Sindre Sorhus
       - type: file_contains
-        path: 05-licensed-library/vendor/licensed/NOTICE.md
+        path: 05-licensed-library/generated/licenses/licensed/notices/001.md
         contains: Upstream author and copyright
 
   - name: all-groups

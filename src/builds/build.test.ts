@@ -596,8 +596,8 @@ describe('buildRules', () => {
       { ...build, snapshots: { ...build.snapshots, fabrica: licensed } },
       `rules/fabrica/${ruleId}.md`,
     );
-    expect(output).toContain('../../../../../vendor/fabrica/LICENSE.md');
-    expect(output).toContain('../../../../../vendor/fabrica/NOTICE.txt');
+    expect(output).toContain('../../../../licenses/fabrica/LICENSE.md');
+    expect(output).toContain('../../../../licenses/fabrica/notices/001.md');
     expect(output).toContain(
       `https://github.com/fabrica/rules/blob/${commit}/guides/retries.md#limits`,
     );
@@ -622,7 +622,7 @@ describe('buildRules', () => {
     });
   });
 
-  test('should emit unique sorted license paths when declarations repeat or change order', () => {
+  test('should deduplicate notices while numbering them in declaration order', () => {
     /** Encode a supported manifest with the supplied notice order and a fixed license path. */
     const manifest = (notices: ReadonlyArray<string>): string =>
       JSON.stringify({
@@ -643,7 +643,14 @@ describe('buildRules', () => {
       files,
     );
     const output = buildRules(first);
-    expect(output).toEqual(buildRules(second));
+    expect(output.files['licenses/fabrica/LICENSE.md']).toBe('');
+    expect(output.files['licenses/fabrica/notices/001.md']).toBe('Z');
+    expect(output.files['licenses/fabrica/notices/002.md']).toBe('A');
+    expect(output.files['licenses/fabrica/notices/003.md']).toBeUndefined();
+    expect(buildRules(second).files['licenses/fabrica/notices/001.md']).toBe(
+      'A',
+    );
+    expect(output).toEqual(buildRules(first));
     const provenance: unknown = JSON.parse(
       output.files['provenance.json'] ?? 'null',
     );
@@ -1635,7 +1642,7 @@ test('should preserve inline licenses, relative links, references, and same-file
   expect(inline).toContain(
     '```md\n# Preserve this code\n[guide]: untouched\n```',
   );
-  expect(inline).toContain('[LICENSE.md](../../../vendor/fabrica/LICENSE.md)');
+  expect(inline).toContain('[LICENSE.md](../../licenses/fabrica/LICENSE.md)');
   for (const path of [firstPath, secondPath]) {
     expect(inline).toContain(`../../rules/fabrica/${path}#validation`);
     expect(inline).toContain(
@@ -1833,6 +1840,103 @@ test('should retain unidentified legacy terms without guessing an SPDX declarati
   );
 });
 
+test.each([0, 8192])(
+  'should standardize arbitrary source license paths in delivery mode %s',
+  (groupInlineMaxBytes) => {
+    const licenseText = '\ufeffPublisher terms ©\r\nSecond line\r\n';
+    const build = withLibraryManifest(
+      JSON.stringify({
+        formatVersion: 1,
+        license: {
+          spdxExpression: 'MIT',
+          file: 'legal/custom.txt',
+          notices: ['credits/z.txt', 'other/z.txt'],
+        },
+      }),
+      {
+        'legal/custom.txt': licenseText,
+        'credits/z.txt': 'First notice\r\n',
+        'other/z.txt': 'Second notice\n',
+        [`${ruleId}.md`]: ruleText(
+          'License links',
+          '[Terms](../../legal/custom.txt#terms) and [notice](../../credits/z.txt).',
+        ),
+      },
+    );
+    const output = buildRules({ ...build, groupInlineMaxBytes }).files;
+    expect(output['licenses/fabrica/LICENSE.md']).toBe(licenseText);
+    expect(output['licenses/fabrica/notices/001.md']).toBe('First notice\r\n');
+    expect(output['licenses/fabrica/notices/002.md']).toBe('Second notice\n');
+    expect(output['licenses/fabrica/legal/custom.txt']).toBeUndefined();
+    expect(output[`rules/fabrica/${ruleId}.md`]).toContain(
+      '../../../../licenses/fabrica/LICENSE.md#terms',
+    );
+    expect(output[`rules/fabrica/${ruleId}.md`]).not.toContain(
+      'vendor/fabrica/',
+    );
+    if (groupInlineMaxBytes) {
+      expect(output[`groups/${group}.md`]).toContain(
+        '../../licenses/fabrica/LICENSE.md#terms',
+      );
+      expect(output[`groups/${group}.md`]).toContain(
+        '../../licenses/fabrica/notices/001.md',
+      );
+    }
+    const provenance = JSON.parse(output['provenance.json'] ?? '{}');
+    const rule = provenance.rules.find(
+      (entry: { id: string }) => entry.id === `fabrica:${ruleId}`,
+    );
+    expect(rule.licenses[0]).toEqual({
+      spdxExpression: 'MIT',
+      files: ['vendor/fabrica/legal/custom.txt'],
+      attributionFiles: [
+        'vendor/fabrica/credits/z.txt',
+        'vendor/fabrica/other/z.txt',
+      ],
+      generatedFiles: ['licenses/fabrica/LICENSE.md'],
+      generatedAttributionFiles: [
+        'licenses/fabrica/notices/001.md',
+        'licenses/fabrica/notices/002.md',
+      ],
+    });
+  },
+);
+
+test('should retain separate generated licenses even when every rule from one library is excluded', () => {
+  const manifest = JSON.stringify({
+    formatVersion: 1,
+    license: { file: 'terms.txt', notices: [] },
+  });
+  const build: BuildInput = {
+    ...input(),
+    configuration: {
+      schemaVersion: 1,
+      sources: {
+        fabrica: source('fabrica/rules', { [ruleId]: 'Not adopted' }),
+        acme: source('acme/rules'),
+      },
+      localGroups: [],
+    },
+    snapshots: {
+      fabrica: snapshot('fabrica/rules', 'Fabrica', {
+        'rule-library.json': manifest,
+        'terms.txt': 'Fabrica terms',
+      }),
+      acme: snapshot('acme/rules', 'Acme', {
+        'rule-library.json': manifest,
+        'terms.txt': 'Acme terms',
+      }),
+    },
+  };
+  const output = buildRules(build).files;
+  expect(output['licenses/fabrica/LICENSE.md']).toBe('Fabrica terms');
+  expect(output['licenses/acme/LICENSE.md']).toBe('Acme terms');
+  expect(output[`rules/fabrica/${ruleId}.md`]).toBeUndefined();
+  expect(
+    Object.keys(output).filter((path) => path.includes('/notices/')),
+  ).toEqual([]);
+});
+
 test('should preserve declared library expressions separately from retained files', () => {
   const build = withLibraryManifest(
     JSON.stringify({
@@ -1856,6 +1960,8 @@ test('should preserve declared library expressions separately from retained file
       spdxExpression: 'MIT OR Apache-2.0',
       files: ['LICENSE.md'],
       attributionFiles: ['NOTICE.txt'],
+      generatedFiles: ['licenses/fabrica/LICENSE.md'],
+      generatedAttributionFiles: ['licenses/fabrica/notices/001.md'],
     },
   ]);
   expect(

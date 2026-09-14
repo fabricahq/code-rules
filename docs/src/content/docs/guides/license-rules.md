@@ -43,7 +43,7 @@ The proposed library metadata identifies the terms for the whole library and any
 }
 ```
 
-Paths resolve from the library root.
+Paths resolve from the library root and identify source files only. Code Rules copies the contents unchanged to `generated/licenses/<source-name>/LICENSE.md` and `generated/licenses/<source-name>/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
 For example, list `NOTICE.md` in `notices` when the library supplies a notice that must accompany imported content.
 No extra notice file is required when the license and rule files already contain the necessary notices.
 The [file reference](/reference/files/#library-license-metadata) defines these fields.
@@ -95,11 +95,11 @@ Library license and notices:
 
 **Declared license:** MIT
 
-- [LICENSE.md](../../../../../vendor/fabrica/LICENSE.md)
+- [LICENSE.md](../../../../licenses/fabrica/LICENSE.md)
 ```
 
 Guidance precedes this footer; preserved source metadata follows it. Every imported rule displays its source library's declaration; explicit attribution citations also appear in the footer.
-Generated rule files link to their applicable preserved terms.
+Generated rule files link to these standardized license and notice copies. Provenance records both original source paths and generated paths.
 The index links to provenance, which records source libraries, declared license expressions, retained files, and explicit attribution.
 When a group includes multiple libraries, retain each rule's licensing information instead of assigning one upstream license to the group.
 Copied rule text remains subject to its applicable terms even when the project changes its wording or replaces an imported rule with an adaptation.

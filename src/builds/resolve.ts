@@ -28,6 +28,7 @@ import {
   groupId,
   strings,
 } from './validation';
+import { generatedLicenseFiles } from './license-output';
 import { rule } from './rule-document';
 import { readLibraryLicenses, licensePaths } from './library-licenses';
 
@@ -401,9 +402,16 @@ export function resolveRules(
   const groups = new Map<string, GroupAccumulator>();
   const usedReplacements = new Set<string>();
   const sources: Array<SourceRecord> = [];
+  const licenseFiles = new Map<string, string>();
   for (const source of config.sources) {
     const snapshot = snapshotFor(snapshots, source);
     const library = selectedLibrary(source, snapshot);
+    for (const [path, content] of generatedLicenseFiles(
+      source.name,
+      library.licenses,
+      library.files,
+    ))
+      licenseFiles.set(path, content);
     sources.push({
       name: source.name,
       repository: source.repository,
@@ -434,6 +442,7 @@ export function resolveRules(
     addGroup(groups, active.rule.group).rules.push(active);
   requireLocalMetadata(localFiles, config.localGroups);
   return {
+    licenseFiles,
     sources,
     groups: [...groups.values()].sort((a, b) => compare(a.id, b.id)),
   };

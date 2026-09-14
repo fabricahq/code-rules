@@ -93,7 +93,7 @@ function requireDeclaredFiles(
 
 /**
  * Validate the library manifest and read its declared expression, license, and notice files.
- * Return the single library-wide declaration with unique sorted notices, or an empty array when licensing is unspecified.
+ * Return the single library-wide declaration with notices deduplicated in declaration order, or an empty array when licensing is unspecified.
  * Throw BuildError for an invalid manifest or a declared file missing from the snapshot.
  */
 export function readLibraryLicenses(
@@ -133,7 +133,7 @@ export function readLibraryLicenses(
             .map(({ path }) => path)
             .filter((path) => path !== file),
         ),
-      ].sort(compare),
+      ],
     },
   ];
 }

@@ -28,6 +28,7 @@ Keep `index.ts` as the caller-facing interface; the modules below are implementa
 - `index-pages.ts` splits oversized indexes at entry boundaries and checks every output page against its UTF-8 byte budget.
 - `rule-document.ts` validates YAML and rule metadata while retaining the original frontmatter and body text.
 - `library-licenses.ts` validates license declarations and verifies the declared files exist.
+- `license-output.ts` maps source license and notice files to fixed generated paths and preserves their contents.
 - `markdown.ts` relocates references and renders active definitions.
   Its rewrite traversal edits children before serializing their owning outer node, then applies non-overlapping source edits from right to left.
 - `validation.ts` supplies shared shape and path guards, errors, and group metadata parsing.
