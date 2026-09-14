@@ -3,10 +3,15 @@ title: "Adapt a third-party rule"
 description: "Package external guidance in a compatible library with one library-wide license and preserved attribution."
 ---
 
-Code Rules imports libraries that follow its format.
-For guidance from another source, first create a compatible adaptation in a library, even if that library contains only one rule.
+**Every imported rule must live in a group inside a compatible Code Rules library.**
+That includes every adapted third-party rule, even when the library contains only that one rule.
+Code Rules imports the library; it does not import a standalone Markdown rule.
+The library owns `rule-library.json`, group metadata, and any declared license and notice files.
+
+For guidance from another source, first create that compatible adaptation.
 An agent can help author it; automatic conversion of arbitrary repositories is outside the import workflow.
-Use local rules for guidance you author for your project.
+Original project-authored rules and replacements may live under the consuming project’s `local/` directory without a separate library.
+That local workflow is separate from importing third-party guidance.
 
 This walkthrough uses an ESLint Unicorn adaptation based on commit `5d9d745c5365b6fdb824db1122ff982dd824b11a`.
 The fixture retains the source's MIT license text and an adaptation notice.
