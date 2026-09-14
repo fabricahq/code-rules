@@ -4,7 +4,7 @@ description: "Adopt upstream changes deliberately while preserving local decisio
 ---
 
 To adopt newer rules, select the version you want and run `code-rules sync`.
-Sync downloads the selected rules from your source libraries and regenerates the aggregated Markdown files that agents read.
+Sync downloads the selected rules from your source libraries and rebuilds the indexes and effective rule files that agents read.
 The command is part of the proposed CLI and has not shipped yet.
 
 ## Update a library
@@ -30,11 +30,11 @@ A single sync performs the download and regeneration together:
 1. Resolve each source's ref to an exact commit.
 2. Download its selected rule groups into `code-rules/vendor/<source-name>/` and record the resolved commit.
 3. Apply source-specific exclusions and replacements, then include the project's local rules.
-4. Regenerate one aggregated Markdown file per group under `code-rules/generated/`.
-5. Regenerate `code-rules/generated/RULES.md` and provenance records, then install the complete validated result.
+4. Regenerate the group indexes and individual effective rule files under `code-rules/generated/`.
+5. Regenerate `RULES.md`, library READMEs, declared license copies, and provenance under `code-rules/generated/`, then install the complete validated result.
 
-For example, `code-rules/generated/practices/testing.md` contains the active testing rules from all selected sources and the project.
-After sync, that aggregate reflects the downloaded versions and the project's local choices.
+For example, `code-rules/generated/groups/practices/testing.md` lists the active testing rules from all selected sources and the project. Small groups include full definitions; larger groups link to them.
+After sync, that index reflects the downloaded versions and the project's local choices.
 You do not need to run `build` separately after sync.
 
 ## Review the update
@@ -54,7 +54,7 @@ Update the affected exclusion or replacement deliberately.
 
 Edit the relevant `sources.<name>.groups` and sync again when the imported selection changes.
 The vendor snapshot must match that selection before an offline build can use it.
-Regeneration removes a group file only when no source or declared local-only group still supplies it.
+Regeneration removes a group index only when no source or declared local-only group still supplies it.
 Move or remove local rules before deselecting their last imported group, or declare that group in `localGroups` with local metadata.
 
 ## Recover from a failed update

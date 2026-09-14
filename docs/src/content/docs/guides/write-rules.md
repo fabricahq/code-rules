@@ -4,7 +4,8 @@ description: "Author a focused engineering obligation with applicability, exampl
 ---
 
 Write each rule in Markdown with a rubric that helps agents make it clear, scoped, and verifiable.
-Use the Code Rules skill to turn a best practice into a rule, starting from a shared template.
+Use the shared template and rubric with any agent or editor. The planned Code Rules skill will guide that process.
+To set up a shared library and create groups before adding rules, follow [Create a rule library](/guides/create-library/).
 
 ## Rubric, template, and skill
 
@@ -26,7 +27,7 @@ The workflow below describes how the skill is intended to work.
 
 1. Give the agent a best practice, its intended scope, and any supporting context or sources.
 2. The skill reads the rubric, template, and target library's conventions.
-3. The agent drafts one rule per file, making the obligation, applicability, and verification concrete.
+3. The agent drafts one rule per file, specifying `whenToRead` and separately considering implementation and validation guidance.
 4. The agent checks the draft against every rubric criterion and revises unclear passages.
 5. The agent presents the rule and any unresolved policy questions for review.
 
@@ -48,19 +49,19 @@ This original example illustrates the proposed format:
 ````md
 ---
 title: Verify retry limits
+whenToRead: "When planning, implementing, reviewing, or diagnosing bounded retry behavior."
 impact: HIGH
 impactDescription: prevents a transient failure from causing unbounded requests
 tags: testing, retries
-whenToApply: Adding or changing bounded retries.
 ---
 
 ## Verify retry limits
 
 When a change adds bounded retries, test that requests stop after the configured limit.
 
-### Applicability
+### Implementation
 
-Apply this rule when adding or changing retry behavior.
+Write a deterministic test that keeps the request failing until the configured attempt limit.
 It does not require a retry mechanism where none is needed.
 
 ### Rationale
@@ -79,7 +80,7 @@ The test would still pass if the operation allowed unlimited attempts.
 For a limit of three attempts, make every attempt fail.
 Assert that the operation stops after three calls and returns the documented failure.
 
-### Verification
+### Validation
 
 Run the test with the stop condition removed in a disposable checkout.
 The test should fail.
@@ -93,6 +94,25 @@ Renaming or moving the file changes its ID in the first release.
 Consumers must update exclusions and replacements that referenced the old path.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.
-Imports carry that attribution into the generated group file; no separate attribution file is required.
-The existing nested `source:` metadata describes provenance, not an override target.
+Builds carries that attribution into the individual generated rule file; no separate attribution file is required.
+Extra frontmatter, such as `source:`, is preserved as authored metadata. It does not set override targets or replace generated provenance.
 When publishing or adapting rules, follow [License rules](/guides/license-rules/) to make permissions and attribution explicit.
+
+
+## Adapt third-party rules
+
+For a step-by-step example with inspectable license provenance, follow [Adapt a third-party rule](/guides/adapt-rules/).
+
+The original repository does not have to change. The definition you give Code Rules must use its input format: a technology or practice group with `_group.json`, a Markdown rule with the required metadata, and retained supporting files. The body follows the flexible authoring rubric; it does not need every template heading.
+
+For an existing compatible Code Rules library, use the normal import workflow. For a linter rule, style guide, skill, or other document that is not a compatible library:
+
+1. Identify the exact source revision and establish permission to copy, adapt, and redistribute the material for your intended use. Preserve the applicable license and notices.
+2. Create an adapted definition in a compatible library, which may contain just this one rule. Preserve the original separately when useful for reviewing future updates.
+3. Add the required metadata and an activity-based `whenToRead` cue. Preserve the obligation, important conditions, exceptions, and examples; explain deliberate changes. A detector's analysis limitations do not automatically become exceptions to a written rule.
+4. Declare the library-wide license and notice files in `rule-library.json`. Record per-rule [attribution](/reference/files/#rule-attribution) with a commit-pinned source URL and describe the adaptation.
+5. Review the adaptation against the [authoring rubric](/reference/rule-authoring/), then generate and inspect the effective rule, license links, and provenance. Commit the adapted source and retained notices together.
+
+An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the upstream commit. The adapted library has its own repository and version while retaining the earlier attribution chain. Local rules are for guidance you author for your project.
+
+For later updates, compare the original pinned material with the new source, then deliberately revise the adaptation. Updating a source citation alone does not establish that the adapted rule incorporates the newer guidance.

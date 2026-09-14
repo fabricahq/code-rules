@@ -51,7 +51,7 @@ Agents need to find relevant rules, interpret their scope, and cite evidence whe
 
 A rule expresses one independently adoptable engineering expectation in a Markdown file. It states what to do, when it applies, and what evidence would demonstrate compliance. Rules can govern code, tests, plans, documentation, and other engineering work.
 
-A rule retains its identity and provenance when imported or included in an aggregate. See [Rule](docs/src/content/docs/concepts/rule.md) for the concept and [the rubric and template](docs/src/content/docs/reference/rule-authoring.md) for the authoring standard.
+A rule retains its identity and provenance when imported or rendered as an effective definition. See [Rule](docs/src/content/docs/concepts/rule.md) for the concept and [the rubric and template](docs/src/content/docs/reference/rule-authoring.md) for the authoring standard.
 
 #### Group
 
@@ -84,13 +84,13 @@ See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](d
    Teams should adopt shared best practices without redefining them for every project.
    Projects can add requirements and make explicit exceptions when their needs differ.
 
-4. **Guide implementation, then verify the result.**
+4. **Provide consistent expectations across workflows.**
+   Make the same effective rules available for implementation and review.
    Giving an agent a rule does not guarantee that it will follow it.
-   Use the same rules to guide implementation and independently validate the resulting code.
 
-5. **Make compliance mechanically enforceable wherever possible.**
-   When a rule can be enforced reliably through a linter, type checker, test, or structural constraint, establish that enforcement.
-   Use agent judgment for the parts that require interpretation.
+5. **Keep rule management independent of enforcement.**
+   Projects choose their agent prompts, validation tools, and enforcement mechanisms.
+   Deliver clear rule files that those workflows can consume.
 
 ### Ownership and boundaries
 
@@ -99,8 +99,9 @@ Independently owned libraries supply the engineering policies.
 Keep Fabrica's private rule corpus separate; public examples must be original or authorized for redistribution.
 
 Projects retain their product vision, domain knowledge, and architecture context.
-The surrounding software factory owns agent execution, review orchestration, approvals, and merge gates.
-Code Rules provides rule files and review instructions those systems can use.
+Code Rules manages which versioned rules a codebase adopts and delivers their effective definitions.
+Projects choose how to apply, validate, and enforce those rules through agent prompts or separate tooling. Code Rules does not prescribe or run that workflow; its agent instructions are a suggested integration.
+Rule-input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
 
 ## Working in this repository
 

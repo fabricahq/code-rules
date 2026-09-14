@@ -1,7 +1,8 @@
 # Code Rules
 
 Shared engineering standards for the agents building your software.
-Code Rules defines a convention and importer for versioned rule libraries, project exceptions, and generated rules used during planning, implementation, and review.
+Code Rules manages which versioned engineering rules a codebase adopts, including shared libraries, local exceptions, and reviewable updates.
+It generates rule files for agents and other tools to consume. Your project chooses how to apply, validate, and enforce them through agent prompts or separate tooling. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
 
 The project is in early implementation.
 The offline Builds module and documentation site are available for development; the CLI is not implemented.
@@ -36,7 +37,7 @@ All examples in these docs are illustrative; this repository does not contain Fa
 It returns the complete generated file set without fetching libraries or writing project files.
 The [Builds scope note](_internal/builds.md) explains the interface, subsystem responsibilities, and verification.
 
-Run the [manual Builds scenario](tests/manual/builds.ts) to create a temporary workspace with an index, an aggregate, local rules, and provenance:
+Run the [manual Builds scenario](tests/manual/builds.ts) to create a temporary workspace with group and rule indexes, individual effective definitions, local rules, and provenance:
 
 ```sh
 bun run builds:example
@@ -46,10 +47,12 @@ The script creates files for inspection and makes no automated assertions.
 After running it:
 
 1. Open the printed `generated/RULES.md` path and follow its testing-group link.
-2. Confirm the group contains exactly two active rules: the project retry budget and stopping retries after success.
-3. Confirm the retry-budget replacement retains ID `example:practices/testing/verify-retries` and links to its local definition.
-4. Inspect `generated/provenance.json`: the replacement should have a local origin and an imported upstream origin; the additional local rule should have no upstream origin.
+2. Confirm the group page includes exactly two complete active rules: the project retry budget and stopping retries after success.
+3. Open `generated/groups/techs/typescript.md` to see the larger group as an index with explicit **Read full rule** links. Follow the testing rule links and confirm the retry-budget replacement retains ID `example:practices/testing/verify-retries` and links to its local definition.
+4. Use the printed `scenarios.md` to inspect pre-implementation selection and a review with no test-file edits. The TypeScript scenario should lead to testing and code-design rules, while Go is unrelated.
+5. Open `generated/libraries/example/README.md` for the source identity and revision. This unlicensed fixture has no generated license directory.
+6. Inspect `generated/provenance.json`: the replacement should have a local origin and an imported upstream origin; the additional local rule should have no upstream origin.
 
 Source repository names and commits are illustrative, so upstream GitHub links do not point to a real fixture library.
 The temporary workspace remains available after the script exits.
-Automated behavior checks remain in `src/builds/build.test.ts`.
+Automated behavior checks live beside the implementation in `src/builds/build*.test.ts`, grouped by core behavior, selection, input validation, indexes, group delivery, Markdown, and licensing. Each suite tests through the public `buildRules` interface; shared fixture factories live in `build-test-fixtures.ts`.

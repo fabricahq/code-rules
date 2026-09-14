@@ -1,6 +1,7 @@
-/** @fileoverview Parses rule documents while preserving raw frontmatter and body text for aggregation. */
+/** @fileoverview Parses rule documents while preserving raw frontmatter and body text for generated rule files. */
 
 import { parseDocument } from 'yaml';
+import { ruleAttribution } from './rule-attribution';
 import type { Rule } from './types';
 import {
   field,
@@ -41,11 +42,11 @@ function metadataObject(
   return object(raw, location);
 }
 
-/** Validate required rule metadata and return its title, leaving additional attribution fields untouched. */
+/** Validate required selection metadata while leaving the original frontmatter text untouched. */
 function validateRuleMetadata(
   data: Record<string, unknown>,
   location: string,
-): string {
+): Pick<Rule, 'title' | 'impact' | 'impactDescription' | 'whenToRead'> {
   const title = nonempty(field(data, 'title'), `${location}.title`);
   const impact = nonempty(field(data, 'impact'), `${location}.impact`);
   if (
@@ -59,11 +60,20 @@ function validateRuleMetadata(
     ].includes(impact)
   )
     return invalid(location, `unknown impact ${impact}`);
-  nonempty(field(data, 'impactDescription'), `${location}.impactDescription`);
+  const impactDescription = nonempty(
+    field(data, 'impactDescription'),
+    `${location}.impactDescription`,
+  );
   const tags = field(data, 'tags');
-  if (typeof tags === 'string') nonempty(tags, `${location}.tags`);
-  else strings(tags, `${location}.tags`);
-  return title;
+  if (tags !== undefined) {
+    if (typeof tags === 'string') nonempty(tags, `${location}.tags`);
+    else strings(tags, `${location}.tags`);
+  }
+  const whenToRead = nonempty(
+    field(data, 'whenToRead'),
+    `${location}.whenToRead`,
+  );
+  return { title, impact, impactDescription, whenToRead };
 }
 
 /**
@@ -76,13 +86,24 @@ export function rule(text: string, path: string, source: string): Rule {
   const group = ruleGroup(path, location);
   const { metadata, body } = documentText(text, location);
   const data = metadataObject(metadata, location);
-  const title = validateRuleMetadata(data, location);
+  for (const key of ['license', 'licenses']) {
+    if (field(data, key) !== undefined)
+      invalid(
+        `${location}.${key}`,
+        'declare one license for the whole library in rule-library.json; rule-level licenses are unsupported',
+      );
+  }
+  const selection = validateRuleMetadata(data, location);
   nonempty(body, `${location}.body`);
   return {
     id: `${source}:${path.slice(0, -3)}`,
     group,
     path,
-    title,
+    ...selection,
+    attribution: ruleAttribution(
+      field(data, 'attribution'),
+      `${location}.attribution`,
+    ),
     metadata,
     body,
   };

@@ -149,7 +149,13 @@ function sourceConfiguration(
     repositories,
   );
   const ref = sourceRef(field(source, 'ref'), where);
-  const groups = selectedGroups(field(source, 'groups'), `${where}.groups`);
+  const requestedGroups = field(source, 'groups');
+  const groups =
+    requestedGroups === '*' ||
+    requestedGroups === 'techs/*' ||
+    requestedGroups === 'practices/*'
+      ? requestedGroups
+      : selectedGroups(requestedGroups, `${where}.groups`);
   const exclude = exclusionDecisions(field(source, 'exclude'), where);
   const replace = replacementDecisions(field(source, 'replace'), where);
   for (const id of [...exclude.keys(), ...replace.keys()]) {
@@ -187,7 +193,12 @@ export function configuration(input: unknown): ProjectConfig {
     'localGroups',
   );
   for (const id of localGroups) {
-    if (sources.some((source) => source.groups.includes(id)))
+    if (
+      sources.some(
+        (source) =>
+          typeof source.groups !== 'string' && source.groups.includes(id),
+      )
+    )
       return invalid(
         id,
         'an imported group cannot also be declared in localGroups',

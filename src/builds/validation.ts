@@ -138,6 +138,13 @@ export function compare(a: string, b: string): number {
 /** Parse group selection guidance, preserving when-to-read order; throw BuildError for invalid JSON or required fields. */
 export function groupMetadata(text: string, location: string): GroupMetadata {
   const data = object(json(text, location), location);
+  for (const key of ['license', 'licenses']) {
+    if (field(data, key) !== undefined)
+      invalid(
+        `${location}.${key}`,
+        'declare one license for the whole library in rule-library.json; group-level licenses are unsupported',
+      );
+  }
   return {
     name: nonempty(field(data, 'name'), `${location}.name`),
     description: nonempty(

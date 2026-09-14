@@ -5,7 +5,7 @@ description: "Fields in the proposed code-rules/config.json format."
 
 `code-rules/config.json` records the project's sources, selected groups, and exceptions.
 A project can import rules directly from multiple canonical libraries, pinning each one independently.
-The following fields describe the proposed first-release interface.
+The offline builder validates the fields below. The format remains unreleased, and CLI fetching and installation are separate work.
 
 ## Complete example
 
@@ -51,15 +51,16 @@ Replace them with libraries and rules your project can access.
 
 | Field | Meaning |
 | --- | --- |
-| `schemaVersion` | Configuration format version; proposed initial value: `1`. |
+| `schemaVersion` | Configuration format version; the builder accepts `1`. |
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
-| `sources.<name>.repository` | Explicit upstream repository in `owner/name` form. |
+| `sources.<name>.repository` | GitHub repository in `owner/name` form. |
 | `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. |
-| `sources.<name>.groups` | Groups to import from this source, such as `techs/typescript` or `practices/testing`. |
+| `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
 | `localGroups` | Local-only group IDs, each backed by `_group.json` under `local/`. |
 | `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
 | `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
 
+Unknown configuration fields are rejected, including unknown source and replacement fields.
 Include `localGroups` as an empty array when unused.
 Each source includes its own `exclude` and `replace` objects, empty when unused.
 Replacement paths resolve relative to the configuration directory and must stay under its `local/` directory.
@@ -67,6 +68,50 @@ Replacement paths resolve relative to the configuration directory and must stay 
 Sources use `ref` rather than `commit`, and each source owns its groups and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are no longer part of the proposed format.
 The schema version remains `1` because no configuration format has shipped.
+
+## Import every group
+
+Set `groups` to the string `"*"` to adopt the whole library:
+
+```json
+{
+  "schemaVersion": 1,
+  "sources": {
+    "team": {
+      "repository": "my-team/rules",
+      "ref": "v1.0.0",
+      "groups": "*",
+      "exclude": {},
+      "replace": {}
+    }
+  },
+  "localGroups": []
+}
+```
+
+Choose one of three supported selectors:
+
+| Selector | Included groups |
+| --- | --- |
+| `"*"` | Every technology and practice group. |
+| `"practices/*"` | Every practice group. |
+| `"techs/*"` | Every technology group. |
+
+Each selector includes all groups in its scope at the selected revision, including empty groups with valid metadata.
+Rule exclusions and replacements still apply. Agents still select relevant rules for each task.
+When you adopt a newer revision, newly added groups join the selection; the planned update report must identify those additions.
+Offline builds do not discover changes on the remote repository.
+
+Keep `groups` required. Use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
+`localGroups` remains an explicit list and cannot overlap any imported group after expansion.
+
+Snapshots record both the original `groupSelection` and the concrete `groups` list.
+A pattern snapshot must record the exact selector in `groupSelection` and contain every group within that scope at its resolved commit.
+For example, `"practices/*"` requires all practice groups, while `"*"` requires both kinds.
+The builder compares discovered groups with the recorded expansion and validates every group and rule within the selected scope.
+An old partial snapshot is insufficient even if its recorded groups look complete; changing selection intent requires sync.
+Legacy snapshots without `groupSelection` represent their explicit `groups` list and remain valid for list-based configuration.
+This completeness declaration comes from the snapshot supplier; offline checks do not independently authenticate it against the remote repository.
 
 ## Source names and rule identity
 
@@ -96,7 +141,7 @@ Branch names, abbreviated commit SHAs, and version ranges are not supported.
 A plain name resolves only as a tag, even when a branch has the same name.
 Both lightweight and annotated tags must resolve to a commit.
 
-During `sync`, resolve each configured ref and record its full `resolvedCommit` in that source's vendored provenance.
+In the proposed `sync` workflow, resolve each configured ref and record its full `resolvedCommit` in that source's vendored provenance.
 Fetch rule content and construct source links using the resolved commit.
 Configuration records what the project requested; provenance records the exact content it imported.
 
@@ -118,7 +163,7 @@ Generated files and review findings retain source-qualified IDs because they app
 
 Select complete groups separately for each source, then exclude individual rules when necessary.
 Each selected group must exist in that source at its pinned revision.
-Selecting `practices/testing` from two sources combines both sets of rules into one effective testing file.
+Selecting `practices/testing` from two sources combines both sets of rules into one effective testing group, with a group page and individual effective rule files.
 Source order never establishes precedence.
 
 Local rules can join any imported group.
@@ -126,7 +171,7 @@ For a group with no imported source, declare it in `localGroups` and provide loc
 Do not list an imported group in `localGroups`.
 Local rules in undeclared groups are errors rather than silently ignored inputs.
 
-The generated index retains each source's group description and applicability guidance, labeled by source.
+The generated index shows group names, applicability guidance, and explicit **Open group** links. When multiple sources contribute to a group, their guidance remains labeled by source.
 It also includes local-only group metadata.
 The importer does not silently choose one library's description over another's.
 
@@ -142,7 +187,7 @@ See [Conflicting guidance](/guides/conflicting-guidance/) for examples, an agent
 
 `schemaVersion` describes this configuration.
 Each library's `formatVersion` describes its authoring format.
-The importer version describes the executable tool.
+The caller-supplied `toolVersion` identifies the tool that generated the output.
 
 Each source's `ref` selects the requested version.
 Vendored provenance records the resolved commit used by offline commands; it is importer-owned output, not a second user-selected version.

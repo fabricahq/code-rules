@@ -22,11 +22,13 @@
   "dependencies": {
     "mdast-util-from-markdown": "^2.0.3",
     "mdast-util-to-markdown": "^2.1.2",
+    "spdx-expression-parse": "^5.0.0",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "@types/mdast": "^4.0.4",
+    "@types/spdx-expression-parse": "^4.0.0",
     "@typescript-eslint/parser": "^8.70.0",
     "astro-eslint-parser": "^3.1.0",
     "eslint": "^10.10.0",

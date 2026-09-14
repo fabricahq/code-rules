@@ -1,21 +1,27 @@
 ---
 title: "Plan, write, and review"
-description: "A repeatable process for selecting and applying the project\u2019s effective engineering rules."
+description: "A suggested workflow for agents using the project\u2019s effective engineering rules."
 ---
 
-Use the project's committed effective rules during planning, implementation, and review.
-This page describes the intended integration once a project has generated those files.
+This page suggests an agent workflow for using the project's committed effective rules during planning, implementation, and review.
+Adapt it to your project, or use your own prompts and tooling. Code Rules supplies the rule files; it does not run this workflow or require a particular validation or enforcement method.
+See [product scope](/overview/#scope-rule-management-and-delivery).
 
 ## Project instructions
 
-Add this section to the project's existing `AGENTS.md` after adopting Code Rules:
+To use this workflow, add the following section to the project's existing `AGENTS.md`, or use it as a starting point for a direct agent prompt:
 
 ```markdown
 Before planning, implementing, or reviewing a change, read `code-rules/generated/RULES.md`.
 Select technology and practice groups using the task, affected behavior, and code.
-Read their effective rules and follow each rule's applicability and exceptions.
-Revisit group selection when the scope changes.
-When reviewing, select groups independently and cite rule IDs with evidence for findings.
+Inspect the selected group pages, including every part of a split index, and use each rule's whenToRead guidance to select rules.
+Read full definitions where included, or follow each applicable rule's Read full rule link.
+Read every relevant or plausibly relevant definition completely before relying on it.
+Complete truncated reads. Revisit rule selection when scope changes and reload needed rules after compaction.
+Follow every applicable rule regardless of impact, including its exceptions.
+After reading the complete rule, use Implementation guidance when planning or changing code and Validation guidance when reviewing, testing, or diagnosing behavior, when those sections are present.
+Use both when the task includes both activities. These sections support the rule’s guidance; they do not replace it.
+When reviewing, select groups independently and cite rule IDs with evidence for findings. Assess finding severity from concrete consequences.
 Report missing relevant groups as coverage gaps.
 ```
 
@@ -26,9 +32,10 @@ Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules
 
 1. Read the task and the generated index.
 2. Identify affected technologies and engineering practices.
-3. Load the matching effective group files.
-4. Account for applicable obligations in the plan and implementation.
-5. Revisit selection if the work expands.
+3. Inspect matching group pages, including all parts of any summary index.
+4. Use `whenToRead` to select relevant or plausibly relevant rules. Read their complete definitions inline or through explicit **Read full rule** links.
+5. Account for applicable obligations in the plan and implementation.
+6. Revisit selection if the work expands.
 
 ### Example: retry a failed request
 
@@ -36,7 +43,7 @@ For retries in a TypeScript service, consider `techs/typescript`, `practices/tes
 Inspect the intended behavior, dependencies, imports, surrounding code, and changed files.
 Practice groups can apply even when no test files or logging packages change.
 
-Load a group when its guidance matches the work, then apply each rule's conditions and exceptions.
+Inspect a group index when its guidance matches the work, then read the relevant full rules and apply their conditions and exceptions.
 A group match alone is not evidence of a violation.
 
 A behavior change can require testing rules before anyone edits a test file.
@@ -50,8 +57,11 @@ Reading the index alone is not enough.
 Select groups from the requested behavior and implementation, rather than accepting the writing agent's selection as complete.
 For each finding, cite the effective rule ID, applicable condition, observed evidence, and practical consequence.
 
+Impact describes the consequence a rule helps prevent; it does not determine applicability, override exceptions, or set finding severity.
+Read **Why it matters** for context and assess the actual consequence of each finding.
+
 Separate confirmed failures from hypotheses that need verification.
-A successful `code-rules check` establishes file consistency, not application compliance.
+The planned `code-rules check` command will establish file consistency, not application compliance.
 
 ## Handle gaps and conflicts
 

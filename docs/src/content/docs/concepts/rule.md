@@ -24,7 +24,8 @@ A project should be able to import, exclude, or replace one rule without also ch
 
 The Markdown body states the obligation and its applicability.
 Rationale explains why it matters, examples clarify the intended behavior, and verification guidance tells an agent what evidence to look for.
-Metadata records the title, impact, and relevant topics.
+Required metadata records the title, `whenToRead`, impact, and the consequence the rule addresses.
+Optional tags supply search terms; they do not select rules.
 
 The [rubric and template](/reference/rule-authoring/) define the authoring standard.
 The planned [Code Rules skill](/guides/write-rules/) helps agents draft, revise, and review rules against that standard.
@@ -48,8 +49,8 @@ The library-relative path without `.md` identifies a rule within its library.
 Generated files add the configured source name, such as `fabrica:practices/testing/verify-retry-limits`.
 That prefix distinguishes matching paths from different libraries.
 
-Agents read the project's generated group files, where imports and local choices have already been combined.
-Each rule keeps its identity and provenance even though several rules share one generated file.
+Agents select rules from group pages, which include complete definitions for small groups and link to individual effective rule files for larger groups. Imported and local choices have already been resolved.
+Each rule keeps its identity and provenance even when several rules share a group applicability index.
 Agents select relevant groups, then apply each individual rule's conditions and exceptions.
 
 See [Group](/concepts/groups/) for how rules are organized, or [Make a rule](/guides/write-rules/) to create one.

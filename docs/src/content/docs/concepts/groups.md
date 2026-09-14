@@ -45,16 +45,17 @@ practices/observability
 Do not repeat a group's type in metadata.
 A rule has one canonical home; related groups can reference it without copying its text.
 References do not automatically install another group in the first release.
-When multiple sources supply the same group ID, their rules combine in one effective file.
+When multiple sources supply the same group ID, their rules share one group page. Small groups include full rules; larger groups provide applicability summaries with explicit links to individual effective rule files.
 Each rule keeps its source-qualified ID and each source retains its selection guidance.
 
 ## When to read a group
 
 Each group supplies a name, description, and `whenToRead` guidance.
 For testing, that guidance should include behavior changes even when no test files change.
+Use the canonical [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) to describe intended work, add recognizable examples, and check selection against representative tasks.
 
-Group applicability is deliberately broad: it helps an agent decide what to load.
-Individual rule applicability is precise: it determines what the agent should enforce.
+Group cues describe the group's intended area of work, even when it contains only one rule.
+An individual rule's cue identifies situations that warrant reading it; its full text defines the obligation and exceptions.
 Reading observability rules does not imply that every function needs a log statement.
 
 See [Import rules](/guides/select-rules/) for selecting and adapting groups, and [Files and formats](/reference/files/#group-metadata) for metadata.

@@ -13,7 +13,17 @@ A library owns its engineering opinions and their provenance.
 A consuming project owns the versions and exceptions it adopts.
 
 The importer works with compatible libraries independently of who publishes them.
-A public tool can import a private library through the caller's existing Git credentials.
+The planned fetching workflow uses the caller's Git credentials to access private libraries.
+
+## Create or adapt a library
+
+The planned [library authoring commands](/guides/create-library/) initialize a library, add groups and rules explicitly, and validate the input format.
+Use them in a new or existing repository; a dedicated repository name is not required.
+
+Code Rules imports libraries that follow its format.
+For guidance from other sources, first [author a compatible adaptation](/guides/adapt-rules/) in a compatible library, even when it contains only one rule.
+Agents can assist with authoring; automatic conversion of arbitrary repositories is outside the import workflow.
+The adaptation's author maintains its meaning, attribution, retained terms, and updates from the original source.
 
 ## Name an organization library
 
@@ -45,9 +55,16 @@ Each source owns its rules, and the project selects each source's ref independen
 Sync records each resolved commit so offline work uses the exact imported snapshot.
 The repository names illustrate the configuration; verify available rules before selecting groups.
 
-Rules from sources that share a group combine into one effective group file.
+Rules from sources that share a group combine into one group page, which includes full rules for small groups or links to each effective rule from applicability summaries.
 Source-qualified IDs keep their origins distinct, and source order grants no override priority.
 Use explicit project exclusions or replacements to resolve competing obligations.
+
+## Inspect an adopted library
+
+Each imported source gets a generated `libraries/<source-name>/README.md`.
+It identifies the repository, requested revision, resolved commit, and declared license, and links to the authoritative provenance.
+Declared license and notice copies live in that folder’s `licenses/` directory; libraries without declarations omit that directory.
+The full effective rules live separately in `generated/rules/`.
 
 ## Leave room for another level
 

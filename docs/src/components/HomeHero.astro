@@ -8,8 +8,8 @@ import CodeTransformation from './CodeTransformation.astro';
   <h1 id="_top" data-page-title>Your engineering standards.<br class="desktop-break" /> In every agent's work.</h1>
   <p class="cr-lead">Share rules across projects. Adapt them where you need to. Give writing and reviewing agents the same expectations.</p>
   <div class="cr-actions">
-    <a class="cr-button primary" href="/overview/">Read the docs <span aria-hidden="true">↗</span></a>
-    <a class="cr-button" href="/guides/use-rules/">Explore the workflow <span aria-hidden="true">→</span></a>
+    <a class="cr-button primary" href="/guides/use-rules/">Set up your repo <span aria-hidden="true">→</span></a>
+    <a class="cr-button" href="/overview/">Read the docs <span aria-hidden="true">→</span></a>
   </div>
   <p class="cr-preview"><a href="/status/">Design preview</a> · The CLI is not released yet.</p>
 </section>
@@ -19,8 +19,8 @@ import CodeTransformation from './CodeTransformation.astro';
     <div>
       <span class="cr-index">01 / CODIFY</span>
       <h2>Define a best practice rule in markdown.</h2>
-      <p>Turn a best practice into a Markdown rule that tells agents what to do and when it applies.
-      The Code Rules skill helps you draft it from a template and check it against a rubric for clarity, scope, and verification.</p>
+      <p>Turn a best practice into a Markdown rule that tells agents what to do and when to read it.
+      The planned Code Rules skill will help you draft it from a template and check it against a rubric for clarity, scope, and validation.</p>
       <a href="/guides/write-rules/">Learn how to write rules →</a>
     </div>
     <div class="cr-panel cr-rule-file">
@@ -31,7 +31,7 @@ title: Verify retry limits
 impact: HIGH
 impactDescription: prevents unbounded requests
 tags: testing, retries
-whenToApply: Adding or changing bounded retries.
+whenToRead: When planning, implementing, reviewing, or diagnosing bounded retry behavior.
 ---
 
 ## Verify retry limits
@@ -46,7 +46,7 @@ For a limit of three attempts:
 - Assert exactly three calls.
 - Assert the documented failure is returned.
 
-### Verification
+### Validation
 
 Remove the stop condition temporarily.
 The test should fail.</code></pre>
@@ -87,9 +87,9 @@ The test should fail.</code></pre>
   <article class="cr-feature">
     <div>
       <span class="cr-index">03 / APPLY</span>
-      <h2>Your agents write to your standards, then validate their work.</h2>
-      <p>Implementing agents use the relevant rules as guidance while building.
-      Reviewing agents use those same rules in validation pipelines to check whether the implementation follows your standards.</p>
+      <h2>Choose how your agents apply and check your rules.</h2>
+      <p>Code Rules manages the versioned rules associated with your codebase.
+      Use agent prompts or separate tooling to apply them during implementation and check compliance during review. You choose the validation and enforcement workflow.</p>
       <a href="/for-agents/">See how agents use rules →</a>
     </div>
     <div class="cr-panel">
@@ -101,4 +101,4 @@ The test should fail.</code></pre>
   </article>
 </section>
 <CodeTransformation />
-<section class="cr-start" aria-labelledby="start-title"><span class="cr-index">START WITH ONE PROJECT</span><h2 id="start-title">Start enforcing your engineering standards</h2><p>Walk through a library, a project configuration, and the files your agents would read.</p><a class="cr-button" href="/guides/use-rules/">Walk through the setup <span aria-hidden="true">→</span></a></section>
+<section class="cr-start" aria-labelledby="start-title"><span class="cr-index">START WITH ONE PROJECT</span><h2 id="start-title">Adopt versioned rules for your project</h2><p>Walk through a library, a project configuration, and the files your agents would read.</p><a class="cr-button" href="/guides/use-rules/">Walk through the setup <span aria-hidden="true">→</span></a></section>

@@ -1,5 +1,9 @@
 /** @fileoverview Validates library license declarations and resolves their files within an in-memory source snapshot. */
 
+import parseSpdxExpression from 'spdx-expression-parse';
+
+import type { LicenseDeclaration } from './types';
+
 import {
   compare,
   field,
@@ -18,6 +22,14 @@ const SUPPORTED_FORMAT_VERSION = 1;
 type DeclaredPath = {
   readonly path: string;
   readonly location: string;
+};
+
+/** License fields with validated paths and their diagnostic context; file presence and SPDX remain unchecked. */
+type LicenseFields = {
+  readonly metadata: Record<string, unknown>;
+  readonly location: string;
+  readonly file: DeclaredPath;
+  readonly notices: ReadonlyArray<DeclaredPath>;
 };
 
 /** Parse the library manifest into an object with a supported formatVersion, or throw BuildError. */
@@ -59,20 +71,24 @@ function noticePaths(
 }
 
 /**
- * Return the validated license path followed by notice paths in declaration order, retaining duplicates.
- * Return an empty array when licensing is unspecified; throw BuildError for an invalid declaration.
+ * Read license fields with validated paths, retaining notice order, duplicates, and diagnostic locations.
+ * Return null when licensing is unspecified; throw BuildError for an invalid object or path declaration.
  */
-function licenseAndNoticeDeclarations(
+function licenseFields(
   manifest: Record<string, unknown>,
   sourceName: string,
-): ReadonlyArray<DeclaredPath> {
+): LicenseFields | null {
   const value = field(manifest, 'license');
-  if (value === undefined) return [];
+  if (value === undefined) return null;
   const location = `${sourceName}/${LIBRARY_MANIFEST}: license`;
   const license = object(value, location);
+  for (const key of Object.keys(license)) {
+    if (!['file', 'notices', 'spdxExpression', 'expression'].includes(key))
+      invalid(location, `unknown field ${key}`);
+  }
   const file = declaredPath(field(license, 'file'), `${location}.file`);
   const notices = noticePaths(field(license, 'notices'), `${location}.notices`);
-  return [file, ...notices];
+  return { metadata: license, location, file, notices };
 }
 
 /** Throw BuildError at the first declaration whose path is absent from the snapshot; empty files count as present. */
@@ -88,17 +104,70 @@ function requireDeclaredFiles(
 }
 
 /**
- * Validate the library manifest and collect its declared license and notice paths.
- * Return unique paths in code-unit order, or an empty array when licensing is unspecified.
+ * Validate the library manifest and read its declared expression, license, and notice files.
+ * Return the single library-wide declaration with notices deduplicated in declaration order, or an empty array when licensing is unspecified.
  * Throw BuildError for an invalid manifest or a declared file missing from the snapshot.
  */
-export function collectLibraryLicensePaths(
+export function readLibraryLicenses(
   sourceFiles: ReadonlyMap<string, string>,
   sourceName: string,
-): ReadonlyArray<string> {
+): ReadonlyArray<LicenseDeclaration> {
   const manifest = libraryManifest(sourceFiles, sourceName);
-  const declarations = licenseAndNoticeDeclarations(manifest, sourceName);
-  requireDeclaredFiles(sourceFiles, declarations);
-  const uniquePaths = new Set(declarations.map(({ path }) => path));
-  return [...uniquePaths].sort(compare);
+  const fields = licenseFields(manifest, sourceName);
+  if (fields === null) return [];
+  requireDeclaredFiles(sourceFiles, [fields.file, ...fields.notices]);
+  return [normalizedLicense(fields)];
+}
+
+/** Reject obsolete or invalid SPDX fields, then deduplicate notices in declaration order and omit the license file itself. */
+function normalizedLicense(fields: LicenseFields): LicenseDeclaration {
+  const { metadata, location, file, notices } = fields;
+  if (field(metadata, 'expression') !== undefined)
+    return invalid(
+      `${location}.expression`,
+      'renamed to license.spdxExpression; move the declaration to that field',
+    );
+  const expression = field(metadata, 'spdxExpression');
+  return {
+    spdxExpression:
+      expression === undefined
+        ? null
+        : spdxExpression(expression, `${location}.spdxExpression`),
+    files: [file.path],
+    attributionFiles: [
+      ...new Set(
+        notices.map(({ path }) => path).filter((path) => path !== file.path),
+      ),
+    ],
+  };
+}
+
+/** Validate SPDX syntax and identifiers, preserving the publisher's declaration without assessing its legal meaning or agreement with the files. */
+function spdxExpression(value: unknown, location: string): string {
+  const expression = nonempty(value, location);
+  if (/[\x00-\x1f\x7f]/u.test(expression))
+    return invalid(location, 'expected a single-line license expression');
+  try {
+    parseSpdxExpression(expression);
+  } catch {
+    return invalid(
+      location,
+      'expected an SPDX expression using recognized identifiers or LicenseRef- custom terms',
+    );
+  }
+  return expression;
+}
+
+/** Collect unique source-relative license and notice paths without assuming a license from their names. */
+export function licensePaths(
+  licenses: ReadonlyArray<LicenseDeclaration>,
+): ReadonlyArray<string> {
+  return [
+    ...new Set(
+      licenses.flatMap((license) => [
+        ...license.files,
+        ...license.attributionFiles,
+      ]),
+    ),
+  ].sort(compare);
 }

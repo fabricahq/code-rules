@@ -6,7 +6,8 @@ description: "Library source files, project-owned inputs, and generated agent-fa
 import { FileTree } from '@astrojs/starlight/components';
 
 Code Rules separates authored input from imported source and generated output.
-All paths below describe the proposed format.
+The offline builder implements the input metadata and generated output described here.
+Filesystem installation and the `_source.json` snapshot record remain proposed; see [Project status](/status/).
 
 ## Library layout
 
@@ -28,32 +29,51 @@ All paths below describe the proposed format.
 `rule-library.json` declares the library format:
 
 ```json
-{ "formatVersion": 1, "license": { "file": "LICENSE.md", "notices": [] } }
+{ "formatVersion": 1, "license": { "spdxExpression": "MIT", "file": "LICENSE.md", "notices": [] } }
 ```
 
 Discover groups only under `techs/` and `practices/`.
-Misplaced rule files should fail validation rather than disappear from imports.
+Within selected groups, Markdown files are rules unless their filename starts with `_` or the library declares them as license or notice assets.
+Rules and group metadata must use valid paths; wildcard discovery also rejects rules whose group metadata is missing.
+The builder does not inspect the contents of unselected groups.
 
 ## Library license metadata
 
-The optional `license` object declares the library's default terms:
+The optional `license` object declares the library-wide terms. Authors should use root-level `LICENSE.md` and optional `NOTICE.md`; the manifest can identify other source locations:
 
 | Field | Meaning |
 | --- | --- |
+| `license.spdxExpression` | Declared SPDX expression, such as `MIT` or `MIT OR Apache-2.0`, or a `LicenseRef-…` for custom terms. Optional for compatibility with existing manifests. |
 | `license.file` | Path to the actual license text, relative to the library root. |
 | `license.notices` | Paths to accompanying notices, relative to the library root; use an empty array when none apply. |
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
-The importer preserves these files from the resolved source commit and includes them in snapshot digests.
-If the declaration is absent, report licensing as unspecified rather than assuming permission or assigning a license.
+Unknown fields in the license declaration are rejected so misspellings cannot silently discard intended metadata.
+The planned import and workspace workflow preserves these files from the resolved source commit and includes them in snapshot digests.
+The offline builder verifies that declared files exist in the supplied snapshots. It copies their contents unchanged and links generated rules to those copies. It does not fetch files or compute workspace snapshot digests.
+If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
 
-Rule-specific terms and attribution remain with the rule and reference any additional applicable license files.
-Preserve those files and links too; a library default does not erase per-rule differences.
+Every imported library has a generated `libraries/<source-name>/README.md` with its repository, requested revision, resolved commit, declared SPDX expression when supplied, and links to retained terms and provenance. Libraries without a license declaration omit the `licenses/` directory. `provenance.json` remains the authoritative machine-readable record.
+
+The manifest paths select **source files**, not output locations. For declared terms, Code Rules uses these fixed destinations:
+
+```text
+generated/libraries/<source-name>/licenses/LICENSE.md
+generated/libraries/<source-name>/licenses/notices/001.md
+generated/libraries/<source-name>/licenses/notices/002.md
+```
+
+`<source-name>` is the configured library alias. Unique notice files are numbered in declaration order; repeated paths and a notice path identical to the license path are copied only once. No notice files are generated when none are declared. Contents, including whitespace and line endings, are preserved. Output paths are not configurable. Vendored snapshots retain the original names for traceability. Declared terms are retained even when exclusions or replacements leave no active rules from that library.
+
+One library-wide license declaration covers every group and rule. Rule- and group-level `license` or `licenses` fields are rejected.
+Keep original attribution with each rule and include required notices in the library manifest. Material requiring a different declaration belongs in a separate library.
 See [License rules](/guides/license-rules/) for publisher guidance and the boundary with the consuming project's license.
 
 ## Group metadata
 
-Each `_group.json` provides selection guidance:
+Library authors define each group's selection guidance in its `_group.json`, before the group is imported.
+Builds reads that source metadata and renders its `whenToRead` cues in the generated root index; it does not infer them from the current rules.
+Use the existing `whenToRead` field for this guidance rather than adding a separate `whenToUse` field.
 
 ```json
 {
@@ -66,28 +86,47 @@ Each `_group.json` provides selection guidance:
 }
 ```
 
+All three group fields are required. `name` and `description` must be non-blank strings; `whenToRead` must be an array of unique, non-blank strings.
+An empty cue array is accepted, but useful reading cues help agents discover the group.
 The directory supplies the group's ID and type.
-The generated index includes its description and when-to-read guidance.
+The generated index includes its name and when-to-read guidance. The description remains in the source metadata.
+Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) when filling in the group's reading cues.
 
 ## Rule metadata
 
-Each rule has `title`, `impact`, `impactDescription`, and `tags` frontmatter, followed by its Markdown body.
-Use optional `whenToApply` metadata to summarize when an agent should apply the rule.
-Describe detailed boundaries and exceptions in the Markdown body.
-
+Each rule requires YAML frontmatter containing `title`, `whenToRead`, `impact`, and `impactDescription`, followed by a non-blank Markdown body.
+The builder rejects duplicate YAML keys and aliases. Extra frontmatter is preserved, except unsupported rule-level `license` and `licenses` fields.
+`tags` is optional: use a non-blank string of comma-separated topics or an array of unique, non-blank strings. An empty array is also accepted.
+Tags provide search terms, such as `testing` on a Go rule. Builds preserves supplied tags but does not use them for selection, grouping, or enforcement. Use `whenToRead` to describe applicability.
 Use the existing impact vocabulary: `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`.
-Impact describes the rule's importance; a reviewer still evaluates the actual consequence and evidence of a finding.
+Impact describes the significance of the consequence a rule helps prevent.
+Follow the canonical [impact authoring guidance](/reference/rule-authoring/#describe-impact-through-consequences) for level definitions and examples.
+Agents select rules using `whenToRead`, follow the full guidance and exceptions, and assess finding severity from concrete evidence.
+All applicable rules matter regardless of impact.
+
+`whenToRead` is a required non-empty string describing work that should trigger reading, including before code exists.
+The group field of the same name remains an array of group-selection cues.
+The full body defines obligations, implementation guidance, exceptions, and validation guidance.
+Existing snapshots and local replacements must add rule-level `whenToRead` before building with this format.
 
 See [Make a rule](/guides/write-rules/) for a complete example.
 
-## Attribution
+## Rule attribution
 
-Keep source attribution with the rule, in its metadata or Markdown body.
-Imports preserve that attribution in both the vendored source and the generated group file.
-A separate attribution file is not required by the format.
+A rule may record the source of an adaptation independently of the library's license:
 
-When a library includes applicable library-level license or notice files, preserve those files with its vendored snapshot.
-Keep references to them valid after import.
+```yaml
+attribution:
+  - url: https://github.com/sindresorhus/eslint-plugin-unicorn/blob/5d9d745c5365b6fdb824db1122ff982dd824b11a/docs/rules/no-for-each.md
+    description: Adapted from Sindre Sorhus's ESLint Unicorn rule; added task guidance.
+```
+
+Each optional `attribution` entry requires an absolute HTTP(S) `url` without credentials and a non-blank `description`.
+Use a commit-pinned URL and describe the adaptation. These citations identify source material; they do not override the library license.
+Existing attribution in prose or other metadata remains preserved.
+
+Keep attribution with the rule in metadata or prose; a separate attribution file is not required by the format.
+Declare accompanying license and notice files in the library manifest so Code Rules can retain them and their links.
 
 ## Project layout
 
@@ -104,6 +143,7 @@ Keep references to them valid after import.
       - _source.json
       - rule-library.json
       - LICENSE.md
+      - NOTICE.md
       - techs/typescript/
         - ...
       - practices/testing/
@@ -121,48 +161,159 @@ Keep references to them valid after import.
   - generated/
     - RULES.md
     - provenance.json
-    - techs/
-      - typescript.md
-      - react.md
-    - practices/
-      - testing.md
-      - observability.md
+    - libraries/
+      - fabrica/
+        - README.md
+        - licenses/
+          - LICENSE.md
+          - notices/001.md
+      - acme/
+        - README.md
+        - licenses/
+          - LICENSE.md
+    - groups/
+      - README.md
+      - techs/
+        - typescript.md
+        - react.md
+      - practices/
+        - testing.md
+        - observability.md
+    - rules/
+      - README.md
+      - fabrica/techs/typescript/prefer-type-aliases.md
+      - acme/techs/react/example.md
+      - local/practices/testing/example.md
 
 </FileTree>
 
 The project authors configuration and local rules.
-The importer owns the entire `vendor/` and `generated/` directories.
+The planned import and installation workflow owns `vendor/` and `generated/`.
+The offline builder returns file contents; it does not install either directory.
 Commit those directories so coding, review, and consistency checks can work offline.
 
 ## Generated index and rules
 
-`generated/RULES.md` introduces the project's declared best practices and explains how to use them during implementation and validation.
-It links every installed group under Technologies or Practices and explains when to load it.
+`generated/RULES.md` introduces the project's declared practices and explains how to select technology and practice groups.
+Each entry contains a group name, **When to read** guidance, and an explicit **Open group** link.
+When multiple sources contribute to a group, their reading cues remain separate and labeled by source.
+One instruction above the entries directs the agent to open relevant group indexes and read applicable rules in full.
 It links to `provenance.json` for source versions and rule origins.
-Exclusions and replacement reasons remain in project configuration.
 
-Each group file combines its effective rules from all selected sources and the project.
-Its introduction explains how to use the aggregate during implementation and validation, and links back to `RULES.md` for project-wide instructions and other relevant groups.
-It also links to `provenance.json` for source versions and rule origins, and directs authors to change source inputs rather than generated output.
-The file identifies its project-level group ID, such as `practices/testing`.
-A group can combine multiple sources, so it has no single source prefix.
-Individual rules include source-qualified IDs, active source links, and upstream provenance where applicable.
-Rule IDs are unique within the consuming project; repository identity and provenance identify the upstream rule.
-The index retains each contributing source's group descriptions and when-to-read guidance, labeled by source.
-Each imported rule links to its applicable preserved license.
-`provenance.json` records source repositories, refs, resolved commits, and declared library license paths.
+`generated/groups/` contains group discovery pages; `generated/rules/` contains individual effective definitions.
+Each folder includes a short `README.md` explaining its contents and pointing back to `generated/RULES.md`, the primary entry point. These descriptions do not add a required reading step.
+Group IDs such as `practices/testing` remain unchanged. The corresponding page lives at `groups/practices/testing.md` relative to `generated/`.
+
+Each group page, such as `generated/groups/practices/testing.md`, states whether it contains full rules or summaries only.
+A small group includes every active rule's complete effective definition inline.
+A larger group lists each active rule's source-qualified ID, plain title, **When to read**, **Impact**, **Why it matters**, and an explicit **Read full rule** link.
+Reading instructions appear first; navigation, provenance, and regeneration instructions appear at the bottom.
+Read every relevant or plausibly relevant rule completely before planning, implementation, validation, or diagnosis.
+Selection alone establishes neither compliance nor a violation; impact supplies consequence context rather than automatic finding severity.
+
+`BuildInput.groupInlineMaxBytes` defaults to 8 KiB and accepts non-negative safe integers; zero forces summaries.
+The complete rendered group page must fit both this limit and `indexMaxBytes` to include full rules inline.
+The measurement counts UTF-8 bytes, including instructions, metadata, examples, attribution, and the footer.
+Rule count and line count do not determine the format. A single large rule can require a summary index.
+This is a provisional delivery default, not an empirically validated threshold for agent compliance.
+
+Full definitions live under `generated/rules/<source-name>/<rule-path>.md`.
+For example, `fabrica:techs/typescript/prefer-type-aliases` maps to `rules/fabrica/techs/typescript/prefer-type-aliases.md`.
+The source name is a directory so generated paths are portable; the ID retains its colon.
+A replacement retains that path and ID while supplying its local title, applicability, and full body.
+Excluded rules and superseded bodies have no generated rule file.
+Source links, attribution, library license links, and replacement provenance remain with the effective definition in both formats.
+Individual rule files remain available at stable paths even when the group includes full rules.
+Both copies come from the same resolved definition. Relative links are relocated from the actual output directory.
+Links to declared license and notice files target their generated copies. Other retained files use workspace-relative links; unretained upstream documents use commit-pinned URLs.
+Relative links in raw HTML are rejected; use Markdown links, images, or reference definitions instead.
+Inline rules nest their headings and namespace Markdown reference labels.
+Same-file fragment links in inline rules point to the standalone definition, avoiding ambiguity between repeated headings across rules.
+
+Indexes use stable ordering and a configurable UTF-8 byte budget (`BuildInput.indexMaxBytes`, default 24 KiB in the offline API).
+An oversized index becomes a directory listing every numbered sibling part, such as `testing.part-1.md`.
+Each part contains complete entries and a link back to the directory; inspect all parts before selecting rules.
+The root group index uses the same mechanism when necessary.
+If one entry or the complete part directory cannot fit, building fails with an actionable error instead of omitting entries.
+Full rule bodies are never shortened to fit an index budget. Complete any truncated reads of those files.
+This budget is a delivery setting, not a measured model-compliance threshold.
+
+Builds returns the complete generated file set. The planned Workspace subsystem must replace obsolete output, including old parts, removed rules, obsolete library folders, and former top-level group or license paths, when installing it.
+Exclusions and replacement reasons remain in project configuration; provenance records active origins and replacement reasons.
 The consuming repository's root license is not rewritten.
+
+## Offline builder API
+
+The development checkout exports `buildRules` from `src/builds/index.ts`, along with `BuildError` and the input/output types.
+This API works before the CLI is available. It accepts these fields:
+
+| Input | Contract |
+| --- | --- |
+| `configuration` | The object described in [Configuration](/reference/configuration/). |
+| `snapshots` | One entry per configured source alias, with `repository`, `ref`, `resolvedCommit`, `groups`, `files`, and optional `groupSelection`. |
+| `localFiles` | A map from paths relative to `local/` to UTF-8 text, including local-only group metadata. |
+| `toolVersion` | A non-blank caller-supplied version string recorded in provenance. |
+| `groupInlineMaxBytes` | Optional inline delivery limit; default 8 KiB. See [generated output](#generated-index-and-rules). |
+| `indexMaxBytes` | Optional positive safe integer limiting index pages; default 24 KiB. |
+
+Snapshot `files` map library-root-relative paths to UTF-8 text. Each snapshot must include `rule-library.json` and the selected groups' metadata and rules.
+Include declared license and notice files, even when they live outside the selected groups.
+Pattern selections require an exact `groupSelection` marker and a complete snapshot for that scope; see [group selectors](/reference/configuration/#import-every-group).
+
+The result is `{ files }`, with every path relative to `generated/`. It includes indexes, effective rules, folder READMEs, library metadata, license copies, and provenance.
+Identical inputs produce identical text without changing the inputs, accessing the network, or writing files.
+The caller installs the complete result and removes obsolete output. Binary assets, remote authentication, and filesystem checks belong to other layers.
+
+Failures throw `BuildError` with a location-bearing message and one of two codes:
+
+- `invalid-input`: malformed metadata, paths, configuration, exceptions, or page budgets. Fix the named input.
+- `needs-sync`: a missing or mismatched snapshot, including an incomplete recorded group expansion. Supply a matching snapshot before rebuilding.
+
+The messages may recommend sync, but the `code-rules sync` command is still planned in this checkout.
+Use the [runnable development example](/guides/use-rules/#try-the-working-builder) to inspect real output without fetching a library.
 
 ## Provenance records
 
-Each `vendor/<source-name>/_source.json` records the source name, repository, requested `ref`, full `resolvedCommit`, imported groups, and file digests.
-Offline commands verify that the recorded repository, ref, and groups match configuration and that file digests match the snapshot.
+Each proposed `vendor/<source-name>/_source.json` records the source name, repository, requested `ref`, full `resolvedCommit`, `groupSelection`, concrete imported `groups`, and file digests.
+`groupSelection` is the configured list or selector (`"*"`, `"practices/*"`, or `"techs/*"`). Pattern snapshots must record the exact selector and supply every group within its scope at that revision.
+Legacy snapshots without this field imply the explicit `groups` list; they cannot satisfy a wildcard selection.
+The offline builder verifies that the supplied repository, ref, selection, and groups match configuration.
+The planned workspace layer must additionally load `_source.json`, verify file digests, and check filesystem containment. The builder does not read that file or compute digests.
 For a commit-valued ref, the resolved commit must equal that SHA.
 For a tag, offline checks use the recorded commit and do not verify the tag's current remote target.
 
 `generated/provenance.json` records the tool version, every named source with its requested ref and resolved commit, and active rule origins.
+Each source records `groupSelection` alongside the expanded `groups` list, keeping the adoption intent and actual included groups visible.
 A replacement retains both its targeted source-qualified ID and the local definition's origin.
 Generated output excludes changing timestamps and machine-specific paths.
 
 These metadata files support repeatability and diagnosis.
-They do not independently authenticate a locally modified snapshot against GitHub.
+They do not independently authenticate a locally modified snapshot against its remote repository.
+
+
+### License declarations in provenance
+
+Source records include `licenses` with library-relative paths and retain `licenseFiles` for compatibility. The array contains the single library declaration, or is empty when licensing is undeclared.
+Each active imported rule records that same declaration, its `attribution`, and `licenseBasis: "library"`. Its original `files` and `attributionFiles` paths start with `vendor/<source>/` and resolve from the configuration directory, above `generated/`. Both source and rule declarations add `generatedFiles` and `generatedAttributionFiles`, relative to `generated/`. Each generated path corresponds to the original path at the same array position. Generated rule links use these standardized copies.
+Local additions and original local replacements have no imported library license: their `licenses` array is empty and `licenseBasis` is `undeclared`. An upstream rule ID does not assign the upstream license to a local replacement. Its source library's declaration remains in the source record.
+
+For example, a rule imported from a library declaring MIT can have this provenance:
+
+```json
+{
+  "licenseBasis": "library",
+  "licenses": [{
+    "spdxExpression": "MIT",
+    "files": ["vendor/licensed/LICENSE.md"],
+    "attributionFiles": ["vendor/licensed/NOTICE.md"],
+    "generatedFiles": ["libraries/licensed/licenses/LICENSE.md"],
+    "generatedAttributionFiles": ["libraries/licensed/licenses/notices/001.md"]
+  }],
+  "attribution": [{
+    "url": "https://github.com/sindresorhus/eslint-plugin-unicorn/blob/5d9d745c5365b6fdb824db1122ff982dd824b11a/docs/rules/no-for-each.md",
+    "description": "Adapted from Sindre Sorhus's ESLint Unicorn rule; added task guidance."
+  }]
+}
+```
+
+These are preserved declarations, not a legal verification status. `licenseBasis: "undeclared"` means no applicable terms were declared to Code Rules; it does not mean public domain or permission to redistribute.
