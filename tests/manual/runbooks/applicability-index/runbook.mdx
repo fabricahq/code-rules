@@ -34,7 +34,6 @@ Open these files under `01-deliverable` in order. The paths below are relative t
 | `generated/groups/practices/testing.md` | This small group includes both full rules, with when-to-read guidance, impact, and **Why it matters**. Separate files remain available. |
 | `generated/rules/example/practices/testing/verify-retries.md` | The effective rule says exactly three attempts and retains the upstream ID. |
 | `config.json` | The project excludes the backoff rule and replaces the retry-limit rule. |
-| `generated/licenses/licensed/LICENSE.md` and `notices/001.md` | Unchanged license and notice contents in fixed generated locations. The manifest controls source paths only. |
 | `generated/provenance.json` | Replacement origin, upstream origin, and local additions remain traceable. |
 
 Both group formats instruct agents to read the complete rule first, then use Implementation guidance, Validation guidance, or both according to the task. These sections support the full guidance and exceptions.
@@ -178,11 +177,12 @@ Open these files under `05-licensed-library` in order:
 | Open | What to notice |
 | --- | --- |
 | `config.json` | The consuming project selects the `licensed` library with `groups: "*"`. |
+| `generated/libraries/licensed/README.md` | Library identity, revision, declared license, and links to retained terms and authoritative provenance. |
 | `vendor/licensed/rule-library.json` | `license.spdxExpression` is `MIT`; `file` and `notices` identify the retained terms. |
 | `vendor/licensed/techs/javascript/prefer-for-of.md` | The rule omits `licenses` and uses the library license. Its original attribution remains explicit. |
-| `generated/rules/licensed/techs/javascript/prefer-for-of.md` | The Source and attribution footer displays **Declared license: MIT** and links to the standardized copies in `generated/licenses/licensed/`. |
+| `generated/rules/licensed/techs/javascript/prefer-for-of.md` | The Source and attribution footer displays **Declared license: MIT** and links to the standardized copies in `generated/libraries/licensed/licenses/`. |
 | `generated/groups/techs/javascript.md` | The inline full rule includes the same declaration, with links adjusted for this file's location. |
-| `generated/licenses/licensed/LICENSE.md` and `notices/001.md` | Unchanged license and notice contents in fixed generated locations. The manifest controls source paths only. |
+| `generated/libraries/licensed/licenses/LICENSE.md` and `notices/001.md` | Unchanged license and notice contents in fixed generated locations. The manifest controls source paths only. |
 | `generated/provenance.json` | `sources` records `groupSelection: "*"`, the expanded `groups`, and the library declaration. `rules` records `licenseBasis: library`, effective terms, and upstream attribution. |
 | `vendor/licensed/LICENSE.md` and `NOTICE.md` | The complete license text and notice remain available. The walkthrough verifies that the license bytes are unchanged. |
 

@@ -43,7 +43,7 @@ The proposed library metadata identifies the terms for the whole library and any
 }
 ```
 
-Paths resolve from the library root and identify source files only. Code Rules copies the contents unchanged to `generated/licenses/<source-name>/LICENSE.md` and `generated/licenses/<source-name>/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
+Paths resolve from the library root and identify source files only. Code Rules copies the contents unchanged to `generated/libraries/<source-name>/licenses/LICENSE.md` and `generated/libraries/<source-name>/licenses/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
 For example, list `NOTICE.md` in `notices` when the library supplies a notice that must accompany imported content.
 No extra notice file is required when the license and rule files already contain the necessary notices.
 The [file reference](/reference/files/#library-license-metadata) defines these fields.
@@ -95,7 +95,7 @@ Library license and notices:
 
 **Declared license:** MIT
 
-- [LICENSE.md](../../../../licenses/fabrica/LICENSE.md)
+- [LICENSE.md](../../../../libraries/fabrica/licenses/LICENSE.md)
 ```
 
 Guidance precedes this footer; preserved source metadata follows it. Every imported rule displays its source library's declaration; explicit attribution citations also appear in the footer.

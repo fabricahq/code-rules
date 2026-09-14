@@ -73,6 +73,9 @@ tests:
       - block: inspect-library-license
     assertions:
       - type: file_contains
+        path: 05-licensed-library/generated/libraries/licensed/README.md
+        contains: '**Declared license:** MIT'
+      - type: file_contains
         path: 05-licensed-library/config.json
         contains: '"groups": "*"'
       - type: file_contains
@@ -86,7 +89,7 @@ tests:
         contains: '"licenseBasis": "library"'
       - type: file_contains
         path: 05-licensed-library/generated/provenance.json
-        contains: licenses/licensed/LICENSE.md
+        contains: libraries/licensed/licenses/LICENSE.md
       - type: file_contains
         path: 05-licensed-library/generated/rules/licensed/techs/javascript/prefer-for-of.md
         contains: '**Declared license:** MIT'
@@ -94,10 +97,10 @@ tests:
         path: 05-licensed-library/generated/groups/techs/javascript.md
         contains: '**Declared license:** MIT'
       - type: file_contains
-        path: 05-licensed-library/generated/licenses/licensed/LICENSE.md
+        path: 05-licensed-library/generated/libraries/licensed/licenses/LICENSE.md
         contains: Copyright (c) Sindre Sorhus
       - type: file_contains
-        path: 05-licensed-library/generated/licenses/licensed/notices/001.md
+        path: 05-licensed-library/generated/libraries/licensed/licenses/notices/001.md
         contains: Upstream author and copyright
 
   - name: all-groups

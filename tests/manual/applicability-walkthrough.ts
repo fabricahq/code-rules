@@ -128,6 +128,11 @@ switch (action) {
     const provenance = JSON.parse(
       requireFile({ files, path: 'provenance.json' }),
     );
+    assert(
+      requireFile({ files, path: 'libraries/licensed/README.md' }).includes(
+        '**Declared license:** MIT',
+      ),
+    );
     assert.equal(provenance.sources[0].licenses[0].spdxExpression, 'MIT');
     assert.equal(provenance.sources[0].groupSelection, '*');
     assert.deepEqual(provenance.sources[0].groups, ['techs/javascript']);
@@ -138,8 +143,10 @@ switch (action) {
         spdxExpression: 'MIT',
         files: ['vendor/licensed/LICENSE.md'],
         attributionFiles: ['vendor/licensed/NOTICE.md'],
-        generatedFiles: ['licenses/licensed/LICENSE.md'],
-        generatedAttributionFiles: ['licenses/licensed/notices/001.md'],
+        generatedFiles: ['libraries/licensed/licenses/LICENSE.md'],
+        generatedAttributionFiles: [
+          'libraries/licensed/licenses/notices/001.md',
+        ],
       },
     ]);
     for (const path of [
@@ -148,8 +155,8 @@ switch (action) {
     ]) {
       const rendered = requireFile({ files, path });
       assert(rendered.includes('**Declared license:** MIT'));
-      assert(rendered.includes('licenses/licensed/LICENSE.md'));
-      assert(rendered.includes('licenses/licensed/notices/001.md'));
+      assert(rendered.includes('libraries/licensed/licenses/LICENSE.md'));
+      assert(rendered.includes('libraries/licensed/licenses/notices/001.md'));
       assert(!rendered.includes('vendor/licensed/'));
       assert(rendered.includes('5d9d745c5365b6fdb824db1122ff982dd824b11a'));
     }
@@ -163,11 +170,14 @@ switch (action) {
       ),
     );
     assert.equal(
-      requireFile({ files, path: 'licenses/licensed/LICENSE.md' }),
+      requireFile({ files, path: 'libraries/licensed/licenses/LICENSE.md' }),
       retainedLicense.toString('utf8'),
     );
     assert.equal(
-      requireFile({ files, path: 'licenses/licensed/notices/001.md' }),
+      requireFile({
+        files,
+        path: 'libraries/licensed/licenses/notices/001.md',
+      }),
       await readFile(
         new URL('./fixtures/licensed-library/NOTICE.md', import.meta.url),
         'utf8',
@@ -175,7 +185,7 @@ switch (action) {
     );
     await capture(
       '05-licensed-library/README.md',
-      '# Follow a library license into generated rules\n\n1. Open [config.json](config.json): the project selects every group from the `licensed` source with `groups: "*"`.\n2. Open [the library manifest](vendor/licensed/rule-library.json): it declares MIT and names the license and notice files once for the library.\n3. Open [the source rule](vendor/licensed/techs/javascript/prefer-for-of.md): it has attribution but no rule-level `licenses` field.\n4. Open [the full generated rule](generated/rules/licensed/techs/javascript/prefer-for-of.md): its footer displays the library-wide MIT declaration. Follow the license and notice links into `generated/licenses/licensed/`: `LICENSE.md` and `notices/001.md` are unchanged copies with standard destinations.\n5. Open [the group](generated/groups/techs/javascript.md): the inline full rule retains the same license and attribution links.\n6. Open [provenance.json](generated/provenance.json): the source records `groupSelection: "*"`, the concrete `groups` list, and MIT with library-relative paths; the effective rule records `licenseBasis: library` and paths starting with `vendor/licensed/`. Original rule license paths resolve from this directory, above generated/. Both source and rule declarations include `generatedFiles` and `generatedAttributionFiles`, relative to generated/, mapping each original file to its output copy.\n\nThe example retains the original ESLint Unicorn attribution and complete MIT text. The licensed library repository `example/licensed-code-rules`, tag, and commit are illustrative; only the original attribution points to a real upstream source. This fixture supplies a compatible snapshot offline and does not fetch a repository. Code Rules preserves declared terms rather than certifying them.\n',
+      '# Follow a library license into generated rules\n\nStart with [the library overview](generated/libraries/licensed/README.md) for the repository, revision, license, and provenance links.\n\n1. Open [config.json](config.json): the project selects every group from the `licensed` source with `groups: "*"`.\n2. Open [the library manifest](vendor/licensed/rule-library.json): it declares MIT and names the license and notice files once for the library.\n3. Open [the source rule](vendor/licensed/techs/javascript/prefer-for-of.md): it has attribution but no rule-level `licenses` field.\n4. Open [the full generated rule](generated/rules/licensed/techs/javascript/prefer-for-of.md): its footer displays the library-wide MIT declaration. Follow the license and notice links into `generated/libraries/licensed/licenses/`: `LICENSE.md` and `notices/001.md` are unchanged copies with standard destinations.\n5. Open [the group](generated/groups/techs/javascript.md): the inline full rule retains the same license and attribution links.\n6. Open [provenance.json](generated/provenance.json): the source records `groupSelection: "*"`, the concrete `groups` list, and MIT with library-relative paths; the effective rule records `licenseBasis: library` and paths starting with `vendor/licensed/`. Original rule license paths resolve from this directory, above generated/. Both source and rule declarations include `generatedFiles` and `generatedAttributionFiles`, relative to generated/, mapping each original file to its output copy.\n\nThe example retains the original ESLint Unicorn attribution and complete MIT text. The licensed library repository `example/licensed-code-rules`, tag, and commit are illustrative; only the original attribution points to a real upstream source. This fixture supplies a compatible snapshot offline and does not fetch a repository. Code Rules preserves declared terms rather than certifying them.\n',
     );
     console.log(
       'Open 05-licensed-library/README.md to trace the library license through the source rule, generated footer, and provenance.',

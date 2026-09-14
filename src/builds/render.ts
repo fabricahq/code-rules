@@ -1,7 +1,13 @@
 /** @fileoverview Renders resolved rules as applicability indexes, individual effective definitions, and provenance. */
 
 import { posix } from 'node:path';
-import type { ActiveRule, BuildOutput, Group, ResolvedRules } from './types';
+import type {
+  ActiveRule,
+  BuildOutput,
+  Group,
+  ResolvedRules,
+  SourceRecord,
+} from './types';
 import { compare, invalid } from './validation';
 import { escapeText, renderRule } from './markdown';
 import { licenseOutputPaths } from './license-output';
@@ -143,6 +149,45 @@ function inlineGroupPage(
   return [...sections, groupFooter].join('\n\n') + '\n';
 }
 
+/** Describe an imported library for humans while keeping provenance authoritative for machine-readable metadata. */
+function libraryReadme(source: SourceRecord): string {
+  const path = `libraries/${source.name}/README.md`;
+  const sections = [
+    `# ${escapeText(source.name)}`,
+    'This folder describes an imported Code Rules library and retains its declared license and notice files.',
+    `**Repository:** [${escapeText(source.repository)}](https://github.com/${source.repository})`,
+    `**Requested revision:** ${escapeText(source.ref)}`,
+    `**Resolved commit:** [${source.resolvedCommit}](https://github.com/${source.repository}/tree/${source.resolvedCommit})`,
+  ];
+  if (!source.licenses.length)
+    sections.push('No library license declaration was supplied.');
+  for (const license of source.licenses) {
+    sections.push(
+      license.spdxExpression === null
+        ? 'License files were supplied without an SPDX declaration.'
+        : `**Declared license:** ${escapeText(license.spdxExpression)}`,
+    );
+    const paths = licenseOutputPaths(source.name, license);
+    sections.push(
+      ...paths.generatedFiles.map(
+        (target) =>
+          `[License text](${posix.relative(posix.dirname(path), target)})`,
+      ),
+    );
+    sections.push(
+      ...paths.generatedAttributionFiles.map(
+        (target, index) =>
+          `[Notice ${index + 1}](${posix.relative(posix.dirname(path), target)})`,
+      ),
+    );
+  }
+  sections.push(
+    '[provenance.json](../../provenance.json) is the authoritative machine-readable record of source versions, declarations, and original and generated file paths.',
+    'Use [RULES.md](../../RULES.md) to find the effective rules. These files are generated. Edit source metadata or configuration and rebuild.',
+  );
+  return sections.join('\n\n') + '\n';
+}
+
 /** Serialize source revisions and active rule origins in stable order, deriving rules from their groups. */
 function renderProvenance(
   resolved: ResolvedRules,
@@ -230,6 +275,8 @@ export function renderGeneratedFiles(
       'These files are generated. Edit source rules or configuration and rebuild.',
     ].join('\n\n') + '\n',
   );
+  for (const source of resolved.sources)
+    output.set(`libraries/${source.name}/README.md`, libraryReadme(source));
   for (const [path, content] of resolved.licenseFiles)
     output.set(path, content);
   output.set('provenance.json', renderProvenance(resolved, toolVersion));

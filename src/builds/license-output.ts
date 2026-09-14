@@ -12,7 +12,7 @@ export function licenseFileMappings(
   readonly generatedPath: string;
   readonly kind: 'license' | 'notice';
 }> {
-  const root = `licenses/${source}`;
+  const root = `libraries/${source}/licenses`;
   return [
     ...license.files.map((sourcePath) => ({
       sourcePath,

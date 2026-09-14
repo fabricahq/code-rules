@@ -49,12 +49,14 @@ The planned import and workspace workflow preserves these files from the resolve
 The offline builder accepts supplied snapshots, verifies that declared files exist, and copies their unchanged contents to standard generated paths and links generated guidance to those copies. It does not fetch files or compute workspace snapshot digests.
 If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
 
+Every imported library has a generated `libraries/<source-name>/README.md` with its repository, requested revision, resolved commit, declared SPDX expression when supplied, and links to retained terms and provenance. Libraries without a license declaration omit the `licenses/` directory. `provenance.json` remains the authoritative machine-readable record.
+
 The manifest paths select **source files**, not output locations. Code Rules always writes:
 
 ```text
-generated/licenses/<source-name>/LICENSE.md
-generated/licenses/<source-name>/notices/001.md
-generated/licenses/<source-name>/notices/002.md
+generated/libraries/<source-name>/licenses/LICENSE.md
+generated/libraries/<source-name>/licenses/notices/001.md
+generated/libraries/<source-name>/licenses/notices/002.md
 ```
 
 `<source-name>` is the configured library alias. Unique notice files are numbered in declaration order; repeated paths and a notice path identical to the license path are copied only once. No notice files are generated when none are declared. Contents, including whitespace and line endings, are preserved. Output paths are not configurable. Vendored snapshots retain the original names for traceability. Declared terms are retained even when exclusions or replacements leave no active rules from that library.
@@ -157,12 +159,16 @@ Keep references to them valid after import.
   - generated/
     - RULES.md
     - provenance.json
-    - licenses/
+    - libraries/
       - fabrica/
-        - LICENSE.md
-        - notices/001.md
+        - README.md
+        - licenses/
+          - LICENSE.md
+          - notices/001.md
       - acme/
-        - LICENSE.md
+        - README.md
+        - licenses/
+          - LICENSE.md
     - groups/
       - README.md
       - techs/
@@ -264,8 +270,8 @@ For example, the licensed-library walkthrough produces:
     "spdxExpression": "MIT",
     "files": ["vendor/licensed/LICENSE.md"],
     "attributionFiles": ["vendor/licensed/NOTICE.md"],
-    "generatedFiles": ["licenses/licensed/LICENSE.md"],
-    "generatedAttributionFiles": ["licenses/licensed/notices/001.md"]
+    "generatedFiles": ["libraries/licensed/licenses/LICENSE.md"],
+    "generatedAttributionFiles": ["libraries/licensed/licenses/notices/001.md"]
   }],
   "attribution": [{
     "url": "https://github.com/sindresorhus/eslint-plugin-unicorn/blob/5d9d745c5365b6fdb824db1122ff982dd824b11a/docs/rules/no-for-each.md",
