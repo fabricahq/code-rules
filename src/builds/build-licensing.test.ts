@@ -564,23 +564,16 @@ test('should keep replacement licensing independent from upstream library terms'
 });
 
 test.each([
-  'licenses: []',
-  'licenses: [{spdxExpression: MIT, files: []}]',
-  'licenses: [{spdxExpression: MIT, files: [../LICENSE]}]',
-  'licenses: [{spdxExpression: MIT, files: [missing/LICENSE.md]}]',
-  'licenses: [{spdxExpression: "", files: [LICENSE]}]',
-  'licenses: [{spdxExpression: "MIT\\nApache-2.0", files: [LICENSE]}]',
   'attribution: [{url: "javascript:alert(1)", description: Source}]',
   'attribution: [{url: "https://user:secret@example.com", description: Source}]',
-])('should reject incomplete or unsafe licensing metadata: %s', (metadata) => {
+])('should reject unsafe attribution URLs: %s', (metadata) => {
   const build = localInput({
     [`${ruleId}.md`]: ruleText('Invalid').replace(
       '---\n',
       `---\n${metadata}\n`,
     ),
-    LICENSE: 'License text',
   });
-  expect(() => buildRules(build)).toThrow();
+  expect(() => buildRules(build)).toThrow('attribution[0].url');
 });
 
 test('should reject unsupported license declarations even on excluded rules', () => {
@@ -607,4 +600,18 @@ test('should reject unsupported license declarations even on excluded rules', ()
   expect(() => buildRules(build)).toThrow(
     'rule-level licenses are unsupported',
   );
+});
+
+test('should reject missing declared license text', () => {
+  const build = input();
+  const missing = snapshot('fabrica/rules', 'Rule', {
+    'rule-library.json':
+      '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":[]}}',
+  });
+  expect(() =>
+    buildRules({
+      ...build,
+      snapshots: { ...build.snapshots, fabrica: missing },
+    }),
+  ).toThrow('LICENSE.md');
 });

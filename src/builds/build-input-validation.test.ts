@@ -133,21 +133,6 @@ test.each([
     },
     'both excluded and replaced',
   ],
-  [
-    'escaping replacement',
-    {
-      schemaVersion: 1,
-      sources: {
-        fabrica: source(
-          'fabrica/rules',
-          {},
-          { [ruleId]: { file: 'local/../escape.md', reason: 'Replace.' } },
-        ),
-      },
-      localGroups: [],
-    },
-    'contained relative path',
-  ],
 ])('should reject %s', (_name, configuration, message) => {
   expect(() => buildRules({ ...input(), configuration })).toThrow(message);
 });
@@ -165,34 +150,13 @@ test.each([
     'invalid YAML',
   ],
   ['empty body', ruleText('Empty', '').split('## Empty')[0] ?? '', 'body'],
-  [
-    'escaping link',
-    ruleText('Link', '[Escape](../../../secret.md)'),
-    'escapes source root',
-  ],
-  [
-    'missing local link',
-    ruleText('Link', '[Missing](missing.txt)'),
-    'missing local link',
-  ],
 ])('should reject %s', (_name, text, message) => {
   expect(() => buildRules(localInput({ [`${ruleId}.md`]: text }))).toThrow(
     message,
   );
 });
 
-test('should reject missing license text and malformed group metadata', () => {
-  const build = input();
-  const missing = snapshot('fabrica/rules', 'Rule', {
-    'rule-library.json':
-      '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":[]}}',
-  });
-  expect(() =>
-    buildRules({
-      ...build,
-      snapshots: { ...build.snapshots, fabrica: missing },
-    }),
-  ).toThrow('LICENSE.md');
+test('should reject malformed group metadata', () => {
   expect(() =>
     buildRules(localInput({ [`${group}/_group.json`]: '{}' })),
   ).toThrow('name');

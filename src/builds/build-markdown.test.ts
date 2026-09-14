@@ -275,3 +275,20 @@ test('should put complete guidance before source details and preserved metadata 
     expect(page).not.toContain('stated below');
   }
 });
+
+test.each([
+  [
+    'escaping link',
+    ruleText('Link', '[Escape](../../../secret.md)'),
+    'escapes source root',
+  ],
+  [
+    'missing local link',
+    ruleText('Link', '[Missing](missing.txt)'),
+    'missing local link',
+  ],
+])('should reject %s', (_name, text, message) => {
+  expect(() => buildRules(localInput({ [`${ruleId}.md`]: text }))).toThrow(
+    message,
+  );
+});
