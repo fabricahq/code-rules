@@ -24,6 +24,7 @@ Try the [development example](/guides/use-rules/#try-the-working-builder) or rea
 Automated tests exercise both rule-delivery formats, licenses, and group selectors.
 
 The `importLibraries` API fetches exact commits or tags from Git libraries and returns original bytes plus snapshots for `buildRules`.
+It accepts explicit HTTPS and SSH Git addresses across hosts. Generated source links recognize GitHub.com and GitLab.com and use retained files for other hosts.
 Imports requires macOS or Linux and Git 2.30 or later. It preserves selected rules, relative Markdown dependencies, and declared license files without installing a consuming workspace.
 Workspace installation, digest verification, generated-file consistency checks, CLI commands, and the installable authoring skill remain planned.
 

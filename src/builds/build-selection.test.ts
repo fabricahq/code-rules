@@ -18,7 +18,7 @@ import {
 
 /** Supply a complete two-group snapshot with an explicit wildcard selection marker. */
 function wildcardInput(): BuildInput {
-  const repository = 'example/rules';
+  const repository = 'https://github.com/example/rules.git';
   return {
     configuration: {
       schemaVersion: 1,
@@ -117,7 +117,7 @@ test('should reject an old partial snapshot rather than interpreting it as a who
     buildRules({
       ...build,
       snapshots: {
-        all: snapshot('example/rules', 'Partial'),
+        all: snapshot('https://github.com/example/rules.git', 'Partial'),
       },
     }),
   ).toThrow('run sync');
@@ -188,7 +188,7 @@ test('should preserve rule exclusions and local replacements after expansion', (
     sources: {
       all: {
         ...source(
-          'example/rules',
+          'https://github.com/example/rules.git',
           { 'techs/typescript/check-results': 'Covered elsewhere.' },
           { [ruleId]: { file: replacement, reason: 'Three attempts.' } },
         ),
@@ -215,7 +215,7 @@ test('should reject local-only groups that overlap wildcard imports', () => {
     schemaVersion: 1,
     sources: {
       all: {
-        ...source('example/rules'),
+        ...source('https://github.com/example/rules.git'),
         groups: '*',
       },
     },
@@ -240,7 +240,7 @@ test.each([
     schemaVersion: 1,
     sources: {
       all: {
-        ...source('example/rules'),
+        ...source('https://github.com/example/rules.git'),
         groups,
       },
     },
@@ -329,8 +329,10 @@ test('should exclude only the owning source without listing inactive rules in th
     configuration: {
       schemaVersion: 1,
       sources: {
-        fabrica: source('fabrica/rules', { [ruleId]: 'Covered locally.' }),
-        acme: source('acme/rules'),
+        fabrica: source('https://github.com/fabrica/rules.git', {
+          [ruleId]: 'Covered locally.',
+        }),
+        acme: source('https://github.com/acme/rules.git'),
       },
       localGroups: [],
     },
@@ -349,7 +351,7 @@ test('should preserve the replaced ID and both origins without adding the local 
       schemaVersion: 1,
       sources: {
         fabrica: source(
-          'fabrica/rules',
+          'https://github.com/fabrica/rules.git',
           {},
           {
             [ruleId]: {
@@ -358,7 +360,7 @@ test('should preserve the replaced ID and both origins without adding the local 
             },
           },
         ),
-        acme: source('acme/rules'),
+        acme: source('https://github.com/acme/rules.git'),
       },
       localGroups: [],
     },
@@ -384,12 +386,12 @@ test('should reject a reused replacement and a replacement in another group', ()
     schemaVersion: 1,
     sources: {
       fabrica: source(
-        'fabrica/rules',
+        'https://github.com/fabrica/rules.git',
         {},
         { [ruleId]: { file, reason: 'Replace.' } },
       ),
       acme: source(
-        'acme/rules',
+        'https://github.com/acme/rules.git',
         {},
         { [ruleId]: { file, reason: 'Replace.' } },
       ),
@@ -407,7 +409,7 @@ test('should reject a reused replacement and a replacement in another group', ()
     schemaVersion: 1,
     sources: {
       fabrica: source(
-        'fabrica/rules',
+        'https://github.com/fabrica/rules.git',
         {},
         {
           [ruleId]: {
@@ -416,7 +418,7 @@ test('should reject a reused replacement and a replacement in another group', ()
           },
         },
       ),
-      acme: source('acme/rules'),
+      acme: source('https://github.com/acme/rules.git'),
     },
     localGroups: [],
   };

@@ -18,11 +18,27 @@ try {
   await addLibrary(fixture, 'two');
   const configuration = {
     schemaVersion: 1,
-    sources: { fabrica: fixtureSource('one'), acme: fixtureSource('two') },
+    sources: {
+      fabrica: fixtureSource('one'),
+      acme: {
+        ...fixtureSource('two'),
+        repository: 'https://gitlab.com/fixture/nested/two.git',
+      },
+    },
     localGroups: [],
   };
   const result = object(
-    runImport(fixture, configuration, { build: true }),
+    runImport(
+      fixture,
+      configuration,
+      { build: true },
+      {
+        ...fixture.env,
+        GIT_CONFIG_COUNT: '3',
+        GIT_CONFIG_KEY_2: `url.file://${fixture.root}/.insteadOf`,
+        GIT_CONFIG_VALUE_2: 'https://gitlab.com/fixture/nested/',
+      },
+    ),
     'manual import',
   );
   if ('error' in result) throw new Error(String(result['message']));

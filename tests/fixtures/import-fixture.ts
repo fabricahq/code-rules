@@ -120,7 +120,7 @@ export function fixtureSource(
   ref = 'v1',
 ): Record<string, unknown> {
   return {
-    repository: `fixture/${name}`,
+    repository: `https://github.com/fixture/${name}.git`,
     ref,
     groups: ['practices/testing'],
     exclude: {},

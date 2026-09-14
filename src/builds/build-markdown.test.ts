@@ -50,16 +50,20 @@ test('should show each rule title once and keep ordinary prose readable as Markd
 
 test('should retain attribution, license links, and pinned links to documents outside the snapshot', () => {
   const build = input();
-  const licensed = snapshot('fabrica/rules', 'Licensed retries', {
-    'rule-library.json':
-      '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":["NOTICE.txt"]}}',
-    'LICENSE.md': 'Example terms.',
-    'NOTICE.txt': 'Original example attribution.',
-    [`${ruleId}.md`]: ruleText(
-      'Licensed retries',
-      '[Terms](../../LICENSE.md)\n\n[Background](../../guides/retries.md#limits)\n\n[This rule](#verification)\n\nCredit: original fixture author.',
-    ),
-  });
+  const licensed = snapshot(
+    'https://github.com/fabrica/rules.git',
+    'Licensed retries',
+    {
+      'rule-library.json':
+        '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":["NOTICE.txt"]}}',
+      'LICENSE.md': 'Example terms.',
+      'NOTICE.txt': 'Original example attribution.',
+      [`${ruleId}.md`]: ruleText(
+        'Licensed retries',
+        '[Terms](../../LICENSE.md)\n\n[Background](../../guides/retries.md#limits)\n\n[This rule](#verification)\n\nCredit: original fixture author.',
+      ),
+    },
+  );
   const output = generated(
     { ...build, snapshots: { ...build.snapshots, fabrica: licensed } },
     `rules/fabrica/${ruleId}.md`,
@@ -84,7 +88,7 @@ test('should relocate reference definitions and images while leaving fenced code
       ...build,
       snapshots: {
         ...build.snapshots,
-        fabrica: snapshot('fabrica/rules', 'Links', {
+        fabrica: snapshot('https://github.com/fabrica/rules.git', 'Links', {
           [`${ruleId}.md`]: ruleText('Links', body),
         }),
       },
@@ -105,10 +109,14 @@ test('should keep reference labels distinct across rules and relocate images nes
   const body =
     '[Reference][details]\n\n[details]: ../../README.md\n\n[![Diagram](../../diagram.png)](../../overview.md)';
   const snapshots = {
-    fabrica: snapshot('fabrica/rules', 'Fabrica references', {
-      [`${ruleId}.md`]: ruleText('Fabrica references', body),
-    }),
-    acme: snapshot('acme/rules', 'Acme references', {
+    fabrica: snapshot(
+      'https://github.com/fabrica/rules.git',
+      'Fabrica references',
+      {
+        [`${ruleId}.md`]: ruleText('Fabrica references', body),
+      },
+    ),
+    acme: snapshot('https://github.com/acme/rules.git', 'Acme references', {
       [`${ruleId}.md`]: ruleText('Acme references', body),
     }),
   };
@@ -217,11 +225,11 @@ test('should preserve inline licenses, relative links, references, and same-file
     ...input(),
     configuration: {
       schemaVersion: 1,
-      sources: { fabrica: source('fabrica/rules') },
+      sources: { fabrica: source('https://github.com/fabrica/rules.git') },
       localGroups: [],
     },
     snapshots: {
-      fabrica: snapshot('fabrica/rules', 'Base', {
+      fabrica: snapshot('https://github.com/fabrica/rules.git', 'Base', {
         'rule-library.json': JSON.stringify({
           formatVersion: 1,
           license: { file: 'LICENSE.md', notices: [] },

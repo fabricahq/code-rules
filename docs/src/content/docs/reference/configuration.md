@@ -14,7 +14,7 @@ The offline builder validates the fields below. The format remains unreleased, a
   "schemaVersion": 1,
   "sources": {
     "fabrica": {
-      "repository": "fabricahq/.code-rules-example",
+      "repository": "https://github.com/fabricahq/.code-rules-example.git",
       "ref": "v1.0.0",
       "groups": [
         "techs/typescript",
@@ -29,7 +29,7 @@ The offline builder validates the fields below. The format remains unreleased, a
       }
     },
     "acme": {
-      "repository": "acme/.code-rules",
+      "repository": "https://github.com/acme/.code-rules.git",
       "ref": "<full Git commit SHA>",
       "groups": [
         "techs/react",
@@ -53,7 +53,7 @@ Replace them with libraries and rules your project can access.
 | --- | --- |
 | `schemaVersion` | Configuration format version; the builder accepts `1`. |
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
-| `sources.<name>.repository` | GitHub repository in `owner/name` form. |
+| `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
 | `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. |
 | `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
 | `localGroups` | Local-only group IDs, each backed by `_group.json` under `local/`. |
@@ -112,6 +112,48 @@ The builder compares discovered groups with the recorded expansion and validates
 An old partial snapshot is insufficient even if its recorded groups look complete; changing selection intent requires sync.
 Legacy snapshots without `groupSelection` represent their explicit `groups` list and remain valid for list-based configuration.
 This completeness declaration comes from the snapshot supplier; offline checks do not independently authenticate it against the remote repository.
+
+## Repository addresses
+
+Use a complete Git address so the host is explicit:
+
+```json
+"repository": "https://gitlab.com/my-team/engineering/rules.git"
+```
+
+Supported forms include:
+
+```text
+https://github.com/my-team/rules.git
+https://gitlab.com/my-team/engineering/rules.git
+ssh://git@git.example.org:2222/srv/rules.git
+git@git.example.org:engineering/rules.git
+git@git.example.org:/srv/rules.git
+```
+
+Nested GitLab namespaces, private hosts, and explicit ports are supported.
+The `.git` suffix is optional. Git uses the caller's credentials; do not embed HTTPS credentials or SSH passwords in configuration.
+SSH usernames are allowed.
+
+Keep revisions in `ref` and selected groups in `groups`.
+Repository addresses do not accept query strings, fragments, `git::` prefixes, getter options, or `//subdirectory` selection.
+Local paths, `file:`, unauthenticated `git:`, plain HTTP, and remote-helper protocols are outside this format.
+The earlier `owner/name` shorthand is no longer accepted; use `https://github.com/owner/name.git` instead.
+
+Code Rules preserves the supplied address in provenance and requires the snapshot to match it exactly.
+Duplicate detection normalizes host spelling and recognizes standard GitHub.com and GitLab.com transport aliases and optional `.git` suffixes.
+GitHub path matching ignores case; generic repository paths and GitLab paths retain case.
+Other hosts retain their transport, username, port, and path distinctions.
+For example, `git@host:rules.git` is home-relative, while `ssh://git@host/rules.git` is absolute. Code Rules does not equate them.
+
+Validation rejects ambiguous paths, including dot segments, encoded separators in URLs, malformed URI escapes, raw whitespace, and backslashes.
+SCP paths are literal Git paths, so percent signs in that form are not URI escapes.
+Syntax validation does not fetch or authenticate a repository.
+
+Generated source links use pinned GitHub.com or GitLab.com URLs for recognized standard endpoints.
+For other hosts, they point to the retained source file under `vendor/<source>/`.
+If a relative document or image is missing from that snapshot, generation fails with instructions to retain it or supply an explicit URL.
+Code Rules does not infer a host's web interface from its name. See [How imports work](/reference/imports/).
 
 ## Source names and rule identity
 

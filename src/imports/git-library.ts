@@ -57,7 +57,7 @@ export async function fetchRevision(
     signal,
     4096,
   );
-  const remote = `https://github.com/${source.repository}.git`;
+  const remote = source.repository;
   const ref =
     source.parsedRef.kind === 'commit'
       ? source.parsedRef.sha

@@ -473,3 +473,63 @@ test('rejects encoded absolute paths that traverse beyond the library root', asy
   });
   failure(config({ one: fixtureSource('one') }), 'invalid-library');
 });
+
+test.each([
+  'https://gitlab.com/team/nested/one.git',
+  'ssh://git@git.example.org:2222/srv/one.git',
+  'git@git.example.org:team/one.git',
+  'git@git.example.org:/srv/one.git',
+])(
+  'imports the exact configured Git address %s and retains its provenance',
+  async (repository) => {
+    const { directory, commit } = await addLibrary(fixture, 'one');
+    const result = runImport(
+      fixture,
+      config({ one: { ...fixtureSource('one'), repository } }),
+      { build: true },
+      {
+        ...fixture.env,
+        GIT_CONFIG_KEY_0: `url.file://${directory}.insteadOf`,
+        GIT_CONFIG_VALUE_0: repository,
+      },
+    );
+    expect(result).toMatchObject({
+      snapshots: { one: { repository, resolvedCommit: commit } },
+    });
+    expect(JSON.stringify(result)).toContain(repository);
+  },
+);
+
+test('rejects a rewrite to a local transport without an explicit Git allowance', async () => {
+  await addLibrary(fixture, 'one');
+  expect(
+    runImport(
+      fixture,
+      config({ one: fixtureSource('one') }),
+      {},
+      {
+        ...fixture.env,
+        GIT_CONFIG_COUNT: '1',
+      },
+    ),
+  ).toMatchObject({ error: 'not-found-or-no-access' });
+});
+
+test.each([
+  'fixture/one',
+  'file:///tmp/library',
+  'git::https://example.org/rules.git',
+  'https://user:secret@example.org/rules.git',
+])('rejects unsupported repository %s before invoking Git', (repository) => {
+  expect(
+    runImport(
+      fixture,
+      config({ one: { ...fixtureSource('one'), repository } }),
+      {},
+      {
+        ...fixture.env,
+        PATH: '/nonexistent',
+      },
+    ),
+  ).toMatchObject({ error: 'invalid-configuration' });
+});

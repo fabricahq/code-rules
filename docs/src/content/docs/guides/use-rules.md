@@ -35,7 +35,7 @@ Create `code-rules/config.json` in the project:
   "schemaVersion": 1,
   "sources": {
     "fabrica": {
-      "repository": "fabricahq/.code-rules-example",
+      "repository": "https://github.com/fabricahq/.code-rules-example.git",
       "ref": "v1.0.0",
       "groups": [
         "techs/typescript",
@@ -45,7 +45,7 @@ Create `code-rules/config.json` in the project:
       "replace": {}
     },
     "acme": {
-      "repository": "acme/.code-rules",
+      "repository": "https://github.com/acme/.code-rules.git",
       "ref": "<full Git commit SHA>",
       "groups": [
         "techs/react",

@@ -92,7 +92,8 @@ bun run imports:example
 The scenario creates two temporary Git libraries, imports them, and writes a temporary workspace for inspection.
 Both libraries contain a rule with the same path; the generated testing group identifies each source separately.
 Check its image and license links against `vendor/`, then inspect `generated/provenance.json` for resolved commits.
-The fixture repository names are illustrative, so GitHub links do not resolve to those local libraries.
+The scenario uses illustrative GitHub and nested GitLab addresses, routed to local repositories only in the test process.
+Generated remote source links therefore do not resolve to those local fixture libraries.
 The script removes its Git fixtures and leaves the printed workspace for inspection.
 It does not write `_source.json` or implement Workspace's installation guarantees.
 

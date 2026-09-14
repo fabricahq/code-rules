@@ -12,7 +12,7 @@ function build(snapshot: LibrarySnapshot): string | undefined {
       schemaVersion: 1,
       sources: {
         example: {
-          repository: 'fixture/one',
+          repository: 'https://github.com/fixture/one.git',
           ref: 'v1',
           groups: ['practices/testing'],
           exclude: {},
@@ -33,7 +33,7 @@ const text = Object.fromEntries(
   ),
 );
 const snapshot: LibrarySnapshot = {
-  repository: 'fixture/one',
+  repository: 'https://github.com/fixture/one.git',
   ref: 'v1',
   resolvedCommit: 'a'.repeat(40),
   groups: ['practices/testing'],
