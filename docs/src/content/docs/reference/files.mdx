@@ -132,6 +132,7 @@ Keep references to them valid after import.
     - RULES.md
     - provenance.json
     - groups/
+      - README.md
       - techs/
         - typescript.md
         - react.md
@@ -139,6 +140,7 @@ Keep references to them valid after import.
         - testing.md
         - observability.md
     - rules/
+      - README.md
       - fabrica/techs/typescript/prefer-type-aliases.md
       - acme/techs/react/example.md
       - local/practices/testing/example.md
@@ -158,6 +160,7 @@ One instruction above the entries directs the agent to open relevant group index
 It links to `provenance.json` for source versions and rule origins.
 
 `generated/groups/` contains group discovery pages; `generated/rules/` contains individual effective definitions.
+Each folder includes a short `README.md` explaining its contents and pointing back to `generated/RULES.md`, the primary entry point. These descriptions do not add a required reading step.
 Group IDs such as `practices/testing` remain unchanged. The corresponding page lives at `groups/practices/testing.md` relative to `generated/`.
 
 Each group page, such as `generated/groups/practices/testing.md`, states whether it contains full rules or summaries only.

@@ -191,6 +191,24 @@ export function renderGeneratedFiles(
       output.set(path, `${renderRule(active, path)}\n`);
     }
   }
+  output.set(
+    'rules/README.md',
+    [
+      '# Effective rules',
+      'This folder contains the complete effective definitions of the project’s active rules. Code Rules has already applied imports, local additions, exclusions, and replacements. A replacement keeps the original rule ID and supplies the effective guidance.',
+      'Use [RULES.md](../RULES.md) to select relevant groups and rules. Source and attribution details appear in each rule; [provenance.json](../provenance.json) records their origins.',
+      'These files are generated. Edit source rules or configuration and rebuild.',
+    ].join('\n\n') + '\n',
+  );
+  output.set(
+    'groups/README.md',
+    [
+      '# Rule groups',
+      'This folder contains generated technology and practice group pages for the project’s active rules.',
+      'Start with [RULES.md](../RULES.md) to choose relevant groups. Each group page provides reading instructions and either complete rules or summaries with explicit links to the full definitions.',
+      'These files are generated. Edit source rules or configuration and rebuild.',
+    ].join('\n\n') + '\n',
+  );
   output.set('provenance.json', renderProvenance(resolved, toolVersion));
   for (const path of output.keys()) {
     for (

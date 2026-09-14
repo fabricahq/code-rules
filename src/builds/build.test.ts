@@ -228,7 +228,9 @@ describe('buildRules', () => {
     };
     expect(Object.keys(buildRules(build).files)).toEqual([
       'RULES.md',
+      'groups/README.md',
       'provenance.json',
+      'rules/README.md',
     ]);
   });
 
@@ -964,7 +966,9 @@ test.each([0, 8192])(
       'Use exactly three attempts.',
     );
     expect(
-      Object.keys(output).filter((path) => path.startsWith('rules/')),
+      Object.keys(output).filter(
+        (path) => path.startsWith('rules/') && path !== 'rules/README.md',
+      ),
     ).toEqual([`rules/fabrica/${id}.md`, `rules/local/${group}/success.md`]);
     expect(
       indexedPaths(`groups/${group}.md`, index).filter((path) =>

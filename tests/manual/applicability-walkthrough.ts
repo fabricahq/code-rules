@@ -206,8 +206,8 @@ switch (action) {
         path.startsWith('RULES.part-') ||
         path.startsWith(`groups/${group}.`),
     );
-    const bodies = Object.keys(files).filter((path) =>
-      path.startsWith('rules/'),
+    const bodies = Object.keys(files).filter(
+      (path) => path.startsWith('rules/') && path !== 'rules/README.md',
     );
     assert.equal(bodies.length, 40);
     assert(
