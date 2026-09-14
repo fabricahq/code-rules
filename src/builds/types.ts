@@ -58,6 +58,19 @@ export type GroupMetadata = {
   readonly description: string;
   readonly whenToRead: ReadonlyArray<string>;
 };
+/** Declared terms and retained files, relative to the owning library or local root; null expression means legacy unidentified terms. */
+export type LicenseDeclaration = {
+  readonly expression: string | null;
+  readonly files: ReadonlyArray<string>;
+  readonly attributionFiles: ReadonlyArray<string>;
+};
+
+/** Publisher-supplied external citation and explanation of the adaptation; separate from effective origin. */
+export type Attribution = {
+  readonly url: string;
+  readonly description: string;
+};
+
 /** Parsed rule retaining raw frontmatter/body text; its ID combines the source alias and extensionless path. */
 export type Rule = {
   readonly id: string;
@@ -67,6 +80,8 @@ export type Rule = {
   readonly impact: string;
   readonly impactDescription: string;
   readonly whenToRead: string;
+  readonly licenses: ReadonlyArray<LicenseDeclaration> | null;
+  readonly attribution: ReadonlyArray<Attribution>;
   readonly metadata: string;
   readonly body: string;
 };
@@ -84,7 +99,7 @@ export type ActiveRule = {
   readonly origin: RuleOrigin;
   readonly upstream: RuleOrigin | null;
   readonly reason: string | null;
-  readonly licenseFiles: ReadonlyArray<string>;
+  readonly licenses: ReadonlyArray<LicenseDeclaration>;
   readonly sourceFiles: ReadonlyMap<string, string>;
 };
 /** Resolved collection combining source-labeled selection guidance and active rules for one group ID. */
@@ -104,6 +119,7 @@ export type SourceRecord = {
   readonly ref: string;
   readonly resolvedCommit: string;
   readonly groups: ReadonlyArray<string>;
+  readonly licenses: ReadonlyArray<LicenseDeclaration>;
   readonly licenseFiles: ReadonlyArray<string>;
 };
 

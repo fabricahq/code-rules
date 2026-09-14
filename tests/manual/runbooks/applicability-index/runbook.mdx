@@ -166,3 +166,20 @@ The walkthrough's assertions establish file behavior. The implementation and rev
 The complete repository gate is `bun run check`. The focused walkthrough test is `runbooks test tests/manual/runbooks/applicability-index`. Imports fetching, workspace installation and stale-file removal, the CLI, and private-library migration remain separate work.
 
 Runbook format: [Gruntwork Command blocks](https://runbooks.gruntwork.io/authoring/blocks/command/), [Inputs](https://runbooks.gruntwork.io/authoring/blocks/inputs/), and [runbook tests](https://runbooks.gruntwork.io/authoring/testing/).
+
+
+## 5. Inspect a licensed third-party adaptation
+
+<Command
+  id="inspect-licenses"
+  command="bun tests/manual/applicability-walkthrough.ts licenses"
+  title="Generate the licensed rule example"
+  description="Builds a preserved MIT-licensed ESLint Unicorn adaptation and records its declared terms and attribution."
+  successMessage="Open 05-licensed-rule/generated/provenance.json and the generated rule."
+/>
+
+The definition's effective origin is local because the original repository does not use the Code Rules format. Its `licenses` entry explicitly names `MIT`, points to the complete retained license and notice, and its `attribution` identifies the original document at a pinned commit. The generated rule displays these declarations after its guidance. The fixture runs offline and does not fetch or run ESLint Unicorn.
+
+For a compatible imported library, rules without their own declarations inherit the library's declared default. A local replacement supplies its own applicable terms; retaining the upstream rule ID does not automatically assign the upstream license. Code Rules preserves declarations rather than certifying permissions.
+
+See the canonical guide's third-party adaptation section for the recommended workflow.

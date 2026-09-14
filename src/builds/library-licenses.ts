@@ -1,5 +1,8 @@
 /** @fileoverview Validates library license declarations and resolves their files within an in-memory source snapshot. */
 
+import type { LicenseDeclaration } from './types';
+import { licenseExpression } from './rule-licenses';
+
 import {
   compare,
   field,
@@ -88,17 +91,43 @@ function requireDeclaredFiles(
 }
 
 /**
- * Validate the library manifest and collect its declared license and notice paths.
- * Return unique paths in code-unit order, or an empty array when licensing is unspecified.
+ * Validate the library manifest and read its declared expression, license, and notice files.
+ * Return explicit declarations with unique sorted notices, or an empty array when licensing is unspecified.
  * Throw BuildError for an invalid manifest or a declared file missing from the snapshot.
  */
-export function collectLibraryLicensePaths(
+export function readLibraryLicenses(
   sourceFiles: ReadonlyMap<string, string>,
   sourceName: string,
-): ReadonlyArray<string> {
+): ReadonlyArray<LicenseDeclaration> {
   const manifest = libraryManifest(sourceFiles, sourceName);
   const declarations = licenseAndNoticeDeclarations(manifest, sourceName);
   requireDeclaredFiles(sourceFiles, declarations);
-  const uniquePaths = new Set(declarations.map(({ path }) => path));
-  return [...uniquePaths].sort(compare);
+  const first = declarations[0];
+  if (first === undefined) return [];
+  const license = object(
+    field(manifest, 'license'),
+    `${sourceName}/rule-library.json: license`,
+  );
+  const expression = field(license, 'expression');
+  const file = first.path;
+  return [
+    {
+      expression:
+        expression === undefined
+          ? null
+          : licenseExpression(
+              expression,
+              `${sourceName}/rule-library.json: license.expression`,
+            ),
+      files: [file],
+      attributionFiles: [
+        ...new Set(
+          declarations
+            .slice(1)
+            .map(({ path }) => path)
+            .filter((path) => path !== file),
+        ),
+      ].sort(compare),
+    },
+  ];
 }

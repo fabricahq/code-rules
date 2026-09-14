@@ -1,6 +1,7 @@
 /** @fileoverview Parses rule documents while preserving raw frontmatter and body text for generated rule files. */
 
 import { parseDocument } from 'yaml';
+import { ruleLicenses, ruleAttribution } from './rule-licenses';
 import type { Rule } from './types';
 import {
   field,
@@ -41,7 +42,7 @@ function metadataObject(
   return object(raw, location);
 }
 
-/** Validate required rule metadata and return its selection fields, leaving additional attribution fields untouched. */
+/** Validate required selection metadata while leaving the original frontmatter text untouched. */
 function validateRuleMetadata(
   data: Record<string, unknown>,
   location: string,
@@ -92,6 +93,11 @@ export function rule(text: string, path: string, source: string): Rule {
     group,
     path,
     ...selection,
+    licenses: ruleLicenses(field(data, 'licenses'), `${location}.licenses`),
+    attribution: ruleAttribution(
+      field(data, 'attribution'),
+      `${location}.attribution`,
+    ),
     metadata,
     body,
   };

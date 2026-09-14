@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { buildRules, BuildError } from '../../src/builds';
 import type { BuildInput, FileContents } from '../../src/builds';
 import { buildsExampleInput } from './builds-fixture';
+import { licensedExampleInput } from './licensed-fixture';
 
 const action = process.argv[2];
 const choice = process.argv[3];
@@ -65,6 +66,29 @@ async function captureBuild(
 }
 
 switch (action) {
+  case 'licenses': {
+    input = await licensedExampleInput();
+    const { files } = await captureBuild('05-licensed-rule');
+    const provenance = requireFile({ files, path: 'provenance.json' });
+    assert(provenance.includes('"expression": "MIT"'));
+    assert(provenance.includes('local/licenses/unicorn/LICENSE.md'));
+    assert(provenance.includes('5d9d745c5365b6fdb824db1122ff982dd824b11a'));
+    await capture(
+      '05-licensed-rule/upstream/no-for-each.md',
+      await readFile(
+        new URL('./fixtures/licensed-rule/upstream-rule.md', import.meta.url),
+        'utf8',
+      ),
+    );
+    await capture(
+      '05-licensed-rule/README.md',
+      '# A licensed third-party adaptation\n\nOpen generated/rules/local/techs/javascript/prefer-for-of.md and follow its retained MIT license and notice links. Then open generated/provenance.json: the effective origin is local, licenseBasis is rule, the declared expression is MIT, and attribution identifies the pinned upstream documentation. The original documentation is preserved in upstream/no-for-each.md.\n\nThis fixture adapts a real ESLint Unicorn rule to Code Rules metadata. It runs offline from preserved source files; it does not fetch a library or exercise an unimplemented importer. The recorded declaration is not a legal certification.\n',
+    );
+    console.log(
+      'Open 05-licensed-rule: inspect the generated rule, MIT license, notice, and structured provenance.',
+    );
+    break;
+  }
   case 'build': {
     const { files } = await captureBuild('01-deliverable');
     const index = requireFile({ files, path: 'groups/practices/testing.md' });

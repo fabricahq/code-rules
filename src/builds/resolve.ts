@@ -13,6 +13,7 @@ import type {
   Rule,
   LibrarySource,
   SourceRecord,
+  LicenseDeclaration,
 } from './types';
 import {
   BuildError,
@@ -24,7 +25,8 @@ import {
   ruleGroup,
 } from './validation';
 import { rule } from './rule-document';
-import { collectLibraryLicensePaths } from './library-licenses';
+import { readLibraryLicenses } from './library-licenses';
+import { licensePaths, requireLicenseFiles } from './rule-licenses';
 
 /** Mutable group storage owned by resolution; renderers receive read-only groups. */
 type GroupAccumulator = {
@@ -37,6 +39,7 @@ type SelectedLibrary = {
   source: LibrarySource;
   snapshot: LibrarySnapshot;
   files: ReadonlyMap<string, string>;
+  licenses: ReadonlyArray<LicenseDeclaration>;
   licenseFiles: ReadonlyArray<string>;
   guidance: ReadonlyArray<{ id: string; metadata: GroupMetadata }>;
   rules: ReadonlyMap<string, Rule>;
@@ -141,35 +144,76 @@ function readGroupMetadata(
   return groupMetadata(text, `${source}/${path}`);
 }
 
+/** Parse candidate rules before excluding their declared Markdown license assets; malformed rule candidates still fail. */
+function readRuleFiles(
+  sourceFiles: ReadonlyMap<string, string>,
+  source: string,
+  candidates: ReadonlyArray<string>,
+): ReadonlyMap<string, Rule> {
+  const parsed = new Map<string, Rule>();
+  const failures = new Map<string, unknown>();
+  for (const path of candidates) {
+    try {
+      parsed.set(
+        path,
+        rule(requiredFile(sourceFiles, path, source), path, source),
+      );
+    } catch (error) {
+      if (!(error instanceof BuildError)) throw error;
+      failures.set(path, error);
+    }
+  }
+  const assets = new Set(
+    [...parsed.values()].flatMap((definition) =>
+      licensePaths(definition.licenses ?? []),
+    ),
+  );
+  for (const [path, error] of failures) if (!assets.has(path)) throw error;
+  for (const [path, definition] of parsed) {
+    if (assets.has(path))
+      return invalid(
+        `${source}:${path}`,
+        'a rule cannot also be a declared license or attribution file',
+      );
+    requireLicenseFiles(
+      definition.licenses ?? [],
+      sourceFiles,
+      `${source}:${path}`,
+    );
+  }
+  return parsed;
+}
+
 /** Load licensing, then each selected group's guidance and rules; excluded rules are still validated. */
 function selectedLibrary(
   source: LibrarySource,
   snapshot: LibrarySnapshot,
 ): SelectedLibrary {
   const sourceFiles = files(snapshot.files, source.name);
-  const licenseFiles = collectLibraryLicensePaths(sourceFiles, source.name);
+  const licenses = readLibraryLicenses(sourceFiles, source.name);
+  const licenseFiles = licensePaths(licenses);
   const guidance: Array<{ id: string; metadata: GroupMetadata }> = [];
-  const rules = new Map<string, Rule>();
-  for (const id of source.groups) {
+  const candidates = [...sourceFiles.keys()].filter(
+    (path) =>
+      source.groups.some((id) => path.startsWith(`${id}/`)) &&
+      path.endsWith('.md') &&
+      !path.split('/').at(-1)?.startsWith('_') &&
+      !licenseFiles.includes(path),
+  );
+  const parsed = readRuleFiles(sourceFiles, source.name, candidates);
+  const rules = new Map(
+    [...parsed].map(([path, definition]) => [path.slice(0, -3), definition]),
+  );
+  for (const id of source.groups)
     guidance.push({
       id,
       metadata: readGroupMetadata(sourceFiles, id, source.name),
     });
-    for (const [path, text] of sourceFiles) {
-      if (
-        !path.startsWith(`${id}/`) ||
-        !path.endsWith('.md') ||
-        path.split('/').at(-1)?.startsWith('_') ||
-        licenseFiles.includes(path)
-      )
-        continue;
-      rules.set(path.slice(0, -3), rule(text, path, source.name));
-    }
-  }
   return {
     source,
     snapshot,
     files: sourceFiles,
+    licenses,
     licenseFiles,
     guidance,
     rules,
@@ -210,12 +254,13 @@ function replacementRule(
     );
   const text = requiredFile(localFiles, path, 'local');
   const definition = rule(text, path, 'local');
+  requireLicenseFiles(definition.licenses ?? [], localFiles, `local:${path}`);
   return {
     rule: { ...definition, id: parsed.id },
     origin: localOrigin(path),
     upstream: origin(library.source, library.snapshot, parsed.path),
     reason: replacement.reason,
-    licenseFiles: [],
+    licenses: definition.licenses ?? [],
     sourceFiles: localFiles,
   };
 }
@@ -238,7 +283,7 @@ function importedRules(
             origin: origin(library.source, library.snapshot, parsed.path),
             upstream: null,
             reason: null,
-            licenseFiles: library.licenseFiles,
+            licenses: parsed.licenses ?? library.licenses,
             sourceFiles: library.files,
           }
         : replacementRule(
@@ -260,14 +305,12 @@ function localRules(
   usedReplacements: ReadonlySet<string>,
 ): ReadonlyArray<ActiveRule> {
   const active: Array<ActiveRule> = [];
-  for (const [path, text] of localFiles) {
-    if (
-      !path.endsWith('.md') ||
-      path.split('/').at(-1)?.startsWith('_') ||
-      usedReplacements.has(path)
-    )
-      continue;
-    const parsed = rule(text, path, 'local');
+  const candidates = [...localFiles.keys()].filter(
+    (path) => path.endsWith('.md') && !path.split('/').at(-1)?.startsWith('_'),
+  );
+  const definitions = readRuleFiles(localFiles, 'local', candidates);
+  for (const [path, parsed] of definitions) {
+    if (usedReplacements.has(path)) continue;
     if (!groups.has(parsed.group))
       return invalid(
         `local/${path}`,
@@ -278,7 +321,7 @@ function localRules(
       origin: localOrigin(path),
       upstream: null,
       reason: null,
-      licenseFiles: [],
+      licenses: parsed.licenses ?? [],
       sourceFiles: localFiles,
     });
   }
@@ -320,6 +363,7 @@ export function resolveRules(
       ref: source.ref,
       resolvedCommit: library.snapshot.resolvedCommit,
       groups: source.groups,
+      licenses: library.licenses,
       licenseFiles: library.licenseFiles,
     });
     for (const { id, metadata } of library.guidance)

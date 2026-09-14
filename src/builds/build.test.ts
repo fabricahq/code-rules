@@ -1425,3 +1425,212 @@ test.each(
     `local:${ruleId}.md.tags`,
   );
 });
+
+test('should preserve declared library expressions separately from retained files', () => {
+  const build = withLibraryManifest(
+    JSON.stringify({
+      formatVersion: 1,
+      license: {
+        expression: 'MIT OR Apache-2.0',
+        file: 'LICENSE.md',
+        notices: ['NOTICE.txt'],
+      },
+    }),
+    { 'LICENSE.md': 'Full terms', 'NOTICE.txt': 'Copyright notice' },
+  );
+  const output = buildRules(build).files;
+  const provenance = JSON.parse(output['provenance.json']!);
+  expect(
+    provenance.sources.find(
+      (entry: { name: string }) => entry.name === 'fabrica',
+    ).licenses,
+  ).toEqual([
+    {
+      expression: 'MIT OR Apache-2.0',
+      files: ['LICENSE.md'],
+      attributionFiles: ['NOTICE.txt'],
+    },
+  ]);
+  expect(
+    provenance.rules.find(
+      (entry: { id: string }) => entry.id === `fabrica:${ruleId}`,
+    ),
+  ).toMatchObject({
+    licenseBasis: 'library-default',
+    licenses: [
+      {
+        expression: 'MIT OR Apache-2.0',
+        files: ['vendor/fabrica/LICENSE.md'],
+        attributionFiles: ['vendor/fabrica/NOTICE.txt'],
+      },
+    ],
+  });
+  expect(output[`rules/fabrica/${ruleId}.md`]).toContain(
+    '**Declared license:** MIT OR Apache-2.0',
+  );
+});
+
+test.each([0, 8192])(
+  'should preserve local adaptation terms and attribution in both delivery modes: %s',
+  (groupInlineMaxBytes) => {
+    const metadata = `licenses:\n  - expression: MIT\n    files: [licenses/LICENSE.md]\n    attributionFiles: [licenses/NOTICE.md]\nattribution:\n  - url: https://example.com/source/commit/rule.md\n    description: Adapted from the original; added task guidance.\n`;
+    const build = {
+      ...localInput({
+        [`${ruleId}.md`]: ruleText('Adapted rule').replace(
+          '---\n',
+          `---\n${metadata}`,
+        ),
+        'licenses/LICENSE.md': 'Original license text, without rule metadata.',
+        'licenses/NOTICE.md': 'Original copyright notice.',
+      }),
+      groupInlineMaxBytes,
+    };
+    const output = buildRules(build).files;
+    const provenance = JSON.parse(output['provenance.json']!);
+    expect(provenance.rules).toHaveLength(1);
+    expect(provenance.rules[0]).toMatchObject({
+      origin: { source: 'local', repository: null },
+      licenseBasis: 'rule',
+      licenses: [
+        {
+          expression: 'MIT',
+          files: ['local/licenses/LICENSE.md'],
+          attributionFiles: ['local/licenses/NOTICE.md'],
+        },
+      ],
+      attribution: [
+        {
+          url: 'https://example.com/source/commit/rule.md',
+          description: 'Adapted from the original; added task guidance.',
+        },
+      ],
+    });
+    const full = output[`rules/local/${ruleId}.md`]!;
+    expect(full).toContain('**Declared license:** MIT');
+    expect(full).toContain('(../../../../../local/licenses/LICENSE.md)');
+    expect(full).toContain('**Attribution:**');
+    if (groupInlineMaxBytes)
+      expect(output[`groups/${group}.md`]).toContain(
+        '(../../../local/licenses/LICENSE.md)',
+      );
+  },
+);
+
+test('should use rule-specific terms instead of a default while retaining the library declaration', () => {
+  const specific = ruleText('Custom terms').replace(
+    '---\n',
+    `---\nlicenses:\n  - expression: LicenseRef-Example-Custom\n    files: [${group}/TERMS.md]\n`,
+  );
+  const build = withLibraryManifest(
+    '{"formatVersion":1,"license":{"expression":"MIT","file":"LICENSE.md","notices":[]}}',
+    {
+      'LICENSE.md': 'Library terms',
+      [`${ruleId}.md`]: specific,
+      [`${group}/TERMS.md`]: 'Rule-specific terms',
+    },
+  );
+  const output = buildRules(build).files;
+  const provenance = JSON.parse(output['provenance.json']!);
+  expect(
+    provenance.sources.find(
+      (entry: { name: string }) => entry.name === 'fabrica',
+    ).licenses[0].expression,
+  ).toBe('MIT');
+  expect(
+    provenance.rules.find(
+      (entry: { id: string }) => entry.id === `fabrica:${ruleId}`,
+    ).licenses[0].expression,
+  ).toBe('LicenseRef-Example-Custom');
+  const full = output[`rules/fabrica/${ruleId}.md`]!;
+  expect(full).toContain('**Declared license:** LicenseRef-Example-Custom');
+  expect(full).not.toContain('**Declared license:** MIT');
+  expect(Object.keys(output)).not.toContain(`rules/fabrica/${group}/TERMS.md`);
+});
+
+test('should keep replacement licensing independent from upstream defaults', () => {
+  const build = withLibraryManifest(
+    '{"formatVersion":1,"license":{"expression":"MIT","file":"LICENSE.md","notices":[]}}',
+    { 'LICENSE.md': 'Upstream terms' },
+  );
+  const configuration = {
+    schemaVersion: 1,
+    sources: {
+      fabrica: source(
+        'fabrica/rules',
+        {},
+        {
+          [ruleId]: {
+            file: `local/${ruleId}.md`,
+            reason: 'Original local policy.',
+          },
+        },
+      ),
+    },
+    localGroups: [],
+  };
+  const output = buildRules({
+    ...build,
+    configuration,
+    snapshots: { fabrica: build.snapshots.fabrica! },
+    localFiles: { [`${ruleId}.md`]: ruleText('Replacement') },
+  }).files;
+  const provenance = JSON.parse(output['provenance.json']!);
+  expect(provenance.rules[0]).toMatchObject({
+    id: `fabrica:${ruleId}`,
+    licenseBasis: 'undeclared',
+    licenses: [],
+    upstream: { source: 'fabrica' },
+  });
+  expect(provenance.sources[0].licenses[0].expression).toBe('MIT');
+});
+
+test.each([
+  'licenses: []',
+  'licenses: [{expression: MIT, files: []}]',
+  'licenses: [{expression: MIT, files: [../LICENSE]}]',
+  'licenses: [{expression: MIT, files: [missing/LICENSE.md]}]',
+  'licenses: [{expression: "", files: [LICENSE]}]',
+  'licenses: [{expression: "MIT\\nApache-2.0", files: [LICENSE]}]',
+  'attribution: [{url: "javascript:alert(1)", description: Source}]',
+  'attribution: [{url: "https://user:secret@example.com", description: Source}]',
+])('should reject incomplete or unsafe licensing metadata: %s', (metadata) => {
+  const build = localInput({
+    [`${ruleId}.md`]: ruleText('Invalid').replace(
+      '---\n',
+      `---\n${metadata}\n`,
+    ),
+    LICENSE: 'License text',
+  });
+  expect(() => buildRules(build)).toThrow();
+});
+
+test('should validate license declarations on excluded rules and reject rule/asset collisions', () => {
+  const definition = ruleText('Excluded').replace(
+    '---\n',
+    '---\nlicenses: [{expression: MIT, files: [MISSING.md]}]\n',
+  );
+  const build: BuildInput = {
+    configuration: {
+      schemaVersion: 1,
+      sources: {
+        fabrica: source('fabrica/rules', { [ruleId]: 'Not adopted.' }),
+      },
+      localGroups: [],
+    },
+    snapshots: {
+      fabrica: snapshot('fabrica/rules', 'Excluded', {
+        [`${ruleId}.md`]: definition,
+      }),
+    },
+    localFiles: {},
+    toolVersion: 'test',
+  };
+  expect(() => buildRules(build)).toThrow('MISSING.md');
+  const selfLicensed = ruleText('Self reference').replace(
+    '---\n',
+    `---\nlicenses: [{expression: MIT, files: [${ruleId}.md]}]\n`,
+  );
+  expect(() =>
+    buildRules(localInput({ [`${ruleId}.md`]: selfLicensed })),
+  ).toThrow('a rule cannot also be');
+});

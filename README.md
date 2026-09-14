@@ -59,7 +59,7 @@ Automated behavior checks remain in `src/builds/build.test.ts`.
 ### Interactive walkthrough
 
 The [applicability-index runbook](tests/manual/runbooks/applicability-index/runbook.mdx) walks through the same example in [Gruntwork Runbooks](https://runbooks.gruntwork.io/).
-It includes implementation and review scenarios, full inline rules for small groups, a configurable pagination demonstration for larger groups, and the shared authoring rubric.
+It includes implementation and review scenarios, full inline rules for small groups, a configurable pagination demonstration for larger groups, the shared authoring rubric, and an MIT-licensed third-party adaptation with structured license provenance.
 With Runbooks installed, launch it from this checkout's root after installing dependencies:
 
 ```sh

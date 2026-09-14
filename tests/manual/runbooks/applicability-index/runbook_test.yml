@@ -67,3 +67,20 @@ tests:
       - type: file_contains
         path: 03-budget-tiny/RESULT.md
         contains: No build output is returned.
+
+  - name: licensed-adaptation
+    steps:
+      - block: inspect-licenses
+    assertions:
+      - type: file_contains
+        path: 05-licensed-rule/generated/provenance.json
+        contains: '"expression": "MIT"'
+      - type: file_contains
+        path: 05-licensed-rule/generated/provenance.json
+        contains: '"licenseBasis": "rule"'
+      - type: file_contains
+        path: 05-licensed-rule/generated/rules/local/techs/javascript/prefer-for-of.md
+        contains: '**Declared license:** MIT'
+      - type: file_contains
+        path: 05-licensed-rule/local/licenses/unicorn/LICENSE.md
+        contains: Copyright (c) Sindre Sorhus

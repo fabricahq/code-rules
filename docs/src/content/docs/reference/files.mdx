@@ -28,7 +28,7 @@ All paths below describe the proposed format.
 `rule-library.json` declares the library format:
 
 ```json
-{ "formatVersion": 1, "license": { "file": "LICENSE.md", "notices": [] } }
+{ "formatVersion": 1, "license": { "expression": "MIT", "file": "LICENSE.md", "notices": [] } }
 ```
 
 Discover groups only under `techs/` and `practices/`.
@@ -40,12 +40,13 @@ The optional `license` object declares the library's default terms:
 
 | Field | Meaning |
 | --- | --- |
+| `license.expression` | Declared SPDX expression, such as `MIT` or `MIT OR Apache-2.0`, or a `LicenseRef-…` for custom terms. Optional for compatibility with existing manifests. |
 | `license.file` | Path to the actual license text, relative to the library root. |
 | `license.notices` | Paths to accompanying notices, relative to the library root; use an empty array when none apply. |
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
 The importer preserves these files from the resolved source commit and includes them in snapshot digests.
-If the declaration is absent, report licensing as unspecified rather than assuming permission or assigning a license.
+If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `expression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It checks that supplied expressions are non-blank single-line strings, but does not certify SPDX identifier validity, ownership, or agreement between the label and the license text.
 
 Rule-specific terms and attribution remain with the rule and reference any additional applicable license files.
 Preserve those files and links too; a library default does not erase per-rule differences.
@@ -89,6 +90,28 @@ The full body defines obligations, implementation guidance, exceptions, and vali
 Existing snapshots and local replacements must add rule-level `whenToRead` before building with this format.
 
 See [Make a rule](/guides/write-rules/) for a complete example.
+
+## Rule-specific licenses and attribution
+
+Rules may declare their complete applicable terms and external attribution in frontmatter:
+
+```yaml
+licenses:
+  - expression: MIT
+    files: [licenses/unicorn/LICENSE.md]
+    attributionFiles: [licenses/unicorn/NOTICE.md]
+attribution:
+  - url: https://github.com/sindresorhus/eslint-plugin-unicorn/blob/5d9d745c5365b6fdb824db1122ff982dd824b11a/docs/rules/no-for-each.md
+    description: Adapted from Sindre Sorhus's ESLint Unicorn rule; added task guidance.
+```
+
+Each `licenses` entry requires a non-blank single-line `expression` and at least one `files` path. `attributionFiles` is optional and defaults to an empty list. Paths are relative to the owning library root or `local/`, not the rule's directory; all files must exist. Prefer a `licenses/` folder for retained terms. Declared Markdown license and notice files are assets, not rule definitions. A file cannot serve as both a rule and a declared license asset.
+
+When `licenses` is omitted, imported rules inherit the declared library default. When supplied, the list specifies the rule's complete applicable terms instead of the default; include all required upstream terms. An empty list is rejected so it cannot silently clear licensing. A local addition or replacement has no library default and must explicitly retain the terms applicable to any copied or adapted material.
+
+Multiple entries preserve separate declarations; Code Rules does not combine them into a legal conclusion. Express a licensing choice within an expression using `OR`, rather than treating separate entries as alternatives. Modified standard licenses need a distinct `LicenseRef-…` linked to their exact text. Labels supplement the actual terms.
+
+Each optional `attribution` entry requires an absolute HTTP(S) `url` without credentials and a non-blank `description`. Use a commit-pinned URL and describe the adaptation. These are author-supplied citations, not authenticated import origins or permission grants. Existing attribution in prose or other metadata remains preserved.
 
 ## Attribution
 
@@ -212,3 +235,29 @@ Generated output excludes changing timestamps and machine-specific paths.
 
 These metadata files support repeatability and diagnosis.
 They do not independently authenticate a locally modified snapshot against GitHub.
+
+
+### License declarations in provenance
+
+Source records include `licenses` with library-relative paths and retain `licenseFiles` for compatibility. Each active rule records its effective `licenses`, `attribution`, and `licenseBasis`: `rule`, `library-default`, or `undeclared`. Rule-record paths start with `local/` or `vendor/<source>/` and resolve from the configuration directory, one level above `generated/`.
+
+An imported rule's origin identifies its source snapshot. An adapted local rule's origin remains local; its external citation appears in `attribution`. A replacement retains the original ID and upstream origin, but takes its effective license declarations from the local replacement. The original source's default remains recorded on the source record.
+
+For example, the local licensing walkthrough produces:
+
+```json
+{
+  "licenseBasis": "rule",
+  "licenses": [{
+    "expression": "MIT",
+    "files": ["local/licenses/unicorn/LICENSE.md"],
+    "attributionFiles": ["local/licenses/unicorn/NOTICE.md"]
+  }],
+  "attribution": [{
+    "url": "https://github.com/sindresorhus/eslint-plugin-unicorn/blob/5d9d745c5365b6fdb824db1122ff982dd824b11a/docs/rules/no-for-each.md",
+    "description": "Adapted from Sindre Sorhus's ESLint Unicorn rule; added task guidance."
+  }]
+}
+```
+
+These are preserved declarations, not a legal verification status. `licenseBasis: "undeclared"` means no applicable terms were declared to Code Rules; it does not mean public domain or permission to redistribute.

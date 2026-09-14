@@ -314,15 +314,33 @@ export function renderRule(
       '',
       `[Replaces upstream definition](${sourceLink(upstream, outputPath)}). Reason: ${escapeText(active.reason ?? '')}`,
     );
-  if (active.licenseFiles.length) {
+  for (const attribution of rule.attribution) {
     lines.push(
       '',
-      'Library default license and notices:',
-      ...active.licenseFiles.map(
-        (path) =>
-          `- [${escapeText(path)}](${workspaceLink(outputPath, `vendor/${origin.source}/${path}`)})`,
-      ),
+      `**Attribution:** [${escapeText(attribution.description)}](<${attribution.url.replaceAll('>', '%3E').replaceAll('<', '%3C')}>)`,
     );
+  }
+  if (active.licenses.length) {
+    lines.push(
+      '',
+      rule.licenses === null
+        ? 'Library default license and notices:'
+        : 'Rule-specific licenses and notices:',
+    );
+    const sourceRoot =
+      origin.source === 'local' ? 'local' : `vendor/${origin.source}`;
+    for (const license of active.licenses) {
+      if (license.expression !== null)
+        lines.push(
+          '',
+          `**Declared license:** ${escapeText(license.expression)}`,
+          '',
+        );
+      for (const path of [...license.files, ...license.attributionFiles])
+        lines.push(
+          `- [${escapeText(path)}](${workspaceLink(outputPath, `${sourceRoot}/${path}`)})`,
+        );
+    }
   }
   lines.push(
     '',

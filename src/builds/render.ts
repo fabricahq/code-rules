@@ -159,6 +159,24 @@ function renderProvenance(
         origin: active.origin,
         upstream: active.upstream,
         replacementReason: active.reason,
+        licenseBasis:
+          active.rule.licenses !== null
+            ? 'rule'
+            : active.licenses.length
+              ? 'library-default'
+              : 'undeclared',
+        licenses: active.licenses.map((license) => ({
+          expression: license.expression,
+          files: license.files.map(
+            (path) =>
+              `${active.origin.source === 'local' ? 'local' : `vendor/${active.origin.source}`}/${path}`,
+          ),
+          attributionFiles: license.attributionFiles.map(
+            (path) =>
+              `${active.origin.source === 'local' ? 'local' : `vendor/${active.origin.source}`}/${path}`,
+          ),
+        })),
+        attribution: active.rule.attribution,
       })),
   };
   return `${JSON.stringify(provenance, null, 2)}\n`;

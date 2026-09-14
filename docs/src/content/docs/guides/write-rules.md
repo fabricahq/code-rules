@@ -96,3 +96,20 @@ Keep source attribution in the rule's metadata or Markdown body and preserve any
 Builds carries that attribution into the individual generated rule file; no separate attribution file is required.
 The existing nested `source:` metadata describes provenance, not an override target.
 When publishing or adapting rules, follow [License rules](/guides/license-rules/) to make permissions and attribution explicit.
+
+
+## Adapt third-party rules
+
+The original repository does not have to change. The definition you give Code Rules must use its input format: a technology or practice group with `_group.json`, a Markdown rule with the required metadata, and retained supporting files. The body follows the flexible authoring rubric; it does not need every template heading.
+
+For an existing compatible Code Rules library, use the normal import workflow. For a linter rule, style guide, skill, or other document that is not a compatible library:
+
+1. Identify the exact source revision and establish permission to copy, adapt, and redistribute the material for your intended use. Preserve the applicable license and notices.
+2. Create an adapted definition under `local/techs/<group>/` or `local/practices/<group>/`, or in a separately maintained compatible library. Preserve the original separately when useful for reviewing future updates.
+3. Add the required metadata and an activity-based `whenToRead` cue. Preserve the obligation, important conditions, exceptions, and examples; explain deliberate changes. A detector's analysis limitations do not automatically become exceptions to a written rule.
+4. Declare `licenses` and `attribution` using the [file reference](/reference/files/#rule-specific-licenses-and-attribution). Use a commit-pinned source URL and describe the adaptation. Keep retained terms in the owning root's `licenses/` folder.
+5. Review the adaptation against the [authoring rubric](/reference/rule-authoring/), then generate and inspect the effective rule, license links, and provenance. Commit the adapted source and retained notices together.
+
+An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the upstream commit. For a local adaptation, the effective origin is local and external provenance is recorded through attribution. A separately published adapted library has its own repository and version while retaining the earlier attribution chain.
+
+For later updates, compare the original pinned material with the new source, then deliberately revise the adaptation. Updating a source citation alone does not establish that the adapted rule incorporates the newer guidance.

@@ -36,6 +36,7 @@ The proposed library metadata identifies the default terms and any accompanying 
 {
   "formatVersion": 1,
   "license": {
+    "expression": "MIT",
     "file": "LICENSE.md",
     "notices": []
   }
@@ -47,7 +48,9 @@ For example, list `NOTICE.md` in `notices` when the library supplies a notice th
 No extra notice file is required when the license and rule files already contain the necessary notices.
 The [file reference](/reference/files/#library-license-metadata) defines these fields.
 
-Keep attribution with each rule, in its metadata or Markdown body.
+Use an SPDX expression for standard terms and a distinct `LicenseRef-…` for custom or modified terms. The [SPDX expression specification](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) defines identifiers and compound expressions. The identifier supplements the retained text. Code Rules preserves your declaration; it does not certify the label or permissions.
+
+Keep attribution with each rule, in its metadata or Markdown body. Use the [structured rule declarations](/reference/files/#rule-specific-licenses-and-attribution) to include external attribution and rule-specific terms in provenance.
 If particular rules or examples have different terms, state them explicitly and reference the applicable license files.
 The library's default declaration must not conceal those differences or override rights held by another author.
 
@@ -78,29 +81,24 @@ Include the preserved files in snapshot digests so offline checks can detect mis
 License changes belong in the update report alongside rule changes.
 
 Each individual effective rule identifies its source and applicable preserved license.
-For example, `generated/rules/fabrica/practices/testing/verify-retry-limits.md` begins with the following header.
+For example, `generated/rules/fabrica/practices/testing/verify-retry-limits.md` includes this source footer after its guidance.
 The repository and commit in this example are illustrative.
 
 ```markdown
-# Verify retry limits
+## Source and attribution
 
-Rule ID: `fabrica:practices/testing/verify-retry-limits`
-
-**When to read:** When planning, implementing, or reviewing retries.
-
-**Impact:** HIGH
-
-**Why it matters:** Prevent unbounded retries.
-
-[Active definition](https://github.com/example/rules/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/practices/testing/verify-retry-limits.md)
+**Rule source:** [Original rule](https://github.com/example/rules/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/practices/testing/verify-retry-limits.md)
 
 Library default license and notices:
+
+**Declared license:** MIT
+
 - [LICENSE.md](../../../../../vendor/fabrica/LICENSE.md)
 ```
 
-The rule's metadata and body follow this header, retaining its original copyright notices and attribution.
+Guidance precedes this footer; preserved source metadata follows it. Rule-specific declarations produce a corresponding rule-specific license block, and explicit attribution citations appear in the footer.
 Generated rule files link to their applicable preserved terms.
-The index links to provenance, which records source libraries and their declared license paths.
+The index links to provenance, which records source libraries, declared license expressions, retained files, rule-specific terms, and explicit attribution.
 When a group includes multiple libraries, retain each rule's licensing information instead of assigning one upstream license to the group.
 Copied rule text remains subject to its applicable terms even when the project changes its wording or replaces an imported rule with an adaptation.
 Record the applicable terms for the local definition; an ID alone cannot establish its licensing.
@@ -123,4 +121,7 @@ Private libraries can document internal permissions without adopting a public li
 
 Code Rules can validate declared paths, preserve texts and notices, track their provenance, and check that generated links resolve.
 It cannot establish ownership, decide legal compatibility, or certify that the chosen terms permit a consumer's intended use.
-The preservation behavior described here is part of the proposed importer design.
+The offline generator validates declarations and emits this provenance today. Automated downloading, snapshot installation, and update reporting remain part of the proposed importer design.
+
+
+For source material that does not use this format, follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules). Keep a separate adapted definition with its source citation and retained terms; do not relabel edited content as an unchanged upstream snapshot.
