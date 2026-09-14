@@ -1,4 +1,4 @@
-# Sync implementation plan
+# Sync implementation
 
 `sync()` coordinates importing libraries, generating resolved rules, and applying changes safely.
 Imports and Builds retain their existing in-memory interfaces. Sync is an orchestration function, not a third subsystem.
@@ -27,5 +27,7 @@ Run CLI smoke tests and the complete `bun run check` gate. Document limits of mu
 
 ## Delivery
 
-Keep the terminology and plan in the Imports PR. Implement sync in a dependent PR based on Imports.
+The terminology and plan are in Imports; sync is implemented in a dependent PR.
 Keep the recap outside both PRs and update it to demonstrate the real project workflow when available.
+
+The executable API and recovery limitations are documented in [Sync and recovery](../docs/src/content/docs/reference/sync.md).

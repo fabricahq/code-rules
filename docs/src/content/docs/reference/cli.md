@@ -3,8 +3,9 @@ title: "CLI commands"
 description: "The proposed rule import, validation, conflict-review prompt, and tool update commands."
 ---
 
-**These commands are proposed and are not available in a release yet.**
-No installation command is published on this site.
+**Sync, build, and check work through the development entry point `bun src/cli.ts`.**
+The `code-rules` executable is not published. Other commands on this page remain proposed.
+See [Sync and recovery](/reference/sync/) for development commands and filesystem behavior.
 
 For `sync`, `build`, `check`, and `conflicts --prompt`, run from the consuming project's root by default.
 Use `--config` to identify a configuration file elsewhere.
@@ -19,10 +20,10 @@ code-rules sync
 
 Resolve each source's exact ref or highest matching version tag to a full commit SHA, validate all libraries, and generate resolved rules together.
 Record the requested ref or version constraint, selected version tag when applicable, and resolved commit in the vendored provenance.
-Each sync resolves tags again and reports changed commit targets, including when the configured tag name stays the same.
+Each sync resolves tags again. Its file report identifies changed source records and provenance, where you can inspect changed commit targets.
 Use the caller's existing Git credentials for private repositories.
 Accept the explicit [Git addresses](/reference/configuration/#repository-addresses) in configuration, independently of the hosting provider.
-Compare updates against the previous vendor snapshot before installing the replacement.
+Compare updates against the previous files before applying the replacement.
 
 Sync requires access to all configured source repositories.
 If any source fails, preserve the previous complete output.

@@ -184,7 +184,7 @@ Branch names and abbreviated commit SHAs are unsupported. Put version ranges in 
 A plain name resolves only as a tag, even when a branch has the same name.
 Both lightweight and annotated tags must resolve to a commit.
 
-In the proposed `sync` workflow, resolve each configured ref and record its full `resolvedCommit` in that source's vendored provenance.
+In the `sync` workflow, resolve each configured ref and record its full `resolvedCommit` in that source's vendored provenance.
 Fetch rule content and construct source links using the resolved commit.
 Configuration records what the project requested; provenance records the exact content it imported.
 
@@ -236,7 +236,7 @@ No matching tag is an error; Imports does not fall back to a branch or unrelated
 Snapshots and generated provenance record the requested `version`, `resolvedTag`, `resolvedVersion`, and `resolvedCommit`.
 The normalized version retains any SemVer build metadata and omits the leading `v`.
 A new explicit import resolves the constraint again. Offline Builds checks the recorded tag and version against the constraint, then uses the stored commit without querying Git.
-The proposed `sync` command will combine re-importing and safe installation; that command has not shipped.
+The development `sync` command combines re-importing and safe file updates. See [Sync and recovery](/reference/sync/).
 
 ## Source-scoped exceptions
 

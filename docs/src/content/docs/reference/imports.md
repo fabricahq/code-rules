@@ -4,11 +4,11 @@ description: "From pinned library snapshots to one resolved ruleset per group."
 ---
 
 The Imports module implements fetching and file preservation.
-The complete workflow below also depends on Builds and the proposed sync orchestration; the `sync` command has not shipped.
+The `sync` function coordinates Imports and Builds; a development CLI is available. See [Sync and recovery](/reference/sync/).
 
 An import resolves each configured exact ref or version constraint and combines the resulting upstream snapshots with explicit project decisions.
 It produces ordinary files that agents can read without running the importer.
-This checkout implements fetching and offline generation. Digest checks and safe installation remain planned; see [Project status](/status/).
+This checkout implements fetching, offline generation, digest checks, and safe file updates; see [Project status](/status/).
 
 ## What a vendored library contains
 
@@ -19,7 +19,7 @@ Imports reads these files through temporary Git storage, then removes that stora
 With unchanged configuration and the same resolved commit, Imports returns the same paths and bytes.
 With unchanged snapshots, local files, tool version, and rendering options, Builds returns the same generated content.
 Re-importing a tag can change the result if that tag moves. Re-importing a version constraint can select a newer matching tag. A full commit pin continues selecting the original content.
-Safe replacement of existing project folders, including removal of stale files, belongs to the planned sync workflow.
+Safe replacement of existing project folders, including removal of stale files, belongs to the sync workflow.
 
 ## Resolve the active rules
 
@@ -52,23 +52,23 @@ Other hosts use relative links to the retained source files; their repository ad
 Reject invalid or reserved source names, repeated repositories, missing groups or targets, and duplicate qualified IDs.
 Reject rules that are both excluded and replaced, and replacement files reused for multiple targets.
 The builder rejects malformed metadata and unsafe relative paths. It validates selected source rules even when exclusions or replacements make them inactive.
-The planned file-handling helpers must check filesystem containment and symlinks. An in-memory text map cannot establish those properties.
+The file-handling helpers check filesystem containment and reject symlinks. An in-memory text map cannot establish those properties.
 Treat library contents as data rather than executing their scripts.
 
-The planned installation workflow stages and validates the complete result across all sources before writing project files.
+Sync stages and validates the complete result across all sources before writing project files.
 If any source cannot be fetched or validated, preserve the previous complete ruleset.
 Detect concurrent writes and interrupted installations so mixed output cannot pass a consistency check.
 
 ## Keep sources reviewable
 
-When a source selects all groups, the update report must identify added and removed groups as well as rule changes.
+Sync reports changed files, including group metadata and source records. A semantic report identifying added and removed groups remains planned.
 
 Copy selected upstream group source files into `vendor/<source-name>/`, including rules hidden by project exceptions.
 That retained text lets an update report expose upstream changes that a replacement would otherwise hide.
 
 Preserve each rule's attribution from its metadata or body in the vendored source and generated rule file.
 Library authors must declare the applicable license and notice files in the library manifest. The builder verifies their presence and preserves their text.
-The planned import workflow includes those files in snapshot digests and reports changes during updates.
+Sync includes those files in snapshot digests and reports changed files during updates.
 Generated rules link to copies under `generated/libraries/<source-name>/licenses/`; see [License rules](/guides/license-rules/).
 Keep attribution links valid after relocation.
 For recognized hosts, references to unselected rules point to the resolved commit.

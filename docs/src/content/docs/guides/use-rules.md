@@ -3,7 +3,7 @@ title: "Use rules in a project"
 description: "Walk through the proposed import workflow, from choosing libraries to directing agents."
 ---
 
-This walkthrough shows the proposed first-release experience.
+This walkthrough uses the intended published command names. Sync, build, and check work through the [development entry point](/reference/sync/); the executable is not published yet.
 You can generate and inspect examples with the working builder. The import commands below require the future CLI release.
 
 ## Try the working builder
@@ -108,6 +108,6 @@ The generated index is the entry point for selecting both technologies and pract
 
 ## 6. Check consistency in CI
 
-The proposed `code-rules check` command verifies that committed inputs produce the committed output.
+The `check` command verifies that committed inputs produce the committed output.
 The check does not inspect application code for compliance.
 A reviewing agent performs that separate assessment using the same resolved rules.

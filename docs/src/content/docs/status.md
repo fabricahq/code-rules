@@ -5,7 +5,7 @@ description: "What this documentation describes and what remains to be built."
 
 **Code Rules is in early implementation.**
 The documentation includes implemented offline generation and proposed workflows for the first release.
-The CLI and installable authoring skill have not shipped.
+The development CLI works from this checkout; a published executable and installable authoring skill have not shipped.
 
 ## What works in this checkout
 
@@ -25,8 +25,8 @@ Automated tests exercise both rule-delivery formats, licenses, and group selecto
 
 The `importLibraries` API fetches exact commits, exact tags, or the highest tag matching an npm version constraint from Git libraries and returns original bytes plus snapshots for `buildRules`.
 It accepts explicit HTTPS and SSH Git addresses across hosts. Generated source links recognize GitHub.com and GitLab.com and use retained files for other hosts.
-Imports requires macOS or Linux and Git 2.30 or later. It preserves selected rules, relative Markdown dependencies, and declared license files without installing a consuming workspace.
-Sync and safe file updates, digest verification, generated-file consistency checks, CLI commands, and the installable authoring skill remain planned.
+Imports requires macOS or Linux and Git 2.30 or later. It preserves selected rules, owned/shared assets, and declared license files without modifying the consuming project.
+`sync`, offline `build`, and read-only `check` are implemented as development commands and APIs. They share snapshot verification, file comparison, and safe application helpers. See [Sync and recovery](/reference/sync/).
 
 ## What is settled
 
@@ -41,9 +41,9 @@ Sync and safe file updates, digest verification, generated-file consistency chec
 
 ## What is proposed
 
-CLI commands and the installable authoring skill workflow remain proposed.
+Publishing the CLI, authoring commands, and the installable authoring skill workflow remain proposed.
 The builder implements the documented configuration and rule metadata, but these unreleased formats may still change.
-The `_source.json` file format and safely applying changes contract remain proposed.
+The versioned `_source.json` record and safe application contract are implemented; see [Sync and recovery](/reference/sync/).
 The proposed [`code-rules update`](/reference/cli/#update-the-tool) command upgrades the CLI to its latest stable release.
 The proposed [`code-rules conflicts --prompt`](/reference/cli/#conflict-review-prompt) command prepares an agent review of conflicting guidance.
 Examples illustrate how those interfaces fit together.
@@ -53,7 +53,7 @@ They are not installation instructions for a published package.
 
 The first release will import multiple named libraries directly into a project. Each source has its own exact ref or version constraint, group selection, and exceptions.
 The initial proof uses original example rules, local exceptions, and generated files that a person can inspect.
-Sync and safe file updates and a private-project pilot follow that proof.
+A private-project pilot follows that proof.
 
 The final implementation phase standardizes library authoring with `library init`, `library add group`, `library add rule`, and `library check`.
 It includes the authoring skill's adaptation workflow and a walkthrough from an empty library to importable rules with retained terms.

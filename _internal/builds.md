@@ -3,7 +3,7 @@
 ## Scope
 
 Imports retrieves library snapshots. Builds generates resolved rules.
-A planned `sync` function coordinates both and applies their combined changes through focused file-handling helpers.
+The `sync` function coordinates both and applies their combined changes through focused file-handling helpers.
 Sync is orchestration, not a third subsystem.
 The first increment accepts configuration, in-memory library snapshots, local files, and a tool version.
 It returns the complete generated file set without network access, filesystem writes, or CLI argument handling.
@@ -14,9 +14,9 @@ All source groups remain independent until explicit exclusions and replacements 
 Output ordering, provenance, and relocated Markdown links must be deterministic.
 
 Imports fetches libraries and establishes snapshot identity.
-File-handling helpers will load files, verify recorded digests and filesystem containment, detect concurrent changes, and safely install or compare results.
+File-handling helpers load files, verify recorded digests and filesystem containment, detect concurrent changes, and safely install or compare results.
 Builds checks snapshot identity against configuration but cannot authenticate caller-supplied content or identify symlinks from a string map.
-Sync and the CLI remain unimplemented.
+Sync, offline project generation, and read-only checks use the development CLI. See [Sync](sync.md).
 
 ## Internal operations
 
@@ -74,7 +74,7 @@ App-specific React, Wails, and logger requirements do not apply to this offline 
 The snapshot envelope is an internal Builds interface, not a finalized `_source.json` wire format.
 Snapshot `files` contains UTF-8 text; optional `filePaths` lists all retained files, including binary attachments.
 Builds uses the inventory for Markdown links and requires declared license and notice text in the text map and rejects inventories that omit supplied text or hide selected rule text.
-Imports preserves original file bytes; File-handling helpers will own installing and verifying them.
+Imports preserves original file bytes; File-handling helpers own installing and verifying them.
 The Markdown renderer relocates standard Markdown links, images, and reference definitions while preserving unrelated body text.
 Relative links in raw HTML are rejected with an instruction to use Markdown syntax.
 Per-rule attribution and extra frontmatter are retained; library license files must be present when declared.
@@ -98,5 +98,5 @@ Both formats use the same resolved definitions and retain stable individual rule
 Impact describes credible consequences; it neither selects rules nor assigns finding severity. `impactDescription` appears as **Why it matters**.
 A single oversized entry or part directory fails explicitly; rule bodies are never truncated.
 Output paths use `rules/<source-name>/<rule-path>.md`, preserving replacement IDs independently of local source filenames.
-The complete returned map excludes obsolete definitions; File-handling helpers will own stale-file comparison and installation, including removing obsolete index parts.
-The CLI `check` command and private-library migration are still future work. The builder tests verify that metadata edits change generated output deterministically.
+The complete returned map excludes obsolete definitions; File-handling helpers own stale-file comparison and installation, including removing obsolete index parts.
+The development CLI implements `check`; private-library migration remains future work. The builder tests verify that metadata edits change generated output deterministically.

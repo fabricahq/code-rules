@@ -51,6 +51,7 @@ export default defineConfig({
         { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
         { label: 'CLI commands', slug: 'reference/cli' },
         { label: 'How imports work', slug: 'reference/imports' },
+        { label: 'Sync and recovery', slug: 'reference/sync' },
       ] },
       { label: 'For agents', items: [{ label: 'Plan, write, and review', slug: 'for-agents' }] },
     ],
