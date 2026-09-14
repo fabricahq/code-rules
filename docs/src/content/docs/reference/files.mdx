@@ -48,6 +48,7 @@ The optional `license` object declares the library-wide terms. Authors should us
 | `license.notices` | Paths to accompanying notices, relative to the library root; use an empty array when none apply. |
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
+Unknown fields in the license declaration are rejected so misspellings cannot silently discard intended metadata.
 The planned import and workspace workflow preserves these files from the resolved source commit and includes them in snapshot digests.
 The offline builder verifies that declared files exist in the supplied snapshots. It copies their contents unchanged and links generated rules to those copies. It does not fetch files or compute workspace snapshot digests.
 If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.

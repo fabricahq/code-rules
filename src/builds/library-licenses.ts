@@ -82,6 +82,10 @@ function licenseFields(
   if (value === undefined) return null;
   const location = `${sourceName}/${LIBRARY_MANIFEST}: license`;
   const license = object(value, location);
+  for (const key of Object.keys(license)) {
+    if (!['file', 'notices', 'spdxExpression', 'expression'].includes(key))
+      invalid(location, `unknown field ${key}`);
+  }
   const file = declaredPath(field(license, 'file'), `${location}.file`);
   const notices = noticePaths(field(license, 'notices'), `${location}.notices`);
   return { metadata: license, location, file, notices };

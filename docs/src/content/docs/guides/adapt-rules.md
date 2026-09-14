@@ -5,7 +5,8 @@ description: "Package external guidance in a compatible library with one library
 
 **Every imported rule must live in a group inside a compatible Code Rules library.**
 That includes every adapted third-party rule, even when the library contains only that one rule.
-Code Rules imports the library; it does not import a standalone Markdown rule.
+The planned import workflow will import the library, rather than a standalone Markdown rule.
+The offline builder is available now; see [Project status](/status/) for import and CLI availability.
 The library owns `rule-library.json`, group metadata, and any declared license and notice files.
 
 For guidance from another source, first create that compatible adaptation.

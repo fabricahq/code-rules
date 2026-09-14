@@ -93,6 +93,27 @@ test('should deduplicate notices while numbering them in declaration order', () 
   });
 });
 
+test.each([{}, { spdxExpression: 'MIT' }])(
+  'should reject misspelled license fields instead of silently dropping them: %j',
+  (declaration) => {
+    const build = withLibraryManifest(
+      JSON.stringify({
+        formatVersion: 1,
+        license: {
+          file: 'LICENSE.md',
+          notices: [],
+          spdxExpresion: 'MIT',
+          ...declaration,
+        },
+      }),
+      { 'LICENSE.md': 'Retained library terms.' },
+    );
+    expect(() => buildRules(build)).toThrow(
+      'fabrica/rule-library.json: license: unknown field spdxExpresion',
+    );
+  },
+);
+
 test.each([
   {
     name: 'invalid JSON',
