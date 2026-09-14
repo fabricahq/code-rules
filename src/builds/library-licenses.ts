@@ -24,6 +24,14 @@ type DeclaredPath = {
   readonly location: string;
 };
 
+/** License fields with validated paths and their diagnostic context; file presence and SPDX remain unchecked. */
+type LicenseFields = {
+  readonly metadata: Record<string, unknown>;
+  readonly location: string;
+  readonly file: DeclaredPath;
+  readonly notices: ReadonlyArray<DeclaredPath>;
+};
+
 /** Parse the library manifest into an object with a supported formatVersion, or throw BuildError. */
 function libraryManifest(
   sourceFiles: ReadonlyMap<string, string>,
@@ -63,20 +71,20 @@ function noticePaths(
 }
 
 /**
- * Return the validated license path followed by notice paths in declaration order, retaining duplicates.
- * Return an empty array when licensing is unspecified; throw BuildError for an invalid declaration.
+ * Read license fields with validated paths, retaining notice order, duplicates, and diagnostic locations.
+ * Return null when licensing is unspecified; throw BuildError for an invalid object or path declaration.
  */
-function licenseAndNoticeDeclarations(
+function licenseFields(
   manifest: Record<string, unknown>,
   sourceName: string,
-): ReadonlyArray<DeclaredPath> {
+): LicenseFields | null {
   const value = field(manifest, 'license');
-  if (value === undefined) return [];
+  if (value === undefined) return null;
   const location = `${sourceName}/${LIBRARY_MANIFEST}: license`;
   const license = object(value, location);
   const file = declaredPath(field(license, 'file'), `${location}.file`);
   const notices = noticePaths(field(license, 'notices'), `${location}.notices`);
-  return [file, ...notices];
+  return { metadata: license, location, file, notices };
 }
 
 /** Throw BuildError at the first declaration whose path is absent from the snapshot; empty files count as present. */
@@ -101,41 +109,33 @@ export function readLibraryLicenses(
   sourceName: string,
 ): ReadonlyArray<LicenseDeclaration> {
   const manifest = libraryManifest(sourceFiles, sourceName);
-  const declarations = licenseAndNoticeDeclarations(manifest, sourceName);
-  requireDeclaredFiles(sourceFiles, declarations);
-  const first = declarations[0];
-  if (first === undefined) return [];
-  const license = object(
-    field(manifest, 'license'),
-    `${sourceName}/rule-library.json: license`,
-  );
-  if (field(license, 'expression') !== undefined)
+  const fields = licenseFields(manifest, sourceName);
+  if (fields === null) return [];
+  requireDeclaredFiles(sourceFiles, [fields.file, ...fields.notices]);
+  return [normalizedLicense(fields)];
+}
+
+/** Reject obsolete or invalid SPDX fields, then deduplicate notices in declaration order and omit the license file itself. */
+function normalizedLicense(fields: LicenseFields): LicenseDeclaration {
+  const { metadata, location, file, notices } = fields;
+  if (field(metadata, 'expression') !== undefined)
     return invalid(
-      `${sourceName}/rule-library.json: license.expression`,
+      `${location}.expression`,
       'renamed to license.spdxExpression; move the declaration to that field',
     );
-  const expression = field(license, 'spdxExpression');
-  const file = first.path;
-  return [
-    {
-      spdxExpression:
-        expression === undefined
-          ? null
-          : spdxExpression(
-              expression,
-              `${sourceName}/rule-library.json: license.spdxExpression`,
-            ),
-      files: [file],
-      attributionFiles: [
-        ...new Set(
-          declarations
-            .slice(1)
-            .map(({ path }) => path)
-            .filter((path) => path !== file),
-        ),
-      ],
-    },
-  ];
+  const expression = field(metadata, 'spdxExpression');
+  return {
+    spdxExpression:
+      expression === undefined
+        ? null
+        : spdxExpression(expression, `${location}.spdxExpression`),
+    files: [file.path],
+    attributionFiles: [
+      ...new Set(
+        notices.map(({ path }) => path).filter((path) => path !== file.path),
+      ),
+    ],
+  };
 }
 
 /** Validate SPDX syntax and identifiers, preserving the publisher's declaration without assessing its legal meaning or agreement with the files. */
