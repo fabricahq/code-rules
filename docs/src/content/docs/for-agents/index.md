@@ -1,14 +1,15 @@
 ---
 title: "Plan, write, and review"
-description: "A repeatable process for selecting and applying the project\u2019s effective engineering rules."
+description: "A suggested workflow for agents using the project\u2019s effective engineering rules."
 ---
 
-Use the project's committed effective rules during planning, implementation, and review.
-This page describes the intended integration once a project has generated those files.
+This page suggests an agent workflow for using the project's committed effective rules during planning, implementation, and review.
+Adapt it to your project, or use your own prompts and tooling. Code Rules supplies the rule files; it does not run this workflow or require a particular validation or enforcement method.
+See [product scope](/overview/#scope-rule-management-and-delivery).
 
 ## Project instructions
 
-Add this section to the project's existing `AGENTS.md` after adopting Code Rules:
+To use this workflow, add the following section to the project's existing `AGENTS.md`, or use it as a starting point for a direct agent prompt:
 
 ```markdown
 Before planning, implementing, or reviewing a change, read `code-rules/generated/RULES.md`.

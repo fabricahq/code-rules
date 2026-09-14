@@ -35,6 +35,9 @@ The initial proof uses original example rules, local exceptions, and generated f
 Reliable imports and a private-project pilot follow that proof.
 
 Organization libraries that inherit from and republish other libraries, and assisted group selection, are later work.
-Review orchestration and merge gates belong to the surrounding factory.
+## Outside the product scope
+
+Code Rules manages the rules associated with a codebase. Application compliance checks, enforcement, review orchestration, and merge gates belong to project-specific agent instructions or separate tooling. These are integration choices, not features waiting for implementation.
+The supplied agent workflow is a suggestion; projects choose how to apply and validate their rules.
 
 Follow development in the [public repository](https://github.com/fabricahq/code-rules).

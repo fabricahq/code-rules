@@ -1,7 +1,8 @@
 # Code Rules
 
 Shared engineering standards for the agents building your software.
-Code Rules defines a convention and importer for versioned rule libraries, project exceptions, and generated rules used during planning, implementation, and review.
+Code Rules manages which versioned engineering rules a codebase adopts, including shared libraries, local exceptions, and reviewable updates.
+It generates rule files for agents and other tools to consume. Your project chooses how to apply, validate, and enforce them through agent prompts or separate tooling. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
 
 The project is in early implementation.
 The offline Builds module and documentation site are available for development; the CLI is not implemented.
