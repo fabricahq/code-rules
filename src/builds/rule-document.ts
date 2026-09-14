@@ -64,8 +64,10 @@ function validateRuleMetadata(
     `${location}.impactDescription`,
   );
   const tags = field(data, 'tags');
-  if (typeof tags === 'string') nonempty(tags, `${location}.tags`);
-  else strings(tags, `${location}.tags`);
+  if (tags !== undefined) {
+    if (typeof tags === 'string') nonempty(tags, `${location}.tags`);
+    else strings(tags, `${location}.tags`);
+  }
   const whenToRead = nonempty(
     field(data, 'whenToRead'),
     `${location}.whenToRead`,

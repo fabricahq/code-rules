@@ -167,7 +167,7 @@ switch (action) {
           ...Object.fromEntries(
             Array.from({ length: 40 }, (_, index) => [
               `${group}/scenario-${String(index + 1).padStart(2, '0')}.md`,
-              `---\ntitle: Verify retry scenario ${index + 1}\nwhenToRead: When planning or reviewing retry scenario ${index + 1}.\nimpact: HIGH\nimpactDescription: Catch retry failures.\ntags: testing, retries\n---\n\n## Verify retry scenario ${index + 1}\n\nThis illustrative body must remain complete in its own file.\n`,
+              `---\ntitle: Verify retry scenario ${index + 1}\nwhenToRead: When planning or reviewing retry scenario ${index + 1}.\nimpact: HIGH\nimpactDescription: Catch retry failures.\n---\n\n## Verify retry scenario ${index + 1}\n\nThis illustrative body must remain complete in its own file.\n`,
             ]),
           ),
         },

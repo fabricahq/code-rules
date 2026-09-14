@@ -1396,3 +1396,26 @@ test('should put complete guidance before source details and preserved metadata 
     expect(page).not.toContain('stated below');
   }
 });
+
+test('should build rules without tags and omit absent tags from preserved metadata', () => {
+  const text = ruleText('Retry').replace('tags: testing, retries\n', '');
+  const files = buildRules(localInput({ [`${ruleId}.md`]: text })).files;
+  for (const path of [`rules/local/${ruleId}.md`, `groups/${group}.md`]) {
+    expect(files[path]).toContain('Verify the retry limit before shipping.');
+    expect(files[path]).not.toContain('tags:');
+  }
+});
+
+test.each(
+  [null, 7, false, '   ', {}, ['testing', 7], ['testing', 'testing']].map(
+    (tags) => ({ tags }),
+  ),
+)('should reject malformed optional tags: $tags', ({ tags }) => {
+  const text = ruleText('Retry').replace(
+    'tags: testing, retries',
+    `tags: ${JSON.stringify(tags)}`,
+  );
+  expect(() => buildRules(localInput({ [`${ruleId}.md`]: text }))).toThrow(
+    `local:${ruleId}.md.tags`,
+  );
+});

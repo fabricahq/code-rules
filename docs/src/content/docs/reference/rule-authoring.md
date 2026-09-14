@@ -20,7 +20,6 @@ title: <Short action-oriented title>
 whenToRead: "Before [relevant activities] involving [specific behavior or artifact], such as [representative cases, if helpful]."
 impact: <Level matching the credible consequence within this rule's scope>
 impactDescription: <Specific consequence the rule helps prevent, supporting the impact level>
-tags: <Relevant topics, separated by commas>
 ---
 
 ## <Short action-oriented title>
@@ -51,6 +50,8 @@ tags: <Relevant topics, separated by commas>
 <Describe observable evidence or checks that establish compliance.>
 <Identify plausible situations that are insufficient evidence of a violation.>
 ````
+
+Optionally add `tags` for useful search terms, for example `tags: [testing, cancellation]` on a Go rule about testing cancellation. Omit them when they add no useful discovery terms. Tags supplement `whenToRead`; they do not determine applicability or enable a tag-filtering feature in the current tool.
 
 ## When to read, implement, and validate
 

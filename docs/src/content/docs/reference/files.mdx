@@ -74,7 +74,9 @@ Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#wri
 
 ## Rule metadata
 
-Each rule has `title`, `whenToRead`, `impact`, `impactDescription`, and `tags` frontmatter, followed by its Markdown body.
+Each rule requires `title`, `whenToRead`, `impact`, and `impactDescription` frontmatter, followed by its Markdown body.
+`tags` is optional: use a non-blank string of comma-separated topics or an array of unique, non-blank strings. An empty array is also accepted.
+Tags provide search terms, such as `testing` on a Go rule. Builds preserves supplied tags but does not use them for selection, grouping, or enforcement. Use `whenToRead` to describe applicability.
 Use the existing impact vocabulary: `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`.
 Impact describes the significance of the consequence a rule helps prevent.
 Follow the canonical [impact authoring guidance](/reference/rule-authoring/#describe-impact-through-consequences) for level definitions and examples.

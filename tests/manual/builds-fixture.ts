@@ -21,7 +21,7 @@ function exampleRule({
   const implementationSection = implementation
     ? `\n\n### Implementation\n\n${implementation}`
     : '';
-  return `---\ntitle: ${title}\nwhenToRead: ${whenToRead}\nimpact: HIGH\nimpactDescription: ${impactDescription}\ntags: testing, retries\n---\n\n## ${title}\n\n${obligation}${implementationSection}\n\n### Validation\n\n${validation}\n`;
+  return `---\ntitle: ${title}\nwhenToRead: ${whenToRead}\nimpact: HIGH\nimpactDescription: ${impactDescription}\n---\n\n## ${title}\n\n${obligation}${implementationSection}\n\n### Validation\n\n${validation}\n`;
 }
 
 const group = 'practices/testing';

@@ -150,6 +150,8 @@ Open `name-retry-stages.md` to compare its three parts: `whenToRead` triggers re
   failMessage="The expected metadata validation did not occur; inspect the output."
 />
 
+Tags are optional search metadata. This example omits them; supplied tags are preserved, while `whenToRead` remains the applicability guidance.
+
 Existing source snapshots and local rules need rule-level `whenToRead` before rebuilding. Group-level selection hints do not satisfy this requirement.
 
 ## 5. Review the result
