@@ -90,6 +90,12 @@ tests:
       - block: inspect-library-license
     assertions:
       - type: file_contains
+        path: 06-licensed-library/config.json
+        contains: https://gitlab.com/example/engineering/licensed-code-rules.git
+      - type: file_contains
+        path: 06-licensed-library/generated/rules/licensed/techs/javascript/prefer-for-of.md
+        contains: https://gitlab.com/example/engineering/licensed-code-rules/-/blob/
+      - type: file_contains
         path: 06-licensed-library/vendor/licensed/rule-library.json
         contains: '"expression": "MIT"'
       - type: file_contains

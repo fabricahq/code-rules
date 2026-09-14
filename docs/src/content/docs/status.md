@@ -9,6 +9,7 @@ The documentation site, authoring rubric, and template are available.
 The offline Builds module can combine in-memory library snapshots and local rules into generated files.
 It emits a root group index, group pages, and individual effective definitions. Small groups include full rules; larger groups use bounded applicability indexes. Rule-level `whenToRead` metadata is required.
 It has focused automated tests and a runnable example for development.
+Repository addresses use explicit HTTPS or SSH Git syntax. The builder supports GitHub.com and GitLab.com source links and retained-file links for other hosts.
 Library fetching, workspace installation and consistency checks, CLI commands, and the installable authoring skill remain unimplemented.
 
 ## What is settled

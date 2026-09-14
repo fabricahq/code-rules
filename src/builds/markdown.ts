@@ -6,6 +6,7 @@ import { toMarkdown } from 'mdast-util-to-markdown';
 import type { Root, RootContent } from 'mdast';
 import type { ActiveRule, RuleOrigin } from './types';
 import { invalid } from './validation';
+import { repositoryFileUrl } from './repository';
 
 /** Escape Markdown punctuation and flatten LF/CRLF line breaks so metadata renders as inline text. */
 export function escapeText(value: string): string {
@@ -19,12 +20,19 @@ function encodedPath(value: string): string {
   return value.split('/').map(encodeURIComponent).join('/');
 }
 
-/** Return a commit-pinned GitHub link for an imported origin, or a local link relative to the generated rule file. */
+/** Link to a known host's pinned source, otherwise to the retained definition relative to the generated file. */
 function sourceLink(origin: RuleOrigin, outputPath: string): string {
   if (origin.repository !== null && origin.resolvedCommit !== null) {
-    return `https://github.com/${origin.repository}/blob/${origin.resolvedCommit}/${encodedPath(origin.file)}`;
+    const remote = repositoryFileUrl(
+      origin.repository,
+      origin.resolvedCommit,
+      origin.file,
+      false,
+    );
+    if (remote !== null) return remote;
   }
-  return workspaceLink(outputPath, `local/${origin.file}`);
+  const root = origin.source === 'local' ? 'local' : `vendor/${origin.source}`;
+  return workspaceLink(outputPath, `${root}/${origin.file}`);
 }
 
 /** Return a workspace-relative link from the actual generated file location. */
@@ -80,10 +88,17 @@ function relocatedUrl(
     active.origin.repository !== null &&
     active.origin.resolvedCommit !== null
   ) {
-    const base = image
-      ? `https://raw.githubusercontent.com/${active.origin.repository}/${active.origin.resolvedCommit}`
-      : `https://github.com/${active.origin.repository}/blob/${active.origin.resolvedCommit}`;
-    return `${base}/${encodedPath(target)}${suffix}`;
+    const remote = repositoryFileUrl(
+      active.origin.repository,
+      active.origin.resolvedCommit,
+      target,
+      image,
+    );
+    if (remote !== null) return `${remote}${suffix}`;
+    return invalid(
+      active.rule.id,
+      `missing retained link destination: ${url}; include the target in the source snapshot or author an explicit URL for this host`,
+    );
   }
   return invalid(active.rule.id, `missing local link destination: ${url}`);
 }

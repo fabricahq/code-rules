@@ -50,7 +50,8 @@ export async function licensedLibraryExampleInput(): Promise<BuildInput> {
     'utf8',
   );
   const groups = ['techs/javascript'];
-  const repository = 'example/licensed-code-rules';
+  const repository =
+    'https://gitlab.com/example/engineering/licensed-code-rules.git';
   const ref = 'v1.0.0';
   return {
     configuration: {

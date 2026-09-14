@@ -21,7 +21,9 @@ A local replacement is not also an additional rule.
 Replacements stay within their target group in the first release.
 
 Record both the requested ref and resolved commit for every snapshot.
-Use resolved commits for source links so a moved tag does not change what a link points to.
+Use resolved commits for remote source links so a moved tag does not change what a link points to.
+GitHub.com and GitLab.com have recognized file and image URL formats.
+Other hosts use relative links to the retained source files; their repository address and resolved revision remain in provenance.
 
 ## Validate before writing
 
@@ -43,7 +45,21 @@ Keep declared and otherwise applicable license and notice files with the source 
 Include them in snapshot digests and report changes during updates.
 Generated rules link to their applicable preserved terms; see [License rules](/guides/license-rules/).
 Keep attribution links valid after relocation.
-References to unvendored upstream documents should point to the resolved commit rather than a mutable tag or broken local path.
+For recognized hosts, references to unvendored upstream documents point to the resolved commit.
+For other hosts, retain the referenced documents and images in the snapshot or author explicit URLs. Generation rejects missing relative destinations.
+
+## Fetch through Git, independently of the host
+
+The repository field accepts explicit HTTPS and SSH Git addresses, including scp-style SSH and nested namespaces.
+See [Repository addresses](/reference/configuration/#repository-addresses) for the grammar and credential boundary.
+The offline builder validates addresses and renders links; downloading remains planned work.
+
+The importer will invoke Git with separate arguments rather than interpolating repository text into a shell command.
+It must restrict actual transports to HTTPS and SSH, including after Git URL rewrites, and retain normal certificate and host-key verification.
+Use the caller's credentials without storing secrets in configuration or provenance.
+Do not recurse into submodules or execute library scripts, hooks, or checkout filters while creating snapshots.
+Apply resource limits and the existing path and installation checks to all hosts.
+Address validation alone does not establish that a remote is reachable or safe for a particular network environment.
 
 ## Resolve declared exceptions
 
