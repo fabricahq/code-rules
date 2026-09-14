@@ -55,7 +55,7 @@ After running it:
 
 Source repository names and commits are illustrative, so upstream GitHub links do not point to a real fixture library.
 The temporary workspace remains available after the script exits.
-Automated behavior checks remain in `src/builds/build.test.ts`.
+Automated behavior checks live beside the implementation in `src/builds/build*.test.ts`, grouped by core behavior, selection, input validation, indexes, group delivery, Markdown, and licensing. Each suite tests through the public `buildRules` interface; shared fixture factories live in `build-test-fixtures.ts`.
 
 ### Interactive walkthrough
 
