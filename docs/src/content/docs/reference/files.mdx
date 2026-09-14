@@ -49,7 +49,7 @@ The optional `license` object declares the library-wide terms. Authors should us
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
 Unknown fields in the license declaration are rejected so misspellings cannot silently discard intended metadata.
-The planned import and workspace workflow preserves these files from the resolved source commit and includes them in snapshot digests.
+Imports preserves these files from the resolved source commit. The planned Workspace workflow will install them and include them in snapshot digests.
 The offline builder verifies that declared files exist in the supplied snapshots. It copies their contents unchanged and links generated rules to those copies. It does not fetch files or compute workspace snapshot digests.
 If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
 
@@ -225,7 +225,7 @@ Excluded rules and superseded bodies have no generated rule file.
 Source links, attribution, library license links, and replacement provenance remain with the effective definition in both formats.
 Individual rule files remain available at stable paths even when the group includes full rules.
 Both copies come from the same resolved definition. Relative links are relocated from the actual output directory.
-Links to declared license and notice files target their generated copies. Other retained files use workspace-relative links; unretained upstream documents use commit-pinned URLs.
+Links to declared license and notice files target their generated copies. Other retained files use workspace-relative links. Unretained upstream documents use commit-pinned URLs for recognized GitHub.com and GitLab.com endpoints; other hosts require the target in the snapshot or an explicit URL.
 Relative links in raw HTML are rejected; use Markdown links, images, or reference definitions instead.
 Inline rules nest their headings and namespace Markdown reference labels.
 Same-file fragment links in inline rules point to the standalone definition, avoiding ambiguity between repeated headings across rules.
@@ -250,14 +250,15 @@ This API works before the CLI is available. It accepts these fields:
 | Input | Contract |
 | --- | --- |
 | `configuration` | The object described in [Configuration](/reference/configuration/). |
-| `snapshots` | One entry per configured source alias, with `repository`, `ref`, `resolvedCommit`, `groups`, `files`, and optional `groupSelection`. |
+| `snapshots` | One entry per configured source alias, with `repository`, `ref`, `resolvedCommit`, `groups`, `files`, and optional `groupSelection` and `filePaths`. |
 | `localFiles` | A map from paths relative to `local/` to UTF-8 text, including local-only group metadata. |
 | `toolVersion` | A non-blank caller-supplied version string recorded in provenance. |
 | `groupInlineMaxBytes` | Optional inline delivery limit; default 8 KiB. See [generated output](#generated-index-and-rules). |
 | `indexMaxBytes` | Optional positive safe integer limiting index pages; default 24 KiB. |
 
 Snapshot `files` map library-root-relative paths to UTF-8 text. Each snapshot must include `rule-library.json` and the selected groups' metadata and rules.
-Include declared license and notice files, even when they live outside the selected groups.
+Include declared license and notice files as UTF-8 text, even when they live outside the selected groups. Binary license and notice files are unsupported.
+The optional `filePaths` inventory lists every retained file, including binary attachments; it defaults to the text-map keys. An explicit inventory must include every supplied text file, and selected rule paths must have text in `files`. Builds uses the inventory to resolve attachment links; it does not authenticate the retained bytes.
 Pattern selections require an exact `groupSelection` marker and a complete snapshot for that scope; see [group selectors](/reference/configuration/#import-every-group).
 
 The result is `{ files }`, with every path relative to `generated/`. It includes indexes, effective rules, folder READMEs, library metadata, license copies, and provenance.

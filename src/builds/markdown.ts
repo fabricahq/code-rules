@@ -51,6 +51,7 @@ function relocatedUrl(
   image: boolean,
   outputPath: string,
 ): string {
+  if (url.startsWith('#')) return url;
   const link = relativeTarget(url, active.origin.file, active.rule.id);
   if (link === null) return url;
   const { target, suffix } = link;

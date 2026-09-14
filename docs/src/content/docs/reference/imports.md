@@ -103,7 +103,7 @@ Those file limits apply after fetching and do not cap network traffic or Git's t
 
 Imports follows standard relative Markdown links, images, and reference definitions to existing files in the same commit.
 It also follows links in retained Markdown attachments, without adopting those attachments as rules.
-All Markdown inspected for references must be UTF-8.
+All Markdown inspected for references and declared license and notice files must be UTF-8. Binary attachments are preserved as bytes, but binary license and notice files are unsupported.
 It does not discover dependencies in arbitrary prose or custom frontmatter.
 
 Within a selected group, ordinary `.md` files are rules, including files in nested directories.

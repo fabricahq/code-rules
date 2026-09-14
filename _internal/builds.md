@@ -71,7 +71,7 @@ App-specific React, Wails, and logger requirements do not apply to this offline 
 
 The snapshot envelope is an internal Builds interface, not a finalized `_source.json` wire format.
 Snapshot `files` contains UTF-8 text; optional `filePaths` lists all retained files, including binary attachments.
-Builds uses the inventory for declared-license checks and Markdown links and rejects inventories that omit supplied text or hide selected rule text.
+Builds uses the inventory for Markdown links and requires declared license and notice text in the text map and rejects inventories that omit supplied text or hide selected rule text.
 Imports preserves original file bytes; Workspace will own installing and verifying them.
 The Markdown renderer relocates standard Markdown links, images, and reference definitions while preserving unrelated body text.
 Relative links in raw HTML are rejected with an instruction to use Markdown syntax.

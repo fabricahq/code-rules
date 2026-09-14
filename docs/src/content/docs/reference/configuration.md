@@ -78,7 +78,7 @@ Set `groups` to the string `"*"` to adopt the whole library:
   "schemaVersion": 1,
   "sources": {
     "team": {
-      "repository": "my-team/rules",
+      "repository": "https://github.com/my-team/rules.git",
       "ref": "v1.0.0",
       "groups": "*",
       "exclude": {},

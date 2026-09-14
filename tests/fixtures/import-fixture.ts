@@ -10,10 +10,15 @@ import { fileURLToPath } from 'node:url';
 export const exampleFiles: Readonly<Record<string, string | Uint8Array>> = {
   'rule-library.json': JSON.stringify({
     formatVersion: 1,
-    license: { file: 'LICENSE.txt', notices: ['terms/special.pdf'] },
+    license: {
+      spdxExpression: 'CC0-1.0',
+      file: 'LICENSE.txt',
+      notices: ['NOTICE.txt'],
+    },
   }),
   'LICENSE.txt':
     'Original fixture content, released under CC0 for testing.\r\n',
+  'NOTICE.txt': 'Original fixture attribution.\r\n',
   'terms/special.pdf': new Uint8Array([0, 255, 128, 10]),
   'practices/testing/_group.json': JSON.stringify({
     name: 'Testing',
@@ -21,7 +26,7 @@ export const exampleFiles: Readonly<Record<string, string | Uint8Array>> = {
     whenToRead: ['Changing behavior.'],
   }),
   'practices/testing/verify-retries.md':
-    '---\ntitle: Verify retries\nimpact: HIGH\nimpactDescription: prevents excess requests\ntags: testing, retry\n---\n\nCheck retry limits.\n\n![Flow](../../images/flow.png)\n[More](../../notes/explanation.md)\n[Unselected](../logging/example.md)\n',
+    '---\ntitle: Verify retries\nwhenToRead: When planning, changing, or reviewing retry behavior.\nimpact: HIGH\nimpactDescription: prevents excess requests\ntags: testing, retry\n---\n\nCheck retry limits.\n\n![Flow](../../images/flow.png)\n[Attachment](../../terms/special.pdf)\n[More](../../notes/explanation.md)\n[Unselected](../logging/example.md)\n',
   'images/flow.png': new Uint8Array([137, 80, 78, 71, 255, 0, 10]),
   'notes/explanation.md':
     '[Terms](../terms/extra.txt)\n[Cycle](explanation.md)',

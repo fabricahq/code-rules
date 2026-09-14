@@ -1,7 +1,7 @@
 /** @fileoverview Tests public Imports behavior against real Git repositories and the offline Builds boundary. */
 
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { readdir, writeFile, symlink, mkdir } from 'node:fs/promises';
+import { readdir, writeFile, symlink, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   addLibrary,
@@ -63,8 +63,8 @@ test('imports two libraries, preserves bytes and origins, and builds one group',
   const serialized = JSON.stringify(result);
   expect(serialized).toContain('fabrica:practices/testing/verify-retries');
   expect(serialized).toContain('acme:practices/testing/verify-retries');
-  expect(serialized).toContain('../../vendor/fabrica/images/flow.png');
-  expect(serialized).toContain('../../vendor/fabrica/terms/special.pdf');
+  expect(serialized).toContain('../../../vendor/fabrica/images/flow.png');
+  expect(serialized).toContain('../../../vendor/fabrica/terms/special.pdf');
   expect(serialized).not.toContain('logging/example`');
   expect(serialized).not.toContain('unselected.txt');
   expect(
@@ -95,7 +95,8 @@ test('excludes only one origin while keeping both upstream source files', async 
       fabrica: { 'practices/testing/verify-retries.md': expect.any(String) },
     },
     generated: {
-      'practices/testing.md': expect.not.stringContaining('Rule ID: `fabrica:'),
+      'groups/practices/testing.md':
+        expect.not.stringContaining('Rule ID: `fabrica:'),
     },
   });
 });
@@ -126,7 +127,9 @@ test('retains a local replacement under the upstream identity', async () => {
   );
   expect(result).toMatchObject({
     generated: {
-      'practices/testing.md': expect.stringContaining('Use three attempts.'),
+      'groups/practices/testing.md': expect.stringContaining(
+        'Use three attempts.',
+      ),
     },
   });
 });
@@ -254,7 +257,7 @@ test.each([
   'rule-library.json',
   'practices/testing/_group.json',
   'LICENSE.txt',
-  'terms/special.pdf',
+  'NOTICE.txt',
 ])('rejects a missing required file: %s', async (path) => {
   const files = Object.fromEntries(
     Object.entries(exampleFiles).filter(([name]) => name !== path),
@@ -292,7 +295,7 @@ test('treats underscore Markdown as an attachment, not a rule', async () => {
   expect(
     runImport(fixture, config({ one: fixtureSource('one') }), { build: true }),
   ).toMatchObject({
-    generated: { 'practices/testing.md': expect.any(String) },
+    generated: { 'groups/practices/testing.md': expect.any(String) },
   });
 });
 
@@ -375,18 +378,45 @@ test('preserves encoded link targets and rejects links escaping the library', as
   failure(config({ two: fixtureSource('two') }), 'invalid-library');
 });
 
-test('does not execute library hooks or checkout filters', async () => {
-  const { directory } = await addLibrary(fixture, 'one');
-  await mkdir(join(directory, '.git/hooks'), { recursive: true });
-  await writeFile(
-    join(directory, '.git/hooks/post-checkout'),
-    '#!/bin/sh\ntouch HOOK-RAN\n',
-    { mode: 0o755 },
+test('preserves original bytes without running configured checkout filters', async () => {
+  const path = 'practices/testing/verify-retries.md';
+  const { directory } = await addLibrary(fixture, 'one', {
+    ...exampleFiles,
+    '.gitattributes': '*.md filter=fixture\n',
+  });
+  const marker = join(fixture.root, 'FILTER-RAN');
+  const script = join(fixture.root, 'smudge.sh');
+  await writeFile(script, `#!/bin/sh\nprintf ran > '${marker}'\ncat\n`);
+  const command = `sh '${script}'`;
+  await rm(join(directory, path));
+  fixtureGit(directory, [
+    '-c',
+    `filter.fixture.smudge=${command}`,
+    'checkout-index',
+    '--force',
+    '--all',
+  ]);
+  expect(await readdir(fixture.root)).toContain('FILTER-RAN');
+  await rm(marker);
+  const result = runImport(
+    fixture,
+    config({ one: fixtureSource('one') }),
+    {},
+    {
+      ...fixture.env,
+      GIT_CONFIG_COUNT: '3',
+      GIT_CONFIG_KEY_2: 'filter.fixture.smudge',
+      GIT_CONFIG_VALUE_2: command,
+    },
   );
-  expect(
-    runImport(fixture, config({ one: fixtureSource('one') })),
-  ).toMatchObject({ snapshots: { one: { ref: 'v1' } } });
-  expect(await readdir(directory)).not.toContain('HOOK-RAN');
+  expect(result).toMatchObject({
+    files: {
+      one: {
+        [path]: Buffer.from(exampleFiles[path]!).toString('base64'),
+      },
+    },
+  });
+  expect(await readdir(fixture.root)).not.toContain('FILTER-RAN');
 });
 
 test('does not inherit another checkout object database', async () => {
@@ -459,8 +489,8 @@ test('retains root-relative attachments with encoded leading slashes', async () 
     runImport(fixture, config({ one: fixtureSource('one') }), { build: true }),
   ).toMatchObject({
     generated: {
-      'practices/testing.md': expect.stringContaining(
-        '../../vendor/one/images/flow.png?size=1#flow',
+      'groups/practices/testing.md': expect.stringContaining(
+        '../../../vendor/one/images/flow.png?size=1#flow',
       ),
     },
   });
@@ -532,4 +562,64 @@ test.each([
       },
     ),
   ).toMatchObject({ error: 'invalid-configuration' });
+});
+
+test.each([
+  {
+    selector: '*',
+    groups: ['practices/logging', 'practices/testing', 'techs/go'],
+  },
+  {
+    selector: 'practices/*',
+    groups: ['practices/logging', 'practices/testing'],
+  },
+  { selector: 'techs/*', groups: ['techs/go'] },
+])(
+  'imports complete wildcard snapshots for $selector and builds their active rules',
+  async ({ selector, groups }) => {
+    await addLibrary(fixture, 'one', {
+      ...exampleFiles,
+      'practices/logging/_group.json':
+        exampleFiles['practices/testing/_group.json']!,
+      'practices/logging/example.md':
+        '---\ntitle: Log failures\nwhenToRead: When handling errors.\nimpact: HIGH\nimpactDescription: Failures stay visible.\n---\n\nRecord the failure.',
+      'techs/go/_group.json': exampleFiles['practices/testing/_group.json']!,
+    });
+    const result = runImport(
+      fixture,
+      config({ one: { ...fixtureSource('one'), groups: selector } }),
+      { build: true },
+    );
+    expect(result).toMatchObject({
+      snapshots: { one: { groupSelection: selector, groups } },
+      generated: Object.fromEntries(
+        groups.map((group) => [`groups/${group}.md`, expect.any(String)]),
+      ),
+    });
+    expect(result).not.toHaveProperty('error');
+  },
+);
+
+test('copies declared UTF-8 license and notice text into generated output unchanged', async () => {
+  await addLibrary(fixture, 'one', {
+    ...exampleFiles,
+    'LICENSE.txt': '\ufeffOriginal terms\r\n',
+  });
+  const result = runImport(fixture, config({ one: fixtureSource('one') }), {
+    build: true,
+  });
+  expect(result).toMatchObject({
+    generated: {
+      'libraries/one/licenses/LICENSE.md': '\ufeffOriginal terms\r\n',
+      'libraries/one/licenses/notices/001.md': exampleFiles['NOTICE.txt'],
+    },
+  });
+});
+
+test('rejects binary declared license text instead of corrupting generated terms', async () => {
+  await addLibrary(fixture, 'one', {
+    ...exampleFiles,
+    'LICENSE.txt': new Uint8Array([255, 128]),
+  });
+  failure(config({ one: fixtureSource('one') }), 'invalid-library');
 });

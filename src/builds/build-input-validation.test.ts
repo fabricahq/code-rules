@@ -90,7 +90,7 @@ test.each([
       schemaVersion: 1,
       sources: {
         fabrica: source('https://github.com/fabrica/rules.git'),
-        acme: source('Fabrica/Rules'),
+        acme: source('https://github.com/Fabrica/Rules.git'),
       },
       localGroups: [],
     },
@@ -182,7 +182,7 @@ test('should report duplicate repositories before an invalid ref on the same sou
     localGroups: [],
   };
   expect(() => buildRules({ ...build, configuration })).toThrow(
-    'sources.fabrica: repository ACME/rules is declared more than once',
+    'sources.fabrica: repository https://github.com/ACME/rules.git is declared more than once',
   );
 });
 

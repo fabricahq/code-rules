@@ -297,7 +297,9 @@ test('should retain unidentified legacy terms without guessing an SPDX declarati
 test('should describe imported libraries without licensing and omit library output for local-only rules', () => {
   const output = buildRules(input()).files;
   const readme = output['libraries/fabrica/README.md'];
-  expect(readme).toContain('[fabrica/rules](https://github.com/fabrica/rules)');
+  expect(readme).toContain(
+    '[https://github.com/fabrica/rules.git](https://github.com/fabrica/rules)',
+  );
   expect(readme).toContain('**Requested revision:** v1.0.0');
   expect(readme).toContain(`https://github.com/fabrica/rules/tree/${commit}`);
   expect(readme).toContain('No library license declaration was supplied.');

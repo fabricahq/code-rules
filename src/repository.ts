@@ -5,7 +5,12 @@ import { invalid, nonempty } from './formats/validation';
 /** Duplicate-detection identity and optional known-host web paths; neither changes the caller's Git transport address. */
 type RepositoryAddress = {
   readonly identity: string;
-  readonly web: { readonly file: string; readonly raw: string } | null;
+  readonly web: {
+    readonly root: string;
+    readonly tree: string;
+    readonly file: string;
+    readonly raw: string;
+  } | null;
 };
 
 /** Reject path normalization and encoded separators before URL parsing can erase their original meaning. */
@@ -139,10 +144,17 @@ export function repositoryAddress(
       web:
         host === 'github.com'
           ? {
+              root: webRoot,
+              tree: `${webRoot}/tree`,
               file: `${webRoot}/blob`,
               raw: `https://raw.githubusercontent.com/${path}`,
             }
-          : { file: `${webRoot}/-/blob`, raw: `${webRoot}/-/raw` },
+          : {
+              root: webRoot,
+              tree: `${webRoot}/-/tree`,
+              file: `${webRoot}/-/blob`,
+              raw: `${webRoot}/-/raw`,
+            },
     };
   }
   const port = url.port ? `:${url.port}` : '';

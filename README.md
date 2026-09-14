@@ -91,7 +91,7 @@ bun run imports:example
 
 The scenario creates two temporary Git libraries, imports them, and writes a temporary workspace for inspection.
 Both libraries contain a rule with the same path; the generated testing group identifies each source separately.
-Check its image and license links against `vendor/`, then inspect `generated/provenance.json` for resolved commits.
+Check image links against `vendor/` and license links against `generated/libraries/<source>/licenses/`, then inspect `generated/provenance.json` for resolved commits.
 The scenario uses illustrative GitHub and nested GitLab addresses, routed to local repositories only in the test process.
 Generated remote source links therefore do not resolve to those local fixture libraries.
 The script removes its Git fixtures and leaves the printed workspace for inspection.
@@ -103,7 +103,7 @@ Each library has a 120-second deadline, at most 10,000 tree entries, and an 8 Mi
 Retained files may occupy up to 64 MiB in total, with an 8 MiB limit per file.
 A shallow fetch may still download a large tree; retained-file limits do not bound network traffic or Git's temporary disk use.
 Imports rejects symlinks, submodules, Git LFS pointers, reserved paths, and case-insensitive NFC-normalized path collisions in retained files.
-Required text and Markdown inspected for dependencies must be UTF-8.
+Required text, declared licenses and notices, and Markdown inspected for dependencies must be UTF-8.
 
 `ImportError.code` distinguishes invalid configuration or libraries, unavailable Git, inaccessible repositories, missing or refused refs, unsupported content, resource limits, cancellation, timeouts, Git failures, and I/O failures.
 Failures return no partial library mapping.

@@ -3,16 +3,19 @@
 import type { LibrarySource } from '../configuration-types';
 import { collectLibraryLicensePaths } from '../formats/manifest';
 import { markdownTargets } from '../formats/markdown-links';
-import { groupMetadata, relativePath } from '../formats/validation';
+import { groupId, groupMetadata, relativePath } from '../formats/validation';
 import { ImportError, requireActive } from './errors';
 import { IMPORT_LIMITS, readBlobs } from './git-library';
 import type { TreeEntry } from './git-library';
 import type { ImportedLibrary } from './types';
 
 /** Decode authored text without replacing invalid bytes or changing retained file contents. */
-function utf8(bytes: Uint8Array, path: string): string {
+function utf8(bytes: Uint8Array, path: string, preserveBOM = false): string {
   try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    return new TextDecoder('utf-8', {
+      fatal: true,
+      ignoreBOM: preserveBOM,
+    }).decode(bytes);
   } catch {
     throw new ImportError('invalid-library', `${path}: expected UTF-8 text.`);
   }
@@ -120,6 +123,33 @@ async function retainFiles(
   );
 }
 
+/** Expand a pattern from the immutable tree, including empty groups and rejecting orphan group content. */
+function selectedGroups(
+  source: LibrarySource,
+  tree: ReadonlyMap<string, TreeEntry>,
+  licensePaths: ReadonlyArray<string>,
+): ReadonlyArray<string> {
+  if (typeof source.groups !== 'string') return source.groups;
+  const roots =
+    source.groups === '*'
+      ? ['techs', 'practices']
+      : [source.groups.split('/')[0]];
+  const groups = new Set<string>();
+  for (const path of tree.keys()) {
+    if (licensePaths.includes(path)) continue;
+    const parts = path.split('/');
+    if (!roots.includes(parts[0])) continue;
+    const id = groupId(parts.slice(0, 2).join('/'), `${source.name}/${path}`);
+    if (!tree.has(`${id}/_group.json`))
+      throw new ImportError(
+        'invalid-library',
+        `${id}: missing required _group.json.`,
+      );
+    groups.add(id);
+  }
+  return [...groups].sort();
+}
+
 /** Return a Builds projection and byte-preserving files from one immutable Git tree. */
 export async function selectLibrary(
   cwd: string,
@@ -144,8 +174,9 @@ export async function selectLibrary(
     source.name,
     new Set(tree.keys()),
   );
+  const groups = selectedGroups(source, tree, licensePaths);
   const requested = new Set([manifestPath, ...licensePaths]);
-  for (const group of source.groups) {
+  for (const group of groups) {
     requested.add(`${group}/_group.json`);
     for (const path of tree.keys())
       if (path.startsWith(`${group}/`)) requested.add(path);
@@ -155,14 +186,15 @@ export async function selectLibrary(
   for (const [path, bytes] of files) {
     if (
       path === manifestPath ||
-      source.groups.some(
+      licensePaths.includes(path) ||
+      groups.some(
         (group) =>
           path === `${group}/_group.json` ||
           (path.startsWith(`${group}/`) && path.endsWith('.md')),
       )
     ) {
-      const text = utf8(bytes, path);
-      if (source.groups.some((group) => path === `${group}/_group.json`))
+      const text = utf8(bytes, path, licensePaths.includes(path));
+      if (groups.some((group) => path === `${group}/_group.json`))
         groupMetadata(text, `${source.name}/${path}`);
       textFiles.push([path, text]);
     }
@@ -173,7 +205,8 @@ export async function selectLibrary(
       repository: source.repository,
       ref: source.ref,
       resolvedCommit: commit,
-      groups: source.groups,
+      groups,
+      groupSelection: source.groups,
       files: Object.fromEntries(textFiles),
       filePaths: [...files.keys()],
     },

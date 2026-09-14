@@ -24,7 +24,7 @@ function build(snapshot: LibrarySnapshot): string | undefined {
     snapshots: { example: snapshot },
     localFiles: {},
     toolVersion: 'test',
-  }).files['practices/testing.md'];
+  }).files['groups/practices/testing.md'];
 }
 
 const text = Object.fromEntries(
@@ -41,9 +41,11 @@ const snapshot: LibrarySnapshot = {
   filePaths: Object.keys(exampleFiles),
 };
 
-test('links to binary attachments and declared licenses present only in the inventory', () => {
-  expect(build(snapshot)).toContain('../../vendor/example/images/flow.png');
-  expect(build(snapshot)).toContain('../../vendor/example/terms/special.pdf');
+test('links to binary attachments present only in the inventory', () => {
+  expect(build(snapshot)).toContain('../../../vendor/example/images/flow.png');
+  expect(build(snapshot)).toContain(
+    '../../../vendor/example/terms/special.pdf',
+  );
 });
 
 test('rejects text absent from the explicit inventory', () => {

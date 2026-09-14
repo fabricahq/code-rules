@@ -5,8 +5,8 @@ description: "Package external guidance in a compatible library with one library
 
 **Every imported rule must live in a group inside a compatible Code Rules library.**
 That includes every adapted third-party rule, even when the library contains only that one rule.
-The planned import workflow will import the library, rather than a standalone Markdown rule.
-The offline builder is available now; see [Project status](/status/) for import and CLI availability.
+The `importLibraries` API imports the library, rather than a standalone Markdown rule.
+Fetching and offline generation are available now; workspace installation and CLI commands remain planned. See [Project status](/status/).
 The library owns `rule-library.json`, group metadata, and any declared license and notice files.
 
 For guidance from another source, first create that compatible adaptation.
@@ -82,7 +82,7 @@ Do not put edited material in `vendor/` and label it an unchanged upstream snaps
 Review the definition against the authoring rubric and the original source.
 The planned `code-rules library check` validates the library format.
 Publish the compatible library to a Git repository and select it through the consuming project's `sources` configuration.
-The proposed sync workflow imports its selected groups; the builder then generates effective rules and license links.
+The Imports API fetches the selected groups; the builder then generates effective rules and license links. The proposed sync workflow will install those files in the consuming project.
 See [Configuration](/reference/configuration/) for selecting a library and groups.
 
 After generating the files, confirm that the rule displays the MIT declaration and attribution to the original document.

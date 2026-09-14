@@ -1,7 +1,7 @@
 /** @fileoverview Checks host-aware source links and Git repository identities through buildRules. */
 
 import { describe, expect, test } from 'bun:test';
-import { buildRules } from './index';
+import { buildRules, BuildError } from './index';
 import type { BuildInput } from './index';
 import {
   commit,
@@ -72,6 +72,13 @@ describe('Git repository addresses', () => {
         expect(files[path]).toContain(`${fileBase}/${commit}/guide.md#retry`);
         expect(files[path]).toContain(`${rawBase}/${commit}/image.png`);
       }
+      const readme = files['libraries/remote/README.md'];
+      expect(readme).toContain(
+        `](${fileBase.replace(/(?:\/-)?\/blob$/u, '')})`,
+      );
+      expect(readme).toContain(
+        `](${fileBase.replace(/\/blob$/u, '/tree')}/${commit})`,
+      );
       expect(files['provenance.json']).toContain(JSON.stringify(repository));
     },
   );
@@ -94,6 +101,15 @@ describe('Git repository addresses', () => {
       );
       expect(output).toContain(`../../../vendor/remote/${ruleId}.md`);
       expect(output).not.toContain('/blob/');
+      const readme = generated(
+        repositoryInput(repository, 'Guidance.'),
+        'libraries/remote/README.md',
+      );
+      expect(readme.replaceAll('\\', '')).toContain(
+        `**Repository:** ${repository}`,
+      );
+      expect(readme).toContain(`**Resolved commit:** ${commit}`);
+      expect(readme).not.toContain('](https://github.com/');
       expect(() =>
         buildRules(repositoryInput(repository, '[Missing](../../missing.md)')),
       ).toThrow('include the target in the source snapshot');
@@ -131,7 +147,7 @@ describe('Git repository addresses', () => {
   });
 
   test.each([
-    'https://github.com/example/rules.git',
+    'example/rules',
     'http://example.org/rules.git',
     'file:///tmp/rules',
     'git://example.org/rules.git',
@@ -253,42 +269,3 @@ describe('Git repository addresses', () => {
     },
   );
 });
-
-/** Read one generated file through Builds, failing when the expected path is absent. */
-function generated(build: BuildInput, path: string): string {
-  const content = buildRules(build).files[path];
-  if (content === undefined) throw new Error(`Expected generated ${path}`);
-  return content;
-}
-
-/** Create a project with one local-only testing group and supplied definitions. */
-function localInput(localFiles: FileContents): BuildInput {
-  return {
-    configuration: { schemaVersion: 1, sources: {}, localGroups: [group] },
-    snapshots: {},
-    localFiles: { [`${group}/_group.json`]: metadata, ...localFiles },
-    toolVersion: 'test',
-  };
-}
-
-/** Replace Fabrica's manifest and supplied files while retaining the standard two-library fixture. */
-function withLibraryManifest(
-  manifest: string,
-  libraryFiles: FileContents = {},
-): BuildInput {
-  const build = input();
-  return {
-    ...build,
-    snapshots: {
-      ...build.snapshots,
-      fabrica: snapshot(
-        'https://github.com/fabrica/rules.git',
-        'Licensed retries',
-        {
-          ...libraryFiles,
-          'rule-library.json': manifest,
-        },
-      ),
-    },
-  };
-}
