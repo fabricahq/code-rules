@@ -11,7 +11,8 @@ One shared template covers technologies, practices, and project-specific rules. 
 ## Markdown template
 
 Start with this structure and replace the placeholders.
-Add examples where they clarify the obligation, and omit sections that add no useful guidance.
+For each distinct known application of the rule, aim to include an incorrect/correct example pair.
+Repeat the application block below as needed; omit sections that add no useful guidance.
 The [metadata reference](/reference/files/#rule-metadata) defines the frontmatter fields and allowed impact values.
 
 ````md
@@ -37,16 +38,25 @@ impactDescription: <Specific consequence the rule helps prevent, supporting the 
 <Explain the failure or tradeoff this rule addresses.>
 <Explain the mechanism connecting the action to that consequence; cite supporting contracts where needed.>
 
-### Incorrect example
+### Examples
 
-<Show a plausible mistake that violates this rule.>
-<Explain why it fails in the stated situation.>
+<Repeat the application block for each distinct known use of the rule.>
+<Cover differences in behavior, constraints, or implementation choices; combine cases when the same pair explains them without losing useful guidance.>
 
-### Correct example
+#### Application: <Name the situation>
 
-<Show the preferred approach in the same situation.>
+<Explain when this application occurs and which conditions matter.>
+
+**Incorrect (counterexample):**
+
+<Show a plausible mistake that violates the rule in this situation.>
+<Explain what goes wrong.>
+
+**Correct:**
+
+<Show the preferred approach in the same situation, keeping unrelated details consistent.>
 <Explain how it satisfies the rule and clarify illustrative choices.>
-<When overapplication is likely, include a similar-looking valid case and explain why it needs no change.>
+<When overapplication is likely, also show a similar-looking valid case and explain why it needs no change.>
 
 ### Validation
 
@@ -161,7 +171,7 @@ Revise missing or unclear guidance where the criterion applies; additional headi
 | Explicit scope | State the obligation's conditions and exceptions in the full body. An example's language does not implicitly limit a practice rule to that language. |
 | Supported impact | Use the [impact guidance](#describe-impact-through-consequences) to choose a level and name a credible consequence. Keep finding severity dependent on evidence. |
 | Useful rationale | Explain the failure or tradeoff the obligation addresses. Keep context separate from the obligation so it does not introduce hidden requirements. |
-| Concrete examples | Show the expected behavior when prose alone leaves room for interpretation. Label illustrative choices so they do not become accidental requirements. |
+| Concrete examples | Cover each distinct known application with an incorrect/correct pair that explains the situation and the decisive difference. Combine cases only when the same pair teaches both. Label illustrative choices so they do not become accidental requirements. |
 | Counterexamples | Show a plausible violation and explain what goes wrong. Pair it with a correct example of the same situation, keeping unrelated details consistent. Label both clearly. |
 | Verifiable compliance | Explain what code, behavior, test, or other evidence would demonstrate compliance. Match the check to the obligation; not every rule needs an automated test. |
 | Honest claims | Support factual claims and retain source attribution where needed. Distinguish an organization's preference from a universal requirement. |
@@ -169,6 +179,18 @@ Revise missing or unclear guidance where the criterion applies; additional headi
 
 A rule can govern plans, code, tests, documentation, or another engineering artifact.
 The rubric checks the quality of the instruction; the library owner chooses the engineering policy.
+
+### Cover distinct applications
+
+Identify the rule's known applications before choosing examples. A single pair is enough only when it covers those applications without hiding meaningful differences.
+For each distinct application, aim to show one plausible violation and one correct approach to the same situation.
+Add another pair when a different context changes how the rule is followed, what can go wrong, or which exception matters.
+For example, preserving errors when returning a result and preserving errors across asynchronous callbacks may need different pairs.
+Renaming variables or repeating the same lesson in another language does not by itself require another pair.
+
+This is an authoring coverage check, not a fixed example count or a requirement to invent every possible future use.
+Examples illustrate the rule's scope; an unlisted situation can still fall within its stated obligation.
+Keep each pair focused, and add coverage when a new application exposes a gap.
 
 ### Make counterexamples useful
 
