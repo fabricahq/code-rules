@@ -288,6 +288,13 @@ describe('buildRules', () => {
 
   test('should record no license paths when the manifest omits licensing', () => {
     const output = buildRules(withLibraryManifest('{"formatVersion":1}'));
+    for (const path of [`rules/fabrica/${ruleId}.md`, `groups/${group}.md`]) {
+      expect(output.files[path]).not.toContain('Library license:');
+      expect(output.files[path]).not.toContain(
+        'Library default license and notices:',
+      );
+      expect(output.files[path]).toContain('**Rule source:**');
+    }
     const provenance: unknown = JSON.parse(
       output.files['provenance.json'] ?? 'null',
     );
@@ -1385,7 +1392,7 @@ test('should put complete guidance before source details and preserved metadata 
     expect(metadata).toBeGreaterThan(source);
     expect(page.indexOf('```yaml')).toBeGreaterThan(metadata);
     expect(page).toContain('tags: testing, retries');
-    expect(page).toContain('Project-authored definition.');
+    expect(page).not.toContain('Project-authored definition.');
     expect(page).not.toContain('stated below');
   }
 });

@@ -323,13 +323,7 @@ export function renderRule(
           `- [${escapeText(path)}](${workspaceLink(outputPath, `vendor/${origin.source}/${path}`)})`,
       ),
     );
-  } else
-    lines.push(
-      '',
-      origin.source === 'local'
-        ? 'Project-authored definition.'
-        : 'Library license: No default license declared.',
-    );
+  }
   lines.push(
     '',
     `${sectionHeading}# Source metadata`,
