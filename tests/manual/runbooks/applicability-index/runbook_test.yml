@@ -84,3 +84,29 @@ tests:
       - type: file_contains
         path: 05-licensed-rule/local/licenses/unicorn/LICENSE.md
         contains: Copyright (c) Sindre Sorhus
+
+  - name: licensed-library
+    steps:
+      - block: inspect-library-license
+    assertions:
+      - type: file_contains
+        path: 06-licensed-library/vendor/licensed/rule-library.json
+        contains: '"expression": "MIT"'
+      - type: file_contains
+        path: 06-licensed-library/generated/provenance.json
+        contains: '"licenseBasis": "library-default"'
+      - type: file_contains
+        path: 06-licensed-library/generated/provenance.json
+        contains: vendor/licensed/licenses/unicorn/LICENSE.md
+      - type: file_contains
+        path: 06-licensed-library/generated/rules/licensed/techs/javascript/prefer-for-of.md
+        contains: '**Declared license:** MIT'
+      - type: file_contains
+        path: 06-licensed-library/generated/groups/techs/javascript.md
+        contains: '**Declared license:** MIT'
+      - type: file_contains
+        path: 06-licensed-library/vendor/licensed/licenses/unicorn/LICENSE.md
+        contains: Copyright (c) Sindre Sorhus
+      - type: file_contains
+        path: 06-licensed-library/vendor/licensed/licenses/unicorn/NOTICE.md
+        contains: Upstream author and copyright

@@ -157,17 +157,6 @@ Tags are optional search metadata. This example omits them; supplied tags are pr
 
 Existing source snapshots and local rules need rule-level `whenToRead` before rebuilding. Group-level selection hints do not satisfy this requirement.
 
-## 5. Review the result
-
-You have inspected real output for group discovery, rule selection, replacements, exclusions, local additions, bounded index pages, and authoring guidance.
-
-The walkthrough's assertions establish file behavior. The implementation and review chapters explain how an agent should use those files; they do not prove that an agent will select every relevant rule or comply with it.
-
-The complete repository gate is `bun run check`. The focused walkthrough test is `runbooks test tests/manual/runbooks/applicability-index`. Imports fetching, workspace installation and stale-file removal, the CLI, and private-library migration remain separate work.
-
-Runbook format: [Gruntwork Command blocks](https://runbooks.gruntwork.io/authoring/blocks/command/), [Inputs](https://runbooks.gruntwork.io/authoring/blocks/inputs/), and [runbook tests](https://runbooks.gruntwork.io/authoring/testing/).
-
-
 ## 5. Inspect a licensed third-party adaptation
 
 <Command
@@ -185,3 +174,44 @@ For a compatible imported library, rules without their own declarations inherit 
 For the full authoring workflow, read `docs/src/content/docs/guides/adapt-rules.md` in the checkout. It walks through choosing a source revision, drafting a local or shared adaptation, retaining terms, inspecting generated provenance, and reviewing later upstream changes.
 
 The planned library commands are `code-rules library init`, `code-rules library add group <group-id>`, `code-rules library add rule <rule-id>`, and `code-rules library check`. They are not implemented; this runbook exercises the working offline generator. The proposed setup flow is in `docs/src/content/docs/guides/create-library.md`.
+
+
+## 6. Trace a licensed library's default
+
+<Command
+  id="inspect-library-license"
+  command="bun tests/manual/applicability-walkthrough.ts library-licenses"
+  title="Generate the licensed library example"
+  description="Follows an MIT library declaration into an imported rule, its group page, and provenance."
+  successMessage="Open 06-licensed-library/README.md, then follow its linked files."
+/>
+
+This example packages the same adaptation as a compatible library. The manifest declares MIT once; the rule has no `licenses` field of its own.
+The builder applies that default and retains the rule's original source attribution.
+The library repository and revision are illustrative fixture data, not a fetched upstream library. The retained ESLint Unicorn license and attribution are real.
+
+Open these files under `06-licensed-library` in order:
+
+| Open | What to notice |
+| --- | --- |
+| `config.json` | The consuming project selects the `licensed` library and JavaScript group. |
+| `vendor/licensed/rule-library.json` | `license.expression` is `MIT`; `file` and `notices` identify the retained terms. |
+| `vendor/licensed/techs/javascript/prefer-for-of.md` | The rule omits `licenses` and inherits the library default. Its original attribution remains explicit. |
+| `generated/rules/licensed/techs/javascript/prefer-for-of.md` | The Source and attribution footer displays **Declared license: MIT** and links back to the vendored license and notice. |
+| `generated/groups/techs/javascript.md` | The inline full rule includes the same declaration, with links adjusted for this file's location. |
+| `generated/provenance.json` | `sources` records the library declaration; `rules` records `licenseBasis: library-default`, the effective terms, and upstream attribution. |
+| `vendor/licensed/licenses/unicorn/LICENSE.md` and `NOTICE.md` | The complete license text and notice remain available. The walkthrough verifies that the license bytes are unchanged. |
+
+In provenance, source license paths are library-relative. Effective rule license paths start with `vendor/licensed/` and resolve from the configuration directory, above `generated/`.
+Compare `05-licensed-rule`: its local definition declares its own license and records `licenseBasis: rule`.
+The generated folders link to retained terms rather than duplicating license files for each generated rule.
+
+## 7. Review the result
+
+You have inspected real output for group discovery, rule selection, replacements, exclusions, local additions, bounded index pages, and authoring guidance.
+
+The walkthrough's assertions establish file behavior. The implementation and review chapters explain how an agent should use those files; they do not prove that an agent will select every relevant rule or comply with it.
+
+The complete repository gate is `bun run check`. The focused walkthrough test is `runbooks test tests/manual/runbooks/applicability-index`. Imports fetching, workspace installation and stale-file removal, the CLI, and private-library migration remain separate work.
+
+Runbook format: [Gruntwork Command blocks](https://runbooks.gruntwork.io/authoring/blocks/command/), [Inputs](https://runbooks.gruntwork.io/authoring/blocks/inputs/), and [runbook tests](https://runbooks.gruntwork.io/authoring/testing/).
