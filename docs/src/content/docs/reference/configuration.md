@@ -55,7 +55,7 @@ Replace them with libraries and rules your project can access.
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
 | `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. |
-| `sources.<name>.groups` | Groups to import from this source, such as `techs/typescript` or `practices/testing`. |
+| `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
 | `localGroups` | Local-only group IDs, each backed by `_group.json` under `local/`. |
 | `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
 | `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
@@ -67,6 +67,50 @@ Replacement paths resolve relative to the configuration directory and must stay 
 Sources use `ref` rather than `commit`, and each source owns its groups and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are no longer part of the proposed format.
 The schema version remains `1` because no configuration format has shipped.
+
+## Import every group
+
+Set `groups` to the string `"*"` to adopt the whole library:
+
+```json
+{
+  "schemaVersion": 1,
+  "sources": {
+    "team": {
+      "repository": "https://gitlab.com/my-team/engineering/rules.git",
+      "ref": "v1.0.0",
+      "groups": "*",
+      "exclude": {},
+      "replace": {}
+    }
+  },
+  "localGroups": []
+}
+```
+
+Choose one of three supported selectors:
+
+| Selector | Included groups |
+| --- | --- |
+| `"*"` | Every technology and practice group. |
+| `"practices/*"` | Every practice group. |
+| `"techs/*"` | Every technology group. |
+
+Each selector includes all groups in its scope at the selected revision, including empty groups with valid metadata.
+Rule exclusions and replacements still apply. Agents still select relevant rules for each task.
+When you adopt a newer revision, newly added groups join the selection; the planned update report must identify those additions.
+Offline builds do not discover changes on the remote repository.
+
+Keep `groups` required. Use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
+`localGroups` remains an explicit list and cannot overlap any imported group after expansion.
+
+Snapshots record both the original `groupSelection` and the concrete `groups` list.
+A pattern snapshot must record the exact selector in `groupSelection` and contain every group within that scope at its resolved commit.
+For example, `"practices/*"` requires all practice groups, while `"*"` requires both kinds.
+The builder compares discovered groups with the recorded expansion and validates every group and rule.
+An old partial snapshot is insufficient even if its recorded groups look complete; changing selection intent requires sync.
+Legacy snapshots without `groupSelection` represent their explicit `groups` list and remain valid for list-based configuration.
+This completeness declaration comes from the snapshot supplier; offline checks do not independently authenticate it against the remote repository.
 
 ## Repository addresses
 

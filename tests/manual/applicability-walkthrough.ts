@@ -69,6 +69,62 @@ async function captureBuild(
 }
 
 switch (action) {
+  case 'groups': {
+    assert(
+      choice === 'all' || choice === 'practices' || choice === 'techs',
+      'Choose all, practices, or techs.',
+    );
+    const pattern =
+      choice === 'all'
+        ? '*'
+        : choice === 'practices'
+          ? 'practices/*'
+          : 'techs/*';
+    const snapshot = buildsExampleInput.snapshots.example;
+    assert(snapshot, 'Missing example snapshot.');
+    const groups = snapshot.groups
+      .filter((id) => pattern === '*' || id.startsWith(pattern.slice(0, -1)))
+      .sort();
+    input = {
+      configuration: {
+        schemaVersion: 1,
+        sources: {
+          example: {
+            repository: snapshot.repository,
+            ref: snapshot.ref,
+            groups: pattern,
+            exclude: {},
+            replace: {},
+          },
+        },
+        localGroups: [],
+      },
+      snapshots: { example: { ...snapshot, groupSelection: pattern, groups } },
+      localFiles: {},
+      toolVersion: 'group-selection-demonstration',
+    };
+    const prefix = `07-groups-${choice}`;
+    const { files } = await captureBuild(prefix);
+    const provenance = JSON.parse(
+      requireFile({ files, path: 'provenance.json' }),
+    );
+    assert.equal(provenance.sources[0].groupSelection, pattern);
+    assert.deepEqual(provenance.sources[0].groups, groups);
+    for (const id of snapshot.groups) {
+      assert.equal(
+        Object.hasOwn(files, `groups/${id}.md`),
+        groups.includes(id),
+      );
+    }
+    await capture(
+      `${prefix}/README.md`,
+      `# Selected groups\n\nSelector: \`${pattern}\`\n\nIncluded groups:\n\n${groups.map((id) => `- [${id}](generated/groups/${id}.md)`).join('\n')}\n\nOpen [config.json](config.json) to see the selector and [provenance.json](generated/provenance.json) to see the concrete expansion. This chapter uses the original library definitions to compare group selection.\n`,
+    );
+    console.log(
+      `Open ${prefix}/README.md: ${pattern} includes ${groups.join(', ')}.`,
+    );
+    break;
+  }
   case 'library-licenses': {
     input = await licensedLibraryExampleInput();
     const { files } = await captureBuild('06-licensed-library');
@@ -76,6 +132,8 @@ switch (action) {
       requireFile({ files, path: 'provenance.json' }),
     );
     assert.equal(provenance.sources[0].licenses[0].expression, 'MIT');
+    assert.equal(provenance.sources[0].groupSelection, '*');
+    assert.deepEqual(provenance.sources[0].groups, ['techs/javascript']);
     assert.equal(provenance.rules[0].licenseBasis, 'library-default');
     assert.equal(provenance.rules[0].origin.source, 'licensed');
     assert.deepEqual(provenance.rules[0].licenses, [
@@ -109,7 +167,7 @@ switch (action) {
     );
     await capture(
       '06-licensed-library/README.md',
-      '# Follow a library license into generated rules\n\n1. Open [config.json](config.json): the project selects the `licensed` source.\n2. Open [the library manifest](vendor/licensed/rule-library.json): it declares MIT and names the license and notice files once for the library.\n3. Open [the source rule](vendor/licensed/techs/javascript/prefer-for-of.md): it has attribution but no rule-level `licenses` field.\n4. Open [the full generated rule](generated/rules/licensed/techs/javascript/prefer-for-of.md): its footer displays the inherited MIT declaration. Follow the license and notice links into `vendor/licensed/`.\n5. Open [the group](generated/groups/techs/javascript.md): the inline full rule retains the same license and attribution links.\n6. Open [provenance.json](generated/provenance.json): the source declares MIT with library-relative paths; the effective rule records `licenseBasis: library-default` and paths starting with `vendor/licensed/`. Rule paths resolve from this directory, above generated/.\n\nCompare with `05-licensed-rule`: that local adaptation declares its own terms and has `licenseBasis: rule`. Both examples retain the original ESLint Unicorn attribution and complete MIT text. The licensed library repository `https://gitlab.com/example/engineering/licensed-code-rules.git`, tag, and commit are illustrative; only the original attribution points to a real upstream source. This fixture supplies a compatible snapshot offline and does not fetch a repository. Code Rules preserves declared terms rather than certifying them.\n',
+      '# Follow a library license into generated rules\n\n1. Open [config.json](config.json): the project selects every group from the `licensed` source with `groups: "*"`.\n2. Open [the library manifest](vendor/licensed/rule-library.json): it declares MIT and names the license and notice files once for the library.\n3. Open [the source rule](vendor/licensed/techs/javascript/prefer-for-of.md): it has attribution but no rule-level `licenses` field.\n4. Open [the full generated rule](generated/rules/licensed/techs/javascript/prefer-for-of.md): its footer displays the inherited MIT declaration. Follow the license and notice links into `vendor/licensed/`.\n5. Open [the group](generated/groups/techs/javascript.md): the inline full rule retains the same license and attribution links.\n6. Open [provenance.json](generated/provenance.json): the source records `groupSelection: "*"`, the concrete `groups` list, and MIT with library-relative paths; the effective rule records `licenseBasis: library-default` and paths starting with `vendor/licensed/`. Rule paths resolve from this directory, above generated/.\n\nCompare with `05-licensed-rule`: that local adaptation declares its own terms and has `licenseBasis: rule`. Both examples retain the original ESLint Unicorn attribution and complete MIT text. The licensed library repository `https://gitlab.com/example/engineering/licensed-code-rules.git`, tag, and commit are illustrative; only the original attribution points to a real upstream source. This fixture supplies a compatible snapshot offline and does not fetch a repository. Code Rules preserves declared terms rather than certifying them.\n',
     );
     console.log(
       'Open 06-licensed-library/README.md to trace the library default through the source rule, generated footer, and provenance.',

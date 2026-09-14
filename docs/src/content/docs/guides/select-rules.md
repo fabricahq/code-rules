@@ -31,6 +31,12 @@ In `code-rules/config.json`, set `sources.<name>.groups` separately for each lib
 Each source also has a `repository`, a commit-or-tag `ref`, and its own `exclude` and `replace` objects.
 Use the [complete configuration example](/reference/configuration/#complete-example) as your starting point.
 
+To adopt an entire library, set `groups` to `"*"` instead of an array.
+Use `"practices/*"` for all practice groups, or `"techs/*"` for all technology groups.
+All groups within that scope at the selected revision are included, and exclusions and replacements still apply.
+New groups enter when you update the adopted revision. Review them as part of that update.
+See [Import every group](/reference/configuration/#import-every-group) for an example and snapshot requirements.
+
 If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual effective rules.
 Source-prefixed IDs keep matching rule paths distinct.
 Neither source automatically overrides the other.

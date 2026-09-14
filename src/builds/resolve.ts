@@ -14,6 +14,8 @@ import type {
   LibrarySource,
   SourceRecord,
   LicenseDeclaration,
+  ExpandedLibrarySource,
+  GroupPattern,
 } from './types';
 import {
   BuildError,
@@ -23,6 +25,8 @@ import {
   invalid,
   requiredFile,
   ruleGroup,
+  groupId,
+  strings,
 } from './validation';
 import { rule } from './rule-document';
 import { readLibraryLicenses } from './library-licenses';
@@ -36,7 +40,7 @@ type GroupAccumulator = {
 };
 /** A validated source snapshot with selected definitions and guidance in selection order. */
 type SelectedLibrary = {
-  source: LibrarySource;
+  source: ExpandedLibrarySource;
   snapshot: LibrarySnapshot;
   files: ReadonlyMap<string, string>;
   licenses: ReadonlyArray<LicenseDeclaration>;
@@ -84,12 +88,32 @@ function snapshotFor(
       'needs-sync',
       `${source.name}: missing snapshot; run sync`,
     );
+  const snapshotGroups = strings(
+    snapshot.groups,
+    `${source.name}.snapshot.groups`,
+  )
+    .map((id) => groupId(id, `${source.name}.snapshot.groups`))
+    .sort(compare);
+  const recordedSelection = snapshot.groupSelection ?? snapshotGroups;
+  const sameSelection =
+    typeof source.groups === 'string' || typeof recordedSelection === 'string'
+      ? source.groups === recordedSelection
+      : [
+          ...strings(
+            recordedSelection,
+            `${source.name}.snapshot.groupSelection`,
+          ),
+        ]
+          .sort(compare)
+          .join('\n') === source.groups.join('\n');
   const sameGroups =
-    [...snapshot.groups].sort(compare).join('\n') === source.groups.join('\n');
+    typeof source.groups === 'string' ||
+    snapshotGroups.join('\n') === source.groups.join('\n');
   if (
     snapshot.repository !== source.repository ||
     snapshot.ref !== source.ref ||
-    !sameGroups
+    !sameGroups ||
+    !sameSelection
   ) {
     throw new BuildError(
       'needs-sync',
@@ -108,6 +132,38 @@ function snapshotFor(
     );
   }
   return snapshot;
+}
+
+/** Discover every group represented by metadata or rule files; later metadata loading rejects orphan rules instead of omitting them. */
+function patternGroups(
+  sourceFiles: ReadonlyMap<string, string>,
+  rules: ReadonlyMap<string, Rule>,
+  source: string,
+  pattern: GroupPattern,
+): ReadonlyArray<string> {
+  const ids = new Set(
+    [...rules.values()].map((definition) => definition.group),
+  );
+  for (const path of sourceFiles.keys()) {
+    if (!path.endsWith('/_group.json')) continue;
+    const parts = path.split('/');
+    if (!matchesGroupPattern(path, pattern)) continue;
+    const id = parts.slice(0, 2).join('/');
+    ids.add(groupId(id, `${source}/${path}`));
+    if (parts.length !== 3)
+      return invalid(
+        `${source}/${path}`,
+        'group metadata must be directly under its group',
+      );
+  }
+  return [...ids].sort(compare);
+}
+
+/** Match only the three supported scopes against library-relative paths, without interpreting arbitrary glob syntax. */
+function matchesGroupPattern(path: string, pattern: GroupPattern): boolean {
+  return pattern === '*'
+    ? path.startsWith('techs/') || path.startsWith('practices/')
+    : path.startsWith(pattern.slice(0, -1));
 }
 
 /** Return an existing group or register empty resolution storage for the selected ID. */
@@ -195,22 +251,41 @@ function selectedLibrary(
   const guidance: Array<{ id: string; metadata: GroupMetadata }> = [];
   const candidates = [...sourceFiles.keys()].filter(
     (path) =>
-      source.groups.some((id) => path.startsWith(`${id}/`)) &&
+      (typeof source.groups === 'string'
+        ? matchesGroupPattern(path, source.groups)
+        : source.groups.some((id) => path.startsWith(`${id}/`))) &&
       path.endsWith('.md') &&
       !path.split('/').at(-1)?.startsWith('_') &&
       !licenseFiles.includes(path),
   );
   const parsed = readRuleFiles(sourceFiles, source.name, candidates);
+  const selectedGroups =
+    typeof source.groups === 'string'
+      ? patternGroups(sourceFiles, parsed, source.name, source.groups)
+      : source.groups;
+  if (
+    typeof source.groups === 'string' &&
+    [...snapshot.groups].sort(compare).join('\n') !== selectedGroups.join('\n')
+  ) {
+    throw new BuildError(
+      'needs-sync',
+      `${source.name}: wildcard snapshot groups differ from its library contents; run sync`,
+    );
+  }
+  const expandedSource: ExpandedLibrarySource = {
+    ...source,
+    groups: selectedGroups,
+  };
   const rules = new Map(
     [...parsed].map(([path, definition]) => [path.slice(0, -3), definition]),
   );
-  for (const id of source.groups)
+  for (const id of selectedGroups)
     guidance.push({
       id,
       metadata: readGroupMetadata(sourceFiles, id, source.name),
     });
   return {
-    source,
+    source: expandedSource,
     snapshot,
     files: sourceFiles,
     licenses,
@@ -362,7 +437,8 @@ export function resolveRules(
       repository: source.repository,
       ref: source.ref,
       resolvedCommit: library.snapshot.resolvedCommit,
-      groups: source.groups,
+      groups: library.source.groups,
+      groupSelection: source.groups,
       licenses: library.licenses,
       licenseFiles: library.licenseFiles,
     });
@@ -371,11 +447,17 @@ export function resolveRules(
     for (const active of importedRules(library, localFiles, usedReplacements))
       addGroup(groups, active.rule.group).rules.push(active);
   }
-  for (const id of config.localGroups)
+  for (const id of config.localGroups) {
+    if (groups.has(id))
+      return invalid(
+        id,
+        'an imported group cannot also be declared in localGroups',
+      );
     addGroup(groups, id).guidance.push({
       source: 'local',
       metadata: readGroupMetadata(localFiles, id, 'local'),
     });
+  }
   for (const active of localRules(localFiles, groups, usedReplacements))
     addGroup(groups, active.rule.group).rules.push(active);
   requireLocalMetadata(localFiles, config.localGroups);

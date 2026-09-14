@@ -13,8 +13,15 @@ export type LibrarySnapshot = {
   readonly ref: string;
   readonly resolvedCommit: string;
   readonly groups: ReadonlyArray<string>;
+  /** Original selection intent; pattern snapshots must declare completeness within their selected scope. Omitted legacy values mean the concrete groups list. */
+  readonly groupSelection?: GroupSelection;
   readonly files: FileContents;
 };
+
+/** Supported discovery scopes: all groups or every group of one kind. */
+export type GroupPattern = '*' | 'techs/*' | 'practices/*';
+/** A supported discovery scope or concrete IDs; arbitrary globs and mixed wildcard lists are unsupported. */
+export type GroupSelection = GroupPattern | ReadonlyArray<string>;
 
 /** In-memory configuration, source snapshots keyed by alias, and local files rooted at local/; the builder validates their relationships. */
 export type BuildInput = {
@@ -43,9 +50,13 @@ export type LibrarySource = {
   readonly name: string;
   readonly repository: string;
   readonly ref: string;
-  readonly groups: ReadonlyArray<string>;
+  readonly groups: GroupSelection;
   readonly exclude: ReadonlyMap<string, string>;
   readonly replace: ReadonlyMap<string, RuleReplacement>;
+};
+/** Source policy after wildcard expansion has produced concrete, validated group IDs. */
+export type ExpandedLibrarySource = Omit<LibrarySource, 'groups'> & {
+  readonly groups: ReadonlyArray<string>;
 };
 /** Validated sources sorted by alias and local-only group IDs sorted by code-unit order. */
 export type ProjectConfig = {
@@ -119,6 +130,7 @@ export type SourceRecord = {
   readonly ref: string;
   readonly resolvedCommit: string;
   readonly groups: ReadonlyArray<string>;
+  readonly groupSelection: GroupSelection;
   readonly licenses: ReadonlyArray<LicenseDeclaration>;
   readonly licenseFiles: ReadonlyArray<string>;
 };

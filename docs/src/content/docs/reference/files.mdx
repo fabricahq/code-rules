@@ -224,17 +224,20 @@ The consuming repository's root license is not rewritten.
 
 ## Provenance records
 
-Each `vendor/<source-name>/_source.json` records the source name, repository, requested `ref`, full `resolvedCommit`, imported groups, and file digests.
+Each proposed `vendor/<source-name>/_source.json` records the source name, repository, requested `ref`, full `resolvedCommit`, `groupSelection`, concrete imported `groups`, and file digests.
+`groupSelection` is the configured list or selector (`"*"`, `"practices/*"`, or `"techs/*"`). Pattern snapshots must record the exact selector and supply every group within its scope at that revision.
+Legacy snapshots without this field imply the explicit `groups` list; they cannot satisfy a wildcard selection.
 Offline commands verify that the recorded repository, ref, and groups match configuration and that file digests match the snapshot.
 For a commit-valued ref, the resolved commit must equal that SHA.
 For a tag, offline checks use the recorded commit and do not verify the tag's current remote target.
 
 `generated/provenance.json` records the tool version, every named source with its requested ref and resolved commit, and active rule origins.
+Each source records `groupSelection` alongside the expanded `groups` list, keeping the adoption intent and actual included groups visible.
 A replacement retains both its targeted source-qualified ID and the local definition's origin.
 Generated output excludes changing timestamps and machine-specific paths.
 
 These metadata files support repeatability and diagnosis.
-They do not independently authenticate a locally modified snapshot against GitHub.
+They do not independently authenticate a locally modified snapshot against its remote repository.
 
 
 ### License declarations in provenance

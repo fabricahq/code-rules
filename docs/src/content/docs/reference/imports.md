@@ -8,6 +8,11 @@ It produces ordinary files that agents can read without running the importer.
 
 ## Resolve the active rules
 
+For `groups: "*"`, discover every technology and practice group at the resolved revision before applying project exceptions.
+For `"practices/*"` or `"techs/*"`, discover every group of that kind.
+Record the original selector and concrete group IDs in a snapshot complete for that scope.
+Reject malformed groups and orphan rule files rather than silently dropping them.
+
 1. Load each resolved source's selected groups and assign source-qualified IDs, then load declared local-only groups.
 2. Resolve each source's library-relative exclusions to qualified IDs and remove those rules.
 3. Apply each source's replacements as complete local definitions, preserving the qualified target IDs.
@@ -36,6 +41,8 @@ If any source cannot be fetched or validated, preserve the previous complete rul
 Detect concurrent writes and interrupted installations so mixed output cannot pass a consistency check.
 
 ## Keep sources reviewable
+
+When a source selects all groups, the update report must identify added and removed groups as well as rule changes.
 
 Copy selected upstream group source files into `vendor/<source-name>/`, including rules hidden by project exceptions.
 That retained text lets an update report expose upstream changes that a replacement would otherwise hide.

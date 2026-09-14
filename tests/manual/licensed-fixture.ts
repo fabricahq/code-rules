@@ -57,7 +57,7 @@ export async function licensedLibraryExampleInput(): Promise<BuildInput> {
     configuration: {
       schemaVersion: 1,
       sources: {
-        licensed: { repository, ref, groups, exclude: {}, replace: {} },
+        licensed: { repository, ref, groups: '*', exclude: {}, replace: {} },
       },
       localGroups: [],
     },
@@ -67,6 +67,7 @@ export async function licensedLibraryExampleInput(): Promise<BuildInput> {
         ref,
         resolvedCommit: 'b'.repeat(40),
         groups,
+        groupSelection: '*',
         files: {
           ...localExample.localFiles,
           'techs/javascript/prefer-for-of.md': rule,

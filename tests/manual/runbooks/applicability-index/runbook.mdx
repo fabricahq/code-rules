@@ -187,6 +187,7 @@ The planned library commands are `code-rules library init`, `code-rules library 
 />
 
 This example packages the same adaptation as a compatible library. The manifest declares MIT once; the rule has no `licenses` field of its own.
+Its source selects `groups: "*"`. The complete snapshot declares that selection, and the builder expands it to `techs/javascript`.
 Its configuration uses `https://gitlab.com/example/engineering/licensed-code-rules.git`, demonstrating an explicit GitLab address with nested groups.
 The generated source link uses GitLab's commit-pinned `/-/blob/` format. Chapter 1 uses an explicit GitHub URL.
 The builder applies that default and retains the rule's original source attribution.
@@ -196,19 +197,51 @@ Open these files under `06-licensed-library` in order:
 
 | Open | What to notice |
 | --- | --- |
-| `config.json` | The consuming project selects the `licensed` library and JavaScript group. |
+| `config.json` | The consuming project selects the `licensed` library with `groups: "*"`. |
 | `vendor/licensed/rule-library.json` | `license.expression` is `MIT`; `file` and `notices` identify the retained terms. |
 | `vendor/licensed/techs/javascript/prefer-for-of.md` | The rule omits `licenses` and inherits the library default. Its original attribution remains explicit. |
 | `generated/rules/licensed/techs/javascript/prefer-for-of.md` | The Source and attribution footer displays **Declared license: MIT** and links back to the vendored license and notice. |
 | `generated/groups/techs/javascript.md` | The inline full rule includes the same declaration, with links adjusted for this file's location. |
-| `generated/provenance.json` | `sources` records the library declaration; `rules` records `licenseBasis: library-default`, the effective terms, and upstream attribution. |
+| `generated/provenance.json` | `sources` records `groupSelection: "*"`, the expanded `groups`, and the library declaration. `rules` records `licenseBasis: library-default`, effective terms, and upstream attribution. |
 | `vendor/licensed/licenses/unicorn/LICENSE.md` and `NOTICE.md` | The complete license text and notice remain available. The walkthrough verifies that the license bytes are unchanged. |
 
 In provenance, source license paths are library-relative. Effective rule license paths start with `vendor/licensed/` and resolve from the configuration directory, above `generated/`.
 Compare `05-licensed-rule`: its local definition declares its own license and records `licenseBasis: rule`.
 The generated folders link to retained terms rather than duplicating license files for each generated rule.
 
-## 7. Review the result
+## 7. Compare group selectors
+
+Choose a scope, submit it, and generate the corresponding example. This chapter uses the original library definitions to compare selection.
+
+<Inputs id="groupScope">
+
+```yaml
+variables:
+  - name: Scope
+    type: enum
+    description: Which groups should this source include?
+    options:
+      - All groups (*)
+      - Practice groups (practices/*)
+      - Technology groups (techs/*)
+    default: All groups (*)
+```
+
+</Inputs>
+
+<Command
+  id="compare-group-selectors"
+  inputsId="groupScope"
+  command='bun tests/manual/applicability-walkthrough.ts groups {{ if eq .inputs.Scope "All groups (*)" }}all{{ else if eq .inputs.Scope "Practice groups (practices/*)" }}practices{{ else }}techs{{ end }}'
+  title="Generate this group selection"
+  successMessage="Open the new 07-groups folder and compare config.json with generated/provenance.json."
+/>
+
+`"*"` includes all four example groups. `"practices/*"` includes Code design and Testing; `"techs/*"` includes Go and TypeScript.
+Provenance records the selector and the concrete group IDs. Each snapshot must declare the same selector and contain every group in its scope at the recorded revision.
+Exclusions and replacements remain available within the selected groups. When you update the library revision, newly added groups within that scope join the selection.
+
+## 8. Review the result
 
 You have inspected real output for group discovery, rule selection, replacements, exclusions, local additions, bounded index pages, and authoring guidance.
 

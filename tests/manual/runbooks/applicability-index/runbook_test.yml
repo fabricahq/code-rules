@@ -91,6 +91,12 @@ tests:
     assertions:
       - type: file_contains
         path: 06-licensed-library/config.json
+        contains: '"groups": "*"'
+      - type: file_contains
+        path: 06-licensed-library/generated/provenance.json
+        contains: '"groupSelection": "*"'
+      - type: file_contains
+        path: 06-licensed-library/config.json
         contains: https://gitlab.com/example/engineering/licensed-code-rules.git
       - type: file_contains
         path: 06-licensed-library/generated/rules/licensed/techs/javascript/prefer-for-of.md
@@ -116,3 +122,42 @@ tests:
       - type: file_contains
         path: 06-licensed-library/vendor/licensed/licenses/unicorn/NOTICE.md
         contains: Upstream author and copyright
+
+  - name: all-groups
+    inputs:
+      groupScope.Scope: All groups (*)
+    steps:
+      - block: compare-group-selectors
+    assertions:
+      - type: file_exists
+        path: 07-groups-all/generated/groups/techs/go.md
+      - type: file_exists
+        path: 07-groups-all/generated/groups/practices/testing.md
+
+  - name: practice-groups
+    inputs:
+      groupScope.Scope: Practice groups (practices/*)
+    steps:
+      - block: compare-group-selectors
+    assertions:
+      - type: file_contains
+        path: 07-groups-practices/config.json
+        contains: '"groups": "practices/*"'
+      - type: file_exists
+        path: 07-groups-practices/generated/groups/practices/code-design.md
+      - type: file_not_exists
+        path: 07-groups-practices/generated/groups/techs/go.md
+
+  - name: technology-groups
+    inputs:
+      groupScope.Scope: Technology groups (techs/*)
+    steps:
+      - block: compare-group-selectors
+    assertions:
+      - type: file_contains
+        path: 07-groups-techs/generated/provenance.json
+        contains: '"groupSelection": "techs/*"'
+      - type: file_exists
+        path: 07-groups-techs/generated/groups/techs/typescript.md
+      - type: file_not_exists
+        path: 07-groups-techs/generated/groups/practices/testing.md
