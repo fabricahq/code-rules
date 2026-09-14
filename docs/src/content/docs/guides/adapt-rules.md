@@ -39,7 +39,7 @@ Declare one license covering the whole library in `rule-library.json`:
 {
   "formatVersion": 1,
   "license": {
-    "expression": "MIT",
+    "spdxExpression": "MIT",
     "file": "LICENSE.md",
     "notices": ["NOTICE.md"]
   }

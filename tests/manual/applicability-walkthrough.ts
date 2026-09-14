@@ -128,14 +128,14 @@ switch (action) {
     const provenance = JSON.parse(
       requireFile({ files, path: 'provenance.json' }),
     );
-    assert.equal(provenance.sources[0].licenses[0].expression, 'MIT');
+    assert.equal(provenance.sources[0].licenses[0].spdxExpression, 'MIT');
     assert.equal(provenance.sources[0].groupSelection, '*');
     assert.deepEqual(provenance.sources[0].groups, ['techs/javascript']);
     assert.equal(provenance.rules[0].licenseBasis, 'library');
     assert.equal(provenance.rules[0].origin.source, 'licensed');
     assert.deepEqual(provenance.rules[0].licenses, [
       {
-        expression: 'MIT',
+        spdxExpression: 'MIT',
         files: ['vendor/licensed/LICENSE.md'],
         attributionFiles: ['vendor/licensed/NOTICE.md'],
       },

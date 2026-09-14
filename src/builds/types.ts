@@ -71,7 +71,7 @@ export type GroupMetadata = {
 };
 /** Declared terms and retained files, relative to the owning library root; null expression means legacy unidentified terms. */
 export type LicenseDeclaration = {
-  readonly expression: string | null;
+  readonly spdxExpression: string | null;
   readonly files: ReadonlyArray<string>;
   readonly attributionFiles: ReadonlyArray<string>;
 };

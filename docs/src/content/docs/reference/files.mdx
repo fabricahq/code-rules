@@ -28,7 +28,7 @@ All paths below describe the proposed format.
 `rule-library.json` declares the library format:
 
 ```json
-{ "formatVersion": 1, "license": { "expression": "MIT", "file": "LICENSE.md", "notices": [] } }
+{ "formatVersion": 1, "license": { "spdxExpression": "MIT", "file": "LICENSE.md", "notices": [] } }
 ```
 
 Discover groups only under `techs/` and `practices/`.
@@ -40,14 +40,14 @@ The optional `license` object declares the library's default terms:
 
 | Field | Meaning |
 | --- | --- |
-| `license.expression` | Declared SPDX expression, such as `MIT` or `MIT OR Apache-2.0`, or a `LicenseRef-…` for custom terms. Optional for compatibility with existing manifests. |
+| `license.spdxExpression` | Declared SPDX expression, such as `MIT` or `MIT OR Apache-2.0`, or a `LicenseRef-…` for custom terms. Optional for compatibility with existing manifests. |
 | `license.file` | Path to the actual license text, relative to the library root. |
 | `license.notices` | Paths to accompanying notices, relative to the library root; use an empty array when none apply. |
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
 The planned import and workspace workflow preserves these files from the resolved source commit and includes them in snapshot digests.
 The offline builder accepts supplied snapshots, verifies that declared files exist, and links generated guidance to those retained files. It does not fetch files or compute workspace snapshot digests.
-If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `expression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It checks that supplied expressions are non-blank single-line strings, but does not certify SPDX identifier validity, ownership, or agreement between the label and the license text.
+If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
 
 One library-wide license declaration covers every group and rule. Rule- and group-level `license` or `licenses` fields are rejected.
 Keep original attribution with each rule and include required notices in the library manifest. Material requiring a different declaration belongs in a separate library.
@@ -245,7 +245,7 @@ For example, the licensed-library walkthrough produces:
 {
   "licenseBasis": "library",
   "licenses": [{
-    "expression": "MIT",
+    "spdxExpression": "MIT",
     "files": ["vendor/licensed/LICENSE.md"],
     "attributionFiles": ["vendor/licensed/NOTICE.md"]
   }],

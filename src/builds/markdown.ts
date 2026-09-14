@@ -325,10 +325,10 @@ export function renderRule(
     const sourceRoot =
       origin.source === 'local' ? 'local' : `vendor/${origin.source}`;
     for (const license of active.licenses) {
-      if (license.expression !== null)
+      if (license.spdxExpression !== null)
         lines.push(
           '',
-          `**Declared license:** ${escapeText(license.expression)}`,
+          `**Declared license:** ${escapeText(license.spdxExpression)}`,
           '',
         );
       for (const path of [...license.files, ...license.attributionFiles])

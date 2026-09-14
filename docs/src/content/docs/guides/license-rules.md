@@ -36,7 +36,7 @@ The proposed library metadata identifies the terms for the whole library and any
 {
   "formatVersion": 1,
   "license": {
-    "expression": "MIT",
+    "spdxExpression": "MIT",
     "file": "LICENSE.md",
     "notices": []
   }
@@ -48,7 +48,7 @@ For example, list `NOTICE.md` in `notices` when the library supplies a notice th
 No extra notice file is required when the license and rule files already contain the necessary notices.
 The [file reference](/reference/files/#library-license-metadata) defines these fields.
 
-Use an SPDX expression for standard terms and a distinct `LicenseRef-…` for custom or modified terms. The [SPDX expression specification](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) defines identifiers and compound expressions. The identifier supplements the retained text. Code Rules preserves your declaration; it does not certify the label or permissions.
+Use an SPDX expression for standard terms and a distinct `LicenseRef-…` for custom or modified terms. The [SPDX expression specification](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) defines identifiers and compound expressions. The identifier supplements the retained text. Code Rules validates the `license.spdxExpression` syntax and identifiers and preserves your declaration. It does not verify that the declaration matches the retained terms or grants the permissions you need.
 
 A library has one license declaration covering all its rules and groups. Per-rule and per-group overrides are unsupported.
 Keep attribution with each rule, in its body or [structured attribution](/reference/files/#rule-attribution). List required notices in the library manifest.

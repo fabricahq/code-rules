@@ -368,7 +368,7 @@ describe('all library groups', () => {
             'rule-library.json': JSON.stringify({
               formatVersion: 1,
               license: {
-                expression: 'MIT',
+                spdxExpression: 'MIT',
                 file: 'techs/licenses/LICENSE.md',
                 notices: [],
               },
@@ -1741,12 +1741,104 @@ test.each(
   );
 });
 
+test.each([
+  'MIT',
+  '(MIT OR Apache-2.0) AND BSD-3-Clause',
+  'GPL-2.0-only WITH Classpath-exception-2.0',
+  'LGPL-2.1+',
+  'LicenseRef-Acme-Custom',
+])('should preserve a valid SPDX declaration: %s', (spdxExpression) => {
+  const output = buildRules(
+    withLibraryManifest(
+      JSON.stringify({
+        formatVersion: 1,
+        license: { spdxExpression, file: 'LICENSE.md', notices: [] },
+      }),
+      { 'LICENSE.md': 'Publisher-provided terms' },
+    ),
+  ).files;
+  const provenance = JSON.parse(output['provenance.json'] ?? '{}');
+  const declaration = provenance.sources.find(
+    (entry: { name: string }) => entry.name === 'fabrica',
+  ).licenses[0];
+  expect(declaration.spdxExpression).toBe(spdxExpression);
+  expect(declaration).not.toHaveProperty('expression');
+});
+
+test.each([
+  '',
+  '   ',
+  null,
+  42,
+  'Not-A-Listed-License',
+  'MIT OR',
+  '(MIT AND Apache-2.0',
+  'MIT WITH Not-A-Listed-Exception',
+  'MIT\nOR Apache-2.0',
+  'LicenseRef-',
+])('should reject an invalid SPDX declaration: %j', (spdxExpression) => {
+  expect(() =>
+    buildRules(
+      withLibraryManifest(
+        JSON.stringify({
+          formatVersion: 1,
+          license: { spdxExpression, file: 'LICENSE.md', notices: [] },
+        }),
+        { 'LICENSE.md': 'Publisher-provided terms' },
+      ),
+    ),
+  ).toThrow('rule-library.json: license.spdxExpression');
+});
+
+test.each([{}, { spdxExpression: 'MIT' }])(
+  'should explain the renamed field even when its replacement exists: %j',
+  (fields) => {
+    expect(() =>
+      buildRules(
+        withLibraryManifest(
+          JSON.stringify({
+            formatVersion: 1,
+            license: {
+              ...fields,
+              expression: 'MIT',
+              file: 'LICENSE.md',
+              notices: [],
+            },
+          }),
+          { 'LICENSE.md': 'Publisher-provided terms' },
+        ),
+      ),
+    ).toThrow('renamed to license.spdxExpression');
+  },
+);
+
+test('should retain unidentified legacy terms without guessing an SPDX declaration', () => {
+  const output = buildRules(
+    withLibraryManifest(
+      JSON.stringify({
+        formatVersion: 1,
+        license: { file: 'LICENSE.md', notices: [] },
+      }),
+      { 'LICENSE.md': 'MIT-like terms' },
+    ),
+  ).files;
+  const provenance = JSON.parse(output['provenance.json'] ?? '{}');
+  expect(
+    provenance.sources.find(
+      (entry: { name: string }) => entry.name === 'fabrica',
+    ).licenses[0].spdxExpression,
+  ).toBeNull();
+  expect(output[`rules/fabrica/${ruleId}.md`]).not.toContain(
+    '**Declared license:**',
+  );
+});
+
 test('should preserve declared library expressions separately from retained files', () => {
   const build = withLibraryManifest(
     JSON.stringify({
       formatVersion: 1,
       license: {
-        expression: 'MIT OR Apache-2.0',
+        spdxExpression: 'MIT OR Apache-2.0',
         file: 'LICENSE.md',
         notices: ['NOTICE.txt'],
       },
@@ -1761,7 +1853,7 @@ test('should preserve declared library expressions separately from retained file
     ).licenses,
   ).toEqual([
     {
-      expression: 'MIT OR Apache-2.0',
+      spdxExpression: 'MIT OR Apache-2.0',
       files: ['LICENSE.md'],
       attributionFiles: ['NOTICE.txt'],
     },
@@ -1774,7 +1866,7 @@ test('should preserve declared library expressions separately from retained file
     licenseBasis: 'library',
     licenses: [
       {
-        expression: 'MIT OR Apache-2.0',
+        spdxExpression: 'MIT OR Apache-2.0',
         files: ['vendor/fabrica/LICENSE.md'],
         attributionFiles: ['vendor/fabrica/NOTICE.txt'],
       },
@@ -1790,7 +1882,7 @@ test.each([0, 8192])(
   (groupInlineMaxBytes) => {
     const metadata = `attribution:\n  - url: https://example.com/source/commit/rule.md\n    description: Adapted from the original.\n`;
     const build = withLibraryManifest(
-      '{"formatVersion":1,"license":{"expression":"MIT","file":"LICENSE.md","notices":["NOTICE.md"]}}',
+      '{"formatVersion":1,"license":{"spdxExpression":"MIT","file":"LICENSE.md","notices":["NOTICE.md"]}}',
       {
         'LICENSE.md': 'Library terms',
         'NOTICE.md': 'Original attribution notice',
@@ -1813,7 +1905,7 @@ test.each([0, 8192])(
         licenseBasis: 'library',
         licenses: [
           {
-            expression: 'MIT',
+            spdxExpression: 'MIT',
             files: ['vendor/fabrica/LICENSE.md'],
             attributionFiles: ['vendor/fabrica/NOTICE.md'],
           },
@@ -1839,7 +1931,7 @@ test.each(['license', 'licenses'])(
       `---\n${key}: MIT\n`,
     );
     const imported = withLibraryManifest(
-      '{"formatVersion":1,"license":{"expression":"MIT","file":"LICENSE.md","notices":[]}}',
+      '{"formatVersion":1,"license":{"spdxExpression":"MIT","file":"LICENSE.md","notices":[]}}',
       { 'LICENSE.md': 'Library terms', [`${ruleId}.md`]: override },
     );
     expect(() => buildRules(imported)).toThrow(
@@ -1867,7 +1959,7 @@ test.each(['license', 'licenses'])(
 
 test('should keep replacement licensing independent from upstream library terms', () => {
   const build = withLibraryManifest(
-    '{"formatVersion":1,"license":{"expression":"MIT","file":"LICENSE.md","notices":[]}}',
+    '{"formatVersion":1,"license":{"spdxExpression":"MIT","file":"LICENSE.md","notices":[]}}',
     { 'LICENSE.md': 'Upstream terms' },
   );
   const configuration = {
@@ -1899,16 +1991,16 @@ test('should keep replacement licensing independent from upstream library terms'
     licenses: [],
     upstream: { source: 'fabrica' },
   });
-  expect(provenance.sources[0].licenses[0].expression).toBe('MIT');
+  expect(provenance.sources[0].licenses[0].spdxExpression).toBe('MIT');
 });
 
 test.each([
   'licenses: []',
-  'licenses: [{expression: MIT, files: []}]',
-  'licenses: [{expression: MIT, files: [../LICENSE]}]',
-  'licenses: [{expression: MIT, files: [missing/LICENSE.md]}]',
-  'licenses: [{expression: "", files: [LICENSE]}]',
-  'licenses: [{expression: "MIT\\nApache-2.0", files: [LICENSE]}]',
+  'licenses: [{spdxExpression: MIT, files: []}]',
+  'licenses: [{spdxExpression: MIT, files: [../LICENSE]}]',
+  'licenses: [{spdxExpression: MIT, files: [missing/LICENSE.md]}]',
+  'licenses: [{spdxExpression: "", files: [LICENSE]}]',
+  'licenses: [{spdxExpression: "MIT\\nApache-2.0", files: [LICENSE]}]',
   'attribution: [{url: "javascript:alert(1)", description: Source}]',
   'attribution: [{url: "https://user:secret@example.com", description: Source}]',
 ])('should reject incomplete or unsafe licensing metadata: %s', (metadata) => {
@@ -1925,7 +2017,7 @@ test.each([
 test('should reject unsupported license declarations even on excluded rules', () => {
   const definition = ruleText('Excluded').replace(
     '---\n',
-    '---\nlicenses: [{expression: MIT, files: [MISSING.md]}]\n',
+    '---\nlicenses: [{spdxExpression: MIT, files: [MISSING.md]}]\n',
   );
   const build: BuildInput = {
     configuration: {

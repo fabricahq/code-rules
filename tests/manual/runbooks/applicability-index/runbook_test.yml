@@ -80,7 +80,7 @@ tests:
         contains: '"groupSelection": "*"'
       - type: file_contains
         path: 05-licensed-library/vendor/licensed/rule-library.json
-        contains: '"expression": "MIT"'
+        contains: '"spdxExpression": "MIT"'
       - type: file_contains
         path: 05-licensed-library/generated/provenance.json
         contains: '"licenseBasis": "library"'

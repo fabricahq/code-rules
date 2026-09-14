@@ -1,5 +1,7 @@
 /** @fileoverview Validates library license declarations and resolves their files within an in-memory source snapshot. */
 
+import parseSpdxExpression from 'spdx-expression-parse';
+
 import type { LicenseDeclaration } from './types';
 
 import {
@@ -107,16 +109,21 @@ export function readLibraryLicenses(
     field(manifest, 'license'),
     `${sourceName}/rule-library.json: license`,
   );
-  const expression = field(license, 'expression');
+  if (field(license, 'expression') !== undefined)
+    return invalid(
+      `${sourceName}/rule-library.json: license.expression`,
+      'renamed to license.spdxExpression; move the declaration to that field',
+    );
+  const expression = field(license, 'spdxExpression');
   const file = first.path;
   return [
     {
-      expression:
+      spdxExpression:
         expression === undefined
           ? null
-          : licenseExpression(
+          : spdxExpression(
               expression,
-              `${sourceName}/rule-library.json: license.expression`,
+              `${sourceName}/rule-library.json: license.spdxExpression`,
             ),
       files: [file],
       attributionFiles: [
@@ -131,11 +138,19 @@ export function readLibraryLicenses(
   ];
 }
 
-/** Preserve a declared single-line expression; its legal meaning and correspondence to the files remain the publisher's responsibility. */
-function licenseExpression(value: unknown, location: string): string {
+/** Validate SPDX syntax and identifiers, preserving the publisher's declaration without assessing its legal meaning or agreement with the files. */
+function spdxExpression(value: unknown, location: string): string {
   const expression = nonempty(value, location);
   if (/[\x00-\x1f\x7f]/u.test(expression))
     return invalid(location, 'expected a single-line license expression');
+  try {
+    parseSpdxExpression(expression);
+  } catch {
+    return invalid(
+      location,
+      'expected an SPDX expression using recognized identifiers or LicenseRef- custom terms',
+    );
+  }
   return expression;
 }
 

@@ -161,7 +161,7 @@ function renderProvenance(
         replacementReason: active.reason,
         licenseBasis: active.licenses.length ? 'library' : 'undeclared',
         licenses: active.licenses.map((license) => ({
-          expression: license.expression,
+          spdxExpression: license.spdxExpression,
           files: license.files.map(
             (path) =>
               `${active.origin.source === 'local' ? 'local' : `vendor/${active.origin.source}`}/${path}`,

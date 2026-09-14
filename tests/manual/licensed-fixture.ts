@@ -52,7 +52,7 @@ export async function licensedLibraryExampleInput(): Promise<BuildInput> {
               {
                 formatVersion: 1,
                 license: {
-                  expression: 'MIT',
+                  spdxExpression: 'MIT',
                   file: 'LICENSE.md',
                   notices: ['NOTICE.md'],
                 },
