@@ -17,7 +17,6 @@ bun run builds:example
 
 The script prints a temporary directory containing configuration, source snapshots, local rules, and generated output.
 It uses illustrative local data and fetches no libraries. Open the printed `generated/RULES.md` to begin.
-For interactive comparisons, follow the [repository runbook instructions](https://github.com/fabricahq/code-rules#interactive-walkthrough).
 The [offline API reference](/reference/files/#offline-builder-api) describes inputs, outputs, and errors.
 
 ## 1. Choose libraries and revisions

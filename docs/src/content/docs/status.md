@@ -21,7 +21,7 @@ It returns generated text files without fetching libraries or writing to disk:
 
 The shared authoring rubric and template are also available.
 Try the [development example](/guides/use-rules/#try-the-working-builder) or read the [offline API contract](/reference/files/#offline-builder-api).
-Automated tests and an interactive runbook exercise both rule-delivery formats, licenses, and group selectors.
+Automated tests exercise both rule-delivery formats, licenses, and group selectors.
 
 [Imports PR #2](https://github.com/fabricahq/code-rules/pull/2) covers network fetching and Git repository URL handling.
 They are not part of this checkout's offline builder.

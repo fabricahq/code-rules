@@ -13,8 +13,8 @@ An agent can help author it; automatic conversion of arbitrary repositories is o
 Original project-authored rules and replacements may live under the consuming project’s `local/` directory without a separate library.
 That local workflow is separate from importing third-party guidance.
 
-This walkthrough uses an ESLint Unicorn adaptation based on commit `5d9d745c5365b6fdb824db1122ff982dd824b11a`.
-The fixture retains the source's MIT license text and an adaptation notice.
+This guide illustrates an ESLint Unicorn adaptation based on commit `5d9d745c5365b6fdb824db1122ff982dd824b11a`.
+The adapted library must retain the source's MIT license text and an adaptation notice.
 
 ## 1. Identify the material and its terms
 
@@ -84,20 +84,11 @@ Publish the compatible library to a Git repository and select it through the con
 The proposed sync workflow imports its selected groups; the builder then generates effective rules and license links.
 See [Configuration](/reference/configuration/) for selecting a library and groups.
 
-The offline example is available in the Code Rules development checkout:
-
-```sh
-bun install --frozen-lockfile
-GENERATED_FILES="$PWD/.runbook-output/adaptation-guide" bun tests/manual/applicability-walkthrough.ts library-licenses
-```
-
-Open `.runbook-output/adaptation-guide/05-licensed-library/README.md` and follow its file links.
-Confirm that the generated rule displays the MIT declaration and attribution to the original document.
-Its entry in `generated/provenance.json` records `licenseBasis: "library"`.
-Open `generated/libraries/licensed/README.md` for the library summary.
-Follow the generated rule’s license and notice links into `generated/libraries/licensed/licenses/`.
+After generating the files, confirm that the rule displays the MIT declaration and attribution to the original document.
+Its entry in `generated/provenance.json` should record `licenseBasis: "library"`.
+Open `generated/libraries/<source-name>/README.md` for the library summary.
+Follow the generated rule’s license and notice links into `generated/libraries/<source-name>/licenses/`.
 The copies preserve the original text; provenance maps their source and generated paths.
-The example supplies a snapshot offline; the library repository is illustrative and no upstream project is downloaded or executed.
 
 ## 5. Maintain the adaptation
 

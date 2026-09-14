@@ -56,26 +56,3 @@ After running it:
 Source repository names and commits are illustrative, so upstream GitHub links do not point to a real fixture library.
 The temporary workspace remains available after the script exits.
 Automated behavior checks live beside the implementation in `src/builds/build*.test.ts`, grouped by core behavior, selection, input validation, indexes, group delivery, Markdown, and licensing. Each suite tests through the public `buildRules` interface; shared fixture factories live in `build-test-fixtures.ts`.
-
-### Interactive walkthrough
-
-The [applicability-index runbook](tests/manual/runbooks/applicability-index/runbook.mdx) walks through the same example in [Gruntwork Runbooks](https://runbooks.gruntwork.io/).
-It includes implementation and review scenarios, full inline rules for small groups, a configurable pagination demonstration for larger groups, and the shared authoring rubric.
-One licensed-library example traces a library-wide MIT declaration from source files into standardized `generated/libraries/<source>/licenses/` copies, generated footers, and provenance.
-With Runbooks installed, launch it from this checkout's root after installing dependencies:
-
-```sh
-runbooks open tests/manual/runbooks/applicability-index --working-dir . --output-path .runbook-output/interactive
-```
-
-The buttons run the real builder and put inspectable files in the Runbooks Files panel.
-Examples are written under the ignored `.runbook-output/` directory; library names and source commits remain illustrative.
-After editing runbook commands, stop the Runbooks server and reopen it to reload executable definitions.
-An “Executable not found for component” error can indicate a stale server session. Regenerating output files alone does not reload commands.
-The runbook requires this full checkout and its dependencies, so use the local command above instead of opening the runbook directory as a remote URL.
-
-Validate every walkthrough choice with Runbooks installed:
-
-```sh
-runbooks test tests/manual/runbooks/applicability-index
-```
