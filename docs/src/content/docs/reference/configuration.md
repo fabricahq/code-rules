@@ -5,7 +5,7 @@ description: "Fields in the proposed code-rules/config.json format."
 
 `code-rules/config.json` records the project's sources, selected groups, and exceptions.
 A project can import rules directly from multiple canonical libraries, pinning each one independently.
-The following fields describe the proposed first-release interface.
+The offline builder validates the fields below. The format remains unreleased, and CLI fetching and installation are separate work.
 
 ## Complete example
 
@@ -51,7 +51,7 @@ Replace them with libraries and rules your project can access.
 
 | Field | Meaning |
 | --- | --- |
-| `schemaVersion` | Configuration format version; proposed initial value: `1`. |
+| `schemaVersion` | Configuration format version; the builder accepts `1`. |
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
 | `sources.<name>.repository` | GitHub repository in `owner/name` form. |
 | `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. |
@@ -60,6 +60,7 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
 | `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
 
+Unknown configuration fields are rejected, including unknown source and replacement fields.
 Include `localGroups` as an empty array when unused.
 Each source includes its own `exclude` and `replace` objects, empty when unused.
 Replacement paths resolve relative to the configuration directory and must stay under its `local/` directory.
@@ -107,7 +108,7 @@ Keep `groups` required. Use one supported selector string or an explicit array o
 Snapshots record both the original `groupSelection` and the concrete `groups` list.
 A pattern snapshot must record the exact selector in `groupSelection` and contain every group within that scope at its resolved commit.
 For example, `"practices/*"` requires all practice groups, while `"*"` requires both kinds.
-The builder compares discovered groups with the recorded expansion and validates every group and rule.
+The builder compares discovered groups with the recorded expansion and validates every group and rule within the selected scope.
 An old partial snapshot is insufficient even if its recorded groups look complete; changing selection intent requires sync.
 Legacy snapshots without `groupSelection` represent their explicit `groups` list and remain valid for list-based configuration.
 This completeness declaration comes from the snapshot supplier; offline checks do not independently authenticate it against the remote repository.
@@ -140,7 +141,7 @@ Branch names, abbreviated commit SHAs, and version ranges are not supported.
 A plain name resolves only as a tag, even when a branch has the same name.
 Both lightweight and annotated tags must resolve to a commit.
 
-During `sync`, resolve each configured ref and record its full `resolvedCommit` in that source's vendored provenance.
+In the proposed `sync` workflow, resolve each configured ref and record its full `resolvedCommit` in that source's vendored provenance.
 Fetch rule content and construct source links using the resolved commit.
 Configuration records what the project requested; provenance records the exact content it imported.
 
@@ -186,7 +187,7 @@ See [Conflicting guidance](/guides/conflicting-guidance/) for examples, an agent
 
 `schemaVersion` describes this configuration.
 Each library's `formatVersion` describes its authoring format.
-The importer version describes the executable tool.
+The caller-supplied `toolVersion` identifies the tool that generated the output.
 
 Each source's `ref` selects the requested version.
 Vendored provenance records the resolved commit used by offline commands; it is importer-owned output, not a second user-selected version.

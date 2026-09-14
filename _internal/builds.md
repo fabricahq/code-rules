@@ -24,10 +24,11 @@ Keep `index.ts` as the caller-facing interface; the modules below are implementa
 - `configuration.ts` interprets source selections and exception declarations, retaining field locations in diagnostics.
 - `resolve.ts` validates snapshots and resolves imported, replaced, and local definitions into groups.
   Each active rule is stored in its group once; provenance derives its rule list from those groups.
-- `render.ts` builds the root index, adaptive group pages, individual effective definitions, and provenance without mutating resolved groups.
+- `render.ts` builds the root index, adaptive group pages, individual effective definitions, library READMEs, and provenance without mutating resolved groups.
 - `index-pages.ts` splits oversized indexes at entry boundaries and checks every output page against its UTF-8 byte budget.
 - `rule-document.ts` validates YAML and rule metadata while retaining the original frontmatter and body text.
-- `library-licenses.ts` validates license declarations and verifies the declared files exist.
+- `rule-attribution.ts` validates optional external attribution entries.
+- `library-licenses.ts` validates library-wide SPDX declarations and verifies the declared files exist.
 - `license-output.ts` maps source license and notice files to fixed paths under `generated/libraries/<source>/licenses/` and preserves their contents.
 - `markdown.ts` relocates references and renders active definitions.
   Its rewrite traversal edits children before serializing their owning outer node, then applies non-overlapping source edits from right to left.
@@ -44,6 +45,7 @@ Test through `buildRules` so internal helpers can move without changing caller-f
 4. Run strict TypeScript checks, focused Bun tests, and the existing documentation validation.
 
 The builder returns paths relative to `generated/`. Group pages live under `groups/<group-id>.md`, while individual effective definitions live under `rules/`.
+Imported library READMEs and unchanged license copies live under `libraries/<source>/`.
 `RULES.md` and `provenance.json` remain at the generated root; group IDs and rule IDs do not change with output layout.
 Snapshot file paths are relative to the library root; local file paths are relative to `local/`.
 Replacement configuration retains its documented `local/` prefix.

@@ -3,10 +3,13 @@ title: "How imports work"
 description: "From pinned library snapshots to one effective ruleset per group."
 ---
 
-An import resolves each configured commit or tag and combines the resulting upstream snapshots with explicit project decisions.
+The proposed import workflow resolves each configured commit or tag and combines the resulting upstream snapshots with explicit project decisions.
 It produces ordinary files that agents can read without running the importer.
+This checkout implements the offline builder described below. Fetching, digest checks, and safe installation belong to separate work; see [Project status](/status/).
 
 ## Resolve the active rules
+
+The builder receives configuration, supplied library snapshots, and local rules. It selects and resolves rules without network access.
 
 For `groups: "*"`, discover every technology and practice group at the resolved revision before applying project exceptions.
 For `"practices/*"` or `"techs/*"`, discover every group of that kind.
@@ -17,7 +20,7 @@ Reject malformed groups and orphan rule files rather than silently dropping them
 2. Resolve each source's library-relative exclusions to qualified IDs and remove those rules.
 3. Apply each source's replacements as complete local definitions, preserving the qualified target IDs.
 4. Add the remaining local rules.
-5. Pass resolved rules to Builds to generate the root index, group pages with full rules or applicability summaries, and individual effective definitions.
+5. Render the root index, group pages, individual effective definitions, library summaries and license copies, and provenance.
 
 Sort sources, groups, and rule IDs consistently so reordering configuration does not change the result.
 Preserve source-labeled group metadata and rule provenance; source order does not establish precedence.
@@ -30,11 +33,13 @@ Use resolved commits for source links so a moved tag does not change what a link
 
 ## Validate before writing
 
-Reject invalid or reserved source names, repeated repositories, missing selected groups, missing targets, duplicate qualified IDs, a rule both excluded and replaced, and a replacement file reused for multiple targets.
-Reject malformed metadata and paths or symlinks that escape the allowed directories.
+Reject invalid or reserved source names, repeated repositories, missing groups or targets, and duplicate qualified IDs.
+Reject rules that are both excluded and replaced, and replacement files reused for multiple targets.
+The builder rejects malformed metadata and unsafe relative paths. It validates selected source rules even when exclusions or replacements make them inactive.
+The planned workspace layer must check filesystem containment and symlinks. An in-memory text map cannot establish those properties.
 Treat library contents as data rather than executing their scripts.
 
-Stage and validate the complete result across all sources before installing it.
+The planned installation workflow stages and validates the complete result across all sources before writing project files.
 If any source cannot be fetched or validated, preserve the previous complete ruleset.
 Detect concurrent writes and interrupted installations so mixed output cannot pass a consistency check.
 
@@ -46,9 +51,9 @@ Copy selected upstream group source files into `vendor/<source-name>/`, includin
 That retained text lets an update report expose upstream changes that a replacement would otherwise hide.
 
 Preserve each rule's attribution from its metadata or body in the vendored source and generated rule file.
-Keep declared and otherwise applicable license and notice files with the source snapshot, including files referenced by individual rules.
-Include them in snapshot digests and report changes during updates.
-Generated rules link to their applicable preserved terms; see [License rules](/guides/license-rules/).
+Library authors must declare the applicable license and notice files in the library manifest. The builder verifies their presence and preserves their text.
+The planned import workflow includes those files in snapshot digests and reports changes during updates.
+Generated rules link to copies under `generated/libraries/<source-name>/licenses/`; see [License rules](/guides/license-rules/).
 Keep attribution links valid after relocation.
 References to unvendored upstream documents should point to the resolved commit rather than a mutable tag or broken local path.
 
@@ -63,4 +68,4 @@ Authors and reviewers still need to identify conflicting obligations and declare
 
 Agents start at the generated index, choose relevant groups, and apply each rule within its scope.
 The same files support both writing and review.
-A factory may use review findings in its own validation workflow without changing the import format.
+Projects choose their own review and enforcement workflow; the import format does not prescribe one.

@@ -30,7 +30,7 @@ Have the chosen terms reviewed for the rights and restrictions you intend before
 ## Declare the library's terms
 
 Keep the actual license text in `LICENSE.md` at the library root, or another explicitly named file.
-The proposed library metadata identifies the terms for the whole library and any accompanying notice files:
+The library metadata identifies the terms for the whole library and any accompanying notice files:
 
 ```json
 {
@@ -60,7 +60,8 @@ Before adapting material from a book, article, or another library, establish the
 ## What imports preserve
 
 The planned import workflow copies license and declared notice files from the same resolved commit as the rules.
-The offline builder in this branch accepts preassembled snapshots and checks that declared files are present; it does not fetch or copy them.
+The offline builder accepts preassembled snapshots and checks that declared files are present.
+It returns unchanged license and notice copies at generated paths, but does not fetch source files or write them to disk.
 The consuming workspace will retain them alongside the imported rules:
 
 ```text
@@ -73,14 +74,18 @@ code-rules/
       practices/testing/...
   generated/
     RULES.md
+    provenance.json
+    libraries/fabrica/
+      README.md
+      licenses/LICENSE.md
     groups/practices/testing.md
     rules/fabrica/practices/testing/verify-retry-limits.md
 ```
 
 Preserve copyright notices and per-rule attribution in both the vendored source and the generated rule file.
 Keep the library license and declared notices with the snapshot and preserve their links after relocation.
-Include the preserved files in snapshot digests so offline checks can detect missing or changed files.
-License changes belong in the update report alongside rule changes.
+The planned workspace checks will verify snapshot digests to detect changed files. The offline builder checks declared file presence without computing digests.
+The planned update report should include license changes alongside rule changes.
 
 Each individual effective rule identifies its source and applicable preserved license.
 For example, `generated/rules/fabrica/practices/testing/verify-retry-limits.md` includes this source footer after its guidance.
@@ -112,7 +117,8 @@ Imported content remains separately identified under its applicable terms.
 The index should explain that boundary so the root license does not appear to relicense imported rules.
 Whether a particular combination or redistribution is permitted depends on the actual licenses and use.
 
-Keep the vendored license and notice files when sharing generated rule files.
+When sharing generated rules, include their library folders and retained license and notice copies.
+Preserve the vendored sources when sharing the complete consuming workspace.
 Copying a rule file by itself can break its license links and omit required notices.
 
 If licensing is undeclared or ambiguous, report it as unspecified and resolve the permissions before redistribution.
@@ -121,7 +127,8 @@ Private libraries can document internal permissions without adopting a public li
 
 ## What the tool can check
 
-Code Rules can validate declared paths, preserve texts and notices, track their provenance, and check that generated links resolve.
+The builder validates declared paths, preserves text and notices, records provenance, and constructs links to the retained files.
+It rejects unsafe or unresolved local Markdown references, but does not check whether external URLs are reachable.
 It cannot establish ownership, decide legal compatibility, or certify that the chosen terms permit a consumer's intended use.
 The offline generator validates declarations and emits this provenance today. Automated downloading, snapshot installation, and update reporting remain part of the proposed importer design.
 

@@ -31,7 +31,7 @@ A single sync performs the download and regeneration together:
 2. Download its selected rule groups into `code-rules/vendor/<source-name>/` and record the resolved commit.
 3. Apply source-specific exclusions and replacements, then include the project's local rules.
 4. Regenerate the group indexes and individual effective rule files under `code-rules/generated/`.
-5. Regenerate `code-rules/generated/RULES.md` and provenance records, then install the complete validated result.
+5. Regenerate `RULES.md`, library READMEs, declared license copies, and provenance under `code-rules/generated/`, then install the complete validated result.
 
 For example, `code-rules/generated/groups/practices/testing.md` lists the active testing rules from all selected sources and the project. Small groups include full definitions; larger groups link to them.
 After sync, that index reflects the downloaded versions and the project's local choices.

@@ -4,7 +4,7 @@ description: "Author a focused engineering obligation with applicability, exampl
 ---
 
 Write each rule in Markdown with a rubric that helps agents make it clear, scoped, and verifiable.
-Use the Code Rules skill to turn a best practice into a rule, starting from a shared template.
+Use the shared template and rubric with any agent or editor. The planned Code Rules skill will guide that process.
 To set up a shared library and create groups before adding rules, follow [Create a rule library](/guides/create-library/).
 
 ## Rubric, template, and skill
@@ -95,7 +95,7 @@ Consumers must update exclusions and replacements that referenced the old path.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.
 Builds carries that attribution into the individual generated rule file; no separate attribution file is required.
-The existing nested `source:` metadata describes provenance, not an override target.
+Extra frontmatter, such as `source:`, is preserved as authored metadata. It does not set override targets or replace generated provenance.
 When publishing or adapting rules, follow [License rules](/guides/license-rules/) to make permissions and attribution explicit.
 
 

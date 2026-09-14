@@ -61,7 +61,7 @@ Impact describes the consequence a rule helps prevent; it does not determine app
 Read **Why it matters** for context and assess the actual consequence of each finding.
 
 Separate confirmed failures from hypotheses that need verification.
-A successful `code-rules check` establishes file consistency, not application compliance.
+The planned `code-rules check` command will establish file consistency, not application compliance.
 
 ## Handle gaps and conflicts
 

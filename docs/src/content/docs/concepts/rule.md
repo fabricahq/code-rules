@@ -24,7 +24,8 @@ A project should be able to import, exclude, or replace one rule without also ch
 
 The Markdown body states the obligation and its applicability.
 Rationale explains why it matters, examples clarify the intended behavior, and verification guidance tells an agent what evidence to look for.
-Metadata records the title, impact, and relevant topics.
+Required metadata records the title, `whenToRead`, impact, and the consequence the rule addresses.
+Optional tags supply search terms; they do not select rules.
 
 The [rubric and template](/reference/rule-authoring/) define the authoring standard.
 The planned [Code Rules skill](/guides/write-rules/) helps agents draft, revise, and review rules against that standard.

@@ -58,7 +58,7 @@ In `01-summary-only/generated/groups/practices/testing.md`, notice the explicit 
 
 ## 2. Try implementation and review
 
-Choose a situation and click **Submit**, then run the walkthrough. Change the selection and run it again to compare both situations.
+Choose a situation, then run the walkthrough. Change the selection and run it again to compare both situations.
 
 <Inputs id="scenario">
 
@@ -89,7 +89,7 @@ During review, a change from three attempts to five makes the testing rule relev
 
 ## 3. Make pagination visible
 
-This experiment builds a larger group with **40 illustrative rules**. Choose a budget, submit it, and generate. Try **Small** after **Default** to see the same rules delivered through numbered parts.
+This experiment builds a larger group with **40 illustrative rules**. Choose a budget, then generate. Try **Small** after **Default** to see the same rules delivered through numbered parts.
 
 <Inputs id="pagination">
 
@@ -149,7 +149,7 @@ Open `name-retry-stages.md` to compare its three parts: `whenToRead` triggers re
   command="bun tests/manual/applicability-walkthrough.ts metadata"
   title="Verify that missing whenToRead is rejected"
   description="Removes metadata in memory from an example source rule that has a local replacement, then checks the error."
-  successMessage="Builds rejected the invalid source rule, including though it was replaced."
+  successMessage="Builds rejected the invalid source rule, even though it was replaced."
   failMessage="The expected metadata validation did not occur; inspect the output."
 />
 
@@ -186,12 +186,13 @@ Open these files under `05-licensed-library` in order:
 | `generated/provenance.json` | `sources` records `groupSelection: "*"`, the expanded `groups`, and the library declaration. `rules` records `licenseBasis: library`, effective terms, and upstream attribution. |
 | `vendor/licensed/LICENSE.md` and `NOTICE.md` | The complete license text and notice remain available. The walkthrough verifies that the license bytes are unchanged. |
 
-In provenance, source license paths are library-relative. Effective rule license paths start with `vendor/licensed/` and resolve from the configuration directory, above `generated/`.
-The generated folders link to retained terms rather than duplicating license files for each generated rule.
+In provenance, source `files` and `attributionFiles` paths are library-relative. Effective rule paths in those fields start with `vendor/licensed/` and resolve from the configuration directory.
+The `generatedFiles` and `generatedAttributionFiles` fields are relative to `generated/`; each maps to the original file at the same array position.
+Generated rules share the license copies under `libraries/licensed/licenses/`, rather than receiving separate copies per rule.
 
 ## 6. Compare group selectors
 
-Choose a scope, submit it, and generate the corresponding example. This chapter uses the original library definitions to compare selection.
+Choose a scope, then generate the corresponding example. This chapter uses the original library definitions to compare selection.
 
 <Inputs id="groupScope">
 
@@ -220,6 +221,9 @@ variables:
 `"*"` includes all four example groups. `"practices/*"` includes Code design and Testing; `"techs/*"` includes Go and TypeScript.
 Provenance records the selector and the concrete group IDs. Each snapshot must declare the same selector and contain every group in its scope at the recorded revision.
 Exclusions and replacements remain available within the selected groups. When you update the library revision, newly added groups within that scope join the selection.
+
+Each selector example also retains `vendor/example/rule-library.json`, the publisher’s format manifest. Its minimal `{ "formatVersion": 1 }` declaration supplies no license.
+The generated `libraries/example/README.md` identifies the library, while `config.json` owns the consumer’s group selection.
 
 ## 7. Review the result
 

@@ -4,7 +4,21 @@ description: "Walk through the proposed import workflow, from choosing libraries
 ---
 
 This walkthrough shows the proposed first-release experience.
-You can review the files and decisions now; running the import commands requires the future CLI release.
+You can generate and inspect examples with the working builder. The import commands below require the future CLI release.
+
+## Try the working builder
+
+From the Code Rules development checkout:
+
+```sh
+bun install --frozen-lockfile
+bun run builds:example
+```
+
+The script prints a temporary directory containing configuration, source snapshots, local rules, and generated output.
+It uses illustrative local data and fetches no libraries. Open the printed `generated/RULES.md` to begin.
+For interactive comparisons, follow the [repository runbook instructions](https://github.com/fabricahq/code-rules#interactive-walkthrough).
+The [offline API reference](/reference/files/#offline-builder-api) describes inputs, outputs, and errors.
 
 ## 1. Choose libraries and revisions
 
@@ -67,9 +81,9 @@ code-rules sync
 
 Sync resolves each ref to a full commit SHA and records it as `resolvedCommit` in `vendor/<source-name>/_source.json`.
 It copies the selected groups from that commit into `vendor/<source-name>/`.
-Sync calls Builds to produce the root group index, a page per group with full rules or applicability summaries, and individual full rule files under `generated/rules/`.
+Sync passes snapshots and project inputs to the builder, which resolves them and produces the root group index, a page per group with full rules or applicability summaries, and individual full rule files under `generated/rules/`.
 Project exclusions and replacements are already applied.
-For example, `generated/groups/practices/testing.md` describes when each active testing rule is relevant and links to its effective definition.
+For example, `generated/groups/practices/testing.md` includes complete testing rules when the page fits the inline limit. Larger pages provide summaries and reading links.
 `generated/RULES.md` helps agents choose groups; oversized indexes link to complete numbered parts.
 The import installs all sources together after validation succeeds.
 A later sync can pick up a moved tag; review resolved-commit changes along with the rule changes.
@@ -79,7 +93,9 @@ A later sync can pick up a moved tag; review resolved-commit changes along with 
 
 Group pages separate **How to use this group** from **Rules**, with each rule nested under **Rules**.
 Review the generated group pages. Read applicable rules in full where included; otherwise follow each **Read full rule** link.
-Full definitions put **Guidance** first, followed by **Source and attribution**, including the rule source, declared library license links, and preserved source metadata. If no library license is declared, the footer omits the license entry; provenance retains the empty license-file list.
+Full definitions put **Guidance** first, followed by **Source and attribution**, including the rule source, declared library license links, and preserved source metadata. If no library license is declared, the footer omits the license entry; provenance records an empty `licenses` array.
+Inspect `generated/libraries/<source-name>/README.md` for each library’s identity, revision, and links to declared terms.
+License and notice copies live under that library’s `licenses/` directory; provenance records their original and generated paths.
 Confirm that replacements contain the intended obligations and that excluded rules are absent from active output.
 Commit configuration, local rules, vendor content, and generated files together.
 

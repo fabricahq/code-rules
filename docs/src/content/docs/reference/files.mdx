@@ -6,7 +6,8 @@ description: "Library source files, project-owned inputs, and generated agent-fa
 import { FileTree } from '@astrojs/starlight/components';
 
 Code Rules separates authored input from imported source and generated output.
-All paths below describe the proposed format.
+The offline builder implements the input metadata and generated output described here.
+Filesystem installation and the `_source.json` snapshot record remain proposed; see [Project status](/status/).
 
 ## Library layout
 
@@ -32,7 +33,9 @@ All paths below describe the proposed format.
 ```
 
 Discover groups only under `techs/` and `practices/`.
-Misplaced rule files should fail validation rather than disappear from imports.
+Within selected groups, Markdown files are rules unless their filename starts with `_` or the library declares them as license or notice assets.
+Rules and group metadata must use valid paths; wildcard discovery also rejects rules whose group metadata is missing.
+The builder does not inspect the contents of unselected groups.
 
 ## Library license metadata
 
@@ -46,12 +49,12 @@ The optional `license` object declares the library-wide terms. Authors should us
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
 The planned import and workspace workflow preserves these files from the resolved source commit and includes them in snapshot digests.
-The offline builder accepts supplied snapshots, verifies that declared files exist, and copies their unchanged contents to standard generated paths and links generated guidance to those copies. It does not fetch files or compute workspace snapshot digests.
+The offline builder verifies that declared files exist in the supplied snapshots. It copies their contents unchanged and links generated rules to those copies. It does not fetch files or compute workspace snapshot digests.
 If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
 
 Every imported library has a generated `libraries/<source-name>/README.md` with its repository, requested revision, resolved commit, declared SPDX expression when supplied, and links to retained terms and provenance. Libraries without a license declaration omit the `licenses/` directory. `provenance.json` remains the authoritative machine-readable record.
 
-The manifest paths select **source files**, not output locations. Code Rules always writes:
+The manifest paths select **source files**, not output locations. For declared terms, Code Rules uses these fixed destinations:
 
 ```text
 generated/libraries/<source-name>/licenses/LICENSE.md
@@ -82,13 +85,16 @@ Use the existing `whenToRead` field for this guidance rather than adding a separ
 }
 ```
 
+All three group fields are required. `name` and `description` must be non-blank strings; `whenToRead` must be an array of unique, non-blank strings.
+An empty cue array is accepted, but useful reading cues help agents discover the group.
 The directory supplies the group's ID and type.
 The generated index includes its name and when-to-read guidance. The description remains in the source metadata.
 Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) when filling in the group's reading cues.
 
 ## Rule metadata
 
-Each rule requires `title`, `whenToRead`, `impact`, and `impactDescription` frontmatter, followed by its Markdown body.
+Each rule requires YAML frontmatter containing `title`, `whenToRead`, `impact`, and `impactDescription`, followed by a non-blank Markdown body.
+The builder rejects duplicate YAML keys and aliases. Extra frontmatter is preserved, except unsupported rule-level `license` and `licenses` fields.
 `tags` is optional: use a non-blank string of comma-separated topics or an array of unique, non-blank strings. An empty array is also accepted.
 Tags provide search terms, such as `testing` on a Go rule. Builds preserves supplied tags but does not use them for selection, grouping, or enforcement. Use `whenToRead` to describe applicability.
 Use the existing impact vocabulary: `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`.
@@ -118,14 +124,8 @@ Each optional `attribution` entry requires an absolute HTTP(S) `url` without cre
 Use a commit-pinned URL and describe the adaptation. These citations identify source material; they do not override the library license.
 Existing attribution in prose or other metadata remains preserved.
 
-## Attribution
-
-Keep source attribution with the rule, in its metadata or Markdown body.
-Imports preserves attribution in vendored sources; Builds preserves it in each individual generated rule file.
-A separate attribution file is not required by the format.
-
-When a library includes applicable library-level license or notice files, preserve those files with its vendored snapshot.
-Keep references to them valid after import.
+Keep attribution with the rule in metadata or prose; a separate attribution file is not required by the format.
+Declare accompanying license and notice files in the library manifest so Code Rules can retain them and their links.
 
 ## Project layout
 
@@ -142,6 +142,7 @@ Keep references to them valid after import.
       - _source.json
       - rule-library.json
       - LICENSE.md
+      - NOTICE.md
       - techs/typescript/
         - ...
       - practices/testing/
@@ -186,7 +187,8 @@ Keep references to them valid after import.
 </FileTree>
 
 The project authors configuration and local rules.
-The importer owns the entire `vendor/` and `generated/` directories.
+The planned import and installation workflow owns `vendor/` and `generated/`.
+The offline builder returns file contents; it does not install either directory.
 Commit those directories so coding, review, and consistency checks can work offline.
 
 ## Generated index and rules
@@ -222,6 +224,8 @@ Excluded rules and superseded bodies have no generated rule file.
 Source links, attribution, library license links, and replacement provenance remain with the effective definition in both formats.
 Individual rule files remain available at stable paths even when the group includes full rules.
 Both copies come from the same resolved definition. Relative links are relocated from the actual output directory.
+Links to declared license and notice files target their generated copies. Other retained files use workspace-relative links; unretained upstream documents use commit-pinned URLs.
+Relative links in raw HTML are rejected; use Markdown links, images, or reference definitions instead.
 Inline rules nest their headings and namespace Markdown reference labels.
 Same-file fragment links in inline rules point to the standalone definition, avoiding ambiguity between repeated headings across rules.
 
@@ -233,16 +237,47 @@ If one entry or the complete part directory cannot fit, building fails with an a
 Full rule bodies are never shortened to fit an index budget. Complete any truncated reads of those files.
 This budget is a delivery setting, not a measured model-compliance threshold.
 
-Builds returns the complete generated file set. The planned Workspace subsystem must replace obsolete output, including old parts, removed rule files, and the former top-level `techs/` and `practices/` group pages, when installing it.
+Builds returns the complete generated file set. The planned Workspace subsystem must replace obsolete output, including old parts, removed rules, obsolete library folders, and former top-level group or license paths, when installing it.
 Exclusions and replacement reasons remain in project configuration; provenance records active origins and replacement reasons.
 The consuming repository's root license is not rewritten.
+
+## Offline builder API
+
+The development checkout exports `buildRules` from `src/builds/index.ts`, along with `BuildError` and the input/output types.
+This API works before the CLI is available. It accepts these fields:
+
+| Input | Contract |
+| --- | --- |
+| `configuration` | The object described in [Configuration](/reference/configuration/). |
+| `snapshots` | One entry per configured source alias, with `repository`, `ref`, `resolvedCommit`, `groups`, `files`, and optional `groupSelection`. |
+| `localFiles` | A map from paths relative to `local/` to UTF-8 text, including local-only group metadata. |
+| `toolVersion` | A non-blank caller-supplied version string recorded in provenance. |
+| `groupInlineMaxBytes` | Optional inline delivery limit; default 8 KiB. See [generated output](#generated-index-and-rules). |
+| `indexMaxBytes` | Optional positive safe integer limiting index pages; default 24 KiB. |
+
+Snapshot `files` map library-root-relative paths to UTF-8 text. Each snapshot must include `rule-library.json` and the selected groups' metadata and rules.
+Include declared license and notice files, even when they live outside the selected groups.
+Pattern selections require an exact `groupSelection` marker and a complete snapshot for that scope; see [group selectors](/reference/configuration/#import-every-group).
+
+The result is `{ files }`, with every path relative to `generated/`. It includes indexes, effective rules, folder READMEs, library metadata, license copies, and provenance.
+Identical inputs produce identical text without changing the inputs, accessing the network, or writing files.
+The caller installs the complete result and removes obsolete output. Binary assets, remote authentication, and filesystem checks belong to other layers.
+
+Failures throw `BuildError` with a location-bearing message and one of two codes:
+
+- `invalid-input`: malformed metadata, paths, configuration, exceptions, or page budgets. Fix the named input.
+- `needs-sync`: a missing or mismatched snapshot, including an incomplete recorded group expansion. Supply a matching snapshot before rebuilding.
+
+The messages may recommend sync, but the `code-rules sync` command is still planned in this checkout.
+Use the [runnable development example](/guides/use-rules/#try-the-working-builder) to inspect real output without fetching a library.
 
 ## Provenance records
 
 Each proposed `vendor/<source-name>/_source.json` records the source name, repository, requested `ref`, full `resolvedCommit`, `groupSelection`, concrete imported `groups`, and file digests.
 `groupSelection` is the configured list or selector (`"*"`, `"practices/*"`, or `"techs/*"`). Pattern snapshots must record the exact selector and supply every group within its scope at that revision.
 Legacy snapshots without this field imply the explicit `groups` list; they cannot satisfy a wildcard selection.
-Offline commands verify that the recorded repository, ref, and groups match configuration and that file digests match the snapshot.
+The offline builder verifies that the supplied repository, ref, selection, and groups match configuration.
+The planned workspace layer must additionally load `_source.json`, verify file digests, and check filesystem containment. The builder does not read that file or compute digests.
 For a commit-valued ref, the resolved commit must equal that SHA.
 For a tag, offline checks use the recorded commit and do not verify the tag's current remote target.
 

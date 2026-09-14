@@ -50,7 +50,8 @@ After running it:
 2. Confirm the group page includes exactly two complete active rules: the project retry budget and stopping retries after success.
 3. Open `generated/groups/techs/typescript.md` to see the larger group as an index with explicit **Read full rule** links. Follow the testing rule links and confirm the retry-budget replacement retains ID `example:practices/testing/verify-retries` and links to its local definition.
 4. Use the printed `scenarios.md` to inspect pre-implementation selection and a review with no test-file edits. The TypeScript scenario should lead to testing and code-design rules, while Go is unrelated.
-5. Inspect `generated/provenance.json`: the replacement should have a local origin and an imported upstream origin; the additional local rule should have no upstream origin.
+5. Open `generated/libraries/example/README.md` for the source identity and revision. This unlicensed fixture has no generated license directory.
+6. Inspect `generated/provenance.json`: the replacement should have a local origin and an imported upstream origin; the additional local rule should have no upstream origin.
 
 Source repository names and commits are illustrative, so upstream GitHub links do not point to a real fixture library.
 The temporary workspace remains available after the script exits.
@@ -69,6 +70,8 @@ runbooks open tests/manual/runbooks/applicability-index --working-dir . --output
 
 The buttons run the real builder and put inspectable files in the Runbooks Files panel.
 Examples are written under the ignored `.runbook-output/` directory; library names and source commits remain illustrative.
+After editing runbook commands, stop the Runbooks server and reopen it to reload executable definitions.
+An “Executable not found for component” error can indicate a stale server session. Regenerating output files alone does not reload commands.
 The runbook requires this full checkout and its dependencies, so use the local command above instead of opening the runbook directory as a remote URL.
 
 Validate every walkthrough choice with Runbooks installed:
