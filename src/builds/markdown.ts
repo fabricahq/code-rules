@@ -321,12 +321,7 @@ export function renderRule(
     );
   }
   if (active.licenses.length) {
-    lines.push(
-      '',
-      rule.licenses === null
-        ? 'Library default license and notices:'
-        : 'Rule-specific licenses and notices:',
-    );
+    lines.push('', 'Library license and notices:');
     const sourceRoot =
       origin.source === 'local' ? 'local' : `vendor/${origin.source}`;
     for (const license of active.licenses) {

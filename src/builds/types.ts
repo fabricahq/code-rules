@@ -69,7 +69,7 @@ export type GroupMetadata = {
   readonly description: string;
   readonly whenToRead: ReadonlyArray<string>;
 };
-/** Declared terms and retained files, relative to the owning library or local root; null expression means legacy unidentified terms. */
+/** Declared terms and retained files, relative to the owning library root; null expression means legacy unidentified terms. */
 export type LicenseDeclaration = {
   readonly expression: string | null;
   readonly files: ReadonlyArray<string>;
@@ -91,7 +91,6 @@ export type Rule = {
   readonly impact: string;
   readonly impactDescription: string;
   readonly whenToRead: string;
-  readonly licenses: ReadonlyArray<LicenseDeclaration> | null;
   readonly attribution: ReadonlyArray<Attribution>;
   readonly metadata: string;
   readonly body: string;

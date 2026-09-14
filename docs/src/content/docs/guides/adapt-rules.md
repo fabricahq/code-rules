@@ -1,57 +1,55 @@
 ---
 title: "Adapt a third-party rule"
-description: "Turn external guidance into a maintained Code Rules definition with attribution and retained terms."
+description: "Package external guidance in a compatible library with one library-wide license and preserved attribution."
 ---
 
 Code Rules imports libraries that follow its format.
-For guidance from another source, first author a compatible adaptation locally or in a shared library.
-An agent can help draft it; automatic conversion of arbitrary repositories is outside the import workflow.
+For guidance from another source, first create a compatible adaptation in a library, even if that library contains only one rule.
+An agent can help author it; automatic conversion of arbitrary repositories is outside the import workflow.
+Use local rules for guidance you author for your project.
 
-This walkthrough follows the repository's existing ESLint Unicorn adaptation fixture.
-It uses the `no-for-each` documentation at commit `5d9d745c5365b6fdb824db1122ff982dd824b11a`.
-The fixture retains the source's MIT declaration, license text, and an adaptation notice.
+This walkthrough uses an ESLint Unicorn adaptation based on commit `5d9d745c5365b6fdb824db1122ff982dd824b11a`.
+The fixture retains the source's MIT license text and an adaptation notice.
 
 ## 1. Identify the material and its terms
 
-Select the specific rule or document and record its repository, file path, and exact revision.
+Select the specific document and record its repository, file path, and exact revision.
 Read the source and applicable license files before adapting it.
 Follow [License rules](/guides/license-rules/) to record the terms for your intended use.
-Code Rules preserves those declarations; it does not establish permission for you.
+Code Rules preserves declarations; it does not establish permission for you.
 
-## 2. Choose who maintains the adaptation
+## 2. Create a compatible library
 
-For a rule used by one codebase, author it under that project's `code-rules/local/` directory.
-For reuse across projects, [create a compatible library](/guides/create-library/) and maintain the adaptation there.
-The original repository does not need to change.
-
-Our local example has this layout:
+[Create a library](/guides/create-library/) to maintain the adaptation. The original repository does not need to change.
+The library uses this layout:
 
 ```text
-code-rules/
-  config.json
-  local/
-    techs/javascript/
-      _group.json
-      prefer-for-of.md
-    licenses/unicorn/
-      LICENSE.md
-      NOTICE.md
+adapted-rules/
+  rule-library.json
+  LICENSE.md
+  NOTICE.md
+  techs/javascript/
+    _group.json
+    prefer-for-of.md
 ```
 
-If JavaScript is a local-only group, select it through `localGroups` in the project configuration:
+Declare one license covering the whole library in `rule-library.json`:
 
 ```json
 {
-  "schemaVersion": 1,
-  "sources": {},
-  "localGroups": ["techs/javascript"]
+  "formatVersion": 1,
+  "license": {
+    "expression": "MIT",
+    "file": "LICENSE.md",
+    "notices": ["NOTICE.md"]
+  }
 }
 ```
 
-If the project already imports that group, add the local rule to it without redefining its group metadata.
-See [Configuration](/reference/configuration/) for combining imported and local groups.
+Keep the complete license text and required notices at those paths.
+Rules and groups cannot override this declaration. Material requiring another declaration belongs in a separate library.
 
-## 3. Draft the definition
+## 3. Draft the definition and record attribution
 
 Use the [canonical template](/reference/rule-authoring/#markdown-template) and required frontmatter.
 In this example, `whenToRead` identifies work on array iteration using `forEach`.
@@ -60,54 +58,42 @@ Implementation and validation guidance explain how to assess that condition.
 
 Compare the draft with the original obligation and exceptions.
 Explain deliberate changes: this adaptation adds task guidance and a sparse-array exception.
-A detector's inability to analyze some code does not automatically make that code exempt from the written rule.
+A detector's analysis limitations do not automatically become exceptions to the written rule.
 
-You can give an agent this instruction:
-
-> Read the pinned source, retained terms, and Code Rules authoring rubric. Draft one compatible rule in the chosen group. Preserve its meaning and relevant exceptions, identify deliberate changes, and record attribution and license files. Present unresolved policy or licensing questions for review.
-
-## 4. Record the source and retained terms
-
-Include the following fields alongside the rule's required metadata:
+Record the original source alongside the rule's required metadata:
 
 ```yaml
-licenses:
-  - expression: MIT
-    files: [licenses/unicorn/LICENSE.md]
-    attributionFiles: [licenses/unicorn/NOTICE.md]
 attribution:
   - url: https://github.com/sindresorhus/eslint-plugin-unicorn/blob/5d9d745c5365b6fdb824db1122ff982dd824b11a/docs/rules/no-for-each.md
     description: Adapted from ESLint Unicorn; added task guidance and a sparse-array exception.
 ```
 
-Paths start at `local/` for a local definition, or at the library root for a published definition.
-Preserve the actual referenced license and notice files with the rule.
-The identifier supplements those files.
-Do not place an edited adaptation in `vendor/` and label it an unchanged upstream snapshot.
+Attribution identifies the source; the library manifest owns the license declaration.
+Do not put edited material in `vendor/` and label it an unchanged upstream snapshot.
 
-## 5. Review and generate
+## 4. Review, import, and generate
 
-Review the completed definition against the authoring rubric and its source.
-For a shared library, the planned `code-rules library check` validates its input format.
-In a consuming project, the planned `code-rules build` generates effective rules from local and vendored inputs.
+Review the definition against the authoring rubric and the original source.
+The planned `code-rules library check` validates the library format.
+Publish the compatible library to a Git repository and select it through the consuming project's `sources` configuration.
+The proposed sync workflow imports its selected groups; the builder then generates effective rules and license links.
+See [Configuration](/reference/configuration/) for selecting a library and groups.
 
-The offline generator already demonstrates this flow in the Code Rules development checkout:
+The offline example is available in the Code Rules development checkout:
 
 ```sh
 bun install --frozen-lockfile
-GENERATED_FILES="$PWD/.runbook-output/adaptation-guide" bun tests/manual/applicability-walkthrough.ts licenses
+GENERATED_FILES="$PWD/.runbook-output/adaptation-guide" bun tests/manual/applicability-walkthrough.ts library-licenses
 ```
 
-Open `.runbook-output/adaptation-guide/05-licensed-rule/`, then inspect `generated/provenance.json` and the generated JavaScript rule.
-Confirm that the effective origin is local, the declared license is `MIT`, and the attribution identifies the pinned original document.
-Follow the generated license and notice links to the retained files.
-The fixture uses committed material and does not download or execute the upstream project.
+Open `.runbook-output/adaptation-guide/05-licensed-library/README.md` and follow its file links.
+Confirm that the generated rule records `licenseBasis: library`, the MIT declaration, and attribution to the original document.
+Follow its license and notice links into `vendor/licensed/`.
+The example supplies a snapshot offline; the library repository is illustrative and no upstream project is downloaded or executed.
 
-## 6. Maintain the adaptation
+## 5. Maintain the adaptation
 
-Commit the adaptation, retained terms, and project configuration together.
+Commit the adapted rule, group metadata, manifest, and retained terms together in the library.
 When upstream changes, compare the old and new source and deliberately revise the adaptation.
-Changing a citation alone does not establish that the rule incorporates the updated guidance.
-
-For adaptations in a shared library, the maintainer reviews upstream changes once.
-Consuming projects then import a new version of that compatible library through the normal update workflow.
+Changing a citation alone does not establish that the rule incorporates updated guidance.
+The library maintainer reviews that change once; consuming projects then adopt its new version through the normal update workflow.

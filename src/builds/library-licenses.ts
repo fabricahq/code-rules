@@ -1,7 +1,6 @@
 /** @fileoverview Validates library license declarations and resolves their files within an in-memory source snapshot. */
 
 import type { LicenseDeclaration } from './types';
-import { licenseExpression } from './rule-licenses';
 
 import {
   compare,
@@ -92,7 +91,7 @@ function requireDeclaredFiles(
 
 /**
  * Validate the library manifest and read its declared expression, license, and notice files.
- * Return explicit declarations with unique sorted notices, or an empty array when licensing is unspecified.
+ * Return the single library-wide declaration with unique sorted notices, or an empty array when licensing is unspecified.
  * Throw BuildError for an invalid manifest or a declared file missing from the snapshot.
  */
 export function readLibraryLicenses(
@@ -130,4 +129,26 @@ export function readLibraryLicenses(
       ].sort(compare),
     },
   ];
+}
+
+/** Preserve a declared single-line expression; its legal meaning and correspondence to the files remain the publisher's responsibility. */
+function licenseExpression(value: unknown, location: string): string {
+  const expression = nonempty(value, location);
+  if (/[\x00-\x1f\x7f]/u.test(expression))
+    return invalid(location, 'expected a single-line license expression');
+  return expression;
+}
+
+/** Collect unique source-relative license and notice paths without assuming a license from their names. */
+export function licensePaths(
+  licenses: ReadonlyArray<LicenseDeclaration>,
+): ReadonlyArray<string> {
+  return [
+    ...new Set(
+      licenses.flatMap((license) => [
+        ...license.files,
+        ...license.attributionFiles,
+      ]),
+    ),
+  ].sort(compare);
 }

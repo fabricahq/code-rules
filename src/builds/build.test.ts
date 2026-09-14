@@ -356,10 +356,7 @@ describe('all library groups', () => {
     const build = wildcardInput();
     const saved = build.snapshots.all;
     if (!saved) throw new Error('Missing all-groups fixture');
-    const text = ruleText('Licensed retries').replace(
-      'tags: testing, retries',
-      'licenses: [{expression: MIT, files: [techs/licenses/LICENSE.md]}]',
-    );
+    const text = ruleText('Licensed retries');
     const files = buildRules({
       ...build,
       snapshots: {
@@ -368,6 +365,14 @@ describe('all library groups', () => {
           files: {
             ...saved.files,
             [`${ruleId}.md`]: text,
+            'rule-library.json': JSON.stringify({
+              formatVersion: 1,
+              license: {
+                expression: 'MIT',
+                file: 'techs/licenses/LICENSE.md',
+                notices: [],
+              },
+            }),
             'techs/licenses/LICENSE.md': 'Retained fixture terms.',
           },
         },
@@ -604,9 +609,7 @@ describe('buildRules', () => {
     const output = buildRules(withLibraryManifest('{"formatVersion":1}'));
     for (const path of [`rules/fabrica/${ruleId}.md`, `groups/${group}.md`]) {
       expect(output.files[path]).not.toContain('Library license:');
-      expect(output.files[path]).not.toContain(
-        'Library default license and notices:',
-      );
+      expect(output.files[path]).not.toContain('Library license and notices:');
       expect(output.files[path]).toContain('**Rule source:**');
     }
     const provenance: unknown = JSON.parse(
@@ -1768,7 +1771,7 @@ test('should preserve declared library expressions separately from retained file
       (entry: { id: string }) => entry.id === `fabrica:${ruleId}`,
     ),
   ).toMatchObject({
-    licenseBasis: 'library-default',
+    licenseBasis: 'library',
     licenses: [
       {
         expression: 'MIT OR Apache-2.0',
@@ -1783,83 +1786,86 @@ test('should preserve declared library expressions separately from retained file
 });
 
 test.each([0, 8192])(
-  'should preserve local adaptation terms and attribution in both delivery modes: %s',
+  'should preserve library-wide terms and per-rule attribution in delivery mode %s',
   (groupInlineMaxBytes) => {
-    const metadata = `licenses:\n  - expression: MIT\n    files: [licenses/LICENSE.md]\n    attributionFiles: [licenses/NOTICE.md]\nattribution:\n  - url: https://example.com/source/commit/rule.md\n    description: Adapted from the original; added task guidance.\n`;
-    const build = {
-      ...localInput({
+    const metadata = `attribution:\n  - url: https://example.com/source/commit/rule.md\n    description: Adapted from the original.\n`;
+    const build = withLibraryManifest(
+      '{"formatVersion":1,"license":{"expression":"MIT","file":"LICENSE.md","notices":["NOTICE.md"]}}',
+      {
+        'LICENSE.md': 'Library terms',
+        'NOTICE.md': 'Original attribution notice',
         [`${ruleId}.md`]: ruleText('Adapted rule').replace(
           '---\n',
           `---\n${metadata}`,
         ),
-        'licenses/LICENSE.md': 'Original license text, without rule metadata.',
-        'licenses/NOTICE.md': 'Original copyright notice.',
-      }),
-      groupInlineMaxBytes,
-    };
-    const output = buildRules(build).files;
-    const provenance = JSON.parse(output['provenance.json']!);
-    expect(provenance.rules).toHaveLength(1);
-    expect(provenance.rules[0]).toMatchObject({
-      origin: { source: 'local', repository: null },
-      licenseBasis: 'rule',
-      licenses: [
-        {
-          expression: 'MIT',
-          files: ['local/licenses/LICENSE.md'],
-          attributionFiles: ['local/licenses/NOTICE.md'],
-        },
-      ],
-      attribution: [
-        {
-          url: 'https://example.com/source/commit/rule.md',
-          description: 'Adapted from the original; added task guidance.',
-        },
-      ],
-    });
-    const full = output[`rules/local/${ruleId}.md`]!;
-    expect(full).toContain('**Declared license:** MIT');
-    expect(full).toContain('(../../../../../local/licenses/LICENSE.md)');
-    expect(full).toContain('**Attribution:**');
+        [`${group}/another.md`]: ruleText('Another rule'),
+      },
+    );
+    const output = buildRules({ ...build, groupInlineMaxBytes }).files;
+    const provenance = JSON.parse(output['provenance.json'] ?? '{}');
+    const imported = provenance.rules.filter(
+      (entry: { origin: { source: string } }) =>
+        entry.origin.source === 'fabrica',
+    );
+    expect(imported).toHaveLength(2);
+    for (const entry of imported) {
+      expect(entry).toMatchObject({
+        licenseBasis: 'library',
+        licenses: [
+          {
+            expression: 'MIT',
+            files: ['vendor/fabrica/LICENSE.md'],
+            attributionFiles: ['vendor/fabrica/NOTICE.md'],
+          },
+        ],
+      });
+    }
+    expect(output[`rules/fabrica/${ruleId}.md`]).toContain('**Attribution:**');
+    expect(output[`rules/fabrica/${ruleId}.md`]).toContain(
+      '**Declared license:** MIT',
+    );
     if (groupInlineMaxBytes)
       expect(output[`groups/${group}.md`]).toContain(
-        '(../../../local/licenses/LICENSE.md)',
+        '**Declared license:** MIT',
       );
   },
 );
 
-test('should use rule-specific terms instead of a default while retaining the library declaration', () => {
-  const specific = ruleText('Custom terms').replace(
-    '---\n',
-    `---\nlicenses:\n  - expression: LicenseRef-Example-Custom\n    files: [${group}/TERMS.md]\n`,
-  );
-  const build = withLibraryManifest(
-    '{"formatVersion":1,"license":{"expression":"MIT","file":"LICENSE.md","notices":[]}}',
-    {
-      'LICENSE.md': 'Library terms',
-      [`${ruleId}.md`]: specific,
-      [`${group}/TERMS.md`]: 'Rule-specific terms',
-    },
-  );
-  const output = buildRules(build).files;
-  const provenance = JSON.parse(output['provenance.json']!);
-  expect(
-    provenance.sources.find(
-      (entry: { name: string }) => entry.name === 'fabrica',
-    ).licenses[0].expression,
-  ).toBe('MIT');
-  expect(
-    provenance.rules.find(
-      (entry: { id: string }) => entry.id === `fabrica:${ruleId}`,
-    ).licenses[0].expression,
-  ).toBe('LicenseRef-Example-Custom');
-  const full = output[`rules/fabrica/${ruleId}.md`]!;
-  expect(full).toContain('**Declared license:** LicenseRef-Example-Custom');
-  expect(full).not.toContain('**Declared license:** MIT');
-  expect(Object.keys(output)).not.toContain(`rules/fabrica/${group}/TERMS.md`);
-});
+test.each(['license', 'licenses'])(
+  'should reject %s overrides in library rules, local rules, and groups',
+  (key) => {
+    const override = ruleText('Override').replace(
+      '---\n',
+      `---\n${key}: MIT\n`,
+    );
+    const imported = withLibraryManifest(
+      '{"formatVersion":1,"license":{"expression":"MIT","file":"LICENSE.md","notices":[]}}',
+      { 'LICENSE.md': 'Library terms', [`${ruleId}.md`]: override },
+    );
+    expect(() => buildRules(imported)).toThrow(
+      'rule-level licenses are unsupported',
+    );
+    expect(() =>
+      buildRules(localInput({ [`${ruleId}.md`]: override })),
+    ).toThrow('rule-level licenses are unsupported');
+    const groupOverride = JSON.stringify({
+      name: 'Testing',
+      description: 'Testing',
+      whenToRead: ['Changing behavior'],
+      [key]: 'MIT',
+    });
+    expect(() =>
+      buildRules(
+        localInput({
+          [`${group}/_group.json`]: groupOverride,
+          [`${ruleId}.md`]: ruleText('Rule'),
+        }),
+      ),
+    ).toThrow('group-level licenses are unsupported');
+  },
+);
 
-test('should keep replacement licensing independent from upstream defaults', () => {
+test('should keep replacement licensing independent from upstream library terms', () => {
   const build = withLibraryManifest(
     '{"formatVersion":1,"license":{"expression":"MIT","file":"LICENSE.md","notices":[]}}',
     { 'LICENSE.md': 'Upstream terms' },
@@ -1916,7 +1922,7 @@ test.each([
   expect(() => buildRules(build)).toThrow();
 });
 
-test('should validate license declarations on excluded rules and reject rule/asset collisions', () => {
+test('should reject unsupported license declarations even on excluded rules', () => {
   const definition = ruleText('Excluded').replace(
     '---\n',
     '---\nlicenses: [{expression: MIT, files: [MISSING.md]}]\n',
@@ -1937,12 +1943,7 @@ test('should validate license declarations on excluded rules and reject rule/ass
     localFiles: {},
     toolVersion: 'test',
   };
-  expect(() => buildRules(build)).toThrow('MISSING.md');
-  const selfLicensed = ruleText('Self reference').replace(
-    '---\n',
-    `---\nlicenses: [{expression: MIT, files: [${ruleId}.md]}]\n`,
+  expect(() => buildRules(build)).toThrow(
+    'rule-level licenses are unsupported',
   );
-  expect(() =>
-    buildRules(localInput({ [`${ruleId}.md`]: selfLicensed })),
-  ).toThrow('a rule cannot also be');
 });

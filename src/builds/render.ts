@@ -159,12 +159,7 @@ function renderProvenance(
         origin: active.origin,
         upstream: active.upstream,
         replacementReason: active.reason,
-        licenseBasis:
-          active.rule.licenses !== null
-            ? 'rule'
-            : active.licenses.length
-              ? 'library-default'
-              : 'undeclared',
+        licenseBasis: active.licenses.length ? 'library' : 'undeclared',
         licenses: active.licenses.map((license) => ({
           expression: license.expression,
           files: license.files.map(

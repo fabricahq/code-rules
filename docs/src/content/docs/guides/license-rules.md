@@ -16,7 +16,7 @@ A library's terms should answer these questions:
 - May they copy rule files into private or public repositories?
 - May they combine rules into aggregates, modify them, and redistribute the result?
 - What attribution, copyright notices, and license terms must accompany those copies?
-- Are embedded code examples covered by the same terms, or separately licensed?
+- Does the library-wide declaration cover all included rules and code examples?
 - Are there restrictions on publishing a competing rule library or service?
 
 For a reusable best-practice library, we recommend expressly permitting teams to apply its guidance without requiring their application to adopt the library's license.
@@ -30,7 +30,7 @@ Have the chosen terms reviewed for the rights and restrictions you intend before
 ## Declare the library's terms
 
 Keep the actual license text in `LICENSE.md` at the library root, or another explicitly named file.
-The proposed library metadata identifies the default terms and any accompanying notice files:
+The proposed library metadata identifies the terms for the whole library and any accompanying notice files:
 
 ```json
 {
@@ -50,9 +50,9 @@ The [file reference](/reference/files/#library-license-metadata) defines these f
 
 Use an SPDX expression for standard terms and a distinct `LicenseRef-…` for custom or modified terms. The [SPDX expression specification](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) defines identifiers and compound expressions. The identifier supplements the retained text. Code Rules preserves your declaration; it does not certify the label or permissions.
 
-Keep attribution with each rule, in its metadata or Markdown body. Use the [structured rule declarations](/reference/files/#rule-specific-licenses-and-attribution) to include external attribution and rule-specific terms in provenance.
-If particular rules or examples have different terms, state them explicitly and reference the applicable license files.
-The library's default declaration must not conceal those differences or override rights held by another author.
+A library has one license declaration covering all its rules and groups. Per-rule and per-group overrides are unsupported.
+Keep attribution with each rule, in its body or [structured attribution](/reference/files/#rule-attribution). List required notices in the library manifest.
+If material requires a different declaration, maintain it in a separate compatible library. Do not relabel third-party material merely to fit a library's license.
 
 A source citation is not a license grant.
 Before adapting material from a book, article, or another library, establish the rights needed for the intended use.
@@ -78,7 +78,7 @@ code-rules/
 ```
 
 Preserve copyright notices and per-rule attribution in both the vendored source and the generated rule file.
-Keep referenced rule-specific license files with the snapshot and repair their relative links after relocation.
+Keep the library license and declared notices with the snapshot and preserve their links after relocation.
 Include the preserved files in snapshot digests so offline checks can detect missing or changed files.
 License changes belong in the update report alongside rule changes.
 
@@ -91,19 +91,19 @@ The repository and commit in this example are illustrative.
 
 **Rule source:** [Original rule](https://github.com/example/rules/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/practices/testing/verify-retry-limits.md)
 
-Library default license and notices:
+Library license and notices:
 
 **Declared license:** MIT
 
 - [LICENSE.md](../../../../../vendor/fabrica/LICENSE.md)
 ```
 
-Guidance precedes this footer; preserved source metadata follows it. Rule-specific declarations produce a corresponding rule-specific license block, and explicit attribution citations appear in the footer.
+Guidance precedes this footer; preserved source metadata follows it. Every imported rule displays its source library's declaration; explicit attribution citations also appear in the footer.
 Generated rule files link to their applicable preserved terms.
-The index links to provenance, which records source libraries, declared license expressions, retained files, rule-specific terms, and explicit attribution.
+The index links to provenance, which records source libraries, declared license expressions, retained files, and explicit attribution.
 When a group includes multiple libraries, retain each rule's licensing information instead of assigning one upstream license to the group.
 Copied rule text remains subject to its applicable terms even when the project changes its wording or replaces an imported rule with an adaptation.
-Record the applicable terms for the local definition; an ID alone cannot establish its licensing.
+Maintain third-party adaptations in a compatible library with the applicable library-wide declaration. Local rules and replacements are for original project guidance; an ID alone cannot establish licensing.
 
 ## What a consuming project should understand
 

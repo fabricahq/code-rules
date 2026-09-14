@@ -86,7 +86,7 @@ Use specific evidence or a check command instead of “verify that this rule is 
 Make examples consistent with applicable technology and project conventions, and use a suitable language for code snippets.
 A practice rule's example language does not limit its scope.
 
-Preserve source attribution and any required notices when adapting existing material. Use optional [structured license and attribution declarations](/reference/files/#rule-specific-licenses-and-attribution) when those terms need to appear in provenance. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Code Rules format.
+Preserve source attribution and any required notices when adapting existing material. Declare one license for the whole library in its manifest. Use optional [structured attribution](/reference/files/#rule-attribution) for each adapted rule. Rule and group license overrides are unsupported. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Code Rules format.
 Use the [complete example](/guides/write-rules/#example-rule) to see the template filled in.
 
 ## Write whenToRead guidance that helps selection

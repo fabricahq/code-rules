@@ -68,53 +68,36 @@ tests:
         path: 03-budget-tiny/RESULT.md
         contains: No build output is returned.
 
-  - name: licensed-adaptation
-    steps:
-      - block: inspect-licenses
-    assertions:
-      - type: file_contains
-        path: 05-licensed-rule/generated/provenance.json
-        contains: '"expression": "MIT"'
-      - type: file_contains
-        path: 05-licensed-rule/generated/provenance.json
-        contains: '"licenseBasis": "rule"'
-      - type: file_contains
-        path: 05-licensed-rule/generated/rules/local/techs/javascript/prefer-for-of.md
-        contains: '**Declared license:** MIT'
-      - type: file_contains
-        path: 05-licensed-rule/local/licenses/unicorn/LICENSE.md
-        contains: Copyright (c) Sindre Sorhus
-
   - name: licensed-library
     steps:
       - block: inspect-library-license
     assertions:
       - type: file_contains
-        path: 06-licensed-library/config.json
+        path: 05-licensed-library/config.json
         contains: '"groups": "*"'
       - type: file_contains
-        path: 06-licensed-library/generated/provenance.json
+        path: 05-licensed-library/generated/provenance.json
         contains: '"groupSelection": "*"'
       - type: file_contains
-        path: 06-licensed-library/vendor/licensed/rule-library.json
+        path: 05-licensed-library/vendor/licensed/rule-library.json
         contains: '"expression": "MIT"'
       - type: file_contains
-        path: 06-licensed-library/generated/provenance.json
-        contains: '"licenseBasis": "library-default"'
+        path: 05-licensed-library/generated/provenance.json
+        contains: '"licenseBasis": "library"'
       - type: file_contains
-        path: 06-licensed-library/generated/provenance.json
-        contains: vendor/licensed/licenses/unicorn/LICENSE.md
+        path: 05-licensed-library/generated/provenance.json
+        contains: vendor/licensed/LICENSE.md
       - type: file_contains
-        path: 06-licensed-library/generated/rules/licensed/techs/javascript/prefer-for-of.md
+        path: 05-licensed-library/generated/rules/licensed/techs/javascript/prefer-for-of.md
         contains: '**Declared license:** MIT'
       - type: file_contains
-        path: 06-licensed-library/generated/groups/techs/javascript.md
+        path: 05-licensed-library/generated/groups/techs/javascript.md
         contains: '**Declared license:** MIT'
       - type: file_contains
-        path: 06-licensed-library/vendor/licensed/licenses/unicorn/LICENSE.md
+        path: 05-licensed-library/vendor/licensed/LICENSE.md
         contains: Copyright (c) Sindre Sorhus
       - type: file_contains
-        path: 06-licensed-library/vendor/licensed/licenses/unicorn/NOTICE.md
+        path: 05-licensed-library/vendor/licensed/NOTICE.md
         contains: Upstream author and copyright
 
   - name: all-groups
@@ -124,9 +107,9 @@ tests:
       - block: compare-group-selectors
     assertions:
       - type: file_exists
-        path: 07-groups-all/generated/groups/techs/go.md
+        path: 06-groups-all/generated/groups/techs/go.md
       - type: file_exists
-        path: 07-groups-all/generated/groups/practices/testing.md
+        path: 06-groups-all/generated/groups/practices/testing.md
 
   - name: practice-groups
     inputs:
@@ -135,12 +118,12 @@ tests:
       - block: compare-group-selectors
     assertions:
       - type: file_contains
-        path: 07-groups-practices/config.json
+        path: 06-groups-practices/config.json
         contains: '"groups": "practices/*"'
       - type: file_exists
-        path: 07-groups-practices/generated/groups/practices/code-design.md
+        path: 06-groups-practices/generated/groups/practices/code-design.md
       - type: file_not_exists
-        path: 07-groups-practices/generated/groups/techs/go.md
+        path: 06-groups-practices/generated/groups/techs/go.md
 
   - name: technology-groups
     inputs:
@@ -149,9 +132,9 @@ tests:
       - block: compare-group-selectors
     assertions:
       - type: file_contains
-        path: 07-groups-techs/generated/provenance.json
+        path: 06-groups-techs/generated/provenance.json
         contains: '"groupSelection": "techs/*"'
       - type: file_exists
-        path: 07-groups-techs/generated/groups/techs/typescript.md
+        path: 06-groups-techs/generated/groups/techs/typescript.md
       - type: file_not_exists
-        path: 07-groups-techs/generated/groups/practices/testing.md
+        path: 06-groups-techs/generated/groups/practices/testing.md

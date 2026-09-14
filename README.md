@@ -60,7 +60,7 @@ Automated behavior checks remain in `src/builds/build.test.ts`.
 
 The [applicability-index runbook](tests/manual/runbooks/applicability-index/runbook.mdx) walks through the same example in [Gruntwork Runbooks](https://runbooks.gruntwork.io/).
 It includes implementation and review scenarios, full inline rules for small groups, a configurable pagination demonstration for larger groups, and the shared authoring rubric.
-Two licensing examples compare a local adaptation's explicit terms with a compatible library's inherited MIT default, tracing retained files, generated footers, and provenance.
+One licensed-library example traces a library-wide MIT declaration through retained files, generated footers, and provenance.
 With Runbooks installed, launch it from this checkout's root after installing dependencies:
 
 ```sh

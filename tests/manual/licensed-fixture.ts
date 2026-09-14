@@ -3,52 +3,16 @@
 import { readFile } from 'node:fs/promises';
 import type { BuildInput } from '../../src/builds';
 
-/** Return a local-only example whose attribution points to the real upstream definition instead of inventing an imported snapshot. */
-export async function licensedExampleInput(): Promise<BuildInput> {
-  const folder = new URL('./fixtures/licensed-rule/', import.meta.url);
-  const [rule, license, notice] = await Promise.all([
-    readFile(new URL('prefer-for-of.md', folder), 'utf8'),
-    readFile(new URL('LICENSE.md', folder), 'utf8'),
-    readFile(new URL('NOTICE.md', folder), 'utf8'),
-  ]);
-  return {
-    configuration: {
-      schemaVersion: 1,
-      sources: {},
-      localGroups: ['techs/javascript'],
-    },
-    snapshots: {},
-    localFiles: {
-      'techs/javascript/_group.json':
-        JSON.stringify(
-          {
-            name: 'JavaScript',
-            description: 'JavaScript iteration guidance.',
-            whenToRead: [
-              'When planning, changing, or reviewing JavaScript or TypeScript behavior.',
-            ],
-          },
-          null,
-          2,
-        ) + '\n',
-      'techs/javascript/prefer-for-of.md': rule,
-      'licenses/unicorn/LICENSE.md': license,
-      'licenses/unicorn/NOTICE.md': notice,
-    },
-    toolVersion: 'licensed-rule-demonstration',
-  };
-}
-
-/** Return an illustrative compatible library whose adapted rule inherits the declared MIT default and retains real upstream attribution. */
+/** Return an illustrative compatible library whose adapted rule uses the declared library-wide MIT license and retains real upstream attribution. */
 export async function licensedLibraryExampleInput(): Promise<BuildInput> {
-  const localExample = await licensedExampleInput();
-  const rule = await readFile(
-    new URL(
-      './fixtures/licensed-rule/library-prefer-for-of.md',
-      import.meta.url,
+  const folder = new URL('./fixtures/licensed-library/', import.meta.url);
+  const [rule, license, notice] = await Promise.all(
+    ['prefer-for-of.md', 'LICENSE.md', 'NOTICE.md'].map((path) =>
+      readFile(new URL(path, folder), 'utf8'),
     ),
-    'utf8',
   );
+  if (rule === undefined || license === undefined || notice === undefined)
+    throw new Error('Missing licensed library fixture');
   const groups = ['techs/javascript'];
   const repository = 'example/licensed-code-rules';
   const ref = 'v1.0.0';
@@ -68,7 +32,20 @@ export async function licensedLibraryExampleInput(): Promise<BuildInput> {
         groups,
         groupSelection: '*',
         files: {
-          ...localExample.localFiles,
+          'techs/javascript/_group.json':
+            JSON.stringify(
+              {
+                name: 'JavaScript',
+                description: 'JavaScript iteration guidance.',
+                whenToRead: [
+                  'When planning, changing, or reviewing JavaScript or TypeScript behavior.',
+                ],
+              },
+              null,
+              2,
+            ) + '\n',
+          'LICENSE.md': license,
+          'NOTICE.md': notice,
           'techs/javascript/prefer-for-of.md': rule,
           'rule-library.json':
             JSON.stringify(
@@ -76,8 +53,8 @@ export async function licensedLibraryExampleInput(): Promise<BuildInput> {
                 formatVersion: 1,
                 license: {
                   expression: 'MIT',
-                  file: 'licenses/unicorn/LICENSE.md',
-                  notices: ['licenses/unicorn/NOTICE.md'],
+                  file: 'LICENSE.md',
+                  notices: ['NOTICE.md'],
                 },
               },
               null,

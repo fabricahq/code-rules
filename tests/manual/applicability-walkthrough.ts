@@ -6,10 +6,7 @@ import { join } from 'node:path';
 import { buildRules, BuildError } from '../../src/builds';
 import type { BuildInput, FileContents } from '../../src/builds';
 import { buildsExampleInput } from './builds-fixture';
-import {
-  licensedExampleInput,
-  licensedLibraryExampleInput,
-} from './licensed-fixture';
+import { licensedLibraryExampleInput } from './licensed-fixture';
 
 const action = process.argv[2];
 const choice = process.argv[3];
@@ -103,7 +100,7 @@ switch (action) {
       localFiles: {},
       toolVersion: 'group-selection-demonstration',
     };
-    const prefix = `07-groups-${choice}`;
+    const prefix = `06-groups-${choice}`;
     const { files } = await captureBuild(prefix);
     const provenance = JSON.parse(
       requireFile({ files, path: 'provenance.json' }),
@@ -127,20 +124,20 @@ switch (action) {
   }
   case 'library-licenses': {
     input = await licensedLibraryExampleInput();
-    const { files } = await captureBuild('06-licensed-library');
+    const { files } = await captureBuild('05-licensed-library');
     const provenance = JSON.parse(
       requireFile({ files, path: 'provenance.json' }),
     );
     assert.equal(provenance.sources[0].licenses[0].expression, 'MIT');
     assert.equal(provenance.sources[0].groupSelection, '*');
     assert.deepEqual(provenance.sources[0].groups, ['techs/javascript']);
-    assert.equal(provenance.rules[0].licenseBasis, 'library-default');
+    assert.equal(provenance.rules[0].licenseBasis, 'library');
     assert.equal(provenance.rules[0].origin.source, 'licensed');
     assert.deepEqual(provenance.rules[0].licenses, [
       {
         expression: 'MIT',
-        files: ['vendor/licensed/licenses/unicorn/LICENSE.md'],
-        attributionFiles: ['vendor/licensed/licenses/unicorn/NOTICE.md'],
+        files: ['vendor/licensed/LICENSE.md'],
+        attributionFiles: ['vendor/licensed/NOTICE.md'],
       },
     ]);
     for (const path of [
@@ -149,51 +146,25 @@ switch (action) {
     ]) {
       const rendered = requireFile({ files, path });
       assert(rendered.includes('**Declared license:** MIT'));
-      assert(rendered.includes('vendor/licensed/licenses/unicorn/LICENSE.md'));
-      assert(rendered.includes('vendor/licensed/licenses/unicorn/NOTICE.md'));
+      assert(rendered.includes('vendor/licensed/LICENSE.md'));
+      assert(rendered.includes('vendor/licensed/NOTICE.md'));
       assert(rendered.includes('5d9d745c5365b6fdb824db1122ff982dd824b11a'));
     }
     const retainedLicense = await readFile(
-      join(
-        captureDirectory,
-        '06-licensed-library/vendor/licensed/licenses/unicorn/LICENSE.md',
-      ),
+      join(captureDirectory, '05-licensed-library/vendor/licensed/LICENSE.md'),
     );
     assert.deepEqual(
       retainedLicense,
       await readFile(
-        new URL('./fixtures/licensed-rule/LICENSE.md', import.meta.url),
+        new URL('./fixtures/licensed-library/LICENSE.md', import.meta.url),
       ),
     );
     await capture(
-      '06-licensed-library/README.md',
-      '# Follow a library license into generated rules\n\n1. Open [config.json](config.json): the project selects every group from the `licensed` source with `groups: "*"`.\n2. Open [the library manifest](vendor/licensed/rule-library.json): it declares MIT and names the license and notice files once for the library.\n3. Open [the source rule](vendor/licensed/techs/javascript/prefer-for-of.md): it has attribution but no rule-level `licenses` field.\n4. Open [the full generated rule](generated/rules/licensed/techs/javascript/prefer-for-of.md): its footer displays the inherited MIT declaration. Follow the license and notice links into `vendor/licensed/`.\n5. Open [the group](generated/groups/techs/javascript.md): the inline full rule retains the same license and attribution links.\n6. Open [provenance.json](generated/provenance.json): the source records `groupSelection: "*"`, the concrete `groups` list, and MIT with library-relative paths; the effective rule records `licenseBasis: library-default` and paths starting with `vendor/licensed/`. Rule paths resolve from this directory, above generated/.\n\nCompare with `05-licensed-rule`: that local adaptation declares its own terms and has `licenseBasis: rule`. Both examples retain the original ESLint Unicorn attribution and complete MIT text. The licensed library repository `example/licensed-code-rules`, tag, and commit are illustrative; only the original attribution points to a real upstream source. This fixture supplies a compatible snapshot offline and does not fetch a repository. Code Rules preserves declared terms rather than certifying them.\n',
+      '05-licensed-library/README.md',
+      '# Follow a library license into generated rules\n\n1. Open [config.json](config.json): the project selects every group from the `licensed` source with `groups: "*"`.\n2. Open [the library manifest](vendor/licensed/rule-library.json): it declares MIT and names the license and notice files once for the library.\n3. Open [the source rule](vendor/licensed/techs/javascript/prefer-for-of.md): it has attribution but no rule-level `licenses` field.\n4. Open [the full generated rule](generated/rules/licensed/techs/javascript/prefer-for-of.md): its footer displays the library-wide MIT declaration. Follow the license and notice links into `vendor/licensed/`.\n5. Open [the group](generated/groups/techs/javascript.md): the inline full rule retains the same license and attribution links.\n6. Open [provenance.json](generated/provenance.json): the source records `groupSelection: "*"`, the concrete `groups` list, and MIT with library-relative paths; the effective rule records `licenseBasis: library` and paths starting with `vendor/licensed/`. Rule paths resolve from this directory, above generated/.\n\nThe example retains the original ESLint Unicorn attribution and complete MIT text. The licensed library repository `example/licensed-code-rules`, tag, and commit are illustrative; only the original attribution points to a real upstream source. This fixture supplies a compatible snapshot offline and does not fetch a repository. Code Rules preserves declared terms rather than certifying them.\n',
     );
     console.log(
-      'Open 06-licensed-library/README.md to trace the library default through the source rule, generated footer, and provenance.',
-    );
-    break;
-  }
-  case 'licenses': {
-    input = await licensedExampleInput();
-    const { files } = await captureBuild('05-licensed-rule');
-    const provenance = requireFile({ files, path: 'provenance.json' });
-    assert(provenance.includes('"expression": "MIT"'));
-    assert(provenance.includes('local/licenses/unicorn/LICENSE.md'));
-    assert(provenance.includes('5d9d745c5365b6fdb824db1122ff982dd824b11a'));
-    await capture(
-      '05-licensed-rule/upstream/no-for-each.md',
-      await readFile(
-        new URL('./fixtures/licensed-rule/upstream-rule.md', import.meta.url),
-        'utf8',
-      ),
-    );
-    await capture(
-      '05-licensed-rule/README.md',
-      '# A licensed third-party adaptation\n\nOpen generated/rules/local/techs/javascript/prefer-for-of.md and follow its retained MIT license and notice links. Then open generated/provenance.json: the effective origin is local, licenseBasis is rule, the declared expression is MIT, and attribution identifies the pinned upstream documentation. The original documentation is preserved in upstream/no-for-each.md.\n\nThis fixture adapts a real ESLint Unicorn rule to Code Rules metadata. It runs offline from preserved source files; it does not fetch a library or exercise an unimplemented importer. The recorded declaration is not a legal certification.\n',
-    );
-    console.log(
-      'Open 05-licensed-rule: inspect the generated rule, MIT license, notice, and structured provenance.',
+      'Open 05-licensed-library/README.md to trace the library license through the source rule, generated footer, and provenance.',
     );
     break;
   }

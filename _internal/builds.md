@@ -70,7 +70,7 @@ The snapshot envelope is an internal Builds interface, not a finalized `_source.
 Source maps contain UTF-8 text; Imports and Workspace will own copying binary attachments.
 The Markdown renderer relocates standard Markdown links, images, and reference definitions while preserving unrelated body text.
 Relative links in raw HTML are rejected with an instruction to use Markdown syntax.
-Per-rule attribution and extra frontmatter are retained; library default license files must be present when declared.
+Per-rule attribution and extra frontmatter are retained; library license files must be present when declared.
 The builder does not infer legal obligations from prose or execute imported content.
 
 TypeScript checks project source strictly.

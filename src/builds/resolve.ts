@@ -29,8 +29,7 @@ import {
   strings,
 } from './validation';
 import { rule } from './rule-document';
-import { readLibraryLicenses } from './library-licenses';
-import { licensePaths, requireLicenseFiles } from './rule-licenses';
+import { readLibraryLicenses, licensePaths } from './library-licenses';
 
 /** Mutable group storage owned by resolution; renderers receive read-only groups. */
 type GroupAccumulator = {
@@ -200,44 +199,18 @@ function readGroupMetadata(
   return groupMetadata(text, `${source}/${path}`);
 }
 
-/** Parse candidate rules before excluding their declared Markdown license assets; malformed rule candidates still fail. */
+/** Parse every candidate rule; library-declared license assets have already been excluded. */
 function readRuleFiles(
   sourceFiles: ReadonlyMap<string, string>,
   source: string,
   candidates: ReadonlyArray<string>,
 ): ReadonlyMap<string, Rule> {
-  const parsed = new Map<string, Rule>();
-  const failures = new Map<string, unknown>();
-  for (const path of candidates) {
-    try {
-      parsed.set(
-        path,
-        rule(requiredFile(sourceFiles, path, source), path, source),
-      );
-    } catch (error) {
-      if (!(error instanceof BuildError)) throw error;
-      failures.set(path, error);
-    }
-  }
-  const assets = new Set(
-    [...parsed.values()].flatMap((definition) =>
-      licensePaths(definition.licenses ?? []),
-    ),
+  return new Map(
+    candidates.map((path) => [
+      path,
+      rule(requiredFile(sourceFiles, path, source), path, source),
+    ]),
   );
-  for (const [path, error] of failures) if (!assets.has(path)) throw error;
-  for (const [path, definition] of parsed) {
-    if (assets.has(path))
-      return invalid(
-        `${source}:${path}`,
-        'a rule cannot also be a declared license or attribution file',
-      );
-    requireLicenseFiles(
-      definition.licenses ?? [],
-      sourceFiles,
-      `${source}:${path}`,
-    );
-  }
-  return parsed;
 }
 
 /** Load licensing, then each selected group's guidance and rules; excluded rules are still validated. */
@@ -329,13 +302,12 @@ function replacementRule(
     );
   const text = requiredFile(localFiles, path, 'local');
   const definition = rule(text, path, 'local');
-  requireLicenseFiles(definition.licenses ?? [], localFiles, `local:${path}`);
   return {
     rule: { ...definition, id: parsed.id },
     origin: localOrigin(path),
     upstream: origin(library.source, library.snapshot, parsed.path),
     reason: replacement.reason,
-    licenses: definition.licenses ?? [],
+    licenses: [],
     sourceFiles: localFiles,
   };
 }
@@ -358,7 +330,7 @@ function importedRules(
             origin: origin(library.source, library.snapshot, parsed.path),
             upstream: null,
             reason: null,
-            licenses: parsed.licenses ?? library.licenses,
+            licenses: library.licenses,
             sourceFiles: library.files,
           }
         : replacementRule(
@@ -396,7 +368,7 @@ function localRules(
       origin: localOrigin(path),
       upstream: null,
       reason: null,
-      licenses: parsed.licenses ?? [],
+      licenses: [],
       sourceFiles: localFiles,
     });
   }

@@ -157,57 +157,37 @@ Tags are optional search metadata. This example omits them; supplied tags are pr
 
 Existing source snapshots and local rules need rule-level `whenToRead` before rebuilding. Group-level selection hints do not satisfy this requirement.
 
-## 5. Inspect a licensed third-party adaptation
-
-<Command
-  id="inspect-licenses"
-  command="bun tests/manual/applicability-walkthrough.ts licenses"
-  title="Generate the licensed rule example"
-  description="Builds a preserved MIT-licensed ESLint Unicorn adaptation and records its declared terms and attribution."
-  successMessage="Open 05-licensed-rule/generated/provenance.json and the generated rule."
-/>
-
-The definition's effective origin is local because the original repository does not use the Code Rules format. Its `licenses` entry explicitly names `MIT`, points to the complete retained license and notice, and its `attribution` identifies the original document at a pinned commit. The generated rule displays these declarations after its guidance. The fixture runs offline and does not fetch or run ESLint Unicorn.
-
-For a compatible imported library, rules without their own declarations inherit the library's declared default. A local replacement supplies its own applicable terms; retaining the upstream rule ID does not automatically assign the upstream license. Code Rules preserves declarations rather than certifying permissions.
-
-For the full authoring workflow, read `docs/src/content/docs/guides/adapt-rules.md` in the checkout. It walks through choosing a source revision, drafting a local or shared adaptation, retaining terms, inspecting generated provenance, and reviewing later upstream changes.
-
-The planned library commands are `code-rules library init`, `code-rules library add group <group-id>`, `code-rules library add rule <rule-id>`, and `code-rules library check`. They are not implemented; this runbook exercises the working offline generator. The proposed setup flow is in `docs/src/content/docs/guides/create-library.md`.
-
-
-## 6. Trace a licensed library's default
+## 5. Trace a library-wide license
 
 <Command
   id="inspect-library-license"
   command="bun tests/manual/applicability-walkthrough.ts library-licenses"
   title="Generate the licensed library example"
   description="Follows an MIT library declaration into an imported rule, its group page, and provenance."
-  successMessage="Open 06-licensed-library/README.md, then follow its linked files."
+  successMessage="Open 05-licensed-library/README.md, then follow its linked files."
 />
 
-This example packages the same adaptation as a compatible library. The manifest declares MIT once; the rule has no `licenses` field of its own.
+This example packages an ESLint Unicorn adaptation as a compatible library. The manifest declares MIT for the whole library; rule and group license overrides are unsupported.
 Its source selects `groups: "*"`. The complete snapshot declares that selection, and the builder expands it to `techs/javascript`.
-The builder applies that default and retains the rule's original source attribution.
+The builder applies that library-wide declaration and retains the rule's original source attribution.
 The library repository and revision are illustrative fixture data, not a fetched upstream library. The retained ESLint Unicorn license and attribution are real.
 
-Open these files under `06-licensed-library` in order:
+Open these files under `05-licensed-library` in order:
 
 | Open | What to notice |
 | --- | --- |
 | `config.json` | The consuming project selects the `licensed` library with `groups: "*"`. |
 | `vendor/licensed/rule-library.json` | `license.expression` is `MIT`; `file` and `notices` identify the retained terms. |
-| `vendor/licensed/techs/javascript/prefer-for-of.md` | The rule omits `licenses` and inherits the library default. Its original attribution remains explicit. |
+| `vendor/licensed/techs/javascript/prefer-for-of.md` | The rule omits `licenses` and uses the library license. Its original attribution remains explicit. |
 | `generated/rules/licensed/techs/javascript/prefer-for-of.md` | The Source and attribution footer displays **Declared license: MIT** and links back to the vendored license and notice. |
 | `generated/groups/techs/javascript.md` | The inline full rule includes the same declaration, with links adjusted for this file's location. |
-| `generated/provenance.json` | `sources` records `groupSelection: "*"`, the expanded `groups`, and the library declaration. `rules` records `licenseBasis: library-default`, effective terms, and upstream attribution. |
-| `vendor/licensed/licenses/unicorn/LICENSE.md` and `NOTICE.md` | The complete license text and notice remain available. The walkthrough verifies that the license bytes are unchanged. |
+| `generated/provenance.json` | `sources` records `groupSelection: "*"`, the expanded `groups`, and the library declaration. `rules` records `licenseBasis: library`, effective terms, and upstream attribution. |
+| `vendor/licensed/LICENSE.md` and `NOTICE.md` | The complete license text and notice remain available. The walkthrough verifies that the license bytes are unchanged. |
 
 In provenance, source license paths are library-relative. Effective rule license paths start with `vendor/licensed/` and resolve from the configuration directory, above `generated/`.
-Compare `05-licensed-rule`: its local definition declares its own license and records `licenseBasis: rule`.
 The generated folders link to retained terms rather than duplicating license files for each generated rule.
 
-## 7. Compare group selectors
+## 6. Compare group selectors
 
 Choose a scope, submit it, and generate the corresponding example. This chapter uses the original library definitions to compare selection.
 
@@ -232,14 +212,14 @@ variables:
   inputsId="groupScope"
   command='bun tests/manual/applicability-walkthrough.ts groups {{ if eq .inputs.Scope "All groups (*)" }}all{{ else if eq .inputs.Scope "Practice groups (practices/*)" }}practices{{ else }}techs{{ end }}'
   title="Generate this group selection"
-  successMessage="Open the new 07-groups folder and compare config.json with generated/provenance.json."
+  successMessage="Open the new 06-groups folder and compare config.json with generated/provenance.json."
 />
 
 `"*"` includes all four example groups. `"practices/*"` includes Code design and Testing; `"techs/*"` includes Go and TypeScript.
 Provenance records the selector and the concrete group IDs. Each snapshot must declare the same selector and contain every group in its scope at the recorded revision.
 Exclusions and replacements remain available within the selected groups. When you update the library revision, newly added groups within that scope join the selection.
 
-## 8. Review the result
+## 7. Review the result
 
 You have inspected real output for group discovery, rule selection, replacements, exclusions, local additions, bounded index pages, and authoring guidance.
 

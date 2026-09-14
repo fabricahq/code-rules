@@ -1,7 +1,7 @@
 /** @fileoverview Parses rule documents while preserving raw frontmatter and body text for generated rule files. */
 
 import { parseDocument } from 'yaml';
-import { ruleLicenses, ruleAttribution } from './rule-licenses';
+import { ruleAttribution } from './rule-attribution';
 import type { Rule } from './types';
 import {
   field,
@@ -86,6 +86,13 @@ export function rule(text: string, path: string, source: string): Rule {
   const group = ruleGroup(path, location);
   const { metadata, body } = documentText(text, location);
   const data = metadataObject(metadata, location);
+  for (const key of ['license', 'licenses']) {
+    if (field(data, key) !== undefined)
+      invalid(
+        `${location}.${key}`,
+        'declare one license for the whole library in rule-library.json; rule-level licenses are unsupported',
+      );
+  }
   const selection = validateRuleMetadata(data, location);
   nonempty(body, `${location}.body`);
   return {
@@ -93,7 +100,6 @@ export function rule(text: string, path: string, source: string): Rule {
     group,
     path,
     ...selection,
-    licenses: ruleLicenses(field(data, 'licenses'), `${location}.licenses`),
     attribution: ruleAttribution(
       field(data, 'attribution'),
       `${location}.attribution`,

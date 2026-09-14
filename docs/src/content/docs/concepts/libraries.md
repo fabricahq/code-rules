@@ -21,7 +21,7 @@ The planned [library authoring commands](/guides/create-library/) initialize a l
 Use them in a new or existing repository; a dedicated repository name is not required.
 
 Code Rules imports libraries that follow its format.
-For guidance from other sources, first [author a compatible adaptation](/guides/adapt-rules/) locally or in a shared library.
+For guidance from other sources, first [author a compatible adaptation](/guides/adapt-rules/) in a compatible library, even when it contains only one rule.
 Agents can assist with authoring; automatic conversion of arbitrary repositories is outside the import workflow.
 The adaptation's author maintains its meaning, attribution, retained terms, and updates from the original source.
 
