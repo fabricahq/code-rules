@@ -25,6 +25,7 @@ impactDescription: <Specific consequence the rule helps prevent, supporting the 
 ## <Short action-oriented title>
 
 <State one concrete obligation.>
+<Name version, runtime, or surrounding-contract prerequisites when they affect the advice.>
 
 ### Implementation
 
@@ -34,6 +35,7 @@ impactDescription: <Specific consequence the rule helps prevent, supporting the 
 ### Rationale
 
 <Explain the failure or tradeoff this rule addresses.>
+<Explain the mechanism connecting the action to that consequence; cite supporting contracts where needed.>
 
 ### Incorrect example
 
@@ -44,11 +46,13 @@ impactDescription: <Specific consequence the rule helps prevent, supporting the 
 
 <Show the preferred approach in the same situation.>
 <Explain how it satisfies the rule and clarify illustrative choices.>
+<When overapplication is likely, include a similar-looking valid case and explain why it needs no change.>
 
 ### Validation
 
 <Describe observable evidence or checks that establish compliance.>
 <Identify plausible situations that are insufficient evidence of a violation.>
+<Name any surrounding code or contracts the reviewer must inspect before deciding.>
 ````
 
 Optionally add `tags` for useful search terms, for example `tags: [testing, cancellation]` on a Go rule about testing cancellation. Omit them when they add no useful discovery terms. Tags supplement `whenToRead`; they do not determine applicability or enable a tag-filtering feature in the current tool.
@@ -172,6 +176,24 @@ Show a realistic mistake, not an obviously broken example that teaches little.
 Explain the failure and place the corrected approach nearby.
 Keep the contrast focused on the rule so an agent can see which change matters.
 For a practice rule, label any language or framework choice as illustrative unless the rule depends on it.
+
+When overapplication is likely, also show a similar-looking case that is already valid.
+Explain the decisive difference instead of requiring a third example for every rule.
+For meaningful operation steps, a short, cohesive function can remain inline even when it performs several steps.
+The issue is whether its details obscure the operation, not its number of actions or lines.
+
+### Check the advice and its prerequisites
+
+Use these prompts when they reveal missing guidance. They are not additional required metadata or mandatory body sections.
+
+- **What mechanism supports the advice?** Explain how the recommended action changes the stated consequence. Distinguish a team's preference from a general correctness claim.
+- **What assumptions make it true?** State relevant versions, runtime modes, framework behavior, and caller contracts. A dependency elsewhere in a repository does not prove those assumptions hold here.
+- **What evidence is still needed?** Identify surrounding code, configuration, or contracts to inspect before deciding whether the rule was violated.
+- **What similar-looking code is valid?** Explain the boundary that prevents an unnecessary change.
+
+Keep exceptions separate from uncertainty. “This case is allowed” differs from “the available evidence cannot establish a violation.”
+A static detector's inability to follow a wrapper or analyze a file does not make that behavior an exception to the written rule.
+Put prerequisites and obligations in the full body; mention them in `whenToRead` only when they help an agent select the rule.
 
 ## Review a proposed rule
 
