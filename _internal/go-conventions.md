@@ -1,7 +1,7 @@
 # Go conventions
 
 These conventions govern the Go implementation and its development commands.
-The first examples live in [rules](../internal/rules/identity.go), [logging](../internal/logging/logging.go), and the [identity lab](../cmd/identity-lab/main.go).
+The first examples live in [rules](../internal/rules/identity.go), [logging](../internal/logging/logging.go), and the [rules lab](../cmd/rules-lab/main.go).
 
 ## Error handling
 
@@ -61,7 +61,7 @@ Empty settings select defaults. Invalid settings fail startup with one diagnosti
 Configuration errors name the setting without echoing its value.
 
 ```sh
-CODE_RULES_LOG_LEVEL=debug CODE_RULES_LOG_FORMAT=json go run ./cmd/identity-lab -serve
+CODE_RULES_LOG_LEVEL=debug CODE_RULES_LOG_FORMAT=json go run ./cmd/rules-lab -serve
 ```
 
 Logs go to stderr. Stdout is reserved for command results, including the lab's JSON-lines protocol.
@@ -72,8 +72,8 @@ The JSON-lines adapter is quiet on stderr unless an unexpected failure stops it.
 Use stable event messages with separate attributes:
 
 ```go
-logger.Info("identity lab listening", "url", "http://"+listener.Addr().String())
-logger.Error("identity lab failed", "error", err)
+logger.Info("rules lab listening", "url", "http://"+listener.Addr().String())
+logger.Error("rules lab failed", "error", err)
 ```
 
 - **DEBUG:** optional investigation details. The lab logs invocation success/failure without inputs or diagnostic text.

@@ -46,7 +46,7 @@ Relevant additional corpus paths:
 - `_domains/fabrica/go/logging-log-once-at-the-boundary.md`
 - `_domains/fabrica/go/logging-use-slog-with-structured-attrs.md`
 
-Evidence: `internal/logging/logging_test.go`, `cmd/identity-lab/main_test.go`, and the exact shared identity expectations.
+Evidence: `internal/logging/logging_test.go`, `cmd/rules-lab/main_test.go`, and the exact shared identity expectations.
 The review fixes retain typed validation errors, preserve full path context, and distinguish HTTP body-size failures from read failures.
 No new error-code taxonomy or dependency wrapper is introduced.
 

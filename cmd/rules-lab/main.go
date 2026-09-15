@@ -1,4 +1,4 @@
-// identity-lab is a development adapter, not the Code Rules CLI. By default it
+// rules-lab is a development adapter, not the Code Rules CLI. By default it
 // reads one JSON request per line from stdin; -serve opens a loopback browser lab.
 
 package main
@@ -149,9 +149,9 @@ func run(logger *slog.Logger) error {
 	if *serve {
 		listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", *port))
 		if err != nil {
-			return fmt.Errorf("start identity lab: %v", err)
+			return fmt.Errorf("start rules lab: %v", err)
 		}
-		logger.Info("identity lab listening", "url", "http://"+listener.Addr().String())
+		logger.Info("rules lab listening", "url", "http://"+listener.Addr().String())
 		server := &http.Server{
 			Handler:           handler(logger),
 			ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
@@ -161,7 +161,7 @@ func run(logger *slog.Logger) error {
 			IdleTimeout:       30 * time.Second,
 		}
 		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf("serve identity lab at %s: %v", listener.Addr(), err)
+			return fmt.Errorf("serve rules lab at %s: %v", listener.Addr(), err)
 		}
 		return nil
 	}
@@ -192,7 +192,7 @@ func main() {
 		os.Exit(1)
 	}
 	if err := run(logger); err != nil {
-		logger.Error("identity lab failed", "error", err)
+		logger.Error("rules lab failed", "error", err)
 		os.Exit(1)
 	}
 }

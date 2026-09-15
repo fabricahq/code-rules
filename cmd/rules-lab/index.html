@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Code Rules · Go identity lab</title>
+    <title>Code Rules · Go rules lab</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -445,7 +445,7 @@
           <div>
             <h3>3. Development lab</h3>
             <p>
-              <code>cmd/identity-lab</code> supplies this page, a fixed HTTP
+              <code>cmd/rules-lab</code> supplies this page, a fixed HTTP
               endpoint, and a JSON-lines adapter for tests. It contains no
               domain validation rules.
             </p>
@@ -483,14 +483,14 @@
         <details>
           <summary>Run it yourself</summary>
           <pre>
-go run ./cmd/identity-lab -serve
+go run ./cmd/rules-lab -serve
 
 go test ./...
 go vet ./...
-go build -o dist/identity-lab ./cmd/identity-lab
-bun tests/migration/identities/compare.ts dist/identity-lab
+go build -o dist/rules-lab ./cmd/rules-lab
+bun tests/migration/identities/compare.ts dist/rules-lab
 
-printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":"rule"}' | dist/identity-lab</pre>
+printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":"rule"}' | dist/rules-lab</pre>
           <p class="hint">
             The terminal prints the loopback URL. The lab uses the standard
             library and needs no Node or Bun at runtime. Bun is used only by the

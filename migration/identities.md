@@ -86,7 +86,7 @@ Native Go comments adapt the existing TypeScript comment convention. Private cor
 From the repository root:
 
 ```sh
-go run ./cmd/identity-lab -serve
+go run ./cmd/rules-lab -serve
 ```
 
 Open the printed loopback URL. The page follows the Code Rules gallery's neutral colors, thin borders, and typography. It includes editable inputs, presets, function signatures, returned values, typed errors, the exact request, and a walkthrough of the implementation boundaries.
@@ -96,8 +96,8 @@ The development server binds to `127.0.0.1`, applies the standard library's cros
 For automation, the same adapter reads JSON lines on stdin:
 
 ```sh
-go build -o /tmp/code-rules-identity-lab ./cmd/identity-lab
-printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":"rule"}' | /tmp/code-rules-identity-lab
+go build -o /tmp/code-rules-rules-lab ./cmd/rules-lab
+printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":"rule"}' | /tmp/code-rules-rules-lab
 ```
 
 The response is `{"ok":true,"value":"techs/go"}`. Validation failures use `ok: false` with a `ValidationError`; malformed adapter requests use `AdapterError`.
@@ -110,8 +110,8 @@ Domain errors stay in the JSON response and do not terminate the stream. Process
 go vet ./...
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go test -race ./...
-go build -o /tmp/code-rules-identity-lab ./cmd/identity-lab
-bun tests/migration/identities/compare.ts /tmp/code-rules-identity-lab
+go build -o /tmp/code-rules-rules-lab ./cmd/rules-lab
+bun tests/migration/identities/compare.ts /tmp/code-rules-rules-lab
 bun run check
 bun run test:package
 ```
