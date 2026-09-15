@@ -24,6 +24,8 @@ The command creates `rule-library.json` and a short README linking to the canoni
 Choose one license covering the whole library, including its rules and examples, or supply the declaration and file for existing terms.
 Rule and group license overrides are unsupported. Use separate libraries for material that requires different declarations.
 Code Rules records that choice and retains the actual license text and any notices.
+For newly authored terms, initialization defaults to root-level `LICENSE.md` and optional `NOTICE.md`.
+Existing terms can keep their declared paths; importing preserves those paths, while generation uses standardized license and notice locations.
 Code Rules does not select a license for you or infer one from existing text.
 If you defer the choice, the manifest leaves the license undeclared and the command reminds you to decide the terms before sharing.
 
