@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // GroupMetadata describes a group for selection. Text has no surrounding whitespace.
@@ -19,6 +21,7 @@ type GroupMetadata struct {
 // ParseGroupMetadata validates a group's JSON document and rejects unknown fields.
 // License declarations belong to the library manifest and get specific errors.
 // Field names are case-sensitive; repeated JSON keys use their last value.
+// Text fields reject malformed Unicode instead of silently replacing it.
 // On error, the returned metadata is the zero value.
 func ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, error) {
 	if !json.Valid(input) {
@@ -58,6 +61,9 @@ func ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, 
 }
 
 func metadataText(input json.RawMessage, location string) (string, error) {
+	if len(input) > 0 && input[0] == '"' && !validUnicodeString(input) {
+		return "", invalid(location, "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape")
+	}
 	var text string
 	if err := json.Unmarshal(input, &text); err != nil {
 		return "", invalid(location, "expected nonempty text")
@@ -67,4 +73,41 @@ func metadataText(input json.RawMessage, location string) (string, error) {
 		return "", invalid(location, "expected nonempty text")
 	}
 	return text, nil
+}
+
+// validUnicodeString checks a syntactically valid JSON string. ParseGroupMetadata
+// checks syntax first, so escape lengths and hex digits are already validated.
+// encoding/json otherwise replaces invalid UTF-8 and lone surrogates with U+FFFD.
+func validUnicodeString(input json.RawMessage) bool {
+	if !utf8.Valid(input) {
+		return false
+	}
+	for i := 0; i < len(input); i++ {
+		if input[i] != '\\' {
+			continue
+		}
+		i++
+		if input[i] != 'u' {
+			continue
+		}
+		code, err := strconv.ParseUint(string(input[i+1:i+5]), 16, 16)
+		if err != nil {
+			return false
+		}
+		i += 4
+		if code >= 0xdc00 && code <= 0xdfff {
+			return false
+		}
+		if code >= 0xd800 && code <= 0xdbff {
+			if i+6 >= len(input) || input[i+1] != '\\' || input[i+2] != 'u' {
+				return false
+			}
+			low, err := strconv.ParseUint(string(input[i+3:i+7]), 16, 16)
+			if err != nil || low < 0xdc00 || low > 0xdfff {
+				return false
+			}
+			i += 6
+		}
+	}
+	return true
 }

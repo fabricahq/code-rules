@@ -73,3 +73,16 @@ func TestGroupMetadataOwnsItsResult(t *testing.T) {
 		t.Fatalf("result shares storage with another result or the input: %+v", second)
 	}
 }
+
+func TestGroupMetadataRejectsInvalidUTF8(t *testing.T) {
+	input := append([]byte(`{"name":"`), 0xff)
+	input = append(input, []byte(`","description":"Go rules","whenToRead":"When editing."}`)...)
+	got, err := rules.ParseGroupMetadata(input, "group")
+	var validation *rules.ValidationError
+	if !errors.As(err, &validation) || validation.Location != "group.name" || validation.Problem != "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape" {
+		t.Fatalf("want Unicode validation error at group.name, got %v", err)
+	}
+	if got != (rules.GroupMetadata{}) {
+		t.Fatalf("failed parsing returned partial metadata: %+v", got)
+	}
+}

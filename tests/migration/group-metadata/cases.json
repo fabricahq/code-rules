@@ -1512,5 +1512,361 @@
         "location": "techs/go/_group.json.license"
       }
     }
+  },
+  {
+    "id": "metadata-surrogate-high",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\ud800\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.name"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-low",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\uDC00\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.name"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-description",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"\\uDFFF\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.description: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.description"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-guidance",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": \"\\uDBFF\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-high-high",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\ud800\\ud801\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.name"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-reversed",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\udc00\\ud800\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.name"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-separated",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\ud800 \\udc00\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.name"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-high-nonsurrogate",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\ud800\\u0041\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.name"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-pair-then-high",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\ud83d\\udc39\\ud800\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.name"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-reference-preserves-name",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\ud800\", \"description\": \"Go rules\", \"whenToRead\": [\"When editing.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.name"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "name": "\ud800",
+        "description": "Go rules",
+        "whenToRead": [
+          "When editing."
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-surrogate-reference-preserves-description",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"\\ud800\", \"whenToRead\": [\"When editing.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.description: expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape",
+        "location": "techs/go/_group.json.description"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "\ud800",
+        "whenToRead": [
+          "When editing."
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-unicode-valid-pair",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\uD83D\\uDc39\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "🐹",
+        "description": "Go rules",
+        "whenToRead": "When editing."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unicode-valid-multiple-pairs",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\ud83d\\udc39\\ud83d\\ude80\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "🐹🚀",
+        "description": "Go rules",
+        "whenToRead": "When editing."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unicode-valid-escaped-backslash",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\\\ud800\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "\\ud800",
+        "description": "Go rules",
+        "whenToRead": "When editing."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unicode-valid-replacement-escape",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"\\ufffd\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "�",
+        "description": "Go rules",
+        "whenToRead": "When editing."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unicode-valid-replacement-literal",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"�\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "�",
+        "description": "Go rules",
+        "whenToRead": "When editing."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
   }
 ]

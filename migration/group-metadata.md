@@ -1,6 +1,6 @@
 # Group metadata: second Go slice
 
-Status: implemented on `codex/go-group-metadata`; draft pending a Unicode compatibility decision. Do not merge yet.
+Status: implemented on `codex/go-group-metadata`; PR #12 is open for review. CodeRabbit Unicode findings are addressed; human merge approval is still required.
 
 ## Scope and baseline
 
@@ -41,13 +41,15 @@ Show editable metadata, useful presets, returned structured values, errors with 
 Run Go formatting, vet, pinned Staticcheck, race tests, exact reference/native comparisons, the repository checks, installed-package checks, and a real browser exercise.
 Open one PR into `go-migration`, then stop for human review.
 
-## Compatibility limits
+## Unicode behavior
 
-Comparison covers Unicode scalar text, including valid surrogate pairs in JSON.
-Before the string-format change, autoreview found and the live lab reproduced a defect outside those cases: `{"name":"\ud800","description":"ok","whenToRead":[]}` returns a replacement character in Go, while TypeScript preserves the lone surrogate.
-With the new format, use `"whenToRead":"When editing."` to reproduce the same Go text replacement. This remains an unresolved text-preservation defect, not an approved difference. Passing the shared suite does not establish parity for this input.
-The proposed resolution is to reject malformed Unicode with a clear validation error, keeping ordinary Go strings. That changes accepted inputs and requires human approval under the migration instructions. Exact preservation would instead require a compatible text representation and serializer.
-The PR remains a draft until that choice is implemented, regression-tested, and reviewed.
+CodeRabbit identified silent replacement of lone UTF-16 surrogate escapes and missing regression coverage. The user requested resolving both findings, approving explicit rejection instead of preserving JavaScript's malformed text.
+
+Before decoding each effective text field, Go checks UTF-8 validity and requires every high-surrogate escape to have an immediately following low-surrogate escape. Lone low surrogates also fail. Valid pairs, ordinary Unicode, literal U+FFFD, and escaped backslashes remain valid. JSON syntax is checked first; duplicate fields retain last-value semantics.
+
+Errors identify the field and return no partial metadata. Shared cases include exact TypeScript results, including cases where TypeScript preserves a lone surrogate in a legacy-format document. A native Go test covers raw invalid UTF-8 bytes, which the JSON adapter cannot transport unchanged.
+
+This establishes explicit metadata behavior, not full Unicode coverage for every migration capability. Earlier identity coverage limits remain separate.
 
 ## Run and review
 
@@ -55,10 +57,10 @@ The PR remains a draft until that choice is implemented, regression-tested, and 
 go run ./cmd/rules-lab -serve
 ```
 
-The page opens with group metadata selected. Try the valid document, empty guidance, trimmed whitespace, missing name, null guidance, a legacy array, blank guidance, license declaration, unknown field, and malformed JSON presets.
+The page opens with group metadata selected. Try the valid document, empty guidance, trimmed whitespace, missing name, null guidance, a legacy array, blank guidance, license declaration, unknown field, malformed JSON, invalid Unicode, and valid Unicode presets.
 The `groupMetadata` adapter operation takes document text in its `input` string. That lets malformed document JSON reach the Go function without breaking the outer request envelope.
 
-The new parser uses only the Go standard library. Its private helpers each own one check: nonblank text and ordered, distinct reading guidance.
+The new parser uses only the Go standard library. Its private helpers validate raw Unicode and decode trimmed nonblank text.
 The existing identity API and logger conventions remain unchanged.
 
 ## Checks
@@ -73,7 +75,7 @@ bun run check
 bun run test:package
 ```
 
-The shared suite contains 78 metadata cases plus 88 identity cases. The original 53 fixture inputs remain, with added string-format cases. Each behavior difference records the pinned TypeScript result explicitly.
+The shared suite contains 94 metadata cases plus 88 identity cases. The original 53 fixture inputs remain, with added string-format cases. Each behavior difference records the pinned TypeScript result explicitly.
 Cases cover nonblank, empty, blank, null, and legacy-array guidance, whitespace and Unicode scalar text, key case and repetition, unknown-field rejection, absent/null/wrongly typed values, error precedence, and forbidden license fields.
 Go tests also check that parsing does not mutate input, results own their storage, failures return no partial metadata, and HTTP returns trimmed reading guidance as a string.
 
@@ -83,13 +85,13 @@ Private corpus contents are not copied into the product repository.
 ## Validation result
 
 - Go formatting, vet, Staticcheck v0.8.1, and race tests passed.
-- The 166 shared cases include 60 approved identity diagnostic differences and 48 approved metadata format/trim/unknown-field differences.
+- The 182 shared cases include 60 approved identity diagnostic differences and 64 approved metadata format/trim/unknown-field/Unicode differences.
 - `bun run check` passed, including 444 tests, formatting, lint, type checking, docs build, and link checks. Six installed-package tests passed.
-- All ten metadata presets were invoked through the real browser lab. The editor fits the default document and resets to its beginning when selecting a preset.
-- Supported read-only Codex autoreview with web disabled returned one finding: the Unicode defect above. It is accepted and unresolved; review is not clean.
+- All twelve metadata presets were invoked through the real browser lab. The editor fits the default document and resets to its beginning when selecting a preset.
+- The original autoreview finding and both CodeRabbit comments concerned malformed Unicode and missing regression coverage. The implementation and fixtures now address them. A focused read-only Codex autoreview of the Unicode fix reported no actionable findings.
 
 Local evidence is retained under `/private/tmp/code-rules-migration-evidence/`: `metadata-check.log`, `metadata-package.log`, `metadata-parity.log`, `metadata-review.txt`, `metadata-review.json`, and `metadata-unicode-repro.json`. The last file records the exact request and differing results.
-Reproduce it with `bun /private/tmp/code-rules-migration-evidence/metadata-unicode-repro.ts` against the retained native lab binary.
+The earlier reproduction records the defect before the fix. Current regression evidence is in the shared `metadata-surrogate-*` fixtures and `TestGroupMetadataRejectsInvalidUTF8`.
 
 After this slice is resolved and human-reviewed, rule Markdown/frontmatter parsing is the recommended next slice. Do not begin it while this PR awaits review.
 
@@ -97,7 +99,7 @@ After this slice is resolved and human-reviewed, rule Markdown/frontmatter parsi
 
 The user requested trimming leading and trailing spaces during interactive review. Metadata names, descriptions, and reading guidance now trim surrounding JavaScript whitespace, using the existing whitespace predicate. Internal spacing remains intact. Whitespace-only text remains invalid.
 
-The TypeScript baseline stays pinned. Shared fixtures retain its exact original results in `referenceExpected`; no comparator normalization is introduced. This approval does not resolve the separate lone-surrogate finding.
+The TypeScript baseline stays pinned. Shared fixtures retain its exact original results in `referenceExpected`; no comparator normalization is introduced. Unicode rejection was subsequently approved through the request to resolve CodeRabbit feedback.
 
 ## User-approved single-string guidance
 

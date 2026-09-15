@@ -470,7 +470,7 @@
         <p class="notice">
           This slice parses a group’s <code>_group.json</code> contents. It does
           not find groups, read files, expand wildcards, or parse rule Markdown.
-          The 78 metadata cases and 88 identity cases run against both the
+          The 94 metadata cases and 88 identity cases run against both the
           TypeScript reference and the real Go executable.
         </p>
         <details>
@@ -480,12 +480,14 @@
             <code>formats.identities.05</code>: metadata field presence, null,
             and unknown fields. Group metadata is also a prerequisite for
             <code>builds.resolve.04</code>. Full capability acceptance remains
-            pending; no acceptance criteria or baseline changed.
+            pending. User-approved format changes are recorded in the migration
+            notes; the reference baseline stays pinned.
           </p>
           <p>
-            Cross-runtime string parity currently covers Unicode scalar text.
-            Lone UTF-16 surrogates in JSON require a separate compatibility
-            decision before the full configuration contract can be accepted.
+            Metadata rejects invalid UTF-8 and lone UTF-16 surrogate escapes
+            before decoding. Valid Unicode pairs remain supported. Shared
+            fixtures record this approved difference from TypeScript. Other
+            migration capabilities still require their own Unicode checks.
           </p>
         </details>
         <details>
@@ -551,6 +553,8 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
             ["License not allowed", { ...metadata, license: null }],
             ["Unknown field", { ...metadata, futureOption: { enabled: true } }],
             ["Malformed JSON", '{"name":'],
+            ["Invalid Unicode", { ...metadata, name: "\ud800" }],
+            ["Valid Unicode", { ...metadata, name: "Go 🐹" }],
           ].map(([label, value]) => [
             label,
             typeof value === "string" ? value : JSON.stringify(value, null, 2),

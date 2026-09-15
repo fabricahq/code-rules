@@ -68,7 +68,7 @@ The assertions now match those source contracts. No baseline, production behavio
 ## Group metadata slice
 
 - Treat a reproduced Unicode mismatch as an open defect, even when earlier slice notes excluded that edge case from coverage. Do not turn a coverage limit into an approved behavior change.
-  Evidence: the accepted lone-surrogate autoreview finding and reproduction recorded in [group metadata](group-metadata.md#compatibility-limits).
+  Evidence: the lone-surrogate finding, approved rejection, and regression coverage recorded in [group metadata](group-metadata.md#unicode-behavior).
 - Preserve format semantics at the JSON boundary. Raw fields retain case-sensitive keys and last-key-wins behavior. Reject unknown fields in sorted order before decoding their values.
   Evidence: metadata cases for field case, repeated keys, and a rejected unknown field containing `1e400`.
 - Distinguish document syntax from adapter syntax. Sending metadata text as a string lets the lab invoke Go on malformed documents.
