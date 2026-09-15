@@ -31,7 +31,7 @@ func ruleYAML(text, location string) (map[string]*yaml.Node, error) {
 	var document yaml.Node
 	if err := decoder.Decode(&document); err != nil {
 		if err == io.EOF {
-			return nil, invalid(location, "expected an object")
+			return nil, invalid(location, "YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead")
 		}
 		return nil, invalid(location, "invalid YAML: "+err.Error())
 	}
@@ -52,7 +52,7 @@ func ruleYAML(text, location string) (map[string]*yaml.Node, error) {
 		return nil, invalid(location, "YAML aliases are unsupported")
 	}
 	if len(document.Content) == 0 {
-		return nil, invalid(location, "expected an object")
+		return nil, invalid(location, "YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead")
 	}
 	return yamlObject(document.Content[0], location)
 }

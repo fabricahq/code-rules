@@ -1643,10 +1643,19 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
         "message": "lab:techs/go/errors.md: expected an object",
         "location": "lab:techs/go/errors.md"
       }
-    }
+    },
+    "difference": "User-requested actionable diagnostic for empty YAML frontmatter, including whitespace and comments only. Both implementations reject the input."
   },
   {
     "id": "rule-nonobject-# Only a comment",
@@ -1661,10 +1670,19 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
         "message": "lab:techs/go/errors.md: expected an object",
         "location": "lab:techs/go/errors.md"
       }
-    }
+    },
+    "difference": "User-requested actionable diagnostic for empty YAML frontmatter, including whitespace and comments only. Both implementations reject the input."
   },
   {
     "id": "rule-nonobject-null",
@@ -3169,5 +3187,32 @@
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
     }
+  },
+  {
+    "id": "rule-nonobject-whitespace",
+    "operation": "rule",
+    "input": {
+      "text": "---\n  \n \n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: expected an object",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "difference": "User-requested actionable diagnostic for empty YAML frontmatter, including whitespace and comments only. Both implementations reject the input."
   }
 ]
