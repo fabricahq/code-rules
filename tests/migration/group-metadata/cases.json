@@ -5,6 +5,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "Go",
@@ -22,6 +30,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "Go",
@@ -36,6 +52,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When editing.\"]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "Go",
@@ -52,15 +76,11 @@
     "input": "{\"name\":\" Go \",\"description\":\"\\nGo rules\\t\",\"whenToRead\":[\" z \",\"a\",\"Z\"]}",
     "location": "techs/go/_group.json",
     "expected": {
-      "ok": true,
-      "value": {
-        "name": "Go",
-        "description": "Go rules",
-        "whenToRead": [
-          "z",
-          "a",
-          "Z"
-        ]
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
       }
     },
     "referenceExpected": {
@@ -82,6 +102,14 @@
     "input": "{\"name\":\"日本語 🐹\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"é\",\"é\",\"🐹\"]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "日本語 🐹",
@@ -100,6 +128,14 @@
     "input": "{\"name\":\"\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"\"]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "",
@@ -116,6 +152,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"future\":{\"value\":true},\"Name\":\"Wrong\",\"__proto__\":{\"license\":\"MIT\"}}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "Go",
@@ -133,6 +177,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"License\":\"MIT\",\"LICENSES\":null}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "Go",
@@ -150,6 +202,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"future\":1e400}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "Go",
@@ -167,6 +227,14 @@
     "input": "{\"name\":null,\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "Go",
@@ -198,6 +266,14 @@
     "input": "{\"na\\u006de\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "Go",
@@ -456,6 +532,14 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
         "message": "techs/go/_group.json.whenToRead: expected an array of strings",
         "location": "techs/go/_group.json.whenToRead"
       }
@@ -470,6 +554,14 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
         "message": "techs/go/_group.json.whenToRead: expected an array of strings",
         "location": "techs/go/_group.json.whenToRead"
       }
@@ -481,6 +573,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":42}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
@@ -554,6 +654,14 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
         "message": "techs/go/_group.json.whenToRead[0]: expected nonempty text",
         "location": "techs/go/_group.json.whenToRead[0]"
       }
@@ -565,6 +673,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When editing.\",null]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
@@ -582,6 +698,14 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
         "message": "techs/go/_group.json.whenToRead[1]: expected nonempty text",
         "location": "techs/go/_group.json.whenToRead[1]"
       }
@@ -593,6 +717,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"﻿\"]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
@@ -610,6 +742,14 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
         "message": "techs/go/_group.json.whenToRead: duplicate entries",
         "location": "techs/go/_group.json.whenToRead"
       }
@@ -621,6 +761,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"Same\",\"Same\",\"\"]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
@@ -638,7 +786,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.json.whenToRead: duplicate entries",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
         "location": "techs/go/_group.json.whenToRead"
       }
     },
@@ -773,13 +921,11 @@
     "input": "{\"name\":\"﻿Go \",\"description\":\"\\tGo rules\\r\\n\",\"whenToRead\":[\" When editing. \"]}",
     "location": "techs/go/_group.json",
     "expected": {
-      "ok": true,
-      "value": {
-        "name": "Go",
-        "description": "Go rules",
-        "whenToRead": [
-          "When editing."
-        ]
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
       }
     },
     "referenceExpected": {
@@ -799,13 +945,11 @@
     "input": "{\"name\":\" Go  rules \",\"description\":\" First\\nsecond \",\"whenToRead\":[\" Read  carefully. \"]}",
     "location": "techs/go/_group.json",
     "expected": {
-      "ok": true,
-      "value": {
-        "name": "Go  rules",
-        "description": "First\nsecond",
-        "whenToRead": [
-          "Read  carefully."
-        ]
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
       }
     },
     "referenceExpected": {
@@ -816,6 +960,424 @@
         "whenToRead": [
           " Read  carefully. "
         ]
+      }
+    }
+  },
+  {
+    "id": "metadata-valid-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When writing Go.; When reviewing Go.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": "When writing Go.; When reviewing Go."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-one-guidance-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When editing.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": "When editing."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-preserve-text-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\" Go \",\"description\":\"\\nGo rules\\t\",\"whenToRead\":\" z ; a; Z\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go rules",
+        "whenToRead": "z ; a; Z"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unicode-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"日本語 🐹\",\"description\":\"Go engineering rules\",\"whenToRead\":\"é; é; 🐹\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "日本語 🐹",
+        "description": "Go engineering rules",
+        "whenToRead": "é; é; 🐹"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-nel-is-text-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"\",\"description\":\"Go engineering rules\",\"whenToRead\":\"\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "",
+        "description": "Go engineering rules",
+        "whenToRead": ""
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unknown-fields-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When writing Go.; When reviewing Go.\",\"future\":{\"value\":true},\"Name\":\"Wrong\",\"__proto__\":{\"license\":\"MIT\"}}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": "When writing Go.; When reviewing Go."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-case-sensitive-license-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When writing Go.; When reviewing Go.\",\"License\":\"MIT\",\"LICENSES\":null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": "When writing Go.; When reviewing Go."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-ignored-large-number-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When writing Go.; When reviewing Go.\",\"future\":1e400}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": "When writing Go.; When reviewing Go."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-duplicate-key-last-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":null,\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When writing Go.; When reviewing Go.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": "When writing Go.; When reviewing Go."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-escaped-field-name-string",
+    "operation": "groupMetadata",
+    "input": "{\"na\\u006de\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When writing Go.; When reviewing Go.\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": "When writing Go.; When reviewing Go."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-guidance-whitespace-distinct-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"Same;  Same; Same \"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": "Same;  Same; Same"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-trim-unicode-whitespace-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"﻿Go \",\"description\":\"\\tGo rules\\r\\n\",\"whenToRead\":\" When editing. \"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go rules",
+        "whenToRead": "When editing."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-preserve-interior-whitespace-string",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\" Go  rules \",\"description\":\" First\\nsecond \",\"whenToRead\":\" Read  carefully. \"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go  rules",
+        "description": "First\nsecond",
+        "whenToRead": "Read  carefully."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-string-guidance-empty",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": \"\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-string-guidance-blank",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": \" \\t\\n\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-string-guidance-bom",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": \"\\ufeff\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-string-guidance-boolean",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": true}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-string-guidance-number",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": 3}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-string-guidance-object",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": {}}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
       }
     }
   }

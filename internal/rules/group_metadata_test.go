@@ -52,13 +52,13 @@ func TestGroupMetadataSharedExpectations(t *testing.T) {
 }
 
 func TestGroupMetadataOwnsItsResult(t *testing.T) {
-	input := json.RawMessage(`{"name":"Go","description":"Go rules","whenToRead":["When editing."]}`)
+	input := json.RawMessage(`{"name":"Go","description":"Go rules","whenToRead":"When editing."}`)
 	before := string(input)
 	first, err := rules.ParseGroupMetadata(input, "group")
 	if err != nil {
 		t.Fatal(err)
 	}
-	first.WhenToRead[0] = "changed"
+	first.WhenToRead = "changed"
 	second, err := rules.ParseGroupMetadata(input, "group")
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +69,7 @@ func TestGroupMetadataOwnsItsResult(t *testing.T) {
 	for i := range input {
 		input[i] = ' '
 	}
-	if second.Name != "Go" || second.Description != "Go rules" || second.WhenToRead[0] != "When editing." {
+	if second.Name != "Go" || second.Description != "Go rules" || second.WhenToRead != "When editing." {
 		t.Fatalf("result shares storage with another result or the input: %+v", second)
 	}
 }

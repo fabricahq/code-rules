@@ -118,7 +118,7 @@ for (const [index, test] of cases.entries()) {
     throw new Error(`Missing native response: ${test.id}`);
   const native: unknown = JSON.parse(line);
   const expected = test.expected;
-  // The user approved clearer identity diagnostics and trimmed metadata in Go.
+  // The user approved clearer identity diagnostics and trimmed scalar metadata in Go.
   // Those cases retain explicit old and new expectations; no output is normalized.
   deepStrictEqual(
     reference(test),

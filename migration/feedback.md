@@ -73,5 +73,5 @@ The assertions now match those source contracts. No baseline, production behavio
   Evidence: metadata cases for field case, repeated keys, and an ignored `1e400` value.
 - Distinguish document syntax from adapter syntax. Sending metadata text as a string lets the lab invoke Go on malformed documents.
   Evidence: adapter tests for malformed metadata text versus an incorrectly typed envelope input.
-- Keep collection invariants explicit. Reading guidance preserves order, trims surrounding whitespace, owns its storage, and uses an empty array rather than null.
+- Use one nonblank string for group and rule reading guidance, as requested during review. Group metadata trims surrounding whitespace and rejects legacy arrays.
   Evidence: `internal/rules/group_metadata_test.go` and the HTTP metadata test.

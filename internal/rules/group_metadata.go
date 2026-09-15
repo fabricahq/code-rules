@@ -4,7 +4,6 @@ package rules
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 )
 
@@ -12,9 +11,7 @@ import (
 type GroupMetadata struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	// WhenToRead retains input order and owns its storage. Successful parsing
-	// always returns a non-nil slice, including an empty list.
-	WhenToRead []string `json:"whenToRead"`
+	WhenToRead  string `json:"whenToRead"`
 }
 
 // ParseGroupMetadata validates a group's JSON document. Unknown fields are
@@ -43,7 +40,7 @@ func ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, 
 	if err != nil {
 		return GroupMetadata{}, err
 	}
-	guidance, err := readingGuidance(fields["whenToRead"], location+".whenToRead")
+	guidance, err := metadataText(fields["whenToRead"], location+".whenToRead")
 	if err != nil {
 		return GroupMetadata{}, err
 	}
@@ -60,28 +57,4 @@ func metadataText(input json.RawMessage, location string) (string, error) {
 		return "", invalid(location, "expected nonempty text")
 	}
 	return text, nil
-}
-
-func readingGuidance(input json.RawMessage, location string) ([]string, error) {
-	var items []json.RawMessage
-	if err := json.Unmarshal(input, &items); err != nil || items == nil {
-		return nil, invalid(location, "expected an array of strings")
-	}
-	guidance := make([]string, len(items))
-	for i, item := range items {
-		text, err := metadataText(item, fmt.Sprintf("%s[%d]", location, i))
-		if err != nil {
-			return nil, err
-		}
-		guidance[i] = text
-	}
-	// All item text is checked before duplicates, matching the reference order.
-	seen := make(map[string]bool, len(guidance))
-	for _, text := range guidance {
-		if seen[text] {
-			return nil, invalid(location, "duplicate entries")
-		}
-		seen[text] = true
-	}
-	return guidance, nil
 }

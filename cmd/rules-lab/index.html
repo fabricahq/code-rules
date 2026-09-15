@@ -399,8 +399,7 @@
               group-ID adapter echoes the validated input as <code>value</code>.
               Rule paths return their group; selections return a sorted list or
               an unexpanded wildcard. Metadata returns <code>name</code>,
-              <code>description</code>, and an ordered
-              <code>whenToRead</code> list.
+              <code>description</code>, and a <code>whenToRead</code> string.
             </p>
             <p class="hint">
               <code>ValidationError</code> is a returned Go error for invalid
@@ -441,21 +440,22 @@
             <h3>2. Validate in order</h3>
             <p>
               Group-level <code>license</code> and <code>licenses</code> fields
-              fail first. Then Go checks the name, description, and every
-              guidance entry before checking for duplicate guidance.
+              fail first. Then Go checks the name, description, and reading
+              guidance as nonblank strings.
             </p>
             <p>
-              Try <strong>Blank before duplicate</strong>. The error points to
-              the blank entry’s original index.
+              Try <strong>Blank guidance</strong> or
+              <strong>Legacy array</strong>. Guidance must be one nonblank
+              string.
             </p>
           </div>
           <div>
             <h3>3. Return an owned value</h3>
             <p>
               <code>GroupMetadata</code> contains the name, description, and
-              <code>WhenToRead []string</code>. Text is trimmed at both ends;
-              internal spacing and list order stay intact. Empty guidance
-              returns an empty array. Errors return no partial value.
+              <code>WhenToRead string</code>. Text is trimmed at both ends;
+              internal spacing stays intact. Empty guidance is invalid. Errors
+              return no partial value.
             </p>
             <p>
               The parser returns the existing <code>ValidationError</code> type.
@@ -469,7 +469,7 @@
         <p class="notice">
           This slice parses a group’s <code>_group.json</code> contents. It does
           not find groups, read files, expand wildcards, or parse rule Markdown.
-          The 53 new metadata cases and 87 identity cases run against both the
+          The 72 metadata cases and 87 identity cases run against both the
           TypeScript reference and the real Go executable.
         </p>
         <details>
@@ -514,42 +514,39 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
       const metadata = {
         name: "Go",
         description: "Conventions for writing and reviewing Go code.",
-        whenToRead: ["When writing Go code.", "When reviewing Go changes."],
+        whenToRead: "When writing or reviewing Go code.",
       };
       const operations = {
         groupMetadata: {
           signature:
             "ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, error)",
           description:
-            "Requires name, description, and distinct reading guidance. Trims surrounding whitespace and preserves list order; an empty guidance list is valid. Unknown fields are ignored except license declarations.",
+            "Requires name, description, and whenToRead as nonblank strings. Trims surrounding whitespace and preserves internal spacing. Unknown fields are ignored except license declarations.",
           label: "Group metadata JSON",
           hint: "The contents of _group.json. Even malformed JSON is sent to the Go parser as document text.",
           location: "techs/go/_group.json",
           examples: [
             ["Valid group", metadata],
-            ["Empty guidance", { ...metadata, whenToRead: [] }],
+            ["Empty guidance", { ...metadata, whenToRead: "" }],
             [
-              "Order and spaces",
+              "Trim spaces",
               {
                 ...metadata,
                 name: " Go ",
                 description: " " + metadata.description + " ",
-                whenToRead: ["Review first.", " Write second. "],
+                whenToRead: " When writing or reviewing Go code. ",
               },
             ],
             [
               "Missing name",
-              { description: metadata.description, whenToRead: [] },
+              {
+                description: metadata.description,
+                whenToRead: metadata.whenToRead,
+              },
             ],
-            ["Null list", { ...metadata, whenToRead: null }],
-            [
-              "Duplicate guidance",
-              { ...metadata, whenToRead: ["When editing.", "When editing."] },
-            ],
-            [
-              "Blank before duplicate",
-              { ...metadata, whenToRead: ["Same", "Same", ""] },
-            ],
+            ["Null guidance", { ...metadata, whenToRead: null }],
+            ["Legacy array", { ...metadata, whenToRead: ["When editing."] }],
+            ["Blank guidance", { ...metadata, whenToRead: "   " }],
             ["License not allowed", { ...metadata, license: null }],
             ["Unknown field", { ...metadata, futureOption: { enabled: true } }],
             ["Malformed JSON", '{"name":'],

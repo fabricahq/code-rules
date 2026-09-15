@@ -106,5 +106,5 @@ Passing these checks is implementation evidence. Independent validation and huma
 See [feedback.md](feedback.md) and [evidence.md](evidence.md) for the harness handoff.
 
 The merged [identity slice](identities.md) implements group/rule IDs and selector validation.
-The current [group metadata slice](group-metadata.md) adds JSON metadata parsing and extends the same interactive lab.
+The current [group metadata slice](group-metadata.md) adds JSON metadata parsing and extends the same interactive lab. The user-approved target uses one nonblank `whenToRead` string for groups and rules; the pinned TypeScript group format still uses arrays.
 Review each slice before starting filesystem-writing capabilities.

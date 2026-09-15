@@ -96,7 +96,7 @@ func TestInvokeBoundary(t *testing.T) {
 }
 
 func TestHTTPParsesGroupMetadata(t *testing.T) {
-	body := `{"operation":"groupMetadata","input":"{\"name\":\"Go\",\"description\":\"Go rules\",\"whenToRead\":[]}","location":"techs/go/_group.json"}`
+	body := `{"operation":"groupMetadata","input":"{\"name\":\"Go\",\"description\":\"Go rules\",\"whenToRead\":\" When editing. \"}","location":"techs/go/_group.json"}`
 	req := httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(body))
 	recorder := httptest.NewRecorder()
 	handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, req)
@@ -104,13 +104,13 @@ func TestHTTPParsesGroupMetadata(t *testing.T) {
 		OK    bool
 		Value struct {
 			Name, Description string
-			WhenToRead        []string
+			WhenToRead        string
 		}
 	}
 	if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	if recorder.Code != http.StatusOK || !got.OK || got.Value.Name != "Go" || got.Value.Description != "Go rules" || got.Value.WhenToRead == nil || len(got.Value.WhenToRead) != 0 {
+	if recorder.Code != http.StatusOK || !got.OK || got.Value.Name != "Go" || got.Value.Description != "Go rules" || got.Value.WhenToRead != "When editing." {
 		t.Fatalf("unexpected metadata response: HTTP %d %s", recorder.Code, recorder.Body)
 	}
 }
