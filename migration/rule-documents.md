@@ -1,6 +1,6 @@
 # Rule document boundaries: third Go slice
 
-Status: implemented and locally validated on `codex/go-rule-documents`, awaiting human review.
+Status: human-approved and merged in PR #13 at `301caa59654e8170f66ef6347eba4c0951d44560`, after all 14 checks passed and CodeRabbit reported no actionable findings.
 
 ## Baseline and scope
 

@@ -1,6 +1,6 @@
 # Migration feedback
 
-Status: PRs #11 and #12 were human-approved and merged. The rule document boundary slice is under review.
+Status: PRs #11, #12, and #13 were human-approved and merged. Complete rule parsing is the current slice.
 
 ## Rules used
 
@@ -81,3 +81,13 @@ The assertions now match those source contracts. No baseline, production behavio
 - Keep each interactive walkthrough scoped to its own PR. Earlier operations stay in regression tests and the development adapter.
 - Separate preservation of authored text from interpretation of YAML fields. A successful split does not establish a valid complete rule.
   Evidence: direct Go cases for empty captures and uninterpreted YAML, plus exact comparisons against the pinned rule parser for complete rules.
+
+## Complete rule parser slice
+
+- Plan about 20-30 additional capability-sized PRs. Keep helpers together when they complete one reviewable operation.
+- Keep YAML syntax parsing in a maintained dependency. Adapt scalar types at the node boundary so legacy YAML coercions cannot silently accept invalid rule fields.
+- Compare both sides with independent expectations. Record user-approved diagnostic differences separately; do not normalize error strings or advance the reference.
+- Preserve the original metadata and body independently of interpreted values. URL normalization affects attribution data, never the authored text.
+- The rule format retains extension fields, unlike strict group JSON. Do not apply one format's unknown-field policy to another without an explicit decision.
+
+Evidence and the pending Unicode decision live in [complete rule parsing](rule-parser.md).

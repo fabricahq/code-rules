@@ -222,3 +222,52 @@ func TestHTTPDocumentPreservesTextAndEmptyFields(t *testing.T) {
 		})
 	}
 }
+
+func TestHTTPParsesCompleteRule(t *testing.T) {
+	metadata := "title: Go\r\nimpact: HIGH\r\nimpactDescription: Avoid failures\r\nwhenToRead: Editing Go"
+	for _, test := range []struct{ name, text, errorName string }{
+		{"valid", "---\r\n" + metadata + "\r\n---\r\n Body  \r\n", ""},
+		{"empty body", "---\n" + metadata + "\n---", "ValidationError"},
+		{"malformed YAML", "---\ntitle: [\n---\nBody", "ValidationError"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			payload, err := json.Marshal(map[string]any{"operation": "rule", "input": map[string]string{"text": test.text, "path": "techs/go/example.md", "source": "team"}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var logs bytes.Buffer
+			recorder := httptest.NewRecorder()
+			handler(slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/invoke", bytes.NewReader(payload)))
+			var got struct {
+				OK    bool
+				Value map[string]any
+				Error *struct{ Name, Location string }
+			}
+			if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("HTTP %d: %s", recorder.Code, recorder.Body)
+			}
+			if test.errorName == "" {
+				if !got.OK || got.Value["id"] != "team:techs/go/example" || got.Value["metadata"] != metadata || got.Value["body"] != " Body  \r\n" {
+					t.Fatalf("unexpected rule: %s", recorder.Body)
+				}
+			} else if got.OK || got.Value != nil || got.Error == nil || got.Error.Name != test.errorName || !strings.HasPrefix(got.Error.Location, "team:techs/go/example.md") {
+				t.Fatalf("unexpected failure: %s", recorder.Body)
+			}
+			if strings.Contains(logs.String(), "Avoid failures") || strings.Contains(logs.String(), "example.md") {
+				t.Fatalf("input leaked to logs: %s", &logs)
+			}
+		})
+	}
+}
+
+func TestRuleAdapterRejectsInvalidInput(t *testing.T) {
+	for _, input := range []string{`null`, `"text"`, `{}`, `{"text":null,"path":"x","source":"s"}`, `{"text":1,"path":"x","source":"s"}`, `{"text":"x","path":"x","source":"s","extra":true}`} {
+		got, err := invoke([]byte(`{"operation":"rule","input":` + input + `}`))
+		if err != nil || got.OK || got.Value != nil || got.Error == nil || got.Error.Name != "AdapterError" {
+			t.Fatalf("input %s: got %+v, error %v", input, got, err)
+		}
+	}
+}

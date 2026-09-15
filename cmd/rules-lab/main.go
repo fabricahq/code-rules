@@ -60,12 +60,24 @@ func invoke(data []byte) (response, error) {
 	if err := decoder.Decode(new(any)); err != io.EOF {
 		return adapterError("expected one request object"), nil
 	}
-	if req.Location == "" {
+	if req.Location == "" && req.Operation != "rule" {
 		return adapterError("location must be nonempty"), nil
 	}
 	var value any
 	var err error
 	switch req.Operation {
+	case "rule":
+		var input struct {
+			Text   *string `json:"text"`
+			Path   *string `json:"path"`
+			Source *string `json:"source"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Text == nil || input.Path == nil || input.Source == nil {
+			return adapterError("rule input must contain text, path, and source strings"), nil
+		}
+		value, err = rules.Parse(*input.Text, *input.Path, *input.Source)
 	case "groupID", "ruleGroup", "groupMetadata", "document":
 		var text string
 		if len(req.Input) == 0 || bytes.Equal(bytes.TrimSpace(req.Input), []byte("null")) || json.Unmarshal(req.Input, &text) != nil {
