@@ -419,9 +419,12 @@
               <code>\r\n</code> is CRLF.
             </p>
             <p>
-              Unlike the group JSON format, the pinned rule format permits
-              extension fields. They remain in <code>metadata</code>. Tags are
-              validated there, but do not become a separate result field.
+              Unknown fields are rejected. Frontmatter accepts
+              <code>title</code>, <code>impact</code>,
+              <code>impactDescription</code>, <code>whenToRead</code>,
+              <code>tags</code>, and <code>attribution</code>. Each attribution
+              entry accepts only <code>url</code> and <code>description</code>.
+              Tags remain in the original metadata.
             </p>
             <p>
               A successful parse validates this rule only. It does not resolve
@@ -448,8 +451,9 @@
               rule or offending field.
             </p>
             <p>
-              Try <strong>Empty body</strong>, <strong>Duplicate key</strong>,
-              and <strong>Legacy guidance</strong>.
+              Try <strong>Unknown field</strong>, <strong>Empty body</strong>,
+              <strong>Duplicate key</strong>, and
+              <strong>Legacy guidance</strong>.
             </p>
           </div>
           <div>
@@ -467,13 +471,13 @@
           <div>
             <h3>3. Preserve authored text</h3>
             <p>
-              Comments, spacing, Unicode, line endings, and extension fields
-              remain in the original metadata and body. Parsed fields are never
-              written back over those strings.
+              Comments, spacing, Unicode, and line endings remain in the
+              original metadata and body. Parsed fields are never written back
+              over those strings.
             </p>
             <p>
               Try <strong>CRLF</strong>, <strong>Unicode</strong>, and
-              <strong>Extension field</strong>.
+              <strong>Date as text</strong>.
             </p>
           </div>
         </div>
@@ -576,7 +580,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           ),
         ],
         [
-          "Extension field",
+          "Unknown field",
           withMetadata(
             frontmatter + "\ncustom: {owner: team, status: reviewed}",
           ),

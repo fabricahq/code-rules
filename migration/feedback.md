@@ -88,6 +88,6 @@ The assertions now match those source contracts. No baseline, production behavio
 - Keep YAML syntax parsing in a maintained dependency. Adapt scalar types at the node boundary so legacy YAML coercions cannot silently accept invalid rule fields.
 - Compare both sides with independent expectations. Record user-approved diagnostic differences separately; do not normalize error strings or advance the reference.
 - Preserve the original metadata and body independently of interpreted values. URL normalization affects attribution data, never the authored text.
-- The rule format retains extension fields, unlike strict group JSON. Do not apply one format's unknown-field policy to another without an explicit decision.
+- The user explicitly requested strict rule frontmatter during review. Reject unknown top-level and attribution fields, report names deterministically, and retain separate expectations for the permissive reference.
 
 Evidence and the pending Unicode decision live in [complete rule parsing](rule-parser.md).

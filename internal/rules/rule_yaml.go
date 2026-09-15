@@ -171,12 +171,18 @@ func yamlObject(node *yaml.Node, location string) (map[string]*yaml.Node, error)
 			}
 		}
 	}
-	// Own fields override merge defaults regardless of declaration order. Only
-	// string keys can name rule fields; collection keys remain in raw metadata.
+	// Own fields override merge defaults regardless of declaration order. Reject
+	// non-string names so unknown fields cannot disappear during extraction.
+	// This structural error precedes field-level checks such as license declarations.
 	for i := 0; i < len(node.Content); i += 2 {
-		if key := node.Content[i]; yamlString(key) {
-			result[key.Value] = node.Content[i+1]
+		key := node.Content[i]
+		if key.ShortTag() == "!!merge" && key.Style&yaml.TaggedStyle != 0 {
+			continue
 		}
+		if !yamlString(key) {
+			return nil, invalid(location, "field names must be strings")
+		}
+		result[key.Value] = node.Content[i+1]
 	}
 	return result, nil
 }

@@ -4,6 +4,8 @@ package rules
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/nlnwa/whatwg-url/url"
@@ -29,7 +31,7 @@ type Attribution struct {
 }
 
 // Rule contains validated selection fields and the exact authored document text.
-// Attribution is an empty slice when absent. Tags and extension fields remain in
+// Attribution is an empty slice when absent. Tags remain in
 // Metadata; parsing never reserializes that text or trims Body.
 type Rule struct {
 	ID                string        `json:"id"`
@@ -45,6 +47,7 @@ type Rule struct {
 }
 
 // Parse validates a rule's path, YAML metadata, nonblank body, and attribution.
+// Unknown metadata and attribution fields are rejected.
 // Source is a caller-owned alias, not an authenticated origin. Path is a relative
 // rule path; neither argument causes file access. Text values retain whitespace.
 // On any failure, Parse returns the zero Rule and a ValidationError.
@@ -67,6 +70,9 @@ func Parse(text, path, source string) (Rule, error) {
 			return Rule{}, invalid(location+"."+key, "declare one license for the whole library in rule-library.json; rule-level licenses are unsupported")
 		}
 	}
+	if err := ruleKnownFields(fields, location, "title", "impact", "impactDescription", "whenToRead", "tags", "attribution"); err != nil {
+		return Rule{}, err
+	}
 	result, err := ruleFields(fields, location)
 	if err != nil {
 		return Rule{}, err
@@ -82,6 +88,16 @@ func Parse(text, path, source string) (Rule, error) {
 	result.Group, result.Path = group, path
 	result.Metadata, result.Body = document.Frontmatter, document.Body
 	return result, nil
+}
+
+// ruleKnownFields rejects the first unknown field in sorted order and lists the allowed names.
+func ruleKnownFields(fields map[string]*yaml.Node, location string, allowed ...string) error {
+	for _, key := range slices.Sorted(maps.Keys(fields)) {
+		if !slices.Contains(allowed, key) {
+			return invalid(location+"."+key, "unknown field; allowed fields: "+strings.Join(allowed, ", "))
+		}
+	}
+	return nil
 }
 
 // ruleFields validates the required selection fields and optional tags in reference order.
@@ -165,6 +181,9 @@ func ruleAttribution(node *yaml.Node, location string) ([]Attribution, error) {
 		where := fmt.Sprintf("%s[%d]", location, i)
 		fields, err := yamlObject(entry, where)
 		if err != nil {
+			return nil, err
+		}
+		if err := ruleKnownFields(fields, where, "url", "description"); err != nil {
 			return nil, err
 		}
 		text, err := ruleText(fields["url"], where+".url")

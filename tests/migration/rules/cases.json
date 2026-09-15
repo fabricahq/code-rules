@@ -334,6 +334,14 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.constructor: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.constructor"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -347,7 +355,8 @@
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nextra: {nested: [one, two]}\nconstructor: untouched",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
-    }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
   },
   {
     "id": "rule-literal-title",
@@ -2453,6 +2462,14 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.extra: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.extra"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -2466,7 +2483,8 @@
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nextra: {1: numeric, \"1\": text}",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
-    }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
   },
   {
     "id": "rule-complex-extension-keys",
@@ -2478,6 +2496,14 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.extra: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.extra"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -2491,7 +2517,8 @@
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nextra: {[a]: first, [a]: second}",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
-    }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
   },
   {
     "id": "rule-plain-merge-is-extension",
@@ -2503,6 +2530,14 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.<<: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.<<"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -2516,7 +2551,8 @@
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n<<: {title: ignored}",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
-    }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
   },
   {
     "id": "rule-explicit-merge",
@@ -3010,6 +3046,14 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.extra: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.extra"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -3023,7 +3067,8 @@
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nextra: !!set {a: null}",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
-    }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
   },
   {
     "id": "rule-extension-omap",
@@ -3035,6 +3080,14 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.extra: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.extra"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -3048,7 +3101,8 @@
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nextra: !!omap [{a: 1}, {b: 2}]",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
-    }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
   },
   {
     "id": "rule-extension-pairs",
@@ -3060,6 +3114,14 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.extra: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.extra"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -3073,7 +3135,8 @@
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nextra: !!pairs [a, {b: 2}]",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
-    }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
   },
   {
     "id": "rule-tags-pairs",
@@ -3250,5 +3313,520 @@
       }
     },
     "difference": "User-requested diagnostic lists all accepted impact values and the rejected value. Both implementations reject the input."
+  },
+  {
+    "id": "rule-unknown-custom",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ncustom: {owner: team}\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.custom: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.custom"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ncustom: {owner: team}",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-unknown-case",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nTitle: Capitalized\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.Title: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.Title"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nTitle: Capitalized",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-unknown-null",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ncustom: null\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.custom: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.custom"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ncustom: null",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-unknown-order",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nzebra: true\nalpha: false\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.alpha: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.alpha"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nzebra: true\nalpha: false",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-unknown-order-reversed",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nalpha: false\nzebra: true\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.alpha: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.alpha"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nalpha: false\nzebra: true",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-unknown-merged",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n!!merge <<: {custom: true}\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.custom: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.custom"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n!!merge <<: {custom: true}",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-unknown-numeric-name",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n42: true\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: field names must be strings",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n42: true",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-unknown-complex-name",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n? [a, b]\n: true\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: field names must be strings",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n? [a, b]\n: true",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-unknown-before-missing-title",
+    "operation": "rule",
+    "input": {
+      "text": "---\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ncustom: true\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.custom: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.custom"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.title: expected nonempty text",
+        "location": "lab:techs/go/errors.md.title"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-misspelled-guidance",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToread: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.whenToread: unknown field; allowed fields: title, impact, impactDescription, whenToRead, tags, attribution",
+        "location": "lab:techs/go/errors.md.whenToread"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.whenToRead: expected nonempty text",
+        "location": "lab:techs/go/errors.md.whenToRead"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-attribution-unknown",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{url: https://example.com, description: Source, note: unused}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.attribution[0].note: unknown field; allowed fields: url, description",
+        "location": "lab:techs/go/errors.md.attribution[0].note"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [
+          {
+            "url": "https://example.com/",
+            "description": "Source"
+          }
+        ],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{url: https://example.com, description: Source, note: unused}]",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-attribution-unknown-order",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{url: https://example.com, description: Source, zebra: null, alpha: true}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.attribution[0].alpha: unknown field; allowed fields: url, description",
+        "location": "lab:techs/go/errors.md.attribution[0].alpha"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [
+          {
+            "url": "https://example.com/",
+            "description": "Source"
+          }
+        ],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{url: https://example.com, description: Source, zebra: null, alpha: true}]",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-attribution-numeric-name",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{url: https://example.com, description: Source, 42: true}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.attribution[0]: field names must be strings",
+        "location": "lab:techs/go/errors.md.attribution[0]"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [
+          {
+            "url": "https://example.com/",
+            "description": "Source"
+          }
+        ],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{url: https://example.com, description: Source, 42: true}]",
+        "body": "\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "difference": "User requested rejection of unrecognized frontmatter fields, including attribution fields and non-string field names."
+  },
+  {
+    "id": "rule-license-before-unknown",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ncustom: true\nlicense: null\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.license: declare one license for the whole library in rule-library.json; rule-level licenses are unsupported",
+        "location": "lab:techs/go/errors.md.license"
+      }
+    }
+  },
+  {
+    "id": "rule-nonstring-before-license",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n42: true\nlicense: null\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: field names must be strings",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.license: declare one license for the whole library in rule-library.json; rule-level licenses are unsupported",
+        "location": "lab:techs/go/errors.md.license"
+      }
+    },
+    "difference": "User-requested strict frontmatter names: structural non-string key errors precede field-level license diagnostics."
+  },
+  {
+    "id": "rule-nonstring-before-licenses",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n42: true\nlicenses: null\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: field names must be strings",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md.licenses: declare one license for the whole library in rule-library.json; rule-level licenses are unsupported",
+        "location": "lab:techs/go/errors.md.licenses"
+      }
+    },
+    "difference": "User-requested strict frontmatter names: structural non-string key errors precede field-level license diagnostics."
   }
 ]
