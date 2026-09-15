@@ -10,7 +10,19 @@ See [Sync and recovery](/reference/sync/) for development commands and filesyste
 For `sync`, `build`, `check`, and `conflicts --prompt`, run from the consuming project's root by default.
 Use `--config` to identify a configuration file elsewhere.
 
-Use `code-rules --version` to print the installed version. `--help` works at the top level and after subcommands without writing files.
+Use `code-rules --version` to print the installed version.
+Run `code-rules --help` for a command overview, then narrow the help to the operation you need:
+
+```sh
+code-rules library --help
+code-rules library add rule --help
+code-rules check --help
+```
+
+Each command's help lists its accepted options, defaults, examples, and relevant behavior.
+Bare command groups such as `code-rules library` also show navigation.
+Help never prompts or writes files. Invalid commands and options exit with status 2 and point to the relevant help page.
+Authoring help distinguishes fields prompted on a terminal from optional flags; both `init` commands currently run without prompts.
 
 ## Sync
 
