@@ -18,7 +18,7 @@ export type FileContents = Readonly<Record<string, string>>;
 
 /**
  * Text snapshot of selected library groups, with paths relative to the library root.
- * Imports supplies identity; Workspace verifies bytes before calling Builds.
+ * Imports supplies identity; project file-handling helpers verify bytes before calling Builds.
  * This caller-supplied envelope does not authenticate its own contents.
  */
 export type LibrarySnapshot = {
@@ -41,6 +41,8 @@ export type BuildInput = {
   readonly configuration: unknown;
   readonly snapshots: Readonly<Record<string, LibrarySnapshot>>;
   readonly localFiles: FileContents;
+  /** Complete local file inventory, including binary assets; omitted inventories use the text keys. */
+  readonly localFilePaths?: ReadonlyArray<string>;
   readonly toolVersion: string;
   /** Maximum UTF-8 bytes per generated index file; defaults to 24 KiB. Full rule bodies are never truncated. */
   readonly indexMaxBytes?: number;

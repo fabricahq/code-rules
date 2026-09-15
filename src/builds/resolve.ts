@@ -329,12 +329,13 @@ function requireExceptionTargets(library: SelectedLibrary): void {
   }
 }
 
-/** Reserve a replacement file and return its local definition under the upstream ID; reject reuse or a different group first. */
+/** Reserve a replacement file and return its complete local definition; reject reuse or a different group first. */
 function replacementRule(
   parsed: Rule,
   replacement: RuleReplacement,
   library: SelectedLibrary,
   localFiles: ReadonlyMap<string, string>,
+  localPaths: ReadonlySet<string>,
   usedReplacements: Set<string>,
 ): ActiveRule {
   const path = replacement.file.slice('local/'.length);
@@ -352,13 +353,13 @@ function replacementRule(
   const text = requiredFile(localFiles, path, 'local');
   const definition = rule(text, path, 'local');
   return {
-    rule: { ...definition, id: parsed.id },
+    rule: definition,
     origin: localOrigin(path),
     upstream: origin(library.source, library.snapshot, parsed.path),
     reason: replacement.reason,
     licenses: [],
     sourceFiles: localFiles,
-    sourcePaths: new Set(localFiles.keys()),
+    sourcePaths: localPaths,
   };
 }
 
@@ -366,6 +367,7 @@ function replacementRule(
 function importedRules(
   library: SelectedLibrary,
   localFiles: ReadonlyMap<string, string>,
+  localPaths: ReadonlySet<string>,
   usedReplacements: Set<string>,
 ): ReadonlyArray<ActiveRule> {
   requireExceptionTargets(library);
@@ -389,6 +391,7 @@ function importedRules(
             replacement,
             library,
             localFiles,
+            localPaths,
             usedReplacements,
           ),
     );
@@ -399,6 +402,7 @@ function importedRules(
 /** Return non-replacement local rules in file order; reject rules in undeclared groups. */
 function localRules(
   localFiles: ReadonlyMap<string, string>,
+  localPaths: ReadonlySet<string>,
   groups: ReadonlyMap<string, Group>,
   usedReplacements: ReadonlySet<string>,
 ): ReadonlyArray<ActiveRule> {
@@ -419,7 +423,7 @@ function localRules(
       reason: null,
       licenses: [],
       sourceFiles: localFiles,
-      sourcePaths: new Set(localFiles.keys()),
+      sourcePaths: localPaths,
     });
   }
   return active;
@@ -446,6 +450,7 @@ export function resolveRules(
   config: ProjectConfig,
   snapshots: BuildInput['snapshots'],
   localFiles: ReadonlyMap<string, string>,
+  localPaths: ReadonlySet<string>,
 ): ResolvedRules {
   requireDeclaredSnapshots(config, snapshots);
   const groups = new Map<string, GroupAccumulator>();
@@ -479,7 +484,12 @@ export function resolveRules(
     });
     for (const { id, metadata } of library.guidance)
       addGroup(groups, id).guidance.push({ source: source.name, metadata });
-    for (const active of importedRules(library, localFiles, usedReplacements))
+    for (const active of importedRules(
+      library,
+      localFiles,
+      localPaths,
+      usedReplacements,
+    ))
       addGroup(groups, active.rule.group).rules.push(active);
   }
   for (const id of config.localGroups) {
@@ -493,7 +503,12 @@ export function resolveRules(
       metadata: readGroupMetadata(localFiles, id, 'local'),
     });
   }
-  for (const active of localRules(localFiles, groups, usedReplacements))
+  for (const active of localRules(
+    localFiles,
+    localPaths,
+    groups,
+    usedReplacements,
+  ))
     addGroup(groups, active.rule.group).rules.push(active);
   requireLocalMetadata(localFiles, config.localGroups);
   return {

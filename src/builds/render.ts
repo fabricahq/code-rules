@@ -274,7 +274,7 @@ export function renderGeneratedFiles(
     'rules/README.md',
     [
       '# Effective rules',
-      'This folder contains the complete effective definitions of the project’s active rules. Code Rules has already applied imports, local additions, exclusions, and replacements. A replacement keeps the original rule ID and supplies the effective guidance.',
+      'This folder contains the complete effective definitions of the project’s active rules. Code Rules has already applied imports, local additions, exclusions, and replacements.',
       'Use [RULES.md](../RULES.md) to select relevant groups and rules. Source and attribution details appear in each rule; [provenance.json](../provenance.json) records their origins.',
       'These files are generated. Edit source rules or configuration and rebuild.',
     ].join('\n\n') + '\n',

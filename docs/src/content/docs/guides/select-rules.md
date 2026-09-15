@@ -27,7 +27,7 @@ Agents will choose which installed groups apply to each task using the [rule-loa
 
 ## Select groups from each source
 
-In `code-rules/config.json`, set `sources.<name>.groups` separately for each library.
+In `.code-rules/config.json`, set `sources.<name>.groups` separately for each library.
 Each source has a `repository`, either an exact `ref` or a semantic `version` constraint, and its own `exclude` and `replace` objects.
 Use the [complete configuration example](/reference/configuration/#complete-example) as your starting point.
 
@@ -55,7 +55,7 @@ Keep those decisions in configuration and local files so agents read the resolve
 Write a Markdown rule under the matching local group:
 
 ```text
-code-rules/local/practices/testing/test-project-contracts.md
+.code-rules/local/practices/testing/test-project-contracts.md
 ```
 
 The group must appear in a source's `groups` or in `localGroups`.
@@ -107,7 +107,9 @@ Write a complete local definition, then reference it from `sources.<name>.replac
 }
 ```
 
-The replacement keeps the source-qualified rule ID but replaces its entire body and metadata.
+The resolved rule uses the complete local definition, including its local ID, title, reading cue, impact, body, attribution, and asset references.
+In this example, the generated ID is `local:techs/typescript/prefer-interfaces`.
+Configuration and provenance record what it replaced and why; generated rule guidance does not display that history.
 Its file stays in the target group and does not also become an additional rule.
 
 Replacing “prefer type aliases” with “prefer interfaces” leaves only the local definition in the effective output.

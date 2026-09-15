@@ -273,7 +273,7 @@ function ruleBody(
 }
 
 /**
- * Return rule guidance followed by source, replacement, terms, and preserved metadata.
+ * Return rule guidance followed by source, terms, and preserved metadata.
  * Relocates body links and throws an invalid-input BuildError for unsupported relative references.
  * When embedded at another path, nests headings and directs same-file fragments to the standalone definition to avoid cross-rule anchor collisions.
  */
@@ -282,7 +282,7 @@ export function renderRule(
   outputPath: string,
   standalonePath = outputPath,
 ): string {
-  const { rule, origin, upstream } = active;
+  const { rule, origin } = active;
   const titleHeading = outputPath === standalonePath ? '#' : '###';
   const sectionHeading = `${titleHeading}#`;
   // The outer fence must exceed every embedded backtick run so metadata cannot close it early.
@@ -318,11 +318,6 @@ export function renderRule(
     lines.push(
       '',
       `**Separate rule file:** [${escapeText(rule.title)}](${encodedPath(posix.relative(posix.dirname(outputPath), standalonePath))})`,
-    );
-  if (upstream !== null)
-    lines.push(
-      '',
-      `[Replaces upstream definition](${sourceLink(upstream, outputPath)}). Reason: ${escapeText(active.reason ?? '')}`,
     );
   for (const attribution of rule.attribution) {
     lines.push(

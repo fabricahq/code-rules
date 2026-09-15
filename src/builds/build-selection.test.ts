@@ -205,8 +205,12 @@ test('should preserve rule exclusions and local replacements after expansion', (
     },
   }).files;
   expect(files['rules/all/techs/typescript/check-results.md']).toBeUndefined();
-  expect(files[`rules/all/${ruleId}.md`]).toContain('Exactly three attempts');
-  expect(files[`rules/all/${ruleId}.md`]).toContain(`all:${ruleId}`);
+  expect(files[`rules/local/${group}/local-retries.md`]).toContain(
+    'Exactly three attempts',
+  );
+  expect(files[`rules/local/${group}/local-retries.md`]).toContain(
+    `local:${group}/local-retries`,
+  );
 });
 
 test('should reject local-only groups that overlap wildcard imports', () => {
@@ -344,7 +348,7 @@ test('should exclude only the owning source without listing inactive rules in th
   expect(generated(build, 'RULES.md')).not.toContain('Covered locally');
 });
 
-test('should preserve the replaced ID and both origins without adding the local definition twice', () => {
+test('should use the local ID and preserve both origins without adding the local definition twice', () => {
   const build = {
     ...input(),
     configuration: {
@@ -364,20 +368,46 @@ test('should preserve the replaced ID and both origins without adding the local 
       },
       localGroups: [],
     },
-    localFiles: { [`${group}/bounded.md`]: ruleText('Project retry budget') },
+    localFiles: {
+      [`${group}/bounded.md`]: ruleText(
+        'Project retry budget',
+        '[Cases](assets/bounded/cases.md)',
+      ).replace('impact: HIGH', 'impact: MEDIUM'),
+      [`${group}/assets/bounded/cases.md`]:
+        'Three failures produce exactly three requests.',
+    },
   };
   const output = generated(build, `groups/${group}.md`);
-  expect(output).toContain(`Rule ID: \`fabrica:${ruleId}\``);
-  expect(output).not.toContain(`local:${group}/bounded`);
+  expect(output).toContain(`Rule ID: \`local:${group}/bounded\``);
+  expect(output).not.toContain(`fabrica:${ruleId}`);
   expect(output).not.toContain('## Fabrica retries');
-  expect(output).toContain(`../../rules/fabrica/${ruleId}.md`);
-  expect(generated(build, `rules/fabrica/${ruleId}.md`)).toContain(
+  expect(output).toContain(`../../rules/local/${group}/bounded.md`);
+  expect(generated(build, `rules/local/${group}/bounded.md`)).toContain(
     `**Rule source:** [Original rule](../../../../../local/${group}/bounded.md)`,
   );
   const provenance = generated(build, 'provenance.json');
   expect(provenance).toContain(`"file": "${group}/bounded.md"`);
   expect(provenance).toContain(`"file": "${ruleId}.md"`);
   expect(provenance).toContain('Use our exact retry budget.');
+  const replaced = buildRules(build).files;
+  const excluded = buildRules({
+    ...build,
+    configuration: {
+      ...build.configuration,
+      sources: {
+        ...build.configuration.sources,
+        fabrica: source('https://github.com/fabrica/rules.git', {
+          [ruleId]: 'Use our exact retry budget.',
+        }),
+      },
+    },
+  }).files;
+  const agentFiles = (files: Readonly<Record<string, string>>) =>
+    Object.fromEntries(
+      Object.entries(files).filter(([path]) => path !== 'provenance.json'),
+    );
+  expect(agentFiles(replaced)).toEqual(agentFiles(excluded));
+  expect(replaced['provenance.json']).not.toBe(excluded['provenance.json']);
 });
 
 test('should reject a reused replacement and a replacement in another group', () => {

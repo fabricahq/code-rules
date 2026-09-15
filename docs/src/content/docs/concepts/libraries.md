@@ -31,7 +31,8 @@ We recommend `<organization>/.code-rules`, such as `acme/.code-rules`.
 The name is a convention, not automatic discovery.
 A project's configuration explicitly names each source repository, exact ref or version constraint, and selected groups.
 
-The consuming project's local directory remains `code-rules/`.
+The consuming project's default directory is `.code-rules/`.
+A custom configuration path places its related directories beside that configuration file.
 Its name does not depend on the remote repository name.
 
 ## Share only what applies

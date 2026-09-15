@@ -7,7 +7,7 @@ import { FileTree } from '@astrojs/starlight/components';
 
 Code Rules separates authored input from imported source and generated output.
 The offline builder implements the input metadata and generated output described here.
-Filesystem installation and the `_source.json` snapshot record remain proposed; see [Project status](/status/).
+Sync applies files and writes verified `_source.json` records; see [Sync and recovery](/reference/sync/).
 
 ## Library layout
 
@@ -89,7 +89,7 @@ The optional `license` object declares the library-wide terms. Authors should us
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
 Unknown fields in the license declaration are rejected so misspellings cannot silently discard intended metadata.
-Imports preserves these files from the resolved source commit. The planned sync workflow will install them and include them in snapshot digests.
+Imports preserves these files from the resolved source commit. Sync writes them and includes them in snapshot digests.
 The offline builder verifies that declared files exist in the supplied snapshots. It copies their contents unchanged and links generated rules to those copies. It does not fetch files or compute workspace snapshot digests.
 If the declaration is absent, provenance records an empty `licenses` array. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
 
@@ -173,7 +173,7 @@ Declare accompanying license and notice files in the library manifest so Code Ru
 <FileTree>
 
 - AGENTS.md
-- code-rules/
+- .code-rules/
   - config.json
   - local/
     - techs/typescript/
@@ -228,7 +228,7 @@ Declare accompanying license and notice files in the library manifest so Code Ru
 </FileTree>
 
 The project authors configuration and local rules.
-The planned import and installation workflow owns `vendor/` and `generated/`.
+Sync owns `vendor/` and `generated/`.
 The offline builder returns file contents; it does not install either directory.
 Commit those directories so coding, review, and consistency checks can work offline.
 
@@ -260,9 +260,9 @@ This is a provisional delivery default, not an empirically validated threshold f
 Full definitions live under `generated/rules/<source-name>/<rule-path>.md`.
 For example, `fabrica:techs/typescript/prefer-type-aliases` maps to `rules/fabrica/techs/typescript/prefer-type-aliases.md`.
 The source name is a directory so generated paths are portable; the ID retains its colon.
-A replacement retains that path and ID while supplying its local title, applicability, and full body.
+A replacement uses its local identity and path. For example, `local:techs/typescript/prefer-interfaces` maps to `rules/local/techs/typescript/prefer-interfaces.md`.
 Excluded rules and superseded bodies have no generated rule file.
-Source links, attribution, library license links, and replacement provenance remain with the effective definition in both formats.
+Source links, attribution, and applicable library license links remain with the resolved definition in both formats. Replacement history appears only in configuration and provenance.
 Individual rule files remain available at stable paths even when the group includes full rules.
 Both copies come from the same resolved definition. Relative links are relocated from the actual output directory.
 Links to declared license and notice files target their generated copies. Other retained files use workspace-relative links. References to unselected rules use commit-pinned URLs for recognized GitHub.com and GitLab.com endpoints; other hosts require an explicit URL when the target is absent from the snapshot. Missing assets fail generation on every host.
@@ -278,7 +278,7 @@ If one entry or the complete part directory cannot fit, building fails with an a
 Full rule bodies are never shortened to fit an index budget. Complete any truncated reads of those files.
 This budget is a delivery setting, not a measured model-compliance threshold.
 
-Builds returns the complete generated file set. The planned sync orchestration must replace obsolete output, including old parts, removed rules, obsolete library folders, and former top-level group or license paths, when installing it.
+Builds returns the complete generated file set. Sync replaces obsolete output, including old parts, removed rules, obsolete library folders, and former top-level group or license paths.
 Exclusions and replacement reasons remain in project configuration; provenance records active origins and replacement reasons.
 The consuming repository's root license is not rewritten.
 
@@ -310,16 +310,16 @@ Failures throw `BuildError` with a location-bearing message and one of two codes
 - `invalid-input`: malformed metadata, paths, configuration, exceptions, or page budgets. Fix the named input.
 - `needs-sync`: a missing or mismatched snapshot, including an incomplete recorded group expansion. Supply a matching snapshot before rebuilding.
 
-The messages may recommend sync, but the `code-rules sync` command is still planned in this checkout.
+Use the development `bun src/cli.ts sync` command to refresh snapshots.
 Use the [runnable development example](/guides/use-rules/#try-the-working-builder) to inspect real output without fetching a library.
 
 ## Provenance records
 
-Each proposed `vendor/<source-name>/_source.json` records the source name, repository, requested `ref` or `version`, full `resolvedCommit`, `groupSelection`, concrete imported `groups`, and file digests.
+Each `vendor/<source-name>/_source.json` records `formatVersion: 1`, repository, requested `ref` or `version`, full `resolvedCommit`, `groupSelection`, concrete imported `groups`, and a `files` map of SHA-256 hex digests. The containing directory supplies the source name.
 `groupSelection` is the configured list or selector (`"*"`, `"practices/*"`, or `"techs/*"`). Pattern snapshots must record the exact selector and supply every group within its scope at that revision.
 Legacy snapshots without this field imply the explicit `groups` list; they cannot satisfy a wildcard selection.
 The offline builder verifies that the supplied repository, revision selection, and groups match configuration.
-The planned file-handling helpers must additionally load `_source.json`, verify file digests, and check filesystem containment. The builder does not read that file or compute digests.
+The file-handling helpers load `_source.json`, verify file digests, and check filesystem containment. The builder does not read that file or compute digests.
 For a commit-valued ref, the resolved commit must equal that SHA.
 For a tag, offline checks use the recorded commit and do not verify the tag's current remote target.
 Version-constraint snapshots additionally require `resolvedTag` and `resolvedVersion`. Builds verifies that the tag represents the recorded version and that the version satisfies the configured constraint.
@@ -328,7 +328,7 @@ It cannot verify offline that this was the highest available version or authenti
 `generated/provenance.json` records the tool version, every named source with its requested ref or constraint and resolved commit, and active rule origins.
 Version sources also record `resolvedTag` and `resolvedVersion`. Imported rule origins use the selected tag as `ref`, while the source record retains the requested constraint.
 Each source records `groupSelection` alongside the expanded `groups` list, keeping the adoption intent and actual included groups visible.
-A replacement retains both its targeted source-qualified ID and the local definition's origin.
+A replacement record uses the local rule ID and origin. Its `upstream` field identifies the replaced source rule; `replacementReason` records the project decision.
 Generated output excludes changing timestamps and machine-specific paths.
 
 These metadata files support repeatability and diagnosis.
@@ -361,3 +361,5 @@ For example, a rule imported from a library declaring MIT can have this provenan
 ```
 
 These are preserved declarations, not a legal verification status. `licenseBasis: "undeclared"` means no applicable terms were declared to Code Rules; it does not mean public domain or permission to redistribute.
+
+The offline builder also accepts optional `localFilePaths` listing all local paths, including binary assets. Every supplied text file must appear in that inventory; rules, metadata, and Markdown assets must also be supplied as UTF-8 text. Project commands populate both fields from the filesystem.

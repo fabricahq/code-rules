@@ -5,7 +5,7 @@ Code Rules manages which versioned engineering rules a codebase adopts, includin
 It generates rule files for agents and other tools to consume. Your project chooses how to apply, validate, and enforce them through agent prompts or separate tooling. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
 
 The project is in early implementation.
-Imports, offline Builds, and the documentation site are available for development; the CLI is not implemented.
+Imports, offline Builds, sync, and the development CLI are available from this checkout. No package release is published.
 
 ## Documentation
 
@@ -62,7 +62,7 @@ Automated behavior checks live beside the implementation in `src/builds/build*.t
 [`importLibraries`](src/imports/index.ts) accepts raw project configuration and optional cancellation.
 It fetches exact Git commits, exact tags, or the highest tag matching an npm version constraint and returns each library's original bytes plus a text snapshot for Builds.
 The operation never installs files in a consuming project.
-Sync and safe file updates and the `sync` CLI command remain unimplemented.
+The `sync` function coordinates Imports and Builds and safely applies their combined result.
 
 Imports requires macOS or Linux and Git 2.30 or later.
 Private libraries use your configured Git credentials; imports disable terminal prompts and do not print Git stderr.
@@ -95,7 +95,7 @@ Check image links against `vendor/` and license links against `generated/librari
 The scenario uses illustrative GitHub and nested GitLab addresses, routed to local repositories only in the test process.
 Generated remote source links therefore do not resolve to those local fixture libraries.
 The script removes its Git fixtures and leaves the printed workspace for inspection.
-It does not write `_source.json` or implement the planned safe file-update guarantees.
+This manual API example does not use Sync's persisted records or safe file updates.
 
 ### Import limits and failures
 
@@ -114,3 +114,19 @@ Imports preserves complete owned directories and adds the shared directory when 
 
 Use an exact `ref` or an npm `version` constraint such as `^1.2.0`, never both. Version imports choose the highest matching complete SemVer tag and record its tag, normalized version, and commit.
 Offline builds use the existing snapshot. See [version constraints](docs/src/content/docs/reference/configuration.md#semantic-version-constraints) for prerelease, alias, and repeatability behavior.
+
+## Sync a project
+
+Create `.code-rules/config.json` in a consuming project using the [configuration reference](docs/src/content/docs/reference/configuration.md).
+Run the development CLI from this checkout, passing the configuration path:
+
+```sh
+bun src/cli.ts sync --config /path/to/project/.code-rules/config.json
+bun src/cli.ts build --config /path/to/project/.code-rules/config.json
+bun src/cli.ts check --config /path/to/project/.code-rules/config.json
+```
+
+Sync imports libraries, generates resolved rules, and applies changes safely. Build regenerates offline; check compares without writing.
+Each prints added, changed, and removed file paths. Check exits 1 for stale output or invalid input; usage errors exit 2.
+The API equivalents are `sync` in `src/sync.ts` and `buildProject` / `checkProject` in `src/project.ts`.
+See [sync and recovery](docs/src/content/docs/reference/sync.md) for ownership, snapshot records, locking, and interruption behavior.

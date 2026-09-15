@@ -8,7 +8,10 @@ import {
   invalid,
   ValidationError,
   BuildError,
+  strings,
+  relativePath,
 } from './validation';
+import { isAssetPath, isRuleFile } from '../formats/assets';
 import { resolveRules } from './resolve';
 import { renderGeneratedFiles } from './render';
 
@@ -36,7 +39,31 @@ export function buildRules(input: BuildInput): BuildOutput {
         'expected a non-negative safe integer byte budget',
       );
     const localFiles = files(input.localFiles, 'local');
-    const resolved = resolveRules(config, input.snapshots, localFiles);
+    const localPaths = new Set(
+      input.localFilePaths === undefined
+        ? localFiles.keys()
+        : strings(input.localFilePaths, 'localFilePaths'),
+    );
+    for (const path of localPaths) {
+      relativePath(path, 'localFilePaths');
+      if (
+        !localFiles.has(path) &&
+        (!isAssetPath(path) || isRuleFile(path) || path.endsWith('.md'))
+      )
+        invalid(
+          path,
+          'local rules, metadata, and Markdown assets must be supplied as UTF-8 text',
+        );
+    }
+    for (const path of localFiles.keys())
+      if (!localPaths.has(path))
+        invalid(path, 'local text missing from inventory');
+    const resolved = resolveRules(
+      config,
+      input.snapshots,
+      localFiles,
+      localPaths,
+    );
     return renderGeneratedFiles(resolved, input.toolVersion, {
       indexMaxBytes,
       groupInlineMaxBytes,

@@ -65,7 +65,7 @@ It returns unchanged license and notice copies at generated paths, but does not 
 The consuming workspace will retain them alongside the imported rules:
 
 ```text
-code-rules/
+.code-rules/
   vendor/
     fabrica/
       LICENSE.md
@@ -84,7 +84,7 @@ code-rules/
 
 Preserve copyright notices and per-rule attribution in both the vendored source and the generated rule file.
 Keep the library license and declared notices with the snapshot and preserve their links after relocation.
-The planned workspace checks will verify snapshot digests to detect changed files. The offline builder checks declared file presence without computing digests.
+Project build and check verify snapshot digests to detect changed files. The offline builder checks declared file presence without computing digests.
 The planned update report should include license changes alongside rule changes.
 
 Each individual resolved rule identifies its source and applicable preserved license.
@@ -130,6 +130,6 @@ Private libraries can document internal permissions without adopting a public li
 The builder validates declared paths, preserves text and notices, records provenance, and constructs links to the retained files.
 It rejects unsafe or unresolved local Markdown references, but does not check whether external URLs are reachable.
 It cannot establish ownership, decide legal compatibility, or certify that the chosen terms permit a consumer's intended use.
-Imports implements file preservation; Sync and safe file updates, update reporting, and offline integrity checks remain proposed.
+Imports preserves original files. Sync applies changes safely, reports changed files, and persists digests for offline integrity checks.
 
 For source material that does not use this format, follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules). Keep a separate adapted definition with its source citation and retained terms; do not relabel edited content as an unchanged upstream snapshot.
