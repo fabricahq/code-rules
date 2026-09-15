@@ -158,3 +158,8 @@ Run `npm pack` to build the Node.js executable and package its authoring templat
 Run `bun run test:package` to install the tarball into a temporary prefix and exercise the executable from fresh projects.
 The installed CLI supports Node.js 22.18+ on macOS/Linux; imports also need Git 2.30+.
 See [release preparation](_internal/releasing.md) for npm ownership, licensing, trusted publishing, and pilot gates.
+
+## Go migration
+
+The [migration inventory and comparison harness](migration/README.md) track the Go candidate while the TypeScript CLI remains available.
+Migration PRs target `go-migration`; a separate human review will decide when that branch is ready for `main`.
