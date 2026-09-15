@@ -33,7 +33,8 @@ code-rules conflicts --prompt
 
 The `--prompt` flag is required; `code-rules conflicts` alone reports a usage error.
 It prints a Markdown prompt for an agent working in your project.
-The prompt identifies the generated index, every group index and effective rule file, and the snapshot's source refs and resolved commits.
+The prompt identifies the generated index, every group index, and each resolved rule file.
+For each source, it includes the requested ref or version constraint, selected tag when applicable, and resolved commit.
 It asks the agent to compare active rules within and across groups, including local additions and replacements.
 
 The command checks that generated output matches its inputs before producing the prompt.
@@ -47,7 +48,7 @@ Until it does, give a repository-aware agent this prompt:
 ```text
 Review this project's effective Code Rules for conflicting guidance.
 
-Read code-rules/generated/RULES.md, every part of each group index, and all linked effective rules to assess conflicts across the complete adopted set.
+Read code-rules/generated/RULES.md, every part of each group index, and all linked resolved rules to assess conflicts across the complete adopted set.
 Use code-rules/generated/provenance.json to identify the reviewed snapshot.
 Compare active rules within and across groups, including local additions
 and replacements. Excluded rules and replaced upstream text are context,
@@ -96,18 +97,18 @@ For example, if the project adopts Acme's interface rule, exclude Fabrica's type
 ```
 
 This is a partial configuration snippet.
-Merge it into the existing source while retaining its repository, ref, groups, and other exceptions.
+Merge it into the existing source while retaining its repository, revision selection, groups, and other exceptions.
 It affects only Fabrica's rule; Acme's rule stays active.
 
 For a conflicting local addition, edit its authored file under `local/`.
-Keep edits in source files and configuration, then rebuild the indexes and effective definitions.
+Keep edits in source files and configuration, then rebuild the indexes and resolved definitions.
 Do not edit `vendor/` or `generated/` directly.
 
 ## Rebuild and review again
 
 Run `code-rules build` after changing local rules or exceptions.
-Run `code-rules sync` instead if you also change sources, refs, or imported groups.
-Inspect the regenerated indexes and effective definitions, then generate a fresh conflict-review prompt for that snapshot.
+Run `code-rules sync` instead if you also change sources, revision selections, or imported groups.
+Inspect the regenerated indexes and resolved definitions, then generate a fresh conflict-review prompt for that snapshot.
 
 Commit the configuration, local rules, and generated output together; include vendor changes when sync refreshed them.
 A clean `code-rules check` confirms file consistency, while the agent review assesses whether the guidance can be followed together.

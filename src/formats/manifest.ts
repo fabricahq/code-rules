@@ -2,7 +2,12 @@
 
 import parseSpdxExpression from 'spdx-expression-parse';
 
-import type { LicenseDeclaration } from './types';
+/** Declared terms and retained files, relative to the owning library root; null expression means legacy unidentified terms. */
+export type LicenseDeclaration = {
+  readonly spdxExpression: string | null;
+  readonly files: ReadonlyArray<string>;
+  readonly attributionFiles: ReadonlyArray<string>;
+};
 
 import {
   compare,
@@ -32,7 +37,7 @@ type LicenseFields = {
   readonly notices: ReadonlyArray<DeclaredPath>;
 };
 
-/** Parse the library manifest into an object with a supported formatVersion, or throw BuildError. */
+/** Parse the library manifest into an object with a supported formatVersion, or throw ValidationError. */
 function libraryManifest(
   sourceFiles: ReadonlyMap<string, string>,
   sourceName: string,
@@ -56,7 +61,7 @@ function declaredPath(value: unknown, location: string): DeclaredPath {
   return { path: relativePath(text, location), location };
 }
 
-/** Validate notice paths in declaration order, retaining indexed locations for diagnostics; throw BuildError for invalid entries. */
+/** Validate notice paths in declaration order, retaining indexed locations for diagnostics; throw ValidationError for invalid entries. */
 function noticePaths(
   value: unknown,
   location: string,
@@ -72,7 +77,7 @@ function noticePaths(
 
 /**
  * Read license fields with validated paths, retaining notice order, duplicates, and diagnostic locations.
- * Return null when licensing is unspecified; throw BuildError for an invalid object or path declaration.
+ * Return null when licensing is unspecified; throw ValidationError for an invalid object or path declaration.
  */
 function licenseFields(
   manifest: Record<string, unknown>,
@@ -91,13 +96,13 @@ function licenseFields(
   return { metadata: license, location, file, notices };
 }
 
-/** Throw BuildError at the first declaration whose path is absent from the snapshot; empty files count as present. */
+/** Throw ValidationError at the first declaration whose path is absent from the snapshot; empty files count as present. */
 function requireDeclaredFiles(
-  sourceFiles: ReadonlyMap<string, string>,
+  sourcePaths: ReadonlySet<string>,
   declarations: ReadonlyArray<DeclaredPath>,
 ): void {
   for (const { path, location } of declarations) {
-    if (!sourceFiles.has(path)) {
+    if (!sourcePaths.has(path)) {
       invalid(location, `missing declared file ${JSON.stringify(path)}`);
     }
   }
@@ -106,16 +111,17 @@ function requireDeclaredFiles(
 /**
  * Validate the library manifest and read its declared expression, license, and notice files.
  * Return the single library-wide declaration with notices deduplicated in declaration order, or an empty array when licensing is unspecified.
- * Throw BuildError for an invalid manifest or a declared file missing from the snapshot.
+ * Throw ValidationError for an invalid manifest or a declared file missing from the snapshot.
  */
 export function readLibraryLicenses(
   sourceFiles: ReadonlyMap<string, string>,
   sourceName: string,
+  sourcePaths: ReadonlySet<string> = new Set(sourceFiles.keys()),
 ): ReadonlyArray<LicenseDeclaration> {
   const manifest = libraryManifest(sourceFiles, sourceName);
   const fields = licenseFields(manifest, sourceName);
   if (fields === null) return [];
-  requireDeclaredFiles(sourceFiles, [fields.file, ...fields.notices]);
+  requireDeclaredFiles(sourcePaths, [fields.file, ...fields.notices]);
   return [normalizedLicense(fields)];
 }
 
@@ -170,4 +176,15 @@ export function licensePaths(
       ]),
     ),
   ].sort(compare);
+}
+
+/** Validate the library declaration and return unique retained license paths in code-unit order. */
+export function collectLibraryLicensePaths(
+  sourceFiles: ReadonlyMap<string, string>,
+  sourceName: string,
+  sourcePaths: ReadonlySet<string> = new Set(sourceFiles.keys()),
+): ReadonlyArray<string> {
+  return licensePaths(
+    readLibraryLicenses(sourceFiles, sourceName, sourcePaths),
+  );
 }

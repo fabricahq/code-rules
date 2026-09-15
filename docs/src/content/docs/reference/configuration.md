@@ -14,7 +14,7 @@ The offline builder validates the fields below. The format remains unreleased, a
   "schemaVersion": 1,
   "sources": {
     "fabrica": {
-      "repository": "fabricahq/.code-rules-example",
+      "repository": "https://github.com/fabricahq/.code-rules-example.git",
       "ref": "v1.0.0",
       "groups": [
         "techs/typescript",
@@ -29,7 +29,7 @@ The offline builder validates the fields below. The format remains unreleased, a
       }
     },
     "acme": {
-      "repository": "acme/.code-rules",
+      "repository": "https://github.com/acme/.code-rules.git",
       "ref": "<full Git commit SHA>",
       "groups": [
         "techs/react",
@@ -53,8 +53,9 @@ Replace them with libraries and rules your project can access.
 | --- | --- |
 | `schemaVersion` | Configuration format version; the builder accepts `1`. |
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
-| `sources.<name>.repository` | GitHub repository in `owner/name` form. |
-| `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. |
+| `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
+| `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. Mutually exclusive with `version`. |
+| `sources.<name>.version` | npm semantic version constraint, such as `^1.2.0`. Mutually exclusive with `ref`. |
 | `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
 | `localGroups` | Local-only group IDs, each backed by `_group.json` under `local/`. |
 | `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
@@ -65,7 +66,7 @@ Include `localGroups` as an empty array when unused.
 Each source includes its own `exclude` and `replace` objects, empty when unused.
 Replacement paths resolve relative to the configuration directory and must stay under its `local/` directory.
 
-Sources use `ref` rather than `commit`, and each source owns its groups and exceptions.
+Each source specifies exactly one of `ref` or `version` and owns its groups and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are no longer part of the proposed format.
 The schema version remains `1` because no configuration format has shipped.
 
@@ -78,7 +79,7 @@ Set `groups` to the string `"*"` to adopt the whole library:
   "schemaVersion": 1,
   "sources": {
     "team": {
-      "repository": "my-team/rules",
+      "repository": "https://github.com/my-team/rules.git",
       "ref": "v1.0.0",
       "groups": "*",
       "exclude": {},
@@ -113,11 +114,53 @@ An old partial snapshot is insufficient even if its recorded groups look complet
 Legacy snapshots without `groupSelection` represent their explicit `groups` list and remain valid for list-based configuration.
 This completeness declaration comes from the snapshot supplier; offline checks do not independently authenticate it against the remote repository.
 
+## Repository addresses
+
+Use a complete Git address so the host is explicit:
+
+```json
+"repository": "https://gitlab.com/my-team/engineering/rules.git"
+```
+
+Supported forms include:
+
+```text
+https://github.com/my-team/rules.git
+https://gitlab.com/my-team/engineering/rules.git
+ssh://git@git.example.org:2222/srv/rules.git
+git@git.example.org:engineering/rules.git
+git@git.example.org:/srv/rules.git
+```
+
+Nested GitLab namespaces, private hosts, and explicit ports are supported.
+The `.git` suffix is optional. Git uses the caller's credentials; do not embed HTTPS credentials or SSH passwords in configuration.
+SSH usernames are allowed.
+
+Keep exact revisions in `ref`, version constraints in `version`, and selected groups in `groups`.
+Repository addresses do not accept query strings, fragments, `git::` prefixes, getter options, or `//subdirectory` selection.
+Local paths, `file:`, unauthenticated `git:`, plain HTTP, and remote-helper protocols are outside this format.
+The earlier `owner/name` shorthand is no longer accepted; use `https://github.com/owner/name.git` instead.
+
+Code Rules preserves the supplied address in provenance and requires the snapshot to match it exactly.
+Duplicate detection normalizes host spelling and recognizes standard GitHub.com and GitLab.com transport aliases and optional `.git` suffixes.
+GitHub path matching ignores case; generic repository paths and GitLab paths retain case.
+Other hosts retain their transport, username, port, and path distinctions.
+For example, `git@host:rules.git` is home-relative, while `ssh://git@host/rules.git` is absolute. Code Rules does not equate them.
+
+Validation rejects ambiguous paths, including dot segments, encoded separators in URLs, malformed URI escapes, raw whitespace, and backslashes.
+SCP paths are literal Git paths, so percent signs in that form are not URI escapes.
+Syntax validation does not fetch or authenticate a repository.
+
+Generated source links use pinned GitHub.com or GitLab.com URLs for recognized standard endpoints.
+For other hosts, they point to the retained source file under `vendor/<source>/`.
+If a relative document or image is missing from that snapshot, generation fails with instructions to retain it or supply an explicit URL.
+Code Rules does not infer a host's web interface from its name. See [How imports work](/reference/imports/).
+
 ## Source names and rule identity
 
 Choose stable source names such as `fabrica` or `acme`.
 Names must match `[a-z][a-z0-9-]*`; `local` is reserved for project-authored rules.
-Declare each repository once, with its own ref and selected groups.
+Declare each repository once, with its own revision selection and selected groups.
 
 An imported rule's project ID is `<source-name>:<library-rule-id>`:
 
@@ -137,7 +180,7 @@ Replacing a repository under an existing source name also requires reviewing tho
 
 Set `ref` to either a full commit SHA or an exact tag name.
 A tag may also use the explicit `refs/tags/<name>` form.
-Branch names, abbreviated commit SHAs, and version ranges are not supported.
+Branch names and abbreviated commit SHAs are unsupported. Put version ranges in `version`, not `ref`.
 A plain name resolves only as a tag, even when a branch has the same name.
 Both lightweight and annotated tags must resolve to a commit.
 
@@ -149,6 +192,51 @@ Tags can move.
 An explicit `sync` resolves tags again and reports any change from the previously recorded commit for review.
 Offline `build`, `check`, and ordinary agent work use the committed snapshot without resolving tags again.
 Use a commit SHA when the configured reference itself must be immutable.
+
+## Semantic version constraints
+
+Use `version` instead of `ref` to select the highest matching semantic version tag:
+
+```json
+{
+  "repository": "https://github.com/example/rules.git",
+  "version": "^1.2.0",
+  "groups": "*",
+  "exclude": {},
+  "replace": {}
+}
+```
+
+Ranges use [npm semver syntax](https://github.com/npm/node-semver#ranges), not HashiCorp's constraint grammar.
+For stable releases:
+
+| Constraint | Eligible versions |
+| --- | --- |
+| `^1.2.3` | At least 1.2.3, below 2.0.0 |
+| `~1.2.3` | At least 1.2.3, below 1.3.0 |
+| `>=1.2.3 <2.0.0` | Explicit lower and upper bounds |
+| `1.2.x` | Any patch release within 1.2 |
+| `1.2.3` | Exactly that semantic version |
+
+Prereleases follow npm's default rules: a range must explicitly admit a prerelease for the same major/minor/patch tuple.
+For example, `>=2.0.0-beta.1 <2.0.0` admits later betas of 2.0.0; `^1.2.0` does not admit 2.0.0 betas.
+Caret ranges below 1.0 have narrower compatibility bounds; `^0.2.0` stays below 0.3.0.
+
+Only complete version tags such as `1.2.3` or `v1.2.3` participate. The optional prefix is lowercase `v`.
+Partial tags such as `v1`, names such as `release-1.2.3`, and branches are ignored during version selection.
+Lightweight and annotated tags are supported, but the selected tag must resolve to a commit.
+Use `ref` to select an exact tag outside this naming convention.
+
+Imports selects by semantic version precedence, not tag date or Git listing order.
+If tags at the highest matching precedence point to different objects, import fails as ambiguous. Build metadata does not affect precedence.
+Aliases pointing to the same commit are allowed; the lexicographically first tag spelling is selected deterministically.
+If the selected tag changes between discovery and fetching, import fails rather than silently accepting a different revision.
+No matching tag is an error; Imports does not fall back to a branch or unrelated release.
+
+Snapshots and generated provenance record the requested `version`, `resolvedTag`, `resolvedVersion`, and `resolvedCommit`.
+The normalized version retains any SemVer build metadata and omits the leading `v`.
+A new explicit import resolves the constraint again. Offline Builds checks the recorded tag and version against the constraint, then uses the stored commit without querying Git.
+The proposed `sync` command will combine re-importing and safe installation; that command has not shipped.
 
 ## Source-scoped exceptions
 
@@ -163,7 +251,7 @@ Generated files and review findings retain source-qualified IDs because they app
 
 Select complete groups separately for each source, then exclude individual rules when necessary.
 Each selected group must exist in that source at its pinned revision.
-Selecting `practices/testing` from two sources combines both sets of rules into one effective testing group, with a group page and individual effective rule files.
+Selecting `practices/testing` from two sources combines both sets of rules into one effective testing group, with a group page and individual resolved rule files.
 Source order never establishes precedence.
 
 Local rules can join any imported group.
@@ -189,7 +277,7 @@ See [Conflicting guidance](/guides/conflicting-guidance/) for examples, an agent
 Each library's `formatVersion` describes its authoring format.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
-Each source's `ref` selects the requested version.
+Each source's `ref` or `version` selects the requested revision.
 Vendored provenance records the resolved commit used by offline commands; it is importer-owned output, not a second user-selected version.
 Direct imports from multiple sources are part of the first-release design.
 Libraries that themselves inherit and republish other libraries remain later work.

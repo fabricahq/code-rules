@@ -1,12 +1,15 @@
 /** @fileoverview Renders active rules with source-aware links for individual generated files. */
 
 import { posix } from 'node:path';
+import { assetDirectory, requireAllowedTarget } from '../formats/assets';
+import { relativeTarget } from '../formats/markdown-links';
 import { licenseFileMappings, licenseOutputPaths } from './license-output';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { toMarkdown } from 'mdast-util-to-markdown';
 import type { Root, RootContent } from 'mdast';
 import type { ActiveRule, RuleOrigin } from './types';
 import { invalid } from './validation';
+import { repositoryFileUrl } from '../repository';
 
 /** Escape Markdown punctuation and flatten LF/CRLF line breaks so metadata renders as inline text. */
 export function escapeText(value: string): string {
@@ -20,12 +23,19 @@ function encodedPath(value: string): string {
   return value.split('/').map(encodeURIComponent).join('/');
 }
 
-/** Return a commit-pinned GitHub link for an imported origin, or a local link relative to the generated rule file. */
+/** Link to a recognized host's pinned definition, or its retained source file. */
 function sourceLink(origin: RuleOrigin, outputPath: string): string {
   if (origin.repository !== null && origin.resolvedCommit !== null) {
-    return `https://github.com/${origin.repository}/blob/${origin.resolvedCommit}/${encodedPath(origin.file)}`;
+    const remote = repositoryFileUrl(
+      origin.repository,
+      origin.resolvedCommit,
+      origin.file,
+      false,
+    );
+    if (remote !== null) return remote;
   }
-  return workspaceLink(outputPath, `local/${origin.file}`);
+  const root = origin.source === 'local' ? 'local' : `vendor/${origin.source}`;
+  return workspaceLink(outputPath, `${root}/${origin.file}`);
 }
 
 /** Return a workspace-relative link from the actual generated file location. */
@@ -42,54 +52,48 @@ function relocatedUrl(
   image: boolean,
   outputPath: string,
 ): string {
-  // External references and schemes retain their author's meaning.
-  if (
-    /^[a-z][a-z0-9+.-]*:/iu.test(url) ||
-    url.startsWith('//') ||
-    url.startsWith('#')
-  )
-    return url;
-  const split = /^([^?#]*)([\s\S]*)$/u.exec(url);
-  const pathname = split?.[1] ?? '';
-  const suffix = split?.[2] ?? '';
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(pathname);
-  } catch {
-    return invalid(active.rule.id, `invalid encoded link ${url}`);
-  }
-  if (/[\\\x00-\x1f]/u.test(decoded))
-    return invalid(active.rule.id, `unsafe relative link ${url}`);
-  const target =
-    decoded === ''
-      ? active.origin.file
-      : posix.normalize(
-          decoded.startsWith('/')
-            ? decoded.slice(1)
-            : posix.join(posix.dirname(active.origin.file), decoded),
-        );
-  if (target === '..' || target.startsWith('../'))
-    return invalid(active.rule.id, `link escapes source root: ${url}`);
+  if (url.startsWith('#')) return url;
+  const link = relativeTarget(url, active.origin.file, active.rule.id);
+  if (link === null) return url;
+  const { target, suffix } = link;
+  requireAllowedTarget(
+    active.origin.file,
+    target,
+    active.licenses.flatMap((license) =>
+      licenseFileMappings(active.origin.source, license).map(
+        (file) => file.sourcePath,
+      ),
+    ),
+  );
   const licenseFile = active.licenses
     .flatMap((license) => licenseFileMappings(active.origin.source, license))
     .find((file) => file.sourcePath === target);
   if (licenseFile !== undefined)
     return `${encodedPath(posix.relative(posix.dirname(outputPath), licenseFile.generatedPath))}${suffix}`;
-  if (active.sourceFiles.has(target)) {
+  if (active.sourcePaths.has(target)) {
     const base =
       active.origin.source === 'local'
         ? 'local'
         : `vendor/${active.origin.source}`;
     return `${workspaceLink(outputPath, `${base}/${target}`)}${suffix}`;
   }
+  if (assetDirectory(target) !== null)
+    return invalid(active.rule.id, `missing asset link destination: ${url}`);
   if (
     active.origin.repository !== null &&
     active.origin.resolvedCommit !== null
   ) {
-    const base = image
-      ? `https://raw.githubusercontent.com/${active.origin.repository}/${active.origin.resolvedCommit}`
-      : `https://github.com/${active.origin.repository}/blob/${active.origin.resolvedCommit}`;
-    return `${base}/${encodedPath(target)}${suffix}`;
+    const remote = repositoryFileUrl(
+      active.origin.repository,
+      active.origin.resolvedCommit,
+      target,
+      image,
+    );
+    if (remote !== null) return `${remote}${suffix}`;
+    return invalid(
+      active.rule.id,
+      `missing retained link destination: ${url}; include the target in the source snapshot or author an explicit URL for this host`,
+    );
   }
   return invalid(active.rule.id, `missing local link destination: ${url}`);
 }

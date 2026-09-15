@@ -1,6 +1,8 @@
 /** @fileoverview Renders resolved rules as applicability indexes, individual effective definitions, and provenance. */
 
 import { posix } from 'node:path';
+import { repositoryAddress } from '../repository';
+
 import type {
   ActiveRule,
   BuildOutput,
@@ -152,12 +154,23 @@ function inlineGroupPage(
 /** Describe an imported library for humans while keeping provenance authoritative for machine-readable metadata. */
 function libraryReadme(source: SourceRecord): string {
   const path = `libraries/${source.name}/README.md`;
+  const { web } = repositoryAddress(source.repository, source.name);
   const sections = [
     `# ${escapeText(source.name)}`,
     'This folder describes an imported Code Rules library and retains its declared license and notice files.',
-    `**Repository:** [${escapeText(source.repository)}](https://github.com/${source.repository})`,
-    `**Requested revision:** ${escapeText(source.ref)}`,
-    `**Resolved commit:** [${source.resolvedCommit}](https://github.com/${source.repository}/tree/${source.resolvedCommit})`,
+    web === null
+      ? `**Repository:** ${escapeText(source.repository)}`
+      : `**Repository:** [${escapeText(source.repository)}](${web.root})`,
+    `**Requested ${source.version === undefined ? 'revision' : 'version'}:** ${escapeText(source.version ?? source.ref ?? '')}`,
+    ...(source.resolvedTag === undefined
+      ? []
+      : [
+          `**Selected tag:** ${escapeText(source.resolvedTag)}`,
+          `**Selected version:** ${escapeText(source.resolvedVersion ?? '')}`,
+        ]),
+    web === null
+      ? `**Resolved commit:** ${source.resolvedCommit}`
+      : `**Resolved commit:** [${source.resolvedCommit}](${web.tree}/${source.resolvedCommit})`,
   ];
   if (!source.licenses.length)
     sections.push('No library license declaration was supplied.');

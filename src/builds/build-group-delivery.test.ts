@@ -26,7 +26,7 @@ test.each([0, 8192])(
         schemaVersion: 1,
         sources: {
           fabrica: source(
-            'fabrica/rules',
+            'https://github.com/fabrica/rules.git',
             { [`${group}/obsolete`]: 'No longer applicable.' },
             {
               [id]: {
@@ -39,9 +39,13 @@ test.each([0, 8192])(
         localGroups: [],
       },
       snapshots: {
-        fabrica: snapshot('fabrica/rules', 'Superseded', {
-          [`${group}/obsolete.md`]: ruleText('Excluded', 'Excluded body.'),
-        }),
+        fabrica: snapshot(
+          'https://github.com/fabrica/rules.git',
+          'Superseded',
+          {
+            [`${group}/obsolete.md`]: ruleText('Excluded', 'Excluded body.'),
+          },
+        ),
       },
       localFiles: {
         [`${group}/replacement.md`]: ruleText(

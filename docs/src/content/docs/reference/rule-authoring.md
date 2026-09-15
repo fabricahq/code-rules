@@ -157,6 +157,13 @@ Impact does not determine applicability, override exceptions, resolve conflictin
 Assess each finding from concrete evidence and the consequences of that specific violation.
 A high-impact design rule does not require extracting every multi-step function or make every readability finding high severity.
 
+## Supporting material
+
+Keep obligations and exceptions in the rule. Place optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory.
+Use the library-root `assets/` directory for material shared by multiple rules. Link assets using ordinary Markdown.
+Markdown inside asset directories is supporting text, not another rule. Do not link to another rule's private assets or arbitrary repository documents.
+See [Supporting assets](/reference/files/#supporting-assets) for the enforced layout, import behavior, and examples.
+
 ## Authoring rubric
 
 The rubric defines what makes a useful rule; filling every template heading does not establish compliance.

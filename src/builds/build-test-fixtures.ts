@@ -63,14 +63,17 @@ export function input(): BuildInput {
     configuration: {
       schemaVersion: 1,
       sources: {
-        fabrica: source('fabrica/rules'),
-        acme: source('acme/rules'),
+        fabrica: source('https://github.com/fabrica/rules.git'),
+        acme: source('https://github.com/acme/rules.git'),
       },
       localGroups: [],
     },
     snapshots: {
-      fabrica: snapshot('fabrica/rules', 'Fabrica retries'),
-      acme: snapshot('acme/rules', 'Acme retries'),
+      fabrica: snapshot(
+        'https://github.com/fabrica/rules.git',
+        'Fabrica retries',
+      ),
+      acme: snapshot('https://github.com/acme/rules.git', 'Acme retries'),
     },
     localFiles: {},
     toolVersion: '0.0.0-test',

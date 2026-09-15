@@ -15,19 +15,22 @@
     "test": "bun test src _tools/*.test.ts docs/_tools/*.test.ts",
     "typecheck": "tsc --project tsconfig.json",
     "builds:example": "bun tests/manual/builds.ts",
-    "format:check": "prettier --single-quote --check src _tools/*.ts docs/_tools/*.ts tests/manual/*.ts eslint.config.mjs",
-    "lint": "eslint ."
+    "format:check": "prettier --single-quote --check src _tools/*.ts docs/_tools/*.ts tests/**/*.ts eslint.config.mjs",
+    "lint": "eslint .",
+    "imports:example": "bun tests/manual/imports.ts"
   },
   "packageManager": "bun@1.4.2",
   "dependencies": {
     "mdast-util-from-markdown": "^2.0.3",
     "mdast-util-to-markdown": "^2.1.2",
+    "semver": "^7.8.5",
     "spdx-expression-parse": "^5.0.0",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "@types/mdast": "^4.0.4",
+    "@types/semver": "^7.8.0",
     "@types/spdx-expression-parse": "^4.0.0",
     "@typescript-eslint/parser": "^8.70.0",
     "astro-eslint-parser": "^3.1.0",

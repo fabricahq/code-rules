@@ -81,8 +81,8 @@ test('should produce identical bytes when source and file insertion order change
     configuration: {
       schemaVersion: 1,
       sources: {
-        acme: source('acme/rules'),
-        fabrica: source('fabrica/rules'),
+        acme: source('https://github.com/acme/rules.git'),
+        fabrica: source('https://github.com/fabrica/rules.git'),
       },
       localGroups: [],
     },

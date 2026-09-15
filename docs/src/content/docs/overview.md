@@ -4,7 +4,7 @@ description: "Share engineering standards across projects and give agents clear,
 ---
 
 **Code Rules manages the engineering rules a codebase adopts.**
-A project selects versioned rule libraries, records local additions and exceptions, and commits its effective rules alongside the code.
+A project selects versioned rule libraries, records local additions and exceptions, and commits its resolved rules alongside the code.
 Teams can review and adopt rule updates over time, then use those rules during planning, implementation, and review.
 
 ## Why use it?
@@ -14,7 +14,7 @@ Copying instructions by hand makes those differences hard to maintain.
 Loading a shared document directly can introduce new obligations without a project choosing to adopt them.
 
 Code Rules makes that choice explicit.
-Choose each library's commit or tag, select its groups, and review updates like any other change to the project.
+Choose each library's exact revision or version constraint, select its groups, and review updates like any other change to the project.
 
 ## What belongs in a rule library?
 
@@ -45,9 +45,9 @@ The [agent instructions](/for-agents/) describe how to use this approach.
 
 ## What a project controls
 
-Your project chooses its libraries, selects each commit or tag, and selects groups from each source.
+Your project chooses its libraries, selects an exact revision or version constraint, and selects groups from each source.
 Your project can add local rules, exclude inherited rules with a reason, or replace a rule completely.
-Builds resolves those choices into group pages and individual files containing each effective rule's full text. Small groups include complete rules; larger groups use applicability summaries with explicit reading links.
+Builds resolves those choices into group pages and individual files containing each resolved rule's full text. Small groups include complete rules; larger groups use applicability summaries with explicit reading links.
 
 Writing and reviewing agents use the same files.
 Each agent still decides which groups and individual rules apply to the work at hand.

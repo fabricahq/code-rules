@@ -24,10 +24,14 @@ function withLibraryManifest(
     ...build,
     snapshots: {
       ...build.snapshots,
-      fabrica: snapshot('fabrica/rules', 'Licensed retries', {
-        ...libraryFiles,
-        'rule-library.json': manifest,
-      }),
+      fabrica: snapshot(
+        'https://github.com/fabrica/rules.git',
+        'Licensed retries',
+        {
+          ...libraryFiles,
+          'rule-library.json': manifest,
+        },
+      ),
     },
   };
 }
@@ -293,7 +297,9 @@ test('should retain unidentified legacy terms without guessing an SPDX declarati
 test('should describe imported libraries without licensing and omit library output for local-only rules', () => {
   const output = buildRules(input()).files;
   const readme = output['libraries/fabrica/README.md'];
-  expect(readme).toContain('[fabrica/rules](https://github.com/fabrica/rules)');
+  expect(readme).toContain(
+    '[https://github.com/fabrica/rules.git](https://github.com/fabrica/rules)',
+  );
   expect(readme).toContain('**Requested revision:** v1.0.0');
   expect(readme).toContain(`https://github.com/fabrica/rules/tree/${commit}`);
   expect(readme).toContain('No library license declaration was supplied.');
@@ -396,17 +402,19 @@ test('should retain separate generated licenses even when every rule from one li
     configuration: {
       schemaVersion: 1,
       sources: {
-        fabrica: source('fabrica/rules', { [ruleId]: 'Not adopted' }),
-        acme: source('acme/rules'),
+        fabrica: source('https://github.com/fabrica/rules.git', {
+          [ruleId]: 'Not adopted',
+        }),
+        acme: source('https://github.com/acme/rules.git'),
       },
       localGroups: [],
     },
     snapshots: {
-      fabrica: snapshot('fabrica/rules', 'Fabrica', {
+      fabrica: snapshot('https://github.com/fabrica/rules.git', 'Fabrica', {
         'rule-library.json': manifest,
         'terms.txt': 'Fabrica terms',
       }),
-      acme: snapshot('acme/rules', 'Acme', {
+      acme: snapshot('https://github.com/acme/rules.git', 'Acme', {
         'rule-library.json': manifest,
         'terms.txt': 'Acme terms',
       }),
@@ -556,7 +564,7 @@ test('should keep replacement licensing independent from upstream library terms'
     schemaVersion: 1,
     sources: {
       fabrica: source(
-        'fabrica/rules',
+        'https://github.com/fabrica/rules.git',
         {},
         {
           [ruleId]: {
@@ -606,12 +614,14 @@ test('should reject unsupported license declarations even on excluded rules', ()
     configuration: {
       schemaVersion: 1,
       sources: {
-        fabrica: source('fabrica/rules', { [ruleId]: 'Not adopted.' }),
+        fabrica: source('https://github.com/fabrica/rules.git', {
+          [ruleId]: 'Not adopted.',
+        }),
       },
       localGroups: [],
     },
     snapshots: {
-      fabrica: snapshot('fabrica/rules', 'Excluded', {
+      fabrica: snapshot('https://github.com/fabrica/rules.git', 'Excluded', {
         [`${ruleId}.md`]: definition,
       }),
     },
@@ -625,7 +635,7 @@ test('should reject unsupported license declarations even on excluded rules', ()
 
 test('should reject missing declared license text', () => {
   const build = input();
-  const missing = snapshot('fabrica/rules', 'Rule', {
+  const missing = snapshot('https://github.com/fabrica/rules.git', 'Rule', {
     'rule-library.json':
       '{"formatVersion":1,"license":{"file":"LICENSE.md","notices":[]}}',
   });

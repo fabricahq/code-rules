@@ -19,6 +19,6 @@
     "src/**/*.ts",
     "_tools/*.ts",
     "docs/_tools/*.ts",
-    "tests/manual/**/*.ts"
+    "tests/**/*.ts"
   ]
 }

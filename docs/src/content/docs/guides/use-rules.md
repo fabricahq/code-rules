@@ -23,7 +23,7 @@ The [offline API reference](/reference/files/#offline-builder-api) describes inp
 
 Choose one or more canonical libraries whose rules your project is authorized to use.
 For example, combine a shared community library with your organization's rules.
-Give each source a stable name and select a full Git commit SHA or a tag with `ref`.
+Give each source a stable name. Select an exact commit or tag with `ref`, or an npm semantic version constraint with `version`. Specify exactly one.
 An upstream edit should arrive through an explicit update.
 
 ## 2. Select technologies and practices
@@ -35,7 +35,7 @@ Create `code-rules/config.json` in the project:
   "schemaVersion": 1,
   "sources": {
     "fabrica": {
-      "repository": "fabricahq/.code-rules-example",
+      "repository": "https://github.com/fabricahq/.code-rules-example.git",
       "ref": "v1.0.0",
       "groups": [
         "techs/typescript",
@@ -45,7 +45,7 @@ Create `code-rules/config.json` in the project:
       "replace": {}
     },
     "acme": {
-      "repository": "acme/.code-rules",
+      "repository": "https://github.com/acme/.code-rules.git",
       "ref": "<full Git commit SHA>",
       "groups": [
         "techs/react",
@@ -110,4 +110,4 @@ The generated index is the entry point for selecting both technologies and pract
 
 The proposed `code-rules check` command verifies that committed inputs produce the committed output.
 The check does not inspect application code for compliance.
-A reviewing agent performs that separate assessment using the same effective rules.
+A reviewing agent performs that separate assessment using the same resolved rules.

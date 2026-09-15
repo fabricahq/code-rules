@@ -28,7 +28,7 @@ Agents will choose which installed groups apply to each task using the [rule-loa
 ## Select groups from each source
 
 In `code-rules/config.json`, set `sources.<name>.groups` separately for each library.
-Each source also has a `repository`, a commit-or-tag `ref`, and its own `exclude` and `replace` objects.
+Each source has a `repository`, either an exact `ref` or a semantic `version` constraint, and its own `exclude` and `replace` objects.
 Use the [complete configuration example](/reference/configuration/#complete-example) as your starting point.
 
 To adopt an entire library, set `groups` to `"*"` instead of an array.
@@ -37,7 +37,7 @@ All groups within that scope at the selected revision are included, and exclusio
 New groups enter when you update the adopted revision. Review them as part of that update.
 See [Import every group](/reference/configuration/#import-every-group) for an example and snapshot requirements.
 
-If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual effective rules.
+If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual resolved rules.
 Source-prefixed IDs keep matching rule paths distinct.
 Neither source automatically overrides the other.
 
@@ -82,7 +82,7 @@ Add its library-relative ID and a reason to `sources.<name>.exclude`:
 ```
 
 These are partial snippets, not complete source definitions.
-Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, ref, and groups.
+Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, revision selection, and groups.
 Rule IDs are illustrative and must exist in the selected source groups.
 An exclusion removes only the named source's rule, without introducing a replacement.
 The same rule path in another source remains active.
@@ -115,7 +115,7 @@ Include the intended scope and exceptions in that definition.
 
 ## Generate and review
 
-When sources, refs, or selected groups change, run the proposed `code-rules sync` command.
+When sources, revision selections, or selected groups change, run the proposed `code-rules sync` command.
 For changes limited to local rules or exceptions, run `code-rules build` against the existing vendor snapshots.
 Review and commit the updated generated files with their inputs.
 
@@ -127,6 +127,6 @@ Source order never resolves the conflict.
 Use [Conflicting guidance](/guides/conflicting-guidance/) to review the combined rules and resolve competing instructions.
 
 
-Review `generated/RULES.md`, each relevant group index, and the full effective definitions. Check exclusions and replacements against configuration and provenance.
+Review `generated/RULES.md`, each relevant group index, and the full resolved definitions. Check exclusions and replacements against configuration and provenance.
 Commit configuration, local rules, vendor snapshots, and generated files together.
 Use [Update rules](/guides/update/) when you adopt new library versions or change the selected groups later.

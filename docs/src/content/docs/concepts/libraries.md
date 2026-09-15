@@ -29,7 +29,7 @@ The adaptation's author maintains its meaning, attribution, retained terms, and 
 
 We recommend `<organization>/.code-rules`, such as `acme/.code-rules`.
 The name is a convention, not automatic discovery.
-A project's configuration explicitly names each source repository, commit-or-tag ref, and selected groups.
+A project's configuration explicitly names each source repository, exact ref or version constraint, and selected groups.
 
 The consuming project's local directory remains `code-rules/`.
 Its name does not depend on the remote repository name.
@@ -51,11 +51,11 @@ See [License rules](/guides/license-rules/) for what library terms should cover 
 
 The first-release design supports multiple libraries imported directly by a project.
 For example, a project can import `fabricahq/.code-rules-example` as `fabrica` and `acme/.code-rules` as `acme`.
-Each source owns its rules, and the project selects each source's ref independently.
+Each source owns its rules, and the project selects each source's exact ref or version constraint independently.
 Sync records each resolved commit so offline work uses the exact imported snapshot.
 The repository names illustrate the configuration; verify available rules before selecting groups.
 
-Rules from sources that share a group combine into one group page, which includes full rules for small groups or links to each effective rule from applicability summaries.
+Rules from sources that share a group combine into one group page, which includes full rules for small groups or links to each resolved rule from applicability summaries.
 Source-qualified IDs keep their origins distinct, and source order grants no override priority.
 Use explicit project exclusions or replacements to resolve competing obligations.
 
@@ -64,7 +64,7 @@ Use explicit project exclusions or replacements to resolve competing obligations
 Each imported source gets a generated `libraries/<source-name>/README.md`.
 It identifies the repository, requested revision, resolved commit, and declared license, and links to the authoritative provenance.
 Declared license and notice copies live in that folder’s `licenses/` directory; libraries without declarations omit that directory.
-The full effective rules live separately in `generated/rules/`.
+The full resolved rules live separately in `generated/rules/`.
 
 ## Leave room for another level
 

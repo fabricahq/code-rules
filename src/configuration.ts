@@ -1,6 +1,13 @@
 /** @fileoverview Interprets project configuration and source-scoped exception policies in deterministic validation order. */
 
-import type { ProjectConfig, RuleReplacement, LibrarySource } from './types';
+import { versionConstraint } from './versions';
+import { repositoryAddress } from './repository';
+import type {
+  LibraryRef,
+  ProjectConfig,
+  RuleReplacement,
+  LibrarySource,
+} from './configuration-types';
 import {
   compare,
   field,
@@ -11,7 +18,7 @@ import {
   relativePath,
   ruleGroup,
   strings,
-} from './validation';
+} from './formats/validation';
 
 /** Reject unknown own fields before interpreting a configuration object. */
 function knownFields(
@@ -24,36 +31,42 @@ function knownFields(
   }
 }
 
-/** Validate and register a repository before checking the source's later fields; duplicate names are case-insensitive. */
+/** Validate and register a Git address before checking later fields, using host-aware duplicate identities. */
 function sourceRepository(
   value: unknown,
   where: string,
   repositories: Set<string>,
 ): string {
   const repository = nonempty(value, `${where}.repository`);
-  if (
-    !/^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/u.test(repository) ||
-    /\/(\.|\.\.)$/u.test(repository)
-  )
-    return invalid(where, 'repository must use owner/name form');
-  if (repositories.has(repository.toLowerCase()))
+  const { identity } = repositoryAddress(repository, `${where}.repository`);
+  if (repositories.has(identity))
     return invalid(
       where,
       `repository ${repository} is declared more than once`,
     );
-  repositories.add(repository.toLowerCase());
+  repositories.add(identity);
   return repository;
 }
 
-/** Validate offline ref syntax without resolving it; reject abbreviated-commit-shaped bare tags. */
-function sourceRef(value: unknown, where: string): string {
-  const ref = nonempty(value, `${where}.ref`);
+/** Classify a full commit or exact tag, rejecting invalid Git ref components without I/O. */
+function sourceRef(ref: string, where: string): LibraryRef {
+  if (/^[a-f0-9]{40}$/iu.test(ref))
+    return { kind: 'commit', sha: ref.toLowerCase() };
+  const tag = ref.startsWith('refs/tags/') ? ref.slice(10) : ref;
   if (
-    /\s|[~^:?*\[\\]|\.\.|@\{|\/$|\.$|\.lock$|^refs\/(?!tags\/)/u.test(ref) ||
-    ref === '@' ||
-    ref.startsWith('-') ||
-    ref.endsWith('/') ||
-    ref === 'refs/tags/'
+    /[\x00-\x20\x7f~^:?*\[\\]|\.\.|@\{/u.test(tag) ||
+    tag === '@' ||
+    tag.startsWith('-') ||
+    (ref.startsWith('refs/') && !ref.startsWith('refs/tags/')) ||
+    tag
+      .split('/')
+      .some(
+        (part) =>
+          !part ||
+          part.startsWith('.') ||
+          part.endsWith('.lock') ||
+          part.endsWith('.'),
+      )
   )
     return invalid(
       `${where}.ref`,
@@ -64,7 +77,7 @@ function sourceRef(value: unknown, where: string): string {
       `${where}.ref`,
       'abbreviated commits are unsupported; use a full SHA or refs/tags/<name>',
     );
-  return ref;
+  return { kind: 'tag', name: `refs/tags/${tag}` };
 }
 
 /** Read nonempty exclusion reasons in sorted rule-ID order. */
@@ -140,7 +153,7 @@ function sourceConfiguration(
   const source = object(raw, where);
   knownFields(
     source,
-    ['repository', 'ref', 'groups', 'exclude', 'replace'],
+    ['repository', 'ref', 'version', 'groups', 'exclude', 'replace'],
     where,
   );
   const repository = sourceRepository(
@@ -148,7 +161,20 @@ function sourceConfiguration(
     where,
     repositories,
   );
-  const ref = sourceRef(field(source, 'ref'), where);
+  if (Object.hasOwn(source, 'ref') === Object.hasOwn(source, 'version'))
+    return invalid(where, 'specify exactly one of ref or version');
+  const revision = Object.hasOwn(source, 'version')
+    ? {
+        version: versionConstraint(
+          field(source, 'version'),
+          `${where}.version`,
+        ),
+      }
+    : { ref: nonempty(field(source, 'ref'), `${where}.ref`) };
+  const parsedRef: LibraryRef =
+    revision.version !== undefined
+      ? { kind: 'version', range: revision.version }
+      : sourceRef(revision.ref, where);
   const requestedGroups = field(source, 'groups');
   const groups =
     requestedGroups === '*' ||
@@ -164,12 +190,12 @@ function sourceConfiguration(
     if (exclude.has(id) && replace.has(id))
       return invalid(`${where}:${id}`, 'rule is both excluded and replaced');
   }
-  return { name, repository, ref, groups, exclude, replace };
+  return { name, repository, ...revision, parsedRef, groups, exclude, replace };
 }
 
 /**
  * Return validated configuration with sources, groups, and exception keys sorted.
- * Throws an invalid-input BuildError for unsupported fields, malformed values, or conflicting declarations.
+ * Throws an invalid-input ValidationError for unsupported fields, malformed values, or conflicting declarations.
  * Rejects abbreviated-commit-shaped refs unless explicitly qualified as refs/tags/<name>.
  * This offline syntax check does not resolve refs or establish their existence in Git.
  */
