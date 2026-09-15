@@ -7,7 +7,8 @@ Use the [Go conventions](../_internal/go-conventions.md) when implementing or re
 ## Branches and baseline
 
 - Integration branch: `go-migration`.
-- Current slice: `codex/go-identities`, based on `go-migration`. See [the identity slice](identities.md) for scope, API decisions, and the interactive lab.
+- Current slice: `codex/go-group-metadata`, based on `go-migration`. See [group metadata](group-metadata.md) for scope, API decisions, and the interactive lab.
+- [The identity slice](identities.md) was human-approved and merged in PR #11 at `6bfcaf608bc5ce9c36af4c3c27c02d751a7fdd30`.
 - Every migration PR targets `go-migration`. A human merges each slice before the next iteration starts.
 - A separate human decision authorizes the eventual `go-migration` to `main` PR, distribution changes, and removal of TypeScript runtime code.
 
@@ -18,13 +19,13 @@ PR #8 has since merged to `main`; PR #9 was closed without merging in favor of t
 The user approved merging [the harness PR #10](https://github.com/fabricahq/code-rules/pull/10) into `go-migration`; its merge commit is `5ba1d51c7214c9d22979a882fb6fb46b2120d8fe`. The identity slice starts there.
 
 The product checkout and private rule corpus had unrelated local changes. This work uses a separate clone and committed corpus contents.
-The harness slice introduced no Go implementation. The current identity slice adds a native package and development adapter. Release publication and scheduled work remain unauthorized. The user-approved validation diagnostic improvements are recorded in [the identity slice](identities.md#user-approved-diagnostic-improvement).
+The harness slice introduced no Go implementation. The merged identity slice added a native package and development adapter; the current slice extends them with group metadata parsing. Release publication and scheduled work remain unauthorized. The user-approved validation diagnostic improvements are recorded in [the identity slice](identities.md#user-approved-diagnostic-improvement).
 
 ## Inventory and evidence
 
 [contracts.json](contracts.json) is the proposed capability inventory. IDs are stable: append new scenario IDs without renumbering existing ones.
 Dependencies express migration order. Each capability lists source owners and required happy, unhappy, and boundary cases.
-The inventory retains `not-implemented` for full capabilities until acceptance. The identity slice records partial implementation evidence separately; every full acceptance scenario remains pending until its required evidence is available and reviewed.
+The inventory retains `not-implemented` for full capabilities until acceptance. The identity and group metadata slices record partial implementation evidence separately; every full acceptance scenario remains pending until its required evidence is available and reviewed.
 
 The initial [executable scenarios](../tests/migration/scenarios.ts) exercise representative paths across those capabilities.
 The report lists these as `exercisedBy`; it does not count a representative case as full capability completion.
@@ -104,5 +105,6 @@ The harness review covers inventory completeness, baseline choice, comparison no
 Passing these checks is implementation evidence. Independent validation and human approval remain separate states.
 See [feedback.md](feedback.md) and [evidence.md](evidence.md) for the harness handoff.
 
-The current [identity slice](identities.md) implements group/rule IDs and selector validation, with a native adapter and shared boundary cases.
-Review its Go patterns before starting filesystem-writing capabilities.
+The merged [identity slice](identities.md) implements group/rule IDs and selector validation.
+The current [group metadata slice](group-metadata.md) adds JSON metadata parsing and extends the same interactive lab. The user-approved target uses one nonblank `whenToRead` string for groups and rules; the pinned TypeScript group format still uses arrays.
+Review each slice before starting filesystem-writing capabilities.

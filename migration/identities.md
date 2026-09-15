@@ -1,6 +1,6 @@
 # Identity syntax: first Go slice
 
-Status: implemented and locally tested; submitted for human review. Independent automated review and human merge remain pending.
+Status: human-approved and merged in PR #11 at `6bfcaf608bc5ce9c36af4c3c27c02d751a7fdd30`. All final PR checks passed. The automated-review limitations below remain part of the historical record.
 
 ## Scope and revisions
 
@@ -111,7 +111,7 @@ go vet ./...
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go test -race ./...
 go build -o /tmp/code-rules-rules-lab ./cmd/rules-lab
-bun tests/migration/identities/compare.ts /tmp/code-rules-rules-lab
+bun tests/migration/compare-rules.ts /tmp/code-rules-rules-lab
 bun run check
 bun run test:package
 ```
@@ -119,7 +119,7 @@ bun run test:package
 Go 1.27.1 was used locally; CI reads the Go version directly from `go.mod`.
 In a restricted local environment, set `GOCACHE` and `GOMODCACHE` to writable temporary directories. This changes cache locations only.
 
-The [87 shared cases](../tests/migration/identities/cases.json) contain independent expected results. Go tests invoke the package directly. The [comparison runner](../tests/migration/identities/compare.ts) invokes the existing TypeScript functions and compiled Go adapter and checks each against those expectations.
+The [87 shared cases](../tests/migration/identities/cases.json) contain independent expected results. Go tests invoke the package directly. The [comparison runner](../tests/migration/compare-rules.ts) invokes the existing TypeScript functions and compiled Go adapter and checks each against those expectations.
 The runner rejects tracked or untracked TypeScript input drift, rejects approved-difference changes, bounds candidate execution, checks response count, and reports the binary hash. The Go process receives a PATH with no interpreters available.
 The source and lockfile pin plus binary hash are provenance inputs, not proof that an arbitrary supplied binary came from the declared Go sources.
 
@@ -134,5 +134,4 @@ Local logs are retained under `/private/tmp/code-rules-migration-evidence/`; pat
 
 ## Handoff
 
-Stop after this PR for human review of the API and Go patterns. Do not merge or begin another capability automatically.
-After approval, the next candidate slice is group/rule metadata parsing that consumes these identities. Reconfirm contract boundaries and the unresolved Unicode compatibility before starting.
+The user approved this slice and authorized the next iteration. [Group metadata parsing](group-metadata.md) follows on its own branch and PR. Rule Markdown parsing and the unresolved Unicode compatibility remain separate work.

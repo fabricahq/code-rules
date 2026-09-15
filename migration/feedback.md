@@ -1,6 +1,6 @@
 # Migration feedback
 
-Status: harness lessons remain proposed. PR #11 includes user-requested logging and error conventions for review.
+Status: PR #11 and its Go conventions were human-approved and merged. Harness lessons remain proposed; the group metadata slice is under review.
 
 ## Rules used
 
@@ -64,3 +64,14 @@ The initial config includes `schemaVersion: 1` (`src/authoring/project.ts`).
 Missing noninteractive input exits 2 (`src/authoring/cli.ts` and `src/cli.ts`).
 Imported notices use `licenses/notices/001.md` (`src/builds/license-output.ts`).
 The assertions now match those source contracts. No baseline, production behavior, comparator, or approved difference changed.
+
+## Group metadata slice
+
+- Treat a reproduced Unicode mismatch as an open defect, even when earlier slice notes excluded that edge case from coverage. Do not turn a coverage limit into an approved behavior change.
+  Evidence: the lone-surrogate finding, approved rejection, and regression coverage recorded in [group metadata](group-metadata.md#unicode-behavior).
+- Preserve format semantics at the JSON boundary. Raw fields retain case-sensitive keys and last-key-wins behavior. Reject unknown fields in sorted order before decoding their values.
+  Evidence: metadata cases for field case, repeated keys, and a rejected unknown field containing `1e400`.
+- Distinguish document syntax from adapter syntax. Sending metadata text as a string lets the lab invoke Go on malformed documents.
+  Evidence: adapter tests for malformed metadata text versus an incorrectly typed envelope input.
+- Use one nonblank string for group and rule reading guidance, as requested during review. Group metadata trims surrounding whitespace and rejects legacy arrays.
+  Evidence: `internal/rules/group_metadata_test.go` and the HTTP metadata test.

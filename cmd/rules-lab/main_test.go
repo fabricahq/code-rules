@@ -74,6 +74,8 @@ func TestInvokeBoundary(t *testing.T) {
 		{"unknown operation", `{"operation":"writeFile","input":"x","location":"group"}`, "AdapterError"},
 		{"unknown field", `{"operation":"groupID","input":"techs/go","location":"group","shell":"x"}`, "AdapterError"},
 		{"malformed JSON", `{"operation":"selection","input":[}`, "AdapterError"},
+		{"malformed metadata document", `{"operation":"groupMetadata","input":"{","location":"group"}`, "ValidationError"},
+		{"metadata must be document text", `{"operation":"groupMetadata","input":{},"location":"group"}`, "AdapterError"},
 		{"trailing value", `{"operation":"selection","input":[],"location":"groups"} true`, "AdapterError"},
 	}
 	for _, test := range cases {
@@ -90,6 +92,26 @@ func TestInvokeBoundary(t *testing.T) {
 				t.Fatalf("unexpected error: %+v", got)
 			}
 		})
+	}
+}
+
+func TestHTTPParsesGroupMetadata(t *testing.T) {
+	body := `{"operation":"groupMetadata","input":"{\"name\":\"Go\",\"description\":\"Go rules\",\"whenToRead\":\" When editing. \"}","location":"techs/go/_group.json"}`
+	req := httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(body))
+	recorder := httptest.NewRecorder()
+	handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, req)
+	var got struct {
+		OK    bool
+		Value struct {
+			Name, Description string
+			WhenToRead        string
+		}
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if recorder.Code != http.StatusOK || !got.OK || got.Value.Name != "Go" || got.Value.Description != "Go rules" || got.Value.WhenToRead != "When editing." {
+		t.Fatalf("unexpected metadata response: HTTP %d %s", recorder.Code, recorder.Body)
 	}
 }
 

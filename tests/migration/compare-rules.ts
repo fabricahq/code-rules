@@ -1,16 +1,19 @@
-/** @fileoverview Compares native identity functions with pinned TypeScript behavior and independent shared expectations. */
+/** @fileoverview Compares native rules functions with pinned TypeScript behavior and independent shared expectations. */
 import { deepStrictEqual } from 'node:assert';
 import { resolve } from 'node:path';
-import { configuration } from '../../../src/configuration';
+import { configuration } from '../../src/configuration';
 import {
   groupId,
+  groupMetadata,
   ruleGroup,
   ValidationError,
-} from '../../../src/formats/validation';
-import cases from './cases.json';
-import contracts from '../../../migration/contracts.json';
-import approvedDifferences from '../../../migration/approved-differences.json';
+} from '../../src/formats/validation';
+import identityCases from './identities/cases.json';
+import metadataCases from './group-metadata/cases.json';
+import contracts from '../../migration/contracts.json';
+import approvedDifferences from '../../migration/approved-differences.json';
 
+const cases = [...identityCases, ...metadataCases];
 const referenceRevision = contracts.referenceRevision;
 deepStrictEqual(
   approvedDifferences,
@@ -42,7 +45,9 @@ function reference(test: (typeof cases)[number]): unknown {
     } else {
       if (typeof test.input !== 'string')
         throw new Error('Expected text fixture');
-      if (test.operation === 'groupID')
+      if (test.operation === 'groupMetadata')
+        value = groupMetadata(test.input, test.location);
+      else if (test.operation === 'groupID')
         value = groupId(test.input, test.location);
       else if (test.operation === 'ruleGroup')
         value = ruleGroup(test.input, test.location);
@@ -64,9 +69,7 @@ function reference(test: (typeof cases)[number]): unknown {
 
 const candidate = process.argv[2];
 if (!candidate)
-  throw new Error(
-    'Usage: bun tests/migration/identities/compare.ts <Go adapter>',
-  );
+  throw new Error('Usage: bun tests/migration/compare-rules.ts <Go adapter>');
 const owners = ['src', 'package.json', 'bun.lock'];
 const drift = Bun.spawnSync([
   'git',
@@ -115,20 +118,21 @@ for (const [index, test] of cases.entries()) {
     throw new Error(`Missing native response: ${test.id}`);
   const native: unknown = JSON.parse(line);
   const expected = test.expected;
-  // The user approved clearer validation diagnostics in Go.
+  // The user approved clearer identity diagnostics and trimmed scalar metadata in Go.
   // Those cases retain explicit old and new expectations; no output is normalized.
   deepStrictEqual(
     reference(test),
-    test.referenceExpected ?? expected,
+    ('referenceExpected' in test ? test.referenceExpected : undefined) ??
+      expected,
     `${test.id}: TypeScript vs expectation`,
   );
   deepStrictEqual(native, expected, `${test.id}: Go vs expectation`);
 }
 console.log(
-  `PASS: ${cases.length} shared identity cases; TypeScript + Go match independent expectations`,
+  `PASS: ${cases.length} shared rules cases; TypeScript + Go match independent expectations`,
 );
 console.log(
-  `Approved diagnostic differences: ${cases.filter((test) => test.referenceExpected !== undefined).length} cases`,
+  `Approved behavior differences: ${cases.filter((test) => 'referenceExpected' in test && test.referenceExpected !== undefined).length} cases`,
 );
 console.log(`TypeScript reference: ${referenceRevision}`);
 console.log(

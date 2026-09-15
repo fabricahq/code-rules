@@ -1,0 +1,114 @@
+# Group metadata: second Go slice
+
+Status: implemented on `codex/go-group-metadata`; PR #12 is open for review. CodeRabbit Unicode findings are addressed; human merge approval is still required.
+
+## Scope and baseline
+
+PR #11 was human-approved and merged into `go-migration` at `6bfcaf608bc5ce9c36af4c3c27c02d751a7fdd30`.
+This branch starts at that exact integration commit.
+The TypeScript reference remains `7013d3d374a33a5cf65a2a48ff6870e46f9d7209`; the rule corpus remains `e2166f90333157fd3e14c24d3e43287ece858e4b`.
+
+Implement `rules.ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, error)` in `internal/rules/group_metadata.go`.
+It parses one group's JSON text into its display name, description, and a single reading-guidance string.
+This is the next part of metadata parsing recommended after the identity slice; rule Markdown/frontmatter parsing follows separately.
+
+The source contract is `groupMetadata` and its guards in `src/formats/validation.ts`.
+This adds evidence for `formats.identities.05` (unknown fields and absent/null values), and a prerequisite for `builds.resolve.04` (local metadata).
+Neither full capability nor any additional acceptance scenario is marked complete.
+No file discovery, wildcard resolution, filesystem writes, product CLI, or new dependency is included.
+
+## Implementation and review points
+
+- Return a concrete `GroupMetadata` and the existing `*ValidationError` on invalid input.
+- Require nonblank `name` and `description` strings, trimming surrounding whitespace.
+- Require `whenToRead` as one nonblank string, matching individual rules. Trim surrounding whitespace. Arrays, null, missing values, and blank strings are invalid.
+- Reject `license` and `licenses` whenever present, including null. Reject other unknown fields, reporting the first key alphabetically and listing allowed fields.
+- Preserve validation order: JSON syntax, object shape, license declarations, unknown fields, name, description, reading guidance.
+- Decode a map of raw JSON fields rather than a struct so keys stay case-sensitive, unknown values can be rejected before decoding, and duplicate JSON keys use the last value.
+- Keep JavaScript whitespace handling consistent with the first slice.
+- Return owned text; failed parsing returns the zero result.
+
+## Verification and interactive review
+
+Add explicit metadata cases under `tests/migration/group-metadata/` and invoke them directly from Go tests.
+Move the shared comparison runner to `tests/migration/compare-rules.ts` and run both identity and metadata cases against the pinned TypeScript functions and native binary.
+Keep the 88 identity cases and all exact diagnostic comparisons intact.
+
+Extend the existing embedded `cmd/rules-lab` walkthrough using its current Code Rules gallery styling.
+The new operation sends JSON document text as a string to the adapter, so malformed document JSON reaches the Go parser.
+Show editable metadata, useful presets, returned structured values, errors with field locations, and an explanation of the parsing steps.
+
+Run Go formatting, vet, pinned Staticcheck, race tests, exact reference/native comparisons, the repository checks, installed-package checks, and a real browser exercise.
+Open one PR into `go-migration`, then stop for human review.
+
+## Unicode behavior
+
+CodeRabbit identified silent replacement of lone UTF-16 surrogate escapes and missing regression coverage. The user requested resolving both findings, approving explicit rejection instead of preserving JavaScript's malformed text.
+
+Before decoding each effective text field, Go checks UTF-8 validity and requires every high-surrogate escape to have an immediately following low-surrogate escape. Lone low surrogates also fail. Valid pairs, ordinary Unicode, literal U+FFFD, and escaped backslashes remain valid. JSON syntax is checked first; duplicate fields retain last-value semantics.
+
+Errors identify the field and return no partial metadata. Shared cases include exact TypeScript results, including cases where TypeScript preserves a lone surrogate in a legacy-format document. A native Go test covers raw invalid UTF-8 bytes, which the JSON adapter cannot transport unchanged.
+
+This establishes explicit metadata behavior, not full Unicode coverage for every migration capability. Earlier identity coverage limits remain separate.
+
+## Run and review
+
+```sh
+go run ./cmd/rules-lab -serve
+```
+
+The page opens with group metadata selected. Try the valid document, empty guidance, trimmed whitespace, missing name, null guidance, a legacy array, blank guidance, license declaration, unknown field, malformed JSON, invalid Unicode, and valid Unicode presets.
+The `groupMetadata` adapter operation takes document text in its `input` string. That lets malformed document JSON reach the Go function without breaking the outer request envelope.
+
+The new parser uses only the Go standard library. Its private helpers validate raw Unicode and decode trimmed nonblank text.
+The existing identity API and logger conventions remain unchanged.
+
+## Checks
+
+```sh
+go vet ./...
+go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+go test -race ./...
+go build -o /tmp/code-rules-lab ./cmd/rules-lab
+bun tests/migration/compare-rules.ts /tmp/code-rules-lab
+bun run check
+bun run test:package
+```
+
+The shared suite contains 94 metadata cases plus 88 identity cases. The original 53 fixture inputs remain, with added string-format cases. Each behavior difference records the pinned TypeScript result explicitly.
+Cases cover nonblank, empty, blank, null, and legacy-array guidance, whitespace and Unicode scalar text, key case and repetition, unknown-field rejection, absent/null/wrongly typed values, error precedence, and forbidden license fields.
+Go tests also check that parsing does not mutate input, results own their storage, failures return no partial metadata, and HTTP returns trimmed reading guidance as a string.
+
+Relevant engineering rule paths remain in [feedback.md](feedback.md#rules-used). The [Go conventions](../_internal/go-conventions.md) govern this implementation.
+Private corpus contents are not copied into the product repository.
+
+## Validation result
+
+- Go formatting, vet, Staticcheck v0.8.1, and race tests passed.
+- The 182 shared cases include 60 approved identity diagnostic differences and 64 approved metadata format/trim/unknown-field/Unicode differences.
+- `bun run check` passed, including 444 tests, formatting, lint, type checking, docs build, and link checks. Six installed-package tests passed.
+- All twelve metadata presets were invoked through the real browser lab. The editor fits the default document and resets to its beginning when selecting a preset.
+- The original autoreview finding and both CodeRabbit comments concerned malformed Unicode and missing regression coverage. The implementation and fixtures now address them. A focused read-only Codex autoreview of the Unicode fix reported no actionable findings.
+
+Local evidence is retained under `/private/tmp/code-rules-migration-evidence/`: `metadata-check.log`, `metadata-package.log`, `metadata-parity.log`, `metadata-review.txt`, `metadata-review.json`, and `metadata-unicode-repro.json`. The last file records the exact request and differing results.
+The earlier reproduction records the defect before the fix. Current regression evidence is in the shared `metadata-surrogate-*` fixtures and `TestGroupMetadataRejectsInvalidUTF8`.
+
+After this slice is resolved and human-reviewed, rule Markdown/frontmatter parsing is the recommended next slice. Do not begin it while this PR awaits review.
+
+## User-approved trimming
+
+The user requested trimming leading and trailing spaces during interactive review. Metadata names, descriptions, and reading guidance now trim surrounding JavaScript whitespace, using the existing whitespace predicate. Internal spacing remains intact. Whitespace-only text remains invalid.
+
+The TypeScript baseline stays pinned. Shared fixtures retain its exact original results in `referenceExpected`; no comparator normalization is introduced. Unicode rejection was subsequently approved through the request to resolve CodeRabbit feedback.
+
+## User-approved single-string guidance
+
+The user chose a single `whenToRead` string for groups and rules. Individual rules already use a string. The Go group parser now requires the same nonblank text shape, removing list and duplicate-validation logic. The lab and Go HTTP contract use that shape too.
+
+The TypeScript release and its pinned comparison baseline retain their original array format during the migration. Fixtures explicitly test both the target string behavior and rejection of legacy arrays. Updating production authoring, rendering, library files, and format documentation belongs with those migration capabilities; do not copy the old array contract into the Go implementations. No implicit array-to-string conversion is introduced.
+
+## User-approved unknown-field rejection
+
+The user approved rejecting unrecognized metadata fields. Only `name`, `description`, and `whenToRead` are accepted. Unknown fields report their location and the allowed names. Key matching is case-sensitive; unknown keys are sorted so the first error is deterministic. `license` and `licenses` retain their specific diagnostics and precedence. Unknown fields are checked before required-field values.
+
+The pinned TypeScript reference still ignores unknown fields. Explicit fixture expectations retain that behavior alongside the approved Go errors, including null-valued unknowns, empty keys, multiple unknown keys in opposite input orders, and precedence over missing fields.

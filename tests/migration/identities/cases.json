@@ -1682,5 +1682,15 @@
         "location": "input"
       }
     }
+  },
+  {
+    "id": "group-valid-hyphenated-name",
+    "operation": "groupID",
+    "input": "techs/github-actions",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "techs/github-actions"
+    }
   }
 ]
