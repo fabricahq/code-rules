@@ -4,7 +4,7 @@ description: "Walk through the proposed import workflow, from choosing libraries
 ---
 
 This walkthrough uses the intended published command names. Sync, build, and check work through the [development entry point](/reference/sync/); the executable is not published yet.
-You can generate and inspect examples with the working builder. The import commands below require the future CLI release.
+You can generate and inspect examples with the working builder. Use the development entry point for the commands below; package installation requires the future CLI release.
 
 ## Try the working builder
 
@@ -28,7 +28,7 @@ An upstream edit should arrive through an explicit update.
 
 ## 2. Select technologies and practices
 
-Create `.code-rules/config.json` in the project:
+Start with [project setup](/guides/set-up-project/), or create `.code-rules/config.json` manually:
 
 ```json
 {

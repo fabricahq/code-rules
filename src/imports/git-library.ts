@@ -102,6 +102,8 @@ export async function fetchRevision(
       '--quiet',
       '--depth=1',
       '--no-tags',
+      // Temporary repositories must not start background maintenance that can race cleanup.
+      '--no-auto-gc',
       '--no-recurse-submodules',
       remote,
       ref,

@@ -28,6 +28,7 @@ export default defineConfig({
     sidebar: [
       { label: 'Start here', items: [
         { label: 'What is Code Rules?', slug: 'overview' },
+        { label: 'Set up a project', slug: 'guides/set-up-project' },
         { label: 'Use rules in a project', slug: 'guides/use-rules' },
         { label: 'Project status', slug: 'status' },
       ] },

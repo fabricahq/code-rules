@@ -5,7 +5,7 @@ Code Rules manages which versioned engineering rules a codebase adopts, includin
 It generates rule files for agents and other tools to consume. Your project chooses how to apply, validate, and enforce them through agent prompts or separate tooling. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
 
 The project is in early implementation.
-Imports, offline Builds, sync, and the development CLI are available from this checkout. No package release is published.
+Imports, offline Builds, sync, project setup, and the development CLI are available from this checkout. No package release is published.
 
 ## Documentation
 
@@ -48,7 +48,7 @@ After running it:
 
 1. Open the printed `generated/RULES.md` path and follow its testing-group link.
 2. Confirm the group page includes exactly two complete active rules: the project retry budget and stopping retries after success.
-3. Open `generated/groups/techs/typescript.md` to see the larger group as an index with explicit **Read full rule** links. Follow the testing rule links and confirm the retry-budget replacement retains ID `example:practices/testing/verify-retries` and links to its local definition.
+3. Open `generated/groups/techs/typescript.md` to see the larger group as an index with explicit **Read full rule** links. Follow the testing rule links and confirm the retry-budget replacement retains its local rule ID and links to its local definition.
 4. Use the printed `scenarios.md` to inspect pre-implementation selection and a review with no test-file edits. The TypeScript scenario should lead to testing and code-design rules, while Go is unrelated.
 5. Open `generated/libraries/example/README.md` for the source identity and revision. This unlicensed fixture has no generated license directory.
 6. Inspect `generated/provenance.json`: the replacement should have a local origin and an imported upstream origin; the additional local rule should have no upstream origin.
@@ -114,6 +114,20 @@ Imports preserves complete owned directories and adds the shared directory when 
 
 Use an exact `ref` or an npm `version` constraint such as `^1.2.0`, never both. Version imports choose the highest matching complete SemVer tag and record its tag, normalized version, and commit.
 Offline builds use the existing snapshot. See [version constraints](docs/src/content/docs/reference/configuration.md#semantic-version-constraints) for prerelease, alias, and repeatability behavior.
+
+## Set up a project
+
+From the consuming repository, with `code-rules` installed:
+
+```sh
+code-rules init
+code-rules local add group practices/testing
+code-rules local add rule practices/testing/retry-budget
+```
+
+The terminal prompts for author input. Agents and scripts can supply equivalent flags; run `--help` for syntax.
+Complete the rule draft, then run `build` and `check`. Add libraries with `add source`, then fetch them with `sync`.
+See [Set up a project](docs/src/content/docs/guides/set-up-project.md) for the complete local-first workflow and noninteractive examples.
 
 ## Sync a project
 

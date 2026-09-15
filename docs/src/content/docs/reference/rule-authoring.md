@@ -4,6 +4,7 @@ description: "The shared standard for writing and reviewing clear, scoped, verif
 ---
 
 Start with the Markdown template, then check the rule against the authoring rubric.
+The [local rule command](/guides/set-up-project/) uses this template; a parity test keeps its distributed copy aligned with this document.
 Authors, reviewing agents, and the planned Code Rules authoring skill use the same rubric.
 One shared template covers technologies, practices, and project-specific rules. Metadata has a defined format; authors adapt the body to the rule.
 
@@ -18,7 +19,7 @@ The [metadata reference](/reference/files/#rule-metadata) defines the frontmatte
 ````md
 ---
 title: <Short action-oriented title>
-whenToRead: "Before [relevant activities] involving [specific behavior or artifact], such as [representative cases, if helpful]."
+whenToRead: 'Before [relevant activities] involving [specific behavior or artifact], such as [representative cases, if helpful].'
 impact: <Level matching the credible consequence within this rule's scope>
 impactDescription: <Specific consequence the rule helps prevent, supporting the impact level>
 ---

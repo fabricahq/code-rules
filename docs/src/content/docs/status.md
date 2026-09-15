@@ -29,6 +29,9 @@ It accepts explicit HTTPS and SSH Git addresses across hosts. Generated source l
 Imports requires macOS or Linux and Git 2.30 or later. It preserves selected rules, owned/shared assets, and declared license files without modifying the consuming project.
 `sync`, offline `build`, and read-only `check` are implemented as development commands and APIs. They share snapshot verification, file comparison, and safe application helpers. See [Sync and recovery](/reference/sync/).
 
+Project setup commands are also implemented: `init`, `local add group`, `local add rule`, and `add source`.
+They support terminal prompts and equivalent explicit flags, preserve authored content, and keep fetching separate from configuration changes. See [Set up a project](/guides/set-up-project/).
+
 ## What is settled
 
 - Separate public tooling from independently owned rule libraries.
@@ -42,7 +45,7 @@ Imports requires macOS or Linux and Git 2.30 or later. It preserves selected rul
 
 ## What is proposed
 
-Publishing the CLI, authoring commands, and the installable authoring skill workflow remain proposed.
+Publishing the CLI, library authoring commands, and the installable authoring skill workflow remain proposed.
 The builder implements the documented configuration and rule metadata, but these unreleased formats may still change.
 The versioned `_source.json` record and safe application contract are implemented; see [Sync and recovery](/reference/sync/).
 The proposed [`code-rules update`](/reference/cli/#update-the-tool) command upgrades the CLI to its latest stable release.
@@ -57,7 +60,7 @@ The initial proof uses original example rules, local exceptions, and generated f
 A private-project pilot follows that proof.
 
 The final implementation phase standardizes library authoring with `library init`, `library add group`, `library add rule`, and `library check`.
-It includes the authoring skill's adaptation workflow and a walkthrough from an empty library to importable rules with retained terms.
+It includes an adaptation workflow and a walkthrough from an empty library to importable rules with retained terms.
 See [Create a rule library](/guides/create-library/) and [Adapt a third-party rule](/guides/adapt-rules/) for the proposed experience.
 
 Organization libraries that inherit from and republish other libraries, and assisted group selection, are later work.

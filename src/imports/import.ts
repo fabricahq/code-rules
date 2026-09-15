@@ -82,7 +82,12 @@ async function importSource(
   } finally {
     if (temporary !== undefined) {
       try {
-        await rm(temporary, { recursive: true, force: true });
+        await rm(temporary, {
+          recursive: true,
+          force: true,
+          maxRetries: 3,
+          retryDelay: 100,
+        });
       } catch {
         cleanupFailure = new ImportError(
           'io-error',
