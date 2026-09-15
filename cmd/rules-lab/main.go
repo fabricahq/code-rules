@@ -66,7 +66,7 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
-	case "groupID", "ruleGroup", "groupMetadata":
+	case "groupID", "ruleGroup", "groupMetadata", "document":
 		var text string
 		if len(req.Input) == 0 || bytes.Equal(bytes.TrimSpace(req.Input), []byte("null")) || json.Unmarshal(req.Input, &text) != nil {
 			return adapterError("input must be a string for " + req.Operation), nil
@@ -79,6 +79,8 @@ func invoke(data []byte) (response, error) {
 			value, err = rules.GroupFromPath(text, req.Location)
 		case "groupMetadata":
 			value, err = rules.ParseGroupMetadata(json.RawMessage(text), req.Location)
+		case "document":
+			value, err = rules.SplitDocument(text, req.Location)
 		}
 	case "selection":
 		var selection rules.GroupSelection

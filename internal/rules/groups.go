@@ -1,4 +1,4 @@
-// Package rules validates group and rule identities without accessing the filesystem.
+// Package rules parses and validates group and rule formats without accessing the filesystem.
 package rules
 
 import (

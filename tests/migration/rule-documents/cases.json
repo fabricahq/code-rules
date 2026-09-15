@@ -1,0 +1,369 @@
+[
+  {
+    "id": "document-lf",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\n# Example\n\nKeep the original text.\n",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.",
+        "body": "# Example\n\nKeep the original text.\n"
+      }
+    }
+  },
+  {
+    "id": "document-crlf",
+    "operation": "document",
+    "input": "---\r\ntitle: Example\r\nimpact: HIGH\r\nimpactDescription: Prevent mistakes.\r\nwhenToRead: When editing Go code.\r\n---\r\n# Example\r\n\r\nKeep the original text.\r\n",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\r\nimpact: HIGH\r\nimpactDescription: Prevent mistakes.\r\nwhenToRead: When editing Go code.",
+        "body": "# Example\r\n\r\nKeep the original text.\r\n"
+      }
+    }
+  },
+  {
+    "id": "document-mixed-newlines",
+    "operation": "document",
+    "input": "---\ntitle: Example\r\nimpact: HIGH\r\nimpactDescription: Prevent mistakes.\r\nwhenToRead: When editing Go code.\r\n---\n# Example\nText\r\n",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\r\nimpact: HIGH\r\nimpactDescription: Prevent mistakes.\r\nwhenToRead: When editing Go code.",
+        "body": "# Example\nText\r\n"
+      }
+    }
+  },
+  {
+    "id": "document-body-leading-whitespace",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\n\n\t  # Example\n",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.",
+        "body": "\n\t  # Example\n"
+      }
+    }
+  },
+  {
+    "id": "document-body-trailing-whitespace",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\n# Example  \n\n\t ",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.",
+        "body": "# Example  \n\n\t "
+      }
+    }
+  },
+  {
+    "id": "document-metadata-whitespace",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n\n# retain this comment  \n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n\n# retain this comment  ",
+        "body": "Body"
+      }
+    }
+  },
+  {
+    "id": "document-unicode",
+    "operation": "document",
+    "input": "---\ntitle: 日本語 🐹\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\n# café\n\né stays decomposed. 🚀\n",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: 日本語 🐹\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.",
+        "body": "# café\n\né stays decomposed. 🚀\n"
+      }
+    }
+  },
+  {
+    "id": "document-markdown-delimiters",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\n# Example\n\n---\n\n```yaml\n---\ninside: fence\n```\n",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.",
+        "body": "# Example\n\n---\n\n```yaml\n---\ninside: fence\n```\n"
+      }
+    }
+  },
+  {
+    "id": "document-first-closing-delimiter",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\nextra: body\n---\nMore body",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.",
+        "body": "extra: body\n---\nMore body"
+      }
+    }
+  },
+  {
+    "id": "document-indented-yaml-marker",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\nexample: |\n  ---\n  inside a scalar\n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\nexample: |\n  ---\n  inside a scalar",
+        "body": "Body"
+      }
+    }
+  },
+  {
+    "id": "document-no-final-newline",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "frontmatter": "title: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.",
+        "body": "Body"
+      }
+    }
+  },
+  {
+    "id": "document-empty",
+    "operation": "document",
+    "input": "",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-no-frontmatter",
+    "operation": "document",
+    "input": "# Example\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-leading-blank",
+    "operation": "document",
+    "input": "\n---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-leading-bom",
+    "operation": "document",
+    "input": "﻿---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-opening-space",
+    "operation": "document",
+    "input": "--- \ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-opening-indent",
+    "operation": "document",
+    "input": " ---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-opening-four-dashes",
+    "operation": "document",
+    "input": "----\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-opening-cr-only",
+    "operation": "document",
+    "input": "---\rtitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-no-closing",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-closing-space",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n--- \nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-closing-indent",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n ---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-closing-four-dashes",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n----\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-closing-inline",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code. ---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-closing-cr-only",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n---\rBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-adjacent-delimiters",
+    "operation": "document",
+    "input": "---\n---\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  },
+  {
+    "id": "document-yaml-end-marker",
+    "operation": "document",
+    "input": "---\ntitle: Example\nimpact: HIGH\nimpactDescription: Prevent mistakes.\nwhenToRead: When editing Go code.\n...\nBody",
+    "location": "lab:techs/go/example.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/example.md: expected YAML frontmatter followed by Markdown",
+        "location": "lab:techs/go/example.md"
+      }
+    }
+  }
+]
