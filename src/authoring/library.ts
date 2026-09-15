@@ -156,6 +156,10 @@ export async function hasLibraryGroup(
   const root = await libraryRoot(directory);
   await validateManifest(root);
   await readTree(join(root, id.split('/')[0] ?? ''));
+  return hasGroupMetadata(root, id);
+}
+
+async function hasGroupMetadata(root: string, id: string): Promise<boolean> {
   const bytes = await optionalBytes(join(root, id, '_group.json'));
   if (bytes === null) return false;
   groupMetadata(textFile(bytes, id), id);
@@ -188,7 +192,7 @@ export async function addLibraryRule(
         text: renderGroup(options.group),
         before: null,
       });
-    else if (!(await hasLibraryGroup(group, root)))
+    else if (!(await hasGroupMetadata(root, group)))
       throw new ProjectError(
         'missing-group',
         `Run library add group ${group} first or supply --create-group and metadata.`,

@@ -149,7 +149,7 @@ code-rules library check
 Scaffolding commands validate paths and detect collisions before writing. They never overwrite existing files or leave partial scaffolds after a failed operation.
 They do not create Git repositories, commit, publish, infer licenses, or convert arbitrary upstream material.
 Interactive prompts collect missing author input. Noninteractive use must accept equivalent explicit inputs and fail with actionable errors when required input is missing.
-Exact input flags will be specified with implementation.
+Group and rule commands use the same metadata flags as local authoring; run `code-rules --help` for the complete syntax.
 
 Library validation checks the input format, not the quality of the guidance or legal permissions.
 Consumer `code-rules check` instead verifies generated output against adopted inputs.
