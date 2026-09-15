@@ -6,6 +6,8 @@ description: "Start with local rules, then add shared libraries without moving y
 Run these commands from the repository where you want to use rules.
 The examples assume `code-rules` is installed and available on your PATH. See [CLI commands](/reference/cli/) for availability and development setup.
 
+For an executable you can run outside the checkout, [install the packed release candidate](/guides/install/).
+
 ## Start with local rules
 
 ```sh

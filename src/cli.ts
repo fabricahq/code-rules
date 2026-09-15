@@ -1,15 +1,21 @@
-/** @fileoverview Runs project setup, authoring, sync, build, and check through the development CLI. */
+#!/usr/bin/env node
+/** @fileoverview Runs project setup, authoring, sync, build, and check through the Code Rules executable. */
 
 import { sync } from './sync';
+import { toolVersion } from './version';
 import { runAuthoring, authoringHelp, UsageError } from './authoring/cli';
 import { buildProject, checkProject } from './project';
 
 /** Execute one command and return its exit status; check reports stale files without modifying them. */
 export async function main(args: readonly string[]): Promise<number> {
   const [command, ...rest] = args;
-  if (command === '--help' || command === '-h') {
+  if (args.length === 1 && (command === '--version' || command === '-v')) {
+    console.log(toolVersion);
+    return 0;
+  }
+  if (args.includes('--help') || args.includes('-h')) {
     console.log(
-      'Usage: bun src/cli.ts <command> [options]\n  sync | build | check [--config path/to/config.json]\n' +
+      'Usage: code-rules <command> [options]\n  sync | build | check [--config path/to/config.json]\n' +
         authoringHelp,
     );
     return 0;
@@ -30,12 +36,13 @@ export async function main(args: readonly string[]): Promise<number> {
         (rest.length !== 2 || rest[0] !== '--config' || !rest[1]))
     ) {
       console.error(
-        'Usage: bun src/cli.ts <sync|build|check> [--config path/to/config.json]',
+        'Usage: code-rules <sync|build|check> [--config path/to/config.json]',
       );
       return 2;
     }
     const options = {
       signal: controller.signal,
+      toolVersion,
       ...(rest[1] === undefined ? {} : { configPath: rest[1] }),
     };
     const result = await (command === 'sync'

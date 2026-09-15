@@ -5,7 +5,8 @@ Code Rules manages which versioned engineering rules a codebase adopts, includin
 It generates rule files for agents and other tools to consume. Your project chooses how to apply, validate, and enforce them through agent prompts or separate tooling. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
 
 The project is in early implementation.
-Imports, offline Builds, sync, project setup, library authoring, and the development CLI are available from this checkout. No package release is published.
+Imports, offline Builds, sync, project setup, library authoring, and the development CLI are available from this checkout. The Node.js CLI can be packed and installed locally; no package release is published.
+See [Install Code Rules](docs/src/content/docs/guides/install.md) to try the release candidate.
 
 ## Documentation
 
@@ -150,3 +151,10 @@ See [sync and recovery](docs/src/content/docs/reference/sync.md) for ownership, 
 Use `library init`, `library add group`, `library add rule`, and `library check` from a library's root.
 Group and rule commands share the local authoring flags and canonical template. License terms must be supplied explicitly; initialization without license flags leaves them undeclared.
 See [Create a rule library](docs/src/content/docs/guides/create-library.md) for license setup, draft completion, validation, and publishing through Git.
+
+## Package and release
+
+Run `npm pack` to build the Node.js executable and package its authoring template.
+Run `bun run test:package` to install the tarball into a temporary prefix and exercise the executable from fresh projects.
+The installed CLI supports Node.js 22.18+ on macOS/Linux; imports also need Git 2.30+.
+See [release preparation](_internal/releasing.md) for npm ownership, licensing, trusted publishing, and pilot gates.

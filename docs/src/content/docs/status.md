@@ -5,7 +5,7 @@ description: "What this documentation describes and what remains to be built."
 
 **Code Rules is in early implementation.**
 The documentation includes implemented offline generation and proposed workflows for the first release.
-The development CLI works from this checkout; a published executable and installable authoring skill have not shipped.
+The CLI can be [packed and installed locally](/guides/install/) for Node.js on macOS/Linux. A public npm release and installable authoring skill have not shipped.
 
 ## What works in this checkout
 
@@ -45,7 +45,7 @@ They support terminal prompts and equivalent explicit flags, preserve authored c
 
 ## What is proposed
 
-Publishing the CLI and the installable authoring skill workflow remain proposed.
+Package creation, installed-executable tests, and a versioned publishing workflow are implemented. Public publication still requires package ownership, approved tool licensing, trusted-publisher setup, and a real-project pilot. The installable authoring skill remains a follow-up.
 The builder implements the documented configuration and rule metadata, but these unreleased formats may still change.
 The versioned `_source.json` record and safe application contract are implemented; see [Sync and recovery](/reference/sync/).
 The proposed [`code-rules update`](/reference/cli/#update-the-tool) command upgrades the CLI to its latest stable release.

@@ -4,11 +4,13 @@ description: "The proposed rule import, validation, conflict-review prompt, and 
 ---
 
 **Project setup, local and library authoring, source addition, sync, build, and check work through the development entry point `bun src/cli.ts`.**
-The `code-rules` executable is not published. Other commands on this page remain proposed.
+You can also [install a packed release candidate](/guides/install/) and run `code-rules` directly. No public npm release is published. The conflict-review prompt and tool-update commands remain proposed.
 See [Sync and recovery](/reference/sync/) for development commands and filesystem behavior.
 
 For `sync`, `build`, `check`, and `conflicts --prompt`, run from the consuming project's root by default.
 Use `--config` to identify a configuration file elsewhere.
+
+Use `code-rules --version` to print the installed version. `--help` works at the top level and after subcommands without writing files.
 
 ## Sync
 
