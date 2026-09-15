@@ -112,16 +112,16 @@ Keep replacement files within that directory's `local/` tree.
 
 ## Initialize and author a project
 
-These commands work through the development entry point:
+Run these commands from your consuming project with `code-rules` installed:
 
 ```sh
-bun src/cli.ts init
-bun src/cli.ts local add group practices/testing
-bun src/cli.ts local add rule practices/testing/retry-budget
-bun src/cli.ts add source team --repository https://github.com/example/rules.git --version '^1.2.0' --groups '*'
+code-rules init
+code-rules local add group practices/testing
+code-rules local add rule practices/testing/retry-budget
+code-rules add source team --repository https://github.com/example/rules.git --version '^1.2.0' --groups '*'
 ```
 
-Run them from the consuming project using the absolute path to `src/cli.ts`, or pass `--config` explicitly.
+Use `--config` to select a configuration file outside the default location.
 `init` creates an empty source configuration and `local/README.md` under `.code-rules/` by default, preserving existing files.
 Local authoring collects rule and group metadata, offering missing-group creation when interactive. No source declaration is needed for local rules.
 `add source` validates and records a library declaration; run `sync` separately to fetch it. It preserves existing source exceptions and local files.

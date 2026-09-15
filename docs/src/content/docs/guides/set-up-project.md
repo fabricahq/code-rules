@@ -3,15 +3,15 @@ title: "Set up a project"
 description: "Start with local rules, then add shared libraries without moving your authored files."
 ---
 
-Project setup works through the development CLI. The `code-rules` executable is not published yet.
-In the commands below, replace `/path/to/code-rules` with your development checkout. Run them from your consuming repository.
+Run these commands from the repository where you want to use rules.
+The examples assume `code-rules` is installed and available on your PATH. See [CLI commands](/reference/cli/) for availability and development setup.
 
 ## Start with local rules
 
 ```sh
-bun /path/to/code-rules/src/cli.ts init
-bun /path/to/code-rules/src/cli.ts local add group practices/testing
-bun /path/to/code-rules/src/cli.ts local add rule practices/testing/retry-budget
+code-rules init
+code-rules local add group practices/testing
+code-rules local add rule practices/testing/retry-budget
 ```
 
 `init` creates `.code-rules/config.json` with no imported sources and `.code-rules/local/README.md`.
@@ -25,8 +25,8 @@ The new Markdown rule is a **draft** from the [canonical template](/reference/ru
 A successful format check does not establish that a draft is finished or that its guidance is correct.
 
 ```sh
-bun /path/to/code-rules/src/cli.ts build
-bun /path/to/code-rules/src/cli.ts check
+code-rules build
+code-rules check
 ```
 
 Open `.code-rules/generated/RULES.md` and review the generated rules. Commit configuration, local rules, and generated files.
@@ -35,10 +35,10 @@ Use the [agent integration instructions](/for-agents/) to connect the rules to y
 ## Add a library later
 
 ```sh
-bun /path/to/code-rules/src/cli.ts add source team \
+code-rules add source team \
   --repository https://github.com/example/rules.git \
   --version '^1.2.0' --groups '*'
-bun /path/to/code-rules/src/cli.ts sync
+code-rules sync
 ```
 
 Replace the example repository and version with a library you can access.
@@ -55,13 +55,13 @@ Every prompt has an equivalent flag. A non-terminal invocation never prompts. `-
 Missing required inputs, unknown flags, and repeated single-value flags produce a usage error without authoring files.
 
 ```sh
-bun /path/to/code-rules/src/cli.ts local add group practices/testing \
+code-rules local add group practices/testing \
   --name Testing \
   --description 'Verify observable project behavior.' \
   --when-to-read 'Before planning, changing, or reviewing project behavior.' \
   --non-interactive
 
-bun /path/to/code-rules/src/cli.ts local add rule practices/testing/retry-budget \
+code-rules local add rule practices/testing/retry-budget \
   --title 'Bound retry attempts' \
   --when-to-read 'When implementing or reviewing retry behavior.' \
   --impact HIGH \

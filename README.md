@@ -117,12 +117,12 @@ Offline builds use the existing snapshot. See [version constraints](docs/src/con
 
 ## Set up a project
 
-From the consuming repository, run the development entry point by its absolute path:
+From the consuming repository, with `code-rules` installed:
 
 ```sh
-bun /path/to/code-rules/src/cli.ts init
-bun /path/to/code-rules/src/cli.ts local add group practices/testing
-bun /path/to/code-rules/src/cli.ts local add rule practices/testing/retry-budget
+code-rules init
+code-rules local add group practices/testing
+code-rules local add rule practices/testing/retry-budget
 ```
 
 The terminal prompts for author input. Agents and scripts can supply equivalent flags; run `--help` for syntax.
