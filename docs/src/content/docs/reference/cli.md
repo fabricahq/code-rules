@@ -3,7 +3,7 @@ title: "CLI commands"
 description: "The proposed rule import, validation, conflict-review prompt, and tool update commands."
 ---
 
-**Project setup, local authoring, source addition, sync, build, and check work through the development entry point `bun src/cli.ts`.**
+**Project setup, local and library authoring, source addition, sync, build, and check work through the development entry point `bun src/cli.ts`.**
 The `code-rules` executable is not published. Other commands on this page remain proposed.
 See [Sync and recovery](/reference/sync/) for development commands and filesystem behavior.
 
@@ -131,8 +131,8 @@ All commands accept `--non-interactive`. Missing inputs fail without prompting w
 
 ## Author a library
 
-These proposed commands run from the library root, independently of a consuming project's configuration.
-They form the final implementation phase. Follow [Create a rule library](/guides/create-library/) for the complete workflow.
+These commands run from the library root, independently of a consuming project's configuration.
+Use `--directory path` for a different library root. They do not accept `--config`. Follow [Create a rule library](/guides/create-library/) for the complete workflow.
 
 ```sh
 code-rules library init
@@ -141,10 +141,10 @@ code-rules library add rule techs/javascript/prefer-for-of
 code-rules library check
 ```
 
-- `library init` creates the format manifest and a README pointing to the canonical authoring guidance. It records an explicit license choice and retains the corresponding text and notices. Authors may defer that choice; the manifest then leaves it undeclared.
+- `library init` creates the format manifest and a README pointing to the canonical authoring guidance. Supply `--spdx expression --license-file path` and optional `--notice-file path` to copy explicit terms to `LICENSE.md` and `NOTICE.md`. Authors may defer that choice; the manifest then leaves it undeclared.
 - `library add group <group-id>` creates `_group.json` under `techs/` or `practices/`, collecting the name, description, and group-level `whenToRead` cues. A group can exist before it has rules.
-- `library add rule <rule-id>` creates a Markdown draft from the canonical template in an existing group. A missing group produces an error with the command to create it. Required fields need author input; the command does not invent policy.
-- `library check` validates the manifest, all group and rule definitions, and declared license and notice assets offline without writing files. It reports file-specific errors and group and rule counts. Empty groups are valid. Undeclared licenses produce warnings; malformed declarations and missing declared files fail validation.
+- `library add rule <rule-id>` creates a Markdown draft from the canonical template in an existing group. A missing group can be created interactively or with `--create-group` and explicit metadata. Required fields need author input; the command does not invent policy.
+- `library check` validates the manifest, all group and rule definitions, and declared license and notice assets offline without writing files. It reports file-specific errors and group and rule counts. Marked drafts fail until completed and their `code-rules:draft` marker is removed. Empty groups are valid. Undeclared licenses produce warnings; malformed declarations and missing declared files fail validation.
 
 Scaffolding commands validate paths and detect collisions before writing. They never overwrite existing files or leave partial scaffolds after a failed operation.
 They do not create Git repositories, commit, publish, infer licenses, or convert arbitrary upstream material.
