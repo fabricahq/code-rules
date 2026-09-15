@@ -470,7 +470,7 @@
         <p class="notice">
           This slice parses a group’s <code>_group.json</code> contents. It does
           not find groups, read files, expand wildcards, or parse rule Markdown.
-          The 78 metadata cases and 87 identity cases run against both the
+          The 78 metadata cases and 88 identity cases run against both the
           TypeScript reference and the real Go executable.
         </p>
         <details>
@@ -565,6 +565,7 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
           location: "group",
           examples: [
             ["Valid", "techs/go"],
+            ["Hyphenated name", "techs/github-actions"],
             ["Practice", "practices/testing"],
             ["Reserved", "techs/assets"],
             ["Uppercase", "techs/Go"],

@@ -32,7 +32,7 @@ No file discovery, wildcard resolution, filesystem writes, product CLI, or new d
 
 Add explicit metadata cases under `tests/migration/group-metadata/` and invoke them directly from Go tests.
 Move the shared comparison runner to `tests/migration/compare-rules.ts` and run both identity and metadata cases against the pinned TypeScript functions and native binary.
-Keep the 87 identity cases and all exact diagnostic comparisons intact.
+Keep the 88 identity cases and all exact diagnostic comparisons intact.
 
 Extend the existing embedded `cmd/rules-lab` walkthrough using its current Code Rules gallery styling.
 The new operation sends JSON document text as a string to the adapter, so malformed document JSON reaches the Go parser.
@@ -73,7 +73,7 @@ bun run check
 bun run test:package
 ```
 
-The shared suite contains 78 metadata cases plus 87 identity cases. The original 53 fixture inputs remain, with added string-format cases. Each behavior difference records the pinned TypeScript result explicitly.
+The shared suite contains 78 metadata cases plus 88 identity cases. The original 53 fixture inputs remain, with added string-format cases. Each behavior difference records the pinned TypeScript result explicitly.
 Cases cover nonblank, empty, blank, null, and legacy-array guidance, whitespace and Unicode scalar text, key case and repetition, unknown-field rejection, absent/null/wrongly typed values, error precedence, and forbidden license fields.
 Go tests also check that parsing does not mutate input, results own their storage, failures return no partial metadata, and HTTP returns trimmed reading guidance as a string.
 
@@ -83,7 +83,7 @@ Private corpus contents are not copied into the product repository.
 ## Validation result
 
 - Go formatting, vet, Staticcheck v0.8.1, and race tests passed.
-- The 165 shared cases include 60 approved identity diagnostic differences and 48 approved metadata format/trim/unknown-field differences.
+- The 166 shared cases include 60 approved identity diagnostic differences and 48 approved metadata format/trim/unknown-field differences.
 - `bun run check` passed, including 444 tests, formatting, lint, type checking, docs build, and link checks. Six installed-package tests passed.
 - All ten metadata presets were invoked through the real browser lab. The editor fits the default document and resets to its beginning when selecting a preset.
 - Supported read-only Codex autoreview with web disabled returned one finding: the Unicode defect above. It is accepted and unresolved; review is not clean.
