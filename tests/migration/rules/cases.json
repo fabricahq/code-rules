@@ -1553,10 +1553,19 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: impact must be one of CRITICAL, HIGH, MEDIUM-HIGH, MEDIUM, LOW-MEDIUM, LOW; got \"high\"",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
         "message": "lab:techs/go/errors.md: unknown impact high",
         "location": "lab:techs/go/errors.md"
       }
-    }
+    },
+    "difference": "User-requested diagnostic lists all accepted impact values and the rejected value. Both implementations reject the input."
   },
   {
     "id": "rule-legacy-guidance-array",
@@ -3214,5 +3223,32 @@
       }
     },
     "difference": "User-requested actionable diagnostic for empty YAML frontmatter, including whitespace and comments only. Both implementations reject the input."
+  },
+  {
+    "id": "rule-invalid-impact-urgent",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: Handle errors deliberately\nimpact: URGENT\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: impact must be one of CRITICAL, HIGH, MEDIUM-HIGH, MEDIUM, LOW-MEDIUM, LOW; got \"URGENT\"",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "lab:techs/go/errors.md: unknown impact URGENT",
+        "location": "lab:techs/go/errors.md"
+      }
+    },
+    "difference": "User-requested diagnostic lists all accepted impact values and the rejected value. Both implementations reject the input."
   }
 ]

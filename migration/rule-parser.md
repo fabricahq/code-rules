@@ -25,7 +25,7 @@ The YAML node adapter retains the reference's YAML 1.2 core scalar types. For ex
 
 ## Approved diagnostic difference
 
-The user approved Go-native YAML diagnostics. Both implementations reject malformed YAML with `ValidationError` at the same rule location. Fixtures specify each implementation's exact diagnostic separately. The user also requested a clearer empty-frontmatter diagnostic. Empty, whitespace-only, and comment-only metadata now names the missing YAML frontmatter and lists the required fields. Three fixtures retain the previous reference message separately. Other domain errors continue to match the pinned reference. No baseline, global comparison policy, or output normalization changes.
+The user approved Go-native YAML diagnostics. Both implementations reject malformed YAML with `ValidationError` at the same rule location. Fixtures specify each implementation's exact diagnostic separately. The user also requested a clearer empty-frontmatter diagnostic. Empty, whitespace-only, and comment-only metadata now names the missing YAML frontmatter and lists the required fields. Three fixtures retain the previous reference message separately. Invalid-impact diagnostics also list the six accepted values and the rejected value, as requested during review. Two fixtures retain the earlier reference diagnostics. Other domain errors continue to match the pinned reference. No baseline, global comparison policy, or output normalization changes.
 
 ## Pending Unicode decision
 
@@ -54,7 +54,7 @@ Open one PR into `go-migration` and stop for human review. The next recommended 
 
 ### Local evidence
 
-- All 355 shared function cases pass, including 146 complete-rule cases. Sixteen cases use the approved native YAML diagnostic wording; 124 earlier approved differences remain unchanged.
+- All 356 shared function cases pass, including 147 complete-rule cases. Sixteen cases use the approved native YAML diagnostic wording; 124 earlier approved differences remain unchanged.
 - Go race tests, vet, Staticcheck v0.8.1, and module verification pass on Go 1.27.1.
 - A 20-second parser fuzz run completed 794,659 executions without a failure.
 - `bun run check` passes: formatting, lint, typecheck, all 444 tests, documentation checks/build, and link checks.

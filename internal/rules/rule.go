@@ -100,7 +100,8 @@ func ruleFields(fields map[string]*yaml.Node, location string) (Rule, error) {
 	switch r.Impact {
 	case ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow:
 	default:
-		return Rule{}, invalid(location, "unknown impact "+impact)
+		return Rule{}, invalid(location, fmt.Sprintf("impact must be one of %s, %s, %s, %s, %s, %s; got %s",
+			ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow, quote(impact)))
 	}
 	r.ImpactDescription, err = ruleText(fields["impactDescription"], location+".impactDescription")
 	if err != nil {
