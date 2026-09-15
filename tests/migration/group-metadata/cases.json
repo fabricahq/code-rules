@@ -1,0 +1,750 @@
+[
+  {
+    "id": "metadata-valid",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          "When writing Go.",
+          "When reviewing Go."
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-empty-guidance",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": []
+      }
+    }
+  },
+  {
+    "id": "metadata-one-guidance",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When editing.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          "When editing."
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-preserve-text",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\" Go \",\"description\":\"\\nGo rules\\t\",\"whenToRead\":[\" z \",\"a\",\"Z\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": " Go ",
+        "description": "\nGo rules\t",
+        "whenToRead": [
+          " z ",
+          "a",
+          "Z"
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-unicode",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"日本語 🐹\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"é\",\"é\",\"🐹\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "日本語 🐹",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          "é",
+          "é",
+          "🐹"
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-nel-is-text",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          ""
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-unknown-fields",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"future\":{\"value\":true},\"Name\":\"Wrong\",\"__proto__\":{\"license\":\"MIT\"}}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          "When writing Go.",
+          "When reviewing Go."
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-case-sensitive-license",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"License\":\"MIT\",\"LICENSES\":null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          "When writing Go.",
+          "When reviewing Go."
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-ignored-large-number",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"future\":1e400}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          "When writing Go.",
+          "When reviewing Go."
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-duplicate-key-last",
+    "operation": "groupMetadata",
+    "input": "{\"name\":null,\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          "When writing Go.",
+          "When reviewing Go."
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-duplicate-key-invalid-last",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"name\":null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected nonempty text",
+        "location": "techs/go/_group.json.name"
+      }
+    }
+  },
+  {
+    "id": "metadata-escaped-field-name",
+    "operation": "groupMetadata",
+    "input": "{\"na\\u006de\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          "When writing Go.",
+          "When reviewing Go."
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-json-empty",
+    "operation": "groupMetadata",
+    "input": "",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: invalid JSON",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-json-truncated",
+    "operation": "groupMetadata",
+    "input": "{\"name\":",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: invalid JSON",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-json-trailing",
+    "operation": "groupMetadata",
+    "input": "{} true",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: invalid JSON",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-json-comment",
+    "operation": "groupMetadata",
+    "input": "{/* nope */}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: invalid JSON",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-json-trailing-comma",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: invalid JSON",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-json-bom",
+    "operation": "groupMetadata",
+    "input": "﻿{}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: invalid JSON",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-object-null",
+    "operation": "groupMetadata",
+    "input": "null",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: expected an object",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-object-array",
+    "operation": "groupMetadata",
+    "input": "[]",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: expected an object",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-object-string",
+    "operation": "groupMetadata",
+    "input": "\"Go\"",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: expected an object",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-object-number",
+    "operation": "groupMetadata",
+    "input": "42",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: expected an object",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-object-boolean",
+    "operation": "groupMetadata",
+    "input": "false",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json: expected an object",
+        "location": "techs/go/_group.json"
+      }
+    }
+  },
+  {
+    "id": "metadata-name-missing",
+    "operation": "groupMetadata",
+    "input": "{\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected nonempty text",
+        "location": "techs/go/_group.json.name"
+      }
+    }
+  },
+  {
+    "id": "metadata-name-null",
+    "operation": "groupMetadata",
+    "input": "{\"name\":null,\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected nonempty text",
+        "location": "techs/go/_group.json.name"
+      }
+    }
+  },
+  {
+    "id": "metadata-name-wrong-type",
+    "operation": "groupMetadata",
+    "input": "{\"name\":42,\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected nonempty text",
+        "location": "techs/go/_group.json.name"
+      }
+    }
+  },
+  {
+    "id": "metadata-description-missing",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.description: expected nonempty text",
+        "location": "techs/go/_group.json.description"
+      }
+    }
+  },
+  {
+    "id": "metadata-description-null",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":null,\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.description: expected nonempty text",
+        "location": "techs/go/_group.json.description"
+      }
+    }
+  },
+  {
+    "id": "metadata-description-wrong-type",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":42,\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.description: expected nonempty text",
+        "location": "techs/go/_group.json.description"
+      }
+    }
+  },
+  {
+    "id": "metadata-whenToRead-missing",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-whenToRead-null",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-whenToRead-wrong-type",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":42}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-name-blank",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\" \\t\\n﻿\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected nonempty text",
+        "location": "techs/go/_group.json.name"
+      }
+    }
+  },
+  {
+    "id": "metadata-description-blank",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\" \\t\\n﻿\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.description: expected nonempty text",
+        "location": "techs/go/_group.json.description"
+      }
+    }
+  },
+  {
+    "id": "metadata-wrong-field-case",
+    "operation": "groupMetadata",
+    "input": "{\"Name\":\"Go\",\"description\":\"Go\",\"whenToRead\":[]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected nonempty text",
+        "location": "techs/go/_group.json.name"
+      }
+    }
+  },
+  {
+    "id": "metadata-all-fields-missing",
+    "operation": "groupMetadata",
+    "input": "{}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected nonempty text",
+        "location": "techs/go/_group.json.name"
+      }
+    }
+  },
+  {
+    "id": "metadata-guidance-first-blank",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"\",\"When editing.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead[0]: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead[0]"
+      }
+    }
+  },
+  {
+    "id": "metadata-guidance-last-null",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When editing.\",null]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead[1]: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead[1]"
+      }
+    }
+  },
+  {
+    "id": "metadata-guidance-middle-object",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When editing.\",{},\"When reviewing.\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead[1]: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead[1]"
+      }
+    }
+  },
+  {
+    "id": "metadata-guidance-bom",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"﻿\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead[0]: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead[0]"
+      }
+    }
+  },
+  {
+    "id": "metadata-guidance-duplicate",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"Same\",\"Same\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: duplicate entries",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-guidance-text-before-duplicate",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"Same\",\"Same\",\"\"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead[2]: expected nonempty text",
+        "location": "techs/go/_group.json.whenToRead[2]"
+      }
+    }
+  },
+  {
+    "id": "metadata-guidance-whitespace-distinct",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"Same\",\" Same\",\"Same \"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go engineering rules",
+        "whenToRead": [
+          "Same",
+          " Same",
+          "Same "
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-license-text",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"license\":\"MIT\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.license: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
+        "location": "techs/go/_group.json.license"
+      }
+    }
+  },
+  {
+    "id": "metadata-license-null",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"license\":null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.license: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
+        "location": "techs/go/_group.json.license"
+      }
+    }
+  },
+  {
+    "id": "metadata-license-false",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"license\":false}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.license: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
+        "location": "techs/go/_group.json.license"
+      }
+    }
+  },
+  {
+    "id": "metadata-licenses-text",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"licenses\":\"MIT\"}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.licenses: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
+        "location": "techs/go/_group.json.licenses"
+      }
+    }
+  },
+  {
+    "id": "metadata-licenses-null",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"licenses\":null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.licenses: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
+        "location": "techs/go/_group.json.licenses"
+      }
+    }
+  },
+  {
+    "id": "metadata-licenses-false",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"When writing Go.\",\"When reviewing Go.\"],\"licenses\":false}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.licenses: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
+        "location": "techs/go/_group.json.licenses"
+      }
+    }
+  },
+  {
+    "id": "metadata-license-before-fields",
+    "operation": "groupMetadata",
+    "input": "{\"license\":null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.license: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
+        "location": "techs/go/_group.json.license"
+      }
+    }
+  },
+  {
+    "id": "metadata-license-before-licenses",
+    "operation": "groupMetadata",
+    "input": "{\"licenses\":\"MIT\",\"license\":null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.license: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
+        "location": "techs/go/_group.json.license"
+      }
+    }
+  }
+]
