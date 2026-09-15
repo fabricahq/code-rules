@@ -1,6 +1,6 @@
 # Complete rule parsing: fourth Go slice
 
-Status: implemented and locally validated on `codex/go-rule-parser`; draft review pending the Unicode decision below.
+Status: implemented and locally validated on `codex/go-rule-parser`; ready for review, with the Unicode decision below still required before merge.
 
 PR #13 merged after CodeRabbit reported no actionable findings and all 14 checks passed. This slice starts at `301caa59654e8170f66ef6347eba4c0951d44560`.
 The TypeScript reference remains `7013d3d374a33a5cf65a2a48ff6870e46f9d7209`; the engineering corpus remains `e2166f90333157fd3e14c24d3e43287ece858e4b`.
@@ -63,6 +63,6 @@ Open one PR into `go-migration` and stop for human review. The next recommended 
 
 These are local implementation checks, not approval of the pending Unicode difference or completion of a whole migration capability.
 
-Independent read-only autoreview reported one actionable finding: the pending surrogate-escape acceptance difference. That finding is accepted as a merge blocker. No other actionable findings were reported. Approval and exact shared fixtures are required before this draft becomes ready.
+Independent read-only autoreview reported one actionable finding: the pending surrogate-escape acceptance difference. That finding is accepted as a merge blocker. No other actionable findings were reported. Approval and exact shared fixtures are required before this PR can merge.
 
 The focused review of strict-field validation is clean. A proposed change to put license errors ahead of non-string field names was rejected: field-name shape belongs to structural YAML validation. Regression fixtures document both error-ordering cases.
