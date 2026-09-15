@@ -25,6 +25,7 @@ var (
 	yamlTimestamp = regexp.MustCompile(`^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:(?:t|T|[ \t]+)[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(?:\.[0-9]+)?(?:[ \t]*(?:Z|[-+][012]?[0-9](?::[0-9]{2})?))?)?$`)
 )
 
+// ruleYAML parses one frontmatter object and rejects malformed YAML, duplicate keys, and aliases.
 func ruleYAML(text, location string) (map[string]*yaml.Node, error) {
 	decoder := yaml.NewDecoder(strings.NewReader(text))
 	var document yaml.Node
@@ -56,6 +57,7 @@ func ruleYAML(text, location string) (map[string]*yaml.Node, error) {
 	return yamlObject(document.Content[0], location)
 }
 
+// inspectYAML checks mapping keys and explicit tags throughout the tree and reports aliases without following them.
 func inspectYAML(node *yaml.Node, location string) (bool, error) {
 	aliases := node.Kind == yaml.AliasNode
 	if node.Kind == yaml.MappingNode {
@@ -136,6 +138,7 @@ func inspectYAML(node *yaml.Node, location string) (bool, error) {
 	return aliases, nil
 }
 
+// yamlObject extracts named fields and explicit merge defaults using the reference object semantics.
 func yamlObject(node *yaml.Node, location string) (map[string]*yaml.Node, error) {
 	// JS Object.entries sees no own fields on sets or ordered maps.
 	if node.ShortTag() == "!!set" || node.ShortTag() == "!!omap" {
@@ -178,6 +181,7 @@ func yamlObject(node *yaml.Node, location string) (map[string]*yaml.Node, error)
 	return result, nil
 }
 
+// yamlString reports whether the reference core schema treats a node as text.
 func yamlString(node *yaml.Node) bool {
 	kind, _ := yamlScalar(node)
 	return kind == "string"
@@ -243,11 +247,12 @@ func yamlScalar(node *yaml.Node) (string, string) {
 	return "string", value
 }
 
+// yamlArray reports whether a node represents a reference array rather than an ordered map.
 func yamlArray(node *yaml.Node) bool {
 	return node.Kind == yaml.SequenceNode && node.ShortTag() != "!!omap"
 }
 
-// YAML pairs decode to an array of one-entry objects, even for scalar entries.
+// yamlEntries returns array elements, wrapping scalar YAML pairs as one-entry objects.
 func yamlEntries(node *yaml.Node) []*yaml.Node {
 	if node.ShortTag() != "!!pairs" {
 		return node.Content

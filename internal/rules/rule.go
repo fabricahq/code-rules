@@ -84,6 +84,7 @@ func Parse(text, path, source string) (Rule, error) {
 	return result, nil
 }
 
+// ruleFields validates the required selection fields and optional tags in reference order.
 func ruleFields(fields map[string]*yaml.Node, location string) (Rule, error) {
 	var r Rule
 	var err error
@@ -117,6 +118,7 @@ func ruleFields(fields map[string]*yaml.Node, location string) (Rule, error) {
 	return r, nil
 }
 
+// ruleText requires a nonblank YAML string and returns its untrimmed value.
 func ruleText(node *yaml.Node, location string) (string, error) {
 	if node == nil || !yamlString(node) || strings.TrimFunc(node.Value, jsWhitespace) == "" {
 		return "", invalid(location, "expected nonempty text")
@@ -124,6 +126,7 @@ func ruleText(node *yaml.Node, location string) (string, error) {
 	return node.Value, nil
 }
 
+// ruleTags accepts nonblank text or distinct nonblank strings, reporting invalid entries before duplicates.
 func ruleTags(node *yaml.Node, location string) error {
 	if yamlString(node) {
 		_, err := ruleText(node, location)
@@ -148,6 +151,7 @@ func ruleTags(node *yaml.Node, location string) error {
 	return nil
 }
 
+// ruleAttribution validates citations and normalizes HTTP(S) URLs, returning an empty slice when absent.
 func ruleAttribution(node *yaml.Node, location string) ([]Attribution, error) {
 	result := []Attribution{}
 	if node == nil {

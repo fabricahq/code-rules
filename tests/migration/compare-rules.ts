@@ -120,6 +120,7 @@ if (
 }
 const requests =
   cases
+    // Serialize one adapter request per fixture.
     .map(({ operation, input, location }) =>
       JSON.stringify({ operation, input, location }),
     )
@@ -155,6 +156,7 @@ for (const [index, test] of cases.entries()) {
 console.log(
   `PASS: ${cases.length} shared rules cases; TypeScript + Go match independent expectations`,
 );
+// Count fixtures that explicitly retain a different reference expectation.
 console.log(
   `Approved behavior differences: ${cases.filter((test) => 'referenceExpected' in test && test.referenceExpected !== undefined).length} cases`,
 );

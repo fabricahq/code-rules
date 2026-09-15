@@ -510,6 +510,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       </footer>
     </main>
     <script>
+      // byID looks up a walkthrough control by its unique element ID.
       const byID = (id) => document.getElementById(id);
       const frontmatter =
         "title: Preserve rule text\nimpact: HIGH\nimpactDescription: Keep authored text intact.\nwhenToRead: When loading rule files.";
@@ -517,6 +518,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
         "---\n" +
         frontmatter +
         "\n---\n# Preserve rule text\n\nKeep the original text.\n";
+      // withMetadata builds an example document from YAML text and a Markdown body.
       const withMetadata = (
         metadata,
         body = "# Preserve rule text\n\nKeep the original text.\n",
@@ -592,6 +594,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           withMetadata(frontmatter.replace("Preserve rule text", "2026-09-15")),
         ],
       ];
+      // clearResult removes stale output whenever the user changes an input.
       function clearResult() {
         byID("status").textContent = "Ready";
         byID("status").className = "badge";
@@ -603,9 +606,11 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
         byID("timing").textContent = "";
       }
       byID("presets").replaceChildren(
+        // Build a button for each example document.
         ...examples.map(([label, value, newline]) => {
           const button = document.createElement("button");
           button.textContent = label;
+          // Load this example and clear the previous invocation result.
           button.addEventListener("click", () => {
             byID("input").value = value;
             byID("newlines").value = newline || "lf";
@@ -621,6 +626,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       for (const id of ["input", "path", "source"])
         byID(id).addEventListener("input", clearResult);
       byID("newlines").addEventListener("change", clearResult);
+      // Invoke the native parser and display its result, error, and request data.
       byID("invoke").addEventListener("click", async () => {
         const text = byID("input").value;
         const input =
@@ -636,6 +642,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           },
         });
         byID("request").textContent = body;
+        // Disable controls until this invocation finishes.
         document
           .querySelectorAll("button,input,textarea,select")
           .forEach((element) => (element.disabled = true));
@@ -686,6 +693,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
         } finally {
           byID("timing").textContent =
             Math.round(performance.now() - started) + " ms round trip";
+          // Restore the controls after either a result or a connection failure.
           document
             .querySelectorAll("button,input,textarea,select")
             .forEach((element) => (element.disabled = false));

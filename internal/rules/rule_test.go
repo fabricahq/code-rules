@@ -12,6 +12,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
+// TestParseSharedExpectations checks exact rule values and typed, zero-result failures against shared fixtures.
 func TestParseSharedExpectations(t *testing.T) {
 	data, err := os.ReadFile("../../tests/migration/rules/cases.json")
 	if err != nil {
@@ -49,6 +50,7 @@ func TestParseSharedExpectations(t *testing.T) {
 	}
 }
 
+// TestParsePathBeforeDocument checks that an invalid path fails before document parsing begins.
 func TestParsePathBeforeDocument(t *testing.T) {
 	_, err := rules.Parse("malformed", "../escape.md", "team")
 	_, expected := rules.GroupFromPath("../escape.md", "team:../escape.md")
@@ -57,6 +59,7 @@ func TestParsePathBeforeDocument(t *testing.T) {
 	}
 }
 
+// FuzzParse checks arbitrary documents for typed failures, zero partial results, and preserved text on success.
 func FuzzParse(f *testing.F) {
 	f.Add("---\ntitle: Rule\nimpact: HIGH\nimpactDescription: Avoid failure.\nwhenToRead: When coding.\n---\nBody")
 	f.Add("---\na: &a [*a]\n---\nBody")
