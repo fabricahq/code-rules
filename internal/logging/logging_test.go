@@ -5,6 +5,7 @@ package logging_test
 import (
 	"bytes"
 	"encoding/json"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -13,7 +14,7 @@ import (
 
 func TestDefaultTextLogger(t *testing.T) {
 	var output bytes.Buffer
-	logger, err := logging.New(&output, "", "")
+	logger, err := logging.New(&output, slog.LevelInfo, logging.FormatText)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,10 +26,10 @@ func TestDefaultTextLogger(t *testing.T) {
 }
 
 func TestJSONLoggerLevels(t *testing.T) {
-	for _, level := range []string{"debug", "INFO", "warn", "error"} {
-		t.Run(level, func(t *testing.T) {
+	for _, level := range []slog.Level{slog.LevelDebug, slog.LevelInfo, slog.LevelWarn, slog.LevelError} {
+		t.Run(level.String(), func(t *testing.T) {
 			var output bytes.Buffer
-			logger, err := logging.New(&output, level, "json")
+			logger, err := logging.New(&output, level, logging.FormatJSON)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -51,7 +52,7 @@ func TestJSONLoggerLevels(t *testing.T) {
 					t.Fatal("structured attribute lost its numeric value")
 				}
 			}
-			want := map[string]string{"debug": "debug,info,warn,error", "INFO": "info,warn,error", "warn": "warn,error", "error": "error"}[level]
+			want := map[slog.Level]string{slog.LevelDebug: "debug,info,warn,error", slog.LevelInfo: "info,warn,error", slog.LevelWarn: "warn,error", slog.LevelError: "error"}[level]
 			if strings.Join(messages, ",") != want {
 				t.Fatalf("got %v, want %s", messages, want)
 			}
@@ -59,15 +60,12 @@ func TestJSONLoggerLevels(t *testing.T) {
 	}
 }
 
-func TestInvalidLoggingConfiguration(t *testing.T) {
-	for _, test := range []struct{ level, format, field string }{
-		{"private-value", "", "CODE_RULES_LOG_LEVEL"},
-		{"", "private-value", "CODE_RULES_LOG_FORMAT"},
-	} {
+func TestInvalidFormat(t *testing.T) {
+	for _, format := range []logging.Format{"", "private-value", "JSON"} {
 		var output bytes.Buffer
-		logger, err := logging.New(&output, test.level, test.format)
-		if logger != nil || err == nil || !strings.Contains(err.Error(), test.field) || strings.Contains(err.Error(), "private-value") || output.Len() != 0 {
-			t.Fatalf("expected a contextual error without logging or echoing the value: logger=%v, error=%v, output=%s", logger, err, &output)
+		logger, err := logging.New(&output, slog.LevelInfo, format)
+		if logger != nil || err == nil || err.Error() != "invalid log format: expected text or json" || output.Len() != 0 {
+			t.Fatalf("expected a format error without logging or echoing the value: logger=%v, error=%v, output=%s", logger, err, &output)
 		}
 	}
 }

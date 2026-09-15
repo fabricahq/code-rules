@@ -16,6 +16,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fabricahq/code-rules/internal/logging"
@@ -183,11 +184,30 @@ func run(logger *slog.Logger) error {
 	return nil
 }
 
+// loggerFromEnvironment parses command settings without exposing their values in errors.
+func loggerFromEnvironment(output io.Writer) (*slog.Logger, error) {
+	var level slog.Level
+	if text := os.Getenv("CODE_RULES_LOG_LEVEL"); text != "" {
+		if err := level.UnmarshalText([]byte(text)); err != nil {
+			return nil, errors.New("CODE_RULES_LOG_LEVEL: expected a slog level such as debug, info, warn, or error")
+		}
+	}
+	format := logging.Format(strings.ToLower(os.Getenv("CODE_RULES_LOG_FORMAT")))
+	if format == "" {
+		format = logging.FormatText
+	}
+	logger, err := logging.New(output, level, format)
+	if err != nil {
+		return nil, fmt.Errorf("CODE_RULES_LOG_FORMAT: %v", err)
+	}
+	return logger, nil
+}
+
 func main() {
-	logger, err := logging.New(os.Stderr, os.Getenv("CODE_RULES_LOG_LEVEL"), os.Getenv("CODE_RULES_LOG_FORMAT"))
+	logger, err := loggerFromEnvironment(os.Stderr)
 	if err != nil {
 		// Default settings are always valid, even when the environment is not.
-		logger, _ = logging.New(os.Stderr, "", "")
+		logger, _ = logging.New(os.Stderr, slog.LevelInfo, logging.FormatText)
 		logger.Error("invalid logging configuration", "error", err)
 		os.Exit(1)
 	}

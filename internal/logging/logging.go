@@ -3,30 +3,31 @@
 package logging
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"log/slog"
-	"strings"
 )
 
-// New returns a logger without changing the process-wide default. Empty settings
-// select INFO and text. Level follows slog's syntax; format is text or json.
-func New(output io.Writer, level, format string) (*slog.Logger, error) {
-	var threshold slog.Level
-	if level != "" {
-		if err := threshold.UnmarshalText([]byte(level)); err != nil {
-			return nil, fmt.Errorf("CODE_RULES_LOG_LEVEL: expected a slog level such as debug, info, warn, or error")
-		}
-	}
-	options := &slog.HandlerOptions{Level: threshold}
+// Format selects the encoding of each log record.
+type Format string
+
+const (
+	FormatText Format = "text"
+	FormatJSON Format = "json"
+)
+
+// New returns a logger without changing the process-wide default. Only FormatText
+// and FormatJSON are valid; callers parse external settings before calling New.
+func New(output io.Writer, level slog.Level, format Format) (*slog.Logger, error) {
+	options := &slog.HandlerOptions{Level: level}
 	var handler slog.Handler
-	switch strings.ToLower(format) {
-	case "", "text":
+	switch format {
+	case FormatText:
 		handler = slog.NewTextHandler(output, options)
-	case "json":
+	case FormatJSON:
 		handler = slog.NewJSONHandler(output, options)
 	default:
-		return nil, fmt.Errorf("CODE_RULES_LOG_FORMAT: expected text or json")
+		return nil, errors.New("invalid log format: expected text or json")
 	}
 	return slog.New(handler), nil
 }

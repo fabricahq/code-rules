@@ -132,3 +132,40 @@ func TestHTTPRejectsCrossOriginAndOversizedRequests(t *testing.T) {
 		})
 	}
 }
+
+func TestLoggerFromEnvironment(t *testing.T) {
+	for _, test := range []struct {
+		name, level, format, errorField string
+		wantJSON, wantDebug             bool
+	}{
+		{name: "defaults"},
+		{name: "mixed case", level: "dEbUg", format: "JsOn", wantJSON: true, wantDebug: true},
+		{name: "numeric offset", level: "INFO+2", format: "json", wantJSON: true},
+		{name: "invalid level", level: "private-value", errorField: "CODE_RULES_LOG_LEVEL"},
+		{name: "invalid format", format: "private-value", errorField: "CODE_RULES_LOG_FORMAT"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("CODE_RULES_LOG_LEVEL", test.level)
+			t.Setenv("CODE_RULES_LOG_FORMAT", test.format)
+			var output bytes.Buffer
+			logger, err := loggerFromEnvironment(&output)
+			if test.errorField != "" {
+				if logger != nil || err == nil || !strings.Contains(err.Error(), test.errorField) || strings.Contains(err.Error(), "private-value") || output.Len() != 0 {
+					t.Fatalf("unexpected configuration failure: logger=%v error=%v output=%s", logger, err, &output)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			logger.Debug("debug event")
+			logger.Warn("warning event")
+			if strings.Contains(output.String(), "debug event") != test.wantDebug || !strings.Contains(output.String(), "warning event") {
+				t.Fatalf("unexpected level filtering: %s", &output)
+			}
+			if strings.HasPrefix(output.String(), "{") != test.wantJSON {
+				t.Fatalf("unexpected format: %s", &output)
+			}
+		})
+	}
+}

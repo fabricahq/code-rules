@@ -49,7 +49,15 @@ An intentional text change must retain separate reference and candidate expectat
 
 Use the standard library's [`log/slog`](https://pkg.go.dev/log/slog).
 `internal/logging.New` owns handler configuration and returns a `*slog.Logger` without changing global state.
-Each command reads its environment at startup, passes stderr to `New`, and injects the logger into code that owns effects.
+Each command parses its environment at startup, passes stderr and typed settings to `New`, and injects the logger into code that owns effects.
+`New` accepts `slog.Level` and `logging.Format`, with `FormatText` and `FormatJSON` constants.
+It rejects other formats at runtime because Go permits constructing values outside the declared constants.
+Environment defaults and case normalization belong to command startup, not the logger constructor.
+
+```go
+logger, err := logging.New(os.Stderr, slog.LevelInfo, logging.FormatJSON)
+```
+
 Pure domain code needs no logger or logging interface.
 
 | Setting | Default | Accepted values |
