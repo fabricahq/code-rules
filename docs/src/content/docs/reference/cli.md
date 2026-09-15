@@ -3,7 +3,7 @@ title: "CLI commands"
 description: "The proposed rule import, validation, conflict-review prompt, and tool update commands."
 ---
 
-**Sync, build, and check work through the development entry point `bun src/cli.ts`.**
+**Project setup, local authoring, source addition, sync, build, and check work through the development entry point `bun src/cli.ts`.**
 The `code-rules` executable is not published. Other commands on this page remain proposed.
 See [Sync and recovery](/reference/sync/) for development commands and filesystem behavior.
 
@@ -110,17 +110,24 @@ code-rules check --config path/to/code-rules/config.json
 Resolve local paths relative to the chosen configuration directory.
 Keep replacement files within that directory's `local/` tree.
 
-## Initialize a project (planned)
+## Initialize and author a project
 
-The planned `code-rules init` command creates project scaffolding under `.code-rules/`, including `config.json` and `local/README.md`.
-The development commands default to `.code-rules/config.json`. Use `--config` for another location.
+These commands work through the development entry point:
 
-The local README explains where to author rules, how `_group.json` describes a group, and how local rules combine with imported rules.
-It links to the canonical authoring guidance and explains when to run `build` or `sync`.
-Keep this introduction short; do not duplicate the rule template or prescribe an enforcement workflow.
+```sh
+bun src/cli.ts init
+bun src/cli.ts local add group practices/testing
+bun src/cli.ts local add rule practices/testing/retry-budget
+bun src/cli.ts add source team --repository https://github.com/example/rules.git --version '^1.2.0' --groups '*'
+```
 
-The scaffold will preserve an existing README. Local rule discovery already recognizes `local/README.md` as directory documentation and never parses it as a rule.
-This README belongs to the project-setup work alongside `local add group`, `local add rule`, and `add source`.
+Run them from the consuming project using the absolute path to `src/cli.ts`, or pass `--config` explicitly.
+`init` creates an empty source configuration and `local/README.md` under `.code-rules/` by default, preserving existing files.
+Local authoring collects rule and group metadata, offering missing-group creation when interactive. No source declaration is needed for local rules.
+`add source` validates and records a library declaration; run `sync` separately to fetch it. It preserves existing source exceptions and local files.
+
+See [Set up a project](/guides/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
+All commands accept `--non-interactive`. Missing inputs fail without prompting when no terminal is available.
 
 ## Author a library
 
