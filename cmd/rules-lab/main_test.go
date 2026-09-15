@@ -74,6 +74,8 @@ func TestInvokeBoundary(t *testing.T) {
 		{"unknown operation", `{"operation":"writeFile","input":"x","location":"group"}`, "AdapterError"},
 		{"unknown field", `{"operation":"groupID","input":"techs/go","location":"group","shell":"x"}`, "AdapterError"},
 		{"malformed JSON", `{"operation":"selection","input":[}`, "AdapterError"},
+		{"document input must be text", `{"operation":"document","input":{},"location":"rule"}`, "AdapterError"},
+		{"missing document envelope", `{"operation":"document","input":"Body","location":"rule"}`, "ValidationError"},
 		{"malformed metadata document", `{"operation":"groupMetadata","input":"{","location":"group"}`, "ValidationError"},
 		{"metadata must be document text", `{"operation":"groupMetadata","input":{},"location":"group"}`, "AdapterError"},
 		{"trailing value", `{"operation":"selection","input":[],"location":"groups"} true`, "AdapterError"},
@@ -187,6 +189,35 @@ func TestLoggerFromEnvironment(t *testing.T) {
 			}
 			if strings.HasPrefix(output.String(), "{") != test.wantJSON {
 				t.Fatalf("unexpected format: %s", &output)
+			}
+		})
+	}
+}
+
+func TestHTTPDocumentPreservesTextAndEmptyFields(t *testing.T) {
+	for _, test := range []struct {
+		name, input, frontmatter, body string
+	}{
+		{"CRLF and Unicode", "---\r\ntitle: 🐹\r\nnote: exact  \r\n---\r\n\tBody  \r\n", "title: 🐹\r\nnote: exact  ", "\tBody  \r\n"},
+		{"empty body", "---\nx\n---", "x", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			payload, err := json.Marshal(map[string]string{"operation": "document", "input": test.input, "location": "rule"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			recorder := httptest.NewRecorder()
+			handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/invoke", bytes.NewReader(payload)))
+			var got struct {
+				OK    bool
+				Value map[string]string
+			}
+			if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			body, present := got.Value["body"]
+			if recorder.Code != http.StatusOK || !got.OK || !present || len(got.Value) != 2 || got.Value["frontmatter"] != test.frontmatter || body != test.body {
+				t.Fatalf("unexpected document response: HTTP %d %s", recorder.Code, recorder.Body)
 			}
 		})
 	}

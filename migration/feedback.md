@@ -1,6 +1,6 @@
 # Migration feedback
 
-Status: PR #11 and its Go conventions were human-approved and merged. Harness lessons remain proposed; the group metadata slice is under review.
+Status: PRs #11 and #12 were human-approved and merged. The rule document boundary slice is under review.
 
 ## Rules used
 
@@ -75,3 +75,9 @@ The assertions now match those source contracts. No baseline, production behavio
   Evidence: adapter tests for malformed metadata text versus an incorrectly typed envelope input.
 - Use one nonblank string for group and rule reading guidance, as requested during review. Group metadata trims surrounding whitespace and rejects legacy arrays.
   Evidence: `internal/rules/group_metadata_test.go` and the HTTP metadata test.
+
+## Rule document boundary slice
+
+- Keep each interactive walkthrough scoped to its own PR. Earlier operations stay in regression tests and the development adapter.
+- Separate preservation of authored text from interpretation of YAML fields. A successful split does not establish a valid complete rule.
+  Evidence: direct Go cases for empty captures and uninterpreted YAML, plus exact comparisons against the pinned rule parser for complete rules.

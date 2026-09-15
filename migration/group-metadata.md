@@ -1,6 +1,6 @@
 # Group metadata: second Go slice
 
-Status: implemented on `codex/go-group-metadata`; PR #12 is open for review. CodeRabbit Unicode findings are addressed; human merge approval is still required.
+Status: human-approved and merged in PR #12 at `5c2c10a23cf556d9533bed316397338213f22fbd`. CodeRabbit confirmed both Unicode findings were addressed.
 
 ## Scope and baseline
 

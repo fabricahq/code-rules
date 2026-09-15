@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Code Rules · Group metadata lab</title>
+    <title>Code Rules · Rule document lab</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -324,53 +324,68 @@
     <main>
       <header>
         <strong>CODE RULES / GO MIGRATION</strong
-        ><span>Slice 02 · Group metadata</span>
+        ><span>Slice 03 · Rule document boundaries</span>
       </header>
-      <h1>Small functions.<br />Real Go results.</h1>
+      <h1>Separate the sections.<br />Keep the original text.</h1>
       <p class="lede">
-        Parse a group’s metadata into a Go value. Change the JSON, try invalid
-        fields, and inspect the exact result or error. The identity functions
-        from the first slice remain available below.
+        This PR adds one function: split a rule document into its YAML
+        frontmatter and Markdown body. Edit the document, try its boundaries,
+        and inspect the strings returned by Go.
       </p>
       <div class="flow">
         <div>
-          <strong>01 &nbsp; Your input</strong
-          ><span>Text or a configuration JSON value</span>
+          <strong>01 &nbsp; Rule document</strong
+          ><span>Text beginning with a frontmatter delimiter</span>
         </div>
         <div>
-          <strong>02 &nbsp; Native validation</strong
-          ><span>Pure functions in internal/rules</span>
+          <strong>02 &nbsp; Split at the boundary</strong
+          ><span>Remove delimiter lines; preserve captured text</span>
         </div>
         <div>
-          <strong>03 &nbsp; Value or error</strong
-          ><span>No filesystem access by these functions</span>
+          <strong>03 &nbsp; Two original strings</strong
+          ><span>YAML interpretation comes in a later slice</span>
         </div>
       </div>
       <div class="workspace">
         <section class="panel" aria-labelledby="input-heading">
-          <div class="label">Invoke a function</div>
-          <h2 id="input-heading">Make the input your own</h2>
-          <label for="operation">Operation</label
-          ><select id="operation">
-            <option value="groupMetadata">Parse group metadata</option>
-            <option value="groupID">Validate a group ID</option>
-            <option value="ruleGroup">Identify a rule’s group</option>
-            <option value="selection">Parse a group selection</option>
-          </select>
-          <div class="signature" id="signature"></div>
-          <p class="hint" id="description"></p>
+          <div class="label">Invoke the new function</div>
+          <h2 id="input-heading">Split a rule document</h2>
+          <div class="signature">
+            SplitDocument(text, location string) (DocumentText, error)
+          </div>
+          <p class="hint">
+            Requires an opening <code>---</code> line at the very start and a
+            closing <code>---</code> line. LF and CRLF are supported.
+          </p>
           <div class="presets" id="presets" aria-label="Example inputs"></div>
-          <label for="input" id="input-label">Group ID</label
+          <label for="input">Rule document</label
           ><textarea
             id="input"
+            rows="15"
             spellcheck="false"
             aria-describedby="input-hint"
           ></textarea>
-          <p id="input-hint" class="hint"></p>
-          <label for="location">Error location</label
-          ><input id="location" value="group" spellcheck="false" />
+          <p id="input-hint" class="hint">
+            Enter Markdown with a YAML frontmatter envelope. The content inside
+            the envelope is returned as text.
+          </p>
+          <label for="newlines">Line endings sent to Go</label>
+          <select id="newlines">
+            <option value="lf">LF (\n)</option>
+            <option value="crlf">CRLF (\r\n)</option>
+          </select>
           <p class="hint">
-            A field name for diagnostics. It does not refer to a file.
+            The browser editor uses LF. This choice sets the line endings in the
+            actual request.
+          </p>
+          <label for="location">Error location</label
+          ><input
+            id="location"
+            value="lab:techs/go/example.md"
+            spellcheck="false"
+          />
+          <p class="hint">
+            A label for diagnostics. The function does not open a file.
           </p>
           <div class="actions">
             <button class="primary" id="invoke">Invoke Go function</button
@@ -383,296 +398,184 @@
             <span class="badge" id="status">Ready</span>
           </div>
           <p id="explanation">
-            Choose an example or enter your own input, then invoke the function.
+            Invoke Go to see the returned text or delimiter error.
           </p>
           <pre id="output" aria-live="polite">No invocation yet.</pre>
-          <h3>What crossed the boundary</h3>
-          <p class="hint">
-            The browser sends this request to <code>POST /invoke</code>. The Go
-            adapter calls the package and serializes its result.
-          </p>
-          <pre id="request">No request sent.</pre>
-          <details>
-            <summary>How to read the response</summary>
-            <p class="hint">
-              <code>ok: true</code> means the Go function returned no error. The
-              group-ID adapter echoes the validated input as <code>value</code>.
-              Rule paths return their group; selections return a sorted list or
-              an unexpanded wildcard. Metadata returns <code>name</code>,
-              <code>description</code>, and a <code>whenToRead</code> string.
+          <p id="metrics" class="hint"></p>
+          <details open>
+            <summary>How to read the result</summary>
+            <p>
+              <code>frontmatter</code> excludes the opening delimiter and the
+              newline before the closing delimiter. <code>body</code> begins
+              after the closing delimiter’s newline, if present.
             </p>
-            <p class="hint">
-              <code>ValidationError</code> is a returned Go error for invalid
-              domain input. <code>AdapterError</code> means the request could
-              not reach a function, for example because the outer request was
-              malformed. Metadata is sent as document text, so malformed
-              metadata JSON reaches Go and produces a
-              <code>ValidationError</code>.
+            <p>
+              The JSON makes whitespace visible: <code>\n</code> is LF,
+              <code>\r\n</code> is CRLF, and <code>\t</code> is a tab. Empty
+              captures are <code>""</code>.
             </p>
-            <p class="hint">
-              A nested validation error keeps the full rule path in its message.
-              Go callers can still find its type with <code>errors.As</code>.
-              Expected input errors stay in the response. Operational failures
-              are reported once at the boundary, using <code>log/slog</code> on
-              stderr.
+            <p>
+              Success means the boundary was found. YAML syntax, required
+              fields, and body content have not been validated. No files are
+              read or written.
             </p>
           </details>
+          <h3>What crossed the boundary</h3>
+          <p class="hint">
+            This request goes to <code>POST /invoke</code>. The native Go
+            adapter calls <code>rules.SplitDocument</code>.
+          </p>
+          <pre id="request">No request sent.</pre>
         </section>
       </div>
       <section class="section">
-        <div class="label">Walk through the change</div>
-        <h2>Follow the metadata through Go</h2>
+        <div class="label">Walk through this PR</div>
+        <h2>One boundary, three details</h2>
         <div class="review">
           <div>
-            <h3>1. Read the document</h3>
+            <h3>1. Start at the first character</h3>
             <p>
-              <code>ParseGroupMetadata</code> checks JSON syntax and requires an
-              object. It reads raw fields before decoding their values so field
-              names stay case-sensitive and unknown fields can be rejected.
+              The opening marker is exactly <code>---</code> followed by LF or
+              CRLF. A leading blank line, indentation, or extra marker character
+              fails.
             </p>
             <p>
-              Try <strong>Malformed JSON</strong> or
-              <strong>Unknown field</strong>. Duplicate JSON keys use their last
-              value, matching TypeScript.
-            </p>
-          </div>
-          <div>
-            <h3>2. Validate in order</h3>
-            <p>
-              Group-level <code>license</code> and <code>licenses</code> fields
-              fail first. Unknown fields fail next, in alphabetical order. Then
-              Go checks the name, description, and reading guidance as nonblank
-              strings.
-            </p>
-            <p>
-              Try <strong>Blank guidance</strong> or
-              <strong>Legacy array</strong>. Guidance must be one nonblank
-              string.
+              Try <strong>Leading blank</strong> or
+              <strong>No frontmatter</strong>.
             </p>
           </div>
           <div>
-            <h3>3. Return an owned value</h3>
+            <h3>2. Find the first closing line</h3>
             <p>
-              <code>GroupMetadata</code> contains the name, description, and
-              <code>WhenToRead string</code>. Text is trimmed at both ends;
-              internal spacing stays intact. Empty guidance is invalid. Errors
-              return no partial value.
+              The closing marker must be on its own line. It can be followed by
+              LF, CRLF, or end of input. Later delimiters belong to the body.
             </p>
             <p>
-              The parser returns the existing <code>ValidationError</code> type.
-              It does not log, read files, or write files.
+              Try <strong>Extra delimiter</strong> or
+              <strong>Indented close</strong>.
+            </p>
+          </div>
+          <div>
+            <h3>3. Preserve both captures</h3>
+            <p>
+              The function returns the original strings. Spaces, tabs, Unicode,
+              and line endings inside each section stay intact.
+            </p>
+            <p>
+              Try <strong>CRLF</strong>, <strong>Whitespace</strong>, or
+              <strong>Empty body</strong>.
             </p>
           </div>
         </div>
       </section>
       <section class="section">
-        <h2>What this slice establishes</h2>
+        <h2>What is ready to review</h2>
         <p class="notice">
-          This slice parses a group’s <code>_group.json</code> contents. It does
-          not find groups, read files, expand wildcards, or parse rule Markdown.
-          The 94 metadata cases and 88 identity cases run against both the
-          TypeScript reference and the real Go executable.
+          This PR covers document boundaries only. The
+          <strong>Uninterpreted YAML</strong> example succeeds because YAML
+          validation is a later step. It must not be treated as a valid complete
+          rule.
+        </p>
+        <p>
+          27 shared cases compare exact strings and delimiter errors with the
+          pinned TypeScript implementation. Six direct Go cases cover empty
+          sections and other inputs that the full rule parser would reject
+          later. Earlier functionality remains in regression tests.
         </p>
         <details>
-          <summary>Contract coverage and remaining work</summary>
-          <p>
-            These checks provide partial evidence for
-            <code>formats.identities.05</code>: metadata field presence, null,
-            and unknown fields. Group metadata is also a prerequisite for
-            <code>builds.resolve.04</code>. Full capability acceptance remains
-            pending. User-approved format changes are recorded in the migration
-            notes; the reference baseline stays pinned.
-          </p>
-          <p>
-            Metadata rejects invalid UTF-8 and lone UTF-16 surrogate escapes
-            before decoding. Valid Unicode pairs remain supported. Shared
-            fixtures record this approved difference from TypeScript. Other
-            migration capabilities still require their own Unicode checks.
-          </p>
-        </details>
-        <details>
-          <summary>Run it yourself</summary>
+          <summary>Run this slice yourself</summary>
           <pre>
 go run ./cmd/rules-lab -serve
 
-go test ./...
-go vet ./...
-go build -o dist/rules-lab ./cmd/rules-lab
-bun tests/migration/compare-rules.ts dist/rules-lab
-
-printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":"rule"}' | dist/rules-lab</pre>
+go test ./internal/rules ./cmd/rules-lab
+go build -o /tmp/code-rules-lab ./cmd/rules-lab
+bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           <p class="hint">
-            The terminal prints the loopback URL. The lab uses the standard
-            library and needs no Node or Bun at runtime. Bun is used only by the
-            TypeScript comparison.
+            The walkthrough uses the project’s existing gallery styling. Every
+            invocation runs the real Go function.
           </p>
         </details>
       </section>
       <footer>
-        Code Rules gallery styling · Local development tool · Every displayed
-        invocation result comes from Go
+        Code Rules gallery styling · Local development tool · This PR only
       </footer>
     </main>
     <script>
-      const metadata = {
-        name: "Go",
-        description: "Conventions for writing and reviewing Go code.",
-        whenToRead: "When writing or reviewing Go code.",
-      };
-      const operations = {
-        groupMetadata: {
-          signature:
-            "ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, error)",
-          description:
-            "Requires name, description, and whenToRead as nonblank strings. Trims surrounding whitespace and preserves internal spacing. Unknown fields are rejected; license declarations have a specific error.",
-          label: "Group metadata JSON",
-          hint: "The contents of _group.json. Even malformed JSON is sent to the Go parser as document text.",
-          location: "techs/go/_group.json",
-          examples: [
-            ["Valid group", metadata],
-            ["Empty guidance", { ...metadata, whenToRead: "" }],
-            [
-              "Trim spaces",
-              {
-                ...metadata,
-                name: " Go ",
-                description: " " + metadata.description + " ",
-                whenToRead: " When writing or reviewing Go code. ",
-              },
-            ],
-            [
-              "Missing name",
-              {
-                description: metadata.description,
-                whenToRead: metadata.whenToRead,
-              },
-            ],
-            ["Null guidance", { ...metadata, whenToRead: null }],
-            ["Legacy array", { ...metadata, whenToRead: ["When editing."] }],
-            ["Blank guidance", { ...metadata, whenToRead: "   " }],
-            ["License not allowed", { ...metadata, license: null }],
-            ["Unknown field", { ...metadata, futureOption: { enabled: true } }],
-            ["Malformed JSON", '{"name":'],
-            ["Invalid Unicode", { ...metadata, name: "\ud800" }],
-            ["Valid Unicode", { ...metadata, name: "Go 🐹" }],
-          ].map(([label, value]) => [
-            label,
-            typeof value === "string" ? value : JSON.stringify(value, null, 2),
-          ]),
-        },
-        groupID: {
-          signature: "ValidateGroupID(value, location string) error",
-          description:
-            "Accepts techs/<slug> or practices/<slug>. The slug starts with a lowercase letter; assets is reserved.",
-          label: "Group ID",
-          hint: "Plain text, without JSON quotes. Whitespace is preserved.",
-          location: "group",
-          examples: [
-            ["Valid", "techs/go"],
-            ["Hyphenated name", "techs/github-actions"],
-            ["Practice", "practices/testing"],
-            ["Reserved", "techs/assets"],
-            ["Uppercase", "techs/Go"],
-            ["Trailing hyphen", "techs/go-"],
-          ],
-        },
-        ruleGroup: {
-          signature: "GroupFromPath(path, location string) (string, error)",
-          description:
-            "Checks containment and Markdown path syntax, then returns the first two path components.",
-          label: "Rule path",
-          hint: "Plain text, relative to a library root. No path normalization.",
-          location: "rule",
-          examples: [
-            ["Nested rule", "techs/go/errors/wrap.md"],
-            ["Traversal", "techs/go/../rule.md"],
-            ["Asset directory", "techs/go/assets/icon.md"],
-            ["Wrong extension", "techs/go/rule.MD"],
-            ["Invalid group", "other/go/rule.md"],
-            ["Uppercase group", "techs/Go/a.md"],
-            ["Invalid prefix", "assets/go/a.md"],
-          ],
-        },
-        selection: {
-          signature:
-            "ParseGroupSelection(input json.RawMessage, location string) (GroupSelection, error)",
-          description:
-            "Accepts an explicit array or one of three wildcard strings. Explicit IDs are distinct and returned in sorted order. Wildcards are parsed here; matching them to library groups comes later.",
-          label: "Groups JSON",
-          hint: "Enter JSON, including quotes for a wildcard. Malformed JSON is sent to Go too.",
-          location: "sources.team.groups",
-          examples: [
-            ["Sort IDs", '["techs/go", "practices/testing", "techs/bash"]'],
-            ["Empty list", "[]"],
-            ["All groups (*)", '"*"'],
-            ["Techs /*", '"techs/*"'],
-            ["Practices /*", '"practices/*"'],
-            ["Invalid text/*", '"text/*"'],
-            ["Duplicate first", '["bad", "bad"]'],
-            ["Empty text first", '["bad", "bad", ""]'],
-            ["Null", "null"],
-          ],
-        },
-      };
       const byID = (id) => document.getElementById(id);
-      function selectOperation() {
-        const config = operations[byID("operation").value];
-        for (const id of ["signature", "description"])
-          byID(id).textContent = config[id];
-        byID("input-label").textContent = config.label;
-        byID("input-hint").textContent = config.hint;
-        byID("location").value = config.location;
-        byID("input").rows =
-          byID("operation").value === "groupMetadata" ? 10 : 5;
-        byID("input").value = config.examples[0][1];
-        byID("input").scrollTop = 0;
-        byID("presets").replaceChildren(
-          ...config.examples.map(([label, value]) => {
-            const button = document.createElement("button");
-            button.textContent = label;
-            button.addEventListener("click", () => {
-              byID("input").value = value;
-              byID("input").focus();
-              byID("input").setSelectionRange(0, 0);
-              byID("input").scrollTop = 0;
-            });
-            return button;
-          }),
-        );
-        clearResult();
-      }
+      const frontmatter =
+        "title: Preserve rule text\nimpact: HIGH\nimpactDescription: Keep authored text intact.\nwhenToRead: When loading rule files.";
+      const normal =
+        "---\n" +
+        frontmatter +
+        "\n---\n# Preserve rule text\n\nKeep the original text.\n";
+      const examples = [
+        ["Standard", normal],
+        ["CRLF", normal, "crlf"],
+        [
+          "Whitespace",
+          "---\n" +
+            frontmatter +
+            "\n# Keep this comment  \n\n---\n\n  Body with spaces.  \n\tTail\n",
+        ],
+        ["Empty body", "---\n" + frontmatter + "\n---"],
+        ["Empty frontmatter", "---\n\n---\nBody"],
+        ["Uninterpreted YAML", "---\ntitle: [\n---\nBody"],
+        ["Leading blank", "\n" + normal],
+        ["No frontmatter", "# A rule without frontmatter\n\nBody"],
+        ["Indented close", "---\n" + frontmatter + "\n ---\nBody"],
+        [
+          "Extra delimiter",
+          "---\n" +
+            frontmatter +
+            "\n---\n# Body\n\n---\n\nThis delimiter stays in the body.\n",
+        ],
+      ];
       function clearResult() {
         byID("status").textContent = "Ready";
         byID("status").className = "badge";
         byID("explanation").textContent =
-          "Input changed. Invoke the function to see its result.";
+          "Input changed. Invoke Go to split this document.";
         byID("output").textContent = "No invocation for this input.";
         byID("request").textContent = "No request sent.";
+        byID("metrics").textContent = "";
         byID("timing").textContent = "";
       }
-      byID("operation").addEventListener("change", selectOperation);
-      byID("input").addEventListener("input", clearResult);
-      byID("location").addEventListener("input", clearResult);
-      byID("presets").addEventListener("click", clearResult);
+      byID("presets").replaceChildren(
+        ...examples.map(([label, value, newline]) => {
+          const button = document.createElement("button");
+          button.textContent = label;
+          button.addEventListener("click", () => {
+            byID("input").value = value;
+            byID("newlines").value = newline || "lf";
+            byID("input").focus();
+            byID("input").setSelectionRange(0, 0);
+            byID("input").scrollTop = 0;
+            clearResult();
+          });
+          return button;
+        }),
+      );
+      byID("input").value = normal;
+      for (const id of ["input", "location"])
+        byID(id).addEventListener("input", clearResult);
+      byID("newlines").addEventListener("change", clearResult);
       byID("invoke").addEventListener("click", async () => {
-        const operation = byID("operation").value;
+        const text = byID("input").value;
         const input =
-          operation === "selection"
-            ? byID("input").value
-            : JSON.stringify(byID("input").value);
-        const body =
-          '{"operation":' +
-          JSON.stringify(operation) +
-          ',"input":' +
-          input +
-          ',"location":' +
-          JSON.stringify(byID("location").value) +
-          "}";
+          byID("newlines").value === "crlf"
+            ? text.replace(/\n/g, "\r\n")
+            : text;
+        const body = JSON.stringify({
+          operation: "document",
+          input,
+          location: byID("location").value,
+        });
         byID("request").textContent = body;
         document
           .querySelectorAll("button,input,textarea,select")
           .forEach((element) => (element.disabled = true));
         byID("status").textContent = "Running";
+        byID("metrics").textContent = "";
         const started = performance.now();
         try {
           const response = await fetch("/invoke", {
@@ -688,23 +591,27 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
                 ? "The server could not complete the request. See its logs for details."
                 : "The server rejected the request.";
             byID("output").textContent = await response.text();
-            byID("timing").textContent =
-              Math.round(performance.now() - started) + " ms round trip";
             return;
           }
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
           byID("status").textContent = result.ok
-            ? "Returned value"
+            ? "Returned text"
             : result.error.name;
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
-            ? "The Go function returned successfully."
+            ? "Split successfully. YAML and rule fields have not been validated."
             : result.error.name === "ValidationError"
-              ? "The Go function returned a validation error."
-              : "The Go adapter rejected the request before invoking a function.";
-          byID("timing").textContent =
-            Math.round(performance.now() - started) + " ms round trip";
+              ? "The document does not have the required delimiter lines."
+              : "The adapter rejected the request before invoking Go.";
+          if (result.ok) {
+            const bytes = new TextEncoder();
+            byID("metrics").textContent =
+              "Returned UTF-8 bytes: frontmatter " +
+              bytes.encode(result.value.frontmatter).length +
+              " · body " +
+              bytes.encode(result.value.body).length;
+          }
         } catch (error) {
           byID("status").textContent = "Connection error";
           byID("status").className = "badge bad";
@@ -712,12 +619,13 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
             "Check that the local Go server is still running.";
           byID("output").textContent = String(error);
         } finally {
+          byID("timing").textContent =
+            Math.round(performance.now() - started) + " ms round trip";
           document
             .querySelectorAll("button,input,textarea,select")
             .forEach((element) => (element.disabled = false));
         }
       });
-      selectOperation();
     </script>
   </body>
 </html>

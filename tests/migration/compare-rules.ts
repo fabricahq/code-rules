@@ -2,6 +2,7 @@
 import { deepStrictEqual } from 'node:assert';
 import { resolve } from 'node:path';
 import { configuration } from '../../src/configuration';
+import { rule } from '../../src/builds/rule-document';
 import {
   groupId,
   groupMetadata,
@@ -10,10 +11,11 @@ import {
 } from '../../src/formats/validation';
 import identityCases from './identities/cases.json';
 import metadataCases from './group-metadata/cases.json';
+import documentCases from './rule-documents/cases.json';
 import contracts from '../../migration/contracts.json';
 import approvedDifferences from '../../migration/approved-differences.json';
 
-const cases = [...identityCases, ...metadataCases];
+const cases = [...identityCases, ...metadataCases, ...documentCases];
 const referenceRevision = contracts.referenceRevision;
 deepStrictEqual(
   approvedDifferences,
@@ -51,7 +53,12 @@ function reference(test: (typeof cases)[number]): unknown {
         value = groupId(test.input, test.location);
       else if (test.operation === 'ruleGroup')
         value = ruleGroup(test.input, test.location);
-      else throw new Error(`Unknown fixture operation: ${test.operation}`);
+      else if (test.operation === 'document') {
+        // Valid envelopes in this suite contain complete rule metadata. Compare
+        // the original captured text returned by the pinned full rule parser.
+        const parsed = rule(test.input, 'techs/go/example.md', 'lab');
+        value = { frontmatter: parsed.metadata, body: parsed.body };
+      } else throw new Error(`Unknown fixture operation: ${test.operation}`);
     }
     return { ok: true, value };
   } catch (error) {
@@ -61,7 +68,7 @@ function reference(test: (typeof cases)[number]): unknown {
       error: {
         name: error.name,
         message: error.message,
-        location: error.message.slice(0, error.message.indexOf(':')),
+        location: error.message.slice(0, error.message.indexOf(': ')),
       },
     };
   }
