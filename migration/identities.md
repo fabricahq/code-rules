@@ -4,7 +4,7 @@ Status: implemented and locally tested; submitted for human review. Independent 
 
 ## Scope and revisions
 
-This slice implements three pure operations in [internal/rules](../internal/rules/identity.go): group ID validation, rule-path validation with owning-group extraction, and parsing explicit/wildcard group selections.
+This slice implements three pure operations in [internal/rules](../internal/rules/groups.go): group ID validation, rule-path validation with owning-group extraction, and parsing explicit/wildcard group selections.
 It introduces a root Go module with no third-party dependencies. The TypeScript runtime is unchanged.
 
 - Branch: `codex/go-identities`; PR target: `go-migration`.

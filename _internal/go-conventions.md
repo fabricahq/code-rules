@@ -1,7 +1,7 @@
 # Go conventions
 
 These conventions govern the Go implementation and its development commands.
-The first examples live in [rules](../internal/rules/identity.go), [logging](../internal/logging/logging.go), and the [rules lab](../cmd/rules-lab/main.go).
+The first examples live in [rules](../internal/rules/groups.go), [logging](../internal/logging/logging.go), and the [rules lab](../cmd/rules-lab/main.go).
 
 ## Error handling
 
