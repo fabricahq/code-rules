@@ -428,7 +428,7 @@
             <p>
               <code>ParseGroupMetadata</code> checks JSON syntax and requires an
               object. It reads raw fields before decoding their values so field
-              names stay case-sensitive and unknown values can be ignored.
+              names stay case-sensitive and unknown fields can be rejected.
             </p>
             <p>
               Try <strong>Malformed JSON</strong> or
@@ -440,8 +440,9 @@
             <h3>2. Validate in order</h3>
             <p>
               Group-level <code>license</code> and <code>licenses</code> fields
-              fail first. Then Go checks the name, description, and reading
-              guidance as nonblank strings.
+              fail first. Unknown fields fail next, in alphabetical order. Then
+              Go checks the name, description, and reading guidance as nonblank
+              strings.
             </p>
             <p>
               Try <strong>Blank guidance</strong> or
@@ -469,7 +470,7 @@
         <p class="notice">
           This slice parses a group’s <code>_group.json</code> contents. It does
           not find groups, read files, expand wildcards, or parse rule Markdown.
-          The 72 metadata cases and 87 identity cases run against both the
+          The 78 metadata cases and 87 identity cases run against both the
           TypeScript reference and the real Go executable.
         </p>
         <details>
@@ -521,7 +522,7 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
           signature:
             "ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, error)",
           description:
-            "Requires name, description, and whenToRead as nonblank strings. Trims surrounding whitespace and preserves internal spacing. Unknown fields are ignored except license declarations.",
+            "Requires name, description, and whenToRead as nonblank strings. Trims surrounding whitespace and preserves internal spacing. Unknown fields are rejected; license declarations have a specific error.",
           label: "Group metadata JSON",
           hint: "The contents of _group.json. Even malformed JSON is sent to the Go parser as document text.",
           location: "techs/go/_group.json",

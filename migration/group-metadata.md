@@ -22,9 +22,9 @@ No file discovery, wildcard resolution, filesystem writes, product CLI, or new d
 - Return a concrete `GroupMetadata` and the existing `*ValidationError` on invalid input.
 - Require nonblank `name` and `description` strings, trimming surrounding whitespace.
 - Require `whenToRead` as one nonblank string, matching individual rules. Trim surrounding whitespace. Arrays, null, missing values, and blank strings are invalid.
-- Reject `license` and `licenses` whenever present, including null. Ignore other unknown fields, as the reference does.
-- Preserve validation order: JSON syntax, object shape, license declarations, name, description, reading guidance.
-- Decode a map of raw JSON fields rather than a struct so keys stay case-sensitive, unknown numeric values do not overflow, and duplicate JSON keys use the last value.
+- Reject `license` and `licenses` whenever present, including null. Reject other unknown fields, reporting the first key alphabetically and listing allowed fields.
+- Preserve validation order: JSON syntax, object shape, license declarations, unknown fields, name, description, reading guidance.
+- Decode a map of raw JSON fields rather than a struct so keys stay case-sensitive, unknown values can be rejected before decoding, and duplicate JSON keys use the last value.
 - Keep JavaScript whitespace handling consistent with the first slice.
 - Return owned text; failed parsing returns the zero result.
 
@@ -73,8 +73,8 @@ bun run check
 bun run test:package
 ```
 
-The shared suite contains 72 metadata cases plus 87 identity cases. The original 53 fixture inputs remain, with added string-format cases. Each behavior difference records the pinned TypeScript result explicitly.
-Cases cover nonblank, empty, blank, null, and legacy-array guidance, whitespace and Unicode scalar text, key case and repetition, ignored unknown fields, absent/null/wrongly typed values, error precedence, and forbidden license fields.
+The shared suite contains 78 metadata cases plus 87 identity cases. The original 53 fixture inputs remain, with added string-format cases. Each behavior difference records the pinned TypeScript result explicitly.
+Cases cover nonblank, empty, blank, null, and legacy-array guidance, whitespace and Unicode scalar text, key case and repetition, unknown-field rejection, absent/null/wrongly typed values, error precedence, and forbidden license fields.
 Go tests also check that parsing does not mutate input, results own their storage, failures return no partial metadata, and HTTP returns trimmed reading guidance as a string.
 
 Relevant engineering rule paths remain in [feedback.md](feedback.md#rules-used). The [Go conventions](../_internal/go-conventions.md) govern this implementation.
@@ -83,7 +83,7 @@ Private corpus contents are not copied into the product repository.
 ## Validation result
 
 - Go formatting, vet, Staticcheck v0.8.1, and race tests passed.
-- The 159 shared cases include 60 approved identity diagnostic differences and 42 approved metadata format/trim differences.
+- The 165 shared cases include 60 approved identity diagnostic differences and 48 approved metadata format/trim/unknown-field differences.
 - `bun run check` passed, including 444 tests, formatting, lint, type checking, docs build, and link checks. Six installed-package tests passed.
 - All ten metadata presets were invoked through the real browser lab. The editor fits the default document and resets to its beginning when selecting a preset.
 - Supported read-only Codex autoreview with web disabled returned one finding: the Unicode defect above. It is accepted and unresolved; review is not clean.
@@ -104,3 +104,9 @@ The TypeScript baseline stays pinned. Shared fixtures retain its exact original 
 The user chose a single `whenToRead` string for groups and rules. Individual rules already use a string. The Go group parser now requires the same nonblank text shape, removing list and duplicate-validation logic. The lab and Go HTTP contract use that shape too.
 
 The TypeScript release and its pinned comparison baseline retain their original array format during the migration. Fixtures explicitly test both the target string behavior and rejection of legacy arrays. Updating production authoring, rendering, library files, and format documentation belongs with those migration capabilities; do not copy the old array contract into the Go implementations. No implicit array-to-string conversion is introduced.
+
+## User-approved unknown-field rejection
+
+The user approved rejecting unrecognized metadata fields. Only `name`, `description`, and `whenToRead` are accepted. Unknown fields report their location and the allowed names. Key matching is case-sensitive; unknown keys are sorted so the first error is deterministic. `license` and `licenses` retain their specific diagnostics and precedence. Unknown fields are checked before required-field values.
+
+The pinned TypeScript reference still ignores unknown fields. Explicit fixture expectations retain that behavior alongside the approved Go errors, including null-valued unknowns, empty keys, multiple unknown keys in opposite input orders, and precedence over missing fields.

@@ -155,8 +155,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
-        "location": "techs/go/_group.json.whenToRead"
+        "message": "techs/go/_group.json.Name: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.Name"
       }
     },
     "referenceExpected": {
@@ -180,8 +180,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
-        "location": "techs/go/_group.json.whenToRead"
+        "message": "techs/go/_group.json.LICENSES: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.LICENSES"
       }
     },
     "referenceExpected": {
@@ -205,8 +205,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "techs/go/_group.json.whenToRead: expected nonempty text",
-        "location": "techs/go/_group.json.whenToRead"
+        "message": "techs/go/_group.json.future: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.future"
       }
     },
     "referenceExpected": {
@@ -623,6 +623,14 @@
     "input": "{\"Name\":\"Go\",\"description\":\"Go\",\"whenToRead\":[]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.Name: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.Name"
+      }
+    },
+    "referenceExpected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
@@ -1079,11 +1087,11 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When writing Go.; When reviewing Go.\",\"future\":{\"value\":true},\"Name\":\"Wrong\",\"__proto__\":{\"license\":\"MIT\"}}",
     "location": "techs/go/_group.json",
     "expected": {
-      "ok": true,
-      "value": {
-        "name": "Go",
-        "description": "Go engineering rules",
-        "whenToRead": "When writing Go.; When reviewing Go."
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.Name: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.Name"
       }
     },
     "referenceExpected": {
@@ -1101,11 +1109,11 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When writing Go.; When reviewing Go.\",\"License\":\"MIT\",\"LICENSES\":null}",
     "location": "techs/go/_group.json",
     "expected": {
-      "ok": true,
-      "value": {
-        "name": "Go",
-        "description": "Go engineering rules",
-        "whenToRead": "When writing Go.; When reviewing Go."
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.LICENSES: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.LICENSES"
       }
     },
     "referenceExpected": {
@@ -1123,11 +1131,11 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":\"When writing Go.; When reviewing Go.\",\"future\":1e400}",
     "location": "techs/go/_group.json",
     "expected": {
-      "ok": true,
-      "value": {
-        "name": "Go",
-        "description": "Go engineering rules",
-        "whenToRead": "When writing Go.; When reviewing Go."
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.future: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.future"
       }
     },
     "referenceExpected": {
@@ -1378,6 +1386,130 @@
         "name": "ValidationError",
         "message": "techs/go/_group.json.whenToRead: expected an array of strings",
         "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unknown-null",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\", \"extra\": null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.extra: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.extra"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unknown-empty-key",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\", \"\": true}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json."
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unknown-order-z-a",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\", \"z\": 0, \"a\": 1}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.a: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.a"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unknown-order-a-z",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\", \"a\": 1, \"z\": 0}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.a: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.a"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: expected an array of strings",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    }
+  },
+  {
+    "id": "metadata-unknown-before-missing",
+    "operation": "groupMetadata",
+    "input": "{\"typo\": true}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.typo: unknown field; allowed fields: name, description, whenToRead",
+        "location": "techs/go/_group.json.typo"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.name: expected nonempty text",
+        "location": "techs/go/_group.json.name"
+      }
+    }
+  },
+  {
+    "id": "metadata-license-before-unknown",
+    "operation": "groupMetadata",
+    "input": "{\"name\": \"Go\", \"description\": \"Go rules\", \"whenToRead\": \"When editing.\", \"extra\": true, \"license\": null}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.license: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
+        "location": "techs/go/_group.json.license"
       }
     }
   }
