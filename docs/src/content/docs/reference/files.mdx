@@ -260,9 +260,9 @@ This is a provisional delivery default, not an empirically validated threshold f
 Full definitions live under `generated/rules/<source-name>/<rule-path>.md`.
 For example, `fabrica:techs/typescript/prefer-type-aliases` maps to `rules/fabrica/techs/typescript/prefer-type-aliases.md`.
 The source name is a directory so generated paths are portable; the ID retains its colon.
-A replacement retains that path and ID while supplying its local title, applicability, and full body.
+A replacement uses its local identity and path. For example, `local:techs/typescript/prefer-interfaces` maps to `rules/local/techs/typescript/prefer-interfaces.md`.
 Excluded rules and superseded bodies have no generated rule file.
-Source links, attribution, library license links, and replacement provenance remain with the effective definition in both formats.
+Source links, attribution, and applicable library license links remain with the resolved definition in both formats. Replacement history appears only in configuration and provenance.
 Individual rule files remain available at stable paths even when the group includes full rules.
 Both copies come from the same resolved definition. Relative links are relocated from the actual output directory.
 Links to declared license and notice files target their generated copies. Other retained files use workspace-relative links. References to unselected rules use commit-pinned URLs for recognized GitHub.com and GitLab.com endpoints; other hosts require an explicit URL when the target is absent from the snapshot. Missing assets fail generation on every host.
@@ -328,7 +328,7 @@ It cannot verify offline that this was the highest available version or authenti
 `generated/provenance.json` records the tool version, every named source with its requested ref or constraint and resolved commit, and active rule origins.
 Version sources also record `resolvedTag` and `resolvedVersion`. Imported rule origins use the selected tag as `ref`, while the source record retains the requested constraint.
 Each source records `groupSelection` alongside the expanded `groups` list, keeping the adoption intent and actual included groups visible.
-A replacement retains both its targeted source-qualified ID and the local definition's origin.
+A replacement record uses the local rule ID and origin. Its `upstream` field identifies the replaced source rule; `replacementReason` records the project decision.
 Generated output excludes changing timestamps and machine-specific paths.
 
 These metadata files support repeatability and diagnosis.

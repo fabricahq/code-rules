@@ -97,6 +97,6 @@ Both formats place rule titles at heading level 3 under `## Rules`, following `#
 Both formats use the same resolved definitions and retain stable individual rule files. Embedded fragment links point to standalone definitions to avoid repeated heading collisions.
 Impact describes credible consequences; it neither selects rules nor assigns finding severity. `impactDescription` appears as **Why it matters**.
 A single oversized entry or part directory fails explicitly; rule bodies are never truncated.
-Output paths use `rules/<source-name>/<rule-path>.md`, preserving replacement IDs independently of local source filenames.
+Output paths use `rules/<source-name>/<rule-path>.md`. Replacements use the local definition's ID and path; only configuration and provenance retain the replaced target and reason.
 The complete returned map excludes obsolete definitions; File-handling helpers own stale-file comparison and installation, including removing obsolete index parts.
 The development CLI implements `check`; private-library migration remains future work. The builder tests verify that metadata edits change generated output deterministically.

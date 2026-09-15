@@ -584,7 +584,7 @@ test('should keep replacement licensing independent from upstream library terms'
   }).files;
   const provenance = JSON.parse(output['provenance.json']!);
   expect(provenance.rules[0]).toMatchObject({
-    id: `fabrica:${ruleId}`,
+    id: `local:${ruleId}`,
     licenseBasis: 'undeclared',
     licenses: [],
     upstream: { source: 'fabrica' },

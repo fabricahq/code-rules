@@ -254,7 +254,10 @@ Each selected group must exist in that source at its pinned revision.
 Selecting `practices/testing` from two sources combines both sets of rules into one effective testing group, with a group page and individual resolved rule files.
 Source order never establishes precedence.
 
-Local rules can join any imported group.
+Every valid rule file under `local/` automatically joins its adopted group; individual local rules do not need source entries.
+Local rules can join any imported group. A matching filename does not override an imported rule.
+A local file referenced by `replace` appears once under its local ID; the target is removed from active output.
+The complete local definition supplies the metadata, guidance, attribution, and assets. Configuration and provenance retain the replacement relationship.
 For a group with no imported source, declare it in `localGroups` and provide local group metadata.
 Do not list an imported group in `localGroups`.
 Local rules in undeclared groups are errors rather than silently ignored inputs.

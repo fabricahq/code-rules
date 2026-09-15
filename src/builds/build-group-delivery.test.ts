@@ -75,19 +75,28 @@ test.each([0, 8192])(
     expect(index).toContain(
       'Assess findings from concrete evidence and consequences.',
     );
-    expect(output[`rules/fabrica/${id}.md`]).toContain(
+    expect(output[`rules/local/${group}/replacement.md`]).toContain(
       'Use exactly three attempts.',
     );
     expect(
       Object.keys(output).filter(
         (path) => path.startsWith('rules/') && path !== 'rules/README.md',
       ),
-    ).toEqual([`rules/fabrica/${id}.md`, `rules/local/${group}/success.md`]);
+    ).toEqual([
+      `rules/local/${group}/replacement.md`,
+      `rules/local/${group}/success.md`,
+    ]);
     expect(
       indexedPaths(`groups/${group}.md`, index).filter((path) =>
         path.startsWith('rules/'),
       ),
-    ).toEqual([`rules/fabrica/${id}.md`, `rules/local/${group}/success.md`]);
+    ).toEqual([
+      `rules/local/${group}/replacement.md`,
+      `rules/local/${group}/success.md`,
+    ]);
+    expect(index).not.toContain(`fabrica:${id}`);
+    expect(index).not.toContain('Replaces upstream');
+    expect(output[`rules/fabrica/${id}.md`]).toBeUndefined();
     expect(Object.values(output).join('\n')).not.toContain('Excluded body.');
     expect(Object.values(output).join('\n')).not.toContain('title: Superseded');
   },

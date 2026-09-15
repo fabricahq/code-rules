@@ -107,7 +107,9 @@ Write a complete local definition, then reference it from `sources.<name>.replac
 }
 ```
 
-The replacement keeps the source-qualified rule ID but replaces its entire body and metadata.
+The resolved rule uses the complete local definition, including its local ID, title, reading cue, impact, body, attribution, and asset references.
+In this example, the generated ID is `local:techs/typescript/prefer-interfaces`.
+Configuration and provenance record what it replaced and why; generated rule guidance does not display that history.
 Its file stays in the target group and does not also become an additional rule.
 
 Replacing “prefer type aliases” with “prefer interfaces” leaves only the local definition in the effective output.

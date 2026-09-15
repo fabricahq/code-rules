@@ -32,14 +32,16 @@ Reject malformed groups and orphan rule files rather than silently dropping them
 
 1. Load each resolved source's selected groups and assign source-qualified IDs, then load declared local-only groups.
 2. Resolve each source's library-relative exclusions to qualified IDs and remove those rules.
-3. Apply each source's replacements as complete local definitions, preserving the qualified target IDs.
+3. Remove each replaced source rule and include its complete local definition under the local rule ID.
 4. Add the remaining local rules.
 5. Render the root index, group pages, individual resolved definitions, library summaries and license copies, and provenance.
 
 Sort sources, groups, and rule IDs consistently so reordering configuration does not change the result.
 Preserve source-labeled group metadata and rule provenance; source order does not establish precedence.
 
-A local replacement is not also an additional rule.
+Each local rule appears once, including when referenced by a replacement.
+Generated guidance uses the local ID, title, metadata, body, attribution, and asset references.
+Replacement targets and reasons remain in configuration and provenance, outside the rule guidance.
 Replacements stay within their target group in the first release.
 
 Record the requested ref or version constraint and resolved commit for every snapshot. Version selections also record the chosen tag and normalized version.

@@ -138,12 +138,34 @@ test('offline build incorporates local replacements and preserves authored files
   });
   const before = treeDigest(await readTree(join(root, 'vendor')));
   succeeded(run('build'));
-  expect(
-    await readFile(
+  const generatedRule = await readFile(
+    join(root, 'generated/rules/local', path),
+    'utf8',
+  );
+  expect(generatedRule).toContain('Use three attempts.');
+  expect(generatedRule).toContain('Rule ID: `local:practices/testing/custom`');
+  expect(generatedRule).not.toContain('Replaces upstream');
+  expect(generatedRule).not.toContain('Three attempts.');
+  await expect(
+    readFile(
       join(root, 'generated/rules/team/practices/testing/verify-retries.md'),
-      'utf8',
     ),
-  ).toContain('Use three attempts.');
+  ).rejects.toThrow();
+  const provenance = JSON.parse(
+    await readFile(join(root, 'generated/provenance.json'), 'utf8'),
+  );
+  expect(provenance.rules).toEqual([
+    expect.objectContaining({
+      id: 'local:practices/testing/custom',
+      origin: expect.objectContaining({ source: 'local', file: path }),
+      upstream: expect.objectContaining({
+        source: 'team',
+        file: 'practices/testing/verify-retries.md',
+      }),
+      replacementReason: 'Three attempts.',
+    }),
+  ]);
+  succeeded(run('check'));
   expect(treeDigest(await readTree(join(root, 'vendor')))).toBe(before);
   expect(await readFile(join(root, 'local', path), 'utf8')).toContain(
     'Use three attempts.',

@@ -329,7 +329,7 @@ function requireExceptionTargets(library: SelectedLibrary): void {
   }
 }
 
-/** Reserve a replacement file and return its local definition under the upstream ID; reject reuse or a different group first. */
+/** Reserve a replacement file and return its complete local definition; reject reuse or a different group first. */
 function replacementRule(
   parsed: Rule,
   replacement: RuleReplacement,
@@ -353,7 +353,7 @@ function replacementRule(
   const text = requiredFile(localFiles, path, 'local');
   const definition = rule(text, path, 'local');
   return {
-    rule: { ...definition, id: parsed.id },
+    rule: definition,
     origin: localOrigin(path),
     upstream: origin(library.source, library.snapshot, parsed.path),
     reason: replacement.reason,
