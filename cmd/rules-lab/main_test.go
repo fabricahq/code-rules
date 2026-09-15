@@ -1,0 +1,171 @@
+// Exercise the development adapter through its JSON and HTTP boundaries.
+
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestHTTPValidationDoesNotLogInput(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	req := httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(`{"operation":"groupID","input":"private-user-content","location":"private-field"}`))
+	recorder := httptest.NewRecorder()
+	handler(logger).ServeHTTP(recorder, req)
+	if !strings.Contains(recorder.Body.String(), "ValidationError") || !strings.Contains(logs.String(), `"ok":false`) {
+		t.Fatalf("missing validation response or debug outcome: response=%s, logs=%s", recorder.Body, &logs)
+	}
+	if strings.Contains(logs.String(), "private-") || strings.Contains(logs.String(), `"level":"ERROR"`) {
+		t.Fatalf("expected input failures must not expose content or produce error logs: %s", &logs)
+	}
+}
+
+type brokenBody struct{}
+
+func (brokenBody) Read([]byte) (int, error) { return 0, errors.New("private read details") }
+func (brokenBody) Close() error             { return nil }
+
+func TestHTTPBodyReadFailure(t *testing.T) {
+	var logs bytes.Buffer
+	req := httptest.NewRequest(http.MethodPost, "/invoke", brokenBody{})
+	recorder := httptest.NewRecorder()
+	handler(slog.New(slog.NewJSONHandler(&logs, nil))).ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusBadRequest || recorder.Body.String() != "could not read request body\n" || logs.Len() != 0 {
+		t.Fatalf("got status=%d, response=%s, logs=%s", recorder.Code, recorder.Body, &logs)
+	}
+}
+
+type brokenResponse struct{ *httptest.ResponseRecorder }
+
+func (brokenResponse) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
+
+func TestHTTPWriteFailureLoggedOnce(t *testing.T) {
+	for _, path := range []string{"/", "/invoke"} {
+		t.Run(path, func(t *testing.T) {
+			var logs bytes.Buffer
+			method := http.MethodGet
+			if path == "/invoke" {
+				method = http.MethodPost
+			}
+			req := httptest.NewRequest(method, path, strings.NewReader(`{"operation":"selection","input":[],"location":"groups"}`))
+			handler(slog.New(slog.NewJSONHandler(&logs, nil))).ServeHTTP(brokenResponse{httptest.NewRecorder()}, req)
+			if strings.Count(logs.String(), "\n") != 1 || !strings.Contains(logs.String(), `"level":"WARN"`) || !strings.Contains(logs.String(), "closed pipe") {
+				t.Fatalf("want one warning for undeliverable response, got %s", &logs)
+			}
+		})
+	}
+}
+
+func TestInvokeBoundary(t *testing.T) {
+	cases := []struct{ name, input, errorName string }{
+		{"rule group", `{"operation":"ruleGroup","input":"techs/go/a.md","location":"rule"}`, ""},
+		{"domain error", `{"operation":"groupID","input":"techs/Go","location":"group"}`, "ValidationError"},
+		{"missing selection", `{"operation":"selection","location":"groups"}`, "ValidationError"},
+		{"null text", `{"operation":"groupID","input":null,"location":"group"}`, "AdapterError"},
+		{"wrong text type", `{"operation":"groupID","input":42,"location":"group"}`, "AdapterError"},
+		{"unknown operation", `{"operation":"writeFile","input":"x","location":"group"}`, "AdapterError"},
+		{"unknown field", `{"operation":"groupID","input":"techs/go","location":"group","shell":"x"}`, "AdapterError"},
+		{"malformed JSON", `{"operation":"selection","input":[}`, "AdapterError"},
+		{"trailing value", `{"operation":"selection","input":[],"location":"groups"} true`, "AdapterError"},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := invoke([]byte(test.input))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.errorName == "" {
+				if !got.OK || got.Value != "techs/go" {
+					t.Fatalf("unexpected success: %+v", got)
+				}
+			} else if got.OK || got.Error == nil || got.Error.Name != test.errorName {
+				t.Fatalf("unexpected error: %+v", got)
+			}
+		})
+	}
+}
+
+func TestHTTPInvokesNativeFunction(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/invoke", strings.NewReader(`{"operation":"selection","input":["techs/go","practices/testing"],"location":"groups"}`))
+	req.Header.Set("Origin", "http://127.0.0.1:8080")
+	recorder := httptest.NewRecorder()
+	handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("got HTTP %d: %s", recorder.Code, recorder.Body)
+	}
+	var got struct {
+		OK    bool
+		Value []string
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if !got.OK || strings.Join(got.Value, ",") != "practices/testing,techs/go" {
+		t.Fatalf("unexpected response: %s", recorder.Body)
+	}
+}
+
+func TestHTTPRejectsCrossOriginAndOversizedRequests(t *testing.T) {
+	for _, test := range []struct {
+		name, origin, body string
+		status             int
+	}{
+		{"cross origin", "https://unrelated.example", `{}`, http.StatusForbidden},
+		{"body limit", "http://127.0.0.1:8080", strings.Repeat(" ", maxRequestBytes+1), http.StatusRequestEntityTooLarge},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/invoke", strings.NewReader(test.body))
+			req.Header.Set("Origin", test.origin)
+			recorder := httptest.NewRecorder()
+			handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, req)
+			if recorder.Code != test.status {
+				t.Fatalf("got HTTP %d, want %d", recorder.Code, test.status)
+			}
+		})
+	}
+}
+
+func TestLoggerFromEnvironment(t *testing.T) {
+	for _, test := range []struct {
+		name, level, format, errorField string
+		wantJSON, wantDebug             bool
+	}{
+		{name: "defaults"},
+		{name: "mixed case", level: "dEbUg", format: "JsOn", wantJSON: true, wantDebug: true},
+		{name: "numeric offset", level: "INFO+2", format: "json", wantJSON: true},
+		{name: "invalid level", level: "private-value", errorField: "CODE_RULES_LOG_LEVEL"},
+		{name: "invalid format", format: "private-value", errorField: "CODE_RULES_LOG_FORMAT"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("CODE_RULES_LOG_LEVEL", test.level)
+			t.Setenv("CODE_RULES_LOG_FORMAT", test.format)
+			var output bytes.Buffer
+			logger, err := loggerFromEnvironment(&output)
+			if test.errorField != "" {
+				if logger != nil || err == nil || !strings.Contains(err.Error(), test.errorField) || strings.Contains(err.Error(), "private-value") || output.Len() != 0 {
+					t.Fatalf("unexpected configuration failure: logger=%v error=%v output=%s", logger, err, &output)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			logger.Debug("debug event")
+			logger.Warn("warning event")
+			if strings.Contains(output.String(), "debug event") != test.wantDebug || !strings.Contains(output.String(), "warning event") {
+				t.Fatalf("unexpected level filtering: %s", &output)
+			}
+			if strings.HasPrefix(output.String(), "{") != test.wantJSON {
+				t.Fatalf("unexpected format: %s", &output)
+			}
+		})
+	}
+}

@@ -1,6 +1,6 @@
 # First iteration evidence
 
-Status: implemented harness; inventory proposed; independent review and merge pending.
+Historical harness evidence. PR #10 was subsequently merged into `go-migration` with human approval at `5ba1d51c7214c9d22979a882fb6fb46b2120d8fe`. See [identities.md](identities.md) for the current slice.
 
 ## Revisions and scope
 
@@ -40,7 +40,7 @@ These paths belong to the originating machine. Other reviewers should regenerate
 
 ## Review decisions
 
-Review the proposed baseline because it includes two unmerged TypeScript PRs.
+The original baseline included two then-unmerged TypeScript PRs. PR #8 has since merged to `main`; PR #9 was closed in favor of the Go migration, with its committed behavior retained in the reference.
 Review the initial inventory, uncovered required scenarios, normalization policy, and filesystem-observation limits.
 No behavior differences are approved. No production behavior or existing acceptance test changed.
 The draft assertion corrections are documented in [feedback.md](feedback.md#draft-assertion-corrections).

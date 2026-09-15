@@ -29,6 +29,9 @@ Use `@fileoverview` headers separated from declarations by a blank line; export 
 For Astro components, the frontmatter overview describes the component's role and rendered result.
 Private-helper documentation stays optional, and review checks comment accuracy and usefulness.
 
+The Go migration follows the [Go conventions](_internal/go-conventions.md) for error handling, logging, comments, and validation.
+See the [migration guide](migration/README.md) for the candidate's scope and checks.
+
 The public tool is independent of any particular rule library.
 All examples in these docs are illustrative; this repository does not contain Fabrica's private rule corpus.
 

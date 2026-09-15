@@ -1,0 +1,1686 @@
+[
+  {
+    "id": "group-valid-0",
+    "operation": "groupID",
+    "input": "techs/go",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "techs/go"
+    }
+  },
+  {
+    "id": "group-valid-1",
+    "operation": "groupID",
+    "input": "practices/testing",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "practices/testing"
+    }
+  },
+  {
+    "id": "group-valid-2",
+    "operation": "groupID",
+    "input": "techs/a",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "techs/a"
+    }
+  },
+  {
+    "id": "group-valid-3",
+    "operation": "groupID",
+    "input": "techs/go-",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "techs/go-"
+    }
+  },
+  {
+    "id": "group-valid-4",
+    "operation": "groupID",
+    "input": "practices/a0--",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "practices/a0--"
+    }
+  },
+  {
+    "id": "group-valid-5",
+    "operation": "groupID",
+    "input": "techs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "techs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  {
+    "id": "group-invalid-6",
+    "operation": "groupID",
+    "input": "",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-7",
+    "operation": "groupID",
+    "input": "techs",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-8",
+    "operation": "groupID",
+    "input": "techs/",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-9",
+    "operation": "groupID",
+    "input": "techs/assets",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/assets\": \"assets\" is a reserved group name",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/assets\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-10",
+    "operation": "groupID",
+    "input": "practices/assets",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"practices/assets\": \"assets\" is a reserved group name",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"practices/assets\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-11",
+    "operation": "groupID",
+    "input": "techs/Go",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/Go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/Go\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-12",
+    "operation": "groupID",
+    "input": "other/go",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"other/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"other/go\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-13",
+    "operation": "groupID",
+    "input": "techs/0go",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/0go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/0go\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-14",
+    "operation": "groupID",
+    "input": "techs/go_extra",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/go_extra\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/go_extra\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-15",
+    "operation": "groupID",
+    "input": "techs/go.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/go.md\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/go.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-16",
+    "operation": "groupID",
+    "input": "techs/go/x",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/go/x\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/go/x\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-17",
+    "operation": "groupID",
+    "input": " techs/go",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \" techs/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \" techs/go\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-18",
+    "operation": "groupID",
+    "input": "techs/go\n",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/go\\n\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/go\\n\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-19",
+    "operation": "groupID",
+    "input": "techs/é",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/é\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/é\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-20",
+    "operation": "groupID",
+    "input": "techs/😀",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/😀\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/😀\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-21",
+    "operation": "groupID",
+    "input": "techs/<>&",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/<>&\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/<>&\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-22",
+    "operation": "groupID",
+    "input": "techs/ ",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/ \": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/ \"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "group-invalid-23",
+    "operation": "groupID",
+    "input": "techs/\u0001",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/\\u0001\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/\\u0001\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-valid-24",
+    "operation": "ruleGroup",
+    "input": "techs/go/rule.md",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "techs/go"
+    }
+  },
+  {
+    "id": "rule-valid-25",
+    "operation": "ruleGroup",
+    "input": "practices/testing/1-rule.md",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "practices/testing"
+    }
+  },
+  {
+    "id": "rule-valid-26",
+    "operation": "ruleGroup",
+    "input": "techs/go/errors/wrap.md",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "techs/go"
+    }
+  },
+  {
+    "id": "rule-valid-27",
+    "operation": "ruleGroup",
+    "input": "techs/go/a../b..md",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "techs/go"
+    }
+  },
+  {
+    "id": "rule-valid-28",
+    "operation": "ruleGroup",
+    "input": "techs/go-/x.md",
+    "location": "input",
+    "expected": {
+      "ok": true,
+      "value": "techs/go-"
+    }
+  },
+  {
+    "id": "rule-contained-29",
+    "operation": "ruleGroup",
+    "input": "",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-30",
+    "operation": "ruleGroup",
+    "input": "/techs/go/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"/techs/go/a.md\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"/techs/go/a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-31",
+    "operation": "ruleGroup",
+    "input": "techs//a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs//a.md\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs//a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-32",
+    "operation": "ruleGroup",
+    "input": "techs/go/./a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/./a.md\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/./a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-33",
+    "operation": "ruleGroup",
+    "input": "techs/go/../a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/../a.md\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/../a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-34",
+    "operation": "ruleGroup",
+    "input": "techs/go/a.md/",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/a.md/\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/a.md/\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-35",
+    "operation": "ruleGroup",
+    "input": "C:techs/go/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"C:techs/go/a.md\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"C:techs/go/a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-36",
+    "operation": "ruleGroup",
+    "input": "z:/go/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"z:/go/a.md\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"z:/go/a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-37",
+    "operation": "ruleGroup",
+    "input": "techs\\go\\a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs\\\\go\\\\a.md\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs\\\\go\\\\a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-38",
+    "operation": "ruleGroup",
+    "input": "techs/go/\u0000a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/\\u0000a.md\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/\\u0000a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-39",
+    "operation": "ruleGroup",
+    "input": "techs/go/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/a.md\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-contained-40",
+    "operation": "ruleGroup",
+    "input": "techs/go/a.md\n",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/a.md\\n\": use forward slashes; no leading slash, drive prefix, empty segments, \".\" or \"..\" segments, or control characters",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: expected a contained relative path, got \"techs/go/a.md\\n\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-41",
+    "operation": "ruleGroup",
+    "input": "techs/go",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go\": expected a .md file beneath a group directory",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-42",
+    "operation": "ruleGroup",
+    "input": "techs/go/assets/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/assets/a.md\": \"assets\" is reserved for supporting files, not rules",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/assets/a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-43",
+    "operation": "ruleGroup",
+    "input": "techs/assets/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/assets/a.md\": \"assets\" is reserved for supporting files, not rules",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/assets/a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-44",
+    "operation": "ruleGroup",
+    "input": "techs/go/a.MD",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/a.MD\": expected a .md file beneath a group directory",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/a.MD\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-45",
+    "operation": "ruleGroup",
+    "input": "techs/go/.a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/.a.md\": rule file and subdirectory names must match ^[a-z0-9][a-z0-9.-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/.a.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-46",
+    "operation": "ruleGroup",
+    "input": "techs/go/A.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/A.md\": rule file and subdirectory names must match ^[a-z0-9][a-z0-9.-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/A.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-47",
+    "operation": "ruleGroup",
+    "input": "techs/go/a_b.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/a_b.md\": rule file and subdirectory names must match ^[a-z0-9][a-z0-9.-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/a_b.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-48",
+    "operation": "ruleGroup",
+    "input": "techs/go/é.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/é.md\": rule file and subdirectory names must match ^[a-z0-9][a-z0-9.-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/é.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-49",
+    "operation": "ruleGroup",
+    "input": "techs/go/😀.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/😀.md\": rule file and subdirectory names must match ^[a-z0-9][a-z0-9.-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"techs/go/😀.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-syntax-50",
+    "operation": "ruleGroup",
+    "input": "wrong/go/A.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"wrong/go/A.md\": rule file and subdirectory names must match ^[a-z0-9][a-z0-9.-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"wrong/go/A.md\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-group-51",
+    "operation": "ruleGroup",
+    "input": "other/go/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "rule path \"other/go/a.md\": input: invalid group ID \"other/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"other/go\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "rule-group-52",
+    "operation": "ruleGroup",
+    "input": "techs/Go/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "rule path \"techs/Go/a.md\": input: invalid group ID \"techs/Go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"techs/Go\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "selection-valid-53",
+    "operation": "selection",
+    "input": [],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": true,
+      "value": []
+    }
+  },
+  {
+    "id": "selection-valid-54",
+    "operation": "selection",
+    "input": [
+      "techs/go"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": true,
+      "value": [
+        "techs/go"
+      ]
+    }
+  },
+  {
+    "id": "selection-valid-55",
+    "operation": "selection",
+    "input": [
+      "techs/go",
+      "practices/testing",
+      "techs/bash"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": true,
+      "value": [
+        "practices/testing",
+        "techs/bash",
+        "techs/go"
+      ]
+    }
+  },
+  {
+    "id": "selection-valid-56",
+    "operation": "selection",
+    "input": "*",
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": true,
+      "value": "*"
+    }
+  },
+  {
+    "id": "selection-valid-57",
+    "operation": "selection",
+    "input": "techs/*",
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": true,
+      "value": "techs/*"
+    }
+  },
+  {
+    "id": "selection-valid-58",
+    "operation": "selection",
+    "input": "practices/*",
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": true,
+      "value": "practices/*"
+    }
+  },
+  {
+    "id": "selection-shape-59",
+    "operation": "selection",
+    "input": null,
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
+        "location": "sources.team.groups"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of strings",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-shape-60",
+    "operation": "selection",
+    "input": true,
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
+        "location": "sources.team.groups"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of strings",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-shape-61",
+    "operation": "selection",
+    "input": 42,
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
+        "location": "sources.team.groups"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of strings",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-shape-62",
+    "operation": "selection",
+    "input": {},
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
+        "location": "sources.team.groups"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of strings",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-shape-63",
+    "operation": "selection",
+    "input": "techs/go",
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
+        "location": "sources.team.groups"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of strings",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-shape-64",
+    "operation": "selection",
+    "input": "techs/**",
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
+        "location": "sources.team.groups"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of strings",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-shape-65",
+    "operation": "selection",
+    "input": " * ",
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
+        "location": "sources.team.groups"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of strings",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-text-66",
+    "operation": "selection",
+    "input": [
+      ""
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: expected nonempty text",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-text-67",
+    "operation": "selection",
+    "input": [
+      "techs/go",
+      " "
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[1]: expected nonempty text",
+        "location": "sources.team.groups[1]"
+      }
+    }
+  },
+  {
+    "id": "selection-text-68",
+    "operation": "selection",
+    "input": [
+      null
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: expected nonempty text",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-text-69",
+    "operation": "selection",
+    "input": [
+      false
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: expected nonempty text",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-text-70",
+    "operation": "selection",
+    "input": [
+      [
+        "techs/go"
+      ]
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: expected nonempty text",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-text-71",
+    "operation": "selection",
+    "input": [
+      "bad",
+      "bad",
+      ""
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[2]: expected nonempty text",
+        "location": "sources.team.groups[2]"
+      }
+    }
+  },
+  {
+    "id": "selection-text-72",
+    "operation": "selection",
+    "input": [
+      "﻿"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: expected nonempty text",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-text-73",
+    "operation": "selection",
+    "input": [
+      " "
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: expected nonempty text",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-duplicate-74",
+    "operation": "selection",
+    "input": [
+      "techs/go",
+      "techs/go"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: duplicate entries",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-duplicate-75",
+    "operation": "selection",
+    "input": [
+      "bad",
+      "bad"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: duplicate entries",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-id-76",
+    "operation": "selection",
+    "input": [
+      "*"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \"*\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "sources.team.groups[0]"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \"*\"",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-id-77",
+    "operation": "selection",
+    "input": [
+      "techs/go",
+      "techs/*"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[1]: invalid group ID \"techs/*\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "sources.team.groups[1]"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[1]: invalid group ID \"techs/*\"",
+        "location": "sources.team.groups[1]"
+      }
+    }
+  },
+  {
+    "id": "selection-id-78",
+    "operation": "selection",
+    "input": [
+      " techs/go"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \" techs/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "sources.team.groups[0]"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \" techs/go\"",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-id-79",
+    "operation": "selection",
+    "input": [
+      ""
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \"\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "sources.team.groups[0]"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \"\"",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-id-80",
+    "operation": "selection",
+    "input": [
+      "techs/z",
+      "bad"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[1]: invalid group ID \"bad\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "sources.team.groups[1]"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[1]: invalid group ID \"bad\"",
+        "location": "sources.team.groups[1]"
+      }
+    }
+  },
+  {
+    "id": "selection-missing",
+    "operation": "selection",
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
+        "location": "sources.team.groups"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of strings",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "selection-reserved-techs",
+    "operation": "selection",
+    "input": [
+      "techs/assets"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \"techs/assets\": \"assets\" is a reserved group name",
+        "location": "sources.team.groups[0]"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \"techs/assets\"",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "selection-reserved-practices",
+    "operation": "selection",
+    "input": [
+      "practices/assets"
+    ],
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \"practices/assets\": \"assets\" is a reserved group name",
+        "location": "sources.team.groups[0]"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups[0]: invalid group ID \"practices/assets\"",
+        "location": "sources.team.groups[0]"
+      }
+    }
+  },
+  {
+    "id": "group-malformed-reserved-suffix",
+    "operation": "groupID",
+    "input": "other/assets",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"other/assets\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid group ID \"other/assets\"",
+        "location": "input"
+      }
+    }
+  },
+  {
+    "id": "selection-unknown-wildcard-prefix",
+    "operation": "selection",
+    "input": "text/*",
+    "location": "sources.team.groups",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
+        "location": "sources.team.groups"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.groups: expected an array of strings",
+        "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "rule-assets-prefix",
+    "operation": "ruleGroup",
+    "input": "assets/go/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "rule path \"assets/go/a.md\": input: invalid group ID \"assets/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"assets/go/a.md\"",
+        "location": "input"
+      }
+    }
+  }
+]
