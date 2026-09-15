@@ -5,24 +5,24 @@ Build the Go candidate through one reviewed PR at a time. The TypeScript CLI rem
 ## Branches and baseline
 
 - Integration branch: `go-migration`.
-- This slice: `codex/go-migration-harness`, based on `go-migration`.
+- Current slice: `codex/go-identities`, based on `go-migration`. See [the identity slice](identities.md) for scope, API decisions, and the interactive lab.
 - Every migration PR targets `go-migration`. A human merges each slice before the next iteration starts.
 - A separate human decision authorizes the eventual `go-migration` to `main` PR, distribution changes, and removal of TypeScript runtime code.
 
 The initial integration branch and TypeScript reference both start at `7013d3d374a33a5cf65a2a48ff6870e46f9d7209`.
 That is [PR #9](https://github.com/fabricahq/code-rules/pull/9), stacked on [PR #8](https://github.com/fabricahq/code-rules/pull/8).
 It includes library authoring, Node packaging, and contextual command help that `main` lacked when this iteration began.
-Both TypeScript PRs were awaiting review. Their inclusion establishes a proposed compatibility reference, not approval or a merge of those PRs.
-If their review changes behavior or they merge with different history, reconcile the integration branch explicitly and refresh evidence through review.
+PR #8 has since merged to `main`; PR #9 was closed without merging in favor of this migration. Its committed behavior remains in the pinned reference.
+The user approved merging [the harness PR #10](https://github.com/fabricahq/code-rules/pull/10) into `go-migration`; its merge commit is `5ba1d51c7214c9d22979a882fb6fb46b2120d8fe`. The identity slice starts there.
 
 The product checkout and private rule corpus had unrelated local changes. This work uses a separate clone and committed corpus contents.
-No production Go code, release publication, scheduled work, or approved behavior differences belong to this first slice.
+The harness slice introduced no Go implementation. The current identity slice adds a native package and development adapter. Release publication and scheduled work remain unauthorized. The user-approved validation diagnostic improvements are recorded in [the identity slice](identities.md#user-approved-diagnostic-improvement).
 
 ## Inventory and evidence
 
 [contracts.json](contracts.json) is the proposed capability inventory. IDs are stable: append new scenario IDs without renumbering existing ones.
 Dependencies express migration order. Each capability lists source owners and required happy, unhappy, and boundary cases.
-Every capability remains `not-implemented`; every full acceptance scenario remains pending until its required evidence is available and reviewed.
+The inventory retains `not-implemented` for full capabilities until acceptance. The identity slice records partial implementation evidence separately; every full acceptance scenario remains pending until its required evidence is available and reviewed.
 
 The initial [executable scenarios](../tests/migration/scenarios.ts) exercise representative paths across those capabilities.
 The report lists these as `exercisedBy`; it does not count a representative case as full capability completion.
@@ -98,9 +98,9 @@ The CI check uses Node 24 and a complete Git history so it can inspect the pinne
 The release validation workflow also fetches that history before running repository checks.
 The normal repository test command already includes `_tools/*.test.ts`; its format, lint, and typecheck commands cover the new files.
 
-Before merging this slice, review the inventory's completeness, baseline choice, comparison normalization, safety limits, and negative controls.
+The harness review covers inventory completeness, baseline choice, comparison normalization, safety limits, and negative controls.
 Passing these checks is implementation evidence. Independent validation and human approval remain separate states.
-See [feedback.md](feedback.md) and [evidence.md](evidence.md) for this iteration's handoff.
+See [feedback.md](feedback.md) and [evidence.md](evidence.md) for the harness handoff.
 
-After human merge and fresh measurement, the recommended next slice is a narrow part of `formats.identities`: group/rule IDs and selector validation.
-Define its executable test adapter and shared boundary cases first. Establish a reviewed pure Go pattern before filesystem-writing commands.
+The current [identity slice](identities.md) implements group/rule IDs and selector validation, with a native adapter and shared boundary cases.
+Review its Go patterns before starting filesystem-writing capabilities.

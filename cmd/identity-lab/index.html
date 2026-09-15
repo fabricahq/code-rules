@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Code Rules · Go identity lab</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: #fff;
+        --surface: #f6f6f6;
+        --ink: #1c1c1c;
+        --muted: #626262;
+        --line: #d5d5d5;
+        --accent: #245acf;
+        --good: #176546;
+        --bad: #ae2929;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #151515;
+          --surface: #202020;
+          --ink: #f2f2f2;
+          --muted: #b8b8b8;
+          --line: #444;
+          --accent: #94b6ff;
+          --good: #7ed4a7;
+          --bad: #ffa3a3;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          16px/1.6 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1200px;
+        margin: auto;
+        padding: 32px 32px 80px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 20px;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+      a {
+        color: var(--accent);
+      }
+      h1 {
+        font-size: clamp(36px, 5vw, 58px);
+        line-height: 1.08;
+        letter-spacing: -0.045em;
+        margin: 40px 0 20px;
+        max-width: 780px;
+      }
+      h2 {
+        font-size: 25px;
+        letter-spacing: -0.025em;
+        line-height: 1.3;
+        margin: 0 0 15px;
+      }
+      h3 {
+        font-size: 17px;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0 0 16px;
+      }
+      .lede {
+        max-width: 780px;
+        font-size: 19px;
+        color: var(--muted);
+      }
+      .label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--muted);
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-block: 1px solid var(--line);
+        margin: 30px 0 36px;
+      }
+      .flow > div {
+        padding: 20px 24px 20px 0;
+      }
+      .flow span {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .panel {
+        min-width: 0;
+        padding: 28px;
+      }
+      .result {
+        background: var(--surface);
+        border-left: 1px solid var(--line);
+      }
+      button,
+      select,
+      input,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--paper);
+        padding: 9px 13px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--ink);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      button.primary {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+        padding: 11px 22px;
+        font-weight: 600;
+      }
+      select,
+      input,
+      textarea {
+        width: 100%;
+        min-width: 0;
+        background: var(--paper);
+      }
+      input,
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 11px 12px;
+      }
+      textarea {
+        font:
+          14px/1.6 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        resize: vertical;
+        min-height: 145px;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin: 18px 0 6px;
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .presets {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin: 12px 0 20px;
+      }
+      .presets button {
+        font-size: 12px;
+        padding: 5px 9px;
+        border-radius: 20px;
+      }
+      .hint {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .signature {
+        font:
+          13px/1.6 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        overflow-wrap: anywhere;
+        padding: 15px 0;
+        color: var(--muted);
+      }
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .badge {
+        font-size: 12px;
+        padding: 4px 10px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+      }
+      .badge.good {
+        color: var(--good);
+      }
+      .badge.bad {
+        color: var(--bad);
+      }
+      pre {
+        font:
+          13px/1.65 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 0;
+        padding: 18px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        max-height: 420px;
+        overflow: auto;
+      }
+      .result h3 {
+        margin-top: 24px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .section {
+        margin-top: 48px;
+      }
+      .review {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 30px;
+      }
+      .review > div {
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+      }
+      .review p {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.88em;
+        overflow-wrap: anywhere;
+      }
+      details {
+        margin-top: 24px;
+        border-top: 1px solid var(--line);
+        padding-top: 15px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      details p,
+      details pre {
+        margin-top: 14px;
+      }
+      .notice {
+        border-left: 3px solid var(--line);
+        padding-left: 16px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 45px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        color: var(--muted);
+      }
+      @media (max-width: 760px) {
+        main {
+          padding: 20px 18px 45px;
+        }
+        .workspace,
+        .review {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .result {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+        .panel {
+          padding: 20px;
+        }
+        .flow {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .flow > div {
+          padding: 12px 0;
+        }
+        header {
+          flex-wrap: wrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <strong>CODE RULES / GO MIGRATION</strong
+        ><span>Slice 01 · Identity syntax</span>
+      </header>
+      <h1>Small functions.<br />Real Go results.</h1>
+      <p class="lede">
+        Try the first native capability: validate a group ID, find a rule’s
+        group, or parse a group selection. Edit the input and invoke the
+        compiled Go package.
+      </p>
+      <div class="flow">
+        <div>
+          <strong>01 &nbsp; Your input</strong
+          ><span>Text or a configuration JSON value</span>
+        </div>
+        <div>
+          <strong>02 &nbsp; Native validation</strong
+          ><span>Pure functions in internal/identity</span>
+        </div>
+        <div>
+          <strong>03 &nbsp; Value or error</strong
+          ><span>No filesystem access by these functions</span>
+        </div>
+      </div>
+      <div class="workspace">
+        <section class="panel" aria-labelledby="input-heading">
+          <div class="label">Invoke a function</div>
+          <h2 id="input-heading">Make the input your own</h2>
+          <label for="operation">Operation</label
+          ><select id="operation">
+            <option value="groupID">Validate a group ID</option>
+            <option value="ruleGroup">Identify a rule’s group</option>
+            <option value="selection">Parse a group selection</option>
+          </select>
+          <div class="signature" id="signature"></div>
+          <p class="hint" id="description"></p>
+          <div class="presets" id="presets" aria-label="Example inputs"></div>
+          <label for="input" id="input-label">Group ID</label
+          ><textarea
+            id="input"
+            spellcheck="false"
+            aria-describedby="input-hint"
+          ></textarea>
+          <p id="input-hint" class="hint"></p>
+          <label for="location">Error location</label
+          ><input id="location" value="group" spellcheck="false" />
+          <p class="hint">
+            A field name for diagnostics. It does not refer to a file.
+          </p>
+          <div class="actions">
+            <button class="primary" id="invoke">Invoke Go function</button
+            ><span id="timing" class="hint"></span>
+          </div>
+        </section>
+        <section class="panel result" aria-labelledby="result-heading">
+          <div class="result-head">
+            <h2 id="result-heading">Result</h2>
+            <span class="badge" id="status">Ready</span>
+          </div>
+          <p id="explanation">
+            Choose an example or enter your own input, then invoke the function.
+          </p>
+          <pre id="output" aria-live="polite">No invocation yet.</pre>
+          <h3>What crossed the boundary</h3>
+          <p class="hint">
+            The browser sends this request to <code>POST /invoke</code>. The Go
+            adapter calls the package and serializes its result.
+          </p>
+          <pre id="request">No request sent.</pre>
+          <details>
+            <summary>How to read the response</summary>
+            <p class="hint">
+              <code>ok: true</code> means the Go function returned no error. The
+              group-ID adapter echoes the validated input as <code>value</code>.
+              Rule paths return their group; selections return a sorted list or
+              an unexpanded wildcard.
+            </p>
+            <p class="hint">
+              <code>ValidationError</code> is a returned Go error for invalid
+              domain input. <code>AdapterError</code> means the request could
+              not reach a function, for example because its JSON was malformed.
+              Go returns errors; it does not throw exceptions here.
+            </p>
+          </details>
+        </section>
+      </div>
+      <section class="section">
+        <div class="label">Walk through the change</div>
+        <h2>Three boundaries to review</h2>
+        <div class="review">
+          <div>
+            <h3>1. Identity package</h3>
+            <p>
+              <code>internal/identity</code> owns syntax and error ordering. It
+              uses explicit return values, one typed validation error, and no
+              filesystem or process APIs. Paths always use forward slashes.
+            </p>
+            <p>
+              Try <code>techs/go/../rule.md</code>. It must fail containment
+              before any later rule or group check.
+            </p>
+          </div>
+          <div>
+            <h3>2. Comparison tests</h3>
+            <p>
+              Shared cases carry independent expected values and errors. The
+              comparison invokes the existing TypeScript implementation and this
+              compiled Go adapter, then checks each against those expectations.
+            </p>
+            <p>
+              Try a duplicate invalid ID, then add an empty entry. The first
+              reported error changes because validation order matters.
+            </p>
+          </div>
+          <div>
+            <h3>3. Development lab</h3>
+            <p>
+              <code>cmd/identity-lab</code> supplies this page, a fixed HTTP
+              endpoint, and a JSON-lines adapter for tests. It contains no
+              domain validation rules.
+            </p>
+            <p>
+              Cobra belongs to the future product CLI. This executable is only a
+              development tool.
+            </p>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <h2>What this slice establishes</h2>
+        <p class="notice">
+          This is syntax validation. A valid ID does not prove a group exists,
+          and a valid rule path does not prove a file exists. Wildcards remain
+          strings until a later import capability expands them. No files are
+          written by these three functions.
+        </p>
+        <details>
+          <summary>Contract coverage and remaining work</summary>
+          <p>
+            These checks provide partial evidence for
+            <code>formats.identities.01–04</code>: empty and multiple
+            selections, wildcard syntax, duplicates, and path traversal. The
+            broader contract remains pending: group discovery, missing groups,
+            wildcard expansion, case collisions, general UTF-16 ordering, and
+            full configuration validation are later work.
+          </p>
+          <p>
+            Cross-runtime string parity currently covers Unicode scalar text.
+            Lone UTF-16 surrogates in JSON require a separate compatibility
+            decision before the full configuration contract can be accepted.
+          </p>
+        </details>
+        <details>
+          <summary>Run it yourself</summary>
+          <pre>
+go run ./cmd/identity-lab -serve
+
+go test ./...
+go vet ./...
+go build -o dist/identity-lab ./cmd/identity-lab
+bun tests/migration/identities/compare.ts dist/identity-lab
+
+printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":"rule"}' | dist/identity-lab</pre>
+          <p class="hint">
+            The terminal prints the loopback URL. The lab uses the standard
+            library and needs no Node or Bun at runtime. Bun is used only by the
+            TypeScript comparison.
+          </p>
+        </details>
+      </section>
+      <footer>
+        Code Rules gallery styling · Local development tool · Every displayed
+        invocation result comes from Go
+      </footer>
+    </main>
+    <script>
+      const operations = {
+        groupID: {
+          signature: "ValidateGroupID(value, location string) error",
+          description:
+            "Accepts techs/<slug> or practices/<slug>. The slug starts with a lowercase letter; assets is reserved.",
+          label: "Group ID",
+          hint: "Plain text, without JSON quotes. Whitespace is preserved.",
+          location: "group",
+          examples: [
+            ["Valid", "techs/go"],
+            ["Practice", "practices/testing"],
+            ["Reserved", "techs/assets"],
+            ["Uppercase", "techs/Go"],
+            ["Trailing hyphen", "techs/go-"],
+          ],
+        },
+        ruleGroup: {
+          signature: "RuleGroup(path, location string) (string, error)",
+          description:
+            "Checks containment and Markdown path syntax, then returns the first two path components.",
+          label: "Rule path",
+          hint: "Plain text, relative to a library root. No path normalization.",
+          location: "rule",
+          examples: [
+            ["Nested rule", "techs/go/errors/wrap.md"],
+            ["Traversal", "techs/go/../rule.md"],
+            ["Asset directory", "techs/go/assets/icon.md"],
+            ["Wrong extension", "techs/go/rule.MD"],
+            ["Invalid group", "other/go/rule.md"],
+          ],
+        },
+        selection: {
+          signature:
+            "ParseGroupSelection(input json.RawMessage, location string) (GroupSelection, error)",
+          description:
+            "Accepts an explicit array or one of three wildcard strings. Explicit IDs are distinct and returned in sorted order. Wildcards are parsed here; matching them to library groups comes later.",
+          label: "Groups JSON",
+          hint: "Enter JSON, including quotes for a wildcard. Malformed JSON is sent to Go too.",
+          location: "sources.team.groups",
+          examples: [
+            ["Sort IDs", '["techs/go", "practices/testing", "techs/bash"]'],
+            ["Empty list", "[]"],
+            ["All groups (*)", '"*"'],
+            ["Techs /*", '"techs/*"'],
+            ["Practices /*", '"practices/*"'],
+            ["Invalid text/*", '"text/*"'],
+            ["Duplicate first", '["bad", "bad"]'],
+            ["Empty text first", '["bad", "bad", ""]'],
+            ["Null", "null"],
+          ],
+        },
+      };
+      const byID = (id) => document.getElementById(id);
+      function selectOperation() {
+        const config = operations[byID("operation").value];
+        for (const id of ["signature", "description"])
+          byID(id).textContent = config[id];
+        byID("input-label").textContent = config.label;
+        byID("input-hint").textContent = config.hint;
+        byID("location").value = config.location;
+        byID("input").value = config.examples[0][1];
+        byID("presets").replaceChildren(
+          ...config.examples.map(([label, value]) => {
+            const button = document.createElement("button");
+            button.textContent = label;
+            button.addEventListener("click", () => {
+              byID("input").value = value;
+              byID("input").focus();
+            });
+            return button;
+          }),
+        );
+        clearResult();
+      }
+      function clearResult() {
+        byID("status").textContent = "Ready";
+        byID("status").className = "badge";
+        byID("explanation").textContent =
+          "Input changed. Invoke the function to see its result.";
+        byID("output").textContent = "No invocation for this input.";
+        byID("request").textContent = "No request sent.";
+        byID("timing").textContent = "";
+      }
+      byID("operation").addEventListener("change", selectOperation);
+      byID("input").addEventListener("input", clearResult);
+      byID("location").addEventListener("input", clearResult);
+      byID("presets").addEventListener("click", clearResult);
+      byID("invoke").addEventListener("click", async () => {
+        const operation = byID("operation").value;
+        const input =
+          operation === "selection"
+            ? byID("input").value
+            : JSON.stringify(byID("input").value);
+        const body =
+          '{"operation":' +
+          JSON.stringify(operation) +
+          ',"input":' +
+          input +
+          ',"location":' +
+          JSON.stringify(byID("location").value) +
+          "}";
+        byID("request").textContent = body;
+        document
+          .querySelectorAll("button,input,textarea,select")
+          .forEach((element) => (element.disabled = true));
+        byID("status").textContent = "Running";
+        const started = performance.now();
+        try {
+          const response = await fetch("/invoke", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+          if (!response.ok)
+            throw new Error(
+              "HTTP " + response.status + ": " + (await response.text()),
+            );
+          const result = await response.json();
+          byID("output").textContent = JSON.stringify(result, null, 2);
+          byID("status").textContent = result.ok
+            ? "Returned value"
+            : result.error.name;
+          byID("status").className = "badge " + (result.ok ? "good" : "bad");
+          byID("explanation").textContent = result.ok
+            ? "The Go function returned successfully."
+            : result.error.name === "ValidationError"
+              ? "The Go function returned a validation error."
+              : "The Go adapter rejected the request before invoking a function.";
+          byID("timing").textContent =
+            Math.round(performance.now() - started) + " ms round trip";
+        } catch (error) {
+          byID("status").textContent = "Connection error";
+          byID("status").className = "badge bad";
+          byID("explanation").textContent =
+            "Check that the local Go server is still running.";
+          byID("output").textContent = String(error);
+        } finally {
+          document
+            .querySelectorAll("button,input,textarea,select")
+            .forEach((element) => (element.disabled = false));
+        }
+      });
+      selectOperation();
+    </script>
+  </body>
+</html>

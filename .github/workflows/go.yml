@@ -1,0 +1,27 @@
+name: Go migration
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  identities:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Check Go formatting
+        run: test -z "$(gofmt -l internal/identity cmd/identity-lab)"
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go build -o dist/identity-lab ./cmd/identity-lab
+      - run: bun tests/migration/identities/compare.ts dist/identity-lab
