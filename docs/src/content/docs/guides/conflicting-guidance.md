@@ -33,7 +33,8 @@ code-rules conflicts --prompt
 
 The `--prompt` flag is required; `code-rules conflicts` alone reports a usage error.
 It prints a Markdown prompt for an agent working in your project.
-The prompt identifies the generated index, every group index and resolved rule file, and the snapshot's source refs and resolved commits.
+The prompt identifies the generated index, every group index, and each resolved rule file.
+For each source, it includes the requested ref or version constraint, selected tag when applicable, and resolved commit.
 It asks the agent to compare active rules within and across groups, including local additions and replacements.
 
 The command checks that generated output matches its inputs before producing the prompt.

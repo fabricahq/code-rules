@@ -11,6 +11,8 @@ Use `--config` to identify a configuration file elsewhere.
 
 ## Sync
 
+This command is proposed. The Imports API implements fetching; the CLI and safe project file updates belong to a dependent PR.
+
 ```sh
 code-rules sync
 ```

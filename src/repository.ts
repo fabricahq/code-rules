@@ -109,11 +109,10 @@ export function repositoryAddress(
       'repository requires a host and must not embed credentials; SSH may specify a username',
     );
   }
-  const host = url.hostname.toLowerCase();
+  const host = url.hostname.toLowerCase().replace(/\.$/u, '');
   if (
     !/^\[[a-f0-9:.]+\]$/u.test(host) &&
     host
-      .replace(/\.$/u, '')
       .split('.')
       .some((label) => !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/u.test(label))
   ) {

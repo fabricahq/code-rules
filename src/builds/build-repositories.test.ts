@@ -36,6 +36,16 @@ function repositoryInput(repository: string, body: string): BuildInput {
 describe('Git repository addresses', () => {
   test.each([
     [
+      'https://github.com./example/rules.git',
+      'https://github.com/example/rules/blob',
+      'https://raw.githubusercontent.com/example/rules',
+    ],
+    [
+      'git@gitlab.com.:example/engineering/rules.git',
+      'https://gitlab.com/example/engineering/rules/-/blob',
+      'https://gitlab.com/example/engineering/rules/-/raw',
+    ],
+    [
       'https://github.com/example/rules.git',
       'https://github.com/example/rules/blob',
       'https://raw.githubusercontent.com/example/rules',
@@ -178,6 +188,8 @@ describe('Git repository addresses', () => {
     'git@example.org:../rules.git',
     'ssh://git@example.org/a/./rules.git',
     'https://example.org/',
+    'https://github.com../example/rules.git',
+    'ssh://git@gitlab.com../team/rules.git',
     'ssh://-option.example/rules.git',
     'https://@example.org/rules.git',
     'ssh://git:@example.org/rules.git',

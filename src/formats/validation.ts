@@ -76,7 +76,10 @@ export function relativePath(value: string, location: string): string {
 
 /** Return a techs/<slug> or practices/<slug> ID unchanged, or throw an invalid-input ValidationError. */
 export function groupId(value: string, location: string): string {
-  if (!/^(techs|practices)\/[a-z][a-z0-9-]*$/u.test(value))
+  if (
+    !/^(techs|practices)\/[a-z][a-z0-9-]*$/u.test(value) ||
+    value.endsWith('/assets')
+  )
     return invalid(location, `invalid group ID ${JSON.stringify(value)}`);
   return value;
 }

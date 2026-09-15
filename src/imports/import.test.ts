@@ -624,3 +624,54 @@ test('rejects binary declared license text instead of corrupting generated terms
   });
   failure(config({ one: fixtureSource('one') }), 'invalid-library');
 });
+
+test.each([
+  ['https://github.com/fixture/one.git', 'https://github.com./fixture/one.git'],
+  ['https://github.com/fixture/one.git', 'git@github.com.:fixture/one.git'],
+  ['https://gitlab.com/team/rules.git', 'ssh://git@gitlab.com./team/rules.git'],
+  [
+    'https://rules.example.org/team/rules.git',
+    'https://rules.example.org./team/rules.git',
+  ],
+])(
+  'rejects equivalent trailing-dot repositories before fetching: %s and %s',
+  (first, second) => {
+    expect(
+      runImport(
+        fixture,
+        config({
+          first: { ...fixtureSource('one'), repository: first },
+          second: { ...fixtureSource('one'), repository: second },
+        }),
+      ),
+    ).toMatchObject({
+      error: 'invalid-configuration',
+      message: expect.stringContaining('more than once'),
+    });
+  },
+);
+
+test.each(['techs/assets', 'practices/assets'])(
+  'rejects reserved group %s during configuration validation before fetching',
+  (group) => {
+    expect(
+      runImport(
+        fixture,
+        config({ one: { ...fixtureSource('one'), groups: [group] } }),
+      ),
+    ).toMatchObject({
+      error: 'invalid-configuration',
+      message: expect.stringContaining('invalid group ID'),
+    });
+    expect(
+      runImport(fixture, {
+        schemaVersion: 1,
+        sources: {},
+        localGroups: [group],
+      }),
+    ).toMatchObject({
+      error: 'invalid-configuration',
+      message: expect.stringContaining('invalid group ID'),
+    });
+  },
+);

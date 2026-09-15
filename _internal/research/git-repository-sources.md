@@ -1,6 +1,6 @@
 # Git repository source parsing
 
-Researched 2026-09-14. Scope: offline manifest identity and source links. Remote fetching is future work. No upstream implementation code was copied.
+Researched 2026-09-14. Scope: Git repository addresses, duplicate detection, and source links. Imports now fetches repositories through Git; sync orchestration belongs to a dependent PR. No upstream implementation code was copied.
 
 ## Recommendation
 
