@@ -1,40 +1,5 @@
 [
   {
-    "id": "rule-yaml-surrogate-pair",
-    "operation": "rule",
-    "input": {
-      "text": "---\ntitle: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody",
-      "path": "techs/go/errors.md",
-      "source": "lab"
-    },
-    "location": "lab:techs/go/errors.md",
-    "status": "pending-user-approval",
-    "referenceExpected": {
-      "ok": true,
-      "value": {
-        "id": "lab:techs/go/errors",
-        "group": "techs/go",
-        "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
-        "impact": "HIGH",
-        "impactDescription": "Avoid failures.",
-        "whenToRead": "When coding.",
-        "attribution": [],
-        "metadata": "title: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
-        "body": "Body"
-      }
-    },
-    "proposedExpected": {
-      "ok": false,
-      "error": {
-        "name": "ValidationError",
-        "message": "lab:techs/go/errors.md: invalid YAML: go-yaml load error in scanner (while scanning a quoted scalar) at L1.C8-C11: found invalid Unicode character escape code",
-        "location": "lab:techs/go/errors.md"
-      }
-    },
-    "proposal": "Reject UTF-16 surrogate escapes in rule YAML. Literal Unicode and YAML Unicode scalar escapes remain supported."
-  },
-  {
     "id": "rule-yaml-surrogate-escape",
     "operation": "rule",
     "input": {

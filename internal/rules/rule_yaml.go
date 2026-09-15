@@ -3,6 +3,7 @@
 package rules
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -27,9 +28,23 @@ var (
 
 // ruleYAML parses one frontmatter object and rejects malformed YAML, duplicate keys, and aliases.
 func ruleYAML(text, location string) (map[string]*yaml.Node, error) {
-	decoder := yaml.NewDecoder(strings.NewReader(text))
+	var decoder *yaml.Decoder
 	var document yaml.Node
-	if err := decoder.Decode(&document); err != nil {
+	for {
+		decoder = yaml.NewDecoder(strings.NewReader(text))
+		err := decoder.Decode(&document)
+		if err == nil {
+			break
+		}
+		// The scanner identifies the actual quoted scalar, including after tags
+		// or anchors. Normalize a parsing copy; authored frontmatter stays intact.
+		var loadError *yaml.LoadError
+		if errors.As(err, &loadError) {
+			if normalized, changed := yamlSurrogatePairs(text, loadError.ContextMark.Index); changed {
+				text = normalized
+				continue
+			}
+		}
 		if err == io.EOF {
 			return nil, invalid(location, "YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead")
 		}

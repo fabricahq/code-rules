@@ -594,6 +594,12 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           ),
         ],
         [
+          "Unicode escapes",
+          withMetadata(
+            frontmatter.replace("Preserve rule text", '"\\uD83D\\uDC39"'),
+          ),
+        ],
+        [
           "Date as text",
           withMetadata(frontmatter.replace("Preserve rule text", "2026-09-15")),
         ],

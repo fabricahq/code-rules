@@ -29,7 +29,9 @@ The user approved Go-native YAML diagnostics. Both implementations reject malfor
 
 ## Pending Unicode decision
 
-The reference accepts UTF-16 surrogate escapes in YAML. Go rejects both lone surrogates such as `\uD800` and paired escapes such as `\uD83D\uDC39`. Literal Unicode and the YAML scalar escape `\U0001F439` work. Rejection is proposed, following the approved group-metadata policy, but requires explicit approval for this rule format. This acceptance difference is not yet counted as approved. Exact reference and proposed results are retained in [pending-unicode.json](../tests/migration/rules/pending-unicode.json), separate from approved comparison fixtures. The file records a proposal and does not participate in the passing parity count.
+Valid pairs such as `\uD83D\uDC39` now decode to 🐹, matching the reference. The YAML scanner identifies double-quoted scalars. A parsing copy converts valid pairs to Unicode characters before retrying the decoder. Other scalar styles and escaped backslashes retain literal text. The returned frontmatter is unchanged.
+
+The reference also accepts lone surrogates such as `\uD800`, which are not valid Unicode characters. Go rejects them. That rejection is proposed, following the approved group-metadata policy, but still requires explicit approval for this rule format. The exact reference and proposed results remain in [pending-unicode.json](../tests/migration/rules/pending-unicode.json), outside the passing comparison count.
 
 ## Review and verification
 
@@ -54,7 +56,7 @@ Open one PR into `go-migration` and stop for human review. The next recommended 
 
 ### Local evidence
 
-- All 372 shared function cases pass, including 163 complete-rule cases. Sixteen cases use the approved native YAML diagnostic wording; 124 earlier approved differences remain unchanged.
+- All 385 shared function cases pass, including 176 complete-rule cases. Sixteen cases use the approved native YAML diagnostic wording; 124 earlier approved differences remain unchanged.
 - Go race tests, vet, Staticcheck v0.8.1, and module verification pass on Go 1.27.1.
 - A 20-second parser fuzz run completed 794,659 executions without a failure.
 - `bun run check` passes: formatting, lint, typecheck, all 444 tests, documentation checks/build, and link checks.
@@ -66,3 +68,5 @@ These are local implementation checks, not approval of the pending Unicode diffe
 Independent read-only autoreview reported one actionable finding: the pending surrogate-escape acceptance difference. That finding is accepted as a merge blocker. No other actionable findings were reported. Approval and exact shared fixtures are required before this PR can merge.
 
 The focused review of strict-field validation is clean. A proposed change to put license errors ahead of non-string field names was rejected: field-name shape belongs to structural YAML validation. Regression fixtures document both error-ordering cases.
+
+Devin identified rejection of valid surrogate pairs as a compatibility bug. Thirteen shared regression cases now cover paired escapes, four/eight-digit forms, repeated pairs, preceding Unicode, quotes in anchors, tags, scalar styles, and literal backslashes. The paired-escape case is part of the passing comparison suite; only the lone-surrogate decision remains pending.
