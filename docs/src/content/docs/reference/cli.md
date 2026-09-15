@@ -112,6 +112,18 @@ code-rules check --config path/to/code-rules/config.json
 Resolve local paths relative to the chosen configuration directory.
 Keep replacement files within that directory's `local/` tree.
 
+## Initialize a project (planned)
+
+The planned `code-rules init` command creates project scaffolding under `.code-rules/`, including `config.json` and `local/README.md`.
+The development commands still default to `code-rules/config.json`; switching that default is part of the planned setup work.
+
+The local README explains where to author rules, how `_group.json` describes a group, and how local rules combine with imported rules.
+It links to the canonical authoring guidance and explains when to run `build` or `sync`.
+Keep this introduction short; do not duplicate the rule template or prescribe an enforcement workflow.
+
+The scaffold preserves an existing README. Local rule discovery must recognize `local/README.md` as directory documentation and never parse it as a rule.
+This README belongs to the project-setup work alongside `local add group`, `local add rule`, and `add source`.
+
 ## Author a library
 
 These proposed commands run from the library root, independently of a consuming project's configuration.
