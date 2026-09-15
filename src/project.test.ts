@@ -10,6 +10,7 @@ import {
   symlink,
 } from 'node:fs/promises';
 import { join } from 'node:path';
+import { hostname } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import {
@@ -529,4 +530,38 @@ test('CLI defaults to .code-rules while explicit config still supports another l
   expect(await readFile(join(root, 'generated/RULES.md'), 'utf8')).toContain(
     '# Code Rules',
   );
+});
+
+test('offline commands accept snapshots with omitted group selection', async () => {
+  succeeded(run('sync'));
+  const path = join(root, 'vendor/team/_source.json');
+  const record = JSON.parse(await readFile(path, 'utf8'));
+  delete record.groupSelection;
+  await writeFile(path, JSON.stringify(record));
+  const before = await outputIdentity();
+  await rm(library.directory, { recursive: true });
+  succeeded(run('build'));
+  succeeded(run('check'));
+  expect(await outputIdentity()).toEqual(before);
+});
+
+test('a writer without permission to probe the lock owner reports busy and preserves files', async () => {
+  succeeded(run('sync'));
+  const before = await outputIdentity();
+  const lock = join(root, '.code-rules-lock');
+  await mkdir(lock);
+  const owner = JSON.stringify({
+    host: hostname(),
+    pid: process.pid,
+    token: 'live-owner',
+  });
+  await writeFile(join(lock, 'owner.json'), owner);
+  const result = run('build', 'probe-permission');
+  expect(result.status).toBe(1);
+  expect(String(result.stderr)).toContain(
+    'Another writer is using this project.',
+  );
+  expect(await readFile(join(lock, 'owner.json'), 'utf8')).toBe(owner);
+  expect(await readdir(lock)).toEqual(['owner.json']);
+  expect(await outputIdentity()).toEqual(before);
 });

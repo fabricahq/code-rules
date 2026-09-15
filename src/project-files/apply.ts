@@ -221,6 +221,12 @@ export async function withWriter<T>(
       process.kill(owner.pid, 0);
       throw new ProjectError('busy', 'Another writer is using this project.');
     } catch (failure) {
+      if (
+        failure instanceof Error &&
+        'code' in failure &&
+        failure.code === 'EPERM'
+      )
+        throw new ProjectError('busy', 'Another writer is using this project.');
       if (!(
         failure instanceof Error &&
         'code' in failure &&

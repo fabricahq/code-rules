@@ -127,7 +127,10 @@ export function loadSnapshots(
       expected.add(full);
       files.set(path, content);
     }
-    const selection = record.groupSelection;
+    const selection =
+      record.groupSelection === undefined
+        ? record.groups
+        : record.groupSelection;
     if (
       selection !== '*' &&
       selection !== 'practices/*' &&
