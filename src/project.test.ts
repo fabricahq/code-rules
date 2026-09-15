@@ -48,7 +48,7 @@ afterEach(async () => {
 async function saveConfig(sources: Record<string, unknown>): Promise<void> {
   await writeFile(
     join(root, 'config.json'),
-    JSON.stringify({ schemaVersion: 1, sources, localGroups: [] }),
+    JSON.stringify({ schemaVersion: 1, sources }),
   );
 }
 function run(command: string, fault?: string): ReturnType<typeof spawnSync> {
@@ -368,7 +368,6 @@ test('local-only projects need no imported libraries and preserve local files', 
     JSON.stringify({
       schemaVersion: 1,
       sources: {},
-      localGroups: ['practices/testing'],
     }),
   );
   await mkdir(join(root, 'local/practices/testing'), { recursive: true });
@@ -509,7 +508,7 @@ test('CLI defaults to .code-rules while explicit config still supports another l
   await mkdir(directory);
   await writeFile(
     join(directory, 'config.json'),
-    JSON.stringify({ schemaVersion: 1, sources: {}, localGroups: [] }),
+    JSON.stringify({ schemaVersion: 1, sources: {} }),
   );
   const cli = fileURLToPath(new URL('./cli.ts', import.meta.url));
   for (const command of ['sync', 'build', 'check']) {
@@ -564,4 +563,71 @@ test('a writer without permission to probe the lock owner reports busy and prese
   expect(await readFile(join(lock, 'owner.json'), 'utf8')).toBe(owner);
   expect(await readdir(lock)).toEqual(['owner.json']);
   expect(await outputIdentity()).toEqual(before);
+});
+
+test('local groups survive adding and removing a library without changing local files', async () => {
+  const group = 'practices/testing';
+  await writeFile(
+    join(root, 'config.json'),
+    JSON.stringify({ schemaVersion: 1, sources: {} }),
+  );
+  await mkdir(join(root, 'local', group), { recursive: true });
+  await writeFile(
+    join(root, 'local', group, '_group.json'),
+    JSON.stringify({
+      name: 'Project testing',
+      description: 'Test project contracts.',
+      whenToRead: ['Before changing any project behavior.'],
+    }),
+  );
+  await writeFile(
+    join(root, 'local', group, 'budget.md'),
+    '---\ntitle: Bound attempts\nwhenToRead: When changing retries.\nimpact: HIGH\nimpactDescription: Avoid excess requests.\n---\n\nUse three attempts.\n',
+  );
+  await writeFile(
+    join(root, 'local/README.md'),
+    '# Local rules\n\nAuthor project rules here.',
+  );
+  const before = treeDigest(await readTree(join(root, 'local')));
+  succeeded(run('build'));
+  await writeFile(
+    join(root, 'config.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      sources: { team: fixtureSource('team') },
+    }),
+  );
+  succeeded(run('sync'));
+  const index = await readFile(join(root, 'generated/RULES.md'), 'utf8');
+  expect(index).toContain('Project testing');
+  expect(index).toContain('Before changing any project behavior.');
+  expect(index).not.toContain('Changing behavior.');
+  const provenance = JSON.parse(
+    await readFile(join(root, 'generated/provenance.json'), 'utf8'),
+  );
+  expect(
+    provenance.rules.map((rule: { id: string }) => rule.id).sort(),
+  ).toEqual([
+    'local:practices/testing/budget',
+    'team:practices/testing/verify-retries',
+  ]);
+  expect(
+    provenance.groups[0].guidance.map(
+      (entry: { source: string }) => entry.source,
+    ),
+  ).toEqual(['team', 'local']);
+  expect(provenance.groups[0].effectiveGuidanceSources).toEqual(['local']);
+  await writeFile(
+    join(root, 'config.json'),
+    JSON.stringify({ schemaVersion: 1, sources: {} }),
+  );
+  succeeded(run('sync'));
+  succeeded(run('check'));
+  expect(treeDigest(await readTree(join(root, 'local')))).toBe(before);
+  const resolved = await readTree(join(root, 'generated/rules'));
+  if (resolved === null) throw new Error('Expected generated rules directory');
+  expect([...resolved.files.keys()].sort()).toEqual([
+    'README.md',
+    'local/practices/testing/budget.md',
+  ]);
 });

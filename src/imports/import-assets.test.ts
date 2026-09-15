@@ -37,7 +37,6 @@ function configuration() {
   return {
     schemaVersion: 1,
     sources: { one: fixtureSource('one') },
-    localGroups: [],
   };
 }
 
@@ -156,7 +155,6 @@ test('recognizes nested rules and keeps asset metadata out of wildcard discovery
       {
         schemaVersion: 1,
         sources: { one: { ...fixtureSource('one'), groups: '*' } },
-        localGroups: [],
       },
       { build: true },
     ),

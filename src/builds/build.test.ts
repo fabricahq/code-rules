@@ -61,7 +61,7 @@ test('should preserve an empty selected group and support a project with no sele
     'No active rules',
   );
   const build = {
-    configuration: { schemaVersion: 1, sources: {}, localGroups: [] },
+    configuration: { schemaVersion: 1, sources: {} },
     snapshots: {},
     localFiles: {},
     toolVersion: 'test',
@@ -84,7 +84,6 @@ test('should produce identical bytes when source and file insertion order change
         acme: source('https://github.com/acme/rules.git'),
         fabrica: source('https://github.com/fabrica/rules.git'),
       },
-      localGroups: [],
     },
     snapshots: Object.fromEntries(
       Object.entries(first.snapshots)

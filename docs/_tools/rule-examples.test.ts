@@ -18,7 +18,6 @@ test.each([
     configuration: {
       schemaVersion: 1,
       sources: {},
-      localGroups: ['practices/testing'],
     },
     snapshots: {},
     localFiles: {

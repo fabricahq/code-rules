@@ -240,7 +240,6 @@ export const buildsExampleInput = {
         },
       },
     },
-    localGroups: [],
   },
   snapshots: {
     example: {

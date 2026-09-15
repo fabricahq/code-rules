@@ -20,7 +20,6 @@ function repositoryInput(repository: string, body: string): BuildInput {
     configuration: {
       schemaVersion: 1,
       sources: { remote: source(repository) },
-      localGroups: [],
     },
     snapshots: {
       remote: snapshot(repository, 'Retry guidance', {
@@ -217,7 +216,6 @@ describe('Git repository addresses', () => {
         first: source('https://github.com/Example/Rules.git'),
         second: source('git@github.com:example/rules'),
       },
-      localGroups: [],
     };
     expect(() => buildRules({ ...build, configuration })).toThrow(
       'more than once',
@@ -231,7 +229,6 @@ describe('Git repository addresses', () => {
         first: source('https://github.com/example/rules.git'),
         second: source('https://github.com/example/%72ules%2egit'),
       },
-      localGroups: [],
     };
     expect(() => buildRules({ ...input(), configuration })).toThrow(
       'more than once',
@@ -273,7 +270,6 @@ describe('Git repository addresses', () => {
         configuration: {
           schemaVersion: 1,
           sources: { first: source(first), second: source(second) },
-          localGroups: [],
         },
         snapshots: {
           first: snapshot(first, 'First'),

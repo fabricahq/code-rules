@@ -70,7 +70,7 @@ test('should split the project group index while retaining every group and readi
     (_, index) => `techs/language-${index}`,
   );
   const build: BuildInput = {
-    configuration: { schemaVersion: 1, sources: {}, localGroups: groups },
+    configuration: { schemaVersion: 1, sources: {} },
     snapshots: {},
     toolVersion: 'test',
     indexMaxBytes: 2000,

@@ -55,8 +55,7 @@ Create `.code-rules/config.json` in the project:
       "exclude": {},
       "replace": {}
     }
-  },
-  "localGroups": []
+  }
 }
 ```
 
@@ -67,7 +66,8 @@ Generated rule IDs include the source name, so matching paths do not collide or 
 Exclusions and replacements live inside their owning source and use that library's rule IDs.
 
 Keep project-only rules under `.code-rules/local/`.
-Use `localGroups` for groups that none of the sources supplies.
+For a group supplied only locally, create `.code-rules/local/<group-id>/_group.json`. No configuration entry is needed.
+Keep that metadata when importing a library with the same group: it remains the project's chosen description, and imported rules join the group.
 The complete configuration contract is in [Configuration](/reference/configuration/).
 
 ## 3. Import the rules

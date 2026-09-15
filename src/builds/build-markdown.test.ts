@@ -227,7 +227,6 @@ test('should preserve inline licenses, relative links, references, and same-file
     configuration: {
       schemaVersion: 1,
       sources: { fabrica: source('https://github.com/fabrica/rules.git') },
-      localGroups: [],
     },
     snapshots: {
       fabrica: snapshot('https://github.com/fabrica/rules.git', 'Base', {

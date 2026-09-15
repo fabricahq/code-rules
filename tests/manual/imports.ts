@@ -25,7 +25,6 @@ try {
         repository: 'https://gitlab.com/fixture/nested/two.git',
       },
     },
-    localGroups: [],
   };
   const result = object(
     runImport(

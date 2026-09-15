@@ -407,7 +407,6 @@ test('should retain separate generated licenses even when every rule from one li
         }),
         acme: source('https://github.com/acme/rules.git'),
       },
-      localGroups: [],
     },
     snapshots: {
       fabrica: snapshot('https://github.com/fabrica/rules.git', 'Fabrica', {
@@ -574,7 +573,6 @@ test('should keep replacement licensing independent from upstream library terms'
         },
       ),
     },
-    localGroups: [],
   };
   const output = buildRules({
     ...build,
@@ -618,7 +616,6 @@ test('should reject unsupported license declarations even on excluded rules', ()
           [ruleId]: 'Not adopted.',
         }),
       },
-      localGroups: [],
     },
     snapshots: {
       fabrica: snapshot('https://github.com/fabrica/rules.git', 'Excluded', {

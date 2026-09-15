@@ -26,7 +26,6 @@ test('should reject misspelled configuration fields instead of silently ignoring
         excludes: { [ruleId]: 'Omit.' },
       },
     },
-    localGroups: [],
   };
   expect(() => buildRules({ ...input(), configuration })).toThrow(
     'unknown field excludes',
@@ -62,7 +61,6 @@ test('should reject a commit ref that disagrees with its snapshot', () => {
           replace: {},
         },
       },
-      localGroups: [],
     },
     snapshots: {
       fabrica: {
@@ -80,7 +78,6 @@ test.each([
     {
       schemaVersion: 1,
       sources: { local: source('https://github.com/fabrica/rules.git') },
-      localGroups: [],
     },
     'reserved source',
   ],
@@ -92,24 +89,15 @@ test.each([
         fabrica: source('https://github.com/fabrica/rules.git'),
         acme: source('https://github.com/Fabrica/Rules.git'),
       },
-      localGroups: [],
     },
     'more than once',
   ],
   [
-    'overlapping local group',
-    {
-      schemaVersion: 1,
-      sources: { fabrica: source('https://github.com/fabrica/rules.git') },
-      localGroups: [group],
-    },
-    'cannot also',
+    'legacy localGroups declaration',
+    { schemaVersion: 1, sources: {}, localGroups: [] },
+    'remove localGroups',
   ],
-  [
-    'unknown version',
-    { schemaVersion: 2, sources: {}, localGroups: [] },
-    'version 1',
-  ],
+  ['unknown version', { schemaVersion: 2, sources: {} }, 'version 1'],
   [
     'missing target',
     {
@@ -120,7 +108,6 @@ test.each([
         }),
         acme: source('https://github.com/acme/rules.git'),
       },
-      localGroups: [],
     },
     'target is missing',
   ],
@@ -135,7 +122,6 @@ test.each([
           { [ruleId]: { file: `local/${ruleId}.md`, reason: 'Replace.' } },
         ),
       },
-      localGroups: [],
     },
     'both excluded and replaced',
   ],
@@ -179,7 +165,6 @@ test('should report duplicate repositories before an invalid ref on the same sou
         ref: 'bad ref',
       },
     },
-    localGroups: [],
   };
   expect(() => buildRules({ ...build, configuration })).toThrow(
     'sources.fabrica: repository https://github.com/ACME/rules.git is declared more than once',
@@ -197,7 +182,6 @@ test('should validate malformed excluded rules before applying exclusions', () =
           [ruleId]: 'Unused',
         }),
       },
-      localGroups: [],
     },
     snapshots: {
       fabrica: snapshot('https://github.com/fabrica/rules.git', 'Invalid', {
@@ -255,23 +239,21 @@ test.each([
           ...change,
         },
       },
-      localGroups: [],
     };
     expect(() => buildRules({ ...build, configuration })).toThrow(expected);
   },
 );
 
-test('should retain local group indices before output sorting', () => {
+test.each([
+  'invalid/group/_group.json',
+  'techs/typescript/nested/_group.json',
+  '_group.json',
+  'techs/assets/_group.json',
+  'practices/assets/_group.json',
+])('should reject misplaced local group metadata at %s', (path) => {
   expect(() =>
-    buildRules({
-      ...input(),
-      configuration: {
-        schemaVersion: 1,
-        sources: {},
-        localGroups: ['techs/typescript', 'invalid/group'],
-      },
-    }),
-  ).toThrow('localGroups[1]: invalid group ID');
+    buildRules({ ...localInput({}), localFiles: { [path]: '{}' } }),
+  ).toThrow('invalid group ID');
 });
 
 test.each(
@@ -303,7 +285,6 @@ test('should validate applicability on imported definitions even when excluded a
           [ruleId]: 'Unused.',
         }),
       },
-      localGroups: [],
     },
     snapshots: {
       fabrica: snapshot('https://github.com/fabrica/rules.git', 'Missing', {
@@ -324,7 +305,6 @@ test('should validate applicability on imported definitions even when excluded a
             { [ruleId]: { file: `local/${ruleId}.md`, reason: 'Override.' } },
           ),
         },
-        localGroups: [],
       },
       snapshots: {
         fabrica: snapshot('https://github.com/fabrica/rules.git', 'Valid'),

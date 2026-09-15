@@ -119,7 +119,7 @@ The local README explains where to author rules, how `_group.json` describes a g
 It links to the canonical authoring guidance and explains when to run `build` or `sync`.
 Keep this introduction short; do not duplicate the rule template or prescribe an enforcement workflow.
 
-The scaffold preserves an existing README. Local rule discovery must recognize `local/README.md` as directory documentation and never parse it as a rule.
+The scaffold will preserve an existing README. Local rule discovery already recognizes `local/README.md` as directory documentation and never parses it as a rule.
 This README belongs to the project-setup work alongside `local add group`, `local add rule`, and `add source`.
 
 ## Author a library

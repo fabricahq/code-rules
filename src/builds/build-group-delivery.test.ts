@@ -36,7 +36,6 @@ test.each([0, 8192])(
             },
           ),
         },
-        localGroups: [],
       },
       snapshots: {
         fabrica: snapshot(

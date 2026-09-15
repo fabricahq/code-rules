@@ -399,7 +399,7 @@ function importedRules(
   return active;
 }
 
-/** Return non-replacement local rules in file order; reject rules in undeclared groups. */
+/** Return non-replacement local rules in file order; reject rules without group metadata. */
 function localRules(
   localFiles: ReadonlyMap<string, string>,
   localPaths: ReadonlySet<string>,
@@ -407,14 +407,16 @@ function localRules(
   usedReplacements: ReadonlySet<string>,
 ): ReadonlyArray<ActiveRule> {
   const active: Array<ActiveRule> = [];
-  const candidates = [...localFiles.keys()].filter((path) => isRuleFile(path));
+  const candidates = [...localFiles.keys()].filter(
+    (path) => path !== 'README.md' && isRuleFile(path),
+  );
   const definitions = readRuleFiles(localFiles, 'local', candidates);
   for (const [path, parsed] of definitions) {
     if (usedReplacements.has(path)) continue;
     if (!groups.has(parsed.group))
       return invalid(
         `local/${path}`,
-        'local rule belongs to an undeclared group',
+        `local rule group has no metadata; add local/${parsed.group}/_group.json or import this group`,
       );
     active.push({
       rule: parsed,
@@ -429,19 +431,23 @@ function localRules(
   return active;
 }
 
-/** Reject local metadata outside explicitly declared local-only groups after checking local rules. */
-function requireLocalMetadata(
+/** Discover local group definitions, retaining imported guidance for provenance when a project supplies its own description. */
+function addLocalGroups(
   localFiles: ReadonlyMap<string, string>,
-  localGroups: ReadonlyArray<string>,
+  groups: Map<string, GroupAccumulator>,
 ): void {
   for (const path of localFiles.keys()) {
-    if (isAssetPath(path) || !path.endsWith('/_group.json')) continue;
-    const id = path.slice(0, -'/_group.json'.length);
-    if (!localGroups.includes(id))
-      invalid(
-        `local/${path}`,
-        'local metadata is only allowed for declared local-only groups',
-      );
+    const parts = path.split('/');
+    if (parts.at(-1) !== '_group.json') continue;
+    const groupLocation =
+      parts.length === 3 && (parts[0] === 'techs' || parts[0] === 'practices');
+    // Validate group-level metadata even when its group name is the reserved assets name.
+    if (isAssetPath(path) && !groupLocation) continue;
+    const id = groupId(parts.slice(0, -1).join('/'), `local/${path}`);
+    addGroup(groups, id).guidance.push({
+      source: 'local',
+      metadata: readGroupMetadata(localFiles, id, 'local'),
+    });
   }
 }
 
@@ -492,17 +498,7 @@ export function resolveRules(
     ))
       addGroup(groups, active.rule.group).rules.push(active);
   }
-  for (const id of config.localGroups) {
-    if (groups.has(id))
-      return invalid(
-        id,
-        'an imported group cannot also be declared in localGroups',
-      );
-    addGroup(groups, id).guidance.push({
-      source: 'local',
-      metadata: readGroupMetadata(localFiles, id, 'local'),
-    });
-  }
+  addLocalGroups(localFiles, groups);
   for (const active of localRules(
     localFiles,
     localPaths,
@@ -510,7 +506,6 @@ export function resolveRules(
     usedReplacements,
   ))
     addGroup(groups, active.rule.group).rules.push(active);
-  requireLocalMetadata(localFiles, config.localGroups);
   return {
     licenseFiles,
     sources,

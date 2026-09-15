@@ -28,13 +28,11 @@ afterEach(async () => {
 function config(version: string): {
   schemaVersion: number;
   sources: Record<string, unknown>;
-  localGroups: string[];
 } {
   const { ref: _ref, ...source } = fixtureSource('one');
   return {
     schemaVersion: 1,
     sources: { one: { ...source, version } },
-    localGroups: [],
   };
 }
 
@@ -104,7 +102,6 @@ test.each([
         {
           schemaVersion: 1,
           sources: { one: { ...source, ...declaration } },
-          localGroups: [],
         },
         {},
         { ...fixture.env, PATH: '/nonexistent' },

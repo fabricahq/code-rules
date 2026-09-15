@@ -41,7 +41,7 @@ If two sources supply `practices/testing`, their rules combine into one generate
 Source-prefixed IDs keep matching rule paths distinct.
 Neither source automatically overrides the other.
 
-Keep local-only groups in `localGroups`, with their metadata under `local/`.
+Define local groups with `_group.json` under `local/`; a separate configuration declaration is unnecessary.
 The [Group concept](/concepts/groups/) explains the distinction between technology and practice groups.
 
 ## Adapt the import to your project
@@ -58,11 +58,12 @@ Write a Markdown rule under the matching local group:
 .code-rules/local/practices/testing/test-project-contracts.md
 ```
 
-The group must appear in a source's `groups` or in `localGroups`.
+The group needs `_group.json` metadata from a selected library or from `local/<group-id>/`.
 The rule joins the inherited rules and receives a `local:`-prefixed ID.
 Use the [authoring format](/guides/write-rules/) for its metadata and body.
 
-For a local-only group, include its own `_group.json` and declare the group in `localGroups`.
+For a local-only group, include its own `_group.json`. It is discovered automatically.
+When a library later supplies that group, the local metadata and rules stay in place. Local metadata supplies the project's group description; imported rules join the group.
 Imported groups retain source-labeled metadata from every contributing library.
 
 ### Exclude a rule

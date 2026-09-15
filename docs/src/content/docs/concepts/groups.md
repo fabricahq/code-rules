@@ -59,3 +59,14 @@ An individual rule's cue identifies situations that warrant reading it; its full
 Reading observability rules does not imply that every function needs a log statement.
 
 See [Import rules](/guides/select-rules/) for selecting and adapting groups, and [Files and formats](/reference/files/#group-metadata) for metadata.
+
+## Local group descriptions
+
+A project defines a local group by creating `.code-rules/local/<group-id>/_group.json`. No `localGroups` declaration or source entry is needed.
+A group can exist before it contains any rules. Local rules join any group whose metadata is supplied locally or by a selected library.
+
+When both define the same group, local metadata supplies the project's complete group name, description, and reading cues. Metadata fields are not merged.
+Imported and local rules remain independently active; group metadata does not exclude or replace rules.
+Without local metadata, library descriptions remain source-labeled. Provenance retains all contributed group metadata and the sources of effective discovery guidance.
+
+Adding a library never requires moving or deleting a local group. Removing the library also preserves the group when its local metadata remains.

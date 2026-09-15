@@ -201,11 +201,12 @@ function sourceConfiguration(
  */
 export function configuration(input: unknown): ProjectConfig {
   const config = object(input, 'configuration');
-  knownFields(
-    config,
-    ['schemaVersion', 'sources', 'localGroups'],
-    'configuration',
-  );
+  if (Object.hasOwn(config, 'localGroups'))
+    return invalid(
+      'localGroups',
+      'remove localGroups; local groups are discovered from local/<group>/_group.json',
+    );
+  knownFields(config, ['schemaVersion', 'sources'], 'configuration');
   if (field(config, 'schemaVersion') !== 1)
     return invalid('schemaVersion', 'only version 1 is supported');
   const repositories = new Set<string>();
@@ -214,21 +215,5 @@ export function configuration(input: unknown): ProjectConfig {
   )
     .sort(([a], [b]) => compare(a, b))
     .map(([name, raw]) => sourceConfiguration(name, raw, repositories));
-  const localGroups = selectedGroups(
-    field(config, 'localGroups'),
-    'localGroups',
-  );
-  for (const id of localGroups) {
-    if (
-      sources.some(
-        (source) =>
-          typeof source.groups !== 'string' && source.groups.includes(id),
-      )
-    )
-      return invalid(
-        id,
-        'an imported group cannot also be declared in localGroups',
-      );
-  }
-  return { sources, localGroups };
+  return { sources };
 }

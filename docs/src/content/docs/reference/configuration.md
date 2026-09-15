@@ -39,8 +39,7 @@ The offline builder validates the fields below. The format remains unreleased, a
       "exclude": {},
       "replace": {}
     }
-  },
-  "localGroups": []
+  }
 }
 ```
 
@@ -57,12 +56,12 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. Mutually exclusive with `version`. |
 | `sources.<name>.version` | npm semantic version constraint, such as `^1.2.0`. Mutually exclusive with `ref`. |
 | `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
-| `localGroups` | Local-only group IDs, each backed by `_group.json` under `local/`. |
 | `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
 | `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
 
 Unknown configuration fields are rejected, including unknown source and replacement fields.
-Include `localGroups` as an empty array when unused.
+Local groups are discovered from `local/<group-id>/_group.json`; no source entry or separate group list is required.
+The former `localGroups` field is rejected with migration guidance. Remove it and keep the group metadata files.
 Each source includes its own `exclude` and `replace` objects, empty when unused.
 Replacement paths resolve relative to the configuration directory and must stay under its `local/` directory.
 
@@ -85,8 +84,7 @@ Set `groups` to the string `"*"` to adopt the whole library:
       "exclude": {},
       "replace": {}
     }
-  },
-  "localGroups": []
+  }
 }
 ```
 
@@ -104,7 +102,7 @@ When you adopt a newer revision, newly added groups join the selection; the plan
 Offline builds do not discover changes on the remote repository.
 
 Keep `groups` required. Use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
-`localGroups` remains an explicit list and cannot overlap any imported group after expansion.
+Local metadata can describe a group that is also selected from a library, including through a wildcard.
 
 Snapshots record both the original `groupSelection` and the concrete `groups` list.
 A pattern snapshot must record the exact selector in `groupSelection` and contain every group within that scope at its resolved commit.
@@ -258,12 +256,15 @@ Every valid rule file under `local/` automatically joins its adopted group; indi
 Local rules can join any imported group. A matching filename does not override an imported rule.
 A local file referenced by `replace` appears once under its local ID; the target is removed from active output.
 The complete local definition supplies the metadata, guidance, attribution, and assets. Configuration and provenance retain the replacement relationship.
-For a group with no imported source, declare it in `localGroups` and provide local group metadata.
-Do not list an imported group in `localGroups`.
-Local rules in undeclared groups are errors rather than silently ignored inputs.
+A local `_group.json` defines a group, including an empty group, without any configuration entry.
+If local metadata exists for an imported group, its complete description and reading cues take precedence for project discovery.
+Otherwise, descriptions from every contributing library remain source-labeled.
+Provenance retains all group metadata and identifies the sources supplying the effective discovery guidance.
+Local rules without either local or imported group metadata are errors, with the missing `_group.json` path in the diagnostic.
+The root `local/README.md` is directory documentation, not a rule; other misplaced Markdown files are still validated.
 
-The generated index shows group names, applicability guidance, and explicit **Open group** links. When multiple sources contribute to a group, their guidance remains labeled by source.
-It also includes local-only group metadata.
+The generated index shows group names, applicability guidance, and explicit **Open group** links. Without local metadata, guidance from multiple libraries remains labeled by source.
+Local metadata supplies the complete project description when present.
 The importer does not silently choose one library's description over another's.
 
 ## Conflicting rules

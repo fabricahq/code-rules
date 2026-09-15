@@ -55,7 +55,8 @@ Update the affected exclusion or replacement deliberately.
 Edit the relevant `sources.<name>.groups` and sync again when the imported selection changes.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or declared local-only group still supplies it.
-Move or remove local rules before deselecting their last imported group, or declare that group in `localGroups` with local metadata.
+Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.json` exists.
+If it already exists, keep the local files unchanged. Otherwise author group metadata, or move or remove the local rules.
 
 ## Recover from a failed update
 

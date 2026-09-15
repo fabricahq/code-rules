@@ -291,7 +291,7 @@ This API works before the CLI is available. It accepts these fields:
 | --- | --- |
 | `configuration` | The object described in [Configuration](/reference/configuration/). |
 | `snapshots` | One entry per configured source alias, with `repository`, `ref`, `resolvedCommit`, `groups`, `files`, and optional `groupSelection` and `filePaths`. |
-| `localFiles` | A map from paths relative to `local/` to UTF-8 text, including local-only group metadata. |
+| `localFiles` | A map from paths relative to `local/` to UTF-8 text, including local group metadata and optional root README documentation. |
 | `toolVersion` | A non-blank caller-supplied version string recorded in provenance. |
 | `groupInlineMaxBytes` | Optional inline delivery limit; default 8 KiB. See [generated output](#generated-index-and-rules). |
 | `indexMaxBytes` | Optional positive safe integer limiting index pages; default 24 KiB. |
@@ -328,6 +328,7 @@ It cannot verify offline that this was the highest available version or authenti
 `generated/provenance.json` records the tool version, every named source with its requested ref or constraint and resolved commit, and active rule origins.
 Version sources also record `resolvedTag` and `resolvedVersion`. Imported rule origins use the selected tag as `ref`, while the source record retains the requested constraint.
 Each source records `groupSelection` alongside the expanded `groups` list, keeping the adoption intent and actual included groups visible.
+The top-level `groups` array records each group ID, all source-labeled `guidance` metadata, and `effectiveGuidanceSources`. Local guidance wins when present; otherwise all library guidance remains effective.
 A replacement record uses the local rule ID and origin. Its `upstream` field identifies the replaced source rule; `replacementReason` records the project decision.
 Generated output excludes changing timestamps and machine-specific paths.
 

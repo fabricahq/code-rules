@@ -12,7 +12,8 @@ The development CLI works from this checkout; a published executable and install
 The offline `buildRules` API accepts configuration, library snapshots, local rules, and a tool version.
 It returns generated text files without fetching libraries or writing to disk:
 
-- Resolve multiple libraries, exclusions, complete local replacements, local additions, and local-only groups.
+- Resolve multiple libraries, exclusions, complete local replacements, and automatically discovered local groups and rules.
+- Use local group metadata for project discovery when present, retaining all contributed metadata in provenance.
 - Select explicit groups or `"*"`, `"practices/*"`, and `"techs/*"` from snapshots complete for that scope.
 - Generate `RULES.md`, adaptive group pages, individual resolved rules, and deterministic provenance.
 - Include complete rules in small groups and paginate larger indexes without truncating rule bodies.
