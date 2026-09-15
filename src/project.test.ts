@@ -502,3 +502,31 @@ test('interrupted cleanup keeps committed output and never restores the old revi
   expect(await outputIdentity()).toEqual(committed);
   succeeded(run('check'));
 });
+
+test('CLI defaults to .code-rules while explicit config still supports another location', async () => {
+  const directory = join(root, '.code-rules');
+  await mkdir(directory);
+  await writeFile(
+    join(directory, 'config.json'),
+    JSON.stringify({ schemaVersion: 1, sources: {}, localGroups: [] }),
+  );
+  const cli = fileURLToPath(new URL('./cli.ts', import.meta.url));
+  for (const command of ['sync', 'build', 'check']) {
+    succeeded(
+      spawnSync(process.execPath, [cli, command], {
+        cwd: root,
+        env: fixture.env,
+        encoding: 'utf8',
+        timeout: 30000,
+      }),
+    );
+  }
+  expect(
+    await readFile(join(directory, 'generated/RULES.md'), 'utf8'),
+  ).toContain('# Code Rules');
+  await expect(readFile(join(root, 'generated/RULES.md'))).rejects.toThrow();
+  succeeded(run('sync'));
+  expect(await readFile(join(root, 'generated/RULES.md'), 'utf8')).toContain(
+    '# Code Rules',
+  );
+});

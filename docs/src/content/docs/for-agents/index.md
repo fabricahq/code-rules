@@ -12,7 +12,7 @@ See [product scope](/overview/#scope-rule-management-and-delivery).
 To use this workflow, add the following section to the project's existing `AGENTS.md`, or use it as a starting point for a direct agent prompt:
 
 ```markdown
-Before planning, implementing, or reviewing a change, read `code-rules/generated/RULES.md`.
+Before planning, implementing, or reviewing a change, read `.code-rules/generated/RULES.md`.
 Select technology and practice groups using the task, affected behavior, and code.
 Inspect the selected group pages, including every part of a split index, and use each rule's whenToRead guidance to select rules.
 Read full definitions where included, or follow each applicable rule's Read full rule link.

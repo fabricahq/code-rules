@@ -1,9 +1,9 @@
 ---
 title: "Configuration"
-description: "Fields in the proposed code-rules/config.json format."
+description: "Fields in the proposed .code-rules/config.json format."
 ---
 
-`code-rules/config.json` records the project's sources, selected groups, and exceptions.
+`.code-rules/config.json` records the project's sources, selected groups, and exceptions.
 A project can import rules directly from multiple canonical libraries, pinning each one independently.
 The offline builder validates the fields below. The format remains unreleased, and CLI fetching and installation are separate work.
 

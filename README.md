@@ -117,13 +117,13 @@ Offline builds use the existing snapshot. See [version constraints](docs/src/con
 
 ## Sync a project
 
-Create `code-rules/config.json` in a consuming project using the [configuration reference](docs/src/content/docs/reference/configuration.md).
+Create `.code-rules/config.json` in a consuming project using the [configuration reference](docs/src/content/docs/reference/configuration.md).
 Run the development CLI from this checkout, passing the configuration path:
 
 ```sh
-bun src/cli.ts sync --config /path/to/project/code-rules/config.json
-bun src/cli.ts build --config /path/to/project/code-rules/config.json
-bun src/cli.ts check --config /path/to/project/code-rules/config.json
+bun src/cli.ts sync --config /path/to/project/.code-rules/config.json
+bun src/cli.ts build --config /path/to/project/.code-rules/config.json
+bun src/cli.ts check --config /path/to/project/.code-rules/config.json
 ```
 
 Sync imports libraries, generates resolved rules, and applies changes safely. Build regenerates offline; check compares without writing.

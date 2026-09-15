@@ -7,12 +7,12 @@ Sync is an orchestration function. Imports retrieves snapshots; Builds generates
 The development CLI runs from the repository checkout. A published executable remains future work.
 
 ```sh
-bun src/cli.ts sync --config /path/to/project/code-rules/config.json
-bun src/cli.ts build --config /path/to/project/code-rules/config.json
-bun src/cli.ts check --config /path/to/project/code-rules/config.json
+bun src/cli.ts sync --config /path/to/project/.code-rules/config.json
+bun src/cli.ts build --config /path/to/project/.code-rules/config.json
+bun src/cli.ts check --config /path/to/project/.code-rules/config.json
 ```
 
-Without `--config`, commands use `code-rules/config.json` relative to the working directory.
+Without `--config`, commands use `.code-rules/config.json` relative to the working directory.
 The configuration directory contains `local/`, `vendor/`, and `generated/`. The directory and configuration must already exist.
 
 ## Ownership

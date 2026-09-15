@@ -38,7 +38,7 @@ export type ProjectState = {
 export async function projectLocation(
   options: ProjectOptions,
 ): Promise<{ root: string; configPath: string }> {
-  const path = resolve(options.configPath ?? 'code-rules/config.json');
+  const path = resolve(options.configPath ?? '.code-rules/config.json');
   const root = await realpath(dirname(path));
   return { root, configPath: join(root, basename(path)) };
 }

@@ -28,7 +28,7 @@ An upstream edit should arrive through an explicit update.
 
 ## 2. Select technologies and practices
 
-Create `code-rules/config.json` in the project:
+Create `.code-rules/config.json` in the project:
 
 ```json
 {

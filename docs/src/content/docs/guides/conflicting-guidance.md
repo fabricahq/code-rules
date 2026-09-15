@@ -48,8 +48,8 @@ Until it does, give a repository-aware agent this prompt:
 ```text
 Review this project's effective Code Rules for conflicting guidance.
 
-Read code-rules/generated/RULES.md, every part of each group index, and all linked resolved rules to assess conflicts across the complete adopted set.
-Use code-rules/generated/provenance.json to identify the reviewed snapshot.
+Read .code-rules/generated/RULES.md, every part of each group index, and all linked resolved rules to assess conflicts across the complete adopted set.
+Use .code-rules/generated/provenance.json to identify the reviewed snapshot.
 Compare active rules within and across groups, including local additions
 and replacements. Excluded rules and replaced upstream text are context,
 not active obligations.
@@ -70,7 +70,7 @@ Present proposed changes for review. Do not modify rules or choose an
 unresolved engineering policy on the project's behalf.
 ```
 
-For a different configuration location, the generated prompt should use paths relative to that configuration rather than assuming `code-rules/`.
+For a different configuration location, the generated prompt should use paths relative to that configuration rather than assuming `.code-rules/`.
 The [CLI reference](/reference/cli/#conflict-review-prompt) defines the command's output and validation behavior.
 
 ## Resolve the intended policy

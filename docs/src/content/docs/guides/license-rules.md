@@ -65,7 +65,7 @@ It returns unchanged license and notice copies at generated paths, but does not 
 The consuming workspace will retain them alongside the imported rules:
 
 ```text
-code-rules/
+.code-rules/
   vendor/
     fabrica/
       LICENSE.md

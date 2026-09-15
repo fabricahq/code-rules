@@ -28,12 +28,12 @@ To move from `v1.0.0` to `v1.1.0`, change the ref before syncing.
 A single sync performs the download and regeneration together:
 
 1. Resolve each source's exact ref or version constraint to a commit.
-2. Download its selected rule groups into `code-rules/vendor/<source-name>/` and record the resolved commit.
+2. Download its selected rule groups into `.code-rules/vendor/<source-name>/` and record the resolved commit.
 3. Apply source-specific exclusions and replacements, then include the project's local rules.
-4. Regenerate the group indexes and individual resolved rule files under `code-rules/generated/`.
-5. Regenerate `RULES.md`, library READMEs, declared license copies, and provenance under `code-rules/generated/`, then install the complete validated result.
+4. Regenerate the group indexes and individual resolved rule files under `.code-rules/generated/`.
+5. Regenerate `RULES.md`, library READMEs, declared license copies, and provenance under `.code-rules/generated/`, then install the complete validated result.
 
-For example, `code-rules/generated/groups/practices/testing.md` lists the active testing rules from all selected sources and the project. Small groups include full definitions; larger groups link to them.
+For example, `.code-rules/generated/groups/practices/testing.md` lists the active testing rules from all selected sources and the project. Small groups include full definitions; larger groups link to them.
 After sync, that index reflects the downloaded versions and the project's local choices.
 You do not need to run `build` separately after sync.
 

@@ -12,8 +12,6 @@ Use `--config` to identify a configuration file elsewhere.
 
 ## Sync
 
-This command is proposed. The Imports API implements fetching; the CLI and safe project file updates belong to a dependent PR.
-
 ```sh
 code-rules sync
 ```
@@ -115,7 +113,7 @@ Keep replacement files within that directory's `local/` tree.
 ## Initialize a project (planned)
 
 The planned `code-rules init` command creates project scaffolding under `.code-rules/`, including `config.json` and `local/README.md`.
-The development commands still default to `code-rules/config.json`; switching that default is part of the planned setup work.
+The development commands default to `.code-rules/config.json`. Use `--config` for another location.
 
 The local README explains where to author rules, how `_group.json` describes a group, and how local rules combine with imported rules.
 It links to the canonical authoring guidance and explains when to run `build` or `sync`.

@@ -33,7 +33,7 @@ Imports requires macOS or Linux and Git 2.30 or later. It preserves selected rul
 - Separate public tooling from independently owned rule libraries.
 - Organize groups under `techs/` and `practices/`.
 - Accept exact refs or npm version constraints, record the selected tag/version and commit, and scope project exceptions to each source.
-- Commit resolved rules under `code-rules/generated/`.
+- Commit resolved rules under `.code-rules/generated/`.
 - Give writing and reviewing agents the same rule-loading guidance.
 - Use one authoring rubric for the template, authoring skill, and rule reviews.
 - Import compatible libraries; adapt other source material explicitly before importing it.
