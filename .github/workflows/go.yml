@@ -21,8 +21,14 @@ jobs:
       - run: go version
       - run: bun install --frozen-lockfile
       - name: Check Go formatting
-        run: test -z "$(gofmt -l internal/rules cmd/identity-lab)"
+        run: |
+          unformatted=$(git ls-files -z '*.go' | xargs -0 gofmt -l)
+          if [ -n "$unformatted" ]; then
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
       - run: go vet ./...
+      - run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
       - run: go test -race ./...
       - run: go build -o dist/identity-lab ./cmd/identity-lab
       - run: bun tests/migration/identities/compare.ts dist/identity-lab

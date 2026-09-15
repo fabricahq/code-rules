@@ -12,11 +12,14 @@ var (
 	rulePartPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]*$`)
 )
 
-// ValidationError identifies invalid user input. Location names the input field,
-// including its original array index when applicable.
+// ValidationError identifies invalid user input. Use errors.As to inspect it,
+// and the returned error's Error method to retain any enclosing operation context.
 type ValidationError struct {
+	// Location is a caller-supplied field path, including the original array index
+	// when applicable. It is diagnostic text, never a filesystem path to access.
 	Location string
-	Problem  string
+	// Problem explains the failure to a human. Callers must not branch on its text.
+	Problem string
 }
 
 func (e *ValidationError) Error() string { return e.Location + ": " + e.Problem }
@@ -45,7 +48,7 @@ func GroupFromPath(path, location string) (string, error) {
 		return "", invalid(location, "invalid rule path "+quote(path)+": expected a .md file beneath a group directory")
 	}
 	for i, part := range parts {
-		if part == "assets" {
+		if i > 0 && part == "assets" {
 			return "", invalid(location, "invalid rule path "+quote(path)+`: "assets" is reserved for supporting files, not rules`)
 		}
 		if i >= 2 && !rulePartPattern.MatchString(part) {
@@ -54,7 +57,7 @@ func GroupFromPath(path, location string) (string, error) {
 	}
 	group := strings.Join(parts[:2], "/")
 	if err := ValidateGroupID(group, location); err != nil {
-		return "", err
+		return "", fmt.Errorf("rule path %s: %w", quote(path), err)
 	}
 	return group, nil
 }

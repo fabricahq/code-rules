@@ -1,6 +1,6 @@
 # Migration feedback
 
-Status: proposed with the harness PR; no human-approved lessons yet.
+Status: harness lessons remain proposed. PR #11 includes user-requested logging and error conventions for review.
 
 ## Rules used
 
@@ -31,10 +31,24 @@ The user-selected corpus supersedes the product AGENTS.md link to the Fabrica ap
 No application-domain overlay applies merely because the CLI uses the Fabrica GitHub organization.
 The product's `_internal/rules/comment-role-result-and-constraints.md` controls TypeScript comments.
 For future Go files, use native Go package/file comments; TypeScript `@fileoverview` and TSDoc syntax do not transfer to Go.
-That language adaptation remains part of the first Go slice's review.
+The enduring Go decisions now live in [Go conventions](../_internal/go-conventions.md); their implementation is reviewed with the first Go slice.
 
 Runtime filesystem observations are intentional comparison evidence, not stored golden snapshots that can be regenerated to approve behavior.
 The comparison itself is pure; the runner owns filesystem and process effects.
+
+## PR #11 review follow-up
+
+The user requested logging and error conventions after reviewing independent feedback.
+The [Go conventions](../_internal/go-conventions.md) record the implementation choices; keep future edits there.
+The portable log-once and structured-logging ideas informed the design. Application-specific logging modules and environment variables were not imported.
+Relevant additional corpus paths:
+
+- `_domains/fabrica/go/logging-log-once-at-the-boundary.md`
+- `_domains/fabrica/go/logging-use-slog-with-structured-attrs.md`
+
+Evidence: `internal/logging/logging_test.go`, `cmd/identity-lab/main_test.go`, and the exact shared identity expectations.
+The review fixes retain typed validation errors, preserve full path context, and distinguish HTTP body-size failures from read failures.
+No new error-code taxonomy or dependency wrapper is introduced.
 
 ## Proposals from this iteration
 

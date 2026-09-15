@@ -1,12 +1,68 @@
+// Exercise the development adapter through its JSON and HTTP boundaries.
+
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+func TestHTTPValidationDoesNotLogInput(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	req := httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(`{"operation":"groupID","input":"private-user-content","location":"private-field"}`))
+	recorder := httptest.NewRecorder()
+	handler(logger).ServeHTTP(recorder, req)
+	if !strings.Contains(recorder.Body.String(), "ValidationError") || !strings.Contains(logs.String(), `"ok":false`) {
+		t.Fatalf("missing validation response or debug outcome: response=%s, logs=%s", recorder.Body, &logs)
+	}
+	if strings.Contains(logs.String(), "private-") || strings.Contains(logs.String(), `"level":"ERROR"`) {
+		t.Fatalf("expected input failures must not expose content or produce error logs: %s", &logs)
+	}
+}
+
+type brokenBody struct{}
+
+func (brokenBody) Read([]byte) (int, error) { return 0, errors.New("private read details") }
+func (brokenBody) Close() error             { return nil }
+
+func TestHTTPBodyReadFailure(t *testing.T) {
+	var logs bytes.Buffer
+	req := httptest.NewRequest(http.MethodPost, "/invoke", brokenBody{})
+	recorder := httptest.NewRecorder()
+	handler(slog.New(slog.NewJSONHandler(&logs, nil))).ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusBadRequest || recorder.Body.String() != "could not read request body\n" || logs.Len() != 0 {
+		t.Fatalf("got status=%d, response=%s, logs=%s", recorder.Code, recorder.Body, &logs)
+	}
+}
+
+type brokenResponse struct{ *httptest.ResponseRecorder }
+
+func (brokenResponse) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
+
+func TestHTTPWriteFailureLoggedOnce(t *testing.T) {
+	for _, path := range []string{"/", "/invoke"} {
+		t.Run(path, func(t *testing.T) {
+			var logs bytes.Buffer
+			method := http.MethodGet
+			if path == "/invoke" {
+				method = http.MethodPost
+			}
+			req := httptest.NewRequest(method, path, strings.NewReader(`{"operation":"selection","input":[],"location":"groups"}`))
+			handler(slog.New(slog.NewJSONHandler(&logs, nil))).ServeHTTP(brokenResponse{httptest.NewRecorder()}, req)
+			if strings.Count(logs.String(), "\n") != 1 || !strings.Contains(logs.String(), `"level":"WARN"`) || !strings.Contains(logs.String(), "closed pipe") {
+				t.Fatalf("want one warning for undeliverable response, got %s", &logs)
+			}
+		})
+	}
+}
 
 func TestInvokeBoundary(t *testing.T) {
 	cases := []struct{ name, input, errorName string }{
@@ -22,7 +78,10 @@ func TestInvokeBoundary(t *testing.T) {
 	}
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
-			got := invoke([]byte(test.input))
+			got, err := invoke([]byte(test.input))
+			if err != nil {
+				t.Fatal(err)
+			}
 			if test.errorName == "" {
 				if !got.OK || got.Value != "techs/go" {
 					t.Fatalf("unexpected success: %+v", got)
@@ -38,7 +97,7 @@ func TestHTTPInvokesNativeFunction(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/invoke", strings.NewReader(`{"operation":"selection","input":["techs/go","practices/testing"],"location":"groups"}`))
 	req.Header.Set("Origin", "http://127.0.0.1:8080")
 	recorder := httptest.NewRecorder()
-	handler().ServeHTTP(recorder, req)
+	handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, req)
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("got HTTP %d: %s", recorder.Code, recorder.Body)
 	}
@@ -60,13 +119,13 @@ func TestHTTPRejectsCrossOriginAndOversizedRequests(t *testing.T) {
 		status             int
 	}{
 		{"cross origin", "https://unrelated.example", `{}`, http.StatusForbidden},
-		{"body limit", "http://127.0.0.1:8080", strings.Repeat(" ", maxRequestBytes+1), http.StatusBadRequest},
+		{"body limit", "http://127.0.0.1:8080", strings.Repeat(" ", maxRequestBytes+1), http.StatusRequestEntityTooLarge},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/invoke", strings.NewReader(test.body))
 			req.Header.Set("Origin", test.origin)
 			recorder := httptest.NewRecorder()
-			handler().ServeHTTP(recorder, req)
+			handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, req)
 			if recorder.Code != test.status {
 				t.Fatalf("got HTTP %d, want %d", recorder.Code, test.status)
 			}

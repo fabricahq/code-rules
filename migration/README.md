@@ -2,6 +2,8 @@
 
 Build the Go candidate through one reviewed PR at a time. The TypeScript CLI remains available throughout migration.
 
+Use the [Go conventions](../_internal/go-conventions.md) when implementing or reviewing a slice.
+
 ## Branches and baseline
 
 - Integration branch: `go-migration`.

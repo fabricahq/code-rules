@@ -1,5 +1,6 @@
 // identity-lab is a development adapter, not the Code Rules CLI. By default it
 // reads one JSON request per line from stdin; -serve opens a loopback browser lab.
+
 package main
 
 import (
@@ -11,11 +12,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/logging"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -27,7 +30,8 @@ const maxRequestBytes = 1 << 20
 type request struct {
 	Operation string          `json:"operation"`
 	Input     json.RawMessage `json:"input"`
-	Location  string          `json:"location"`
+	// Location is an input field path for diagnostics, not a file to read.
+	Location string `json:"location"`
 }
 
 type failure struct {
@@ -37,23 +41,26 @@ type failure struct {
 }
 
 type response struct {
-	OK    bool     `json:"ok"`
+	OK bool `json:"ok"`
+	// Value is nil only on failure. A successful empty selection holds a non-nil
+	// []string in this interface, so JSON includes "value": [] rather than null.
 	Value any      `json:"value,omitempty"`
 	Error *failure `json:"error,omitempty"`
 }
 
-func invoke(data []byte) response {
+// invoke returns expected input failures as responses and unexpected failures as errors.
+func invoke(data []byte) (response, error) {
 	var req request
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
-		return adapterError("invalid request JSON: " + err.Error())
+		return adapterError("invalid request JSON: " + err.Error()), nil
 	}
 	if err := decoder.Decode(new(any)); err != io.EOF {
-		return adapterError("expected one request object")
+		return adapterError("expected one request object"), nil
 	}
 	if req.Location == "" {
-		return adapterError("location must be nonempty")
+		return adapterError("location must be nonempty"), nil
 	}
 	var value any
 	var err error
@@ -61,7 +68,7 @@ func invoke(data []byte) response {
 	case "groupID", "ruleGroup":
 		var text string
 		if len(req.Input) == 0 || bytes.Equal(bytes.TrimSpace(req.Input), []byte("null")) || json.Unmarshal(req.Input, &text) != nil {
-			return adapterError("input must be a string for " + req.Operation)
+			return adapterError("input must be a string for " + req.Operation), nil
 		}
 		if req.Operation == "groupID" {
 			err = rules.ValidateGroupID(text, req.Location)
@@ -78,72 +85,114 @@ func invoke(data []byte) response {
 			value = selection.Groups
 		}
 	default:
-		return adapterError("unknown operation " + req.Operation)
+		return adapterError("unknown operation " + req.Operation), nil
 	}
 	if err != nil {
 		var validation *rules.ValidationError
 		if errors.As(err, &validation) {
-			return response{Error: &failure{Name: "ValidationError", Message: err.Error(), Location: validation.Location}}
+			return response{Error: &failure{Name: "ValidationError", Message: err.Error(), Location: validation.Location}}, nil
 		}
-		return adapterError(err.Error())
+		return response{}, fmt.Errorf("invoke %s: %v", req.Operation, err)
 	}
-	return response{OK: true, Value: value}
+	return response{OK: true, Value: value}, nil
 }
 
 func adapterError(message string) response {
 	return response{Error: &failure{Name: "AdapterError", Message: message}}
 }
 
-func handler() http.Handler {
+func handler(logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
-		_, _ = w.Write(page)
+		if _, err := w.Write(page); err != nil {
+			logger.WarnContext(r.Context(), "write lab page failed", "error", err)
+		}
 	})
 	mux.HandleFunc("POST /invoke", func(w http.ResponseWriter, r *http.Request) {
 		data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
 		if err != nil {
-			http.Error(w, "request body exceeds limit or could not be read", http.StatusBadRequest)
+			var tooLarge *http.MaxBytesError
+			if errors.As(err, &tooLarge) {
+				http.Error(w, "request body exceeds 1 MiB limit", http.StatusRequestEntityTooLarge)
+			} else {
+				http.Error(w, "could not read request body", http.StatusBadRequest)
+			}
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
-		_ = json.NewEncoder(w).Encode(invoke(data))
+		result, err := invoke(data)
+		if err != nil {
+			logger.ErrorContext(r.Context(), "invoke failed", "error", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			// The failure is already reported here; a disconnected client cannot receive it.
+			_ = json.NewEncoder(w).Encode(response{Error: &failure{Name: "InternalError", Message: "invocation failed; see server logs"}})
+			return
+		}
+		if err := json.NewEncoder(w).Encode(result); err != nil {
+			logger.WarnContext(r.Context(), "write invocation response failed", "error", err)
+			return
+		}
+		// Expected validation failures belong in the response. Never log the input
+		// or diagnostic message: either may contain user-authored content.
+		logger.DebugContext(r.Context(), "invocation completed", "ok", result.OK)
 	})
 	return http.NewCrossOriginProtection().Handler(mux)
 }
 
-func run() error {
+func run(logger *slog.Logger) error {
 	serve := flag.Bool("serve", false, "serve the interactive lab on loopback")
 	port := flag.Int("port", 0, "loopback port (0 chooses an available port)")
 	flag.Parse()
 	if *serve {
 		listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", *port))
 		if err != nil {
-			return fmt.Errorf("start identity lab: %w", err)
+			return fmt.Errorf("start identity lab: %v", err)
 		}
-		fmt.Fprintf(os.Stderr, "Identity lab: http://%s\n", listener.Addr())
-		server := &http.Server{Handler: handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
-		return server.Serve(listener)
+		logger.Info("identity lab listening", "url", "http://"+listener.Addr().String())
+		server := &http.Server{
+			Handler:           handler(logger),
+			ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
+			ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout:       10 * time.Second,
+			WriteTimeout:      10 * time.Second,
+			IdleTimeout:       30 * time.Second,
+		}
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("serve identity lab at %s: %v", listener.Addr(), err)
+		}
+		return nil
 	}
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Buffer(make([]byte, 4096), maxRequestBytes)
 	encoder := json.NewEncoder(os.Stdout)
 	for scanner.Scan() {
-		if err := encoder.Encode(invoke(scanner.Bytes())); err != nil {
-			return fmt.Errorf("write response: %w", err)
+		result, err := invoke(scanner.Bytes())
+		if err != nil {
+			return err
+		}
+		if err := encoder.Encode(result); err != nil {
+			return fmt.Errorf("write response: %v", err)
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("read request: %w", err)
+		return fmt.Errorf("read request: %v", err)
 	}
 	return nil
 }
 
 func main() {
-	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	logger, err := logging.New(os.Stderr, os.Getenv("CODE_RULES_LOG_LEVEL"), os.Getenv("CODE_RULES_LOG_FORMAT"))
+	if err != nil {
+		// Default settings are always valid, even when the environment is not.
+		logger, _ = logging.New(os.Stderr, "", "")
+		logger.Error("invalid logging configuration", "error", err)
+		os.Exit(1)
+	}
+	if err := run(logger); err != nil {
+		logger.Error("identity lab failed", "error", err)
 		os.Exit(1)
 	}
 }

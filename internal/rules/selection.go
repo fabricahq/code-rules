@@ -1,3 +1,5 @@
+// Parse group selections while preserving configuration diagnostics and ordering.
+
 package rules
 
 import (

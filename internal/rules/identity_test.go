@@ -1,3 +1,5 @@
+// Check the public rules API against migration expectations and ownership guarantees.
+
 package rules_test
 
 import (
@@ -61,8 +63,8 @@ func TestSharedExpectations(t *testing.T) {
 				if !errors.As(err, &validation) {
 					t.Fatalf("want ValidationError, got %v", err)
 				}
-				if validation.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
-					t.Fatalf("got %q at %q; want %q at %q", validation.Error(), validation.Location, test.Expected.Error.Message, test.Expected.Error.Location)
+				if err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
+					t.Fatalf("got %q at %q; want %q at %q", err.Error(), validation.Location, test.Expected.Error.Message, test.Expected.Error.Location)
 				}
 				return
 			}

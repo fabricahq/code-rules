@@ -405,6 +405,12 @@
               not reach a function, for example because its JSON was malformed.
               Go returns errors; it does not throw exceptions here.
             </p>
+            <p class="hint">
+              A nested validation error keeps the full rule path in its message.
+              Go callers can still find its type with <code>errors.As</code>.
+              Expected input errors stay in the response. Operational failures
+              are reported once at the boundary, using <code>log/slog</code> on stderr.
+            </p>
           </details>
         </section>
       </div>
@@ -527,6 +533,8 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
             ["Asset directory", "techs/go/assets/icon.md"],
             ["Wrong extension", "techs/go/rule.MD"],
             ["Invalid group", "other/go/rule.md"],
+            ["Uppercase group", "techs/Go/a.md"],
+            ["Invalid prefix", "assets/go/a.md"],
           ],
         },
         selection: {
@@ -611,10 +619,17 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
             headers: { "Content-Type": "application/json" },
             body,
           });
-          if (!response.ok)
-            throw new Error(
-              "HTTP " + response.status + ": " + (await response.text()),
-            );
+          if (!response.ok) {
+            byID("status").textContent = "HTTP " + response.status;
+            byID("status").className = "badge bad";
+            byID("explanation").textContent = response.status >= 500
+              ? "The server could not complete the request. See its logs for details."
+              : "The server rejected the request.";
+            byID("output").textContent = await response.text();
+            byID("timing").textContent =
+              Math.round(performance.now() - started) + " ms round trip";
+            return;
+          }
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
           byID("status").textContent = result.ok

@@ -37,10 +37,24 @@ Go now returns `group: invalid group ID "techs/assets": "assets" is a reserved g
 The same explanation applies to `practices/assets` and to either ID in an explicit selection. Syntax validation still runs first; other malformed IDs remain syntax errors.
 
 Malformed group IDs now report the existing group regular expression. Rule errors explain the required `.md` location, the reserved `assets` directory, or the existing filename regular expression. Containment errors spell out the path restrictions; selection shape errors list the accepted array and wildcard forms.
-The messages reuse the compiled expressions and existing validation checks. Acceptance rules and validation order are unchanged; no character-by-character diagnosis is introduced.
+The messages reuse the compiled expressions and existing validation checks; no character-by-character diagnosis is introduced. Acceptance rules are unchanged. The review follow-up below clarifies one diagnostic precedence case.
 
-The 59 affected shared cases store both `referenceExpected` (the unchanged pinned TypeScript message) and `expected` (the approved Go message). Each side is checked exactly, without normalizing or ignoring diagnostics.
+The 60 affected shared cases store both `referenceExpected` (the unchanged pinned TypeScript message) and `expected` (the approved Go message). Each side is checked exactly, without normalizing or ignoring diagnostics.
 This is a function-level diagnostic change only. The global CLI comparison policy and pinned TypeScript source are unchanged; future CLI integration must carry this approval into its own exact expectations.
+
+### Review follow-up
+
+The user approved the review conclusion and requested explicit logging and error conventions.
+`GroupFromPath` now wraps group-validation errors with the full path, preserving `ValidationError` for `errors.As`.
+The `assets` check applies after the root prefix: `assets/go/a.md` now reports an invalid group prefix instead of an assets-directory violation.
+This is a diagnostic precedence change only; the path remains invalid. Existing rule checks still precede group validation.
+The shared cases retain exact TypeScript expectations and add the `rule-assets-prefix` regression.
+
+The [Go conventions](../_internal/go-conventions.md) own logging, error handling, comments, and enforcement guidance.
+The lab uses `log/slog`, with text/JSON and level configuration, a single owner for each failure log, and stderr output.
+Expected validation errors stay in responses. Oversized HTTP bodies receive 413; other body-read failures receive 400.
+Unexpected HTTP errors receive a generic 500; process failures return to `main` for one log and exit 1.
+The Go workflow discovers all tracked Go files for formatting and runs pinned Staticcheck defaults.
 
 ## Package ownership
 
@@ -94,6 +108,7 @@ Domain errors stay in the JSON response and do not terminate the stream. Process
 
 ```sh
 go vet ./...
+go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go test -race ./...
 go build -o /tmp/code-rules-identity-lab ./cmd/identity-lab
 bun tests/migration/identities/compare.ts /tmp/code-rules-identity-lab
@@ -104,16 +119,16 @@ bun run test:package
 Go 1.27.1 was used locally; CI reads the Go version directly from `go.mod`.
 In a restricted local environment, set `GOCACHE` and `GOMODCACHE` to writable temporary directories. This changes cache locations only.
 
-The [86 shared cases](../tests/migration/identities/cases.json) contain independent expected results. Go tests invoke the package directly. The [comparison runner](../tests/migration/identities/compare.ts) invokes the existing TypeScript functions and compiled Go adapter and checks each against those expectations.
+The [87 shared cases](../tests/migration/identities/cases.json) contain independent expected results. Go tests invoke the package directly. The [comparison runner](../tests/migration/identities/compare.ts) invokes the existing TypeScript functions and compiled Go adapter and checks each against those expectations.
 The runner rejects tracked or untracked TypeScript input drift, rejects approved-difference changes, bounds candidate execution, checks response count, and reports the binary hash. The Go process receives a PATH with no interpreters available.
 The source and lockfile pin plus binary hash are provenance inputs, not proof that an arbitrary supplied binary came from the declared Go sources.
 
-Additional Go tests cover result ownership, malformed JSON, adapter errors, real HTTP dispatch, cross-origin rejection, and oversized requests.
+Additional Go tests cover result ownership, malformed JSON, adapter errors, real HTTP dispatch, cross-origin rejection, oversized requests, log levels/formats, input privacy, body-read failures, and reporting write failures once.
 The native package imports no filesystem/network/process APIs; the tests do not claim a syscall audit. End-to-end file parity remains owned by the existing migration harness and later capabilities.
 
-The browser was exercised with valid group IDs, reserved names, nested rule paths, traversal, sorted selections, duplicates, empty-entry precedence, and malformed JSON. Returned results came from the live binary.
+The browser was exercised with valid group IDs, reserved names, nested rule paths, traversal, sorted selections, duplicates, empty-entry precedence, and malformed JSON. Follow-up checks exercised both corrected path errors and the oversized-request UI against the updated binary. Real-process checks also confirmed clean stdout, continued processing after validation failures, and one stderr record per startup, stream-read, or logging-configuration failure.
 
-Independent automated review did not complete: the first attempt exceeded the reviewer context window, and automatic approval review blocked a retry over possible private-rule disclosure. No independent-review approval is claimed.
+The user supplied independent feedback on the previous head; the follow-up applies the agreed fixes. Automated closeout review has not completed. Earlier attempts exceeded the reviewer context window or were blocked over possible private-rule disclosure. The conventions follow-up attempted a public-diff-only review with tools and web access disabled, but the Codex helper rejected the unsupported `--no-tools` mode before reviewing. No clean automated-review result is claimed.
 
 Local logs are retained under `/private/tmp/code-rules-migration-evidence/`; paths are machine-local and should be regenerated by other reviewers.
 

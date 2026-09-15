@@ -998,7 +998,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "input: invalid group ID \"other/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "message": "rule path \"other/go/a.md\": input: invalid group ID \"other/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
         "location": "input"
       }
     },
@@ -1020,7 +1020,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "input: invalid group ID \"techs/Go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "message": "rule path \"techs/Go/a.md\": input: invalid group ID \"techs/Go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
         "location": "input"
       }
     },
@@ -1658,6 +1658,28 @@
         "name": "ValidationError",
         "message": "sources.team.groups: expected an array of strings",
         "location": "sources.team.groups"
+      }
+    }
+  },
+  {
+    "id": "rule-assets-prefix",
+    "operation": "ruleGroup",
+    "input": "assets/go/a.md",
+    "location": "input",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "rule path \"assets/go/a.md\": input: invalid group ID \"assets/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "input"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "input: invalid rule path \"assets/go/a.md\"",
+        "location": "input"
       }
     }
   }
