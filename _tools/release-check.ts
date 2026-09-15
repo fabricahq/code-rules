@@ -16,10 +16,12 @@ if (
   metadata.version.includes('-')
 )
   throw new Error('GitHub prerelease status must match the package version.');
-if (
-  metadata.license === 'UNLICENSED' ||
-  !(await readFile('LICENSE.md', 'utf8')).trim()
-)
+const license = await readFile('LICENSE.md', 'utf8').catch((error: unknown) => {
+  if (error instanceof Error && 'code' in error && error.code === 'ENOENT')
+    return '';
+  throw error;
+});
+if (metadata.license === 'UNLICENSED' || !license.trim())
   throw new Error(
     'Declare the approved tool license and include LICENSE.md before publishing.',
   );
