@@ -17,12 +17,19 @@ import {
   readTree,
   missing,
 } from '../project-files/files';
+import { requireActive } from '../project-files/project';
 import { withWriter } from '../project-files/apply';
 import { loadSnapshots } from '../project-files/snapshots';
 import { renderGroup, renderRuleDraft, localReadme } from './templates';
 import type { RuleMetadata } from './templates';
 import { ensureDirectory, optionalBytes, publishAuthored } from './files';
 import type { AuthoredFile } from './files';
+
+/** Configuration location and caller cancellation shared by authoring operations. */
+export type AuthoringOptions = {
+  readonly configPath?: string;
+  readonly signal?: AbortSignal;
+};
 
 /** Result names authored paths and the next explicit command; generated files are not changed. */
 export type AuthoringResult = {
@@ -85,11 +92,14 @@ async function existingLocation(
 
 /** Create an empty project and local orientation, preserving existing valid configuration and README bytes. */
 export async function initializeProject(
-  configPath?: string,
+  options: AuthoringOptions = {},
 ): Promise<AuthoringResult> {
-  const target = await location(configPath);
+  requireActive(options);
+  const target = await location(options.configPath);
+  requireActive(options);
   await ensureDirectory(target.root, []);
   return withWriter(target.root, async () => {
+    requireActive(options);
     const old = await optionalBytes(target.configPath);
     if (old !== null)
       configuration(json(textFile(old, target.configPath), target.configPath));
@@ -106,7 +116,7 @@ export async function initializeProject(
       });
     if (readme === null)
       files.push({ path: readmePath, text: localReadme, before: null });
-    await publishAuthored(target.root, files);
+    await publishAuthored(target.root, files, options.signal);
     return {
       files: files.map((file) => file.path),
       next: 'Add a local group and rule, then run build. Or add a source and run sync.',
@@ -118,16 +128,23 @@ export async function initializeProject(
 export async function addLocalGroup(
   id: string,
   metadata: GroupMetadata,
-  configPath?: string,
+  options: AuthoringOptions = {},
 ): Promise<AuthoringResult> {
   groupId(id, 'group');
   const text = renderGroup(metadata);
-  const target = await existingLocation(configPath);
+  requireActive(options);
+  const target = await existingLocation(options.configPath);
+  requireActive(options);
   return withWriter(target.root, async () => {
+    requireActive(options);
     await readConfiguration(target.configPath);
     await readTree(join(target.root, 'local'));
     const path = join(target.root, 'local', id, '_group.json');
-    await publishAuthored(target.root, [{ path, text, before: null }]);
+    await publishAuthored(
+      target.root,
+      [{ path, text, before: null }],
+      options.signal,
+    );
     return { files: [path], next: 'Add a rule to this group, then run build.' };
   });
 }
@@ -174,16 +191,20 @@ export async function addLocalRule(
   metadata: RuleMetadata,
   options: {
     readonly configPath?: string;
+    readonly signal?: AbortSignal;
     readonly body?: string;
     readonly group?: GroupMetadata;
   } = {},
 ): Promise<AuthoringResult> {
+  requireActive(options);
   const group = ruleGroup(`${id}.md`, 'rule');
   const text = await renderRuleDraft(id, metadata, options.body);
   const groupText =
     options.group === undefined ? undefined : renderGroup(options.group);
   const target = await existingLocation(options.configPath);
+  requireActive(options);
   return withWriter(target.root, async () => {
+    requireActive(options);
     const config = await readConfiguration(target.configPath);
     await readTree(join(target.root, 'local'));
     const files: AuthoredFile[] = [];
@@ -201,7 +222,7 @@ export async function addLocalRule(
     }
     const path = join(target.root, 'local', `${id}.md`);
     files.push({ path, text, before: null });
-    await publishAuthored(target.root, files);
+    await publishAuthored(target.root, files, options.signal);
     return {
       files: files.map((file) => file.path),
       next:
@@ -216,10 +237,13 @@ export async function addLocalRule(
 export async function addSource(
   alias: string,
   source: unknown,
-  configPath?: string,
+  options: AuthoringOptions = {},
 ): Promise<AuthoringResult> {
-  const target = await existingLocation(configPath);
+  requireActive(options);
+  const target = await existingLocation(options.configPath);
+  requireActive(options);
   return withWriter(target.root, async () => {
+    requireActive(options);
     const config = await readConfiguration(target.configPath);
     const sources = object(config.value.sources, 'sources');
     if (Object.hasOwn(sources, alias))
@@ -229,13 +253,17 @@ export async function addSource(
       );
     const value = { ...config.value, sources: { ...sources, [alias]: source } };
     configuration(value);
-    await publishAuthored(target.root, [
-      {
-        path: target.configPath,
-        before: config.bytes,
-        text: JSON.stringify(value, null, 2) + '\n',
-      },
-    ]);
+    await publishAuthored(
+      target.root,
+      [
+        {
+          path: target.configPath,
+          before: config.bytes,
+          text: JSON.stringify(value, null, 2) + '\n',
+        },
+      ],
+      options.signal,
+    );
     return {
       files: [target.configPath],
       next: 'Run sync to import this source and regenerate resolved rules.',

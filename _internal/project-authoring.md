@@ -13,7 +13,7 @@ Missing inputs prompt only on a terminal. Noninteractive use requires equivalent
 
 ## Ownership and implementation
 
-`src/authoring/` owns pure template rendering and project authoring operations. File updates use the existing writer lock, reject links and case collisions, validate all proposed inputs before publication, publish new files exclusively, and atomically replace configuration after checking original bytes. Failed operations roll back newly published files without deleting outside edits. Interactive collection occurs before taking the writer lock; operations validate again under the lock.
+`src/authoring/` owns pure template rendering and project authoring operations. File updates use the existing writer lock, reject links and case collisions, validate all proposed inputs before publication, publish new files exclusively, and claim configuration before checking original bytes and publish its replacement exclusively. Retain uncertain claims for manual recovery. Propagate cancellation through every authoring operation. Failed operations roll back newly published files without deleting outside edits. Interactive collection occurs before taking the writer lock; operations validate again under the lock.
 
 The canonical rubric remains the document for authors. Its template and the distributable Markdown template are checked together to prevent drift. Drafts require human or agent completion before adoption; the command does not invent policy. Metadata parsing reuses current format contracts. Library setup, publishing, enforcement, and automatic editing of AGENTS.md remain separate.
 

@@ -80,5 +80,7 @@ Without these flags, an existing local or verified imported group is sufficient.
 
 All commands accept `--config path/to/config.json`; local, vendor, and generated directories live beside that file. Only `init` creates a missing project configuration.
 
-Authoring commands serialize writes with the same project lock used by sync and build. They reject links, unsupported files, and case-colliding target paths. New definitions are never overwritten. Adding a source atomically replaces validated configuration after checking its original bytes.
-A failed multi-file creation rolls back newly created files that have not been edited externally. Setup does not fetch libraries, commit files, publish content, or prescribe rule enforcement.
+Authoring commands serialize writes with the same project lock used by sync and build. They reject links, unsupported files, and case-colliding target paths. New definitions are never overwritten. Adding a source moves the current configuration aside, verifies its exact bytes, and installs the new file only if the target path remains empty. An editor save is preserved rather than overwritten.
+A failed multi-file creation claims newly created files before comparing their bytes for rollback, preserving external replacements.
+Cancellation stops further publication and rolls back new files. Once a configuration replacement is published, it remains a complete result.
+If the original cannot be restored because another file occupies its path, Code Rules retains the original in the reported `.code-rules-authoring-*` directory. Inspect the saved files and `recovery.json`, keep the intended content, then remove that temporary directory before retrying authoring. Interrupted operations may also leave this directory for inspection. Setup does not fetch libraries, commit files, publish content, or prescribe rule enforcement.

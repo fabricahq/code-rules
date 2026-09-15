@@ -441,3 +441,139 @@ test('invalid impact and non-UTF-8 body input leave local files unchanged', asyn
   ).toBe(1);
   expect(await identity()).toBe(before);
 });
+
+function raced(args: string[], mode: string): ReturnType<typeof spawnSync> {
+  const script = fileURLToPath(
+    new URL('../../tests/fixtures/authoring-race-worker.ts', import.meta.url),
+  );
+  return spawnSync(process.execPath, [script, ...args], {
+    cwd: root,
+    env: { ...fixture.env, AUTHORING_FAULT: mode },
+    encoding: 'utf8',
+    timeout: 30000,
+  });
+}
+
+test.each(['config-edit', 'config-recreated'])(
+  'preserves editor saves during configuration replacement: %s',
+  async (mode) => {
+    ok(['init']);
+    const result = raced(
+      [
+        'add',
+        'source',
+        'team',
+        '--repository',
+        'https://github.com/example/team.git',
+        '--ref',
+        'v1',
+        '--groups',
+        '*',
+      ],
+      mode,
+    );
+    expect(result.status).toBe(1);
+    const config = JSON.parse(
+      await readFile(join(root, '.code-rules/config.json'), 'utf8'),
+    );
+    expect(config.editor).toBe('saved');
+  },
+);
+
+test.each(['init', 'group', 'rule', 'source'])(
+  'cancellation during %s publication preserves authored files',
+  async (command) => {
+    ok(['init']);
+    const before = await identity();
+    const args =
+      command === 'init'
+        ? ['init', '--config', 'other/config.json']
+        : command === 'group'
+          ? ['local', 'add', 'group', 'practices/testing', ...group]
+          : command === 'rule'
+            ? [
+                'local',
+                'add',
+                'rule',
+                'techs/go/errors',
+                ...rule,
+                '--create-group',
+                '--group-name',
+                'Go',
+                '--group-description',
+                'Go.',
+                '--group-when-to-read',
+                'Writing Go.',
+              ]
+            : [
+                'add',
+                'source',
+                'team',
+                '--repository',
+                'https://github.com/example/team.git',
+                '--ref',
+                'v1',
+                '--groups',
+                '*',
+              ];
+    const result = raced(args, 'cancel');
+    expect(result.status).toBe(1);
+    expect(String(result.stderr)).toContain('cancelled');
+    if (command === 'init') {
+      expect(await readdir(join(root, 'other'))).toEqual([]);
+    } else expect(await identity()).toBe(before);
+  },
+);
+
+test.each(['rollback-edit', 'rollback-recreated'])(
+  'rollback preserves an editor save at the removal boundary: %s',
+  async (mode) => {
+    ok(['init']);
+    const result = raced(
+      [
+        'local',
+        'add',
+        'rule',
+        'techs/go/errors',
+        ...rule,
+        '--create-group',
+        '--group-name',
+        'Go',
+        '--group-description',
+        'Go.',
+        '--group-when-to-read',
+        'Writing Go.',
+      ],
+      mode,
+    );
+    expect(result.status).toBe(1);
+    expect(
+      await readFile(
+        join(root, '.code-rules/local/techs/go/_group.json'),
+        'utf8',
+      ),
+    ).toBe('Editor saved this group.');
+  },
+);
+
+test('cancellation after claiming configuration restores the original bytes', async () => {
+  ok(['init']);
+  const before = await identity();
+  const result = raced(
+    [
+      'add',
+      'source',
+      'team',
+      '--repository',
+      'https://github.com/example/team.git',
+      '--ref',
+      'v1',
+      '--groups',
+      '*',
+    ],
+    'cancel-after-claim',
+  );
+  expect(result.status).toBe(1);
+  expect(String(result.stderr)).toContain('cancelled');
+  expect(await identity()).toBe(before);
+});

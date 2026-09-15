@@ -112,7 +112,11 @@ export async function runAuthoring(
   if (request === null) return null;
   const { kind, id, flags } = request;
   const configPath = flags.get('config')?.[0];
-  if (kind === 'init') return initializeProject(configPath);
+  const projectOptions = {
+    signal,
+    ...(configPath === undefined ? {} : { configPath }),
+  };
+  if (kind === 'init') return initializeProject(projectOptions);
   if (kind === 'group') groupId(id, 'group');
   if (kind === 'rule') {
     if (id.endsWith('.md'))
@@ -154,7 +158,7 @@ export async function runAuthoring(
   }
   try {
     if (kind === 'group')
-      return await addLocalGroup(id, await group(''), configPath);
+      return await addLocalGroup(id, await group(''), projectOptions);
     if (kind === 'rule') {
       const metadata = {
         title: await required('title', 'Action-oriented title'),
@@ -186,7 +190,7 @@ export async function runAuthoring(
       }
       const bodyPath = flags.get('body-file')?.[0];
       const options = {
-        ...(configPath === undefined ? {} : { configPath }),
+        ...projectOptions,
         ...(createGroup ? { group: await group('group-') } : {}),
         ...(bodyPath === undefined
           ? {}
@@ -232,7 +236,7 @@ export async function runAuthoring(
     return await addSource(
       id,
       { repository, ...revision, groups, exclude: {}, replace: {} },
-      configPath,
+      projectOptions,
     );
   } finally {
     terminal?.close();
