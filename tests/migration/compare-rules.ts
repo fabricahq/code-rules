@@ -118,7 +118,7 @@ for (const [index, test] of cases.entries()) {
     throw new Error(`Missing native response: ${test.id}`);
   const native: unknown = JSON.parse(line);
   const expected = test.expected;
-  // The user approved clearer validation diagnostics in Go.
+  // The user approved clearer identity diagnostics and trimmed metadata in Go.
   // Those cases retain explicit old and new expectations; no output is normalized.
   deepStrictEqual(
     reference(test),
@@ -132,7 +132,7 @@ console.log(
   `PASS: ${cases.length} shared rules cases; TypeScript + Go match independent expectations`,
 );
 console.log(
-  `Approved diagnostic differences: ${cases.filter((test) => 'referenceExpected' in test && test.referenceExpected !== undefined).length} cases`,
+  `Approved behavior differences: ${cases.filter((test) => 'referenceExpected' in test && test.referenceExpected !== undefined).length} cases`,
 );
 console.log(`TypeScript reference: ${referenceRevision}`);
 console.log(

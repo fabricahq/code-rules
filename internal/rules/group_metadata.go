@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// GroupMetadata describes a group for selection. Text is preserved, not trimmed.
+// GroupMetadata describes a group for selection. Text has no surrounding whitespace.
 type GroupMetadata struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -52,7 +52,11 @@ func ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, 
 
 func metadataText(input json.RawMessage, location string) (string, error) {
 	var text string
-	if err := json.Unmarshal(input, &text); err != nil || strings.TrimFunc(text, jsWhitespace) == "" {
+	if err := json.Unmarshal(input, &text); err != nil {
+		return "", invalid(location, "expected nonempty text")
+	}
+	text = strings.TrimFunc(text, jsWhitespace)
+	if text == "" {
 		return "", invalid(location, "expected nonempty text")
 	}
 	return text, nil

@@ -54,6 +54,18 @@
     "expected": {
       "ok": true,
       "value": {
+        "name": "Go",
+        "description": "Go rules",
+        "whenToRead": [
+          "z",
+          "a",
+          "Z"
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
         "name": " Go ",
         "description": "\nGo rules\t",
         "whenToRead": [
@@ -623,6 +635,14 @@
     "input": "{\"name\":\"Go\",\"description\":\"Go engineering rules\",\"whenToRead\":[\"Same\",\" Same\",\"Same \"]}",
     "location": "techs/go/_group.json",
     "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "techs/go/_group.json.whenToRead: duplicate entries",
+        "location": "techs/go/_group.json.whenToRead"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "name": "Go",
@@ -744,6 +764,58 @@
         "name": "ValidationError",
         "message": "techs/go/_group.json.license: declare one license for the whole library in rule-library.json; group-level licenses are unsupported",
         "location": "techs/go/_group.json.license"
+      }
+    }
+  },
+  {
+    "id": "metadata-trim-unicode-whitespace",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\"﻿Go \",\"description\":\"\\tGo rules\\r\\n\",\"whenToRead\":[\" When editing. \"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go",
+        "description": "Go rules",
+        "whenToRead": [
+          "When editing."
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "name": "﻿Go ",
+        "description": "\tGo rules\r\n",
+        "whenToRead": [
+          " When editing. "
+        ]
+      }
+    }
+  },
+  {
+    "id": "metadata-preserve-interior-whitespace",
+    "operation": "groupMetadata",
+    "input": "{\"name\":\" Go  rules \",\"description\":\" First\\nsecond \",\"whenToRead\":[\" Read  carefully. \"]}",
+    "location": "techs/go/_group.json",
+    "expected": {
+      "ok": true,
+      "value": {
+        "name": "Go  rules",
+        "description": "First\nsecond",
+        "whenToRead": [
+          "Read  carefully."
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "name": " Go  rules ",
+        "description": " First\nsecond ",
+        "whenToRead": [
+          " Read  carefully. "
+        ]
       }
     }
   }

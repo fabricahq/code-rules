@@ -453,9 +453,9 @@
             <h3>3. Return an owned value</h3>
             <p>
               <code>GroupMetadata</code> contains the name, description, and
-              <code>WhenToRead []string</code>. Text and list order stay intact.
-              Empty guidance returns an empty array. Errors return no partial
-              value.
+              <code>WhenToRead []string</code>. Text is trimmed at both ends;
+              internal spacing and list order stay intact. Empty guidance
+              returns an empty array. Errors return no partial value.
             </p>
             <p>
               The parser returns the existing <code>ValidationError</code> type.
@@ -469,7 +469,7 @@
         <p class="notice">
           This slice parses a group’s <code>_group.json</code> contents. It does
           not find groups, read files, expand wildcards, or parse rule Markdown.
-          The 51 new metadata cases and 87 identity cases run against both the
+          The 53 new metadata cases and 87 identity cases run against both the
           TypeScript reference and the real Go executable.
         </p>
         <details>
@@ -521,7 +521,7 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
           signature:
             "ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, error)",
           description:
-            "Requires name, description, and distinct reading guidance. Preserves text and order; an empty guidance list is valid. Unknown fields are ignored except license declarations.",
+            "Requires name, description, and distinct reading guidance. Trims surrounding whitespace and preserves list order; an empty guidance list is valid. Unknown fields are ignored except license declarations.",
           label: "Group metadata JSON",
           hint: "The contents of _group.json. Even malformed JSON is sent to the Go parser as document text.",
           location: "techs/go/_group.json",
@@ -533,6 +533,7 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
               {
                 ...metadata,
                 name: " Go ",
+                description: " " + metadata.description + " ",
                 whenToRead: ["Review first.", " Write second. "],
               },
             ],
