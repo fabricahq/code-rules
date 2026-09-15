@@ -4186,5 +4186,105 @@
         "location": "lab:techs/go/errors.md"
       }
     }
+  },
+  {
+    "id": "rule-yaml-surrogate-pair-verbatim-tag",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: !<tag:yaml.org,2002:str> \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "\ud83d\udc39",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "metadata": "title: !<tag:yaml.org,2002:str> \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
+        "body": "Body"
+      }
+    }
+  },
+  {
+    "id": "rule-yaml-surrogate-pair-anchor-comment",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: &a # comment\n  \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "\ud83d\udc39",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "metadata": "title: &a # comment\n  \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
+        "body": "Body"
+      }
+    }
+  },
+  {
+    "id": "rule-yaml-surrogate-pair-crlf",
+    "operation": "rule",
+    "input": {
+      "text": "---\ntitle: \"\\uD83D\\uDC39\"\r\nimpact: HIGH\r\nimpactDescription: Avoid failures.\r\nwhenToRead: When coding.\n---\nBody",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "\ud83d\udc39",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "metadata": "title: \"\\uD83D\\uDC39\"\r\nimpact: HIGH\r\nimpactDescription: Avoid failures.\r\nwhenToRead: When coding.",
+        "body": "Body"
+      }
+    }
+  },
+  {
+    "id": "rule-yaml-surrogate-pair-bom",
+    "operation": "rule",
+    "input": {
+      "text": "---\n\ufefftitle: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody",
+      "path": "techs/go/errors.md",
+      "source": "lab"
+    },
+    "location": "lab:techs/go/errors.md",
+    "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "\ud83d\udc39",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "metadata": "\ufefftitle: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
+        "body": "Body"
+      }
+    }
   }
 ]

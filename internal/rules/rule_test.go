@@ -5,8 +5,10 @@ package rules_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -81,4 +83,43 @@ func FuzzParse(f *testing.F) {
 			t.Fatal("successful parse changed authored text")
 		}
 	})
+}
+
+// TestParseManyEscapedScalars checks a large tag collection without changing its authored text.
+func TestParseManyEscapedScalars(t *testing.T) {
+	text := escapedTagDocument(2000)
+	got, err := rules.Parse(text, "techs/go/example.md", "lab")
+	if err != nil {
+		t.Fatal(err)
+	}
+	original, err := rules.SplitDocument(text, "rule")
+	if err != nil || got.Metadata != original.Frontmatter || got.Title != "🐹" {
+		t.Fatal("large document lost its values or original text")
+	}
+}
+
+// BenchmarkParseEscapedScalars measures scaling across documents containing many independently quoted escape pairs.
+func BenchmarkParseEscapedScalars(b *testing.B) {
+	for _, count := range []int{500, 1000, 2000} {
+		b.Run(fmt.Sprint(count), func(b *testing.B) {
+			text := escapedTagDocument(count)
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := rules.Parse(text, "techs/go/example.md", "lab"); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+// escapedTagDocument creates distinct quoted tags for correctness and scaling checks.
+func escapedTagDocument(count int) string {
+	var text strings.Builder
+	text.WriteString("---\ntitle: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures\nwhenToRead: Editing\ntags:\n")
+	for i := 0; i < count; i++ {
+		fmt.Fprintf(&text, "  - \"tag-%d \\uD83D\\uDC39\"\n", i)
+	}
+	text.WriteString("---\nBody")
+	return text.String()
 }

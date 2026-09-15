@@ -29,7 +29,7 @@ The user approved Go-native YAML diagnostics. Both implementations reject malfor
 
 ## Unicode behavior
 
-Valid pairs such as `\uD83D\uDC39` now decode to 🐹, matching the reference. The YAML scanner identifies double-quoted scalars. A parsing copy converts valid pairs to Unicode characters before retrying the decoder. Other scalar styles and escaped backslashes retain literal text. The returned frontmatter is unchanged.
+Valid pairs such as `\uD83D\uDC39` now decode to 🐹, matching the reference. A preliminary parse masks pairs with equally wide valid escapes to locate double-quoted scalar spans. Only those spans are repaired in a parsing copy, followed by one normal decode. The number of document parses is constant, even with thousands of escaped fields. Other scalar styles and escaped backslashes retain literal text. The returned frontmatter is unchanged.
 
 The reference accepts lone surrogates such as `\uD800`, which are not valid Unicode characters. Go rejects them. After reviewing this remaining difference, the user authorized merging PR #14. The shared suite retains the exact reference value and the approved Go error separately. Valid pairs continue to match the reference. No pending Unicode cases remain.
 
@@ -56,7 +56,7 @@ Open one PR into `go-migration` and stop for human review. The next recommended 
 
 ### Local evidence
 
-- All 386 shared function cases pass, including 177 complete-rule cases. Sixteen cases use the approved native YAML diagnostic wording; 124 earlier approved differences remain unchanged.
+- All 390 shared function cases pass, including 181 complete-rule cases. Sixteen cases use the approved native YAML diagnostic wording; 124 earlier approved differences remain unchanged.
 - Go race tests, vet, Staticcheck v0.8.1, and module verification pass on Go 1.27.1.
 - A 20-second parser fuzz run completed 794,659 executions without a failure.
 - `bun run check` passes: formatting, lint, typecheck, all 444 tests, documentation checks/build, and link checks.
@@ -70,3 +70,9 @@ Independent review identified the surrogate-escape mismatch. Valid pairs are fix
 The focused review of strict-field validation is clean. A proposed change to put license errors ahead of non-string field names was rejected: field-name shape belongs to structural YAML validation. Regression fixtures document both error-ordering cases.
 
 Devin identified rejection of valid surrogate pairs as a compatibility bug. Thirteen shared regression cases now cover paired escapes, four/eight-digit forms, repeated pairs, preceding Unicode, quotes in anchors, tags, scalar styles, and literal backslashes. The paired-escape case is part of the passing comparison suite; the approved lone-surrogate case is also in the passing comparison suite.
+
+### Review follow-up: parsing cost
+
+Devin identified repeated full-document decoding for separate quoted escape pairs. The new location pass replaces that retry loop. A 2,000-tag native test preserves authored metadata, and a benchmark measures 500/1,000/2,000 tags without timing assertions. Shared fixtures also cover verbatim tags, anchor comments, CRLF, and a leading YAML BOM.
+
+The supported line-ending examples use LF and CRLF. A supplementary probe found a pre-existing library difference for CR-only YAML: Go treats lone CR as a line break, while the pinned parser can reject a mapping using it. That case is not counted as parity or an approved difference; full YAML compatibility remains an open acceptance requirement. No baseline or existing fixture was changed to conceal it.
