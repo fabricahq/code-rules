@@ -600,6 +600,7 @@ test('local groups survive adding and removing a library without changing local 
   succeeded(run('sync'));
   const index = await readFile(join(root, 'generated/RULES.md'), 'utf8');
   expect(index).toContain('Project testing');
+  expect(index).not.toContain('Test project contracts.');
   expect(index).toContain('Before changing any project behavior.');
   expect(index).not.toContain('Changing behavior.');
   const provenance = JSON.parse(
@@ -617,6 +618,18 @@ test('local groups survive adding and removing a library without changing local 
     ),
   ).toEqual(['team', 'local']);
   expect(provenance.groups[0].effectiveGuidanceSources).toEqual(['local']);
+  expect(provenance.groups[0].guidance).toEqual([
+    expect.objectContaining({
+      source: 'team',
+      metadata: expect.objectContaining({ description: 'Check behavior.' }),
+    }),
+    expect.objectContaining({
+      source: 'local',
+      metadata: expect.objectContaining({
+        description: 'Test project contracts.',
+      }),
+    }),
+  ]);
   await writeFile(
     join(root, 'config.json'),
     JSON.stringify({ schemaVersion: 1, sources: {} }),

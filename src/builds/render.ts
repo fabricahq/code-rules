@@ -25,13 +25,13 @@ function groupPath(group: Group): string {
   return `groups/${group.id}.md`;
 }
 
-/** Prefer the project's complete group description; otherwise retain every source-labeled library description. */
+/** Select the complete local metadata record when present; otherwise retain every library's metadata. */
 function effectiveGuidance(group: Group): Group['guidance'] {
   const local = group.guidance.filter(({ source }) => source === 'local');
   return local.length ? local : group.guidance;
 }
 
-/** Render the names from the effective group descriptions in a stable, escaped heading. */
+/** Render selected group names in a stable, escaped heading. */
 function groupTitle(group: Group): string {
   return [
     ...new Set(effectiveGuidance(group).map(({ metadata }) => metadata.name)),
@@ -41,7 +41,7 @@ function groupTitle(group: Group): string {
     .join(' / ');
 }
 
-/** Render the effective group descriptions without merging metadata fields or changing rule selection. */
+/** Render selected names and reading cues; retain description fields in source metadata and provenance. */
 function groupEntry(group: Group): string {
   const sections = [`### ${groupTitle(group)}`];
   const descriptions = effectiveGuidance(group);
