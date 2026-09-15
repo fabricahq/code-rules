@@ -101,7 +101,7 @@ bun run check
 bun run test:package
 ```
 
-Go 1.26.7 was used locally; CI reads the supported minimum from `go.mod`.
+Go 1.27.1 was used locally; CI reads the Go version directly from `go.mod`.
 In a restricted local environment, set `GOCACHE` and `GOMODCACHE` to writable temporary directories. This changes cache locations only.
 
 The [86 shared cases](../tests/migration/identities/cases.json) contain independent expected results. Go tests invoke the package directly. The [comparison runner](../tests/migration/identities/compare.ts) invokes the existing TypeScript functions and compiled Go adapter and checks each against those expectations.

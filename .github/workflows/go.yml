@@ -18,6 +18,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
+      - run: go version
       - run: bun install --frozen-lockfile
       - name: Check Go formatting
         run: test -z "$(gofmt -l internal/rules cmd/identity-lab)"
