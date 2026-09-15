@@ -339,7 +339,7 @@
         </div>
         <div>
           <strong>02 &nbsp; Native validation</strong
-          ><span>Pure functions in internal/identity</span>
+          ><span>Pure functions in internal/rules</span>
         </div>
         <div>
           <strong>03 &nbsp; Value or error</strong
@@ -413,9 +413,9 @@
         <h2>Three boundaries to review</h2>
         <div class="review">
           <div>
-            <h3>1. Identity package</h3>
+            <h3>1. Rules package</h3>
             <p>
-              <code>internal/identity</code> owns syntax and error ordering. It
+              <code>internal/rules</code> owns syntax and error ordering. It
               uses explicit return values, one typed validation error, and no
               filesystem or process APIs. Paths always use forward slashes.
             </p>
@@ -515,7 +515,7 @@ printf '%s\n' '{"operation":"ruleGroup","input":"techs/go/errors.md","location":
           ],
         },
         ruleGroup: {
-          signature: "RuleGroup(path, location string) (string, error)",
+          signature: "GroupFromPath(path, location string) (string, error)",
           description:
             "Checks containment and Markdown path syntax, then returns the first two path components.",
           label: "Rule path",

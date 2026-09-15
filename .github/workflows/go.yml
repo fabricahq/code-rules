@@ -20,7 +20,7 @@ jobs:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
       - name: Check Go formatting
-        run: test -z "$(gofmt -l internal/identity cmd/identity-lab)"
+        run: test -z "$(gofmt -l internal/rules cmd/identity-lab)"
       - run: go vet ./...
       - run: go test -race ./...
       - run: go build -o dist/identity-lab ./cmd/identity-lab

@@ -1,5 +1,5 @@
-// Package identity validates group and rule identities without accessing the filesystem.
-package identity
+// Package rules validates group and rule identities without accessing the filesystem.
+package rules
 
 import (
 	"fmt"
@@ -33,10 +33,10 @@ func ValidateGroupID(value, location string) error {
 	return nil
 }
 
-// RuleGroup returns the owning group of a contained Markdown rule path.
+// GroupFromPath returns the owning group of a contained Markdown rule path.
 // Paths use forward slashes on every OS and are never cleaned or normalized.
 // Containment errors take precedence over rule syntax, then group syntax errors.
-func RuleGroup(path, location string) (string, error) {
+func GroupFromPath(path, location string) (string, error) {
 	parts := strings.Split(path, "/")
 	if !contained(path, parts) {
 		return "", invalid(location, "expected a contained relative path, got "+quote(path)+`: use forward slashes; no leading slash, drive prefix, empty segments, "." or ".." segments, or control characters`)

@@ -1,4 +1,4 @@
-package identity
+package rules
 
 import (
 	"encoding/json"

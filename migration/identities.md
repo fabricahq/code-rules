@@ -4,7 +4,7 @@ Status: implemented and locally tested; submitted for human review. Independent 
 
 ## Scope and revisions
 
-This slice implements three pure operations in [internal/identity](../internal/identity/identity.go): group ID validation, rule-path validation with owning-group extraction, and parsing explicit/wildcard group selections.
+This slice implements three pure operations in [internal/rules](../internal/rules/identity.go): group ID validation, rule-path validation with owning-group extraction, and parsing explicit/wildcard group selections.
 It introduces a root Go module with no third-party dependencies. The TypeScript runtime is unchanged.
 
 - Branch: `codex/go-identities`; PR target: `go-migration`.
@@ -42,15 +42,21 @@ The messages reuse the compiled expressions and existing validation checks. Acce
 The 59 affected shared cases store both `referenceExpected` (the unchanged pinned TypeScript message) and `expected` (the approved Go message). Each side is checked exactly, without normalizing or ignoring diagnostics.
 This is a function-level diagnostic change only. The global CLI comparison policy and pinned TypeScript source are unchanged; future CLI integration must carry this approval into its own exact expectations.
 
+## Package ownership
+
+`internal/rules` owns rule and group concepts and their invariants. The name describes the subject rather than the parsing activity. This slice implements only identity syntax and group selections.
+`GroupFromPath` makes its path input explicit; `ParseGroupSelection` retains the group qualifier. Repository fetching, project configuration, filesystem operations, and rendering will receive separate placement decisions as they are implemented.
+The development adapter keeps its existing `ruleGroup` JSON operation name; it now calls `rules.GroupFromPath`.
+
 ## API and Go patterns to review
 
 ```go
 func ValidateGroupID(value, location string) error
-func RuleGroup(path, location string) (string, error)
+func GroupFromPath(path, location string) (string, error)
 func ParseGroupSelection(input json.RawMessage, location string) (GroupSelection, error)
 ```
 
-- **Direct functions and ordinary return values.** No service interfaces, dependency containers, filesystem abstractions, or generic result wrappers in the identity package.
+- **Direct functions and ordinary return values.** No service interfaces, dependency containers, filesystem abstractions, or generic result wrappers in the rules package.
 - **One contract error.** `*ValidationError` lets a future CLI distinguish invalid input with `errors.As`. It carries a field location and the reference diagnostic, with the approved clarifications above. Successful validation returns `nil`.
 - **JSON belongs at the configuration boundary.** `ParseGroupSelection` accepts `json.RawMessage` because shape, null, missing values, and element types are part of that operation. Its decoded `any` values remain local; callers receive a concrete `GroupSelection`.
 - **Explicit selection invariant.** A nonempty `Pattern` means an unexpanded wildcard and nil `Groups`. Otherwise `Groups` is non-nil, sorted, and may be empty. The zero value is not a successfully parsed selection; callers check the error first.

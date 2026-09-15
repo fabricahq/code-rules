@@ -1,4 +1,4 @@
-package identity_test
+package rules_test
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/identity"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 func TestSharedExpectations(t *testing.T) {
@@ -41,13 +41,13 @@ func TestSharedExpectations(t *testing.T) {
 				}
 				if test.Operation == "groupID" {
 					value = text
-					err = identity.ValidateGroupID(text, test.Location)
+					err = rules.ValidateGroupID(text, test.Location)
 				} else {
-					value, err = identity.RuleGroup(text, test.Location)
+					value, err = rules.GroupFromPath(text, test.Location)
 				}
 			case "selection":
-				var selection identity.GroupSelection
-				selection, err = identity.ParseGroupSelection(test.Input, test.Location)
+				var selection rules.GroupSelection
+				selection, err = rules.ParseGroupSelection(test.Input, test.Location)
 				if selection.Pattern != "" {
 					value = selection.Pattern
 				} else {
@@ -57,7 +57,7 @@ func TestSharedExpectations(t *testing.T) {
 				t.Fatalf("unknown operation %q", test.Operation)
 			}
 			if !test.Expected.OK {
-				var validation *identity.ValidationError
+				var validation *rules.ValidationError
 				if !errors.As(err, &validation) {
 					t.Fatalf("want ValidationError, got %v", err)
 				}
@@ -87,12 +87,12 @@ func TestSharedExpectations(t *testing.T) {
 func TestSelectionOwnsItsResult(t *testing.T) {
 	input := json.RawMessage(`["techs/go","practices/testing"]`)
 	before := string(input)
-	first, err := identity.ParseGroupSelection(input, "groups")
+	first, err := rules.ParseGroupSelection(input, "groups")
 	if err != nil {
 		t.Fatal(err)
 	}
 	first.Groups[0] = "changed"
-	second, err := identity.ParseGroupSelection(input, "groups")
+	second, err := rules.ParseGroupSelection(input, "groups")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestSelectionOwnsItsResult(t *testing.T) {
 
 func TestMalformedSelectionJSON(t *testing.T) {
 	for _, input := range []string{`[`, `[] true`} {
-		_, err := identity.ParseGroupSelection(json.RawMessage(input), "groups")
+		_, err := rules.ParseGroupSelection(json.RawMessage(input), "groups")
 		if err == nil || err.Error() != "groups: expected a groups JSON value" {
 			t.Fatalf("%q: got %v", input, err)
 		}

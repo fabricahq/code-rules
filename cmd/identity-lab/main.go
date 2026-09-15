@@ -16,7 +16,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/identity"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 //go:embed index.html
@@ -64,14 +64,14 @@ func invoke(data []byte) response {
 			return adapterError("input must be a string for " + req.Operation)
 		}
 		if req.Operation == "groupID" {
-			err = identity.ValidateGroupID(text, req.Location)
+			err = rules.ValidateGroupID(text, req.Location)
 			value = text
 		} else {
-			value, err = identity.RuleGroup(text, req.Location)
+			value, err = rules.GroupFromPath(text, req.Location)
 		}
 	case "selection":
-		var selection identity.GroupSelection
-		selection, err = identity.ParseGroupSelection(req.Input, req.Location)
+		var selection rules.GroupSelection
+		selection, err = rules.ParseGroupSelection(req.Input, req.Location)
 		if selection.Pattern != "" {
 			value = selection.Pattern
 		} else {
@@ -81,7 +81,7 @@ func invoke(data []byte) response {
 		return adapterError("unknown operation " + req.Operation)
 	}
 	if err != nil {
-		var validation *identity.ValidationError
+		var validation *rules.ValidationError
 		if errors.As(err, &validation) {
 			return response{Error: &failure{Name: "ValidationError", Message: err.Error(), Location: validation.Location}}
 		}
