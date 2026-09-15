@@ -90,4 +90,4 @@ The assertions now match those source contracts. No baseline, production behavio
 - Preserve the original metadata and body independently of interpreted values. URL normalization affects attribution data, never the authored text.
 - The user explicitly requested strict rule frontmatter during review. Reject unknown top-level and attribution fields, report names deterministically, and retain separate expectations for the permissive reference.
 
-Evidence and the pending Unicode decision live in [complete rule parsing](rule-parser.md).
+Evidence and the approved Unicode behavior live in [complete rule parsing](rule-parser.md).

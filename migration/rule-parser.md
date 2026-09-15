@@ -1,6 +1,6 @@
 # Complete rule parsing: fourth Go slice
 
-Status: implemented and locally validated on `codex/go-rule-parser`; ready for review, with the Unicode decision below still required before merge.
+Status: implemented and locally validated on `codex/go-rule-parser`; human-approved for merge after the Unicode fix and lone-surrogate decision.
 
 PR #13 merged after CodeRabbit reported no actionable findings and all 14 checks passed. This slice starts at `301caa59654e8170f66ef6347eba4c0951d44560`.
 The TypeScript reference remains `7013d3d374a33a5cf65a2a48ff6870e46f9d7209`; the engineering corpus remains `e2166f90333157fd3e14c24d3e43287ece858e4b`.
@@ -27,11 +27,11 @@ The YAML node adapter retains the reference's YAML 1.2 core scalar types. For ex
 
 The user approved Go-native YAML diagnostics. Both implementations reject malformed YAML with `ValidationError` at the same rule location. Fixtures specify each implementation's exact diagnostic separately. The user also requested a clearer empty-frontmatter diagnostic. Empty, whitespace-only, and comment-only metadata now names the missing YAML frontmatter and lists the required fields. Three fixtures retain the previous reference message separately. Invalid-impact diagnostics also list the six accepted values and the rejected value, as requested during review. Two fixtures retain the earlier reference diagnostics. The user also requested strict frontmatter fields. Unknown fields now fail before field-value validation; attribution entries accept only `url` and `description`. Twenty-two fixtures retain separate reference and Go outcomes for that change. Other domain errors continue to match the pinned reference. No baseline, global comparison policy, or output normalization changes.
 
-## Pending Unicode decision
+## Unicode behavior
 
 Valid pairs such as `\uD83D\uDC39` now decode to 🐹, matching the reference. The YAML scanner identifies double-quoted scalars. A parsing copy converts valid pairs to Unicode characters before retrying the decoder. Other scalar styles and escaped backslashes retain literal text. The returned frontmatter is unchanged.
 
-The reference also accepts lone surrogates such as `\uD800`, which are not valid Unicode characters. Go rejects them. That rejection is proposed, following the approved group-metadata policy, but still requires explicit approval for this rule format. The exact reference and proposed results remain in [pending-unicode.json](../tests/migration/rules/pending-unicode.json), outside the passing comparison count.
+The reference accepts lone surrogates such as `\uD800`, which are not valid Unicode characters. Go rejects them. After reviewing this remaining difference, the user authorized merging PR #14. The shared suite retains the exact reference value and the approved Go error separately. Valid pairs continue to match the reference. No pending Unicode cases remain.
 
 ## Review and verification
 
@@ -56,17 +56,17 @@ Open one PR into `go-migration` and stop for human review. The next recommended 
 
 ### Local evidence
 
-- All 385 shared function cases pass, including 176 complete-rule cases. Sixteen cases use the approved native YAML diagnostic wording; 124 earlier approved differences remain unchanged.
+- All 386 shared function cases pass, including 177 complete-rule cases. Sixteen cases use the approved native YAML diagnostic wording; 124 earlier approved differences remain unchanged.
 - Go race tests, vet, Staticcheck v0.8.1, and module verification pass on Go 1.27.1.
 - A 20-second parser fuzz run completed 794,659 executions without a failure.
 - `bun run check` passes: formatting, lint, typecheck, all 444 tests, documentation checks/build, and link checks.
 - All six installed-package tests pass.
 - All 18 browser examples return their intended values or typed errors. Desktop and narrow layouts have no horizontal overflow.
 
-These are local implementation checks, not approval of the pending Unicode difference or completion of a whole migration capability.
+These are implementation checks, not completion of a whole migration capability.
 
-Independent read-only autoreview reported one actionable finding: the pending surrogate-escape acceptance difference. That finding is accepted as a merge blocker. No other actionable findings were reported. Approval and exact shared fixtures are required before this PR can merge.
+Independent review identified the surrogate-escape mismatch. Valid pairs are fixed, with a clean focused autoreview. The user approved rejecting malformed lone surrogates before merge.
 
 The focused review of strict-field validation is clean. A proposed change to put license errors ahead of non-string field names was rejected: field-name shape belongs to structural YAML validation. Regression fixtures document both error-ordering cases.
 
-Devin identified rejection of valid surrogate pairs as a compatibility bug. Thirteen shared regression cases now cover paired escapes, four/eight-digit forms, repeated pairs, preceding Unicode, quotes in anchors, tags, scalar styles, and literal backslashes. The paired-escape case is part of the passing comparison suite; only the lone-surrogate decision remains pending.
+Devin identified rejection of valid surrogate pairs as a compatibility bug. Thirteen shared regression cases now cover paired escapes, four/eight-digit forms, repeated pairs, preceding Unicode, quotes in anchors, tags, scalar styles, and literal backslashes. The paired-escape case is part of the passing comparison suite; the approved lone-surrogate case is also in the passing comparison suite.
