@@ -30,7 +30,7 @@ For `"practices/*"` or `"techs/*"`, discover every group of that kind.
 Record the original selector and concrete group IDs in a snapshot complete for that scope.
 Reject malformed groups and orphan rule files rather than silently dropping them.
 
-1. Load each resolved source's selected groups and assign source-qualified IDs, then load declared local-only groups.
+1. Load each resolved source's selected groups and assign source-qualified IDs, then discover local `_group.json` files.
 2. Resolve each source's library-relative exclusions to qualified IDs and remove those rules.
 3. Remove each replaced source rule and include its complete local definition under the local rule ID.
 4. Add the remaining local rules.

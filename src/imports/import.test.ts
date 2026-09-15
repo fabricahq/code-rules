@@ -25,7 +25,7 @@ afterEach(async () => {
 
 /** Build a valid project configuration with caller-selected fixture sources. */
 function config(sources: Record<string, unknown>): unknown {
-  return { schemaVersion: 1, sources, localGroups: [] };
+  return { schemaVersion: 1, sources };
 }
 
 /** Assert an error through the public child-process boundary, without relying on internal helpers. */
@@ -659,16 +659,6 @@ test.each(['techs/assets', 'practices/assets'])(
         fixture,
         config({ one: { ...fixtureSource('one'), groups: [group] } }),
       ),
-    ).toMatchObject({
-      error: 'invalid-configuration',
-      message: expect.stringContaining('invalid group ID'),
-    });
-    expect(
-      runImport(fixture, {
-        schemaVersion: 1,
-        sources: {},
-        localGroups: [group],
-      }),
     ).toMatchObject({
       error: 'invalid-configuration',
       message: expect.stringContaining('invalid group ID'),

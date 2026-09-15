@@ -23,7 +23,6 @@ function wildcardInput(): BuildInput {
     configuration: {
       schemaVersion: 1,
       sources: { all: { ...source(repository), groups: '*' } },
-      localGroups: [],
     },
     snapshots: {
       all: {
@@ -60,7 +59,6 @@ test.each([...scopes])(
     const configuration = {
       schemaVersion: 1,
       sources: { all: { ...source(saved.repository), groups: pattern } },
-      localGroups: [],
     };
     const selected = {
       ...build,
@@ -86,7 +84,6 @@ test('should allow a technology-only local group alongside a practices wildcard'
   const configuration = {
     schemaVersion: 1,
     sources: { all: { ...source(saved.repository), groups: 'practices/*' } },
-    localGroups: ['techs/typescript'],
   };
   const output = buildRules({
     ...build,
@@ -195,7 +192,6 @@ test('should preserve rule exclusions and local replacements after expansion', (
         groups: '*',
       },
     },
-    localGroups: [],
   };
   const files = buildRules({
     ...build,
@@ -213,7 +209,7 @@ test('should preserve rule exclusions and local replacements after expansion', (
   );
 });
 
-test('should reject local-only groups that overlap wildcard imports', () => {
+test('should allow local metadata to describe a group adopted by a wildcard', () => {
   const build = wildcardInput();
   const configuration = {
     schemaVersion: 1,
@@ -223,10 +219,21 @@ test('should reject local-only groups that overlap wildcard imports', () => {
         groups: '*',
       },
     },
-    localGroups: ['techs/typescript'],
   };
-  expect(() => buildRules({ ...build, configuration })).toThrow(
-    'cannot also be declared in localGroups',
+  const output = buildRules({
+    ...build,
+    configuration,
+    localFiles: {
+      'techs/typescript/_group.json': JSON.stringify({
+        name: 'Project TypeScript',
+        description: 'Local scope.',
+        whenToRead: ['Before changing project TypeScript.'],
+      }),
+    },
+  }).files;
+  expect(output['RULES.md']).toContain('Project TypeScript');
+  expect(output['groups/techs/typescript.md']).toContain(
+    'all:techs/typescript/check-results',
   );
 });
 
@@ -248,7 +255,6 @@ test.each([
         groups,
       },
     },
-    localGroups: [],
   };
   expect(() => buildRules({ ...build, configuration })).toThrow(BuildError);
 });
@@ -338,7 +344,6 @@ test('should exclude only the owning source without listing inactive rules in th
         }),
         acme: source('https://github.com/acme/rules.git'),
       },
-      localGroups: [],
     },
   };
   const output = generated(build, `groups/${group}.md`);
@@ -366,7 +371,6 @@ test('should use the local ID and preserve both origins without adding the local
         ),
         acme: source('https://github.com/acme/rules.git'),
       },
-      localGroups: [],
     },
     localFiles: {
       [`${group}/bounded.md`]: ruleText(
@@ -426,7 +430,6 @@ test('should reject a reused replacement and a replacement in another group', ()
         { [ruleId]: { file, reason: 'Replace.' } },
       ),
     },
-    localGroups: [],
   };
   expect(() =>
     buildRules({
@@ -450,21 +453,52 @@ test('should reject a reused replacement and a replacement in another group', ()
       ),
       acme: source('https://github.com/acme/rules.git'),
     },
-    localGroups: [],
   };
   expect(() => buildRules({ ...input(), configuration: other })).toThrow(
     'target group',
   );
 });
 
-test('should reject undeclared local groups and missing local metadata', () => {
+test('should reject local rules without group metadata', () => {
   expect(() =>
     buildRules({
       ...input(),
       localFiles: { 'techs/go/rule.md': ruleText('Go rule') },
     }),
-  ).toThrow('undeclared group');
-  expect(() => buildRules({ ...localInput({}), localFiles: {} })).toThrow(
-    '_group.json',
-  );
+  ).toThrow('local/techs/go/_group.json');
+  expect(() =>
+    buildRules({
+      ...localInput({}),
+      localFiles: {
+        'practices/testing/example.md': ruleText('Missing metadata'),
+      },
+    }),
+  ).toThrow('local/practices/testing/_group.json');
+});
+
+test('should read only the local root README as directory documentation', () => {
+  const files = buildRules(
+    localInput({
+      'README.md': '# Author rules here without frontmatter.',
+      [`${group}/example.md`]: ruleText('Project rule'),
+      [`${group}/assets/example/_group.json`]:
+        'Supporting asset, not metadata.',
+    }),
+  ).files;
+  const provenance = JSON.parse(files['provenance.json']!);
+  expect(provenance.rules.map((rule: { id: string }) => rule.id)).toEqual([
+    `local:${group}/example`,
+  ]);
+  expect(provenance.groups.map((group: { id: string }) => group.id)).toEqual([
+    group,
+  ]);
+  expect(() =>
+    buildRules(localInput({ 'notes.md': 'Misplaced supporting prose.' })),
+  ).toThrow('invalid rule path');
+});
+
+test('should validate a local group description even when imported metadata is valid', () => {
+  expect(() =>
+    buildRules({ ...input(), localFiles: { [`${group}/_group.json`]: '{}' } }),
+  ).toThrow('name');
 });

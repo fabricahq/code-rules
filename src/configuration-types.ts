@@ -22,10 +22,9 @@ export type LibrarySource = {
   | { readonly ref: string; readonly version?: never }
   | { readonly version: string; readonly ref?: never }
 );
-/** Validated sources sorted by alias and local-only group IDs sorted by code-unit order. */
+/** Validated imported sources sorted by alias; local groups are discovered from their files. */
 export type ProjectConfig = {
   readonly sources: ReadonlyArray<LibrarySource>;
-  readonly localGroups: ReadonlyArray<string>;
 };
 
 /** A validated exact revision or npm version constraint; branches are never inferred. */

@@ -66,7 +66,6 @@ export function input(): BuildInput {
         fabrica: source('https://github.com/fabrica/rules.git'),
         acme: source('https://github.com/acme/rules.git'),
       },
-      localGroups: [],
     },
     snapshots: {
       fabrica: snapshot(
@@ -90,7 +89,7 @@ export function generated(build: BuildInput, path: string): string {
 /** Create a project with one local-only testing group and supplied definitions. */
 export function localInput(localFiles: FileContents): BuildInput {
   return {
-    configuration: { schemaVersion: 1, sources: {}, localGroups: [group] },
+    configuration: { schemaVersion: 1, sources: {} },
     snapshots: {},
     localFiles: { [`${group}/_group.json`]: metadata, ...localFiles },
     toolVersion: 'test',

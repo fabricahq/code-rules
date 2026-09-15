@@ -15,7 +15,7 @@ import { escapeText, renderRule } from './markdown';
 import { licenseOutputPaths } from './license-output';
 import { indexPages } from './index-pages';
 
-/** Map source-qualified identity to a portable path without using the replacement's local filename. */
+/** Map the resolved source-qualified identity to its portable output path. */
 function rulePath(active: ActiveRule): string {
   return `rules/${active.rule.id.replace(':', '/')}.md`;
 }
@@ -25,19 +25,28 @@ function groupPath(group: Group): string {
   return `groups/${group.id}.md`;
 }
 
-/** Keep all contributing group names visible in a stable, escaped heading. */
+/** Select the complete local metadata record when present; otherwise retain every library's metadata. */
+function effectiveGuidance(group: Group): Group['guidance'] {
+  const local = group.guidance.filter(({ source }) => source === 'local');
+  return local.length ? local : group.guidance;
+}
+
+/** Render selected group names in a stable, escaped heading. */
 function groupTitle(group: Group): string {
-  return [...new Set(group.guidance.map(({ metadata }) => metadata.name))]
+  return [
+    ...new Set(effectiveGuidance(group).map(({ metadata }) => metadata.name)),
+  ]
     .sort(compare)
     .map(escapeText)
     .join(' / ');
 }
 
-/** Describe all sources contributing selection guidance to a group without merging their policies. */
+/** Render selected names and reading cues; retain description fields in source metadata and provenance. */
 function groupEntry(group: Group): string {
   const sections = [`### ${groupTitle(group)}`];
-  for (const guidance of group.guidance) {
-    if (group.guidance.length > 1)
+  const descriptions = effectiveGuidance(group);
+  for (const guidance of descriptions) {
+    if (descriptions.length > 1)
       sections.push(
         `**${guidance.source}: ${escapeText(guidance.metadata.name)}**`,
       );
@@ -214,6 +223,13 @@ function renderProvenance(
         ...license,
         ...licenseOutputPaths(source.name, license),
       })),
+    })),
+    groups: resolved.groups.map((group) => ({
+      id: group.id,
+      guidance: group.guidance,
+      effectiveGuidanceSources: effectiveGuidance(group).map(
+        ({ source }) => source,
+      ),
     })),
     rules: resolved.groups
       .flatMap((group) => group.rules)

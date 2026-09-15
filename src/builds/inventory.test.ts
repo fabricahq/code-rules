@@ -19,7 +19,6 @@ function build(snapshot: LibrarySnapshot): string | undefined {
           replace: {},
         },
       },
-      localGroups: [],
     },
     snapshots: { example: snapshot },
     localFiles: {},
