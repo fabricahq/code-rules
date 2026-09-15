@@ -14,6 +14,21 @@ import {
   hasLocalRuleGroup,
 } from './project';
 import type { AuthoringResult } from './project';
+import {
+  initializeLibrary,
+  addLibraryGroup,
+  addLibraryRule,
+  hasLibraryGroup,
+} from './library';
+import type { LibraryTerms } from './library';
+import { checkLibrary } from './library-check';
+import type { LibraryCheckResult } from './library-check';
+
+async function licenseText(path: string): Promise<string> {
+  return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(
+    await readFile(path),
+  );
+}
 
 /** Invalid command syntax or missing noninteractive author input; the CLI reports exit status 2. */
 export class UsageError extends Error {}
@@ -25,7 +40,14 @@ export const authoringHelp = `
   local add rule <rule-id> --title text --when-to-read text --impact level --impact-description text [--body-file path]
   add source <alias> --repository url (--ref tag-or-sha | --version range) --groups selector
 
-All authoring commands accept --config path and --non-interactive.
+  library init [--spdx expression --license-file path [--notice-file path]]
+  library add group <group-id> --name text --description text --when-to-read text
+  library add rule <rule-id> --title text --when-to-read text --impact level --impact-description text [--body-file path]
+  library check
+
+Project authoring commands accept --config path; library commands accept --directory path (default: current directory).
+All authoring commands accept --non-interactive. Library init without license flags leaves terms undeclared and reports a reminder.
+License and notice inputs are copied exactly to LICENSE.md and NOTICE.md; existing targets are never overwritten.
 Group --when-to-read and source --groups can repeat. Wildcards *, practices/*, and techs/* must be used alone.
 Rule IDs omit .md. Rules use existing local or imported groups. To create a missing group with a rule, pass:
   --create-group --group-name text --group-description text --group-when-to-read text
@@ -33,36 +55,58 @@ On a terminal, omitted required inputs are prompted. Draft rules must be complet
 Authoring does not fetch sources or regenerate output; run build after local edits or sync after adding a source.
 `;
 
-type Kind = 'init' | 'group' | 'rule' | 'source';
+type Kind = 'init' | 'group' | 'rule' | 'source' | 'check';
 type Invocation = {
   kind: Kind;
+  target: 'project' | 'library';
   id: string;
   flags: ReadonlyMap<string, readonly string[]>;
 };
 const booleanFlags = ['non-interactive', 'create-group'];
 
 function invocation(args: readonly string[]): Invocation | null {
+  const target = args[0] === 'library' ? 'library' : 'project';
+  if (target === 'library') args = args.slice(1);
   let kind: Kind;
   let offset: number;
   if (args[0] === 'init') {
     kind = 'init';
     offset = 1;
-  } else if (args[0] === 'local') {
+  } else if (target === 'library' && args[0] === 'check') {
+    kind = 'check';
+    offset = 1;
+  } else if (target === 'library' && args[0] === 'add') {
+    if (args[1] !== 'group' && args[1] !== 'rule')
+      throw new UsageError(
+        'Use library add group <id> or library add rule <id>.',
+      );
+    kind = args[1];
+    offset = 3;
+  } else if (target === 'project' && args[0] === 'local') {
     if (args[1] !== 'add' || (args[2] !== 'group' && args[2] !== 'rule'))
       throw new UsageError('Use local add group <id> or local add rule <id>.');
     kind = args[2];
     offset = 4;
-  } else if (args[0] === 'add') {
+  } else if (target === 'project' && args[0] === 'add') {
     if (args[1] !== 'source') throw new UsageError('Use add source <alias>.');
     kind = 'source';
     offset = 3;
-  } else return null;
-  const id = kind === 'init' ? '' : args[offset - 1];
+  } else {
+    if (target === 'library')
+      throw new UsageError(
+        'Use library init, library add group, library add rule, or library check.',
+      );
+    return null;
+  }
+  const id = kind === 'init' || kind === 'check' ? '' : args[offset - 1];
   if (id === undefined || id.startsWith('--'))
     throw new UsageError(`Missing ${kind} ID.`);
   const allowed = [
-    'config',
+    target === 'library' ? 'directory' : 'config',
     'non-interactive',
+    ...(target === 'library' && kind === 'init'
+      ? ['spdx', 'license-file', 'notice-file']
+      : []),
     ...(kind === 'group'
       ? ['name', 'description', 'when-to-read']
       : kind === 'rule'
@@ -100,23 +144,34 @@ function invocation(args: readonly string[]): Invocation | null {
       throw new UsageError(`Provide a value for --${key}.`);
     flags.set(key, [...(flags.get(key) ?? []), value]);
   }
-  return { kind, id, flags };
+  return { kind, id, flags, target };
 }
 
 /** Run an authoring command, or return null for other CLI commands. Prompt only on a terminal and never hold a writer lock while prompting. */
 export async function runAuthoring(
   args: readonly string[],
   signal: AbortSignal,
-): Promise<AuthoringResult | null> {
+): Promise<AuthoringResult | LibraryCheckResult | null> {
   const request = invocation(args);
   if (request === null) return null;
-  const { kind, id, flags } = request;
+  const { kind, id, flags, target } = request;
+  const directory = flags.get('directory')?.[0];
+  const libraryOptions = {
+    signal,
+    ...(directory === undefined ? {} : { directory }),
+  };
   const configPath = flags.get('config')?.[0];
   const projectOptions = {
     signal,
     ...(configPath === undefined ? {} : { configPath }),
   };
-  if (kind === 'init') return initializeProject(projectOptions);
+  if (kind === 'check') return checkLibrary(libraryOptions);
+  if (kind === 'init' && target === 'project')
+    return initializeProject(projectOptions);
+  if (kind === 'init' && flags.has('notice-file') && !flags.has('spdx'))
+    throw new UsageError('--notice-file requires --spdx and --license-file.');
+  if (kind === 'init' && flags.has('spdx') !== flags.has('license-file'))
+    throw new UsageError('Supply --spdx and --license-file together.');
   if (kind === 'group') groupId(id, 'group');
   if (kind === 'rule') {
     if (id.endsWith('.md'))
@@ -157,8 +212,34 @@ export async function runAuthoring(
     };
   }
   try {
-    if (kind === 'group')
-      return await addLocalGroup(id, await group(''), projectOptions);
+    if (kind === 'init') {
+      let terms: LibraryTerms | undefined;
+      const spdx = flags.get('spdx')?.[0];
+      if (spdx !== undefined) {
+        const licensePath = await required(
+          'license-file',
+          'Existing license text file',
+        );
+        const noticePath = flags.get('notice-file')?.[0];
+        terms = {
+          spdxExpression: spdx,
+          license: await licenseText(licensePath),
+          ...(noticePath === undefined
+            ? {}
+            : { notice: await licenseText(noticePath) }),
+        };
+      }
+      return await initializeLibrary({
+        ...libraryOptions,
+        ...(terms === undefined ? {} : { terms }),
+      });
+    }
+    if (kind === 'group') {
+      const metadata = await group('');
+      return target === 'library'
+        ? await addLibraryGroup(id, metadata, libraryOptions)
+        : await addLocalGroup(id, metadata, projectOptions);
+    }
     if (kind === 'rule') {
       const metadata = {
         title: await required('title', 'Action-oriented title'),
@@ -177,10 +258,15 @@ export async function runAuthoring(
       };
       let createGroup = flags.has('create-group');
       const idGroup = ruleGroup(`${id}.md`, 'rule');
-      if (!createGroup && !(await hasLocalRuleGroup(idGroup, configPath))) {
+      const exists =
+        createGroup ||
+        (target === 'library'
+          ? await hasLibraryGroup(idGroup, directory)
+          : await hasLocalRuleGroup(idGroup, configPath));
+      if (!exists) {
         if (!stdin.isTTY || !stderr.isTTY || flags.has('non-interactive'))
           throw new UsageError(
-            `Missing group ${idGroup}. Run local add group ${idGroup} or supply --create-group and group metadata.`,
+            `Missing group ${idGroup}. Run ${target === 'library' ? 'library' : 'local'} add group ${idGroup} or supply --create-group and group metadata.`,
           );
         createGroup = /^(y|yes)$/iu.test(
           await ask(`Create missing group ${idGroup}? [y/N]`),
@@ -190,14 +276,16 @@ export async function runAuthoring(
       }
       const bodyPath = flags.get('body-file')?.[0];
       const options = {
-        ...projectOptions,
+        ...(target === 'library' ? libraryOptions : projectOptions),
         ...(createGroup ? { group: await group('group-') } : {}),
         ...(bodyPath === undefined
           ? {}
           : { body: textFile(await readFile(bodyPath), bodyPath) }),
       };
       if (signal.aborted) throw new Error('Authoring cancelled.');
-      return await addLocalRule(id, metadata, options);
+      return target === 'library'
+        ? await addLibraryRule(id, metadata, options)
+        : await addLocalRule(id, metadata, options);
     }
     const repository = await required('repository', 'Git repository URL');
     let revision: { ref: string } | { version: string };

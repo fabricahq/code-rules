@@ -45,7 +45,7 @@ They support terminal prompts and equivalent explicit flags, preserve authored c
 
 ## What is proposed
 
-Publishing the CLI, library authoring commands, and the installable authoring skill workflow remain proposed.
+Publishing the CLI and the installable authoring skill workflow remain proposed.
 The builder implements the documented configuration and rule metadata, but these unreleased formats may still change.
 The versioned `_source.json` record and safe application contract are implemented; see [Sync and recovery](/reference/sync/).
 The proposed [`code-rules update`](/reference/cli/#update-the-tool) command upgrades the CLI to its latest stable release.
@@ -59,9 +59,9 @@ The first release will import multiple named libraries directly into a project. 
 The initial proof uses original example rules, local exceptions, and generated files that a person can inspect.
 A private-project pilot follows that proof.
 
-The final implementation phase standardizes library authoring with `library init`, `library add group`, `library add rule`, and `library check`.
+Library authoring is implemented with `library init`, `library add group`, `library add rule`, and `library check`.
 It includes an adaptation workflow and a walkthrough from an empty library to importable rules with retained terms.
-See [Create a rule library](/guides/create-library/) and [Adapt a third-party rule](/guides/adapt-rules/) for the proposed experience.
+See [Create a rule library](/guides/create-library/) and [Adapt a third-party rule](/guides/adapt-rules/) for the workflow.
 
 Organization libraries that inherit from and republish other libraries, and assisted group selection, are later work.
 
