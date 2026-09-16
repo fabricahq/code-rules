@@ -1,6 +1,6 @@
 # Complete rule parsing: fourth Go slice
 
-Status: implemented and locally validated on `codex/go-rule-parser`; human-approved for merge after the Unicode fix and lone-surrogate decision.
+Status: human-approved and merged in PR #14 at `39c327f103a7eab19468d815d5250acb5f7f5de7`. CI passed and Devin reported no current findings after the Unicode and performance fixes.
 
 PR #13 merged after CodeRabbit reported no actionable findings and all 14 checks passed. This slice starts at `301caa59654e8170f66ef6347eba4c0951d44560`.
 The TypeScript reference remains `7013d3d374a33a5cf65a2a48ff6870e46f9d7209`; the engineering corpus remains `e2166f90333157fd3e14c24d3e43287ece858e4b`.
@@ -52,7 +52,7 @@ bun run test:package
 go run ./cmd/rules-lab -serve -port 4391
 ```
 
-Open one PR into `go-migration` and stop for human review. The next recommended slice is configuration parsing.
+Open one PR into `go-migration` and stop for human review. The next slice supplies repository addresses and links, a prerequisite for configuration parsing.
 
 ### Local evidence
 
