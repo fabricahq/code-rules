@@ -31,7 +31,7 @@
 .fixture-tree {
   background: var(--surface);
   padding: 10px 6px;
-  max-height: clamp(240px, calc(100dvh - 365px), 580px);
+  max-height: clamp(200px, calc(100dvh - 450px), 520px);
   overflow: auto;
 }
 .fixture-root + .fixture-root {
@@ -284,7 +284,7 @@ body:has(.has-fixture-browser) .section {
 
 /* Explain the selected preset within the compact input panel. */
 .has-fixture-browser .scenario-description {
-  min-height: 3lh;
+  min-height: 2lh;
   line-height: 1.45;
   margin: 0 0 8px;
   overflow-wrap: anywhere;
