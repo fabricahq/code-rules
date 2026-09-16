@@ -719,7 +719,7 @@
           !Array.isArray(files) &&
           Object.values(files).every((value) => typeof value === "string");
         byID("generated-files").hidden = !valid;
-        byID("output").hidden = !!valid;
+        byID("output").hidden = Boolean(valid);
         if (!valid) return;
         const select = byID("generated-path");
         select.replaceChildren();
