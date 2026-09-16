@@ -168,7 +168,7 @@ func indexHeader() string {
 func groupIndexHeader(id, name, cues string) string {
 	return strings.Join([]string{
 		"# " + name,
-		"Group ID: `" + id + "`",
+		"**Group ID:** `" + id + "`",
 		cues,
 		"## How to use this group",
 		"This file contains summaries only. Follow the reading instructions below to load the full rules.",
