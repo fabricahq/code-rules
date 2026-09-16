@@ -16,6 +16,7 @@ type buildFixture struct {
 	Libraries     map[string]struct {
 		Files  map[string]*string `json:"files"`
 		Commit string             `json:"commit"`
+		Tag    string             `json:"tag,omitempty"`
 	} `json:"libraries"`
 	LocalFiles map[string]*string `json:"localFiles"`
 }
@@ -53,7 +54,7 @@ func resolveBuildFixture(input json.RawMessage) (build.Resolved, error) {
 		if err != nil {
 			return build.Resolved{}, err
 		}
-		supplied[source.Name] = build.Library{Catalog: catalog, Commit: entry.Commit}
+		supplied[source.Name] = build.Library{Catalog: catalog, Commit: entry.Commit, Tag: entry.Tag}
 	}
 	for alias := range fixture.Libraries {
 		if _, ok := supplied[alias]; !ok {

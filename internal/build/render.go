@@ -44,6 +44,9 @@ func RenderRules(resolved Resolved) (map[string]string, error) {
 			output[file] = text
 		}
 	}
+	if err := validateOutputPaths(output); err != nil {
+		return nil, err
+	}
 	return output, nil
 }
 

@@ -360,7 +360,8 @@
           <p id="explanation">
             Invoke Go to inspect its returned data or error.
           </p>
-          <pre id="output" aria-live="polite">No invocation yet.</pre>
+          <section id="generated-files" hidden><label for="generated-path">Generated file</label><select id="generated-path"></select><p class="hint" id="generated-size"></p><pre id="generated-text"></pre></section>
+<pre id="output" aria-live="polite">No invocation yet.</pre>
           <details open>
             <summary>What this PR does</summary>
             <p>
@@ -819,6 +820,7 @@
       };
       // Clear prior output when the editable input changes.
       function clearResult() {
+        byID("generated-files").hidden=true; byID("output").hidden=false;
         byID("output").textContent = "No invocation for this input.";
         byID("status").textContent = "Ready";
         byID("status").className = "badge";
@@ -844,6 +846,25 @@
       }
       byID("input").addEventListener("input", clearResult);
       loadExample(spec.examples[0]);
+      // Display each native output file without requiring reviewers to decode JSON string escapes.
+      function showGeneratedFiles(result) {
+        const files = result.ok && result.value;
+        const valid = files && typeof files === "object" && !Array.isArray(files) && Object.values(files).every(value => typeof value === "string");
+        byID("generated-files").hidden = !valid;
+        byID("output").hidden = !!valid;
+        if (!valid) return;
+        const select = byID("generated-path");
+        select.replaceChildren();
+        for (const path of Object.keys(files).sort()) {const option=document.createElement("option");option.value=path;option.textContent=path;select.append(option);}
+        // Keep the selected file's original text visible and report its UTF-8 byte length.
+        function showFile() {
+          const text=files[select.value] || "";
+          byID("generated-text").textContent=text || "No generated files.";
+          byID("generated-size").textContent=new TextEncoder().encode(text).length+" UTF-8 bytes · "+Object.keys(files).length+" files returned";
+        }
+        select.onchange=showFile;
+        showFile();
+      }
       // Invoke native Go and keep invalid adapter JSON distinct from a domain validation error.
       byID("invoke").addEventListener("click", async () => {
         let input = byID("input").value;
@@ -881,6 +902,7 @@
             );
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
+          showGeneratedFiles(result);
           byID("status").textContent = result.ok
             ? "Returned value"
             : result.error.name;

@@ -1,9 +1,10 @@
-// Rewrite only parsed Markdown destinations and top-level headings, preserving untouched source text.
+// Rewrite only parsed Markdown destinations and headings, preserving untouched source text.
 
 package build
 
 import (
 	"bytes"
+	"golang.org/x/net/html"
 	"regexp"
 	"slices"
 	"strings"
@@ -55,9 +56,7 @@ func markdownParser(ends map[ast.Node]int) parser.Parser {
 
 var externalURI = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
 
-var htmlReference = regexp.MustCompile(`(?i)\b(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))`)
-
-// renderBody rewrites destinations, removes a duplicate title, and nests top-level guidance headings.
+// renderBody rewrites destinations, removes a duplicate title, and nests guidance headings.
 func renderBody(body string, active ActiveRule, paths []string, outputPath string) (string, error) {
 	source := []byte(body)
 	ends := map[ast.Node]int{}
@@ -114,11 +113,8 @@ func renderBody(body string, active ActiveRule, paths []string, outputPath strin
 		case *ast.HTMLBlock:
 			html = string(n.Value.Bytes(source))
 		}
-		for _, match := range htmlReference.FindAllStringSubmatch(html, -1) {
-			value := match[1] + match[2] + match[3]
-			if !strings.HasPrefix(value, "//") && !externalURI.MatchString(value) {
-				return ast.WalkStop, invalid(active.Rule.ID, "use Markdown links for relative HTML references")
-			}
+		if hasRelativeHTMLReference(html) {
+			return ast.WalkStop, invalid(active.Rule.ID, "use Markdown links for relative HTML references")
 		}
 		return ast.WalkContinue, nil
 	})
@@ -129,23 +125,26 @@ func renderBody(body string, active ActiveRule, paths []string, outputPath strin
 	return strings.TrimSpace(applyEdits(body, edits)), nil
 }
 
-// headingEdits folds link edits into top-level headings, preventing overlapping replacements.
+// headingEdits folds link edits into headings, preventing overlapping replacements.
 func headingEdits(root ast.Node, source []byte, title string, edits []edit) []edit {
-	depth := 3
-	for node := root.FirstChild(); node != nil; node = node.NextSibling() {
-		if h, ok := node.(*ast.Heading); ok {
-			if node == root.FirstChild() && plainHeading(h, source) == title {
-				continue
+	headings := []*ast.Heading{}
+	_ = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering {
+			if heading, ok := node.(*ast.Heading); ok {
+				headings = append(headings, heading)
 			}
-			depth = min(depth, h.Level)
 		}
-	}
-	offset := 3 - depth
-	for node := root.FirstChild(); node != nil; node = node.NextSibling() {
-		h, ok := node.(*ast.Heading)
-		if !ok {
+		return ast.WalkContinue, nil
+	})
+	depth := 3
+	for _, h := range headings {
+		if h == root.FirstChild() && plainHeading(h, source) == title {
 			continue
 		}
+		depth = min(depth, h.Level)
+	}
+	offset := 3 - depth
+	for _, h := range headings {
 		segments := h.Source()
 		if len(segments) == 0 {
 			end := lineEnd(source, h.Pos())
@@ -175,8 +174,18 @@ func headingEdits(root ast.Node, source []byte, title string, edits []edit) []ed
 				outer = append(outer, change)
 			}
 		}
-		content := strings.TrimSpace(applyEdits(string(source[textStart:textEnd]), inner))
-		content = strings.ReplaceAll(strings.ReplaceAll(content, "\r\n", " "), "\n", " ")
+		contentParts := []string{}
+		for _, segment := range segments {
+			changes := []edit{}
+			for _, change := range inner {
+				absoluteStart, absoluteEnd := change.start+textStart, change.end+textStart
+				if absoluteStart >= segment.Start && absoluteEnd <= segment.Stop {
+					changes = append(changes, edit{absoluteStart - segment.Start, absoluteEnd - segment.Start, change.value})
+				}
+			}
+			contentParts = append(contentParts, strings.TrimSpace(applyEdits(string(source[segment.Start:segment.Stop]), changes)))
+		}
+		content := strings.Join(contentParts, " ")
 		plain := true
 		visible := ""
 		for child := h.FirstChild(); child != nil; child = child.NextSibling() {
@@ -187,7 +196,7 @@ func headingEdits(root ast.Node, source []byte, title string, edits []edit) []ed
 			}
 		}
 		value := strings.Repeat("#", min(6, h.Level+offset)) + " " + content
-		if node == root.FirstChild() && plain && visible == title {
+		if h == root.FirstChild() && plain && visible == title {
 			value = ""
 		}
 		edits = append(outer, edit{start, end, value})
@@ -223,4 +232,26 @@ func plainHeading(heading *ast.Heading, source []byte) string {
 		result.WriteString(value.Value.Value(source))
 	}
 	return result.String()
+}
+
+// hasRelativeHTMLReference inspects actual HTML attributes, excluding comments, data attributes, and script text.
+func hasRelativeHTMLReference(fragment string) bool {
+	tokenizer := html.NewTokenizer(strings.NewReader(fragment))
+	for {
+		kind := tokenizer.Next()
+		if kind == html.ErrorToken {
+			return false
+		}
+		if kind != html.StartTagToken && kind != html.SelfClosingTagToken {
+			continue
+		}
+		for _, attribute := range tokenizer.Token().Attr {
+			if attribute.Key != "href" && attribute.Key != "src" {
+				continue
+			}
+			if !strings.HasPrefix(attribute.Val, "//") && !externalURI.MatchString(attribute.Val) {
+				return true
+			}
+		}
+	}
 }
