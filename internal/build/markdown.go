@@ -4,10 +4,11 @@ package build
 
 import (
 	"bytes"
-	"golang.org/x/net/html"
 	"regexp"
 	"slices"
 	"strings"
+
+	"golang.org/x/net/html"
 
 	"github.com/yuin/goldmark/v2/ast"
 	"github.com/yuin/goldmark/v2/parser"
@@ -63,6 +64,14 @@ func renderBody(body string, active ActiveRule, paths []string, outputPath strin
 	root := markdownParser(ends).Parse(source)
 	edits := []edit{}
 	seen := map[text.Index]bool{}
+	imageDefinitions := map[text.Index]bool{}
+	var rawHTML strings.Builder
+	_ = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if image, ok := node.(*ast.Image); entering && ok && image.Reference != nil {
+			imageDefinitions[image.Destination.Index()] = true
+		}
+		return ast.WalkContinue, nil
+	})
 	err := ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -81,10 +90,9 @@ func renderBody(body string, active ActiveRule, paths []string, outputPath strin
 			hasURL = false
 		}
 		if hasURL {
-			if reference != nil {
-				image = false
-			}
 			index := destination.Index()
+			// Shared definitions used by images need raw bytes; ordinary links can also open those bytes.
+			image = image || imageDefinitions[index]
 			if destination.IsOwned() {
 				if reference != nil {
 					return ast.WalkContinue, nil
@@ -113,13 +121,16 @@ func renderBody(body string, active ActiveRule, paths []string, outputPath strin
 		case *ast.HTMLBlock:
 			html = string(n.Value.Bytes(source))
 		}
-		if hasRelativeHTMLReference(html) {
-			return ast.WalkStop, invalid(active.Rule.ID, "use Markdown links for relative HTML references")
-		}
+		rawHTML.WriteString(html)
+		rawHTML.WriteByte('\n')
 		return ast.WalkContinue, nil
 	})
 	if err != nil {
 		return "", err
+	}
+	// One tokenizer preserves script and textarea context across separate inline HTML nodes.
+	if hasRelativeHTMLReference(rawHTML.String()) {
+		return "", invalid(active.Rule.ID, "use Markdown links for relative HTML references")
 	}
 	edits = headingEdits(root, source, active.Rule.Title, edits)
 	return strings.TrimSpace(applyEdits(body, edits)), nil
