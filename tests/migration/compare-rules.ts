@@ -15,7 +15,9 @@ import documentCases from './rule-documents/cases.json';
 import ruleCases from './rules/cases.json';
 import repositoryCases from './repositories/cases.json';
 import refCases from './refs/cases.json';
-import { tagVersion } from '../../src/versions';
+import { tagVersion, versionConstraint } from '../../src/versions';
+import { satisfies } from 'semver';
+import constraintCases from './version-constraints/cases.json';
 import { repositoryAddress, repositoryFileUrl } from '../../src/repository';
 import contracts from '../../migration/contracts.json';
 import approvedDifferences from '../../migration/approved-differences.json';
@@ -27,6 +29,7 @@ const cases = [
   ...ruleCases,
   ...repositoryCases,
   ...refCases,
+  ...constraintCases,
 ];
 deepStrictEqual(
   new Set(cases.map(({ id }) => id)).size,
@@ -44,7 +47,23 @@ deepStrictEqual(
 function reference(test: (typeof cases)[number]): unknown {
   try {
     let value: unknown;
-    if (test.operation === 'gitRef') {
+    if (test.operation === 'versionConstraint') {
+      value = versionConstraint(test.input, test.location);
+    } else if (test.operation === 'versionMatch') {
+      const input = test.input;
+      if (
+        typeof input !== 'object' ||
+        input === null ||
+        !('constraint' in input) ||
+        !('version' in input)
+      )
+        throw new Error('Expected constraint and version');
+      const constraint = versionConstraint(
+        input.constraint,
+        test.location + '.constraint',
+      );
+      value = satisfies(input.version, constraint);
+    } else if (test.operation === 'gitRef') {
       const config = configuration({
         schemaVersion: 1,
         sources: {

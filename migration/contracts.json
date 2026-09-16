@@ -53,7 +53,7 @@
       "requiredScenarios": [
         {
           "id": "formats.versions.01",
-          "requirement": "npm ranges, prerelease exclusion, exact refs",
+          "requirement": "HashiCorp constraints and prerelease behavior (approved Go target), exact refs; pinned reference uses npm ranges",
           "status": "pending"
         },
         {

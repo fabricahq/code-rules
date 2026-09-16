@@ -356,3 +356,37 @@ func TestHTTPRefs(t *testing.T) {
 		}
 	}
 }
+
+// TestHTTPVersionConstraints checks matching, nonmatching, and invalid inputs through HTTP.
+func TestHTTPVersionConstraints(t *testing.T) {
+	for _, test := range []struct{ name, operation, input, expected string }{
+		{"parse", "versionConstraint", `"~> 1.2.3"`, `{"ok":true,"value":"~> 1.2.3"}`},
+		{"match", "versionMatch", `{"constraint":"~> 1.2.3","version":"1.2.9"}`, `{"ok":true,"value":true}`},
+		{"nonmatch", "versionMatch", `{"constraint":"~> 1.2.3","version":"1.3.0"}`, `{"ok":true,"value":false}`},
+		{"invalid version", "versionMatch", `{"constraint":"~> 1.2.3","version":"1.2"}`, `{"ok":false,"error":{"name":"ValidationError","message":"release.version: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5","location":"release.version"}}`},
+		{"invalid constraint first", "versionMatch", `{"constraint":"","version":"1.2"}`, `{"ok":false,"error":{"name":"ValidationError","message":"release.constraint: expected nonempty text","location":"release.constraint"}}`},
+	} {
+		// Verify the serialized response separates domain false from a returned error.
+		t.Run(test.name, func(t *testing.T) {
+			payload := `{"operation":"` + test.operation + `","input":` + test.input + `,"location":"release"}`
+			recorder := httptest.NewRecorder()
+			handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(payload)))
+			var got, expected any
+			if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal([]byte(test.expected), &expected); err != nil {
+				t.Fatal(err)
+			}
+			if recorder.Code != http.StatusOK || !reflect.DeepEqual(got, expected) {
+				t.Fatalf("HTTP %d: %s; want %s", recorder.Code, recorder.Body, test.expected)
+			}
+		})
+	}
+	for _, input := range []string{`null`, `42`, `{}`, `{"constraint":null,"version":"1.2.3"}`, `{"constraint":"*","version":42}`, `{"constraint":"1","version":"1.0.0","extra":true}`} {
+		got, err := invoke([]byte(`{"operation":"versionMatch","input":` + input + `,"location":"release"}`))
+		if err != nil || got.OK || got.Value != nil || got.Error == nil || got.Error.Name != "AdapterError" {
+			t.Fatalf("input %s: %+v, %v", input, got, err)
+		}
+	}
+}

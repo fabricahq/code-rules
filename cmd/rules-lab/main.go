@@ -66,6 +66,22 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "versionMatch":
+		var input struct {
+			Constraint *string `json:"constraint"`
+			Version    *string `json:"version"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Constraint == nil || input.Version == nil {
+			return adapterError("versionMatch input must contain constraint and version strings"), nil
+		}
+		constraint, parseErr := rules.ParseVersionConstraint(*input.Constraint, req.Location+".constraint")
+		if parseErr != nil {
+			err = parseErr
+		} else {
+			value, err = constraint.Matches(*input.Version, req.Location+".version")
+		}
 	case "repository":
 		value, err = rules.ParseRepository(req.Input, req.Location)
 	case "repositoryFile":
@@ -103,12 +119,16 @@ func invoke(data []byte) (response, error) {
 			return adapterError("rule input must contain text, path, and source strings"), nil
 		}
 		value, err = rules.Parse(*input.Text, *input.Path, *input.Source)
-	case "groupID", "ruleGroup", "groupMetadata", "document", "gitRef", "tagVersion":
+	case "groupID", "ruleGroup", "groupMetadata", "document", "gitRef", "tagVersion", "versionConstraint":
 		var text string
 		if len(req.Input) == 0 || bytes.Equal(bytes.TrimSpace(req.Input), []byte("null")) || json.Unmarshal(req.Input, &text) != nil {
 			return adapterError("input must be a string for " + req.Operation), nil
 		}
 		switch req.Operation {
+		case "versionConstraint":
+			var constraint rules.VersionConstraint
+			constraint, err = rules.ParseVersionConstraint(text, req.Location)
+			value = constraint.String()
 		case "gitRef":
 			value, err = rules.ParseGitRef(text, req.Location)
 		case "tagVersion":

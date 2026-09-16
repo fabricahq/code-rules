@@ -7,7 +7,8 @@ Use the [Go conventions](../_internal/go-conventions.md) when implementing or re
 ## Branches and baseline
 
 - Integration branch: `go-migration`.
-- Current slice: `codex/go-refs`, based on `go-migration`. See [exact refs and version tags](refs.md) for scope and the interactive lab.
+- Current slice: `codex/go-version-ranges`, based on `go-migration`. See [version constraints](version-constraints.md) for scope and the interactive lab.
+- [Exact refs and version tags](refs.md) merged in PR #16 at `76e30d5c29881a4f74821a5b3bb23a3e1683ca96`.
 - [Repository addresses](repositories.md) merged in PR #15 at `ef88c4c6e7d7061da428a8c5783e84e7b3c6906e`.
 - [Complete rule parsing](rule-parser.md) merged in PR #14 at `39c327f103a7eab19468d815d5250acb5f7f5de7`.
 - [Document boundaries](rule-documents.md) merged in PR #13 at `301caa59654e8170f66ef6347eba4c0951d44560`.
@@ -23,7 +24,7 @@ PR #8 has since merged to `main`; PR #9 was closed without merging in favor of t
 The user approved merging [the harness PR #10](https://github.com/fabricahq/code-rules/pull/10) into `go-migration`; its merge commit is `5ba1d51c7214c9d22979a882fb6fb46b2120d8fe`. The identity slice starts there.
 
 The product checkout and private rule corpus had unrelated local changes. This work uses a separate clone and committed corpus contents.
-The harness slice introduced no Go implementation. The merged identity slice added a native package and development adapter; the current slice adds exact refs and strict version tags. Release publication and scheduled work remain unauthorized. The user-approved validation diagnostic improvements are recorded in [the identity slice](identities.md#user-approved-diagnostic-improvement).
+The harness slice introduced no Go implementation. The merged identity slice added a native package and development adapter; the current slice adds native HashiCorp version constraints and matching. Release publication and scheduled work remain unauthorized. The user-approved validation diagnostic improvements are recorded in [the identity slice](identities.md#user-approved-diagnostic-improvement).
 
 ## PR review workflow
 
@@ -118,5 +119,5 @@ Passing these checks is implementation evidence. Independent validation and huma
 See [feedback.md](feedback.md) and [evidence.md](evidence.md) for the harness handoff.
 
 The merged [identity slice](identities.md) implements group/rule IDs and selector validation.
-The merged [group metadata slice](group-metadata.md) adds JSON metadata parsing. The merged [document slice](rule-documents.md) separates frontmatter and body. The merged [rule parser](rule-parser.md) validates complete rules. The merged [repository slice](repositories.md) validates Git addresses and builds browser links. The current [ref slice](refs.md) classifies exact Git refs and validates version tags; its walkthrough covers only those operations. The user-approved target uses one nonblank `whenToRead` string for groups and rules; the pinned TypeScript group format still uses arrays.
+The merged [group metadata slice](group-metadata.md) adds JSON metadata parsing. The merged [document slice](rule-documents.md) separates frontmatter and body. The merged [rule parser](rule-parser.md) validates complete rules. The merged [repository slice](repositories.md) validates Git addresses and builds browser links. The merged [ref slice](refs.md) classifies exact Git refs and validates version tags. The current [constraint slice](version-constraints.md) uses native HashiCorp syntax and matching; its walkthrough covers only those new operations. The user-approved target uses one nonblank `whenToRead` string for groups and rules; the pinned TypeScript group format still uses arrays.
 Review each slice before starting filesystem-writing capabilities.
