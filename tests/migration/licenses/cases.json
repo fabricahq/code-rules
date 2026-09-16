@@ -832,5 +832,65 @@
         "location": "library/rule-library.json: license.spdxExpression"
       }
     }
+  },
+  {
+    "id": "license-unclosed-open",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-incomplete-document",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Team:  \"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-incomplete-nested",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT AND (\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
   }
 ]

@@ -15,6 +15,12 @@ var spdxReferenceException = regexp.MustCompile(`((?:DocumentRef-[A-Za-z0-9.-]+:
 // validSPDXExpression delegates grammar to go-spdx, preserving case-sensitive IDs
 // and case-insensitive operators from the reference. It never rewrites the output.
 func validSPDXExpression(text string) bool {
+	// go-spdx v2.7.0 dereferences a missing token after a trailing opening
+	// parenthesis or DocumentRef colon. Neither can end a valid expression.
+	end := strings.TrimRight(text, " ")
+	if strings.HasSuffix(end, "(") || strings.HasSuffix(end, ":") {
+		return false
+	}
 	valid := true
 	// Normalize only operator tokens for the dependency; identifiers keep their spelling.
 	normalized := spdxWord.ReplaceAllStringFunc(text, func(word string) string {
