@@ -187,3 +187,34 @@ func TestResolveVersionProvenance(t *testing.T) {
 		}
 	}
 }
+
+// TestResolveRetainsInactiveDocuments preserves hidden upstream text without duplicating active documents.
+func TestResolveRetainsInactiveDocuments(t *testing.T) {
+	for _, policy := range []struct {
+		exclude, replace string
+		local            map[string][]byte
+	}{
+		{`{"techs/go/errors":"Not applicable"}`, `{}`, nil},
+		{`{}`, `{"techs/go/errors":{"file":"local/techs/go/custom.md","reason":"Project policy"}}`, map[string][]byte{"techs/go/custom.md": []byte(document)}},
+	} {
+		config, libraries := fixture(t, policy.exclude, policy.replace)
+		resolved, err := build.Resolve(config, libraries, policy.local)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(resolved.Sources[0].Files["techs/go/errors.md"]) != document {
+			t.Fatal("lost inactive original")
+		}
+		if _, exists := libraries["team"].Catalog.SupportingFiles["techs/go/errors.md"]; exists {
+			t.Fatal("mutated input catalog")
+		}
+	}
+	config, libraries := fixture(t, `{}`, `{}`)
+	resolved, err := build.Resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := resolved.Sources[0].Files["techs/go/errors.md"]; exists {
+		t.Fatal("duplicated active document")
+	}
+}
