@@ -29,7 +29,8 @@ var page []byte
 //go:embed walkthroughs/*.html
 var walkthroughs embed.FS
 
-const maxRequestBytes = 1 << 20
+// Allow an 8 MiB tag listing, up to sixfold JSON escaping, and the request envelope.
+const maxRequestBytes = 64 << 20
 
 type request struct {
 	Operation string          `json:"operation"`
@@ -249,7 +250,7 @@ func handler(logger *slog.Logger) http.Handler {
 		if err != nil {
 			var tooLarge *http.MaxBytesError
 			if errors.As(err, &tooLarge) {
-				http.Error(w, "request body exceeds 1 MiB limit", http.StatusRequestEntityTooLarge)
+				http.Error(w, "request body exceeds 64 MiB limit", http.StatusRequestEntityTooLarge)
 			} else {
 				http.Error(w, "could not read request body", http.StatusBadRequest)
 			}
@@ -300,9 +301,14 @@ func run(logger *slog.Logger) error {
 		}
 		return nil
 	}
-	scanner := bufio.NewScanner(os.Stdin)
+	return runRequests(os.Stdin, os.Stdout)
+}
+
+// runRequests processes bounded newline-delimited requests and writes native results.
+func runRequests(input io.Reader, output io.Writer) error {
+	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 4096), maxRequestBytes)
-	encoder := json.NewEncoder(os.Stdout)
+	encoder := json.NewEncoder(output)
 	for scanner.Scan() {
 		result, err := invoke(scanner.Bytes())
 		if err != nil {

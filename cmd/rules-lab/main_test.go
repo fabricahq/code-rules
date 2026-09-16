@@ -6,6 +6,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 	"io"
 	"log/slog"
 	"net/http"
@@ -387,6 +390,52 @@ func TestHTTPVersionConstraints(t *testing.T) {
 		got, err := invoke([]byte(`{"operation":"versionMatch","input":` + input + `,"location":"release"}`))
 		if err != nil || got.OK || got.Value != nil || got.Error == nil || got.Error.Name != "AdapterError" {
 			t.Fatalf("input %s: %+v, %v", input, got, err)
+		}
+	}
+}
+
+// TestReleaseTagTransportLimits lets domain-sized inputs reach Go through both transports.
+func TestReleaseTagTransportLimits(t *testing.T) {
+	const tagLine = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3\n"
+	for _, extra := range []int{0, 1} {
+		// Six-byte JSON escapes must not make an otherwise valid tag listing too large.
+		listing := tagLine + strings.Repeat("\n", 8*1024*1024-len(tagLine)+extra)
+		encoded, err := json.Marshal(listing)
+		if err != nil {
+			t.Fatal(err)
+		}
+		payload := `{"operation":"selectReleaseTag","location":"selection","input":{"constraint":">= 1.0.0","availableGitTags":` + strings.ReplaceAll(string(encoded), `\n`, `\u000a`) + `}}`
+		for _, transport := range []string{"HTTP", "stdin"} {
+			// Invoke the same payload through the actual HTTP or newline-delimited boundary.
+			t.Run(fmt.Sprintf("%s/extra=%d", transport, extra), func(t *testing.T) {
+				var output bytes.Buffer
+				if transport == "HTTP" {
+					recorder := httptest.NewRecorder()
+					handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(payload)))
+					if recorder.Code != http.StatusOK {
+						t.Fatalf("HTTP %d: %s", recorder.Code, recorder.Body)
+					}
+					output.Write(recorder.Body.Bytes())
+				} else if err := runRequests(strings.NewReader(payload+"\n"), &output); err != nil {
+					t.Fatal(err)
+				}
+				var got struct {
+					OK    bool
+					Value rules.VersionSelection
+					Error *failure
+				}
+				if err := json.Unmarshal(output.Bytes(), &got); err != nil {
+					t.Fatal(err)
+				}
+				if extra == 0 {
+					want := rules.VersionSelection{Tag: "v1.2.3", Version: "1.2.3", Object: strings.Repeat("a", 40)}
+					if !got.OK || got.Error != nil || got.Value != want {
+						t.Fatalf("unexpected selection: %s", &output)
+					}
+				} else if got.OK || got.Error == nil || got.Error.Code != string(rules.TagLimitExceeded) {
+					t.Fatalf("expected domain size error: %s", &output)
+				}
+			})
 		}
 	}
 }
