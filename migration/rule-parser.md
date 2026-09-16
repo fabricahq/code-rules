@@ -8,9 +8,9 @@ Plan for about 20-30 additional capability-sized PRs across the remaining migrat
 
 ## Contract
 
-`rules.Parse(text, path, source string) (Rule, error)` validates the path, splits the document, parses YAML, validates metadata, rejects a blank body, and validates attribution. Failure returns a zero `Rule` and a typed `ValidationError`. Success preserves the original frontmatter and body bytes. The function reads and writes no files.
+`rules.Parse(text, path, source string) (Rule, error)` validates the path, splits the document, parses YAML, validates metadata, rejects a blank body, and validates attribution. Failure returns a zero `Rule` and a typed `ValidationError`. Success preserves the complete original document, including delimiter lines, frontmatter, and body bytes. The function reads and writes no files.
 
-`Rule` contains a source-qualified ID, group, relative path, title, typed impact, impact description, scalar `whenToRead`, attribution, raw metadata, and body. Tags are validated and retained in raw metadata. Unknown rule fields and attribution fields are rejected, as requested during review. Field names are case-sensitive strings. Multiple unknown fields report the first name in sorted order.
+`Rule` contains a source-qualified ID, group, relative path, title, typed impact, impact description, scalar `whenToRead`, attribution, one original `Document`. Tags are validated and retained in that document. PR #21 replaces the earlier separate `Metadata` and `Body` fields with this user-approved representation; `SplitDocument` exposes the original sections when needed. Unknown rule fields and attribution fields are rejected, as requested during review. Field names are case-sensitive strings. Multiple unknown fields report the first name in sorted order.
 
 Validation order is: path, document envelope, YAML, forbidden license declarations, unknown frontmatter fields, title, impact, impact description, tags, reading guidance, body, attribution. Text values retain their authored whitespace. Attribution URLs use JavaScript-compatible normalization and reject credentials and non-HTTP(S) schemes.
 

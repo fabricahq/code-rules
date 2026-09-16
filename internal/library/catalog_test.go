@@ -61,10 +61,16 @@ func TestLoadCatalog(t *testing.T) {
 	if len(got.Groups) != 2 || got.Groups[0].ID != "practices/testing" || len(got.Groups[0].Rules) != 0 || got.Groups[1].Rules[0].ID != "team:techs/go/errors" || got.Groups[1].Metadata.Name != "Go" {
 		t.Fatalf("unexpected catalog %+v", got)
 	}
-	if string(got.Files["techs/go/errors.md"]) != document {
+	if got.Groups[1].Rules[0].Document != document {
 		t.Fatal("changed original bytes")
 	}
-	if _, ok := got.Files["techs/go/assets/image.bin"]; ok {
+	if _, ok := got.SupportingFiles["techs/go/errors.md"]; ok {
+		t.Fatal("rule document duplicated in supporting files")
+	}
+	if !reflect.DeepEqual(got.Paths(), []string{"practices/testing/_group.json", "rule-library.json", "techs/go/_group.json", "techs/go/errors.md"}) {
+		t.Fatalf("incomplete read inventory: %v", got.Paths())
+	}
+	if _, ok := got.SupportingFiles["techs/go/assets/image.bin"]; ok {
 		t.Fatal("catalog unexpectedly read assets")
 	}
 	techs, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
@@ -136,7 +142,7 @@ func TestLoadTermsAndLimits(t *testing.T) {
 	files["NOTICE"] = "Notice\r\n"
 	_, root := fixture(t, files)
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"})
-	if err != nil || string(got.Files["LICENSE"]) != files["LICENSE"] || string(got.Files["NOTICE"]) != files["NOTICE"] {
+	if err != nil || string(got.SupportingFiles["LICENSE"]) != files["LICENSE"] || string(got.SupportingFiles["NOTICE"]) != files["NOTICE"] {
 		t.Fatalf("terms changed: %v", err)
 	}
 	for _, size := range []int{4 * 1024 * 1024, 4*1024*1024 + 1} {
@@ -198,5 +204,38 @@ func TestLoadRejectsDirectoryLinksAndInvalidSelections(t *testing.T) {
 		if _, err := library.Load(context.Background(), root, "team", selection); err == nil {
 			t.Fatalf("accepted selection %+v", selection)
 		}
+	}
+}
+
+// TestLoadOwnsOriginalDocuments preserves authored text after source files change.
+func TestLoadOwnsOriginalDocuments(t *testing.T) {
+	files := validFiles()
+	files["techs/go/errors.md"] = strings.ReplaceAll(strings.Replace(document, "title: Handle errors", "# Author comment\ntitle: 'Handle errors'\ntags: [errors, reliability]", 1), "\n", "\r\n")
+	files["techs/go/other.md"] = document + "Keep  spacing.  \n"
+	directory, root := fixture(t, files)
+	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Groups) != 1 || len(got.Groups[0].Rules) != 2 {
+		t.Fatalf("unexpected groups or rules: %+v", got.Groups)
+	}
+	for _, rule := range got.Groups[0].Rules {
+		if err := os.WriteFile(filepath.Join(directory, filepath.FromSlash(rule.Path)), []byte("changed after load"), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if rule.Document != files[rule.Path] {
+			t.Fatalf("original document lost: %s", rule.Path)
+		}
+		if _, duplicated := got.SupportingFiles[rule.Path]; duplicated {
+			t.Fatalf("rule also stored in supporting files: %s", rule.Path)
+		}
+		sections, err := rules.SplitDocument(rule.Document, rule.ID)
+		if err != nil || !strings.Contains(sections.Frontmatter, "title:") || !strings.Contains(sections.Body, "Return the error.") {
+			t.Fatalf("original sections unavailable: %+v, %v", sections, err)
+		}
+	}
+	if string(got.SupportingFiles["techs/go/_group.json"]) != metadata {
+		t.Fatal("supporting metadata bytes changed")
 	}
 }

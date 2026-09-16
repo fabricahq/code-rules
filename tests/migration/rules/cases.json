@@ -19,6 +19,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -34,6 +48,20 @@
     },
     "location": "local:practices/code-review/rules/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "local:practices/code-review/rules/errors",
+        "group": "practices/code-review",
+        "path": "practices/code-review/rules/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "local:practices/code-review/rules/errors",
@@ -69,6 +97,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "team:repo:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -84,6 +126,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "CRITICAL",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: CRITICAL\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -119,6 +175,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -134,6 +204,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "MEDIUM-HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: MEDIUM-HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -169,6 +253,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: MEDIUM\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "MEDIUM",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: Handle errors deliberately\nimpact: MEDIUM\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -184,6 +282,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "LOW-MEDIUM",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: LOW-MEDIUM\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -219,6 +331,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: LOW\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "LOW",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: Handle errors deliberately\nimpact: LOW\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -234,6 +360,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\r\ntitle: Handle errors deliberately\r\nimpact: HIGH\r\nimpactDescription: Keep failures actionable.\r\nwhenToRead: When writing Go code.\r\n---\r\n\r\n# Handle errors\r\n\r\nReturn useful errors.  \r\n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -269,6 +409,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: \"  Keep  spaces  \"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n \t Body  \n\n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "  Keep  spaces  ",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: \"  Keep  spaces  \"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": " \t Body  \n\n"
       }
@@ -278,7 +432,7 @@
     "id": "rule-unicode",
     "operation": "rule",
     "input": {
-      "text": "---\ntitle: D\u00e9j\u00e0 \ud83d\udc39 e\u0301\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\nUnicode \ud83d\udc39 and e\u0301.\n",
+      "text": "---\ntitle: Déjà 🐹 é\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\nUnicode 🐹 and é.\n",
       "path": "techs/go/errors.md",
       "source": "lab"
     },
@@ -289,13 +443,27 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "D\u00e9j\u00e0 \ud83d\udc39 e\u0301",
+        "title": "Déjà 🐹 é",
         "impact": "HIGH",
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
-        "metadata": "title: D\u00e9j\u00e0 \ud83d\udc39 e\u0301\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
-        "body": "\nUnicode \ud83d\udc39 and e\u0301.\n"
+        "document": "---\ntitle: Déjà 🐹 é\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\nUnicode 🐹 and é.\n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Déjà 🐹 é",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: Déjà 🐹 é\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
+        "body": "\nUnicode 🐹 and é.\n"
       }
     }
   },
@@ -309,6 +477,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\n# A rule\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n# Retain this comment\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -378,6 +560,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: |\n  First line\n  Second line\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "First line\nSecond line\n",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: |\n  First line\n  Second line\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -393,6 +589,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: >-\n  When writing\n  Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -428,6 +638,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: 2026-09-15\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "2026-09-15",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: 2026-09-15\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -443,6 +667,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "yes",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: yes\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -478,6 +716,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: NO\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "NO",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: NO\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -493,6 +745,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "On",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: On\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -528,6 +794,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: 1_000\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "1_000",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: 1_000\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -543,6 +823,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "0b10",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: 0b10\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -578,6 +872,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: 0XFF\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "0XFF",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: 0XFF\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -593,6 +901,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "+0x1",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: +0x1\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -628,6 +950,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: TrUe\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "TrUe",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: TrUe\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -643,6 +979,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "nullish",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: nullish\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -822,6 +1172,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: \"123\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "123",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: \"123\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -847,6 +1211,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: \"true\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "true",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: \"true\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -862,6 +1240,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "null",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: \"null\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -915,6 +1307,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: !!str 123\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "123",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: !!str 123\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -930,6 +1336,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "123",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: !custom 123\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -965,6 +1385,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: !!int nope\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "nope",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: !!int nope\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -980,6 +1414,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "1",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: !!float 1\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -1015,6 +1463,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: !!bool YES\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "YES",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: !!bool YES\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -1030,6 +1492,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "nope",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: !!null nope\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -1634,7 +2110,7 @@
     "id": "rule-blank-body-2",
     "operation": "rule",
     "input": {
-      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\ufeff\u00a0",
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n﻿ ",
       "path": "techs/go/errors.md",
       "source": "lab"
     },
@@ -1812,6 +2288,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ntags: go, errors\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ntags: go, errors",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -1827,6 +2317,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ntags: [go, errors]\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -1862,6 +2366,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ntags: []\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ntags: []",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -1877,6 +2395,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\ntags: [\"go\", \" go \"]\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -2020,6 +2552,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: []\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: []",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -2050,16 +2596,35 @@
             "description": " Original source. "
           }
         ],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"HTTPS://EXAMPLE.COM:443/a/../b\", \"description\": \" Original source. \"}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [
+          {
+            "url": "https://example.com/b",
+            "description": " Original source. "
+          }
+        ],
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"HTTPS://EXAMPLE.COM:443/a/../b\", \"description\": \" Original source. \"}]",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
     }
   },
   {
-    "id": "rule-url-https://m\u00fcnich.example/na\u00efve",
+    "id": "rule-url-https://münich.example/naïve",
     "operation": "rule",
     "input": {
-      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"https://m\u00fcnich.example/na\u00efve\", \"description\": \" Original source. \"}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "text": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"https://münich.example/naïve\", \"description\": \" Original source. \"}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
       "path": "techs/go/errors.md",
       "source": "lab"
     },
@@ -2080,7 +2645,26 @@
             "description": " Original source. "
           }
         ],
-        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"https://m\u00fcnich.example/na\u00efve\", \"description\": \" Original source. \"}]",
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"https://münich.example/naïve\", \"description\": \" Original source. \"}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [
+          {
+            "url": "https://xn--mnich-kva.example/na%C3%AFve",
+            "description": " Original source. "
+          }
+        ],
+        "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"https://münich.example/naïve\", \"description\": \" Original source. \"}]",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
     }
@@ -2095,6 +2679,25 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [
+          {
+            "url": "http://example.com/",
+            "description": " Original source. "
+          }
+        ],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \" http://example.com \", \"description\": \" Original source. \"}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -2140,6 +2743,25 @@
             "description": " Original source. "
           }
         ],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"http://0x7f000001\", \"description\": \" Original source. \"}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [
+          {
+            "url": "http://127.0.0.1/",
+            "description": " Original source. "
+          }
+        ],
         "metadata": "title: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"http://0x7f000001\", \"description\": \" Original source. \"}]",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -2155,6 +2777,25 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [
+          {
+            "url": "http://example.com/a",
+            "description": " Original source. "
+          }
+        ],
+        "document": "---\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\nattribution: [{\"url\": \"http:\\\\example.com\\\\a\", \"description\": \" Original source. \"}]\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -2393,6 +3034,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\ntitle: &title Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "title: &title Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -2574,6 +3229,20 @@
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
+        "document": "---\n!!merge <<: {title: Handle errors deliberately}\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
         "metadata": "!!merge <<: {title: Handle errors deliberately}\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
@@ -2589,6 +3258,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "Handle errors deliberately",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\n!!merge <<: {title: ignored}\ntitle: Handle errors deliberately\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -3225,7 +3908,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "document": "---\ntitle: \"\\U0001F439\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
@@ -3239,7 +3936,7 @@
     "id": "rule-unicode-literal",
     "operation": "rule",
     "input": {
-      "text": "---\ntitle: \"\ud83d\udc39\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
+      "text": "---\ntitle: \"🐹\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n",
       "path": "techs/go/errors.md",
       "source": "lab"
     },
@@ -3250,12 +3947,26 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Keep failures actionable.",
         "whenToRead": "When writing Go code.",
         "attribution": [],
-        "metadata": "title: \"\ud83d\udc39\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
+        "document": "---\ntitle: \"🐹\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.\n---\n\n# Handle errors\n\nReturn useful errors.  \n"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Keep failures actionable.",
+        "whenToRead": "When writing Go code.",
+        "attribution": [],
+        "metadata": "title: \"🐹\"\nimpact: HIGH\nimpactDescription: Keep failures actionable.\nwhenToRead: When writing Go code.",
         "body": "\n# Handle errors\n\nReturn useful errors.  \n"
       }
     }
@@ -3844,7 +4555,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -3869,7 +4594,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: \"\\U0000D83D\\U0000DC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -3894,7 +4633,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: \"\\uD83D\\U0000DC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -3919,7 +4672,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39 \ud83d\ude80",
+        "title": "🐹 🚀",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: \"\\uD83D\\uDC39 \\uD83D\\uDE80\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹 🚀",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -3944,7 +4711,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "say \"\ud83d\udc39\"",
+        "title": "say \"🐹\"",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: \"say \\\"\\uD83D\\uDC39\\\"\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "say \"🐹\"",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -3964,6 +4745,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "\\uD83D\\uDC39",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: \"\\\\uD83D\\\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -3999,6 +4794,20 @@
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
         "attribution": [],
+        "document": "---\ntitle: '\\uD83D\\uDC39'\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "\\uD83D\\uDC39",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
         "metadata": "title: '\\uD83D\\uDC39'\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
         "body": "Body"
       }
@@ -4014,6 +4823,20 @@
     },
     "location": "lab:techs/go/errors.md",
     "expected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "\\uD83D\\uDC39",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: \\uD83D\\uDC39\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": {
         "id": "lab:techs/go/errors",
@@ -4049,6 +4872,20 @@
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
         "attribution": [],
+        "document": "---\ntitle: |-\n  \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "\"\\uD83D\\uDC39\"",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
         "metadata": "title: |-\n  \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
         "body": "Body"
       }
@@ -4069,7 +4906,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: !!str \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -4094,7 +4945,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: &a\"b \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -4108,7 +4973,7 @@
     "id": "rule-yaml-surrogate-pair-after-unicode",
     "operation": "rule",
     "input": {
-      "text": "---\n# \ud83e\udd8a\ntitle: \"\ud83e\udd8a \\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody",
+      "text": "---\n# 🦊\ntitle: \"🦊 \\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody",
       "path": "techs/go/errors.md",
       "source": "lab"
     },
@@ -4119,12 +4984,26 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83e\udd8a \ud83d\udc39",
+        "title": "🦊 🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
         "attribution": [],
-        "metadata": "# \ud83e\udd8a\ntitle: \"\ud83e\udd8a \\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
+        "document": "---\n# 🦊\ntitle: \"🦊 \\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🦊 🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "metadata": "# 🦊\ntitle: \"🦊 \\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
         "body": "Body"
       }
     }
@@ -4146,7 +5025,21 @@
         "path": "techs/go/errors.md",
         "title": "\\uD83D\\uDC39",
         "impact": "HIGH",
-        "impactDescription": "\ud83d\udc39",
+        "impactDescription": "🐹",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: '\\uD83D\\uDC39'\nimpact: HIGH\nimpactDescription: \"\\uD83D\\uDC39\"\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "\\uD83D\\uDC39",
+        "impact": "HIGH",
+        "impactDescription": "🐹",
         "whenToRead": "When coding.",
         "attribution": [],
         "metadata": "title: '\\uD83D\\uDC39'\nimpact: HIGH\nimpactDescription: \"\\uD83D\\uDC39\"\nwhenToRead: When coding.",
@@ -4202,7 +5095,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: !<tag:yaml.org,2002:str> \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -4227,7 +5134,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: &a # comment\n  \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -4252,7 +5173,21 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "document": "---\ntitle: \"\\uD83D\\uDC39\"\r\nimpact: HIGH\r\nimpactDescription: Avoid failures.\r\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
@@ -4266,7 +5201,7 @@
     "id": "rule-yaml-surrogate-pair-bom",
     "operation": "rule",
     "input": {
-      "text": "---\n\ufefftitle: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody",
+      "text": "---\n﻿title: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody",
       "path": "techs/go/errors.md",
       "source": "lab"
     },
@@ -4277,12 +5212,26 @@
         "id": "lab:techs/go/errors",
         "group": "techs/go",
         "path": "techs/go/errors.md",
-        "title": "\ud83d\udc39",
+        "title": "🐹",
         "impact": "HIGH",
         "impactDescription": "Avoid failures.",
         "whenToRead": "When coding.",
         "attribution": [],
-        "metadata": "\ufefftitle: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
+        "document": "---\n﻿title: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.\n---\nBody"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": {
+        "id": "lab:techs/go/errors",
+        "group": "techs/go",
+        "path": "techs/go/errors.md",
+        "title": "🐹",
+        "impact": "HIGH",
+        "impactDescription": "Avoid failures.",
+        "whenToRead": "When coding.",
+        "attribution": [],
+        "metadata": "﻿title: \"\\uD83D\\uDC39\"\nimpact: HIGH\nimpactDescription: Avoid failures.\nwhenToRead: When coding.",
         "body": "Body"
       }
     }

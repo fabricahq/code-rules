@@ -30,9 +30,10 @@ type Attribution struct {
 	Description string `json:"description"`
 }
 
-// Rule contains validated selection fields and the exact authored document text.
-// Attribution is an empty slice when absent. Tags remain in
-// Metadata; parsing never reserializes that text or trims Body.
+// Rule contains validated selection fields and one exact original document.
+// Document includes delimiters, frontmatter, and body without reserialization.
+// SplitDocument exposes its original sections when needed. Attribution is an
+// empty slice when absent; validated tags remain in Document.
 type Rule struct {
 	ID                string        `json:"id"`
 	Group             string        `json:"group"`
@@ -42,8 +43,7 @@ type Rule struct {
 	ImpactDescription string        `json:"impactDescription"`
 	WhenToRead        string        `json:"whenToRead"`
 	Attribution       []Attribution `json:"attribution"`
-	Metadata          string        `json:"metadata"`
-	Body              string        `json:"body"`
+	Document          string        `json:"document"`
 }
 
 // Parse validates a rule's path, YAML metadata, nonblank body, and attribution.
@@ -86,7 +86,7 @@ func Parse(text, path, source string) (Rule, error) {
 	}
 	result.ID = source + ":" + strings.TrimSuffix(path, ".md")
 	result.Group, result.Path = group, path
-	result.Metadata, result.Body = document.Frontmatter, document.Body
+	result.Document = text
 	return result, nil
 }
 

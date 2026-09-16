@@ -83,15 +83,16 @@ func loadLibraryFixture(input libraryFixture) (result any, err error) {
 		return nil, err
 	}
 	// Expose readable fixture text instead of base64-encoding Go's byte slices in the UI.
-	files := make(map[string]string, len(catalog.Files))
-	for path, data := range catalog.Files {
+	files := make(map[string]string, len(catalog.SupportingFiles))
+	for path, data := range catalog.SupportingFiles {
 		files[path] = string(data)
 	}
 	return struct {
-		Groups    []library.Group            `json:"groups"`
-		Licenses  []rules.LicenseDeclaration `json:"licenses"`
-		FilesRead map[string]string          `json:"filesRead"`
-	}{Groups: catalog.Groups, Licenses: catalog.Licenses, FilesRead: files}, nil
+		Groups          []library.Group            `json:"groups"`
+		Licenses        []rules.LicenseDeclaration `json:"licenses"`
+		SupportingFiles map[string]string          `json:"supportingFiles"`
+		FilesRead       []string                   `json:"filesRead"`
+	}{Groups: catalog.Groups, Licenses: catalog.Licenses, SupportingFiles: files, FilesRead: catalog.Paths()}, nil
 }
 
 // fixturePath limits the adapter's writes to simple portable relative names.

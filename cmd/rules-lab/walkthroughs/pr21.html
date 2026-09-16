@@ -367,11 +367,12 @@
             <p>
               The adapter creates a temporary directory, writes your fixture
               there, calls the real Go loader, and removes that directory before
-              returning. The loader itself performs reads only. filesRead shows
-              exact text read from the fixture; the Go catalog retains byte
-              slices. Empty groups remain visible. Missing metadata, malformed
-              selected rules, and observed symlinks fail without a partial
-              catalog.
+              returning. The loader itself performs reads only. Each rule owns
+              its exact original document, including YAML comments, delimiters,
+              and body. supportingFiles contains only the manifest, group
+              metadata, and terms; filesRead lists all paths read. Empty groups
+              remain visible. Missing metadata, malformed selected rules, and
+              observed symlinks fail without a partial catalog.
             </p>
             <p>
               <code>ok: true</code> means Go returned no error.
@@ -419,7 +420,7 @@
           "files maps contained paths to file text. groups is a supported pattern or explicit list. Optional links creates fixture-owned symlinks for rejection tests.",
         inputlabel: "Editable library fixture",
         details:
-          "The adapter creates a temporary directory, writes your fixture there, calls the real Go loader, and removes that directory before returning. The loader itself performs reads only. filesRead shows exact text read from the fixture; the Go catalog retains byte slices. Empty groups remain visible. Missing metadata, malformed selected rules, and observed symlinks fail without a partial catalog.",
+          "The adapter creates a temporary directory, writes your fixture there, calls the real Go loader, and removes that directory before returning. The loader itself performs reads only. Each rule owns its exact original document, including YAML comments, delimiters, and body. supportingFiles contains only the manifest, group metadata, and terms; filesRead lists all paths read. Empty groups remain visible. Missing metadata, malformed selected rules, and observed symlinks fail without a partial catalog.",
         boundaries:
           "You cannot choose a host directory from this page. The loader receives an already-open, caller-owned filesystem root. It reads selected groups and declared terms, preserves original bytes, and checks cancellation and limits. Supporting assets and Markdown link closure are left for later import work. Unselected groups are not parsed. No existing project files are written.",
         operation: "loadLibrary",
@@ -437,6 +438,20 @@
                   "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures for the caller.\nwhenToRead: When calling fallible functions.\n---\n# Return errors\n\nReturn failures with useful context.\n",
                 "practices/testing/_group.json":
                   '{"name": "Testing", "description": "Testing guidance.", "whenToRead": "When writing tests."}',
+              },
+              groups: "*",
+              source: "team",
+            },
+          },
+          {
+            name: "Original formatting",
+            input: {
+              files: {
+                "rule-library.json": '{"formatVersion":1}',
+                "techs/go/_group.json":
+                  '{"name":"Go","description":"Go conventions.","whenToRead":"When writing Go."}',
+                "techs/go/errors.md":
+                  "---\r\n# Keep this author comment.\r\ntitle: 'Return errors'\r\nimpact: HIGH\r\nimpactDescription: Preserve failures.\r\nwhenToRead: When calling fallible functions.\r\ntags: [errors, reliability]\r\n---\r\n# Return errors\r\n\r\nKeep  internal spacing.  \r\n",
               },
               groups: "*",
               source: "team",

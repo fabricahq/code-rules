@@ -25,12 +25,13 @@ const (
 	maxFiles      = 10_000
 )
 
-// Catalog owns parsed selected groups and exact bytes read for rules, metadata, and terms.
+// Catalog owns selected rules and supporting file bytes. Each rule owns its
+// original Document; SupportingFiles holds only manifest, group metadata, and terms.
 // Assets and Markdown link closure are deliberately left to the later import slice.
 type Catalog struct {
-	Groups   []Group                    `json:"groups"`
-	Licenses []rules.LicenseDeclaration `json:"licenses"`
-	Files    map[string][]byte          `json:"files"`
+	Groups          []Group                    `json:"groups"`
+	Licenses        []rules.LicenseDeclaration `json:"licenses"`
+	SupportingFiles map[string][]byte          `json:"supportingFiles"`
 }
 
 // Group includes display metadata and path-sorted rules; empty groups are valid.
@@ -97,7 +98,13 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 		}
 		catalog.Groups = append(catalog.Groups, group)
 	}
-	catalog.Files = r.files
+	// Transfer each rule document to its Rule; retain only supporting files in the map.
+	for _, group := range catalog.Groups {
+		for _, rule := range group.Rules {
+			delete(r.files, rule.Path)
+		}
+	}
+	catalog.SupportingFiles = r.files
 	return catalog, nil
 }
 
@@ -334,4 +341,13 @@ func (r *reader) rulePaths(directory, metadata string, terms []string, paths *[]
 }
 
 // Paths returns the exact read inventory in sorted order without exposing map iteration order.
-func (c Catalog) Paths() []string { return slices.Sorted(maps.Keys(c.Files)) }
+func (c Catalog) Paths() []string {
+	paths := slices.Collect(maps.Keys(c.SupportingFiles))
+	for _, group := range c.Groups {
+		for _, rule := range group.Rules {
+			paths = append(paths, rule.Path)
+		}
+	}
+	slices.Sort(paths)
+	return paths
+}

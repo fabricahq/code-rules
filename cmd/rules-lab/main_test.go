@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/fabricahq/code-rules/internal/rules"
 	"io"
 	"log/slog"
 	"net/http"
@@ -16,6 +14,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // TestHTTPValidationDoesNotLogInput checks that expected validation failures never expose user input in logs.
@@ -268,7 +268,7 @@ func TestHTTPParsesCompleteRule(t *testing.T) {
 				t.Fatalf("HTTP %d: %s", recorder.Code, recorder.Body)
 			}
 			if test.errorName == "" {
-				if !got.OK || got.Value["id"] != "team:techs/go/example" || got.Value["metadata"] != metadata || got.Value["body"] != " Body  \r\n" {
+				if !got.OK || got.Value["id"] != "team:techs/go/example" || got.Value["document"] != test.text {
 					t.Fatalf("unexpected rule: %s", recorder.Body)
 				}
 			} else if got.OK || got.Value != nil || got.Error == nil || got.Error.Name != test.errorName || !strings.HasPrefix(got.Error.Location, "team:techs/go/example.md") {
