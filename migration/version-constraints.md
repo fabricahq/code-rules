@@ -36,6 +36,7 @@ These functions do not fetch tags, select the highest release, inspect files, or
 | `>= 1.2.0, < 2.0.0` | Comma-separated AND |
 | `~> 1.2.3` | At least 1.2.3, below 1.3.0 for stable releases |
 | `~> 1.2` | At least 1.2.0, below 2.0.0 for stable releases |
+| `1.2.3` | Exactly 1.2.3; the `=` operator is optional |
 | `1.2` | Exactly 1.2.0, not the entire minor series |
 | `^1.2.3`, `~1.2.3`, `1.x`, `*` | Rejected |
 | `1.2.3 || 2.0.0` | Rejected; no native OR expression |
@@ -49,7 +50,7 @@ The shipping TypeScript sources and npm documentation remain pinned. This docume
 
 ## Evidence
 
-The 61 independently authored fixtures include 21 valid constraints, 17 invalid constraints, and 23 matching cases. The shared runner checks the actual pinned TypeScript result separately from the intended Go result. There are 34 new explicitly recorded differences approved by the user's choice of native HashiCorp semantics. All 640 comparisons pass with 230 total approved differences, including earlier slices.
+The 63 independently authored fixtures include 21 valid constraints, 17 invalid constraints, and 25 matching cases. The shared runner checks the actual pinned TypeScript result separately from the intended Go result. There are 34 new explicitly recorded differences approved by the user's choice of native HashiCorp semantics. All 642 comparisons pass with 230 total approved differences, including earlier slices.
 
 Direct Go tests also cover zero constraints, invalid complete versions, typed diagnostic locations, failure without partial parsed values, and reuse. HTTP tests distinguish matching false from validation errors and reject malformed adapter input.
 
@@ -75,7 +76,7 @@ After this PR: complete project configuration parsing; library manifests and lic
 ### Local validation
 
 - Go race tests, vet, and Staticcheck v0.8.1 pass on Go 1.27.1.
-- All 640 shared comparisons pass; 34 new cases explicitly differ from TypeScript.
-- All 22 browser presets return the expected values or errors. Desktop and narrow layouts were inspected; no horizontal overflow or console warnings/errors were observed.
+- All 642 shared comparisons pass; 34 new cases explicitly differ from TypeScript.
+- All 25 browser presets return the expected values or errors. Desktop and narrow layouts were inspected; no horizontal overflow or console warnings/errors were observed.
 - `bun run check` passes: all 444 TypeScript tests, formatting, lint, typecheck, documentation checks/build, and local links. All six installed-package tests pass with a writable temporary npm cache.
 - PR #17 is ready for review against `go-migration`. CodeRabbit acknowledged the manual full review and started processing the branch. Independent review completion and human approval remain separate.
