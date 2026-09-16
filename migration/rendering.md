@@ -1,6 +1,6 @@
 # Standalone rule rendering
 
-`build.RenderRules` turns a `build.Resolve` result into generated-path-to-Markdown values. It writes no files and leaves authoritative source documents unchanged.
+`build.RenderRules` turns a `build.Resolve` result into generated-path-to-Markdown values. It writes no files and leaves authoritative source documents unchanged. Rule parsing and rendering reject invalid UTF-8 rather than allowing delivery to replace malformed bytes.
 
 Each standalone rule includes applicability, impact, guidance, origin, attribution, license links, and original frontmatter. Goldmark identifies actual Markdown links and reference definitions. Source edits relocate destinations while leaving other body text intact. Empty destinations point to the retained original file. Fragment-only links remain local to the standalone document. Missing local links and relative raw-HTML references fail.
 

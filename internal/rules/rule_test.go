@@ -121,3 +121,21 @@ func escapedTagDocument(count int) string {
 	text.WriteString("---\nBody")
 	return text.String()
 }
+
+// TestParseDocumentEncoding rejects malformed bytes while preserving valid Unicode verbatim.
+func TestParseDocumentEncoding(t *testing.T) {
+	prefix := "---\ntitle: Rule\nimpact: HIGH\nimpactDescription: Avoid failure.\nwhenToRead: When coding.\n---\n"
+	for _, body := range []string{"Guidance: \xff", "Guidance: \xe2\x82", "Guidance: café 🐹 \ufffd"} {
+		got, err := rules.Parse(prefix+body, "techs/go/example.md", "local")
+		if strings.HasPrefix(body, "Guidance: café") {
+			if err != nil || got.Document != prefix+body {
+				t.Fatalf("valid Unicode changed: %#v, %v", got, err)
+			}
+			continue
+		}
+		var validation *rules.ValidationError
+		if !errors.As(err, &validation) || validation.Location != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, rules.Rule{}) {
+			t.Fatalf("expected UTF-8 error and zero rule, got %#v, %v", got, err)
+		}
+	}
+}
