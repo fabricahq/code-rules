@@ -3,6 +3,7 @@
 package build_test
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"testing"
@@ -10,6 +11,8 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 
 	"github.com/fabricahq/code-rules/internal/build"
+	"github.com/yuin/goldmark/v2/parser"
+	htmlrenderer "github.com/yuin/goldmark/v2/renderer/html"
 )
 
 // TestIndexPagesMeasuresLines covers source lines at an exact fit and preserves complete ordered entries.
@@ -182,7 +185,7 @@ func TestGroupPagesKeepMultipleSourceCues(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, file := range []string{"RULES.md", "groups/techs/go.md"} {
-		for _, cue := range []string{"**team: Go:**\n\nGo guidance.\n\n**When to read this group:** When editing Go.", "**second: Go Services:**\n\nOther guidance.\n\n**When to read this group:** When reviewing services."} {
+		for _, cue := range []string{"**team: Go:**\n\n**Description:** Go guidance.\n\n**When to read this group:** When editing Go.", "**second: Go Services:**\n\n**Description:** Other guidance.\n\n**When to read this group:** When reviewing services."} {
 			if !strings.Contains(pages[file], cue) {
 				t.Fatalf("%s omitted %q", file, cue)
 			}
@@ -274,6 +277,31 @@ func TestGroupDescriptionsEscapeMarkdown(t *testing.T) {
 	for _, file := range []string{"RULES.md", "groups/techs/go.md"} {
 		if !strings.Contains(pages[file], `\[guide\]\(https://example.com\) \# Heading`) {
 			t.Fatalf("%s description was not escaped: %s", file, pages[file])
+		}
+	}
+}
+
+// TestGroupDescriptionsRemainLiteral prevents descriptions from becoming Markdown block syntax.
+func TestGroupDescriptionsRemainLiteral(t *testing.T) {
+	config, libraries := fixture(t, "{}", "{}")
+	resolved, err := build.Resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, description := range []string{"---", "- Text", "1. Text"} {
+		resolved.Groups[0].EffectiveGuidance[0].Metadata.Description = description
+		pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, file := range []string{"RULES.md", "groups/techs/go.md"} {
+			var html bytes.Buffer
+			if err := htmlrenderer.New().Render(&html, []byte(pages[file]), parser.New().Parse([]byte(pages[file]))); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(html.String(), "<p><strong>Description:</strong> "+description+"</p>") {
+				t.Fatalf("%s lost literal description %q", file, description)
+			}
 		}
 	}
 }

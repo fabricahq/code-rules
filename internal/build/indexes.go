@@ -187,7 +187,7 @@ func groupReadingGuidance(group Group) string {
 	blocks := []string{}
 	for _, guidance := range group.EffectiveGuidance {
 		metadata := guidance.Metadata
-		text := escapeText(metadata.Description) + "\n\n**When to read this group:** " + escapeText(metadata.WhenToRead)
+		text := "**Description:** " + escapeText(metadata.Description) + "\n\n**When to read this group:** " + escapeText(metadata.WhenToRead)
 		if len(group.EffectiveGuidance) > 1 {
 			text = "**" + escapeText(guidance.Source) + ": " + escapeText(metadata.Name) + ":**\n\n" + text
 		}
