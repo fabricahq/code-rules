@@ -1,6 +1,6 @@
 # Migration feedback
 
-Status: PRs #11, #12, and #13 were human-approved and merged. Complete rule parsing is the current slice.
+Status: PRs #11 through #14 were human-approved and merged. Repository addresses and links are the current slice.
 
 ## Rules used
 
@@ -91,3 +91,11 @@ The assertions now match those source contracts. No baseline, production behavio
 - The user explicitly requested strict rule frontmatter during review. Reject unknown top-level and attribution fields, report names deterministically, and retain separate expectations for the permissive reference.
 
 Evidence and the approved Unicode behavior live in [complete rule parsing](rule-parser.md).
+
+## Repository address slice
+
+- Validate authored path segments before URL normalization. Otherwise a URL parser can erase traversal and encoded separators before validation sees them.
+- Keep duplicate-source identity separate from the transport address. Known hosts can share identities across standard transports; generic sources retain transport and path distinctions.
+- Return an explicit absent web convention instead of guessing a custom host's routes.
+
+Evidence: [repository address fixtures](../tests/migration/repositories/cases.json) and [slice scope](repositories.md).

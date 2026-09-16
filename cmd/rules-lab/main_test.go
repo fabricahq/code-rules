@@ -286,3 +286,30 @@ func TestRuleAdapterRejectsInvalidInput(t *testing.T) {
 		}
 	}
 }
+
+// TestHTTPRepositories checks native links, null results, and credential privacy through HTTP.
+func TestHTTPRepositories(t *testing.T) {
+	cases := []struct{ name, body, expected string }{
+		{"file", `{"operation":"repositoryFile","location":"repository","input":{"repository":"git@github.com:Team/Rules.git","commit":"abc123","path":"a b.md","image":false}}`, `{"ok":true,"value":"https://github.com/Team/Rules/blob/abc123/a%20b.md"}`},
+		{"unknown web", `{"operation":"repositoryFile","location":"repository","input":{"repository":"git@host.example:Rules.git","commit":"abc123","path":"a.md","image":false}}`, `{"ok":true,"value":null}`},
+		{"credentials", `{"operation":"repository","location":"repository","input":"https://user:secret@example.org/rules"}`, `{"ok":false,"error":{"name":"ValidationError","message":"repository: repository requires a host and must not embed credentials; SSH may specify a username","location":"repository"}}`},
+		{"link address error", `{"operation":"repositoryFile","location":"custom.location","input":{"repository":null,"commit":"abc123","path":"a.md","image":false}}`, `{"ok":false,"error":{"name":"ValidationError","message":"repository: expected nonempty text","location":"repository"}}`},
+		{"missing repository", `{"operation":"repositoryFile","location":"repository","input":{"commit":"abc123","path":"a.md","image":false}}`, `{"ok":false,"error":{"name":"AdapterError","message":"repositoryFile input must contain repository, commit, path, and image"}}`},
+		{"invalid wrapper", `{"operation":"repositoryFile","location":"repository","input":{"repository":"git@github.com:team/rules"}}`, `{"ok":false,"error":{"name":"AdapterError","message":"repositoryFile input must contain repository, commit, path, and image"}}`},
+	}
+	for _, test := range cases {
+		// Exercise each request through the handler and inspect both output and logs.
+		t.Run(test.name, func(t *testing.T) {
+			var logs bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
+			recorder := httptest.NewRecorder()
+			handler(logger).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(test.body)))
+			if recorder.Code != http.StatusOK || strings.TrimSpace(recorder.Body.String()) != test.expected {
+				t.Fatalf("got %d %s; want %s", recorder.Code, recorder.Body, test.expected)
+			}
+			if strings.Contains(logs.String(), "secret") || strings.Contains(logs.String(), "example.org") {
+				t.Fatalf("request content leaked into logs: %s", &logs)
+			}
+		})
+	}
+}

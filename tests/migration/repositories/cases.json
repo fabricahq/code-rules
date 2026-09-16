@@ -1,0 +1,1487 @@
+[
+  {
+    "id": "repository-https",
+    "operation": "repository",
+    "input": "https://github.com/Team/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules",
+        "web": {
+          "root": "https://github.com/Team/Rules",
+          "tree": "https://github.com/Team/Rules/tree",
+          "file": "https://github.com/Team/Rules/blob",
+          "raw": "https://raw.githubusercontent.com/Team/Rules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-scp",
+    "operation": "repository",
+    "input": "git@github.com:Team/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules",
+        "web": {
+          "root": "https://github.com/Team/Rules",
+          "tree": "https://github.com/Team/Rules/tree",
+          "file": "https://github.com/Team/Rules/blob",
+          "raw": "https://raw.githubusercontent.com/Team/Rules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-ssh",
+    "operation": "repository",
+    "input": "ssh://git@GITHUB.COM:22/Team/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules",
+        "web": {
+          "root": "https://github.com/Team/Rules",
+          "tree": "https://github.com/Team/Rules/tree",
+          "file": "https://github.com/Team/Rules/blob",
+          "raw": "https://raw.githubusercontent.com/Team/Rules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-https-port",
+    "operation": "repository",
+    "input": "https://github.com:443/Team/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules",
+        "web": {
+          "root": "https://github.com/Team/Rules",
+          "tree": "https://github.com/Team/Rules/tree",
+          "file": "https://github.com/Team/Rules/blob",
+          "raw": "https://raw.githubusercontent.com/Team/Rules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-trailing-dot",
+    "operation": "repository",
+    "input": "https://github.com./Team/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules",
+        "web": {
+          "root": "https://github.com/Team/Rules",
+          "tree": "https://github.com/Team/Rules/tree",
+          "file": "https://github.com/Team/Rules/blob",
+          "raw": "https://raw.githubusercontent.com/Team/Rules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-trailing-slash",
+    "operation": "repository",
+    "input": "https://github.com/Team/Rules.git/",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules",
+        "web": {
+          "root": "https://github.com/Team/Rules",
+          "tree": "https://github.com/Team/Rules/tree",
+          "file": "https://github.com/Team/Rules/blob",
+          "raw": "https://raw.githubusercontent.com/Team/Rules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-encoded",
+    "operation": "repository",
+    "input": "https://github.com/%54eam/%52ules%2egit",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules",
+        "web": {
+          "root": "https://github.com/Team/Rules",
+          "tree": "https://github.com/Team/Rules/tree",
+          "file": "https://github.com/Team/Rules/blob",
+          "raw": "https://raw.githubusercontent.com/Team/Rules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-scp-absolute",
+    "operation": "repository",
+    "input": "git@github.com:/Team/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules",
+        "web": {
+          "root": "https://github.com/Team/Rules",
+          "tree": "https://github.com/Team/Rules/tree",
+          "file": "https://github.com/Team/Rules/blob",
+          "raw": "https://raw.githubusercontent.com/Team/Rules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-gitlab",
+    "operation": "repository",
+    "input": "https://gitlab.com/Team/Sub/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "gitlab.com/Team/Sub/Rules",
+        "web": {
+          "root": "https://gitlab.com/Team/Sub/Rules",
+          "tree": "https://gitlab.com/Team/Sub/Rules/-/tree",
+          "file": "https://gitlab.com/Team/Sub/Rules/-/blob",
+          "raw": "https://gitlab.com/Team/Sub/Rules/-/raw"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-gitlab-scp",
+    "operation": "repository",
+    "input": "git@gitlab.com:Team/Sub/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "gitlab.com/Team/Sub/Rules",
+        "web": {
+          "root": "https://gitlab.com/Team/Sub/Rules",
+          "tree": "https://gitlab.com/Team/Sub/Rules/-/tree",
+          "file": "https://gitlab.com/Team/Sub/Rules/-/blob",
+          "raw": "https://gitlab.com/Team/Sub/Rules/-/raw"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-gitlab-ssh",
+    "operation": "repository",
+    "input": "ssh://git@gitlab.com/Team/Sub/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "gitlab.com/Team/Sub/Rules",
+        "web": {
+          "root": "https://gitlab.com/Team/Sub/Rules",
+          "tree": "https://gitlab.com/Team/Sub/Rules/-/tree",
+          "file": "https://gitlab.com/Team/Sub/Rules/-/blob",
+          "raw": "https://gitlab.com/Team/Sub/Rules/-/raw"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-without-suffix",
+    "operation": "repository",
+    "input": "https://github.com/team/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules",
+        "web": {
+          "root": "https://github.com/team/rules",
+          "tree": "https://github.com/team/rules/tree",
+          "file": "https://github.com/team/rules/blob",
+          "raw": "https://raw.githubusercontent.com/team/rules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-uppercase-suffix",
+    "operation": "repository",
+    "input": "https://github.com/team/Rules.GIT",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules.git",
+        "web": {
+          "root": "https://github.com/team/Rules.GIT",
+          "tree": "https://github.com/team/Rules.GIT/tree",
+          "file": "https://github.com/team/Rules.GIT/blob",
+          "raw": "https://raw.githubusercontent.com/team/Rules.GIT"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-punctuation",
+    "operation": "repository",
+    "input": "https://github.com/team/rules!'()*.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/rules%21%27%28%29%2a",
+        "web": {
+          "root": "https://github.com/team/rules%21%27%28%29%2A",
+          "tree": "https://github.com/team/rules%21%27%28%29%2A/tree",
+          "file": "https://github.com/team/rules%21%27%28%29%2A/blob",
+          "raw": "https://raw.githubusercontent.com/team/rules%21%27%28%29%2A"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-unicode",
+    "operation": "repository",
+    "input": "https://github.com/team/caf\u00e9\ud83d\udc39.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/caf%c3%a9%f0%9f%90%b9",
+        "web": {
+          "root": "https://github.com/team/caf%C3%A9%F0%9F%90%B9",
+          "tree": "https://github.com/team/caf%C3%A9%F0%9F%90%B9/tree",
+          "file": "https://github.com/team/caf%C3%A9%F0%9F%90%B9/blob",
+          "raw": "https://raw.githubusercontent.com/team/caf%C3%A9%F0%9F%90%B9"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-encoded-space",
+    "operation": "repository",
+    "input": "https://gitlab.com/team/a%20b.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "gitlab.com/team/a%20b",
+        "web": {
+          "root": "https://gitlab.com/team/a%20b",
+          "tree": "https://gitlab.com/team/a%20b/-/tree",
+          "file": "https://gitlab.com/team/a%20b/-/blob",
+          "raw": "https://gitlab.com/team/a%20b/-/raw"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-scp-percent",
+    "operation": "repository",
+    "input": "git@github.com:team/%72ules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/%2572ules",
+        "web": {
+          "root": "https://github.com/team/%2572ules",
+          "tree": "https://github.com/team/%2572ules/tree",
+          "file": "https://github.com/team/%2572ules/blob",
+          "raw": "https://raw.githubusercontent.com/team/%2572ules"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-scp-percent-dot",
+    "operation": "repository",
+    "input": "git@github.com:team/%2e%2e.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/%252e%252e",
+        "web": {
+          "root": "https://github.com/team/%252e%252e",
+          "tree": "https://github.com/team/%252e%252e/tree",
+          "file": "https://github.com/team/%252e%252e/blob",
+          "raw": "https://raw.githubusercontent.com/team/%252e%252e"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-encoded-question",
+    "operation": "repository",
+    "input": "https://github.com/team/a%3Fb.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/a%3fb",
+        "web": {
+          "root": "https://github.com/team/a%3Fb",
+          "tree": "https://github.com/team/a%3Fb/tree",
+          "file": "https://github.com/team/a%3Fb/blob",
+          "raw": "https://raw.githubusercontent.com/team/a%3Fb"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-encoded-hash",
+    "operation": "repository",
+    "input": "https://github.com/team/a%23b.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "github.com/team/a%23b",
+        "web": {
+          "root": "https://github.com/team/a%23b",
+          "tree": "https://github.com/team/a%23b/tree",
+          "file": "https://github.com/team/a%23b/blob",
+          "raw": "https://raw.githubusercontent.com/team/a%23b"
+        }
+      }
+    }
+  },
+  {
+    "id": "repository-generic",
+    "operation": "repository",
+    "input": "https://git.example.org/Team/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://git.example.org/Team/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-generic-port",
+    "operation": "repository",
+    "input": "https://git.example.org:8443/Team/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://git.example.org:8443/Team/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-generic-ssh",
+    "operation": "repository",
+    "input": "ssh://alice@GIT.EXAMPLE.ORG:2222/srv/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "ssh://alice@git.example.org:2222/srv/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-generic-scp",
+    "operation": "repository",
+    "input": "git@git.example.org:Team/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "git@git.example.org:Team/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-generic-absolute",
+    "operation": "repository",
+    "input": "git@git.example.org:/srv/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "git@git.example.org:/srv/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-generic-lowercase",
+    "operation": "repository",
+    "input": "https://git.example.org/Team/rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://git.example.org/Team/rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-generic-default-port",
+    "operation": "repository",
+    "input": "ssh://git@git.example.org:22/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "ssh://git@git.example.org:22/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-custom-github-port",
+    "operation": "repository",
+    "input": "ssh://git@github.com:2222/team/rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "ssh://git@github.com:2222/team/rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-custom-github-user",
+    "operation": "repository",
+    "input": "ssh://alice@github.com/team/rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "ssh://alice@github.com/team/rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-missing-ssh-user",
+    "operation": "repository",
+    "input": "ssh://github.com/team/rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "ssh://github.com/team/rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-similar-host",
+    "operation": "repository",
+    "input": "https://github.com.evil.test/team/rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://github.com.evil.test/team/rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-self-hosted",
+    "operation": "repository",
+    "input": "https://gitlab.example.org/team/rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://gitlab.example.org/team/rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-ipv6",
+    "operation": "repository",
+    "input": "ssh://git@[0:0:0:0:0:0:0:1]:2222/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "ssh://git@[::1]:2222/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-ipv6-scp",
+    "operation": "repository",
+    "input": "git@[::1]:Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "git@[::1]:Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-ipv4",
+    "operation": "repository",
+    "input": "https://127.1/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://127.0.0.1/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-idna",
+    "operation": "repository",
+    "input": "https://b\u00fccher.example/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://xn--bcher-kva.example/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-too-many-github-segments",
+    "operation": "repository",
+    "input": "https://github.com/team/sub/rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://github.com/team/sub/rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-empty-name-after-suffix",
+    "operation": "repository",
+    "input": "https://github.com/team/.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://github.com/team/.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-one-segment",
+    "operation": "repository",
+    "input": "https://gitlab.com/rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://gitlab.com/rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-generic-trailing-slash",
+    "operation": "repository",
+    "input": "https://HOST.example./Rules.git/",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "https://host.example/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-scp-raw-encoding",
+    "operation": "repository",
+    "input": "git@host.example:%zz.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "git@host.example:%zz.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-ssh-uppercase-host",
+    "operation": "repository",
+    "input": "ssh://git@Git.Example/Rules.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": true,
+      "value": {
+        "identity": "ssh://git@git.example/Rules.git",
+        "web": null
+      }
+    }
+  },
+  {
+    "id": "repository-empty",
+    "operation": "repository",
+    "input": "",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: expected nonempty text",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-blank",
+    "operation": "repository",
+    "input": " \t\n",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: expected nonempty text",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-null",
+    "operation": "repository",
+    "input": null,
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: expected nonempty text",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-number",
+    "operation": "repository",
+    "input": 42,
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: expected nonempty text",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-object",
+    "operation": "repository",
+    "input": {},
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: expected nonempty text",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-array",
+    "operation": "repository",
+    "input": [],
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: expected nonempty text",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-space",
+    "operation": "repository",
+    "input": " https://github.com/team/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must not contain whitespace, backslashes, query parameters, or fragments",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-backslash",
+    "operation": "repository",
+    "input": "https://example.org/a\\b",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must not contain whitespace, backslashes, query parameters, or fragments",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-query",
+    "operation": "repository",
+    "input": "https://example.org/rules?ref=main",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must not contain whitespace, backslashes, query parameters, or fragments",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-fragment",
+    "operation": "repository",
+    "input": "https://example.org/rules#main",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must not contain whitespace, backslashes, query parameters, or fragments",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-newline",
+    "operation": "repository",
+    "input": "https://example.org/ru\nles",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must not contain whitespace, backslashes, query parameters, or fragments",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-control",
+    "operation": "repository",
+    "input": "https://example.org/ru\u0000les",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must not contain whitespace, backslashes, query parameters, or fragments",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-bom",
+    "operation": "repository",
+    "input": "\ufeffhttps://example.org/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must not contain whitespace, backslashes, query parameters, or fragments",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-surrogate",
+    "operation": "repository",
+    "input": "https://example.org/\ud800.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must not contain whitespace, backslashes, query parameters, or fragments",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-low-surrogate",
+    "operation": "repository",
+    "input": "https://example.org/\udc00.git",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must not contain whitespace, backslashes, query parameters, or fragments",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-shorthand",
+    "operation": "repository",
+    "input": "team/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-http",
+    "operation": "repository",
+    "input": "http://example.org/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-file-protocol",
+    "operation": "repository",
+    "input": "file:///tmp/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-git-protocol",
+    "operation": "repository",
+    "input": "git://example.org/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-getter",
+    "operation": "repository",
+    "input": "git::https://github.com/team/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-missing-path",
+    "operation": "repository",
+    "input": "https://example.org/",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-uppercase-scheme",
+    "operation": "repository",
+    "input": "HTTPS://github.com/team/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-scp-option-user",
+    "operation": "repository",
+    "input": "-git@example.org:rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-empty-scp-path",
+    "operation": "repository",
+    "input": "git@example.org:",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-dot",
+    "operation": "repository",
+    "input": "https://example.org/a/../rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-encoded-dot",
+    "operation": "repository",
+    "input": "https://example.org/a/%2E%2e/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-encoded-slash",
+    "operation": "repository",
+    "input": "https://example.org/a%2fb/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-encoded-backslash",
+    "operation": "repository",
+    "input": "https://example.org/a%5cb/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-encoded-control",
+    "operation": "repository",
+    "input": "https://example.org/a%00b/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-double-encoding",
+    "operation": "repository",
+    "input": "https://example.org/a%252fb/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-empty-segment",
+    "operation": "repository",
+    "input": "https://example.org//rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-double-trailing",
+    "operation": "repository",
+    "input": "https://example.org/rules//",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-scp-dot",
+    "operation": "repository",
+    "input": "git@example.org:../rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-scp-absolute-dot",
+    "operation": "repository",
+    "input": "git@example.org:/a/./rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-path-before-credentials",
+    "operation": "repository",
+    "input": "https://token@example.org/a/../rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains an empty, dot, or unsafe segment",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-bad-percent",
+    "operation": "repository",
+    "input": "https://example.org/%zz/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains invalid percent encoding",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-short-percent",
+    "operation": "repository",
+    "input": "https://example.org/%2/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains invalid percent encoding",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-bad-utf8",
+    "operation": "repository",
+    "input": "https://example.org/%FF/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains invalid percent encoding",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-encoded-surrogate",
+    "operation": "repository",
+    "input": "https://example.org/%ED%A0%80/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository path contains invalid percent encoding",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-https-token",
+    "operation": "repository",
+    "input": "https://token@example.org/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository requires a host and must not embed credentials; SSH may specify a username",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-https-password",
+    "operation": "repository",
+    "input": "https://user:secret@example.org/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository requires a host and must not embed credentials; SSH may specify a username",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-ssh-password",
+    "operation": "repository",
+    "input": "ssh://git:secret@example.org/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository requires a host and must not embed credentials; SSH may specify a username",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-empty-password",
+    "operation": "repository",
+    "input": "ssh://git:@example.org/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository requires a host and must not embed credentials; SSH may specify a username",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-empty-user",
+    "operation": "repository",
+    "input": "https://@example.org/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository requires a host and must not embed credentials; SSH may specify a username",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-encoded-user",
+    "operation": "repository",
+    "input": "ssh://%67it@example.org/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository requires a host and must not embed credentials; SSH may specify a username",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-double-dot-host",
+    "operation": "repository",
+    "input": "https://github.com../team/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository hostname must be a DNS name or IP address",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-underscore-host",
+    "operation": "repository",
+    "input": "https://git_host.example/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository hostname must be a DNS name or IP address",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-hyphen-host",
+    "operation": "repository",
+    "input": "ssh://-option.example/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: repository hostname must be a DNS name or IP address",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-invalid-port",
+    "operation": "repository",
+    "input": "https://example.org:99999/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: invalid Git repository URL",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-invalid-ipv6",
+    "operation": "repository",
+    "input": "ssh://git@[broken]/rules",
+    "location": "sources.team.repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.repository: invalid Git repository URL",
+        "location": "sources.team.repository"
+      }
+    }
+  },
+  {
+    "id": "repository-file",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "https://github.com/Team/Rules.git",
+      "commit": "abc123",
+      "path": "techs/go/errors.md",
+      "image": false
+    },
+    "location": "repository",
+    "expected": {
+      "ok": true,
+      "value": "https://github.com/Team/Rules/blob/abc123/techs/go/errors.md"
+    }
+  },
+  {
+    "id": "repository-raw",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "git@github.com:Team/Rules.git",
+      "commit": "abc123",
+      "path": "assets/chart.png",
+      "image": true
+    },
+    "location": "repository",
+    "expected": {
+      "ok": true,
+      "value": "https://raw.githubusercontent.com/Team/Rules/abc123/assets/chart.png"
+    }
+  },
+  {
+    "id": "repository-gitlab-file",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "https://gitlab.com/Team/Sub/Rules.git",
+      "commit": "abc123",
+      "path": "guide.md",
+      "image": false
+    },
+    "location": "repository",
+    "expected": {
+      "ok": true,
+      "value": "https://gitlab.com/Team/Sub/Rules/-/blob/abc123/guide.md"
+    }
+  },
+  {
+    "id": "repository-gitlab-raw",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "https://gitlab.com/Team/Sub/Rules.git",
+      "commit": "abc123",
+      "path": "a.png",
+      "image": true
+    },
+    "location": "repository",
+    "expected": {
+      "ok": true,
+      "value": "https://gitlab.com/Team/Sub/Rules/-/raw/abc123/a.png"
+    }
+  },
+  {
+    "id": "repository-file-escaping",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "https://github.com/team/rules",
+      "commit": "abc123",
+      "path": "a b/caf\u00e9#!'()*.md",
+      "image": false
+    },
+    "location": "repository",
+    "expected": {
+      "ok": true,
+      "value": "https://github.com/team/rules/blob/abc123/a%20b/caf%C3%A9%23!'()*.md"
+    }
+  },
+  {
+    "id": "repository-file-percent",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "https://github.com/team/rules",
+      "commit": "abc123",
+      "path": "a%20b.md",
+      "image": false
+    },
+    "location": "repository",
+    "expected": {
+      "ok": true,
+      "value": "https://github.com/team/rules/blob/abc123/a%2520b.md"
+    }
+  },
+  {
+    "id": "repository-unknown-link",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "git@host.example:rules",
+      "commit": "abc123",
+      "path": "guide.md",
+      "image": false
+    },
+    "location": "repository",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "repository-unknown-raw",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "https://github.com:8443/team/rules",
+      "commit": "abc123",
+      "path": "a.png",
+      "image": true
+    },
+    "location": "repository",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "repository-link-invalid-address",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "team/rules",
+      "commit": "abc123",
+      "path": "a.md",
+      "image": false
+    },
+    "location": "repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "repository"
+      }
+    }
+  }
+]

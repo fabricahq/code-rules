@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Code Rules · Rule parser lab</title>
+    <title>Code Rules · Repository lab</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -324,72 +324,62 @@
     <main>
       <header>
         <strong>CODE RULES / GO MIGRATION</strong
-        ><span>Slice 04 · Complete rule parsing</span>
+        ><span>Slice 05 · Repository addresses</span>
       </header>
-      <h1>Validate the rule.<br />Keep the original text.</h1>
+      <h1>Recognize the source.<br />Build the right link.</h1>
       <p class="lede">
-        This PR turns a rule document into validated data: its identity,
-        selection metadata, and attribution. Edit an example and invoke the
-        actual Go parser. Original frontmatter and Markdown remain intact.
+        A Git address can identify the same repository across different
+        transports. Try the new Go parser and link builder. Each invocation runs
+        native Go and returns its actual result.
       </p>
       <div class="flow">
         <div>
-          <strong>01 &nbsp; Authored rule</strong
-          ><span>Document text, relative path, and source alias</span>
+          <strong>01 &nbsp; An explicit address</strong
+          ><span>HTTPS, ssh://, or user@host:path</span>
         </div>
         <div>
-          <strong>02 &nbsp; Validate the contents</strong
-          ><span>YAML, required fields, body, and attribution</span>
+          <strong>02 &nbsp; Validate and identify</strong
+          ><span>Check paths, credentials, host, and transport</span>
         </div>
         <div>
-          <strong>03 &nbsp; Rule or typed error</strong
-          ><span>Validated fields plus original text, or a diagnostic</span>
+          <strong>03 &nbsp; Identity and links</strong
+          ><span>Known web routes, or an explicit null</span>
         </div>
       </div>
       <div class="workspace">
         <section class="panel" aria-labelledby="input-heading">
-          <div class="label">Invoke the new function</div>
-          <h2 id="input-heading">Parse a complete rule</h2>
-          <div class="signature">
-            Parse(text, path, source string) (Rule, error)
-          </div>
-          <p class="hint">
-            Requires title, impact, impactDescription, whenToRead, and a
-            nonblank Markdown body. Tags and attribution are optional. Errors
-            return no partial rule.
-          </p>
-          <div class="presets" id="presets" aria-label="Example inputs"></div>
-          <label for="input">Rule document</label
-          ><textarea
-            id="input"
-            rows="15"
-            spellcheck="false"
-            aria-describedby="input-hint"
-          ></textarea>
-          <p id="input-hint" class="hint">
-            Enter the complete Markdown file, including its YAML frontmatter.
-            Both sections are returned unchanged after validation.
-          </p>
-          <label for="newlines">Line endings sent to Go</label>
-          <select id="newlines">
-            <option value="lf">LF (\n)</option>
-            <option value="crlf">CRLF (\r\n)</option>
+          <div class="label">Invoke a new function</div>
+          <h2 id="input-heading">Explore a repository address</h2>
+          <label for="operation">Operation</label>
+          <select id="operation">
+            <option value="repository">Parse a repository address</option>
+            <option value="repositoryFile">Build a file or raw link</option>
           </select>
-          <p class="hint">
-            The browser editor uses LF. This choice sets the line endings in the
-            actual request.
+          <div class="signature" id="signature"></div>
+          <p class="hint" id="operation-hint"></p>
+          <div class="presets" id="presets" aria-label="Example inputs"></div>
+          <label for="input">Repository address</label
+          ><input id="input" spellcheck="false" aria-describedby="input-hint" />
+          <p id="input-hint" class="hint">
+            The original address stays unchanged. Use fictional credentials when
+            testing errors.
           </p>
-          <label for="path">Relative rule path</label
-          ><input id="path" value="techs/go/errors.md" spellcheck="false" />
-          <p class="hint">
-            Determines the group and rule ID. No file is opened.
-          </p>
-          <label for="source">Source alias</label
-          ><input id="source" value="lab" spellcheck="false" />
-          <p class="hint">
-            A caller-supplied name. For example, the rule ID becomes
-            <code>lab:techs/go/errors</code>.
-          </p>
+          <div id="link-fields" hidden>
+            <label for="commit">Resolved commit</label
+            ><input id="commit" value="abc123" spellcheck="false" />
+            <label for="path">Path within the repository</label
+            ><input id="path" value="techs/go/errors.md" spellcheck="false" />
+            <label for="image">Link kind</label
+            ><select id="image">
+              <option value="false">File in the web interface</option>
+              <option value="true">Raw file contents</option>
+            </select>
+            <p class="hint">
+              The caller supplies a resolved commit and a validated path. This
+              function only builds the link; it does not check that the file
+              exists.
+            </p>
+          </div>
           <div class="actions">
             <button class="primary" id="invoke">Invoke Go function</button
             ><span id="timing" class="hint"></span>
@@ -401,40 +391,37 @@
             <span class="badge" id="status">Ready</span>
           </div>
           <p id="explanation">
-            Invoke Go to see a validated rule or the first validation error.
+            Invoke Go to see its returned value or validation error.
           </p>
           <pre id="output" aria-live="polite">No invocation yet.</pre>
-          <p id="metrics" class="hint"></p>
           <details open>
             <summary>How to read the result</summary>
             <p>
-              <code>title</code>, <code>impact</code>,
-              <code>impactDescription</code>, and <code>whenToRead</code> are
-              validated YAML values. <code>attribution</code> contains
-              normalized HTTP(S) URLs without credentials.
+              <code>identity</code> is a comparison key for duplicate sources.
+              GitHub paths compare in lowercase; GitLab paths retain case.
+              Standard HTTPS and git-user SSH transports share the same
+              known-host identity.
             </p>
             <p>
-              <code>metadata</code> and <code>body</code> preserve the authored
-              text. JSON makes whitespace visible: <code>\n</code> is LF and
-              <code>\r\n</code> is CRLF.
+              <code>web</code> contains root, tree, file, and raw endpoints. A
+              custom host, port, or SSH user may produce <code>web: null</code>.
+              This is a valid address with no recognized browser convention.
             </p>
             <p>
-              Unknown fields are rejected. Frontmatter accepts
-              <code>title</code>, <code>impact</code>,
-              <code>impactDescription</code>, <code>whenToRead</code>,
-              <code>tags</code>, and <code>attribution</code>. Each attribution
-              entry accepts only <code>url</code> and <code>description</code>.
-              Tags remain in the original metadata.
+              Link building returns a URL string, or <code>null</code> when no
+              web convention is known. Encoded path segments retain their slash
+              boundaries.
             </p>
             <p>
-              A successful parse validates this rule only. It does not resolve
-              other rules or read or write files.
+              No repositories are fetched, and no files are read or written. A
+              valid address does not establish access or existence.
             </p>
           </details>
           <h3>What crossed the boundary</h3>
           <p class="hint">
-            This request goes to <code>POST /invoke</code>. The native Go
-            adapter calls <code>rules.Parse</code>.
+            The browser sends this request to <code>POST /invoke</code>. The Go
+            adapter invokes <code>rules.ParseRepository</code> and, for a link,
+            <code>Repository.FileURL</code>.
           </p>
           <pre id="request">No request sent.</pre>
         </section>
@@ -444,40 +431,27 @@
         <h2>Three things to inspect</h2>
         <div class="review">
           <div>
-            <h3>1. Useful failures</h3>
+            <h3>1. One repository, several addresses</h3>
             <p>
-              Empty metadata, missing fields, blank bodies, duplicate YAML keys,
-              and aliases fail with a typed error. The location points to the
-              rule or offending field.
-            </p>
-            <p>
-              Try <strong>Unknown field</strong>, <strong>Empty body</strong>,
-              <strong>Duplicate key</strong>, and
-              <strong>Legacy guidance</strong>.
+              Try <strong>GitHub HTTPS</strong>, <strong>GitHub SSH</strong>,
+              and <strong>GitHub SCP</strong>. Their identities match. GitLab
+              retains the case of nested group paths.
             </p>
           </div>
           <div>
-            <h3>2. Metadata with meaning</h3>
+            <h3>2. Reject ambiguity early</h3>
             <p>
-              Impact is one of six values. Reading guidance is one nonblank
-              string. Tags accept text or distinct nonblank strings. Attribution
-              URLs accept HTTP(S) and reject credentials.
-            </p>
-            <p>
-              Try <strong>Attribution</strong>, <strong>Credentials</strong>,
-              and <strong>Duplicate tags</strong>.
+              Try <strong>Credentials</strong>, <strong>Traversal</strong>, and
+              <strong>Encoded slash</strong>. The parser checks authored path
+              segments before a URL parser could normalize them away.
             </p>
           </div>
           <div>
-            <h3>3. Preserve authored text</h3>
+            <h3>3. Known links, honest limits</h3>
             <p>
-              Comments, spacing, Unicode, and line endings remain in the
-              original metadata and body. Parsed fields are never written back
-              over those strings.
-            </p>
-            <p>
-              Try <strong>CRLF</strong>, <strong>Unicode</strong>, and
-              <strong>Date as text</strong>.
+              Switch to link building. Try <strong>Raw image</strong>,
+              <strong>Encoded file</strong>, and <strong>Unknown host</strong>.
+              A null result prevents callers from guessing a host's web routes.
             </p>
           </div>
         </div>
@@ -485,28 +459,22 @@
       <section class="section">
         <h2>What is ready to review</h2>
         <p class="notice">
-          This page invokes only the new complete-rule parser. Earlier group,
-          selection, and document-splitting functions remain in regression
-          tests.
+          This walkthrough covers only repository addresses and links. Earlier
+          rule and group operations remain in regression tests.
         </p>
         <p>
-          Shared cases check exact values and errors against independent
-          expectations and the pinned TypeScript parser. Approved Go YAML
-          diagnostics have separate expected messages. No output is normalized
-          to hide differences.
+          Shared fixtures check exact results and errors against independent
+          expectations and the pinned TypeScript implementation. This slice adds
+          no approved behavior differences or runtime dependencies.
         </p>
         <details>
           <summary>Run this slice yourself</summary>
           <pre>
-go run ./cmd/rules-lab -serve
+go run ./cmd/rules-lab -serve -port 4391
 
 go test ./internal/rules ./cmd/rules-lab
 go build -o /tmp/code-rules-lab ./cmd/rules-lab
 bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
-          <p class="hint">
-            The walkthrough uses the project's existing gallery styling. Every
-            invocation runs the real Go function.
-          </p>
         </details>
       </section>
       <footer>
@@ -514,150 +482,118 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       </footer>
     </main>
     <script>
-      // byID looks up a walkthrough control by its unique element ID.
+      // byID returns a named walkthrough control.
       const byID = (id) => document.getElementById(id);
-      const frontmatter =
-        "title: Preserve rule text\nimpact: HIGH\nimpactDescription: Keep authored text intact.\nwhenToRead: When loading rule files.";
-      const normal =
-        "---\n" +
-        frontmatter +
-        "\n---\n# Preserve rule text\n\nKeep the original text.\n";
-      // withMetadata builds an example document from YAML text and a Markdown body.
-      const withMetadata = (
-        metadata,
-        body = "# Preserve rule text\n\nKeep the original text.\n",
-      ) => "---\n" + metadata + "\n---\n" + body;
-      const examples = [
-        ["Valid rule", normal],
-        ["Empty body", withMetadata(frontmatter, "")],
-        ["Blank body", withMetadata(frontmatter, " \t\n")],
-        ["Empty metadata", withMetadata("")],
-        [
-          "Missing title",
-          withMetadata(frontmatter.replace("title: Preserve rule text\n", "")),
-        ],
-        [
-          "Legacy guidance",
-          withMetadata(
-            frontmatter.replace(
-              "whenToRead: When loading rule files.",
-              "whenToRead: [When loading rule files.]",
-            ),
-          ),
-        ],
-        [
-          "Invalid impact",
-          withMetadata(frontmatter.replace("impact: HIGH", "impact: URGENT")),
-        ],
-        [
-          "Numeric title",
-          withMetadata(
-            frontmatter.replace("title: Preserve rule text", "title: 42"),
-          ),
-        ],
-        [
-          "Duplicate tags",
-          withMetadata(frontmatter + "\ntags: [go, errors, go]"),
-        ],
-        ["Malformed YAML", withMetadata("title: [")],
-        ["Duplicate key", withMetadata(frontmatter + "\ntitle: Another title")],
-        [
-          "Alias",
-          withMetadata(frontmatter + "\nextra: &extra value\ncopy: *extra"),
-        ],
-        [
-          "Attribution",
-          withMetadata(
-            frontmatter +
-              "\nattribution:\n  - url: HTTPS://EXAMPLE.COM:443/a/../source\n    description: Adapted from this source.",
-          ),
-        ],
-        [
-          "Credentials",
-          withMetadata(
-            frontmatter +
-              "\nattribution:\n  - url: https://user:secret@example.com/source\n    description: Adapted from this source.",
-          ),
-        ],
-        [
-          "Unknown field",
-          withMetadata(
-            frontmatter + "\ncustom: {owner: team, status: reviewed}",
-          ),
-        ],
-        ["CRLF", normal, "crlf"],
-        [
-          "Unicode",
-          withMetadata(
-            frontmatter.replace("Preserve rule text", "Preserve Unicode 🐹"),
-            "\nKeep café and é intact.  \n",
-          ),
-        ],
-        [
-          "Unicode escapes",
-          withMetadata(
-            frontmatter.replace("Preserve rule text", '"\\uD83D\\uDC39"'),
-          ),
-        ],
-        [
-          "Date as text",
-          withMetadata(frontmatter.replace("Preserve rule text", "2026-09-15")),
-        ],
+      const parseExamples = [
+        ["GitHub HTTPS", "https://github.com/Team/Rules.git"],
+        ["GitHub SSH", "ssh://git@GITHUB.COM:22/Team/Rules.git"],
+        ["GitHub SCP", "git@github.com:Team/Rules.git"],
+        ["GitLab nested", "https://gitlab.com/Team/Engineering/Rules.git"],
+        ["Unknown host", "git@git.example.org:Team/Rules.git"],
+        ["Custom port", "ssh://git@github.com:2222/Team/Rules.git"],
+        ["Credentials", "https://user:secret@example.org/rules.git"],
+        ["Traversal", "https://example.org/team/../rules.git"],
+        ["Encoded slash", "https://example.org/team%2frules.git"],
+        ["Shorthand", "Team/Rules"],
+        ["Punctuation", "https://github.com/team/rules)notes.git"],
+        ["Unicode", "https://github.com/team/café🐹.git"],
+        ["Literal SCP percent", "git@github.com:team/%72ules.git"],
+        ["IPv6", "ssh://git@[::1]:2222/Rules.git"],
       ];
-      // clearResult removes stale output whenever the user changes an input.
+      const linkExamples = [
+        [
+          "GitHub file",
+          "https://github.com/Team/Rules.git",
+          "techs/go/errors.md",
+          false,
+        ],
+        [
+          "Raw image",
+          "git@github.com:Team/Rules.git",
+          "assets/chart.png",
+          true,
+        ],
+        [
+          "GitLab file",
+          "https://gitlab.com/Team/Sub/Rules.git",
+          "guide.md",
+          false,
+        ],
+        [
+          "Encoded file",
+          "https://github.com/team/rules",
+          "guides/café notes.md",
+          false,
+        ],
+        ["Unknown host", "git@host.example:Rules.git", "guide.md", false],
+        ["Invalid address", "team/rules", "guide.md", false],
+      ];
+      // clearResult discards stale results after any input change.
       function clearResult() {
         byID("status").textContent = "Ready";
         byID("status").className = "badge";
         byID("explanation").textContent =
-          "Input changed. Invoke Go to validate this rule.";
+          "Input changed. Invoke Go to see this result.";
         byID("output").textContent = "No invocation for this input.";
         byID("request").textContent = "No request sent.";
-        byID("metrics").textContent = "";
         byID("timing").textContent = "";
       }
-      byID("presets").replaceChildren(
-        // Build a button for each example document.
-        ...examples.map(([label, value, newline]) => {
-          const button = document.createElement("button");
-          button.textContent = label;
-          // Load this example and clear the previous invocation result.
-          button.addEventListener("click", () => {
-            byID("input").value = value;
-            byID("newlines").value = newline || "lf";
-            byID("input").focus();
-            byID("input").setSelectionRange(0, 0);
-            byID("input").scrollTop = 0;
-            clearResult();
-          });
-          return button;
-        }),
-      );
-      byID("input").value = normal;
-      for (const id of ["input", "path", "source"])
+      // loadExample fills editable controls without invoking the server.
+      function loadExample(example) {
+        byID("input").value = example[1];
+        byID("path").value = example[2] || "techs/go/errors.md";
+        byID("image").value = String(example[3] || false);
+        clearResult();
+      }
+      // showOperation scopes the visible controls and presets to the selected function.
+      function showOperation() {
+        const links = byID("operation").value === "repositoryFile";
+        byID("link-fields").hidden = !links;
+        byID("signature").textContent = links
+          ? "repository.FileURL(commit, path string, raw bool) (string, bool)"
+          : "ParseRepository(input json.RawMessage, location string) (Repository, error)";
+        byID("operation-hint").textContent = links
+          ? "First parses the address, then constructs a link. Unknown web routes return false in Go, represented as null here."
+          : "Accepts a JSON string. The adapter quotes your address, preserving Unicode for validation. Errors carry the field location sources.team.repository.";
+        const examples = links ? linkExamples : parseExamples;
+        byID("presets").replaceChildren(
+          // Create a button that loads each named example.
+          ...examples.map((example) => {
+            const button = document.createElement("button");
+            button.textContent = example[0];
+            // Replace the input with this example and invalidate old output.
+            button.addEventListener("click", () => loadExample(example));
+            return button;
+          }),
+        );
+        loadExample(examples[0]);
+      }
+      byID("operation").addEventListener("change", showOperation);
+      for (const id of ["input", "commit", "path", "image"])
         byID(id).addEventListener("input", clearResult);
-      byID("newlines").addEventListener("change", clearResult);
-      // Invoke the native parser and display its result, error, and request data.
+      showOperation();
+      // Invoke native Go and show the exact JSON response without interpreting URLs as HTML.
       byID("invoke").addEventListener("click", async () => {
-        const text = byID("input").value;
-        const input =
-          byID("newlines").value === "crlf"
-            ? text.replace(/\n/g, "\r\n")
-            : text;
+        const operation = byID("operation").value;
+        const link = operation === "repositoryFile";
         const body = JSON.stringify({
-          operation: "rule",
-          input: {
-            text: input,
-            path: byID("path").value,
-            source: byID("source").value,
-          },
+          operation,
+          input: link
+            ? {
+                repository: byID("input").value,
+                commit: byID("commit").value,
+                path: byID("path").value,
+                image: byID("image").value === "true",
+              }
+            : byID("input").value,
+          location: link ? "repository" : "sources.team.repository",
         });
         byID("request").textContent = body;
-        // Disable controls until this invocation finishes.
+        // Freeze inputs while their request is in flight.
         document
-          .querySelectorAll("button,input,textarea,select")
+          .querySelectorAll("button,input,select")
           .forEach((element) => (element.disabled = true));
         byID("status").textContent = "Running";
-        byID("metrics").textContent = "";
         const started = performance.now();
         try {
           const response = await fetch("/invoke", {
@@ -665,47 +601,35 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
             headers: { "Content-Type": "application/json" },
             body,
           });
-          if (!response.ok) {
-            byID("status").textContent = "HTTP " + response.status;
-            byID("status").className = "badge bad";
-            byID("explanation").textContent =
-              response.status >= 500
-                ? "The server could not complete the request. See its logs for details."
-                : "The server rejected the request.";
-            byID("output").textContent = await response.text();
-            return;
-          }
+          if (!response.ok)
+            throw new Error(
+              "HTTP " + response.status + ": " + (await response.text()),
+            );
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
           byID("status").textContent = result.ok
-            ? "Validated rule"
+            ? result.value === null
+              ? "No known web route"
+              : "Returned value"
             : result.error.name;
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
-            ? "The Go parser returned a validated rule and its original text."
-            : result.error.name === "ValidationError"
-              ? "The Go parser rejected this rule. See the error location and message below."
-              : "The adapter rejected the request before invoking Go.";
-          if (result.ok) {
-            const bytes = new TextEncoder();
-            byID("metrics").textContent =
-              "Returned UTF-8 bytes: frontmatter " +
-              bytes.encode(result.value.metadata).length +
-              " · body " +
-              bytes.encode(result.value.body).length;
-          }
+            ? result.value === null
+              ? "The address is valid. This host or transport has no recognized web link."
+              : "The Go function returned successfully."
+            : "The request failed. The message identifies the invalid input.";
         } catch (error) {
-          byID("status").textContent = "Connection error";
+          byID("status").textContent = "Request failed";
           byID("status").className = "badge bad";
           byID("explanation").textContent =
-            "Check that the local Go server is still running.";
+            "Check the response below and that the local Go server is running.";
           byID("output").textContent = String(error);
         } finally {
           byID("timing").textContent =
             Math.round(performance.now() - started) + " ms round trip";
-          // Restore the controls after either a result or a connection failure.
+          // Restore controls after success or failure.
           document
-            .querySelectorAll("button,input,textarea,select")
+            .querySelectorAll("button,input,select")
             .forEach((element) => (element.disabled = false));
         }
       });

@@ -13,6 +13,8 @@ import identityCases from './identities/cases.json';
 import metadataCases from './group-metadata/cases.json';
 import documentCases from './rule-documents/cases.json';
 import ruleCases from './rules/cases.json';
+import repositoryCases from './repositories/cases.json';
+import { repositoryAddress, repositoryFileUrl } from '../../src/repository';
 import contracts from '../../migration/contracts.json';
 import approvedDifferences from '../../migration/approved-differences.json';
 
@@ -21,7 +23,13 @@ const cases = [
   ...metadataCases,
   ...documentCases,
   ...ruleCases,
+  ...repositoryCases,
 ];
+deepStrictEqual(
+  new Set(cases.map(({ id }) => id)).size,
+  cases.length,
+  'Shared fixture IDs must be unique',
+);
 const referenceRevision = contracts.referenceRevision;
 deepStrictEqual(
   approvedDifferences,
@@ -33,7 +41,26 @@ deepStrictEqual(
 function reference(test: (typeof cases)[number]): unknown {
   try {
     let value: unknown;
-    if (test.operation === 'rule') {
+    if (test.operation === 'repository') {
+      value = repositoryAddress(test.input, test.location);
+    } else if (test.operation === 'repositoryFile') {
+      const input = test.input;
+      if (
+        typeof input !== 'object' ||
+        input === null ||
+        !('repository' in input) ||
+        !('commit' in input) ||
+        !('path' in input) ||
+        !('image' in input)
+      )
+        throw new Error('Expected repository file input');
+      value = repositoryFileUrl(
+        input.repository,
+        input.commit,
+        input.path,
+        input.image,
+      );
+    } else if (test.operation === 'rule') {
       const input = test.input;
       if (
         typeof input !== 'object' ||

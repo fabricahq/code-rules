@@ -43,8 +43,8 @@ type failure struct {
 
 type response struct {
 	OK bool `json:"ok"`
-	// Value is nil only on failure. A successful empty selection holds a non-nil
-	// []string in this interface, so JSON includes "value": [] rather than null.
+	// Value holds successful results. A typed nil *string represents an unknown
+	// repository web link as JSON null; a non-nil []string preserves empty selections.
 	Value any      `json:"value,omitempty"`
 	Error *failure `json:"error,omitempty"`
 }
@@ -66,6 +66,31 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "repository":
+		value, err = rules.ParseRepository(req.Input, req.Location)
+	case "repositoryFile":
+		var input struct {
+			Repository json.RawMessage `json:"repository"`
+			Commit     *string         `json:"commit"`
+			Path       *string         `json:"path"`
+			Image      *bool           `json:"image"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Repository == nil || input.Commit == nil || input.Path == nil || input.Image == nil {
+			return adapterError("repositoryFile input must contain repository, commit, path, and image"), nil
+		}
+		var repository rules.Repository
+		// Mirror repositoryFileUrl: its diagnostic location is always "repository".
+		// The standalone repository operation accepts caller-defined locations.
+		repository, err = rules.ParseRepository(input.Repository, "repository")
+		var link *string
+		if err == nil {
+			if text, known := repository.FileURL(*input.Commit, *input.Path, *input.Image); known {
+				link = &text
+			}
+		}
+		value = link
 	case "rule":
 		var input struct {
 			Text   *string `json:"text"`
