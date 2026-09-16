@@ -340,11 +340,12 @@
           <div class="signature">
             build.Prepare(resolved, options) (Output, error)
           </div>
-          <p class="hint">
-            The Go API returns byte slices. These text fixtures display returned
-            files as readable strings. No generated project files are written.
-          </p>
           <div class="presets" id="presets"></div>
+          <p
+            class="hint scenario-description"
+            id="scenario-description"
+            aria-live="polite"
+          ></p>
           <label for="input">Output fixture and options</label
           ><textarea id="input" rows="18" spellcheck="false"></textarea>
           <p class="hint">The request goes to the native Go implementation.</p>
@@ -409,6 +410,7 @@
     </main>
     <script src="/lab-assets/fixture-files.js"></script>
     <script>
+      /** @fileoverview Explain editable scenarios and display native Go results for this PR. */
       // Locate one named control in this walkthrough.
       const byID = (id) => document.getElementById(id);
       const spec = {
@@ -430,6 +432,8 @@
         examples: [
           {
             name: "Licensed output",
+            description:
+              "Declares one MIT license with LICENSE and NOTICE files. Expect both files copied byte-for-byte and their origins recorded in provenance.",
             input: {
               fixture: {
                 configuration: {
@@ -468,6 +472,8 @@
           },
           {
             name: "All rules excluded",
+            description:
+              "Excludes the only imported rule. Expect the source license and notice to remain in the output and provenance.",
             input: {
               fixture: {
                 configuration: {
@@ -506,6 +512,8 @@
           },
           {
             name: "Local replacement",
+            description:
+              "Replaces the imported rule with local/techs/go/custom.md. Expect local rule ownership plus the original source terms and replacement history.",
             input: {
               fixture: {
                 configuration: {
@@ -552,6 +560,8 @@
           },
           {
             name: "Empty license file",
+            description:
+              "Sets LICENSE to an empty string while keeping its declaration. Expect the zero-byte file to remain in the generated output.",
             input: {
               fixture: {
                 configuration: {
@@ -589,6 +599,8 @@
           },
           {
             name: "No declaration",
+            description:
+              "Removes the license declaration from rule-library.json but leaves LICENSE and NOTICE on disk. Expect no declared license or copied terms.",
             input: {
               fixture: {
                 configuration: {
@@ -626,6 +638,8 @@
           },
           {
             name: "Missing notice",
+            description:
+              "Deletes NOTICE while the manifest still declares it. Expect a missing-file error before output is generated.",
             input: {
               fixture: {
                 configuration: {
@@ -663,6 +677,8 @@
           },
           {
             name: "Selected version",
+            description:
+              'Replaces ref with ">= 1.0.0, < 2.0.0" and supplies the selected tag v1.2.3. Expect provenance to record the constraint and selected version.',
             input: {
               fixture: {
                 configuration: {
@@ -714,13 +730,21 @@
           "Input changed. Invoke Go to see its result.";
         byID("timing").textContent = "";
       }
-      // Fill an example without sending a request.
+      // Explain and select a preset without invoking Go; its description remains a preset reference after edits.
       function loadExample(example) {
         byID("input").value =
           typeof example.input === "string"
             ? example.input
             : JSON.stringify(example.input, null, 2);
         byID("input").dispatchEvent(new Event("input"));
+        byID("scenario-description").textContent =
+          `Preset: ${example.name}. ${example.description}`;
+        for (const button of byID("presets").querySelectorAll("button")) {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.textContent === example.name),
+          );
+        }
       }
       for (const example of spec.examples) {
         const button = document.createElement("button");
