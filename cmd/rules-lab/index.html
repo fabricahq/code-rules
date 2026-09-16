@@ -417,7 +417,7 @@
         details:
           "The library may leave licensing undeclared, or declare a license file, ordered notices, and an optional SPDX expression. Duplicate notices and the license file itself are removed from attributionFiles. Unknown license fields and missing declared files return precise errors.",
         boundaries:
-          "The function validates declarations, not legal meaning or compatibility. It never infers terms from file names. License and notice bytes remain untouched, including CRLF and binary content. File reads and output copying are separate capabilities. Unknown top-level manifest fields retain reference compatibility.",
+          "The function validates declarations, not legal meaning or compatibility. It never infers terms from file names. License and notice bytes remain untouched, including CRLF and binary content. File reads and output copying are separate capabilities. Unknown top-level manifest fields retain reference compatibility. SPDX identifiers and exceptions use the newer list bundled with go-spdx v2.7.0, as approved for the migration.",
         operation: "licenses",
         mode: "json",
         location: "library",

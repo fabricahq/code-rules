@@ -892,5 +892,75 @@
         "location": "library/rule-library.json: license.spdxExpression"
       }
     }
+  },
+  {
+    "id": "license-newer-identifier",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MVT-1.1\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "MVT-1.1",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    },
+    "difference": "User-approved adoption of the SPDX identifier and exception lists bundled with go-spdx v2.7.0 instead of the older TypeScript dependency lists. The reference result remains unchanged."
+  },
+  {
+    "id": "license-newer-exception",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH PCRE2-exception\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "MIT WITH PCRE2-exception",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    },
+    "difference": "User-approved adoption of the SPDX identifier and exception lists bundled with go-spdx v2.7.0 instead of the older TypeScript dependency lists. The reference result remains unchanged."
   }
 ]
