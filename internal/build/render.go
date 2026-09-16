@@ -1,4 +1,4 @@
-// Render effective rules into standalone generated Markdown files.
+// Render resolved rules into standalone generated Markdown files.
 
 package build
 
