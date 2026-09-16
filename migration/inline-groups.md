@@ -1,6 +1,6 @@
 # Full-rule group delivery
 
-`build.Prepare` includes every rule in a group page when the complete UTF-8 document fits both `IndexMaxBytes` and `GroupInlineMaxBytes`. The inline limit defaults to 8 KiB when omitted. An explicit zero forces summaries. Negative inline limits return a validation error.
+`build.Prepare` includes every rule in a group page when the complete UTF-8 document fits `GroupInlineMaxBytes` and stays within `IndexMaxLines` Markdown source lines. The inline limit defaults to 8 KiB when omitted. An explicit zero forces summaries. Negative inline limits return a validation error.
 
 If the whole group cannot fit, the renderer uses the existing summary and pagination behavior. It never includes only some bodies or truncates a rule. Empty groups keep an explicit empty-group message. Standalone rule files remain available in every mode, and all rules are validated before delivery selection can hide a bad link.
 
@@ -10,4 +10,4 @@ This preserves the TypeScript delivery decision in `src/builds/render.ts` and th
 
 The `/walkthrough/pr27` page invokes `build.Prepare` through native Go and shows both inline and fallback examples. PR25 still invokes the explicitly summary-only `build.RenderIndexes` interface. Project writes and the production CLI remain separate capabilities.
 
-Validation: `go test -race ./...`, `go vet ./...`, and Staticcheck, plus browser checks of full-rule, fallback, reference-isolation, and error scenarios. Tests cover both exact byte limits, multibyte bodies, zero/negative limits, unchanged standalone output, and failure atomicity.
+Validation: `go test -race ./...`, `go vet ./...`, and Staticcheck, plus browser checks of full-rule, fallback, reference-isolation, and error scenarios. Tests cover exact inline byte and index line limits, multibyte bodies, zero/negative limits, unchanged standalone output, and failure atomicity.

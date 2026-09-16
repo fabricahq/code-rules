@@ -14,7 +14,7 @@ import (
 	"github.com/yuin/goldmark/v2/parser"
 )
 
-// TestPrepareInlineBoundaries includes whole UTF-8 groups only when both byte limits allow them.
+// TestPrepareInlineBoundaries includes whole UTF-8 groups only when the inline byte limit and index line limit allow them.
 func TestPrepareInlineBoundaries(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
 	resolved, err := build.Resolve(config, libraries, nil)
@@ -22,13 +22,14 @@ func TestPrepareInlineBoundaries(t *testing.T) {
 		t.Fatal(err)
 	}
 	resolved.Groups[0].Rules[0].Rule.Document += "\nUnicode: 日本語\n"
-	options := build.Options{ToolVersion: "test", IndexMaxBytes: 8000}
+	options := build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines}
 	whole, err := build.Prepare(resolved, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	file := "groups/techs/go.md"
 	size := len(whole.Files[file])
+	lines := strings.Count(string(whole.Files[file]), "\n")
 	if !strings.Contains(string(whole.Files[file]), "Return errors to the caller.") {
 		t.Fatal("default did not inline short group")
 	}
@@ -37,12 +38,12 @@ func TestPrepareInlineBoundaries(t *testing.T) {
 		index, inline int
 		full          bool
 	}{
-		{"exact inline fit", 8000, size, true}, {"one byte over inline", 8000, size - 1, false},
-		{"exact index fit", size, 8000, true}, {"one byte over index", size - 1, 8000, false},
-		{"disabled", 8000, 0, false},
+		{"exact inline fit", 750, size, true}, {"one byte over inline", 750, size - 1, false},
+		{"exact index fit", lines, 8000, true}, {"one line over index", lines - 1, 8000, false},
+		{"disabled", 750, 0, false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			options.IndexMaxBytes, options.GroupInlineMaxBytes = test.index, &test.inline
+			options.IndexMaxLines, options.GroupInlineMaxBytes = test.index, &test.inline
 			got, err := build.Prepare(resolved, options)
 			if err != nil {
 				t.Fatal(err)
@@ -52,7 +53,7 @@ func TestPrepareInlineBoundaries(t *testing.T) {
 				t.Fatalf("wrong delivery mode: %s", page)
 			}
 			for path, content := range got.Files {
-				if (path == "RULES.md" || strings.HasPrefix(path, "groups/techs/")) && len(content) > test.index {
+				if (path == "RULES.md" || strings.HasPrefix(path, "groups/techs/")) && strings.Count(string(content), "\n") > test.index {
 					t.Fatalf("oversized page %s", path)
 				}
 			}
@@ -98,7 +99,7 @@ func TestPrepareInlineLinks(t *testing.T) {
 				t.Fatal(err)
 			}
 			before, _ := build.RenderRules(resolved)
-			got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 16000})
+			got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: 16000})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -156,7 +157,7 @@ func TestPrepareInlineFallbackNeverHidesInvalidRules(t *testing.T) {
 	second.Rule.ID = "team:techs/go/later"
 	second.Rule.Document = document + "\n[missing](/assets/missing.txt)"
 	resolved.Groups[0].Rules = append(resolved.Groups[0].Rules, second)
-	if got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000}); err == nil || got.Files != nil {
+	if got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines}); err == nil || got.Files != nil {
 		t.Fatal("inline fallback concealed invalid later rule")
 	}
 }
@@ -170,7 +171,7 @@ func TestInlineMultilineHeadingReference(t *testing.T) {
 			t.Fatal(err)
 		}
 		resolved.Groups[0].Rules[0].Rule.Document += "\n" + heading + "\n\n[multi line]: https://example.com\n"
-		got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
+		got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
 		if err != nil {
 			t.Fatal(err)
 		}

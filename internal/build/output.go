@@ -18,10 +18,10 @@ type Output struct {
 	Files map[string][]byte `json:"files"`
 }
 
-// Options provides the declared tool version and UTF-8 byte budgets.
+// Options provides the declared tool version and Markdown line limit and inline byte limit.
 type Options struct {
 	ToolVersion   string
-	IndexMaxBytes int
+	IndexMaxLines int
 	// GroupInlineMaxBytes defaults to 8 KiB when nil; zero forces summary-only group pages.
 	GroupInlineMaxBytes *int
 }
@@ -40,7 +40,7 @@ func Prepare(resolved Resolved, options Options) (Output, error) {
 	if options.GroupInlineMaxBytes != nil {
 		inlineMaxBytes = *options.GroupInlineMaxBytes
 	}
-	indexes, err := renderIndexes(resolved, options.IndexMaxBytes, inlineMaxBytes)
+	indexes, err := renderIndexes(resolved, options.IndexMaxLines, inlineMaxBytes)
 	if err != nil {
 		return Output{}, err
 	}

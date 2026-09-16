@@ -26,7 +26,7 @@ func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	options := build.Options{ToolVersion: "test", IndexMaxBytes: 8000}
+	options := build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines}
 	got, err := build.Prepare(resolved, options)
 	if err != nil {
 		t.Fatal(err)
@@ -65,7 +65,7 @@ func TestPrepareReplacementProvenance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
+	got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,14 +100,14 @@ func TestPrepareNoPartialOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, options := range []build.Options{{ToolVersion: "", IndexMaxBytes: 8000}, {ToolVersion: "test", IndexMaxBytes: 0}} {
+	for _, options := range []build.Options{{ToolVersion: "", IndexMaxLines: build.DefaultIndexMaxLines}, {ToolVersion: "test", IndexMaxLines: 0}} {
 		output, err := build.Prepare(resolved, options)
 		if err == nil || output.Files != nil {
 			t.Fatal("accepted invalid options or returned partial output")
 		}
 	}
 	resolved.Sources[0].License = &rules.LicenseDeclaration{Files: []string{"missing"}}
-	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
+	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
 	if err == nil || output.Files != nil {
 		t.Fatal("accepted missing terms")
 	}
@@ -125,7 +125,7 @@ func TestProvenanceCompatibility(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
+	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestProvenanceCompatibility(t *testing.T) {
 		t.Fatal("obsolete licenses array in provenance")
 	}
 	resolved.Sources[0].License = nil
-	output, err = build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
+	output, err = build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +193,7 @@ func TestProvenanceGuidanceOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	original := append([]build.Guidance(nil), resolved.Groups[0].Guidance...)
-	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
+	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}

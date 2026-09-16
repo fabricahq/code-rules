@@ -330,8 +330,8 @@
       <h1>Read short groups in full</h1>
       <p class="lede">
         Read complete rules directly in small group files. Groups that exceed
-        either byte limit fall back to summaries, with standalone rule files
-        always available.
+        the inline byte limit or index line limit fall back to summaries, with
+        standalone rule files always available.
       </p>
       <div class="workspace">
         <section class="panel">
@@ -395,8 +395,8 @@
             <summary>What this PR does</summary>
             <p>
               A complete group, including instructions and all rules, must fit
-              both maxBytes and groupInlineMaxBytes. Omitting
-              groupInlineMaxBytes uses 8 KiB; zero forces summaries. An
+              maxLines source lines and groupInlineMaxBytes UTF-8 bytes.
+              Omitting groupInlineMaxBytes uses 8 KiB; zero forces summaries. An
               oversized group falls back as a whole, without truncating any
               rule. Generated links account for the group’s location, and
               reference labels stay separate between rules.
@@ -472,7 +472,7 @@
             },
             localFiles: {},
           },
-          maxBytes: 8000,
+          maxLines: 750,
           toolVersion: "lab",
         };
       }
@@ -523,10 +523,10 @@
             input: { ...structuredClone(short), groupInlineMaxBytes: 0 },
           },
           {
-            name: "Small index limit",
+            name: "Small inline limit",
             description:
-              "Lowers maxBytes to 2,100 while keeping the default inline limit. The complete group exceeds the index limit and falls back to a summary.",
-            input: { ...structuredClone(short), maxBytes: 2100 },
+              "Lowers groupInlineMaxBytes to 2,100. The complete group exceeds this byte limit and falls back to a single summary page. The summary line limit remains 750.",
+            input: { ...structuredClone(short), groupInlineMaxBytes: 2100 },
           },
           {
             name: "Shared labels",
@@ -639,8 +639,9 @@
           const text = files[select.value] || "";
           byID("generated-text").textContent = text || "Empty file (0 bytes).";
           byID("generated-size").textContent =
-            new TextEncoder().encode(text).length +
-            " UTF-8 bytes · " +
+            text.split("\n").length -
+            Number(text.endsWith("\n")) +
+            " lines · " +
             Object.keys(files).length +
             " files returned";
           previewRequest?.abort();

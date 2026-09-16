@@ -78,20 +78,20 @@ func invoke(data []byte) (response, error) {
 	case "prepareOutput":
 		var input struct {
 			Fixture             json.RawMessage `json:"fixture"`
-			MaxBytes            int             `json:"maxBytes"`
+			MaxLines            int             `json:"maxLines"`
 			ToolVersion         string          `json:"toolVersion"`
 			GroupInlineMaxBytes *int            `json:"groupInlineMaxBytes"`
 		}
 		fields := json.NewDecoder(bytes.NewReader(req.Input))
 		fields.DisallowUnknownFields()
 		if fields.Decode(&input) != nil {
-			return adapterError("expected fixture, maxBytes, and toolVersion"), nil
+			return adapterError("expected fixture, maxLines, and toolVersion"), nil
 		}
 		var resolved build.Resolved
 		resolved, err = resolveBuildFixture(input.Fixture)
 		if err == nil {
 			var output build.Output
-			output, err = build.Prepare(resolved, build.Options{ToolVersion: input.ToolVersion, IndexMaxBytes: input.MaxBytes, GroupInlineMaxBytes: input.GroupInlineMaxBytes})
+			output, err = build.Prepare(resolved, build.Options{ToolVersion: input.ToolVersion, IndexMaxLines: input.MaxLines, GroupInlineMaxBytes: input.GroupInlineMaxBytes})
 			if err == nil {
 				files := map[string]string{}
 				for file, data := range output.Files {
@@ -106,28 +106,28 @@ func invoke(data []byte) (response, error) {
 			Header   string   `json:"header"`
 			Entries  []string `json:"entries"`
 			Footer   string   `json:"footer"`
-			MaxBytes int      `json:"maxBytes"`
+			MaxLines int      `json:"maxLines"`
 		}
 		fields := json.NewDecoder(bytes.NewReader(req.Input))
 		fields.DisallowUnknownFields()
 		if fields.Decode(&input) != nil {
 			return adapterError("expected index page fields"), nil
 		}
-		value, err = build.IndexPages(input.File, input.Header, input.Entries, input.Footer, input.MaxBytes)
+		value, err = build.IndexPages(input.File, input.Header, input.Entries, input.Footer, input.MaxLines)
 	case "renderIndexes":
 		var input struct {
 			Fixture  json.RawMessage `json:"fixture"`
-			MaxBytes int             `json:"maxBytes"`
+			MaxLines int             `json:"maxLines"`
 		}
 		fields := json.NewDecoder(bytes.NewReader(req.Input))
 		fields.DisallowUnknownFields()
 		if fields.Decode(&input) != nil {
-			return adapterError("expected fixture and maxBytes"), nil
+			return adapterError("expected fixture and maxLines"), nil
 		}
 		var resolved build.Resolved
 		resolved, err = resolveBuildFixture(input.Fixture)
 		if err == nil {
-			value, err = build.RenderIndexes(resolved, input.MaxBytes)
+			value, err = build.RenderIndexes(resolved, input.MaxLines)
 		}
 	case "renderRules":
 		var resolved build.Resolved

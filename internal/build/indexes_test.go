@@ -12,14 +12,14 @@ import (
 	"github.com/fabricahq/code-rules/internal/build"
 )
 
-// TestIndexPagesMeasuresBytes covers multibyte text at an exact fit and preserves complete ordered entries.
-func TestIndexPagesMeasuresBytes(t *testing.T) {
+// TestIndexPagesMeasuresLines covers source lines at an exact fit and preserves complete ordered entries.
+func TestIndexPagesMeasuresLines(t *testing.T) {
 	entries := []string{"第一の項目"}
 	whole, err := build.IndexPages("RULES.md", "# Index", entries, "End", 1000)
 	if err != nil {
 		t.Fatal(err)
 	}
-	size := len(whole["RULES.md"])
+	size := strings.Count(whole["RULES.md"], "\n")
 	exact, err := build.IndexPages("RULES.md", "# Index", entries, "End", size)
 	if err != nil || exact["RULES.md"] != whole["RULES.md"] {
 		t.Fatalf("exact fit: %v", err)
@@ -29,7 +29,7 @@ func TestIndexPagesMeasuresBytes(t *testing.T) {
 	}
 	entries = nil
 	for i := range 7 {
-		entries = append(entries, fmt.Sprintf("Entry %d: %s", i, strings.Repeat("界", 45)))
+		entries = append(entries, fmt.Sprintf("Entry %d: %s", i, strings.Repeat("界\r\n", 240)))
 	}
 	pages, err := build.IndexPages("groups/techs/go.md", "# Go", entries, "Footer", 400)
 	if err != nil {
@@ -37,7 +37,7 @@ func TestIndexPagesMeasuresBytes(t *testing.T) {
 	}
 	combined := ""
 	for file, text := range pages {
-		if len(text) > 400 {
+		if strings.Count(text, "\n") > 400 {
 			t.Fatalf("oversized %s: %d", file, len(text))
 		}
 		if file != "groups/techs/go.md" {
@@ -56,9 +56,9 @@ func TestIndexPagesMeasuresBytes(t *testing.T) {
 
 // TestIndexPagesRejectsUnboundedDirectory refuses partial output when the complete parts list cannot fit.
 func TestIndexPagesRejectsUnboundedDirectory(t *testing.T) {
-	entries := make([]string, 100)
+	entries := make([]string, 200)
 	for i := range entries {
-		entries[i] = strings.Repeat("x", 180)
+		entries[i] = strings.Repeat("x\n", 180)
 	}
 	if pages, err := build.IndexPages("RULES.md", "# Index", entries, "", 250); err == nil || pages != nil {
 		t.Fatal("accepted incomplete part directory")
@@ -75,7 +75,7 @@ func TestRenderIndexesLinksToEffectiveDefinitions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pages, err := build.RenderIndexes(resolved, 8000)
+	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestRenderEmptyGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pages, err := build.RenderIndexes(resolved, 8000)
+	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,12 +129,12 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 				t.Fatal(err)
 			}
 			original := resolved.Groups[0].Rules[0]
-			for i := range 12 {
+			for i := range 70 {
 				active := original
 				active.Rule.ID = fmt.Sprintf("team:techs/go/rule-%d", i)
 				resolved.Groups[0].Rules = append(resolved.Groups[0].Rules, active)
 			}
-			pages, err := build.RenderIndexes(resolved, 3000)
+			pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -156,7 +156,7 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 						t.Fatalf("%s omitted %q", file, instruction)
 					}
 				}
-				if !strings.Contains(page, "reload needed rules after compaction") || len(page) > 3000 {
+				if !strings.Contains(page, "reload needed rules after compaction") || strings.Count(page, "\n") > build.DefaultIndexMaxLines {
 					t.Fatalf("%s lost reading instructions or exceeded its budget", file)
 				}
 			}
@@ -172,7 +172,7 @@ func TestGroupPagesKeepMultipleSourceCues(t *testing.T) {
 		t.Fatal(err)
 	}
 	resolved.Groups[0].EffectiveGuidance = append(resolved.Groups[0].EffectiveGuidance, build.Guidance{Source: "second", Metadata: rules.GroupMetadata{Name: "Go Services", Description: "Other guidance.", WhenToRead: "When reviewing services."}})
-	pages, err := build.RenderIndexes(resolved, 8000)
+	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,10 +204,52 @@ func BenchmarkIndexPagesLarge(b *testing.B) {
 			}
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := build.IndexPages("RULES.md", "# Rules", entries, "Footer", count*60); err != nil {
+				if _, err := build.IndexPages("RULES.md", "# Rules", entries, "Footer", build.DefaultIndexMaxLines); err != nil {
 					b.Fatal(err)
 				}
 			}
 		})
+	}
+}
+
+// TestIndexPagesDefaultBoundary keeps exactly 750 lines together and splits only above it.
+func TestIndexPagesDefaultBoundary(t *testing.T) {
+	for _, ending := range []string{"\n", "\r\n"} {
+		entries := []string{strings.Repeat("界"+ending, 372), strings.Repeat("b"+ending, 371)}
+		exact, err := build.IndexPages("RULES.md", "# Rules", entries, "Footer", build.DefaultIndexMaxLines)
+		if err != nil || len(exact) != 1 || strings.Count(exact["RULES.md"], "\n") != 750 {
+			t.Fatalf("750 lines: %v, %v", exact, err)
+		}
+		entries[1] += ending
+		split, err := build.IndexPages("RULES.md", "# Rules", entries, "Footer", build.DefaultIndexMaxLines)
+		if err != nil || len(split) != 3 {
+			t.Fatalf("751 lines: %v, %v", split, err)
+		}
+		for file, page := range split {
+			if strings.Count(page, "\n") > 750 {
+				t.Fatalf("%s exceeds 750 lines", file)
+			}
+		}
+	}
+	// A very long source line must not trigger byte-based pagination.
+	pages, err := build.IndexPages("RULES.md", "# Rules", []string{strings.Repeat("界", 10000)}, "", build.DefaultIndexMaxLines)
+	if err != nil || len(pages) != 1 {
+		t.Fatalf("long line: %v", err)
+	}
+}
+
+// TestOrdinarySummaryStaysTogether prevents premature part directories for small groups.
+func TestOrdinarySummaryStaysTogether(t *testing.T) {
+	config, libraries := fixture(t, "{}", "{}")
+	resolved, err := build.Resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 11 {
+		resolved.Groups[0].Rules = append(resolved.Groups[0].Rules, resolved.Groups[0].Rules[0])
+	}
+	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+	if err != nil || len(pages) != 2 {
+		t.Fatalf("twelve summaries should stay together: %v", err)
 	}
 }
