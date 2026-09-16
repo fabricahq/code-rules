@@ -29,9 +29,9 @@ const (
 // original Document; SupportingFiles holds only manifest, group metadata, and terms.
 // SupportingFiles also holds complete owned assets and referenced shared assets.
 type Catalog struct {
-	Groups          []Group                    `json:"groups"`
-	Licenses        []rules.LicenseDeclaration `json:"licenses"`
-	SupportingFiles map[string][]byte          `json:"supportingFiles"`
+	Groups          []Group                   `json:"groups"`
+	License         *rules.LicenseDeclaration `json:"license"`
+	SupportingFiles map[string][]byte         `json:"supportingFiles"`
 }
 
 // Group includes display metadata and path-sorted rules; empty groups are valid.
@@ -86,16 +86,16 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	if _, err := r.read("rule-library.json"); err != nil {
 		return Catalog{}, err
 	}
-	licenses, err := r.licenses(source)
+	license, err := r.license(source)
 	if err != nil {
 		return Catalog{}, err
 	}
-	terms := rules.LicensePaths(licenses)
+	terms := rules.LicensePaths(license)
 	ids, err := r.groups(selection, terms)
 	if err != nil {
 		return Catalog{}, err
 	}
-	catalog := Catalog{Groups: make([]Group, 0, len(ids)), Licenses: licenses}
+	catalog := Catalog{Groups: make([]Group, 0, len(ids)), License: license}
 	for _, id := range ids {
 		group, err := r.group(id, source, terms)
 		if err != nil {
@@ -189,8 +189,8 @@ func (r *reader) read(path string) ([]byte, error) {
 	return data, nil
 }
 
-// licenses validates declarations before reading their contained files; bytes stay unchanged.
-func (r *reader) licenses(source string) ([]rules.LicenseDeclaration, error) {
+// license validates the declaration before reading its contained files; bytes stay unchanged.
+func (r *reader) license(source string) (*rules.LicenseDeclaration, error) {
 	manifest := r.files["rule-library.json"]
 	inventory := map[string][]byte{"rule-library.json": manifest}
 	var raw struct {
@@ -210,16 +210,16 @@ func (r *reader) licenses(source string) ([]rules.LicenseDeclaration, error) {
 			}
 		}
 	}
-	declarations, err := rules.ReadLibraryLicenses(inventory, source)
+	declaration, err := rules.ReadLibraryLicense(inventory, source)
 	if err != nil {
 		return nil, err
 	}
-	for _, path := range rules.LicensePaths(declarations) {
+	for _, path := range rules.LicensePaths(declaration) {
 		if _, err := r.read(path); err != nil {
 			return nil, err
 		}
 	}
-	return declarations, nil
+	return declaration, nil
 }
 
 // entries lists a real directory and applies cancellation and discovery-count limits.

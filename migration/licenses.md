@@ -2,7 +2,7 @@
 
 PR #19 targets `go-migration` after #18 merged. The review stack is authorized; merging remains subject to human approval.
 
-`ReadLibraryLicenses(files map[string][]byte, source string)` validates the required `rule-library.json`, format version 1, declared license/notice paths, file presence, and an optional SPDX expression. Missing licensing produces an empty list. A missing expression is nil, not an inferred license. Notices retain declaration order, remove duplicates, and exclude the license file. `LicensePaths` returns a deduplicated UTF-16-sorted inventory. Inputs are not mutated.
+`ReadLibraryLicense(files map[string][]byte, source string)` validates the required `rule-library.json`, format version 1, declared license/notice paths, file presence, and an optional SPDX expression. The Go return type is `(*LicenseDeclaration, error)`: missing licensing produces nil; a declaration produces one object. A missing expression is nil, not an inferred license. Notices retain declaration order, remove duplicates, and exclude the license file. `LicensePaths` returns a deduplicated UTF-16-sorted inventory. Inputs are not mutated.
 
 File presence is separate from contents: empty, CRLF, and binary term files are accepted unchanged. Manifest text must be UTF-8. Paths are contained and never cleaned. Failures return no partial declarations. Unknown license fields are rejected; unknown top-level manifest fields retain the pinned reference's behavior.
 
@@ -17,3 +17,7 @@ This is partial evidence for `formats.licenses`. Actual filesystem loading, outp
 The adapter validates standard exceptions attached to custom LicenseRef and DocumentRef terms before delegating the remaining grammar to go-spdx. This preserves the reference behavior despite go-spdx v2.7.0 not parsing WITH after custom references. Shared fixtures cover both reference forms and reject a license used as an exception or a plus suffix on custom terms.
 
 Incomplete expressions ending in an opening parenthesis or a DocumentRef colon return ValidationError before reaching go-spdx v2.7.0, which otherwise dereferences a missing token. Regression fixtures cover bare, nested, and trailing-space inputs.
+
+## Singular Go license model
+
+The user approved replacing zero-or-one license arrays with an optional declaration. `ReadLibraryLicense` returns nil or one declaration; loaded catalogs expose `license: null` or `license: {...}`. Multiple notice files still belong to that one declaration. The pinned TypeScript reference remains unchanged, and successful shared fixtures retain its exact array results in `referenceExpected` beside the new Go expectations.
