@@ -27,8 +27,8 @@ type Options struct {
 // Prepare combines rendering and summary indexes with terms and provenance, returning no partial output.
 // It accepts a Resolve result and performs no filesystem or network operations.
 func Prepare(resolved Resolved, options Options) (Output, error) {
-	if strings.TrimSpace(options.ToolVersion) == "" {
-		return Output{}, invalid("toolVersion", "expected nonempty text")
+	if err := rules.ValidateToolVersion(options.ToolVersion); err != nil {
+		return Output{}, err
 	}
 	rendered, err := RenderRules(resolved)
 	if err != nil {
@@ -203,11 +203,15 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 	slices.SortFunc(result.Sources, func(a, b provenanceSource) int { return strings.Compare(a.Name, b.Name) })
 	slices.SortFunc(result.Groups, func(a, b provenanceGroup) int { return strings.Compare(a.ID, b.ID) })
 	slices.SortFunc(result.Rules, func(a, b provenanceRule) int { return strings.Compare(a.ID, b.ID) })
-	data, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
+	var data bytes.Buffer
+	encoder := json.NewEncoder(&data)
+	encoder.SetIndent("", "  ")
+	// This is a standalone JSON file; preserve readable constraints such as ">= 1.0.0".
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(result); err != nil {
 		return nil, fmt.Errorf("encode provenance: %w", err)
 	}
-	return append(data, '\n'), nil
+	return data.Bytes(), nil
 }
 
 // provenanceOrigin preserves explicit nulls for unavailable repository identity fields.
