@@ -24,6 +24,15 @@ import { scenarios } from './scenarios';
 import contracts from '../../migration/contracts.json';
 import approvedDifferences from '../../migration/approved-differences.json';
 
+// Fixture copies and filesystem observations require Git to stop writing when each command exits.
+const quietGitEnvironment = {
+  GIT_CONFIG_COUNT: '2',
+  GIT_CONFIG_KEY_0: 'maintenance.auto',
+  GIT_CONFIG_VALUE_0: 'false',
+  GIT_CONFIG_KEY_1: 'gc.auto',
+  GIT_CONFIG_VALUE_1: '0',
+};
+
 /** A retained step result includes raw streams, complete trees, and separate independent failures. */
 type StepResult = {
   readonly id: string;
@@ -41,8 +50,10 @@ function git(args: ReadonlyArray<string>): string {
   return result.stdout.trim();
 }
 
+/** Isolate each executable's Git routing and prevent background writes during tree comparisons. */
 function environment(root: string): NodeJS.ProcessEnv {
   return {
+    ...quietGitEnvironment,
     PATH: process.env.PATH,
     HOME: join(root, 'home'),
     TMPDIR: join(root, 'scratch'),
@@ -55,11 +66,11 @@ function environment(root: string): NodeJS.ProcessEnv {
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_CONFIG_GLOBAL: '/dev/null',
     GIT_TERMINAL_PROMPT: '0',
-    GIT_CONFIG_COUNT: '2',
-    GIT_CONFIG_KEY_0: `url.file://${root}/.insteadOf`,
-    GIT_CONFIG_VALUE_0: 'https://github.com/fixture/',
-    GIT_CONFIG_KEY_1: 'protocol.file.allow',
-    GIT_CONFIG_VALUE_1: 'always',
+    GIT_CONFIG_COUNT: '4',
+    GIT_CONFIG_KEY_2: `url.file://${root}/.insteadOf`,
+    GIT_CONFIG_VALUE_2: 'https://github.com/fixture/',
+    GIT_CONFIG_KEY_3: 'protocol.file.allow',
+    GIT_CONFIG_VALUE_3: 'always',
   };
 }
 
@@ -166,7 +177,7 @@ async function compare(options: {
       const env = environment(side);
       // A missing local transport destination makes accidental Git fetches fail without public network access.
       if (scenario.id === 'check.offline')
-        env.GIT_CONFIG_KEY_0 = `url.file://${side}/unavailable/.insteadOf`;
+        env.GIT_CONFIG_KEY_2 = `url.file://${side}/unavailable/.insteadOf`;
       const execution =
         preparationError === null
           ? execute({ executable, args: scenario.args, cwd: project, env })
@@ -254,6 +265,8 @@ async function compare(options: {
 }
 
 if (import.meta.main) {
+  // The frozen fixture helpers inherit this CLI process's environment before their first commit.
+  Object.assign(process.env, quietGitEnvironment);
   try {
     const { values } = parseArgs({
       options: {
