@@ -12,10 +12,16 @@ import {
 import identityCases from './identities/cases.json';
 import metadataCases from './group-metadata/cases.json';
 import documentCases from './rule-documents/cases.json';
+import ruleCases from './rules/cases.json';
 import contracts from '../../migration/contracts.json';
 import approvedDifferences from '../../migration/approved-differences.json';
 
-const cases = [...identityCases, ...metadataCases, ...documentCases];
+const cases = [
+  ...identityCases,
+  ...metadataCases,
+  ...documentCases,
+  ...ruleCases,
+];
 const referenceRevision = contracts.referenceRevision;
 deepStrictEqual(
   approvedDifferences,
@@ -27,7 +33,18 @@ deepStrictEqual(
 function reference(test: (typeof cases)[number]): unknown {
   try {
     let value: unknown;
-    if (test.operation === 'selection') {
+    if (test.operation === 'rule') {
+      const input = test.input;
+      if (
+        typeof input !== 'object' ||
+        input === null ||
+        !('text' in input) ||
+        !('path' in input) ||
+        !('source' in input)
+      )
+        throw new Error('Expected rule input');
+      value = rule(input.text, input.path, input.source);
+    } else if (test.operation === 'selection') {
       const config = configuration({
         schemaVersion: 1,
         sources: {
@@ -103,6 +120,7 @@ if (
 }
 const requests =
   cases
+    // Serialize one adapter request per fixture.
     .map(({ operation, input, location }) =>
       JSON.stringify({ operation, input, location }),
     )
@@ -125,7 +143,7 @@ for (const [index, test] of cases.entries()) {
     throw new Error(`Missing native response: ${test.id}`);
   const native: unknown = JSON.parse(line);
   const expected = test.expected;
-  // The user approved clearer identity diagnostics and trimmed scalar metadata in Go.
+  // User-approved differences retain separate exact reference and Go expectations.
   // Those cases retain explicit old and new expectations; no output is normalized.
   deepStrictEqual(
     reference(test),
@@ -138,6 +156,7 @@ for (const [index, test] of cases.entries()) {
 console.log(
   `PASS: ${cases.length} shared rules cases; TypeScript + Go match independent expectations`,
 );
+// Count fixtures that explicitly retain a different reference expectation.
 console.log(
   `Approved behavior differences: ${cases.filter((test) => 'referenceExpected' in test && test.referenceExpected !== undefined).length} cases`,
 );

@@ -14,6 +14,7 @@ import (
 	"testing"
 )
 
+// TestHTTPValidationDoesNotLogInput checks that expected validation failures never expose user input in logs.
 func TestHTTPValidationDoesNotLogInput(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -30,9 +31,13 @@ func TestHTTPValidationDoesNotLogInput(t *testing.T) {
 
 type brokenBody struct{}
 
+// Read simulates an input failure containing details that must not reach the client.
 func (brokenBody) Read([]byte) (int, error) { return 0, errors.New("private read details") }
-func (brokenBody) Close() error             { return nil }
 
+// Close satisfies io.ReadCloser without any resources to release.
+func (brokenBody) Close() error { return nil }
+
+// TestHTTPBodyReadFailure checks that unreadable requests return a safe response without internal details.
 func TestHTTPBodyReadFailure(t *testing.T) {
 	var logs bytes.Buffer
 	req := httptest.NewRequest(http.MethodPost, "/invoke", brokenBody{})
@@ -45,8 +50,10 @@ func TestHTTPBodyReadFailure(t *testing.T) {
 
 type brokenResponse struct{ *httptest.ResponseRecorder }
 
+// Write simulates a client disconnect while the handler sends a response.
 func (brokenResponse) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
 
+// TestHTTPWriteFailureLoggedOnce checks that failed page and result writes each produce one warning.
 func TestHTTPWriteFailureLoggedOnce(t *testing.T) {
 	for _, path := range []string{"/", "/invoke"} {
 		t.Run(path, func(t *testing.T) {
@@ -64,6 +71,7 @@ func TestHTTPWriteFailureLoggedOnce(t *testing.T) {
 	}
 }
 
+// TestInvokeBoundary checks request decoding and the distinction between adapter and domain failures.
 func TestInvokeBoundary(t *testing.T) {
 	cases := []struct{ name, input, errorName string }{
 		{"rule group", `{"operation":"ruleGroup","input":"techs/go/a.md","location":"rule"}`, ""},
@@ -97,6 +105,7 @@ func TestInvokeBoundary(t *testing.T) {
 	}
 }
 
+// TestHTTPParsesGroupMetadata checks metadata parsing and whitespace trimming through HTTP.
 func TestHTTPParsesGroupMetadata(t *testing.T) {
 	body := `{"operation":"groupMetadata","input":"{\"name\":\"Go\",\"description\":\"Go rules\",\"whenToRead\":\" When editing. \"}","location":"techs/go/_group.json"}`
 	req := httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(body))
@@ -117,6 +126,7 @@ func TestHTTPParsesGroupMetadata(t *testing.T) {
 	}
 }
 
+// TestHTTPInvokesNativeFunction checks that a same-origin request returns the native selection result.
 func TestHTTPInvokesNativeFunction(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/invoke", strings.NewReader(`{"operation":"selection","input":["techs/go","practices/testing"],"location":"groups"}`))
 	req.Header.Set("Origin", "http://127.0.0.1:8080")
@@ -137,6 +147,7 @@ func TestHTTPInvokesNativeFunction(t *testing.T) {
 	}
 }
 
+// TestHTTPRejectsCrossOriginAndOversizedRequests checks the HTTP origin and request-size limits.
 func TestHTTPRejectsCrossOriginAndOversizedRequests(t *testing.T) {
 	for _, test := range []struct {
 		name, origin, body string
@@ -157,6 +168,7 @@ func TestHTTPRejectsCrossOriginAndOversizedRequests(t *testing.T) {
 	}
 }
 
+// TestLoggerFromEnvironment checks logging defaults, configured formats and levels, and private configuration errors.
 func TestLoggerFromEnvironment(t *testing.T) {
 	for _, test := range []struct {
 		name, level, format, errorField string
@@ -194,6 +206,7 @@ func TestLoggerFromEnvironment(t *testing.T) {
 	}
 }
 
+// TestHTTPDocumentPreservesTextAndEmptyFields checks exact document captures through HTTP, including empty strings.
 func TestHTTPDocumentPreservesTextAndEmptyFields(t *testing.T) {
 	for _, test := range []struct {
 		name, input, frontmatter, body string
@@ -220,5 +233,56 @@ func TestHTTPDocumentPreservesTextAndEmptyFields(t *testing.T) {
 				t.Fatalf("unexpected document response: HTTP %d %s", recorder.Code, recorder.Body)
 			}
 		})
+	}
+}
+
+// TestHTTPParsesCompleteRule checks complete-rule results, typed failures, and logging privacy through HTTP.
+func TestHTTPParsesCompleteRule(t *testing.T) {
+	metadata := "title: Go\r\nimpact: HIGH\r\nimpactDescription: Avoid failures\r\nwhenToRead: Editing Go"
+	for _, test := range []struct{ name, text, errorName string }{
+		{"valid", "---\r\n" + metadata + "\r\n---\r\n Body  \r\n", ""},
+		{"empty body", "---\n" + metadata + "\n---", "ValidationError"},
+		{"malformed YAML", "---\ntitle: [\n---\nBody", "ValidationError"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			payload, err := json.Marshal(map[string]any{"operation": "rule", "input": map[string]string{"text": test.text, "path": "techs/go/example.md", "source": "team"}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var logs bytes.Buffer
+			recorder := httptest.NewRecorder()
+			handler(slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/invoke", bytes.NewReader(payload)))
+			var got struct {
+				OK    bool
+				Value map[string]any
+				Error *struct{ Name, Location string }
+			}
+			if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if recorder.Code != http.StatusOK {
+				t.Fatalf("HTTP %d: %s", recorder.Code, recorder.Body)
+			}
+			if test.errorName == "" {
+				if !got.OK || got.Value["id"] != "team:techs/go/example" || got.Value["metadata"] != metadata || got.Value["body"] != " Body  \r\n" {
+					t.Fatalf("unexpected rule: %s", recorder.Body)
+				}
+			} else if got.OK || got.Value != nil || got.Error == nil || got.Error.Name != test.errorName || !strings.HasPrefix(got.Error.Location, "team:techs/go/example.md") {
+				t.Fatalf("unexpected failure: %s", recorder.Body)
+			}
+			if strings.Contains(logs.String(), "Avoid failures") || strings.Contains(logs.String(), "example.md") {
+				t.Fatalf("input leaked to logs: %s", &logs)
+			}
+		})
+	}
+}
+
+// TestRuleAdapterRejectsInvalidInput checks that malformed rule arguments fail before domain parsing.
+func TestRuleAdapterRejectsInvalidInput(t *testing.T) {
+	for _, input := range []string{`null`, `"text"`, `{}`, `{"text":null,"path":"x","source":"s"}`, `{"text":1,"path":"x","source":"s"}`, `{"text":"x","path":"x","source":"s","extra":true}`} {
+		got, err := invoke([]byte(`{"operation":"rule","input":` + input + `}`))
+		if err != nil || got.OK || got.Value != nil || got.Error == nil || got.Error.Name != "AdapterError" {
+			t.Fatalf("input %s: got %+v, error %v", input, got, err)
+		}
 	}
 }

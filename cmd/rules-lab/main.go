@@ -60,12 +60,24 @@ func invoke(data []byte) (response, error) {
 	if err := decoder.Decode(new(any)); err != io.EOF {
 		return adapterError("expected one request object"), nil
 	}
-	if req.Location == "" {
+	if req.Location == "" && req.Operation != "rule" {
 		return adapterError("location must be nonempty"), nil
 	}
 	var value any
 	var err error
 	switch req.Operation {
+	case "rule":
+		var input struct {
+			Text   *string `json:"text"`
+			Path   *string `json:"path"`
+			Source *string `json:"source"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Text == nil || input.Path == nil || input.Source == nil {
+			return adapterError("rule input must contain text, path, and source strings"), nil
+		}
+		value, err = rules.Parse(*input.Text, *input.Path, *input.Source)
 	case "groupID", "ruleGroup", "groupMetadata", "document":
 		var text string
 		if len(req.Input) == 0 || bytes.Equal(bytes.TrimSpace(req.Input), []byte("null")) || json.Unmarshal(req.Input, &text) != nil {
@@ -103,12 +115,15 @@ func invoke(data []byte) (response, error) {
 	return response{OK: true, Value: value}, nil
 }
 
+// adapterError builds a response for a request rejected before calling a domain function.
 func adapterError(message string) response {
 	return response{Error: &failure{Name: "AdapterError", Message: message}}
 }
 
+// handler serves the walkthrough and bounded, same-origin invocations without logging user content.
 func handler(logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
+	// Serve the embedded walkthrough and report an undeliverable page once.
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
@@ -116,6 +131,7 @@ func handler(logger *slog.Logger) http.Handler {
 			logger.WarnContext(r.Context(), "write lab page failed", "error", err)
 		}
 	})
+	// Decode a bounded invocation and return its result without logging request contents.
 	mux.HandleFunc("POST /invoke", func(w http.ResponseWriter, r *http.Request) {
 		data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
 		if err != nil {
@@ -148,6 +164,7 @@ func handler(logger *slog.Logger) http.Handler {
 	return http.NewCrossOriginProtection().Handler(mux)
 }
 
+// run runs the loopback HTTP server or processes JSON requests from standard input.
 func run(logger *slog.Logger) error {
 	serve := flag.Bool("serve", false, "serve the interactive lab on loopback")
 	port := flag.Int("port", 0, "loopback port (0 chooses an available port)")
@@ -208,6 +225,7 @@ func loggerFromEnvironment(output io.Writer) (*slog.Logger, error) {
 	return logger, nil
 }
 
+// main configures logging and reports startup or execution failures once before exiting.
 func main() {
 	logger, err := loggerFromEnvironment(os.Stderr)
 	if err != nil {

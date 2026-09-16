@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Code Rules · Rule document lab</title>
+    <title>Code Rules · Rule parser lab</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -324,38 +324,39 @@
     <main>
       <header>
         <strong>CODE RULES / GO MIGRATION</strong
-        ><span>Slice 03 · Rule document boundaries</span>
+        ><span>Slice 04 · Complete rule parsing</span>
       </header>
-      <h1>Separate the sections.<br />Keep the original text.</h1>
+      <h1>Validate the rule.<br />Keep the original text.</h1>
       <p class="lede">
-        This PR adds one function: split a rule document into its YAML
-        frontmatter and Markdown body. Edit the document, try its boundaries,
-        and inspect the strings returned by Go.
+        This PR turns a rule document into validated data: its identity,
+        selection metadata, and attribution. Edit an example and invoke the
+        actual Go parser. Original frontmatter and Markdown remain intact.
       </p>
       <div class="flow">
         <div>
-          <strong>01 &nbsp; Rule document</strong
-          ><span>Text beginning with a frontmatter delimiter</span>
+          <strong>01 &nbsp; Authored rule</strong
+          ><span>Document text, relative path, and source alias</span>
         </div>
         <div>
-          <strong>02 &nbsp; Split at the boundary</strong
-          ><span>Remove delimiter lines; preserve captured text</span>
+          <strong>02 &nbsp; Validate the contents</strong
+          ><span>YAML, required fields, body, and attribution</span>
         </div>
         <div>
-          <strong>03 &nbsp; Two original strings</strong
-          ><span>YAML interpretation comes in a later slice</span>
+          <strong>03 &nbsp; Rule or typed error</strong
+          ><span>Validated fields plus original text, or a diagnostic</span>
         </div>
       </div>
       <div class="workspace">
         <section class="panel" aria-labelledby="input-heading">
           <div class="label">Invoke the new function</div>
-          <h2 id="input-heading">Split a rule document</h2>
+          <h2 id="input-heading">Parse a complete rule</h2>
           <div class="signature">
-            SplitDocument(text, location string) (DocumentText, error)
+            Parse(text, path, source string) (Rule, error)
           </div>
           <p class="hint">
-            Requires an opening <code>---</code> line at the very start and a
-            closing <code>---</code> line. LF and CRLF are supported.
+            Requires title, impact, impactDescription, whenToRead, and a
+            nonblank Markdown body. Tags and attribution are optional. Errors
+            return no partial rule.
           </p>
           <div class="presets" id="presets" aria-label="Example inputs"></div>
           <label for="input">Rule document</label
@@ -366,8 +367,8 @@
             aria-describedby="input-hint"
           ></textarea>
           <p id="input-hint" class="hint">
-            Enter Markdown with a YAML frontmatter envelope. The content inside
-            the envelope is returned as text.
+            Enter the complete Markdown file, including its YAML frontmatter.
+            Both sections are returned unchanged after validation.
           </p>
           <label for="newlines">Line endings sent to Go</label>
           <select id="newlines">
@@ -378,14 +379,16 @@
             The browser editor uses LF. This choice sets the line endings in the
             actual request.
           </p>
-          <label for="location">Error location</label
-          ><input
-            id="location"
-            value="lab:techs/go/example.md"
-            spellcheck="false"
-          />
+          <label for="path">Relative rule path</label
+          ><input id="path" value="techs/go/errors.md" spellcheck="false" />
           <p class="hint">
-            A label for diagnostics. The function does not open a file.
+            Determines the group and rule ID. No file is opened.
+          </p>
+          <label for="source">Source alias</label
+          ><input id="source" value="lab" spellcheck="false" />
+          <p class="hint">
+            A caller-supplied name. For example, the rule ID becomes
+            <code>lab:techs/go/errors</code>.
           </p>
           <div class="actions">
             <button class="primary" id="invoke">Invoke Go function</button
@@ -398,72 +401,83 @@
             <span class="badge" id="status">Ready</span>
           </div>
           <p id="explanation">
-            Invoke Go to see the returned text or delimiter error.
+            Invoke Go to see a validated rule or the first validation error.
           </p>
           <pre id="output" aria-live="polite">No invocation yet.</pre>
           <p id="metrics" class="hint"></p>
           <details open>
             <summary>How to read the result</summary>
             <p>
-              <code>frontmatter</code> excludes the opening delimiter and the
-              newline before the closing delimiter. <code>body</code> begins
-              after the closing delimiter’s newline, if present.
+              <code>title</code>, <code>impact</code>,
+              <code>impactDescription</code>, and <code>whenToRead</code> are
+              validated YAML values. <code>attribution</code> contains
+              normalized HTTP(S) URLs without credentials.
             </p>
             <p>
-              The JSON makes whitespace visible: <code>\n</code> is LF,
-              <code>\r\n</code> is CRLF, and <code>\t</code> is a tab. Empty
-              captures are <code>""</code>.
+              <code>metadata</code> and <code>body</code> preserve the authored
+              text. JSON makes whitespace visible: <code>\n</code> is LF and
+              <code>\r\n</code> is CRLF.
             </p>
             <p>
-              Success means the boundary was found. YAML syntax, required
-              fields, and body content have not been validated. No files are
-              read or written.
+              Unknown fields are rejected. Frontmatter accepts
+              <code>title</code>, <code>impact</code>,
+              <code>impactDescription</code>, <code>whenToRead</code>,
+              <code>tags</code>, and <code>attribution</code>. Each attribution
+              entry accepts only <code>url</code> and <code>description</code>.
+              Tags remain in the original metadata.
+            </p>
+            <p>
+              A successful parse validates this rule only. It does not resolve
+              other rules or read or write files.
             </p>
           </details>
           <h3>What crossed the boundary</h3>
           <p class="hint">
             This request goes to <code>POST /invoke</code>. The native Go
-            adapter calls <code>rules.SplitDocument</code>.
+            adapter calls <code>rules.Parse</code>.
           </p>
           <pre id="request">No request sent.</pre>
         </section>
       </div>
       <section class="section">
         <div class="label">Walk through this PR</div>
-        <h2>One boundary, three details</h2>
+        <h2>Three things to inspect</h2>
         <div class="review">
           <div>
-            <h3>1. Start at the first character</h3>
+            <h3>1. Useful failures</h3>
             <p>
-              The opening marker is exactly <code>---</code> followed by LF or
-              CRLF. A leading blank line, indentation, or extra marker character
-              fails.
+              Empty metadata, missing fields, blank bodies, duplicate YAML keys,
+              and aliases fail with a typed error. The location points to the
+              rule or offending field.
             </p>
             <p>
-              Try <strong>Leading blank</strong> or
-              <strong>No frontmatter</strong>.
-            </p>
-          </div>
-          <div>
-            <h3>2. Find the first closing line</h3>
-            <p>
-              The closing marker must be on its own line. It can be followed by
-              LF, CRLF, or end of input. Later delimiters belong to the body.
-            </p>
-            <p>
-              Try <strong>Extra delimiter</strong> or
-              <strong>Indented close</strong>.
+              Try <strong>Unknown field</strong>, <strong>Empty body</strong>,
+              <strong>Duplicate key</strong>, and
+              <strong>Legacy guidance</strong>.
             </p>
           </div>
           <div>
-            <h3>3. Preserve both captures</h3>
+            <h3>2. Metadata with meaning</h3>
             <p>
-              The function returns the original strings. Spaces, tabs, Unicode,
-              and line endings inside each section stay intact.
+              Impact is one of six values. Reading guidance is one nonblank
+              string. Tags accept text or distinct nonblank strings. Attribution
+              URLs accept HTTP(S) and reject credentials.
             </p>
             <p>
-              Try <strong>CRLF</strong>, <strong>Whitespace</strong>, or
-              <strong>Empty body</strong>.
+              Try <strong>Attribution</strong>, <strong>Credentials</strong>,
+              and <strong>Duplicate tags</strong>.
+            </p>
+          </div>
+          <div>
+            <h3>3. Preserve authored text</h3>
+            <p>
+              Comments, spacing, Unicode, and line endings remain in the
+              original metadata and body. Parsed fields are never written back
+              over those strings.
+            </p>
+            <p>
+              Try <strong>CRLF</strong>, <strong>Unicode</strong>, and
+              <strong>Date as text</strong>.
             </p>
           </div>
         </div>
@@ -471,16 +485,15 @@
       <section class="section">
         <h2>What is ready to review</h2>
         <p class="notice">
-          This PR covers document boundaries only. The
-          <strong>Uninterpreted YAML</strong> example succeeds because YAML
-          validation is a later step. It must not be treated as a valid complete
-          rule.
+          This page invokes only the new complete-rule parser. Earlier group,
+          selection, and document-splitting functions remain in regression
+          tests.
         </p>
         <p>
-          27 shared cases compare exact strings and delimiter errors with the
-          pinned TypeScript implementation. Six direct Go cases cover empty
-          sections and other inputs that the full rule parser would reject
-          later. Earlier functionality remains in regression tests.
+          Shared cases check exact values and errors against independent
+          expectations and the pinned TypeScript parser. Approved Go YAML
+          diagnostics have separate expected messages. No output is normalized
+          to hide differences.
         </p>
         <details>
           <summary>Run this slice yourself</summary>
@@ -491,7 +504,7 @@ go test ./internal/rules ./cmd/rules-lab
 go build -o /tmp/code-rules-lab ./cmd/rules-lab
 bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           <p class="hint">
-            The walkthrough uses the project’s existing gallery styling. Every
+            The walkthrough uses the project's existing gallery styling. Every
             invocation runs the real Go function.
           </p>
         </details>
@@ -501,6 +514,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       </footer>
     </main>
     <script>
+      // byID looks up a walkthrough control by its unique element ID.
       const byID = (id) => document.getElementById(id);
       const frontmatter =
         "title: Preserve rule text\nimpact: HIGH\nimpactDescription: Keep authored text intact.\nwhenToRead: When loading rule files.";
@@ -508,42 +522,105 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
         "---\n" +
         frontmatter +
         "\n---\n# Preserve rule text\n\nKeep the original text.\n";
+      // withMetadata builds an example document from YAML text and a Markdown body.
+      const withMetadata = (
+        metadata,
+        body = "# Preserve rule text\n\nKeep the original text.\n",
+      ) => "---\n" + metadata + "\n---\n" + body;
       const examples = [
-        ["Standard", normal],
+        ["Valid rule", normal],
+        ["Empty body", withMetadata(frontmatter, "")],
+        ["Blank body", withMetadata(frontmatter, " \t\n")],
+        ["Empty metadata", withMetadata("")],
+        [
+          "Missing title",
+          withMetadata(frontmatter.replace("title: Preserve rule text\n", "")),
+        ],
+        [
+          "Legacy guidance",
+          withMetadata(
+            frontmatter.replace(
+              "whenToRead: When loading rule files.",
+              "whenToRead: [When loading rule files.]",
+            ),
+          ),
+        ],
+        [
+          "Invalid impact",
+          withMetadata(frontmatter.replace("impact: HIGH", "impact: URGENT")),
+        ],
+        [
+          "Numeric title",
+          withMetadata(
+            frontmatter.replace("title: Preserve rule text", "title: 42"),
+          ),
+        ],
+        [
+          "Duplicate tags",
+          withMetadata(frontmatter + "\ntags: [go, errors, go]"),
+        ],
+        ["Malformed YAML", withMetadata("title: [")],
+        ["Duplicate key", withMetadata(frontmatter + "\ntitle: Another title")],
+        [
+          "Alias",
+          withMetadata(frontmatter + "\nextra: &extra value\ncopy: *extra"),
+        ],
+        [
+          "Attribution",
+          withMetadata(
+            frontmatter +
+              "\nattribution:\n  - url: HTTPS://EXAMPLE.COM:443/a/../source\n    description: Adapted from this source.",
+          ),
+        ],
+        [
+          "Credentials",
+          withMetadata(
+            frontmatter +
+              "\nattribution:\n  - url: https://user:secret@example.com/source\n    description: Adapted from this source.",
+          ),
+        ],
+        [
+          "Unknown field",
+          withMetadata(
+            frontmatter + "\ncustom: {owner: team, status: reviewed}",
+          ),
+        ],
         ["CRLF", normal, "crlf"],
         [
-          "Whitespace",
-          "---\n" +
-            frontmatter +
-            "\n# Keep this comment  \n\n---\n\n  Body with spaces.  \n\tTail\n",
+          "Unicode",
+          withMetadata(
+            frontmatter.replace("Preserve rule text", "Preserve Unicode 🐹"),
+            "\nKeep café and é intact.  \n",
+          ),
         ],
-        ["Empty body", "---\n" + frontmatter + "\n---"],
-        ["Empty frontmatter", "---\n\n---\nBody"],
-        ["Uninterpreted YAML", "---\ntitle: [\n---\nBody"],
-        ["Leading blank", "\n" + normal],
-        ["No frontmatter", "# A rule without frontmatter\n\nBody"],
-        ["Indented close", "---\n" + frontmatter + "\n ---\nBody"],
         [
-          "Extra delimiter",
-          "---\n" +
-            frontmatter +
-            "\n---\n# Body\n\n---\n\nThis delimiter stays in the body.\n",
+          "Unicode escapes",
+          withMetadata(
+            frontmatter.replace("Preserve rule text", '"\\uD83D\\uDC39"'),
+          ),
+        ],
+        [
+          "Date as text",
+          withMetadata(frontmatter.replace("Preserve rule text", "2026-09-15")),
         ],
       ];
+      // clearResult removes stale output whenever the user changes an input.
       function clearResult() {
         byID("status").textContent = "Ready";
         byID("status").className = "badge";
         byID("explanation").textContent =
-          "Input changed. Invoke Go to split this document.";
+          "Input changed. Invoke Go to validate this rule.";
         byID("output").textContent = "No invocation for this input.";
         byID("request").textContent = "No request sent.";
         byID("metrics").textContent = "";
         byID("timing").textContent = "";
       }
       byID("presets").replaceChildren(
+        // Build a button for each example document.
         ...examples.map(([label, value, newline]) => {
           const button = document.createElement("button");
           button.textContent = label;
+          // Load this example and clear the previous invocation result.
           button.addEventListener("click", () => {
             byID("input").value = value;
             byID("newlines").value = newline || "lf";
@@ -556,9 +633,10 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
         }),
       );
       byID("input").value = normal;
-      for (const id of ["input", "location"])
+      for (const id of ["input", "path", "source"])
         byID(id).addEventListener("input", clearResult);
       byID("newlines").addEventListener("change", clearResult);
+      // Invoke the native parser and display its result, error, and request data.
       byID("invoke").addEventListener("click", async () => {
         const text = byID("input").value;
         const input =
@@ -566,11 +644,15 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
             ? text.replace(/\n/g, "\r\n")
             : text;
         const body = JSON.stringify({
-          operation: "document",
-          input,
-          location: byID("location").value,
+          operation: "rule",
+          input: {
+            text: input,
+            path: byID("path").value,
+            source: byID("source").value,
+          },
         });
         byID("request").textContent = body;
+        // Disable controls until this invocation finishes.
         document
           .querySelectorAll("button,input,textarea,select")
           .forEach((element) => (element.disabled = true));
@@ -596,19 +678,19 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
           byID("status").textContent = result.ok
-            ? "Returned text"
+            ? "Validated rule"
             : result.error.name;
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
-            ? "Split successfully. YAML and rule fields have not been validated."
+            ? "The Go parser returned a validated rule and its original text."
             : result.error.name === "ValidationError"
-              ? "The document does not have the required delimiter lines."
+              ? "The Go parser rejected this rule. See the error location and message below."
               : "The adapter rejected the request before invoking Go.";
           if (result.ok) {
             const bytes = new TextEncoder();
             byID("metrics").textContent =
               "Returned UTF-8 bytes: frontmatter " +
-              bytes.encode(result.value.frontmatter).length +
+              bytes.encode(result.value.metadata).length +
               " · body " +
               bytes.encode(result.value.body).length;
           }
@@ -621,6 +703,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
         } finally {
           byID("timing").textContent =
             Math.round(performance.now() - started) + " ms round trip";
+          // Restore the controls after either a result or a connection failure.
           document
             .querySelectorAll("button,input,textarea,select")
             .forEach((element) => (element.disabled = false));
