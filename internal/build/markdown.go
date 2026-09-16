@@ -64,26 +64,19 @@ func renderBody(body string, active ActiveRule, paths []string, outputPath strin
 	root := markdownParser(ends).Parse(source)
 	edits := []edit{}
 	seen := map[text.Index]bool{}
-	imageDefinitions := map[text.Index]bool{}
 	var rawHTML strings.Builder
-	_ = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
-		if image, ok := node.(*ast.Image); entering && ok && image.Reference != nil {
-			imageDefinitions[image.Destination.Index()] = true
-		}
-		return ast.WalkContinue, nil
-	})
 	err := ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
 		var destination text.SingleLineValue
 		var reference *ast.ReferenceLink
-		image, hasURL := false, true
+		hasURL := true
 		switch n := node.(type) {
 		case *ast.Link:
 			destination, reference = n.Destination, n.Reference
 		case *ast.Image:
-			destination, reference, image = n.Destination, n.Reference, true
+			destination, reference = n.Destination, n.Reference
 		case *ast.LinkReferenceDefinition:
 			destination = n.Destination
 		default:
@@ -91,8 +84,6 @@ func renderBody(body string, active ActiveRule, paths []string, outputPath strin
 		}
 		if hasURL {
 			index := destination.Index()
-			// Shared definitions used by images need raw bytes; ordinary links can also open those bytes.
-			image = image || imageDefinitions[index]
 			if destination.IsOwned() {
 				if reference != nil {
 					return ast.WalkContinue, nil
@@ -105,7 +96,7 @@ func renderBody(body string, active ActiveRule, paths []string, outputPath strin
 			}
 			if !seen[index] {
 				seen[index] = true
-				value, err := relocatedURL(destination.Value(source), active, paths, outputPath, image)
+				value, err := relocatedURL(destination.Value(source), active, paths, outputPath)
 				if err != nil {
 					return ast.WalkStop, err
 				}

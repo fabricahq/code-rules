@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/build"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // renderFixture resolves a local rule with a caller-supplied body and optional supporting files.
@@ -64,22 +65,37 @@ func TestRenderRejectsUnsafeReferences(t *testing.T) {
 	}
 }
 
-// TestRenderPinnedRemoteFallback selects a commit URL for an unretained rule, never an asset.
-func TestRenderPinnedRemoteFallback(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
-	library := libraries["team"]
-	library.Catalog.Groups[0].Rules[0].Document = document + "\n[other](../rust/other.md#x)\n"
-	libraries["team"] = library
-	resolved, err := build.Resolve(config, libraries, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	output, err := build.RenderRules(resolved)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(output["rules/team/techs/go/errors.md"], "https://github.com/acme/rules/blob/"+commit+"/techs/rust/other.md#x") {
-		t.Fatal(output)
+// TestRenderRejectsRuleLinks refuses retained, excluded, and unretained targets without remote fallback.
+func TestRenderRejectsRuleLinks(t *testing.T) {
+	for _, state := range []string{"selected", "excluded", "unselected"} {
+		t.Run(state, func(t *testing.T) {
+			exclude := `{}`
+			if state == "excluded" {
+				exclude = `{"techs/go/other":"Project policy"}`
+			}
+			config, libraries := fixture(t, exclude, `{}`)
+			supplied := libraries["team"]
+			target := "techs/go/other.md"
+			if state == "unselected" {
+				target = "techs/rust/other.md"
+			} else {
+				other, err := rules.Parse(document, target, "team")
+				if err != nil {
+					t.Fatal(err)
+				}
+				supplied.Catalog.Groups[0].Rules = append(supplied.Catalog.Groups[0].Rules, other)
+			}
+			supplied.Catalog.Groups[0].Rules[0].Document = document + "\n[other](/" + target + "#details)\n"
+			libraries["team"] = supplied
+			resolved, err := build.Resolve(config, libraries, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			output, err := build.RenderRules(resolved)
+			if err == nil || !strings.Contains(err.Error(), "links to other rule documents are not allowed") || output != nil {
+				t.Fatalf("expected rule-link error without partial output: %+v, %v", output, err)
+			}
+		})
 	}
 }
 
@@ -142,10 +158,11 @@ func TestRenderRejectsFileDirectoryConflict(t *testing.T) {
 
 // TestRenderReferenceImages keeps shared image definitions usable as both images and file links.
 func TestRenderReferenceImages(t *testing.T) {
-	for _, body := range []string{"![diagram][asset]\n\n[asset]: ../rust/diagram.md", "[download][asset] ![diagram][asset]\n\n[asset]: ../rust/diagram.md"} {
+	for _, body := range []string{"![diagram][asset]\n\n[asset]: /assets/diagram.png", "[download][asset] ![diagram][asset]\n\n[asset]: /assets/diagram.png"} {
 		config, libraries := fixture(t, `{}`, `{}`)
 		lib := libraries["team"]
 		lib.Catalog.Groups[0].Rules[0].Document = document + "\n" + body
+		lib.Catalog.SupportingFiles["assets/diagram.png"] = []byte("image bytes")
 		libraries["team"] = lib
 		resolved, err := build.Resolve(config, libraries, nil)
 		if err != nil {
@@ -155,7 +172,7 @@ func TestRenderReferenceImages(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !strings.Contains(output["rules/team/techs/go/errors.md"], "https://raw.githubusercontent.com/acme/rules/"+commit+"/techs/rust/diagram.md") {
+		if !strings.Contains(output["rules/team/techs/go/errors.md"], "../../../../../vendor/team/assets/diagram.png") {
 			t.Fatal(output)
 		}
 	}
