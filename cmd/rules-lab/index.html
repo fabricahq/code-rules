@@ -462,6 +462,14 @@
             },
           },
           {
+            name: "Custom + exception",
+            input: {
+              manifest:
+                '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "LicenseRef-Team WITH Classpath-exception-2.0"}}',
+              paths: ["LICENSE", "NOTICE"],
+            },
+          },
+          {
             name: "Without SPDX",
             input: {
               manifest:
