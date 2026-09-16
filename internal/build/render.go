@@ -69,7 +69,7 @@ func renderRule(active ActiveRule, paths []string, outputPath string) (string, e
 	for _, attribution := range r.Attribution {
 		lines = append(lines, "", "**Attribution:** ["+escapeText(attribution.Description)+"](<"+strings.NewReplacer("<", "%3C", ">", "%3E").Replace(attribution.URL)+">)")
 	}
-	for _, license := range active.Licenses {
+	if license := active.License; license != nil {
 		if license.SPDXExpression != nil {
 			lines = append(lines, "", "**Declared license:** "+escapeText(*license.SPDXExpression))
 		}
@@ -150,10 +150,10 @@ func relocatedURL(destination string, active ActiveRule, paths []string, outputP
 	if !local {
 		return destination, nil
 	}
-	if err := rules.RequireAllowedTarget(active.Origin.File, target, rules.LicensePaths(active.Licenses)); err != nil {
+	if err := rules.RequireAllowedTarget(active.Origin.File, target, rules.LicensePaths(active.License)); err != nil {
 		return "", err
 	}
-	for _, license := range active.Licenses {
+	if license := active.License; license != nil {
 		for _, mapping := range licenseMappings(active.Origin.Source, license) {
 			if mapping.Source == target {
 				return relativeURL(outputPath, mapping.Generated) + suffix, nil
@@ -183,7 +183,7 @@ func relocatedURL(destination string, active ActiveRule, paths []string, outputP
 type licenseMapping struct{ Source, Generated, Kind string }
 
 // licenseMappings assigns stable license and notice names while preserving declaration order.
-func licenseMappings(source string, license rules.LicenseDeclaration) []licenseMapping {
+func licenseMappings(source string, license *rules.LicenseDeclaration) []licenseMapping {
 	root := "libraries/" + source + "/licenses"
 	result := []licenseMapping{}
 	for _, file := range license.Files {
