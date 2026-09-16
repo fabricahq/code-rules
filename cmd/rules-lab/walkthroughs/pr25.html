@@ -491,7 +491,7 @@
           {
             name: "Paginated summaries",
             description:
-              "Expands the Go group to 12 rules and lowers maxBytes to 1,800. Expect numbered index parts and a directory linking to them.",
+              "Expands the Go group to 12 rules and lowers maxBytes to 3,000. Expect numbered index parts and a directory linking to them.",
             input: {
               fixture: {
                 configuration: {
@@ -542,7 +542,7 @@
                 },
                 localFiles: {},
               },
-              maxBytes: 1800,
+              maxBytes: 3000,
             },
           },
           {
@@ -616,7 +616,7 @@
           {
             name: "Directory too large",
             description:
-              "Uses 90 rules and a 1,000-byte limit. Expect an error because the directory of index parts cannot fit.",
+              "Uses 90 rules and a 2,500-byte limit. Expect an error because the directory of index parts cannot fit.",
             input: {
               fixture: {
                 configuration: {
@@ -823,7 +823,7 @@
                 },
                 localFiles: {},
               },
-              maxBytes: 1000,
+              maxBytes: 2500,
             },
           },
           {

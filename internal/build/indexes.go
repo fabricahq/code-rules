@@ -106,8 +106,8 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 		if len(entries) == 0 {
 			entries = append(entries, "No active rules in this group.")
 		}
-		header := "# " + name + "\n\nGroup ID: `" + group.ID + "`\n\n" + cues + "\n\nThis page contains summaries only. Open each applicable rule’s full file. " + indexReadingInstructions + " Impact describes consequences, not applicability or finding severity."
-		footer := "For other groups, open [RULES.md](../../RULES.md). Generated output: edit source rules or configuration and rebuild."
+		header := groupIndexHeader(group.ID, name, cues)
+		footer := "For other technology and practice groups, open [RULES.md](../../RULES.md). These files are generated. Edit source rules or configuration and rebuild to change them."
 		pages, err := IndexPages(file, header, entries, footer, maxBytes)
 		if err != nil {
 			return nil, err
@@ -116,8 +116,8 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 			output[path] = text
 		}
 	}
-	header := "# Code Rules\n\nChoose technology and practice groups using their reading cues. " + indexReadingInstructions
-	pages, err := IndexPages("RULES.md", header, groupEntries, "", maxBytes)
+	header := indexHeader()
+	pages, err := IndexPages("RULES.md", header, groupEntries, "These files are generated. Edit source rules or configuration and rebuild to change them.", maxBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +141,41 @@ func groupTitle(group Group) string {
 	return strings.Join(names, " / ")
 }
 
-// Shared reading instructions keep entry indexes and directly opened group pages self-contained.
-const indexReadingInstructions = "Read full relevant or plausibly relevant rules before planning, implementation, validation, or diagnosis. Complete truncated reads before relying on a rule. Consider behavior as well as language. Revisit selection when scope changes and reload needed rules after compaction. Selection alone is not evidence of a violation."
+// Shared instructions keep complete reading and evidence requirements on every entry page.
+const fullReadingInstructions = "Read the full text of every applicable or plausibly applicable rule before relying on it. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
+const validationInstructions = "During validation or diagnosis, independently select relevant rules from the task, code, and surrounding contracts. Cite rule IDs and concrete evidence for findings; selection alone is not evidence of a violation."
+
+// indexHeader preserves the reference CLI's selection procedure for summary-only delivery.
+func indexHeader() string {
+	return strings.Join([]string{
+		"# Code Rules",
+		"This project uses [Fabrica Code Rules](https://github.com/fabricahq/code-rules) to declare its adopted engineering practices.",
+		"Before planning or writing code, use the descriptions under **Technology and practice group indexes** below to choose which indexes to open. Consider the intended behavior as well as the technology; testing guidance can apply even when no test files have changed.",
+		"Each group page includes summaries with explicit reading links. Exclusions and replacements are already applied.",
+		fullReadingInstructions,
+		validationInstructions,
+		"## Technology and practice group indexes",
+		"Open the relevant group indexes below, then select applicable rules and read their full guidance.",
+	}, "\n\n")
+}
+
+// groupIndexHeader combines resolved selection cues with the reference CLI's numbered reading procedure.
+func groupIndexHeader(id, name, cues string) string {
+	return strings.Join([]string{
+		"# " + name,
+		"Group ID: `" + id + "`",
+		cues,
+		"## How to use this group",
+		"This file contains summaries only. Follow the reading instructions below to load the full rules.",
+		"1. Compare each “When to read” cue with your intended task or the behavior you are reviewing.",
+		"2. For every relevant or plausibly relevant rule, open its “Read full rule” link and read the complete file. Complete truncated reads.",
+		"3. Apply the full rule’s guidance and exceptions. When present, use Implementation guidance when planning or changing code, and Validation guidance when reviewing, testing, or diagnosing behavior. Use both when your task includes both activities. These sections support the rule’s guidance; they do not replace it. Selection alone is insufficient evidence for a review finding.",
+		"Use “When to read” to select rules. Read and follow every applicable rule, regardless of impact. Impact describes the consequence the rule addresses; it does not determine applicability, override exceptions, or set a review finding’s severity. Assess findings from concrete evidence and consequences.",
+		fullReadingInstructions,
+		validationInstructions,
+		"## Rules",
+	}, "\n\n")
+}
 
 // groupReadingGuidance repeats the resolved group cues, labeling sources only when multiple definitions apply.
 func groupReadingGuidance(group Group) string {
