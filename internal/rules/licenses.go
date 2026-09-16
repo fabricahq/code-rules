@@ -19,11 +19,11 @@ type LicenseDeclaration struct {
 	AttributionFiles []string `json:"attributionFiles"`
 }
 
-// ReadLibraryLicenses validates rule-library.json and declared file presence.
+// ReadLibraryLicense validates rule-library.json and declared file presence.
 // It never decodes, copies, or mutates license/notice bytes; empty and binary files
-// count as present. Missing licensing returns an empty list, not an inferred license.
+// count as present. Missing licensing returns nil, not an inferred license.
 // Unknown manifest fields retain baseline compatibility; license fields are strict.
-func ReadLibraryLicenses(files map[string][]byte, source string) ([]LicenseDeclaration, error) {
+func ReadLibraryLicense(files map[string][]byte, source string) (*LicenseDeclaration, error) {
 	location := source + "/rule-library.json"
 	text, ok := files["rule-library.json"]
 	if !ok {
@@ -42,7 +42,7 @@ func ReadLibraryLicenses(files map[string][]byte, source string) ([]LicenseDecla
 	}
 	raw, ok := manifest["license"]
 	if !ok {
-		return []LicenseDeclaration{}, nil
+		return nil, nil
 	}
 	fields, err := jsonObject(raw, location+": license")
 	if err != nil {
@@ -101,17 +101,17 @@ func ReadLibraryLicenses(files map[string][]byte, source string) ([]LicenseDecla
 			seen[path] = true
 		}
 	}
-	return []LicenseDeclaration{result}, nil
+	return &result, nil
 }
 
 // controlCharacter identifies bytes that cannot occur in a single-line SPDX expression.
 func controlCharacter(r rune) bool { return r < 32 || r == 127 }
 
-// LicensePaths returns unique retained paths in UTF-16 code-unit order without modifying declarations.
-func LicensePaths(licenses []LicenseDeclaration) []string {
+// LicensePaths returns unique retained paths in UTF-16 code-unit order without modifying the declaration.
+func LicensePaths(license *LicenseDeclaration) []string {
 	paths := []string{}
 	seen := make(map[string]bool)
-	for _, license := range licenses {
+	if license != nil {
 		for _, list := range [][]string{license.Files, license.AttributionFiles} {
 			for _, path := range list {
 				if !seen[path] {

@@ -100,11 +100,11 @@ func loadLibraryFixture(input libraryFixture) (any, error) {
 		files[path] = string(data)
 	}
 	return struct {
-		Groups          []library.Group            `json:"groups"`
-		Licenses        []rules.LicenseDeclaration `json:"licenses"`
-		SupportingFiles map[string]string          `json:"supportingFiles"`
-		FilesRead       []string                   `json:"filesRead"`
-	}{Groups: catalog.Groups, Licenses: catalog.Licenses, SupportingFiles: files, FilesRead: catalog.Paths()}, nil
+		Groups          []library.Group           `json:"groups"`
+		License         *rules.LicenseDeclaration `json:"license"`
+		SupportingFiles map[string]string         `json:"supportingFiles"`
+		FilesRead       []string                  `json:"filesRead"`
+	}{Groups: catalog.Groups, License: catalog.License, SupportingFiles: files, FilesRead: catalog.Paths()}, nil
 }
 
 // fixturePath limits the adapter's writes to simple portable relative names.
