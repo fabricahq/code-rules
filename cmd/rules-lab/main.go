@@ -72,6 +72,30 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "prepareOutput":
+		var input struct {
+			Fixture     json.RawMessage `json:"fixture"`
+			MaxBytes    int             `json:"maxBytes"`
+			ToolVersion string          `json:"toolVersion"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil {
+			return adapterError("expected fixture, maxBytes, and toolVersion"), nil
+		}
+		var resolved build.Resolved
+		resolved, err = resolveBuildFixture(input.Fixture)
+		if err == nil {
+			var output build.Output
+			output, err = build.Prepare(resolved, build.Options{ToolVersion: input.ToolVersion, IndexMaxBytes: input.MaxBytes})
+			if err == nil {
+				files := map[string]string{}
+				for file, data := range output.Files {
+					files[file] = string(data)
+				}
+				value = files
+			}
+		}
 	case "indexPages":
 		var input struct {
 			File     string   `json:"file"`
