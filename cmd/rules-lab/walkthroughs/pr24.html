@@ -339,12 +339,12 @@
           <div class="signature">
             build.RenderRules(resolved) (map[string]string, error)
           </div>
-          <p class="hint">
-            The adapter resolves these fixtures, then invokes the renderer.
-            Returned map keys are generated paths; values are the complete file
-            contents.
-          </p>
           <div class="presets" id="presets"></div>
+          <p
+            class="hint scenario-description"
+            id="scenario-description"
+            aria-live="polite"
+          ></p>
           <label for="input">Rule rendering fixture</label
           ><textarea id="input" rows="18" spellcheck="false"></textarea>
           <p class="hint">The request goes to the native Go implementation.</p>
@@ -407,6 +407,7 @@
     </main>
     <script src="/lab-assets/fixture-files.js"></script>
     <script>
+      /** @fileoverview Explain editable scenarios and display native Go results for this PR. */
       // Locate one named control in this walkthrough.
       const byID = (id) => document.getElementById(id);
       const spec = {
@@ -428,6 +429,8 @@
         examples: [
           {
             name: "Standalone rule",
+            description:
+              "Renders one imported errors.md as a standalone rule file. Expect a generated heading, impact, reading guidance, and rule body.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -458,6 +461,8 @@
           },
           {
             name: "Retained asset",
+            description:
+              "Replaces the rule body with an image link and adds assets/errors/diagram.txt. Expect the generated rule to link to the retained attachment under vendor/team/.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -489,6 +494,8 @@
           },
           {
             name: "Pinned rule link",
+            description:
+              "Links to the unselected techs/rust/other.md#example file. Expect a repository link pinned to the source commit, preserving the fragment.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -520,6 +527,8 @@
           },
           {
             name: "Reference and self",
+            description:
+              "Adds an empty self-link and a reference-style link to /assets/guide.md. Expect both links to point to retained source files under vendor/team/.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -551,6 +560,8 @@
           },
           {
             name: "Code stays text",
+            description:
+              "Puts a root-escaping Markdown link inside a fenced code block. Rendering preserves the example as text without following or rewriting it.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -581,6 +592,8 @@
           },
           {
             name: "Setext heading",
+            description:
+              'Uses an underline-style heading reading "Different heading". Expect that heading under Guidance and "Keep this paragraph." to remain.',
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -611,6 +624,8 @@
           },
           {
             name: "Local missing link",
+            description:
+              "Uses only a local rule linking to missing.md, which is absent. Expect an error rather than a broken generated link.",
             input: {
               configuration: { schemaVersion: 1, sources: {} },
               libraries: {},
@@ -624,6 +639,8 @@
           },
           {
             name: "Relative HTML",
+            description:
+              "Uses an HTML img element with a relative asset path. Expect an error asking for a Markdown link instead.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -667,13 +684,21 @@
           "Input changed. Invoke Go to see its result.";
         byID("timing").textContent = "";
       }
-      // Fill an example without sending a request.
+      // Explain and select a preset without invoking Go; its description remains a preset reference after edits.
       function loadExample(example) {
         byID("input").value =
           typeof example.input === "string"
             ? example.input
             : JSON.stringify(example.input, null, 2);
         byID("input").dispatchEvent(new Event("input"));
+        byID("scenario-description").textContent =
+          `Preset: ${example.name}. ${example.description}`;
+        for (const button of byID("presets").querySelectorAll("button")) {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.textContent === example.name),
+          );
+        }
       }
       for (const example of spec.examples) {
         const button = document.createElement("button");
