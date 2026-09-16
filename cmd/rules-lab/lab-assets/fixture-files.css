@@ -1,0 +1,139 @@
+/* Shared filesystem input editor, using the walkthrough's existing theme. */
+.workspace.has-fixture-browser {
+  grid-template-columns: minmax(0, 1fr);
+}
+.has-fixture-browser .result {
+  border-left: 0;
+  border-top: 1px solid var(--line);
+}
+.fixture-browser {
+  display: grid;
+  grid-template-columns: minmax(220px, 30%) minmax(0, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 24px;
+}
+.fixture-browser > * {
+  min-width: 0;
+}
+.fixture-heading {
+  grid-column: 1 / -1;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.fixture-heading h3 {
+  margin: 0 0 6px;
+}
+.fixture-heading .hint {
+  margin: 0;
+}
+.fixture-tree {
+  background: var(--surface);
+  padding: 16px 10px;
+  max-height: 540px;
+  overflow: auto;
+}
+.fixture-root + .fixture-root {
+  margin-top: 24px;
+}
+.fixture-root-name {
+  margin: 0 8px 12px;
+  font-weight: 650;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.fixture-tree ul {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 0;
+}
+.fixture-tree .fixture-root > ul {
+  padding-left: 0;
+}
+.fixture-folder {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fixture-folder summary {
+  padding: 7px 5px;
+  font:
+    13px ui-monospace,
+    monospace;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.fixture-tree .fixture-file {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 8px;
+  font:
+    13px ui-monospace,
+    monospace;
+  background: transparent;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.fixture-tree .fixture-file[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--paper);
+  color: var(--accent);
+}
+.fixture-file:focus-visible,
+.fixture-folder summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.fixture-pane {
+  padding: 18px;
+  border-left: 1px solid var(--line);
+}
+.fixture-pane .fixture-filename {
+  display: block;
+  margin: 0 0 14px;
+  font:
+    13px ui-monospace,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.fixture-pane .fixture-content {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 360px;
+  height: 400px;
+  resize: vertical;
+  padding: 16px;
+  line-height: 1.6;
+  font-size: 14px;
+  tab-size: 2;
+}
+.fixture-info {
+  margin-bottom: 0;
+}
+.fixture-advanced {
+  margin: 18px 0;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+.fixture-advanced > summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+@media (max-width: 700px) {
+  .fixture-browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fixture-tree {
+    max-height: 260px;
+  }
+  .fixture-pane {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 14px;
+  }
+}
