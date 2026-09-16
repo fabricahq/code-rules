@@ -32,7 +32,7 @@ func fixture(t *testing.T, exclude, replace string) (rules.Configuration, map[st
 	if err != nil {
 		t.Fatal(err)
 	}
-	return config, map[string]build.Library{"team": {Commit: commit, Catalog: library.Catalog{Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, Licenses: []rules.LicenseDeclaration{}, SupportingFiles: map[string][]byte{"techs/go/_group.json": []byte(metadata)}}}}
+	return config, map[string]build.Library{"team": {Commit: commit, Catalog: library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, Licenses: []rules.LicenseDeclaration{}, SupportingFiles: map[string][]byte{"techs/go/_group.json": []byte(metadata)}}}}
 }
 
 // TestResolveAdoption covers imported definitions, exclusions, replacements, local additions, and guidance precedence.
@@ -149,6 +149,41 @@ func TestReservedLocalGroupMetadata(t *testing.T) {
 	for _, file := range []string{"techs/assets/_group.json", "practices/assets/_group.json"} {
 		if _, err := build.Resolve(config, libraries, map[string][]byte{file: []byte(metadata)}); err == nil {
 			t.Fatalf("accepted %s", file)
+		}
+	}
+}
+
+// TestResolveBindsSelection rejects an otherwise valid catalog loaded with a narrower selector.
+func TestResolveBindsSelection(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	config.Sources[0].Groups = rules.GroupSelection{Pattern: "*"}
+	if _, err := build.Resolve(config, libraries, nil); err == nil {
+		t.Fatal("accepted narrower catalog for wildcard")
+	}
+}
+
+// TestResolveVersionProvenance requires a matching release and retains its tag and normalized version.
+func TestResolveVersionProvenance(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	config.Sources[0].Ref = ""
+	config.Sources[0].ParsedRef = nil
+	config.Sources[0].Version = ">= 1.0.0, < 2.0.0"
+	supplied := libraries["team"]
+	for _, tag := range []string{"", "v0.9.0", "v1.2.3"} {
+		supplied.Tag = tag
+		libraries["team"] = supplied
+		got, err := build.Resolve(config, libraries, nil)
+		if tag != "v1.2.3" {
+			if err == nil {
+				t.Fatalf("accepted %q", tag)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Sources[0].Tag != tag || got.Sources[0].ResolvedVersion != "1.2.3" || got.Groups[0].Rules[0].Origin.Ref != tag {
+			t.Fatal("lost selected version")
 		}
 	}
 }

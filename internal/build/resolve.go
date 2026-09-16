@@ -18,6 +18,7 @@ import (
 type Library struct {
 	Catalog library.Catalog
 	Commit  string
+	Tag     string
 }
 
 // Origin identifies an effective definition; local definitions have no repository or commit.
@@ -54,16 +55,18 @@ type Group struct {
 // Source records the adopted revision and complete retained inventory, including excluded rules.
 // Files contains supporting bytes only; active rules own their original documents.
 type Source struct {
-	Name       string                     `json:"name"`
-	Repository string                     `json:"repository"`
-	Ref        string                     `json:"ref,omitempty"`
-	Version    string                     `json:"version,omitempty"`
-	Commit     string                     `json:"resolvedCommit"`
-	Selection  rules.GroupSelection       `json:"groupSelection"`
-	Groups     []string                   `json:"groups"`
-	Licenses   []rules.LicenseDeclaration `json:"licenses"`
-	Paths      []string                   `json:"paths"`
-	Files      map[string][]byte          `json:"supportingFiles"`
+	Name            string                     `json:"name"`
+	Repository      string                     `json:"repository"`
+	Ref             string                     `json:"ref,omitempty"`
+	Version         string                     `json:"version,omitempty"`
+	Tag             string                     `json:"resolvedTag,omitempty"`
+	ResolvedVersion string                     `json:"resolvedVersion,omitempty"`
+	Commit          string                     `json:"resolvedCommit"`
+	Selection       rules.GroupSelection       `json:"groupSelection"`
+	Groups          []string                   `json:"groups"`
+	Licenses        []rules.LicenseDeclaration `json:"licenses"`
+	Paths           []string                   `json:"paths"`
+	Files           map[string][]byte          `json:"supportingFiles"`
 }
 
 // Resolved owns effective rules; supporting bytes are shared read-only with the input catalogs.
@@ -104,6 +107,13 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 		supplied, ok := libraries[source.Name]
 		if !ok {
 			return Resolved{}, invalid(source.Name, "missing library; load or sync the source")
+		}
+		if supplied.Catalog.Selection.Pattern != source.Groups.Pattern || !slices.Equal(supplied.Catalog.Selection.Groups, source.Groups.Groups) {
+			return Resolved{}, invalid(source.Name, "loaded group selection differs from configuration; reload the source")
+		}
+		selectedVersion, err := selectedVersion(source, supplied)
+		if err != nil {
+			return Resolved{}, err
 		}
 		ref, err := rules.ParseGitRef(supplied.Commit, source.Name+".resolvedCommit")
 		if err != nil || ref.Kind != "commit" {
@@ -166,6 +176,9 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 				continue
 			}
 			origin := Origin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref, Commit: ref.SHA}
+			if source.Version != "" {
+				origin.Ref = supplied.Tag
+			}
 			active := ActiveRule{Rule: parsed, Origin: origin, Licenses: supplied.Catalog.Licenses}
 			if replacement, ok := source.Replace[id]; ok {
 				file := strings.TrimPrefix(replacement.File, "local/")
@@ -185,7 +198,7 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, Source{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Commit: ref.SHA, Selection: source.Groups, Groups: ids, Licenses: supplied.Catalog.Licenses, Paths: supplied.Catalog.Paths(), Files: supplied.Catalog.SupportingFiles})
+		result.Sources = append(result.Sources, Source{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: supplied.Tag, ResolvedVersion: selectedVersion, Commit: ref.SHA, Selection: source.Groups, Groups: ids, Licenses: supplied.Catalog.Licenses, Paths: supplied.Catalog.Paths(), Files: supplied.Catalog.SupportingFiles})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {
@@ -267,4 +280,30 @@ func EffectiveGuidance(group Group) []Guidance {
 		}
 	}
 	return slices.Clone(group.Guidance)
+}
+
+// selectedVersion verifies a supplied release tag satisfies its requested constraint and returns its normalized version.
+func selectedVersion(source rules.Source, supplied Library) (string, error) {
+	if source.Version == "" {
+		if supplied.Tag != "" {
+			return "", invalid(source.Name, "supply a selected tag only for version-based sources")
+		}
+		return "", nil
+	}
+	version, err := rules.TagVersion(supplied.Tag, source.Name+".resolvedTag")
+	if err != nil {
+		return "", err
+	}
+	constraint, err := rules.ParseVersionConstraint(source.Version, source.Name+".version")
+	if err != nil {
+		return "", err
+	}
+	matches, err := constraint.Matches(supplied.Tag, source.Name+".resolvedTag")
+	if err != nil {
+		return "", err
+	}
+	if !matches {
+		return "", invalid(source.Name, "selected release does not satisfy the configured version constraint")
+	}
+	return version, nil
 }
