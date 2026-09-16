@@ -81,6 +81,9 @@ func invoke(data []byte) (response, error) {
 		}
 		value, err = rules.MarkdownTargets(input.Text, input.File)
 	case "loadLibrary":
+		if err := validateFixtureText(req.Input); err != nil {
+			return adapterError(err.Error()), nil
+		}
 		var input libraryFixture
 		fields := json.NewDecoder(bytes.NewReader(req.Input))
 		fields.DisallowUnknownFields()

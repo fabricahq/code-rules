@@ -3,12 +3,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -98,4 +101,23 @@ func loadLibraryFixture(input libraryFixture) (result any, err error) {
 // fixturePath limits the adapter's writes to simple portable relative names.
 func fixturePath(path string) bool {
 	return path != "." && fs.ValidPath(path) && !strings.ContainsAny(path, "\\:\x00")
+}
+
+// validateFixtureText rejects null map values that encoding/json would coerce into empty strings.
+func validateFixtureText(input json.RawMessage) error {
+	var fields struct {
+		Files map[string]json.RawMessage
+		Links map[string]json.RawMessage
+	}
+	if err := json.Unmarshal(input, &fields); err != nil {
+		return err
+	}
+	for _, entries := range []map[string]json.RawMessage{fields.Files, fields.Links} {
+		for _, key := range slices.Sorted(maps.Keys(entries)) {
+			if bytes.Equal(bytes.TrimSpace(entries[key]), []byte("null")) {
+				return fmt.Errorf("fixture file contents and link targets must be strings, not null")
+			}
+		}
+	}
+	return nil
 }
