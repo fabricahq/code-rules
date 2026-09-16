@@ -11,7 +11,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// TestVersionConstraintsSharedExpectations pins native syntax and matching semantics.
+// TestVersionConstraintsSharedExpectations checks our parser boundary and representative dependency integration.
 func TestVersionConstraintsSharedExpectations(t *testing.T) {
 	data, err := os.ReadFile("../../tests/migration/version-constraints/cases.json")
 	if err != nil {
@@ -100,9 +100,9 @@ func TestVersionConstraintInvalidMatch(t *testing.T) {
 			}
 		})
 	}
-	for _, tag := range []string{"1.2.3", "2.0.0", "1.2.3"} {
+	for _, tag := range []string{"v1.2.3", "2.0.0", "v1.2.3"} {
 		got, err := parsed.Matches(tag, "release")
-		if err != nil || got != (tag == "1.2.3") {
+		if err != nil || got != (tag == "v1.2.3") {
 			t.Fatalf("%s: %v, %v", tag, got, err)
 		}
 	}
