@@ -134,7 +134,7 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 				active.Rule.ID = fmt.Sprintf("team:techs/go/rule-%d", i)
 				resolved.Groups[0].Rules = append(resolved.Groups[0].Rules, active)
 			}
-			pages, err := build.RenderIndexes(resolved, 1800)
+			pages, err := build.RenderIndexes(resolved, 3000)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -145,7 +145,18 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 				if !strings.Contains(page, "**When to read this group:** "+want) || (unwanted != "" && strings.Contains(page, unwanted)) {
 					t.Fatalf("%s lost resolved guidance: %s", file, page)
 				}
-				if !strings.Contains(page, "reload needed rules after compaction") || len(page) > 1800 {
+				instructions := []string{"These files are generated. Edit source rules or configuration and rebuild to change them.", "Read the full text of every applicable or plausibly applicable rule", "Cite rule IDs and concrete evidence for findings"}
+				if strings.HasPrefix(file, "groups/") {
+					instructions = append(instructions, "## How to use this group", "1. Compare each “When to read” cue", "2. For every relevant or plausibly relevant rule", "3. Apply the full rule’s guidance and exceptions", "Use “When to read” to select rules.", "## Rules")
+				} else {
+					instructions = append(instructions, "Before planning or writing code", "testing guidance can apply even when no test files have changed", "Exclusions and replacements are already applied.", "## Technology and practice group indexes")
+				}
+				for _, instruction := range instructions {
+					if !strings.Contains(page, instruction) {
+						t.Fatalf("%s omitted %q", file, instruction)
+					}
+				}
+				if !strings.Contains(page, "reload needed rules after compaction") || len(page) > 3000 {
 					t.Fatalf("%s lost reading instructions or exceeded its budget", file)
 				}
 			}
