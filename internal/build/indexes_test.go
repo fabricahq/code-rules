@@ -84,3 +84,29 @@ func TestRenderIndexesLinksToEffectiveDefinitions(t *testing.T) {
 		t.Fatal("body leaked into summary")
 	}
 }
+
+// TestIndexPagesRejectsMalformedUTF8 rejects invalid content before returning any pages.
+func TestIndexPagesRejectsMalformedUTF8(t *testing.T) {
+	bad := string([]byte{0xff})
+	for _, content := range [][]string{{bad, "entry", "footer"}, {"header", bad, "footer"}, {"header", "entry", bad}} {
+		if output, err := build.IndexPages("RULES.md", content[0], []string{content[1]}, content[2], 1000); err == nil || output != nil {
+			t.Fatal("accepted invalid UTF-8")
+		}
+	}
+}
+
+// TestRenderEmptyGroup explains why an adopted group has no rule summaries.
+func TestRenderEmptyGroup(t *testing.T) {
+	config, libraries := fixture(t, `{"techs/go/errors.md":"Not applicable"}`, `{}`)
+	resolved, err := build.Resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages, err := build.RenderIndexes(resolved, 8000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(pages["groups/techs/go.md"], "No active rules in this group.") {
+		t.Fatal(pages)
+	}
+}

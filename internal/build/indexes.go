@@ -8,6 +8,7 @@ import (
 	"path"
 	"slices"
 	"strings"
+	"unicode/utf8"
 )
 
 // IndexPages splits an index at entry boundaries; every returned file fits maxBytes.
@@ -18,6 +19,11 @@ func IndexPages(file, header string, entries []string, footer string, maxBytes i
 	}
 	if maxBytes <= 0 {
 		return nil, invalid(file, "indexMaxBytes must be positive")
+	}
+	for _, value := range append([]string{file, header, footer}, entries...) {
+		if !utf8.ValidString(value) {
+			return nil, invalid(file, "index paths and content must be valid UTF-8")
+		}
 	}
 	whole := indexDocument(header, entries, footer)
 	if len(whole) <= maxBytes {
@@ -88,6 +94,9 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 		for _, active := range group.Rules {
 			r := active.Rule
 			entries = append(entries, "### "+escapeText(r.Title)+"\n\nRule ID: `"+r.ID+"`\n\n**When to read:** "+escapeText(r.WhenToRead)+"\n\n**Impact:** "+escapeText(string(r.Impact))+"\n\n**Why it matters:** "+escapeText(r.ImpactDescription)+"\n\n**Read full rule:** ["+escapeText(r.Title)+"]("+relativeURL(file, RulePath(r))+")")
+		}
+		if len(entries) == 0 {
+			entries = append(entries, "No active rules in this group.")
 		}
 		header := "# " + name + "\n\nGroup ID: `" + group.ID + "`\n\nThis page contains summaries only. Open and read the complete guidance of every applicable or plausibly applicable rule. Complete truncated reads before relying on a rule. Impact describes consequences, not applicability or finding severity."
 		footer := "For other groups, open [RULES.md](../../RULES.md). Generated output: edit source rules or configuration and rebuild."
