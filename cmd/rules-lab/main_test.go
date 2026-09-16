@@ -512,3 +512,34 @@ func TestLibraryLicenseJSON(t *testing.T) {
 		})
 	}
 }
+
+// TestResolveFixtureRejectsExcludedRuleLinks exercises real library loading before either linked rule can be excluded.
+func TestResolveFixtureRejectsExcludedRuleLinks(t *testing.T) {
+	document := "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\nReturn errors.\n"
+	for _, excluded := range []string{"techs/go/one", "techs/go/two"} {
+		t.Run(excluded, func(t *testing.T) {
+			input := map[string]any{
+				"configuration": map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{
+					"repository": "https://github.com/acme/rules", "ref": "v1.0.0", "groups": []string{"techs/go"},
+					"exclude": map[string]string{excluded: "Project policy"}, "replace": map[string]any{},
+				}}},
+				"libraries": map[string]any{"team": map[string]any{
+					"commit": strings.Repeat("a", 40), "files": map[string]string{
+						"rule-library.json":    `{"formatVersion":1}`,
+						"techs/go/_group.json": `{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}`,
+						"techs/go/one.md":      document + "\n[other](two.md)\n", "techs/go/two.md": document,
+					},
+				}},
+				"localFiles": map[string]string{},
+			}
+			payload, err := json.Marshal(map[string]any{"operation": "resolveRules", "input": input, "location": "fixture"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := invoke(payload)
+			if err != nil || got.OK || got.Value != nil || got.Error == nil || !strings.Contains(got.Error.Message, "links to other rule documents are not allowed") {
+				t.Fatalf("expected rule-link failure before exclusion: %+v, %v", got, err)
+			}
+		})
+	}
+}
