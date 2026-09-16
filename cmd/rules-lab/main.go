@@ -39,6 +39,7 @@ type request struct {
 }
 
 type failure struct {
+	Code     string `json:"code,omitempty"`
 	Name     string `json:"name"`
 	Message  string `json:"message"`
 	Location string `json:"location,omitempty"`
@@ -69,6 +70,22 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "selectVersion":
+		var input struct {
+			Advertisement *string `json:"advertisement"`
+			Constraint    *string `json:"constraint"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Advertisement == nil || input.Constraint == nil {
+			return adapterError("selectVersion input must contain advertisement and constraint strings"), nil
+		}
+		constraint, parseErr := rules.ParseVersionConstraint(*input.Constraint, req.Location+".constraint")
+		if parseErr != nil {
+			err = parseErr
+		} else {
+			value, err = rules.SelectVersion(*input.Advertisement, constraint)
+		}
 	case "licenses":
 		var input struct {
 			Manifest *string   `json:"manifest"`
@@ -176,6 +193,10 @@ func invoke(data []byte) (response, error) {
 		return adapterError("unknown operation " + req.Operation), nil
 	}
 	if err != nil {
+		var selection *rules.VersionSelectionError
+		if errors.As(err, &selection) {
+			return response{Error: &failure{Name: "VersionSelectionError", Code: string(selection.Kind), Message: err.Error()}}, nil
+		}
 		var validation *rules.ValidationError
 		if errors.As(err, &validation) {
 			return response{Error: &failure{Name: "ValidationError", Message: err.Error(), Location: validation.Location}}, nil
