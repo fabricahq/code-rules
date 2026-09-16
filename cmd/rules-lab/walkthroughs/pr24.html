@@ -697,6 +697,7 @@
       }
       // Invoke native Go and keep invalid adapter JSON distinct from a domain validation error.
       byID("invoke").addEventListener("click", async () => {
+        clearResult();
         let input = byID("input").value;
         if (spec.mode === "json") {
           try {
