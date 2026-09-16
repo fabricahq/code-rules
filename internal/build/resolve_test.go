@@ -4,6 +4,7 @@ package build_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -82,7 +83,7 @@ func TestResolveAdoption(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if guidance := build.EffectiveGuidance(got.Groups[0]); len(guidance) != 1 || guidance[0].Source != "local" {
+	if guidance := got.Groups[0].EffectiveGuidance; len(guidance) != 1 || guidance[0].Source != "local" {
 		t.Fatal("local guidance did not take precedence")
 	}
 }
@@ -244,5 +245,48 @@ func TestResolveAllowsLocalSupportingLinks(t *testing.T) {
 	}
 	if _, err := build.Resolve(config, libraries, local); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestResolveGroupGuidance resolves local metadata as a whole while preserving imported rules and provenance.
+func TestResolveGroupGuidance(t *testing.T) {
+	for _, withLocal := range []bool{false, true} {
+		t.Run(fmt.Sprint("local=", withLocal), func(t *testing.T) {
+			config, libraries := fixture(t, `{}`, `{}`)
+			other := config.Sources[0]
+			other.Name = "aaa"
+			other.Repository = "https://github.com/acme/other"
+			config.Sources = append([]rules.Source{other}, config.Sources...)
+			imported := libraries["team"].Catalog.Groups[0].Metadata
+			libraries["aaa"] = libraries["team"]
+			local := map[string][]byte{}
+			localMeta := rules.GroupMetadata{Name: "Project Go", Description: "Project policy.", WhenToRead: "When editing this project."}
+			if withLocal {
+				data, err := json.Marshal(localMeta)
+				if err != nil {
+					t.Fatal(err)
+				}
+				local["techs/go/_group.json"] = data
+			}
+			got, err := build.Resolve(config, libraries, local)
+			if err != nil {
+				t.Fatal(err)
+			}
+			group := got.Groups[0]
+			expected := []build.Guidance{{Source: "aaa", Metadata: imported}, {Source: "team", Metadata: imported}}
+			if withLocal {
+				expected = []build.Guidance{{Source: "local", Metadata: localMeta}}
+			}
+			if !reflect.DeepEqual(group.EffectiveGuidance, expected) {
+				t.Fatalf("effective guidance: %+v", group.EffectiveGuidance)
+			}
+			wantDefinitions := 2
+			if withLocal {
+				wantDefinitions++
+			}
+			if len(group.Guidance) != wantDefinitions || len(group.Rules) != 2 {
+				t.Fatalf("lost provenance or imported rules: %+v", group)
+			}
+		})
 	}
 }
