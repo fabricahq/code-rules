@@ -84,6 +84,9 @@ func libraryReadme(source Source) string {
 		requested = source.Version
 	}
 	sections := []string{"# " + escapeText(source.Name), "This folder retains declared library license and notice files.", "**Repository:** " + escapeText(source.Repository), "**Requested revision or version:** " + escapeText(requested), "**Resolved commit:** `" + source.Commit + "`"}
+	if source.Tag != "" {
+		sections = append(sections, "**Selected tag:** "+escapeText(source.Tag), "**Selected version:** "+escapeText(source.ResolvedVersion))
+	}
 	if len(source.Licenses) == 0 {
 		sections = append(sections, "No library license declaration was supplied.")
 	}
@@ -110,14 +113,16 @@ type provenanceLicense struct {
 
 // provenanceSource records supplied revision identity and actual group selection.
 type provenanceSource struct {
-	Name       string               `json:"name"`
-	Repository string               `json:"repository"`
-	Ref        string               `json:"ref,omitempty"`
-	Version    string               `json:"version,omitempty"`
-	Commit     string               `json:"resolvedCommit"`
-	Groups     []string             `json:"groups"`
-	Selection  rules.GroupSelection `json:"groupSelection"`
-	Licenses   []provenanceLicense  `json:"licenses"`
+	Name            string               `json:"name"`
+	Repository      string               `json:"repository"`
+	Ref             string               `json:"ref,omitempty"`
+	Version         string               `json:"version,omitempty"`
+	Tag             string               `json:"resolvedTag,omitempty"`
+	ResolvedVersion string               `json:"resolvedVersion,omitempty"`
+	Commit          string               `json:"resolvedCommit"`
+	Groups          []string             `json:"groups"`
+	Selection       rules.GroupSelection `json:"groupSelection"`
+	Licenses        []provenanceLicense  `json:"licenses"`
 }
 
 // provenanceGroup retains all guidance plus the sources chosen for display.
@@ -168,7 +173,7 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 		Rules       []provenanceRule   `json:"rules"`
 	}{ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
 	for _, source := range resolved.Sources {
-		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, Licenses: termProvenance(source.Name, source.Licenses)})
+		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: source.Tag, ResolvedVersion: source.ResolvedVersion, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, Licenses: termProvenance(source.Name, source.Licenses)})
 	}
 	for _, group := range resolved.Groups {
 		effective := []string{}
