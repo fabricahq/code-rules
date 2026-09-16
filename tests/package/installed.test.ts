@@ -237,7 +237,8 @@ test('installed CLI imports licensed versioned sources, resolves exceptions, and
     GIT_CONFIG_VALUE_0: 'https://unused.invalid/',
   };
   succeeds(command(binary, ['check'], project, offline));
-});
+  // Multiple installed CLI commands and Git imports need more than the default five seconds on CI.
+}, 30_000);
 
 test('stale output exits nonzero without writing, while build repairs it', async () => {
   await local();
