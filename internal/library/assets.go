@@ -3,6 +3,7 @@
 package library
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -65,7 +66,13 @@ func (r *reader) ownedAssets(directory string, terms []string) error {
 			return bad(assetPath, "license files cannot own rule assets")
 		}
 		info, err := r.root.Lstat(owner)
-		if err != nil || !info.Mode().IsRegular() {
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return bad(assetPath, "assets directory has no adjacent owning rule: "+owner)
+			}
+			return fmt.Errorf("inspect asset owner %s: %w", owner, err)
+		}
+		if !info.Mode().IsRegular() {
 			return bad(assetPath, "assets directory has no adjacent owning rule: "+owner)
 		}
 		if err := r.assetTree(assetPath); err != nil {
@@ -155,15 +162,24 @@ func (r *reader) linkExists(file string) error {
 	if !fs.ValidPath(file) {
 		return bad(file, "invalid link destination")
 	}
+	if err := r.registerPath(file); err != nil {
+		return err
+	}
 	parts := strings.Split(file, "/")
 	for i := range parts {
 		prefix := strings.Join(parts[:i+1], "/")
 		info, err := r.root.Lstat(prefix)
 		if err != nil {
-			return bad(file, "missing link destination")
+			if errors.Is(err, fs.ErrNotExist) {
+				return bad(file, "missing link destination")
+			}
+			return fmt.Errorf("inspect link destination %s: %w", prefix, err)
 		}
 		if info.Mode()&os.ModeSymlink != 0 {
 			return bad(prefix, "symlinks are unsupported")
+		}
+		if i < len(parts)-1 && !info.IsDir() {
+			return bad(prefix, "link path component must be a directory")
 		}
 		if i == len(parts)-1 && !info.Mode().IsRegular() {
 			return bad(file, "link destination must be an ordinary file")
