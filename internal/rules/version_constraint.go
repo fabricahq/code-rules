@@ -10,7 +10,7 @@ import (
 	version "github.com/hashicorp/go-version"
 )
 
-// VersionConstraint holds an authored constraint and its parsed comparisons.
+// VersionConstraint holds a trimmed constraint and its parsed comparisons.
 // Construct it with ParseVersionConstraint; the zero value cannot match versions.
 type VersionConstraint struct {
 	text        string
@@ -18,23 +18,24 @@ type VersionConstraint struct {
 }
 
 // ParseVersionConstraint validates go-version's comma-separated AND constraints.
-// It retains the exact authored text for provenance. Invalid or blank text returns
+// It trims surrounding whitespace, preserving internal spacing. Invalid or blank text returns
 // a zero VersionConstraint and a ValidationError at the caller's field location.
 func ParseVersionConstraint(text, location string) (VersionConstraint, error) {
-	if strings.TrimFunc(text, jsWhitespace) == "" {
+	trimmed := strings.TrimFunc(text, jsWhitespace)
+	if trimmed == "" {
 		return VersionConstraint{}, invalid(location, "expected nonempty text")
 	}
 	if len(utf16.Encode([]rune(text))) > 1024 {
 		return VersionConstraint{}, invalid(location, "version constraint must be at most 1024 characters")
 	}
-	comparisons, err := version.NewConstraint(text)
+	comparisons, err := version.NewConstraint(trimmed)
 	if err != nil {
 		return VersionConstraint{}, invalid(location, "expected a version constraint using =, !=, >, >=, <, <=, or ~>; separate multiple constraints with commas, such as >= 1.2.0, < 2.0.0")
 	}
-	return VersionConstraint{text: text, comparisons: comparisons}, nil
+	return VersionConstraint{text: trimmed, comparisons: comparisons}, nil
 }
 
-// String returns the original constraint, including authored whitespace.
+// String returns the constraint without surrounding whitespace.
 func (c VersionConstraint) String() string { return c.text }
 
 // Matches validates a complete version tag and checks every parsed constraint.

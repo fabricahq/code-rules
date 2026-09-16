@@ -18,12 +18,12 @@ matched, err := constraint.Matches("v1.5.0", "release.version")
 if err != nil {
     return err
 }
-// matched is true. constraint.String() retains the authored constraint.
+// matched is true. constraint.String() returns the constraint with surrounding whitespace trimmed.
 ```
 
 The user explicitly requested [HashiCorp go-version](https://github.com/hashicorp/go-version) and preferred its native syntax over npm's. The implementation pins v1.9.0 and delegates constraint parsing and matching to it. No npm compatibility parser or TypeScript fallback is included.
 
-`VersionConstraint` holds private parsed comparisons and original text. Parse failures return its zero value and a typed `ValidationError`. Matching a zero constraint also returns a validation error. A parsed constraint can be reused across versions without mutating it.
+`VersionConstraint` holds private parsed comparisons and trimmed text. Parse failures return its zero value and a typed `ValidationError`. Matching a zero constraint also returns a validation error. A parsed constraint can be reused across versions without mutating it.
 
 `Matches` requires a complete version tag, using the existing `TagVersion` validation and bounds. Invalid versions return `false` and an error. A valid version outside the constraint returns `false, nil`. The lab distinguishes these with `ok: false` versus `ok: true, value: false`.
 
@@ -41,7 +41,7 @@ These functions do not fetch tags, select the highest release, inspect files, or
 | `1.2.3 || 2.0.0` | Rejected; no native OR expression |
 | `>= 1.2.0 < 2.0.0` | Rejected; use a comma |
 
-Constraint operands use the library's permissive version parser, including leading zeros and extra components. Actual release tags still require complete strict versions. Constraints retain the existing 1024 UTF-16-unit input limit and exact authored whitespace.
+Constraint operands use the library's permissive version parser, including leading zeros and extra components. Actual release tags still require complete strict versions. Constraints retain the existing 1024 UTF-16-unit input limit before trimming surrounding whitespace. Internal spacing stays unchanged.
 
 Prerelease behavior is also native to go-version. Each relational comparison must allow a candidate prerelease; `>= 1.2.3-beta.1` accepts `1.2.3-beta.2`, but adding `< 2.0.0` excludes it. Equality and inequality follow the dependency's own semantics. The tests explicitly cover these differences; do not assume an npm expression translates without checking prerelease intent.
 
