@@ -368,8 +368,9 @@
             <p>
               All candidate documents validate before exclusions. Missing
               exception targets fail. Replacements preserve their upstream
-              origin and reason. Local metadata takes precedence for displayed
-              guidance.
+              origin and reason. The resolver exposes effectiveGuidance with
+              local metadata taking precedence; guidance retains the original
+              definitions.
             </p>
             <p>
               <code>ok: true</code> means Go returned no error.
@@ -417,7 +418,7 @@
           "Libraries are written into disposable fixtures and loaded by Go. Local files stay in memory. Commits here are supplied fixture identities, not fetched or verified against a Git server.",
         inputlabel: "Configuration and source fixtures",
         details:
-          "All candidate documents validate before exclusions. Missing exception targets fail. Replacements preserve their upstream origin and reason. Local metadata takes precedence for displayed guidance.",
+          "All candidate documents validate before exclusions. Missing exception targets fail. Replacements preserve their upstream origin and reason. The resolver exposes effectiveGuidance with local metadata taking precedence; guidance retains the original definitions.",
         boundaries:
           "This slice resolves already loaded catalogs. Git snapshot freshness, output rendering, and project writes are separate capabilities. A successful result does not prove that a supplied commit belongs to a repository.",
         operation: "resolveRules",
@@ -566,7 +567,7 @@
           {
             name: "Local guidance",
             description:
-              "Adds local techs/go/_group.json with a project-specific description. Expect local group guidance alongside the imported rule.",
+              "Adds local techs/go/_group.json with a project-specific description. Expect effectiveGuidance to contain only the complete local definition. Original guidance remains for provenance; the imported rule stays active.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -594,7 +595,7 @@
               },
               localFiles: {
                 "techs/go/_group.json":
-                  '{"name": "Go", "description": "Project-specific Go guidance.", "whenToRead": "When editing Go."}',
+                  '{"name": "Project Go", "description": "Project-specific Go guidance.", "whenToRead": "When editing this project."}',
               },
             },
           },

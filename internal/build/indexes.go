@@ -86,7 +86,7 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 		file := "groups/" + group.ID + ".md"
 		name := groupTitle(group)
 		cues := []string{}
-		for _, guidance := range EffectiveGuidance(group) {
+		for _, guidance := range group.EffectiveGuidance {
 			cues = append(cues, "**"+escapeText(guidance.Source)+":** "+escapeText(guidance.Metadata.WhenToRead))
 		}
 		groupEntries = append(groupEntries, "### "+name+"\n\n"+strings.Join(cues, "\n\n")+"\n\n**Open group:** ["+name+"]("+encodedPath(file)+")")
@@ -122,7 +122,7 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 // groupTitle joins distinct effective names in deterministic order.
 func groupTitle(group Group) string {
 	names := []string{}
-	for _, guidance := range EffectiveGuidance(group) {
+	for _, guidance := range group.EffectiveGuidance {
 		names = append(names, guidance.Metadata.Name)
 	}
 	slices.Sort(names)
