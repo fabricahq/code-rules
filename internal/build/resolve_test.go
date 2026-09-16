@@ -290,3 +290,50 @@ func TestResolveGroupGuidance(t *testing.T) {
 		})
 	}
 }
+
+// TestResolveNumericRuleOrder keeps numbered IDs in human reading order through summary rendering.
+func TestResolveNumericRuleOrder(t *testing.T) {
+	for _, names := range [][]string{
+		{"rule-0", "rule-1", "rule-2", "rule-9", "rule-10", "rule-11"},
+		{"rule-02", "rule-2", "rule-10"},
+		{"rule-2-part-9", "rule-2-part-10", "rule-10-part-1"},
+		{"rule-99999999999999999999", "rule-100000000000000000000"},
+	} {
+		for _, reverse := range []bool{false, true} {
+			config, libraries := fixture(t, "{}", "{}")
+			lib := libraries["team"]
+			lib.Catalog.Groups[0].Rules = nil
+			for i := range names {
+				if reverse {
+					i = len(names) - 1 - i
+				}
+				rule, err := rules.Parse(document, "techs/go/"+names[i]+".md", "team")
+				if err != nil {
+					t.Fatal(err)
+				}
+				lib.Catalog.Groups[0].Rules = append(lib.Catalog.Groups[0].Rules, rule)
+			}
+			libraries["team"] = lib
+			resolved, err := build.Resolve(config, libraries, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+			if err != nil {
+				t.Fatal(err)
+			}
+			previous := -1
+			for i, name := range names {
+				id := "team:techs/go/" + name
+				if got := resolved.Groups[0].Rules[i].Rule.ID; got != id {
+					t.Fatalf("reverse=%v: position %d: got %s, want %s", reverse, i, got, id)
+				}
+				position := strings.Index(pages["groups/techs/go.md"], "`"+id+"`")
+				if position <= previous {
+					t.Fatalf("rendered order lost %s", id)
+				}
+				previous = position
+			}
+		}
+	}
+}

@@ -9,3 +9,5 @@ Inputs are not modified. Supporting byte slices are shared read-only. Catalogs m
 The `/walkthrough/pr23` page calls the native resolver through disposable library fixtures. Presets cover imported rules, exclusions, replacements, local additions, guidance precedence, missing targets, invalid excluded definitions, and local-only projects.
 
 Local rule documents and retained Markdown attachments use the same link policy as libraries: filesystem links to other rule documents fail before adoption. Self-links, anchors, allowed assets, and external references remain valid.
+
+Resolved rules use natural ID order: decimal runs compare numerically, so rule-2 precedes rule-10. Other text retains lexical order. Numerically equivalent spellings use the full ID as a deterministic tie-breaker. This user-approved change applies to summary and inline delivery; source inventories and provenance retain their existing stable serialization order.
