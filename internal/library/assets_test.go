@@ -94,6 +94,7 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 		{"missing", "techs/go/errors.md", "missing.md", ""},
 		{"reference", "techs/go/errors.md", "", "techs/go/other.md"},
 		{"shared attachment", "assets/guide.md", "/techs/go/errors.md", ""},
+		{"HTML attachment", "assets/guide.md", "", ""},
 		{"owned attachment", "techs/go/assets/errors/guide.md", "../../errors.md", ""},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -104,7 +105,9 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 			if test.from != "techs/go/errors.md" {
 				files["techs/go/errors.md"] += "\n[guide](/" + test.from + ")\n"
 			}
-			if test.name == "reference" {
+			if test.name == "HTML attachment" {
+				files[test.from] += `<a href="/techs/go/errors.md">rule</a>`
+			} else if test.name == "reference" {
 				files[test.from] += "\n[other][rule]\n\n[rule]: other.md#details\n"
 			} else {
 				files[test.from] += "\n[other](" + test.link + ")\n"
@@ -115,5 +118,21 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 				t.Fatalf("expected rule-link error without partial catalog: %+v, %v", got, err)
 			}
 		})
+	}
+}
+
+// TestLoadAllowsDeclaredGroupTerms treats declared license Markdown as supporting text, not an independent rule.
+func TestLoadAllowsDeclaredGroupTerms(t *testing.T) {
+	files := validFiles()
+	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/terms.md","notices":[]}}`
+	files["techs/go/terms.md"] = "License terms."
+	files["techs/go/errors.md"] += "\n[terms](terms.md)\n"
+	_, root := fixture(t, files)
+	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Groups[0].Rules) != 1 || string(got.SupportingFiles["techs/go/terms.md"]) != "License terms." {
+		t.Fatalf("did not retain terms separately from rules: %+v", got)
 	}
 }

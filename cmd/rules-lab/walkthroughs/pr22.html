@@ -610,7 +610,7 @@
                 "techs/go/assets/errors/companion.txt":
                   "Retained even without a direct link",
                 "techs/go/other.md":
-                  "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\n![diagram](assets/errors/diagram.txt)\n",
+                  "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\nIndependent rule.\n",
               },
               groups: ["techs/go"],
               source: "team",
@@ -631,6 +631,26 @@
                 "techs/go/assets/errors/companion.txt":
                   "Retained even without a direct link",
                 "assets/guide.md": "[rule](/techs/go/errors.md)",
+              },
+              groups: ["techs/go"],
+              source: "team",
+            },
+          },
+          {
+            name: "HTML attachment link",
+            description:
+              "Changes assets/guide.md to an HTML link to errors.md. Expect the same rule-link error: HTML href/src attributes are checked too.",
+            input: {
+              files: {
+                "rule-library.json": '{"formatVersion":1}',
+                "techs/go/_group.json":
+                  '{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}',
+                "techs/go/errors.md":
+                  "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\n![diagram](assets/errors/diagram.txt)\n\n[guide](/assets/guide.md)\n",
+                "techs/go/assets/errors/diagram.txt": "Original attachment",
+                "techs/go/assets/errors/companion.txt":
+                  "Retained even without a direct link",
+                "assets/guide.md": '<a href="/techs/go/errors.md">Rule</a>',
               },
               groups: ["techs/go"],
               source: "team",
