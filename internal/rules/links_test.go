@@ -48,3 +48,40 @@ func TestRelativeTarget(t *testing.T) {
 		}
 	}
 }
+
+// TestAllowedTargets keeps rules independent while permitting self-links and supporting material.
+func TestAllowedTargets(t *testing.T) {
+	for _, test := range []struct {
+		name, file, target string
+		allowed            bool
+	}{
+		{"same group", "techs/go/errors.md", "techs/go/other.md", false},
+		{"other group", "techs/go/errors.md", "techs/rust/other.md", false},
+		{"shared attachment", "assets/guide.md", "techs/go/errors.md", false},
+		{"owned attachment", "techs/go/assets/errors/guide.md", "techs/go/errors.md", false},
+		{"self", "techs/go/errors.md", "techs/go/errors.md", true},
+		{"shared Markdown", "techs/go/errors.md", "assets/guide.md", true},
+		{"own Markdown", "techs/go/errors.md", "techs/go/assets/errors/guide.md", true},
+		{"declared license", "techs/go/errors.md", "LICENSE.md", true},
+		{"declared group term", "techs/go/errors.md", "techs/go/terms.md", true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := rules.RequireAllowedTarget(test.file, test.target, []string{"LICENSE.md", "techs/go/terms.md"})
+			if (err == nil) != test.allowed {
+				t.Fatalf("allowed=%v: %v", test.allowed, err)
+			}
+		})
+	}
+}
+
+// TestHTMLTargets finds genuine attributes without treating code, comments, or script text as links.
+func TestHTMLTargets(t *testing.T) {
+	text := "<a href=\"other.md#details\">rule</a> <img src=\"/assets/a.png\">\n\n" +
+		"`<a href=\"code.md\">`\n\n```html\n<img src=\"fenced.md\">\n```\n\n" +
+		"<!-- <a href=\"comment.md\"> -->\n\n<script>const example = '<a href=\"script.md\">';</script>\n"
+	got, err := rules.MarkdownTargets(text, "techs/go/errors.md")
+	want := []string{"assets/a.png", "techs/go/other.md"}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %v, %v; want %v", got, err, want)
+	}
+}

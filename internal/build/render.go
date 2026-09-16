@@ -138,8 +138,8 @@ func sourceLink(origin Origin, outputPath string) (string, error) {
 	return workspaceLink(outputPath, origin.Source, origin.File), nil
 }
 
-// relocatedURL applies ownership policy before selecting a terms, retained-file, or pinned remote link.
-func relocatedURL(destination string, active ActiveRule, paths []string, outputPath string, image bool) (string, error) {
+// relocatedURL validates ownership and links local destinations to terms or retained files.
+func relocatedURL(destination string, active ActiveRule, paths []string, outputPath string) (string, error) {
 	if strings.HasPrefix(destination, "#") {
 		return destination, nil
 	}
@@ -165,16 +165,6 @@ func relocatedURL(destination string, active ActiveRule, paths []string, outputP
 	}
 	if rules.AssetDirectory(target) != "" {
 		return "", invalid(active.Rule.ID, "missing asset link destination: "+destination)
-	}
-	if active.Origin.Repository != "" {
-		raw, _ := json.Marshal(active.Origin.Repository)
-		repository, err := rules.ParseRepository(raw, active.Origin.Source)
-		if err != nil {
-			return "", err
-		}
-		if link, ok := repository.FileURL(active.Origin.Commit, target, image); ok {
-			return link + suffix, nil
-		}
 	}
 	return "", invalid(active.Rule.ID, "missing retained link destination: "+destination)
 }

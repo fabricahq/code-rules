@@ -713,6 +713,42 @@
               },
             },
           },
+          {
+            name: "Excluded rule link",
+            description:
+              "Adds a link from errors.md to other.md, then excludes other.md. Expect a rule-link error before exclusions are applied.",
+            input: {
+              configuration: {
+                schemaVersion: 1,
+                sources: {
+                  team: {
+                    repository: "https://github.com/acme/rules",
+                    ref: "v1.0.0",
+                    groups: ["techs/go"],
+                    exclude: {
+                      "techs/go/other": "Not adopted by this project",
+                    },
+                    replace: {},
+                  },
+                },
+              },
+              libraries: {
+                team: {
+                  commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  files: {
+                    "rule-library.json": '{"formatVersion":1}',
+                    "techs/go/_group.json":
+                      '{"name": "Go", "description": "Go guidance.", "whenToRead": "When editing Go."}',
+                    "techs/go/errors.md":
+                      "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\nReturn errors to the caller.\n\n[other](other.md)\n",
+                    "techs/go/other.md":
+                      "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\nReturn errors to the caller.\n",
+                  },
+                },
+              },
+              localFiles: {},
+            },
+          },
         ],
       };
       // Clear prior output when the editable input changes.

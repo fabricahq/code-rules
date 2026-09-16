@@ -3,6 +3,7 @@ package build
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"maps"
 	"path"
@@ -95,6 +96,9 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 	}
 	localRules, err := parseLocal(localFiles, groups)
 	if err != nil {
+		return Resolved{}, err
+	}
+	if err := validateLocalLinks(localFiles, localRules); err != nil {
 		return Resolved{}, err
 	}
 	for file, data := range localFiles {
@@ -271,6 +275,27 @@ func parseLocal(files map[string][]byte, groups map[string]*Group) (map[string]r
 		result[file] = parsed
 	}
 	return result, nil
+}
+
+// validateLocalLinks checks local rules and Markdown attachments against the shared destination policy.
+// It checks retained attachments even if no active rule links to them; target existence belongs to rendering.
+func validateLocalLinks(files map[string][]byte, localRules map[string]rules.Rule) error {
+	for _, file := range slices.Sorted(maps.Keys(files)) {
+		_, rule := localRules[file]
+		if !rule && (rules.AssetDirectory(file) == "" || !strings.HasSuffix(file, ".md")) {
+			continue
+		}
+		targets, err := rules.MarkdownTargets(string(files[file]), file)
+		if err != nil {
+			return fmt.Errorf("local/%s: %w", file, err)
+		}
+		for _, target := range targets {
+			if err := rules.RequireAllowedTarget(file, target, nil); err != nil {
+				return fmt.Errorf("local/%s: %w", file, err)
+			}
+		}
+	}
+	return nil
 }
 
 // invalid identifies input relationships that prevent an effective rule set from being produced.

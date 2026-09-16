@@ -10,6 +10,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"golang.org/x/net/html"
+
 	"github.com/yuin/goldmark/v2/ast"
 	"github.com/yuin/goldmark/v2/parser"
 	"github.com/yuin/goldmark/v2/text"
@@ -17,8 +19,7 @@ import (
 
 var externalScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
 
-// markdownLinks finds links, images, and reference definitions, excluding code and complete frontmatter envelopes.
-// HTML is left opaque, matching the existing Markdown contract.
+// markdownLinks finds Markdown destinations and HTML href/src attributes, excluding code and complete frontmatter envelopes.
 func markdownLinks(document string) ([]string, error) {
 	if !utf8.ValidString(document) {
 		return nil, invalid("document", "expected UTF-8 text")
@@ -33,9 +34,18 @@ func markdownLinks(document string) ([]string, error) {
 	source := []byte(document[offset:])
 	root := parser.New().Parse(source)
 	links := []string{}
+	var rawHTML strings.Builder
 	err := ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
+		}
+		switch n := node.(type) {
+		case *ast.RawHTML:
+			rawHTML.WriteString(n.Value.Value(source))
+			rawHTML.WriteByte('\n')
+		case *ast.HTMLBlock:
+			rawHTML.Write(n.Value.Bytes(source))
+			rawHTML.WriteByte('\n')
 		}
 		var destination text.SingleLineValue
 		switch n := node.(type) {
@@ -54,8 +64,29 @@ func markdownLinks(document string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	links = append(links, htmlLinks(rawHTML.String())...)
 	slices.Sort(links)
 	return slices.Compact(links), nil
+}
+
+// htmlLinks reads real href/src attributes; one tokenizer preserves script and textarea context across inline nodes.
+func htmlLinks(fragment string) []string {
+	links := []string{}
+	tokenizer := html.NewTokenizer(strings.NewReader(fragment))
+	for {
+		kind := tokenizer.Next()
+		if kind == html.ErrorToken {
+			return links
+		}
+		if kind != html.StartTagToken && kind != html.SelfClosingTagToken {
+			continue
+		}
+		for _, attribute := range tokenizer.Token().Attr {
+			if attribute.Key == "href" || attribute.Key == "src" {
+				links = append(links, attribute.Val)
+			}
+		}
+	}
 }
 
 // RelativeTarget resolves a decoded Markdown destination within its source root.
@@ -108,10 +139,14 @@ func RuleAssetDirectory(file string) string {
 	return path.Dir(file) + "/assets/" + strings.TrimSuffix(path.Base(file), ".md") + "/"
 }
 
-// RequireAllowedTarget enforces shared assets, own assets, rule links, and declared terms.
+// RequireAllowedTarget permits self-links, shared/owned assets, and declared terms.
+// Links to other rule documents fail regardless of selection or target existence.
 func RequireAllowedTarget(file, target string, terms []string) error {
 	if file == target || slices.Contains(terms, target) {
 		return nil
+	}
+	if _, err := GroupFromPath(target, file); err == nil {
+		return invalid(file, "links to other rule documents are not allowed: "+target+"; move shared supporting material to the library-root assets/ directory")
 	}
 	own := AssetDirectory(file)
 	if own == "" {
@@ -121,13 +156,10 @@ func RequireAllowedTarget(file, target string, terms []string) error {
 	if destination == "assets/" || (destination != "" && destination == own) {
 		return nil
 	}
-	if _, err := GroupFromPath(target, file); err == nil {
-		return nil
-	}
 	return invalid(file, "unsupported supporting-file link: "+target+"; use this rule's assets directory or the library-root assets directory")
 }
 
-// MarkdownTargets returns distinct source-relative dependencies in deterministic path order.
+// MarkdownTargets returns distinct source-relative dependencies in deterministic path order, including HTML href/src attributes.
 func MarkdownTargets(document, file string) ([]string, error) {
 	links, err := markdownLinks(document)
 	if err != nil {
