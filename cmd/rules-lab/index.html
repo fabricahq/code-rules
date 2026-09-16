@@ -611,6 +611,8 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
             : "The Go function returned an error. The message explains why validation failed.";
         } catch (error) {
           byID("status").textContent = "Request failed";
+          byID("explanation").textContent =
+            "The request failed. No Go result was received.";
           byID("status").className = "badge bad";
           byID("explanation").textContent =
             "Check the response below and that the local Go server is running.";
