@@ -469,3 +469,15 @@ func TestFixtureRejectsNullText(t *testing.T) {
 		t.Fatalf("null text accepted: %s", recorder.Body)
 	}
 }
+
+// TestMarkdownTargetsRequiresExplicitText rejects malformed requests rather than silently substituting empty input.
+func TestMarkdownTargetsRequiresExplicitText(t *testing.T) {
+	for _, input := range []string{`{"file":"techs/go/r.md"}`, `{"text":null,"file":"techs/go/r.md"}`, `{"text":"","file":"techs/go/r.md","extra":true}`} {
+		req := httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(`{"operation":"markdownTargets","location":"links","input":`+input+`}`))
+		recorder := httptest.NewRecorder()
+		handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, req)
+		if !strings.Contains(recorder.Body.String(), `"ok":false`) {
+			t.Fatal(recorder.Body.String())
+		}
+	}
+}
