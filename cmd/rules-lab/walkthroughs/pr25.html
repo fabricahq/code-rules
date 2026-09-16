@@ -338,7 +338,7 @@
           <div class="label">Invoke the new capability</div>
           <h2>Make the input your own</h2>
           <div class="signature">
-            build.RenderIndexes(resolved, maxBytes) (map[string]string, error)
+            build.RenderIndexes(resolved, maxLines) (map[string]string, error)
           </div>
           <div class="presets" id="presets"></div>
           <p
@@ -346,7 +346,7 @@
             id="scenario-description"
             aria-live="polite"
           ></p>
-          <label for="input">Index fixture and byte budget</label
+          <label for="input">Index fixture and line limit</label
           ><textarea id="input" rows="18" spellcheck="false"></textarea>
           <p class="hint">The request goes to the native Go implementation.</p>
           <div class="actions">
@@ -435,16 +435,58 @@
       /** @fileoverview Explain editable scenarios and display native Go results for this PR. */
       // Locate one named control in this walkthrough.
       const byID = (id) => document.getElementById(id);
+      // summaryFixture creates a library with the requested number of complete rules.
+      function summaryFixture(count) {
+        const files = {
+          "rule-library.json": '{"formatVersion":1}',
+          "techs/go/_group.json": JSON.stringify({
+            name: "Go",
+            description: "Go guidance.",
+            whenToRead: "When editing Go.",
+          }),
+        };
+        for (let i = 0; i < count; i++) {
+          files[`techs/go/rule-${i}.md`] = `---
+title: Rule ${i} 日本語 guidance
+impact: HIGH
+impactDescription: Preserve failures.
+whenToRead: When calling functions.
+---
+# Rule ${i}
+
+Return errors to the caller.
+`;
+        }
+        return {
+          fixture: {
+            configuration: {
+              schemaVersion: 1,
+              sources: {
+                team: {
+                  repository: "https://github.com/acme/rules",
+                  ref: "v1.0.0",
+                  groups: ["techs/go"],
+                  exclude: {},
+                  replace: {},
+                },
+              },
+            },
+            libraries: { team: { commit: "a".repeat(40), files } },
+            localFiles: {},
+          },
+          maxLines: 750,
+        };
+      }
       const spec = {
         pr: 25,
         title: "Build bounded discovery indexes",
         description:
           "Create group and rule summaries that point to the complete guidance. Split large indexes into numbered pages without cutting entries or losing the parts directory.",
         signature:
-          "build.RenderIndexes(resolved, maxBytes) (map[string]string, error)",
+          "build.RenderIndexes(resolved, maxLines) (map[string]string, error)",
         inputhelp:
-          "maxBytes is a UTF-8 byte limit for each generated index file. This is a review input, not a change to CLI defaults.",
-        inputlabel: "Index fixture and byte budget",
+          "Summary indexes stay together through 750 Markdown source lines, including instructions and blank lines. Visual wrapping and byte length do not cause pagination.",
+        inputlabel: "Index fixture and line limit",
         details:
           "RULES.md points to group indexes. Every group page repeats its resolved reading cues and the shared reading instructions. Each rule summary links to its standalone file. If an index exceeds the budget, numbered sibling parts and a complete directory replace it. Oversized entries or directories return an error with no partial map.",
         boundaries:
@@ -456,410 +498,38 @@
           {
             name: "One group",
             description:
-              "Uses one Go rule and an 8,000-byte limit per index. Expect RULES.md and a group index linking to the standalone rule.",
-            input: {
-              fixture: {
-                configuration: {
-                  schemaVersion: 1,
-                  sources: {
-                    team: {
-                      repository: "https://github.com/acme/rules",
-                      ref: "v1.0.0",
-                      groups: ["techs/go"],
-                      exclude: {},
-                      replace: {},
-                    },
-                  },
-                },
-                libraries: {
-                  team: {
-                    commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                    files: {
-                      "rule-library.json": '{"formatVersion":1}',
-                      "techs/go/_group.json":
-                        '{"name": "Go", "description": "Go guidance.", "whenToRead": "When editing Go."}',
-                      "techs/go/rule-0.md":
-                        "---\ntitle: Rule 0 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 0 \u65e5\u672c\u8a9e guidance\n\nRule 0 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                    },
-                  },
-                },
-                localFiles: {},
-              },
-              maxBytes: 8000,
-            },
+              "One rule summary, with the usual 750-line limit. Expect two files and no numbered parts.",
+            input: summaryFixture(1),
           },
           {
-            name: "Paginated summaries",
+            name: "Twelve summaries",
             description:
-              "Expands the Go group to 12 rules and lowers maxBytes to 3,000. Expect numbered index parts and a directory linking to them.",
-            input: {
-              fixture: {
-                configuration: {
-                  schemaVersion: 1,
-                  sources: {
-                    team: {
-                      repository: "https://github.com/acme/rules",
-                      ref: "v1.0.0",
-                      groups: ["techs/go"],
-                      exclude: {},
-                      replace: {},
-                    },
-                  },
-                },
-                libraries: {
-                  team: {
-                    commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                    files: {
-                      "rule-library.json": '{"formatVersion":1}',
-                      "techs/go/_group.json":
-                        '{"name": "Go", "description": "Go guidance.", "whenToRead": "When editing Go."}',
-                      "techs/go/rule-0.md":
-                        "---\ntitle: Rule 0 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 0 \u65e5\u672c\u8a9e guidance\n\nRule 0 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-1.md":
-                        "---\ntitle: Rule 1 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 1 \u65e5\u672c\u8a9e guidance\n\nRule 1 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-2.md":
-                        "---\ntitle: Rule 2 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 2 \u65e5\u672c\u8a9e guidance\n\nRule 2 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-3.md":
-                        "---\ntitle: Rule 3 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 3 \u65e5\u672c\u8a9e guidance\n\nRule 3 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-4.md":
-                        "---\ntitle: Rule 4 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 4 \u65e5\u672c\u8a9e guidance\n\nRule 4 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-5.md":
-                        "---\ntitle: Rule 5 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 5 \u65e5\u672c\u8a9e guidance\n\nRule 5 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-6.md":
-                        "---\ntitle: Rule 6 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 6 \u65e5\u672c\u8a9e guidance\n\nRule 6 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-7.md":
-                        "---\ntitle: Rule 7 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 7 \u65e5\u672c\u8a9e guidance\n\nRule 7 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-8.md":
-                        "---\ntitle: Rule 8 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 8 \u65e5\u672c\u8a9e guidance\n\nRule 8 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-9.md":
-                        "---\ntitle: Rule 9 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 9 \u65e5\u672c\u8a9e guidance\n\nRule 9 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-10.md":
-                        "---\ntitle: Rule 10 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 10 \u65e5\u672c\u8a9e guidance\n\nRule 10 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-11.md":
-                        "---\ntitle: Rule 11 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 11 \u65e5\u672c\u8a9e guidance\n\nRule 11 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                    },
-                  },
-                },
-                localFiles: {},
-              },
-              maxBytes: 3000,
-            },
+              "Adds eleven rule summaries. All twelve remain on one group page; file size in bytes does not trigger pagination.",
+            input: summaryFixture(12),
+          },
+          {
+            name: "745 lines",
+            description:
+              "Uses 60 summaries, producing 745 Markdown source lines including blank lines and instructions. Expect one complete group page.",
+            input: summaryFixture(60),
+          },
+          {
+            name: "757 lines",
+            description:
+              "Adds one more rule summary, bringing the unsplit group to 757 lines. It now exceeds 750, so expect numbered pages and a complete parts directory.",
+            input: summaryFixture(61),
           },
           {
             name: "Empty group",
             description:
-              "Removes the only rule but keeps the Go group metadata. Expect valid indexes for the empty group.",
-            input: {
-              fixture: {
-                configuration: {
-                  schemaVersion: 1,
-                  sources: {
-                    team: {
-                      repository: "https://github.com/acme/rules",
-                      ref: "v1.0.0",
-                      groups: ["techs/go"],
-                      exclude: {},
-                      replace: {},
-                    },
-                  },
-                },
-                libraries: {
-                  team: {
-                    commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                    files: {
-                      "rule-library.json": '{"formatVersion":1}',
-                      "techs/go/_group.json":
-                        '{"name": "Go", "description": "Go guidance.", "whenToRead": "When editing Go."}',
-                    },
-                  },
-                },
-                localFiles: {},
-              },
-              maxBytes: 8000,
-            },
-          },
-          {
-            name: "Entry too large",
-            description:
-              "Lowers maxBytes to 300 for the single-rule fixture. Expect an error because a summary cannot fit, with no partial output.",
-            input: {
-              fixture: {
-                configuration: {
-                  schemaVersion: 1,
-                  sources: {
-                    team: {
-                      repository: "https://github.com/acme/rules",
-                      ref: "v1.0.0",
-                      groups: ["techs/go"],
-                      exclude: {},
-                      replace: {},
-                    },
-                  },
-                },
-                libraries: {
-                  team: {
-                    commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                    files: {
-                      "rule-library.json": '{"formatVersion":1}',
-                      "techs/go/_group.json":
-                        '{"name": "Go", "description": "Go guidance.", "whenToRead": "When editing Go."}',
-                      "techs/go/rule-0.md":
-                        "---\ntitle: Rule 0 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 0 \u65e5\u672c\u8a9e guidance\n\nRule 0 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                    },
-                  },
-                },
-                localFiles: {},
-              },
-              maxBytes: 300,
-            },
-          },
-          {
-            name: "Directory too large",
-            description:
-              "Uses 90 rules and a 2,500-byte limit. Expect an error because the directory of index parts cannot fit.",
-            input: {
-              fixture: {
-                configuration: {
-                  schemaVersion: 1,
-                  sources: {
-                    team: {
-                      repository: "https://github.com/acme/rules",
-                      ref: "v1.0.0",
-                      groups: ["techs/go"],
-                      exclude: {},
-                      replace: {},
-                    },
-                  },
-                },
-                libraries: {
-                  team: {
-                    commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                    files: {
-                      "rule-library.json": '{"formatVersion":1}',
-                      "techs/go/_group.json":
-                        '{"name": "Go", "description": "Go guidance.", "whenToRead": "When editing Go."}',
-                      "techs/go/rule-0.md":
-                        "---\ntitle: Rule 0 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 0 \u65e5\u672c\u8a9e guidance\n\nRule 0 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-1.md":
-                        "---\ntitle: Rule 1 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 1 \u65e5\u672c\u8a9e guidance\n\nRule 1 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-2.md":
-                        "---\ntitle: Rule 2 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 2 \u65e5\u672c\u8a9e guidance\n\nRule 2 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-3.md":
-                        "---\ntitle: Rule 3 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 3 \u65e5\u672c\u8a9e guidance\n\nRule 3 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-4.md":
-                        "---\ntitle: Rule 4 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 4 \u65e5\u672c\u8a9e guidance\n\nRule 4 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-5.md":
-                        "---\ntitle: Rule 5 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 5 \u65e5\u672c\u8a9e guidance\n\nRule 5 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-6.md":
-                        "---\ntitle: Rule 6 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 6 \u65e5\u672c\u8a9e guidance\n\nRule 6 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-7.md":
-                        "---\ntitle: Rule 7 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 7 \u65e5\u672c\u8a9e guidance\n\nRule 7 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-8.md":
-                        "---\ntitle: Rule 8 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 8 \u65e5\u672c\u8a9e guidance\n\nRule 8 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-9.md":
-                        "---\ntitle: Rule 9 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 9 \u65e5\u672c\u8a9e guidance\n\nRule 9 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-10.md":
-                        "---\ntitle: Rule 10 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 10 \u65e5\u672c\u8a9e guidance\n\nRule 10 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-11.md":
-                        "---\ntitle: Rule 11 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 11 \u65e5\u672c\u8a9e guidance\n\nRule 11 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-12.md":
-                        "---\ntitle: Rule 12 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 12 \u65e5\u672c\u8a9e guidance\n\nRule 12 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-13.md":
-                        "---\ntitle: Rule 13 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 13 \u65e5\u672c\u8a9e guidance\n\nRule 13 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-14.md":
-                        "---\ntitle: Rule 14 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 14 \u65e5\u672c\u8a9e guidance\n\nRule 14 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-15.md":
-                        "---\ntitle: Rule 15 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 15 \u65e5\u672c\u8a9e guidance\n\nRule 15 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-16.md":
-                        "---\ntitle: Rule 16 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 16 \u65e5\u672c\u8a9e guidance\n\nRule 16 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-17.md":
-                        "---\ntitle: Rule 17 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 17 \u65e5\u672c\u8a9e guidance\n\nRule 17 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-18.md":
-                        "---\ntitle: Rule 18 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 18 \u65e5\u672c\u8a9e guidance\n\nRule 18 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-19.md":
-                        "---\ntitle: Rule 19 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 19 \u65e5\u672c\u8a9e guidance\n\nRule 19 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-20.md":
-                        "---\ntitle: Rule 20 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 20 \u65e5\u672c\u8a9e guidance\n\nRule 20 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-21.md":
-                        "---\ntitle: Rule 21 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 21 \u65e5\u672c\u8a9e guidance\n\nRule 21 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-22.md":
-                        "---\ntitle: Rule 22 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 22 \u65e5\u672c\u8a9e guidance\n\nRule 22 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-23.md":
-                        "---\ntitle: Rule 23 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 23 \u65e5\u672c\u8a9e guidance\n\nRule 23 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-24.md":
-                        "---\ntitle: Rule 24 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 24 \u65e5\u672c\u8a9e guidance\n\nRule 24 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-25.md":
-                        "---\ntitle: Rule 25 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 25 \u65e5\u672c\u8a9e guidance\n\nRule 25 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-26.md":
-                        "---\ntitle: Rule 26 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 26 \u65e5\u672c\u8a9e guidance\n\nRule 26 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-27.md":
-                        "---\ntitle: Rule 27 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 27 \u65e5\u672c\u8a9e guidance\n\nRule 27 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-28.md":
-                        "---\ntitle: Rule 28 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 28 \u65e5\u672c\u8a9e guidance\n\nRule 28 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-29.md":
-                        "---\ntitle: Rule 29 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 29 \u65e5\u672c\u8a9e guidance\n\nRule 29 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-30.md":
-                        "---\ntitle: Rule 30 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 30 \u65e5\u672c\u8a9e guidance\n\nRule 30 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-31.md":
-                        "---\ntitle: Rule 31 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 31 \u65e5\u672c\u8a9e guidance\n\nRule 31 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-32.md":
-                        "---\ntitle: Rule 32 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 32 \u65e5\u672c\u8a9e guidance\n\nRule 32 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-33.md":
-                        "---\ntitle: Rule 33 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 33 \u65e5\u672c\u8a9e guidance\n\nRule 33 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-34.md":
-                        "---\ntitle: Rule 34 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 34 \u65e5\u672c\u8a9e guidance\n\nRule 34 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-35.md":
-                        "---\ntitle: Rule 35 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 35 \u65e5\u672c\u8a9e guidance\n\nRule 35 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-36.md":
-                        "---\ntitle: Rule 36 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 36 \u65e5\u672c\u8a9e guidance\n\nRule 36 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-37.md":
-                        "---\ntitle: Rule 37 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 37 \u65e5\u672c\u8a9e guidance\n\nRule 37 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-38.md":
-                        "---\ntitle: Rule 38 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 38 \u65e5\u672c\u8a9e guidance\n\nRule 38 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-39.md":
-                        "---\ntitle: Rule 39 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 39 \u65e5\u672c\u8a9e guidance\n\nRule 39 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-40.md":
-                        "---\ntitle: Rule 40 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 40 \u65e5\u672c\u8a9e guidance\n\nRule 40 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-41.md":
-                        "---\ntitle: Rule 41 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 41 \u65e5\u672c\u8a9e guidance\n\nRule 41 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-42.md":
-                        "---\ntitle: Rule 42 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 42 \u65e5\u672c\u8a9e guidance\n\nRule 42 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-43.md":
-                        "---\ntitle: Rule 43 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 43 \u65e5\u672c\u8a9e guidance\n\nRule 43 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-44.md":
-                        "---\ntitle: Rule 44 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 44 \u65e5\u672c\u8a9e guidance\n\nRule 44 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-45.md":
-                        "---\ntitle: Rule 45 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 45 \u65e5\u672c\u8a9e guidance\n\nRule 45 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-46.md":
-                        "---\ntitle: Rule 46 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 46 \u65e5\u672c\u8a9e guidance\n\nRule 46 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-47.md":
-                        "---\ntitle: Rule 47 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 47 \u65e5\u672c\u8a9e guidance\n\nRule 47 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-48.md":
-                        "---\ntitle: Rule 48 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 48 \u65e5\u672c\u8a9e guidance\n\nRule 48 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-49.md":
-                        "---\ntitle: Rule 49 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 49 \u65e5\u672c\u8a9e guidance\n\nRule 49 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-50.md":
-                        "---\ntitle: Rule 50 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 50 \u65e5\u672c\u8a9e guidance\n\nRule 50 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-51.md":
-                        "---\ntitle: Rule 51 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 51 \u65e5\u672c\u8a9e guidance\n\nRule 51 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-52.md":
-                        "---\ntitle: Rule 52 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 52 \u65e5\u672c\u8a9e guidance\n\nRule 52 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-53.md":
-                        "---\ntitle: Rule 53 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 53 \u65e5\u672c\u8a9e guidance\n\nRule 53 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-54.md":
-                        "---\ntitle: Rule 54 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 54 \u65e5\u672c\u8a9e guidance\n\nRule 54 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-55.md":
-                        "---\ntitle: Rule 55 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 55 \u65e5\u672c\u8a9e guidance\n\nRule 55 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-56.md":
-                        "---\ntitle: Rule 56 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 56 \u65e5\u672c\u8a9e guidance\n\nRule 56 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-57.md":
-                        "---\ntitle: Rule 57 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 57 \u65e5\u672c\u8a9e guidance\n\nRule 57 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-58.md":
-                        "---\ntitle: Rule 58 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 58 \u65e5\u672c\u8a9e guidance\n\nRule 58 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-59.md":
-                        "---\ntitle: Rule 59 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 59 \u65e5\u672c\u8a9e guidance\n\nRule 59 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-60.md":
-                        "---\ntitle: Rule 60 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 60 \u65e5\u672c\u8a9e guidance\n\nRule 60 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-61.md":
-                        "---\ntitle: Rule 61 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 61 \u65e5\u672c\u8a9e guidance\n\nRule 61 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-62.md":
-                        "---\ntitle: Rule 62 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 62 \u65e5\u672c\u8a9e guidance\n\nRule 62 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-63.md":
-                        "---\ntitle: Rule 63 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 63 \u65e5\u672c\u8a9e guidance\n\nRule 63 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-64.md":
-                        "---\ntitle: Rule 64 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 64 \u65e5\u672c\u8a9e guidance\n\nRule 64 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-65.md":
-                        "---\ntitle: Rule 65 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 65 \u65e5\u672c\u8a9e guidance\n\nRule 65 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-66.md":
-                        "---\ntitle: Rule 66 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 66 \u65e5\u672c\u8a9e guidance\n\nRule 66 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-67.md":
-                        "---\ntitle: Rule 67 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 67 \u65e5\u672c\u8a9e guidance\n\nRule 67 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-68.md":
-                        "---\ntitle: Rule 68 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 68 \u65e5\u672c\u8a9e guidance\n\nRule 68 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-69.md":
-                        "---\ntitle: Rule 69 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 69 \u65e5\u672c\u8a9e guidance\n\nRule 69 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-70.md":
-                        "---\ntitle: Rule 70 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 70 \u65e5\u672c\u8a9e guidance\n\nRule 70 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-71.md":
-                        "---\ntitle: Rule 71 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 71 \u65e5\u672c\u8a9e guidance\n\nRule 71 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-72.md":
-                        "---\ntitle: Rule 72 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 72 \u65e5\u672c\u8a9e guidance\n\nRule 72 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-73.md":
-                        "---\ntitle: Rule 73 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 73 \u65e5\u672c\u8a9e guidance\n\nRule 73 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-74.md":
-                        "---\ntitle: Rule 74 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 74 \u65e5\u672c\u8a9e guidance\n\nRule 74 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-75.md":
-                        "---\ntitle: Rule 75 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 75 \u65e5\u672c\u8a9e guidance\n\nRule 75 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-76.md":
-                        "---\ntitle: Rule 76 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 76 \u65e5\u672c\u8a9e guidance\n\nRule 76 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-77.md":
-                        "---\ntitle: Rule 77 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 77 \u65e5\u672c\u8a9e guidance\n\nRule 77 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-78.md":
-                        "---\ntitle: Rule 78 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 78 \u65e5\u672c\u8a9e guidance\n\nRule 78 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-79.md":
-                        "---\ntitle: Rule 79 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 79 \u65e5\u672c\u8a9e guidance\n\nRule 79 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-80.md":
-                        "---\ntitle: Rule 80 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 80 \u65e5\u672c\u8a9e guidance\n\nRule 80 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-81.md":
-                        "---\ntitle: Rule 81 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 81 \u65e5\u672c\u8a9e guidance\n\nRule 81 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-82.md":
-                        "---\ntitle: Rule 82 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 82 \u65e5\u672c\u8a9e guidance\n\nRule 82 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-83.md":
-                        "---\ntitle: Rule 83 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 83 \u65e5\u672c\u8a9e guidance\n\nRule 83 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-84.md":
-                        "---\ntitle: Rule 84 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 84 \u65e5\u672c\u8a9e guidance\n\nRule 84 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-85.md":
-                        "---\ntitle: Rule 85 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 85 \u65e5\u672c\u8a9e guidance\n\nRule 85 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-86.md":
-                        "---\ntitle: Rule 86 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 86 \u65e5\u672c\u8a9e guidance\n\nRule 86 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-87.md":
-                        "---\ntitle: Rule 87 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 87 \u65e5\u672c\u8a9e guidance\n\nRule 87 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-88.md":
-                        "---\ntitle: Rule 88 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 88 \u65e5\u672c\u8a9e guidance\n\nRule 88 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                      "techs/go/rule-89.md":
-                        "---\ntitle: Rule 89 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 89 \u65e5\u672c\u8a9e guidance\n\nRule 89 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                    },
-                  },
-                },
-                localFiles: {},
-              },
-              maxBytes: 2500,
-            },
+              "Removes all rules while keeping the adopted group. Expect its reading cue and an explanation that there are no active rules.",
+            input: summaryFixture(0),
           },
           {
             name: "Zero budget",
             description:
-              "Sets maxBytes to 0. Expect a validation error because the index byte limit must be positive.",
-            input: {
-              fixture: {
-                configuration: {
-                  schemaVersion: 1,
-                  sources: {
-                    team: {
-                      repository: "https://github.com/acme/rules",
-                      ref: "v1.0.0",
-                      groups: ["techs/go"],
-                      exclude: {},
-                      replace: {},
-                    },
-                  },
-                },
-                libraries: {
-                  team: {
-                    commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                    files: {
-                      "rule-library.json": '{"formatVersion":1}',
-                      "techs/go/_group.json":
-                        '{"name": "Go", "description": "Go guidance.", "whenToRead": "When editing Go."}',
-                      "techs/go/rule-0.md":
-                        "---\ntitle: Rule 0 \u65e5\u672c\u8a9e guidance\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Rule 0 \u65e5\u672c\u8a9e guidance\n\nRule 0 \u65e5\u672c\u8a9e guidance to the caller.\n",
-                    },
-                  },
-                },
-                localFiles: {},
-              },
-              maxBytes: 0,
-            },
+              "Sets the line limit to zero. Expect a validation error and no partial output.",
+            input: { ...summaryFixture(1), maxLines: 0 },
           },
         ],
       };
@@ -965,8 +635,9 @@
           const text = files[select.value] || "";
           byID("generated-text").textContent = text || "Empty file (0 bytes).";
           byID("generated-size").textContent =
-            new TextEncoder().encode(text).length +
-            " UTF-8 bytes · " +
+            text.split("\n").length -
+            Number(text.endsWith("\n")) +
+            " lines · " +
             Object.keys(files).length +
             " files returned";
           previewRequest?.abort();
