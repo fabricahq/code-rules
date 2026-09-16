@@ -12,6 +12,10 @@
     "location": "library",
     "expected": {
       "ok": true,
+      "value": null
+    },
+    "referenceExpected": {
+      "ok": true,
       "value": []
     }
   },
@@ -27,6 +31,18 @@
     },
     "location": "library",
     "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": "MIT",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": [
         {
@@ -54,6 +70,18 @@
     "location": "library",
     "expected": {
       "ok": true,
+      "value": {
+        "spdxExpression": "Apache-2.0",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
       "value": [
         {
           "spdxExpression": "Apache-2.0",
@@ -79,6 +107,18 @@
     },
     "location": "library",
     "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": "(MIT OR Apache-2.0) AND BSD-2-Clause",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": [
         {
@@ -106,6 +146,18 @@
     "location": "library",
     "expected": {
       "ok": true,
+      "value": {
+        "spdxExpression": "GPL-2.0+",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
       "value": [
         {
           "spdxExpression": "GPL-2.0+",
@@ -131,6 +183,18 @@
     },
     "location": "library",
     "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": "GPL-2.0-only WITH Classpath-exception-2.0",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": [
         {
@@ -158,6 +222,18 @@
     "location": "library",
     "expected": {
       "ok": true,
+      "value": {
+        "spdxExpression": "LicenseRef-Team",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
       "value": [
         {
           "spdxExpression": "LicenseRef-Team",
@@ -183,6 +259,18 @@
     },
     "location": "library",
     "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": "DocumentRef-Other:LicenseRef-Team",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": [
         {
@@ -210,6 +298,18 @@
     "location": "library",
     "expected": {
       "ok": true,
+      "value": {
+        "spdxExpression": "MIT or Apache-2.0",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
       "value": [
         {
           "spdxExpression": "MIT or Apache-2.0",
@@ -235,6 +335,18 @@
     },
     "location": "library",
     "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": " MIT ",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": [
         {
@@ -262,6 +374,18 @@
     "location": "library",
     "expected": {
       "ok": true,
+      "value": {
+        "spdxExpression": null,
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
       "value": [
         {
           "spdxExpression": null,
@@ -288,6 +412,18 @@
     "location": "library",
     "expected": {
       "ok": true,
+      "value": {
+        "spdxExpression": "MIT",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
       "value": [
         {
           "spdxExpression": "MIT",
@@ -313,6 +449,16 @@
     },
     "location": "library",
     "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": "MIT",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": []
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": [
         {
@@ -754,6 +900,18 @@
     "location": "library",
     "expected": {
       "ok": true,
+      "value": {
+        "spdxExpression": "LicenseRef-Team WITH Classpath-exception-2.0",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
       "value": [
         {
           "spdxExpression": "LicenseRef-Team WITH Classpath-exception-2.0",
@@ -779,6 +937,18 @@
     },
     "location": "library",
     "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": "DocumentRef-Other:LicenseRef-Team with Classpath-exception-2.0",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
+    },
+    "referenceExpected": {
       "ok": true,
       "value": [
         {
@@ -906,17 +1076,15 @@
     "location": "library",
     "expected": {
       "ok": true,
-      "value": [
-        {
-          "spdxExpression": "MVT-1.1",
-          "files": [
-            "LICENSE"
-          ],
-          "attributionFiles": [
-            "NOTICE"
-          ]
-        }
-      ]
+      "value": {
+        "spdxExpression": "MVT-1.1",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
     },
     "referenceExpected": {
       "ok": false,
@@ -941,17 +1109,15 @@
     "location": "library",
     "expected": {
       "ok": true,
-      "value": [
-        {
-          "spdxExpression": "MIT WITH PCRE2-exception",
-          "files": [
-            "LICENSE"
-          ],
-          "attributionFiles": [
-            "NOTICE"
-          ]
-        }
-      ]
+      "value": {
+        "spdxExpression": "MIT WITH PCRE2-exception",
+        "files": [
+          "LICENSE"
+        ],
+        "attributionFiles": [
+          "NOTICE"
+        ]
+      }
     },
     "referenceExpected": {
       "ok": false,
