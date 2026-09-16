@@ -338,7 +338,7 @@
         </div>
         <div>
           <strong>02 &nbsp; Parse once</strong
-          ><span>Keep the original text and parsed comparisons</span>
+          ><span>Trim outer space and keep parsed comparisons</span>
         </div>
         <div>
           <strong>03 &nbsp; Match releases</strong
@@ -396,7 +396,7 @@
             <p>
               <code>ParseVersionConstraint</code> returns a reusable constraint
               and an error. The adapter shows its <code>String()</code> value,
-              preserving the authored text.
+              trimming surrounding whitespace and preserving internal spacing.
             </p>
             <p>
               <code>Matches</code> returns <code>(bool, error)</code>. A
@@ -497,7 +497,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
         ["Minor constraint", "~> 1.2"],
         ["Exclude release", "!= 1.2.3"],
         ["Partial constraint", "1.2"],
-        ["Preserve spaces", "  >= 1.2.0  "],
+        ["Trim spaces", "  >= 1.2.0  "],
         ["npm caret", "^1.2.3"],
         ["npm wildcard", "1.x"],
         ["npm OR", "1.2.3 || 2.0.0"],
@@ -542,7 +542,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           : "ParseVersionConstraint(text, location string) (VersionConstraint, error)";
         byID("operation-hint").textContent = matching
           ? "Parses the constraint, validates a complete release version, then checks whether it matches."
-          : "Validates native HashiCorp syntax and retains the original text. Comma-separated comparisons must all hold.";
+          : "Validates native HashiCorp syntax and trims surrounding whitespace. Comma-separated comparisons must all hold.";
         const examples = matching ? matchExamples : parseExamples;
         byID("presets").replaceChildren(
           // Create a button that loads each named example.
@@ -607,7 +607,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
               ? result.value
                 ? "Go returned (true, nil): this version matches."
                 : "Go returned (false, nil): this version is valid but outside the constraint."
-              : "Go returned a parsed constraint and no error. Its original text is shown below."
+              : "Go returned a parsed constraint and no error. Its trimmed text is shown below."
             : "The Go function returned an error. The message explains why validation failed.";
         } catch (error) {
           byID("status").textContent = "Request failed";
