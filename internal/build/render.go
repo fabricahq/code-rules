@@ -1,10 +1,10 @@
 // Render effective rules into standalone generated Markdown files.
+
 package build
 
 import (
 	"encoding/json"
 	"fmt"
-	"maps"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -191,6 +191,3 @@ func licenseMappings(source string, license rules.LicenseDeclaration) []licenseM
 	}
 	return result
 }
-
-// SortedPaths exposes deterministic file ordering for adapters and output previews.
-func SortedPaths[T any](files map[string]T) []string { return slices.Sorted(maps.Keys(files)) }
