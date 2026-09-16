@@ -29,7 +29,8 @@ var page []byte
 //go:embed walkthroughs/*.html
 var walkthroughs embed.FS
 
-const maxRequestBytes = 1 << 20
+// Allow an 8 MiB tag listing, up to sixfold JSON escaping, and the request envelope.
+const maxRequestBytes = 64 << 20
 
 type request struct {
 	Operation string          `json:"operation"`
@@ -39,6 +40,7 @@ type request struct {
 }
 
 type failure struct {
+	Code     string `json:"code,omitempty"`
 	Name     string `json:"name"`
 	Message  string `json:"message"`
 	Location string `json:"location,omitempty"`
@@ -69,6 +71,22 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "selectReleaseTag":
+		var input struct {
+			AvailableGitTags *string `json:"availableGitTags"`
+			Constraint       *string `json:"constraint"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.AvailableGitTags == nil || input.Constraint == nil {
+			return adapterError("selectReleaseTag input must contain availableGitTags and constraint strings"), nil
+		}
+		constraint, parseErr := rules.ParseVersionConstraint(*input.Constraint, req.Location+".constraint")
+		if parseErr != nil {
+			err = parseErr
+		} else {
+			value, err = rules.SelectReleaseTag(*input.AvailableGitTags, constraint)
+		}
 	case "licenses":
 		var input struct {
 			Manifest *string   `json:"manifest"`
@@ -176,6 +194,10 @@ func invoke(data []byte) (response, error) {
 		return adapterError("unknown operation " + req.Operation), nil
 	}
 	if err != nil {
+		var selection *rules.VersionSelectionError
+		if errors.As(err, &selection) {
+			return response{Error: &failure{Name: "VersionSelectionError", Code: string(selection.Kind), Message: err.Error()}}, nil
+		}
 		var validation *rules.ValidationError
 		if errors.As(err, &validation) {
 			return response{Error: &failure{Name: "ValidationError", Message: err.Error(), Location: validation.Location}}, nil
@@ -220,7 +242,7 @@ func handler(logger *slog.Logger) http.Handler {
 		if err != nil {
 			var tooLarge *http.MaxBytesError
 			if errors.As(err, &tooLarge) {
-				http.Error(w, "request body exceeds 1 MiB limit", http.StatusRequestEntityTooLarge)
+				http.Error(w, "request body exceeds 64 MiB limit", http.StatusRequestEntityTooLarge)
 			} else {
 				http.Error(w, "could not read request body", http.StatusBadRequest)
 			}
@@ -271,9 +293,14 @@ func run(logger *slog.Logger) error {
 		}
 		return nil
 	}
-	scanner := bufio.NewScanner(os.Stdin)
+	return runRequests(os.Stdin, os.Stdout)
+}
+
+// runRequests processes bounded newline-delimited requests and writes native results.
+func runRequests(input io.Reader, output io.Writer) error {
+	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 4096), maxRequestBytes)
-	encoder := json.NewEncoder(os.Stdout)
+	encoder := json.NewEncoder(output)
 	for scanner.Scan() {
 		result, err := invoke(scanner.Bytes())
 		if err != nil {
