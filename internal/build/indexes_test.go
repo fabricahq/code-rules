@@ -323,8 +323,12 @@ func TestIndexPagesNavigation(t *testing.T) {
 		for page := 1; page <= total; page++ {
 			text := pages[fmt.Sprintf("groups/go tips.part-%d.md", page)]
 			label := fmt.Sprintf("**Page %d of %d**", page, total)
-			if !strings.Contains(text, "\n\n---\n\n"+label) {
+			if !strings.Contains(text, "\n\n---\n\nFooter\n\n"+label) {
 				t.Fatal("footer is not separated from the last entry")
+			}
+			lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
+			if !strings.HasPrefix(lines[len(lines)-1], label) {
+				t.Fatal("navigation must end the page")
 			}
 			if strings.Count(text, label) != 2 {
 				t.Fatalf("missing top/bottom label %q", label)
@@ -356,5 +360,19 @@ func TestIndexPagesNavigation(t *testing.T) {
 	pages, err := build.IndexPages("RULES.md", "# Rules", []string{"Short summary"}, "", 750)
 	if err != nil || len(pages) != 1 || strings.Contains(pages["RULES.md"], "**Page ") {
 		t.Fatal("unpaginated output changed")
+	}
+}
+
+// TestIndexPagesWithoutFooter keeps navigation last when no notice is supplied.
+func TestIndexPagesWithoutFooter(t *testing.T) {
+	pages, err := build.IndexPages("RULES.md", "# Rules", []string{strings.Repeat("one\n", 40), strings.Repeat("two\n", 40)}, "", 60)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 1; i <= 2; i++ {
+		page := pages[fmt.Sprintf("RULES.part-%d.md", i)]
+		if !strings.Contains(page, fmt.Sprintf("\n\n---\n\n**Page %d of 2**", i)) {
+			t.Fatal("empty footer added spacing before navigation")
+		}
 	}
 }
