@@ -14,6 +14,8 @@ import metadataCases from './group-metadata/cases.json';
 import documentCases from './rule-documents/cases.json';
 import ruleCases from './rules/cases.json';
 import repositoryCases from './repositories/cases.json';
+import refCases from './refs/cases.json';
+import { tagVersion } from '../../src/versions';
 import { repositoryAddress, repositoryFileUrl } from '../../src/repository';
 import contracts from '../../migration/contracts.json';
 import approvedDifferences from '../../migration/approved-differences.json';
@@ -24,6 +26,7 @@ const cases = [
   ...documentCases,
   ...ruleCases,
   ...repositoryCases,
+  ...refCases,
 ];
 deepStrictEqual(
   new Set(cases.map(({ id }) => id)).size,
@@ -41,7 +44,27 @@ deepStrictEqual(
 function reference(test: (typeof cases)[number]): unknown {
   try {
     let value: unknown;
-    if (test.operation === 'repository') {
+    if (test.operation === 'gitRef') {
+      const config = configuration({
+        schemaVersion: 1,
+        sources: {
+          team: {
+            repository: 'https://github.com/fixture/team.git',
+            ref: test.input,
+            groups: [],
+            exclude: {},
+            replace: {},
+          },
+        },
+      });
+      const source = config.sources[0];
+      if (!source)
+        throw new Error('Reference configuration returned no source');
+      value = source.parsedRef;
+    } else if (test.operation === 'tagVersion') {
+      if (typeof test.input !== 'string') throw new Error('Expected tag text');
+      value = tagVersion(test.input);
+    } else if (test.operation === 'repository') {
       value = repositoryAddress(test.input, test.location);
     } else if (test.operation === 'repositoryFile') {
       const input = test.input;

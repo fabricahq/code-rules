@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -304,12 +305,54 @@ func TestHTTPRepositories(t *testing.T) {
 			logger := slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug}))
 			recorder := httptest.NewRecorder()
 			handler(logger).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(test.body)))
-			if recorder.Code != http.StatusOK || strings.TrimSpace(recorder.Body.String()) != test.expected {
+			var got, expected any
+			if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal([]byte(test.expected), &expected); err != nil {
+				t.Fatal(err)
+			}
+			if recorder.Code != http.StatusOK || !reflect.DeepEqual(got, expected) {
 				t.Fatalf("got %d %s; want %s", recorder.Code, recorder.Body, test.expected)
 			}
 			if strings.Contains(logs.String(), "secret") || strings.Contains(logs.String(), "example.org") {
 				t.Fatalf("request content leaked into logs: %s", &logs)
 			}
 		})
+	}
+}
+
+// TestHTTPRefs checks native ref results, non-version nulls, and adapter type errors.
+func TestHTTPRefs(t *testing.T) {
+	for _, test := range []struct{ name, operation, input, expected string }{
+		{"tag", "gitRef", `"main"`, `{"ok":true,"value":{"kind":"tag","name":"refs/tags/main"}}`},
+		{"invalid ref", "gitRef", `"deadbeef"`, `{"ok":false,"error":{"name":"ValidationError","message":"custom.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>","location":"custom.ref"}}`},
+		{"version", "tagVersion", `"v1.2.3-beta.1+build"`, `{"ok":true,"value":"1.2.3-beta.1+build"}`},
+		{"non-version", "tagVersion", `"release"`, `{"ok":true,"value":null}`},
+	} {
+		// Exercise serialization through HTTP, including explicit null rather than a missing value.
+		t.Run(test.name, func(t *testing.T) {
+			payload := `{"operation":"` + test.operation + `","input":` + test.input + `,"location":"custom.ref"}`
+			recorder := httptest.NewRecorder()
+			handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(payload)))
+			var got, expected any
+			if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal([]byte(test.expected), &expected); err != nil {
+				t.Fatal(err)
+			}
+			if recorder.Code != http.StatusOK || !reflect.DeepEqual(got, expected) {
+				t.Fatalf("HTTP %d: %s; want %s", recorder.Code, recorder.Body, test.expected)
+			}
+		})
+	}
+	for _, operation := range []string{"gitRef", "tagVersion"} {
+		for _, input := range []string{`null`, `42`, `{}`} {
+			got, err := invoke([]byte(`{"operation":"` + operation + `","input":` + input + `,"location":"ref"}`))
+			if err != nil || got.OK || got.Value != nil || got.Error == nil || got.Error.Name != "AdapterError" {
+				t.Fatalf("%s input %s: got %+v, %v", operation, input, got, err)
+			}
+		}
 	}
 }

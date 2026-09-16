@@ -1,0 +1,1059 @@
+[
+  {
+    "id": "ref-release",
+    "operation": "gitRef",
+    "input": "v1.2.3",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/v1.2.3"
+      }
+    }
+  },
+  {
+    "id": "ref-qualified",
+    "operation": "gitRef",
+    "input": "refs/tags/v1.2.3",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/v1.2.3"
+      }
+    }
+  },
+  {
+    "id": "ref-nested",
+    "operation": "gitRef",
+    "input": "releases/stable/v1",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/releases/stable/v1"
+      }
+    }
+  },
+  {
+    "id": "ref-branch-like",
+    "operation": "gitRef",
+    "input": "main",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/main"
+      }
+    }
+  },
+  {
+    "id": "ref-short-hex",
+    "operation": "gitRef",
+    "input": "abc",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/abc"
+      }
+    }
+  },
+  {
+    "id": "ref-qualified-hex",
+    "operation": "gitRef",
+    "input": "refs/tags/deadbeef",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/deadbeef"
+      }
+    }
+  },
+  {
+    "id": "ref-qualified-sha",
+    "operation": "gitRef",
+    "input": "refs/tags/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "id": "ref-unicode",
+    "operation": "gitRef",
+    "input": "release/été🐹",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/release/été🐹"
+      }
+    }
+  },
+  {
+    "id": "ref-closing-bracket",
+    "operation": "gitRef",
+    "input": "release]",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/release]"
+      }
+    }
+  },
+  {
+    "id": "ref-uppercase-lock",
+    "operation": "gitRef",
+    "input": "release.LOCK",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/release.LOCK"
+      }
+    }
+  },
+  {
+    "id": "ref-at-in-name",
+    "operation": "gitRef",
+    "input": "release@next",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/release@next"
+      }
+    }
+  },
+  {
+    "id": "ref-nonascii-space",
+    "operation": "gitRef",
+    "input": "release next",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/release next"
+      }
+    }
+  },
+  {
+    "id": "ref-long-hex",
+    "operation": "gitRef",
+    "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "tag",
+        "name": "refs/tags/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "id": "ref-sha",
+    "operation": "gitRef",
+    "input": "0123456789abcdef0123456789abcdef01234567",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "commit",
+        "sha": "0123456789abcdef0123456789abcdef01234567"
+      }
+    }
+  },
+  {
+    "id": "ref-uppercase-sha",
+    "operation": "gitRef",
+    "input": "ABCDEF0123456789ABCDEF0123456789ABCDEF01",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": true,
+      "value": {
+        "kind": "commit",
+        "sha": "abcdef0123456789abcdef0123456789abcdef01"
+      }
+    }
+  },
+  {
+    "id": "ref-empty",
+    "operation": "gitRef",
+    "input": "",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected nonempty text",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-blank",
+    "operation": "gitRef",
+    "input": " \t\n",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected nonempty text",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-unicode-blank",
+    "operation": "gitRef",
+    "input": "﻿ ",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected nonempty text",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-four-hex",
+    "operation": "gitRef",
+    "input": "dead",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-abbreviated",
+    "operation": "gitRef",
+    "input": "deadbeef",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-39-hex",
+    "operation": "gitRef",
+    "input": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-space",
+    "operation": "gitRef",
+    "input": "v1 2",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-newline",
+    "operation": "gitRef",
+    "input": "v1\n",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-control",
+    "operation": "gitRef",
+    "input": "v1\u0000",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-del",
+    "operation": "gitRef",
+    "input": "v1",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-tilde",
+    "operation": "gitRef",
+    "input": "v1~1",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-caret",
+    "operation": "gitRef",
+    "input": "v1^",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-colon",
+    "operation": "gitRef",
+    "input": "v1:thing",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-question",
+    "operation": "gitRef",
+    "input": "v1?",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-star",
+    "operation": "gitRef",
+    "input": "v1*",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-bracket",
+    "operation": "gitRef",
+    "input": "v1[",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-backslash",
+    "operation": "gitRef",
+    "input": "v1\\x",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-dots",
+    "operation": "gitRef",
+    "input": "v1..2",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-reflog",
+    "operation": "gitRef",
+    "input": "v1@{1}",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-at",
+    "operation": "gitRef",
+    "input": "@",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-leading-dash",
+    "operation": "gitRef",
+    "input": "-v1",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-branch-ref",
+    "operation": "gitRef",
+    "input": "refs/heads/main",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-remote-ref",
+    "operation": "gitRef",
+    "input": "refs/remotes/origin/main",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-other-ref",
+    "operation": "gitRef",
+    "input": "refs/foo",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-empty-tag",
+    "operation": "gitRef",
+    "input": "refs/tags/",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-leading-slash",
+    "operation": "gitRef",
+    "input": "/v1",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-trailing-slash",
+    "operation": "gitRef",
+    "input": "v1/",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-double-slash",
+    "operation": "gitRef",
+    "input": "v1//next",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-hidden",
+    "operation": "gitRef",
+    "input": "releases/.v1",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-lock",
+    "operation": "gitRef",
+    "input": "release.lock",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-nested-lock",
+    "operation": "gitRef",
+    "input": "release.lock/v1",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-trailing-dot",
+    "operation": "gitRef",
+    "input": "release.",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "ref-component-dot",
+    "operation": "gitRef",
+    "input": "releases./v1",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "tag-stable",
+    "operation": "tagVersion",
+    "input": "1.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3"
+    }
+  },
+  {
+    "id": "tag-v-prefix",
+    "operation": "tagVersion",
+    "input": "v1.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3"
+    }
+  },
+  {
+    "id": "tag-zero",
+    "operation": "tagVersion",
+    "input": "0.0.0",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "0.0.0"
+    }
+  },
+  {
+    "id": "tag-prerelease",
+    "operation": "tagVersion",
+    "input": "1.2.3-beta.2",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3-beta.2"
+    }
+  },
+  {
+    "id": "tag-build",
+    "operation": "tagVersion",
+    "input": "v1.2.3+build.001",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3+build.001"
+    }
+  },
+  {
+    "id": "tag-both",
+    "operation": "tagVersion",
+    "input": "v1.2.3-rc.1+build.5",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3-rc.1+build.5"
+    }
+  },
+  {
+    "id": "tag-hyphen-prerelease",
+    "operation": "tagVersion",
+    "input": "1.2.3--",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3--"
+    }
+  },
+  {
+    "id": "tag-alpha-zero",
+    "operation": "tagVersion",
+    "input": "1.2.3-01a",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3-01a"
+    }
+  },
+  {
+    "id": "tag-max-safe",
+    "operation": "tagVersion",
+    "input": "9007199254740991.0.0",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "9007199254740991.0.0"
+    }
+  },
+  {
+    "id": "tag-large-prerelease",
+    "operation": "tagVersion",
+    "input": "1.2.3-999999999999999999999999999999",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3-999999999999999999999999999999"
+    }
+  },
+  {
+    "id": "tag-256-chars",
+    "operation": "tagVersion",
+    "input": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  {
+    "id": "tag-v-257-chars",
+    "operation": "tagVersion",
+    "input": "v1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  },
+  {
+    "id": "tag-empty",
+    "operation": "tagVersion",
+    "input": "",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-partial",
+    "operation": "tagVersion",
+    "input": "1.2",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-major-only",
+    "operation": "tagVersion",
+    "input": "1",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-uppercase-v",
+    "operation": "tagVersion",
+    "input": "V1.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-repeated-v",
+    "operation": "tagVersion",
+    "input": "vv1.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-equals",
+    "operation": "tagVersion",
+    "input": "=1.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-space",
+    "operation": "tagVersion",
+    "input": " 1.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-newline",
+    "operation": "tagVersion",
+    "input": "1.2.3\n",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-qualified",
+    "operation": "tagVersion",
+    "input": "refs/tags/v1.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-prefix",
+    "operation": "tagVersion",
+    "input": "release-1.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-leading-major-zero",
+    "operation": "tagVersion",
+    "input": "01.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-leading-minor-zero",
+    "operation": "tagVersion",
+    "input": "1.02.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-leading-patch-zero",
+    "operation": "tagVersion",
+    "input": "1.2.03",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-leading-prerelease-zero",
+    "operation": "tagVersion",
+    "input": "1.2.3-01",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-empty-pre",
+    "operation": "tagVersion",
+    "input": "1.2.3-",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-empty-build",
+    "operation": "tagVersion",
+    "input": "1.2.3+",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-empty-pre-part",
+    "operation": "tagVersion",
+    "input": "1.2.3-a..b",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-empty-build-part",
+    "operation": "tagVersion",
+    "input": "1.2.3+a..b",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-underscore",
+    "operation": "tagVersion",
+    "input": "1.2.3-a_b",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-unicode",
+    "operation": "tagVersion",
+    "input": "1.2.3-é",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-unsafe-major",
+    "operation": "tagVersion",
+    "input": "9007199254740992.0.0",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-unsafe-minor",
+    "operation": "tagVersion",
+    "input": "1.9007199254740992.0",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-unsafe-patch",
+    "operation": "tagVersion",
+    "input": "1.2.9007199254740992",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-huge-number",
+    "operation": "tagVersion",
+    "input": "999999999999999999999999.0.0",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-257-chars",
+    "operation": "tagVersion",
+    "input": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-plus-repeat",
+    "operation": "tagVersion",
+    "input": "1.2.3+build+other",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-wildcard",
+    "operation": "tagVersion",
+    "input": "1.2.x",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  },
+  {
+    "id": "tag-range",
+    "operation": "tagVersion",
+    "input": "^1.2.3",
+    "location": "tag",
+    "expected": {
+      "ok": true,
+      "value": null
+    }
+  }
+]

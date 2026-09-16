@@ -103,12 +103,20 @@ func invoke(data []byte) (response, error) {
 			return adapterError("rule input must contain text, path, and source strings"), nil
 		}
 		value, err = rules.Parse(*input.Text, *input.Path, *input.Source)
-	case "groupID", "ruleGroup", "groupMetadata", "document":
+	case "groupID", "ruleGroup", "groupMetadata", "document", "gitRef", "tagVersion":
 		var text string
 		if len(req.Input) == 0 || bytes.Equal(bytes.TrimSpace(req.Input), []byte("null")) || json.Unmarshal(req.Input, &text) != nil {
 			return adapterError("input must be a string for " + req.Operation), nil
 		}
 		switch req.Operation {
+		case "gitRef":
+			value, err = rules.ParseGitRef(text, req.Location)
+		case "tagVersion":
+			var version *string
+			if parsed, recognized := rules.TagVersion(text); recognized {
+				version = &parsed
+			}
+			value = version
 		case "groupID":
 			err = rules.ValidateGroupID(text, req.Location)
 			value = text
