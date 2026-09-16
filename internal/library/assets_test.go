@@ -5,6 +5,7 @@ package library_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,6 +47,7 @@ func TestLoadAssets(t *testing.T) {
 func TestLoadRejectsAssetFailures(t *testing.T) {
 	for _, test := range []struct{ name, link, file, content string }{
 		{"missing", "assets/errors/missing.png", "", ""},
+		{"file as directory", "assets/errors/diagram.txt/child.txt", "techs/go/assets/errors/diagram.txt", "x"},
 		{"escape", "../../../outside", "", ""},
 		{"other owner", "assets/another/file.png", "techs/go/assets/another/file.png", "x"},
 		{"arbitrary supporting", "data.txt", "techs/go/assets/errors/a.bin", "x"},
@@ -61,8 +63,9 @@ func TestLoadRejectsAssetFailures(t *testing.T) {
 			}
 			_, root := fixture(t, files)
 			got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
-			if err == nil || got.Groups != nil {
-				t.Fatalf("accepted unsafe assets: %+v, %v", got, err)
+			var validation *rules.ValidationError
+			if !errors.As(err, &validation) || got.Groups != nil {
+				t.Fatalf("expected validation failure without partial catalog: %+v, %v", got, err)
 			}
 		})
 	}
@@ -173,5 +176,22 @@ func TestLoadRejectsUndeclaredFilesBesideAssetTerms(t *testing.T) {
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
 	if err == nil || !strings.Contains(err.Error(), "no adjacent owning rule") || got.Groups != nil {
 		t.Fatalf("accepted ownerless attachment: %+v, %v", got, err)
+	}
+}
+
+// TestLoadRejectsMisspelledAssetLinks checks retained paths even on case-insensitive filesystems.
+func TestLoadRejectsMisspelledAssetLinks(t *testing.T) {
+	for _, target := range []string{"/assets/diagram.png", "/Assets/Diagram.png", "assets/errors/diagram.png"} {
+		t.Run(target, func(t *testing.T) {
+			files := validFiles()
+			files["techs/go/errors.md"] += "\n[image](" + target + ")\n"
+			files["assets/Diagram.png"] = "shared"
+			files["techs/go/assets/errors/Diagram.png"] = "owned"
+			_, root := fixture(t, files)
+			got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
+			if err == nil || got.Groups != nil {
+				t.Fatalf("accepted mismatched asset spelling: %+v, %v", got, err)
+			}
+		})
 	}
 }
