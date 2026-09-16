@@ -39,7 +39,7 @@ func IndexPages(file, header string, entries []string, footer string, maxLines i
 	// Navigation is one source line regardless of page count or which adjacent links exist.
 	// Reserve its top and bottom spacing before partitioning; render once the total is known.
 	navigation := indexPageNavigation(file, 1, 1)
-	overhead := strings.Count(indexDocument(navigation+"\n\n"+header, nil, navigation+"\n\n"+footer), "\n")
+	overhead := strings.Count(indexDocument(navigation+"\n\n"+header, nil, indexPageFooter(footer, navigation)), "\n")
 	parts := [][]string{}
 	pending := []string{}
 	pageLines := overhead
@@ -68,7 +68,7 @@ func IndexPages(file, header string, entries []string, footer string, maxLines i
 		page := i + 1
 		partFile := indexPartPath(file, page)
 		navigation := indexPageNavigation(file, page, len(parts))
-		output[partFile] = indexDocument(navigation+"\n\n"+header, entries, navigation+"\n\n"+footer)
+		output[partFile] = indexDocument(navigation+"\n\n"+header, entries, indexPageFooter(footer, navigation))
 		links = append(links, fmt.Sprintf("- [Page %d of %d](%s)", page, len(parts), encodedPath(path.Base(partFile))))
 	}
 	directory := indexDocument(header, append([]string{"Read every numbered page to inspect this complete index. Rule bodies remain in their linked files."}, links...), footer)
@@ -94,6 +94,14 @@ func indexPageNavigation(file string, page, total int) string {
 		links = append(links, "[Next page]("+encodedPath(path.Base(indexPartPath(file, page+1)))+")")
 	}
 	return strings.Join(links, " | ")
+}
+
+// indexPageFooter places navigation last without introducing blank lines for an absent notice.
+func indexPageFooter(footer, navigation string) string {
+	if footer == "" {
+		return navigation
+	}
+	return footer + "\n\n" + navigation
 }
 
 // indexDocument joins content, separates the footer with a thematic break, and adds one final newline.
