@@ -543,6 +543,8 @@
             ? "Go returned successfully. Inspect the data below."
             : "Go returned an error. No partial result is returned.";
         } catch (error) {
+          byID("explanation").textContent =
+            "The request failed. No Go result was received.";
           byID("status").textContent = "Request failed";
           byID("status").className = "badge bad";
           byID("output").textContent = String(error);
