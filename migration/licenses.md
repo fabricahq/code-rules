@@ -21,3 +21,5 @@ Incomplete expressions ending in an opening parenthesis or a DocumentRef colon r
 ## Singular Go license model
 
 The user approved replacing zero-or-one license arrays with an optional declaration. `ReadLibraryLicense` returns nil or one declaration; loaded catalogs expose `license: null` or `license: {...}`. Multiple notice files still belong to that one declaration. The pinned TypeScript reference remains unchanged, and successful shared fixtures retain its exact array results in `referenceExpected` beside the new Go expectations.
+
+The singular field also applies to resolved sources, effective rules, and Go-generated `provenance.json`. The TypeScript provenance shape remains plural until cutover; this is an approved Go output-shape difference. License/notice contents and generated destinations are unchanged.
