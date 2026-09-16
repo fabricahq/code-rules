@@ -14,7 +14,7 @@ Use the [Go conventions](../_internal/go-conventions.md) when implementing or re
 - [Document boundaries](rule-documents.md) merged in PR #13 at `301caa59654e8170f66ef6347eba4c0951d44560`.
 - [Group metadata](group-metadata.md) was human-approved and merged in PR #12 at `5c2c10a23cf556d9533bed316397338213f22fbd`.
 - [The identity slice](identities.md) was human-approved and merged in PR #11 at `6bfcaf608bc5ce9c36af4c3c27c02d751a7fdd30`.
-- Every migration PR targets `go-migration`. Merge each slice after explicit human approval before starting the next iteration.
+- Migration PRs normally target `go-migration`; the authorized concurrent stack below temporarily targets predecessor branches. Merge each slice after explicit human approval before starting the next iteration.
 - A separate human decision authorizes the eventual `go-migration` to `main` PR, distribution changes, and removal of TypeScript runtime code.
 
 The initial integration branch and TypeScript reference both start at `7013d3d374a33a5cf65a2a48ff6870e46f9d7209`.
@@ -25,6 +25,10 @@ The user approved merging [the harness PR #10](https://github.com/fabricahq/code
 
 The product checkout and private rule corpus had unrelated local changes. This work uses a separate clone and committed corpus contents.
 The harness slice introduced no Go implementation. The merged identity slice added a native package and development adapter; the current slice adds native HashiCorp version constraints and matching. Release publication and scheduled work remain unauthorized. The user-approved validation diagnostic improvements are recorded in [the identity slice](identities.md#user-approved-diagnostic-improvement).
+
+## Concurrent review stack
+
+The user approved preparing PRs #17-#21 together. Each dependent PR targets its predecessor so the review diff contains only the new capability. Keep the branches separate, propagate predecessor fixes forward, and retarget to `go-migration` as predecessors merge. This supersedes the one-pending-PR rule for this batch; human merge approval is still required. Each walkthrough has a stable `/walkthrough/pr<number>` URL.
 
 ## PR review workflow
 

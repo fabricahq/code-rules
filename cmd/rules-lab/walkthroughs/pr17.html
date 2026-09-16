@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Code Rules · Parse project configuration</title>
+    <title>Code Rules · Version constraint lab</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -323,205 +323,248 @@
   <body>
     <main>
       <header>
-        <a href="/">CODE RULES / REVIEW COLLECTION</a
-        ><span>PR #18 · Parse project configuration</span>
+        <strong>CODE RULES / GO MIGRATION</strong
+        ><span>Slice 07 · Version constraints</span>
       </header>
-      <h1>Parse project configuration</h1>
+      <h1>Define a range.<br />Test a release.</h1>
       <p class="lede">
-        Validate a complete project document, including source revisions, group
-        selections, and exception policies.
+        Use HashiCorp go-version constraints to express which releases are
+        allowed. Invoke the real Go parser and matcher below.
       </p>
+      <div class="flow">
+        <div>
+          <strong>01 &nbsp; Write a constraint</strong
+          ><span>Use comparisons, commas, or ~&gt;</span>
+        </div>
+        <div>
+          <strong>02 &nbsp; Parse once</strong
+          ><span>Trim outer space and keep parsed comparisons</span>
+        </div>
+        <div>
+          <strong>03 &nbsp; Match releases</strong
+          ><span>Every comparison must accept the version</span>
+        </div>
+      </div>
       <div class="workspace">
-        <section class="panel">
-          <div class="label">Invoke the new capability</div>
-          <h2>Make the input your own</h2>
-          <div class="signature">
-            ParseConfiguration(input json.RawMessage) (Configuration, error)
-          </div>
-          <p class="hint">
-            Schema version 1. Sources are sorted by alias; selections retain
-            patterns or sorted IDs.
+        <section class="panel" aria-labelledby="input-heading">
+          <div class="label">Invoke a new function</div>
+          <h2 id="input-heading">Explore version constraints</h2>
+          <label for="operation">Operation</label>
+          <select id="operation">
+            <option value="versionConstraint">
+              Parse a version constraint
+            </option>
+            <option value="versionMatch">Match a version</option>
+          </select>
+          <div class="signature" id="signature"></div>
+          <p class="hint" id="operation-hint"></p>
+          <div class="presets" id="presets" aria-label="Example inputs"></div>
+          <label for="input">Version constraint</label
+          ><input id="input" spellcheck="false" aria-describedby="input-hint" />
+          <p id="input-hint" class="hint">
+            Plain text, for example &gt;= 1.2.0, &lt; 2.0.0. Commas mean AND.
           </p>
-          <div class="presets" id="presets"></div>
-          <label for="input">Configuration JSON</label
-          ><textarea id="input" rows="18" spellcheck="false"></textarea>
-          <p class="hint">The request goes to the native Go implementation.</p>
+          <div id="version-field">
+            <label for="version">Release version</label
+            ><input id="version" spellcheck="false" />
+            <p class="hint">
+              A complete version such as 1.2.3 or v1.2.3-beta.1.
+            </p>
+          </div>
+          <label for="location">Error location</label
+          ><input id="location" value="release" spellcheck="false" />
+          <p class="hint">
+            A caller-supplied diagnostic label. Matching appends .constraint or
+            .version to identify the invalid input. No file is opened.
+          </p>
           <div class="actions">
             <button class="primary" id="invoke">Invoke Go function</button
-            ><span class="hint" id="timing"></span>
+            ><span id="timing" class="hint"></span>
           </div>
         </section>
-        <section class="panel result">
+        <section class="panel result" aria-labelledby="result-heading">
           <div class="result-head">
-            <h2>Result</h2>
+            <h2 id="result-heading">Result</h2>
             <span class="badge" id="status">Ready</span>
           </div>
           <p id="explanation">
-            Invoke Go to inspect its returned data or error.
+            Invoke Go to see its returned value or validation error.
           </p>
           <pre id="output" aria-live="polite">No invocation yet.</pre>
           <details open>
-            <summary>What this PR does</summary>
+            <summary>How to read the result</summary>
             <p>
-              Unknown fields, duplicate repositories, conflicting ref/version
-              choices, and contradictory exclude/replace decisions are rejected.
-              Replacement files must be contained beneath local/. Version
-              constraints use HashiCorp syntax.
+              <code>ParseVersionConstraint</code> returns a reusable constraint
+              and an error. The adapter shows its <code>String()</code> value,
+              trimming surrounding whitespace and preserving internal spacing.
+            </p>
+            <p>
+              <code>Matches</code> returns <code>(bool, error)</code>. A
+              complete version inside the constraint returns
+              <code>(true, nil)</code>; a complete version outside it returns
+              <code>(false, nil)</code>.
             </p>
             <p>
               <code>ok: true</code> means Go returned no error.
-              <code>value</code> contains its result.
-              <code>ok: false</code> includes the returned error and its
-              location. Input text is never inserted as HTML.
+              <code>value: false</code> means a valid version did not match.
+              Invalid constraint syntax or an incomplete version returns an
+              error, shown as <code>ok: false</code>.
+            </p>
+            <p>
+              No releases are fetched or selected. This PR validates constraints
+              and checks individual versions; it reads and writes no project
+              files.
             </p>
           </details>
           <h3>What crossed the boundary</h3>
+          <p class="hint">
+            The browser sends this request to <code>POST /invoke</code>. Native
+            Go calls <code>internal/rules</code>, which uses HashiCorp
+            go-version v1.9.0.
+          </p>
           <pre id="request">No request sent.</pre>
         </section>
       </div>
       <section class="section">
-        <h2>Review boundaries</h2>
-        <p>
-          This is an offline syntax check. It does not discover local groups,
-          open replacement files, fetch sources, or establish whether a group or
-          revision exists. The current schema contains source declarations only;
-          it has no output settings.
+        <div class="label">Walk through this PR</div>
+        <h2>What our wrapper adds</h2>
+        <div class="review">
+          <div>
+            <h3>1. Trim surrounding whitespace</h3>
+            <p>
+              Try <strong>Trim spaces</strong>. The parser removes leading and
+              trailing whitespace while preserving internal spacing.
+            </p>
+          </div>
+          <div>
+            <h3>2. Validate release tags</h3>
+            <p>
+              <strong>Tag prefix</strong> accepts v1.2.3.
+              <strong>Invalid version</strong> returns a validation error for
+              the incomplete release 1.2, with your error location.
+            </p>
+          </div>
+          <div>
+            <h3>3. Separate nonmatches from errors</h3>
+            <p>
+              <strong>Exact match</strong> returns true.
+              <strong>Different patch</strong> returns false without an error.
+              Invalid inputs return an error instead.
+            </p>
+          </div>
+        </div>
+      </section>
+      <section class="section">
+        <h2>An intentional syntax change</h2>
+        <p class="notice">
+          The Go target uses HashiCorp syntax and matching behavior. The pinned
+          TypeScript reference retains npm syntax. This is a user-approved
+          format change, not a compatibility layer.
         </p>
         <p>
-          <a href="https://github.com/fabricahq/code-rules/pull/18"
-            >Review the PR on GitHub</a
-          >
+          For example, replace npm <code>^1.2.3</code> with
+          <code>&gt;= 1.2.3, &lt; 2.0.0</code> for stable releases. Replace
+          <code>~1.2.3</code> with <code>~&gt; 1.2.3</code>. OR expressions have
+          no direct equivalent. Check prerelease intent when converting.
         </p>
+        <p>
+          Ten focused fixtures cover our input boundaries and representative
+          integration with go-version. Operator and version-ordering semantics
+          belong to the dependency. Earlier capabilities remain in regression tests.
+        </p>
+        <details>
+          <summary>Run this slice yourself</summary>
+          <pre>
+go run ./cmd/rules-lab -serve -port 4391
+
+go test ./internal/rules ./cmd/rules-lab
+go build -o /tmp/code-rules-lab ./cmd/rules-lab
+bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
+        </details>
       </section>
       <footer>
-        Existing Code Rules gallery styling · Native Go · Only this PR's
-        capability
+        Code Rules gallery styling · Local development tool · This PR only
       </footer>
     </main>
     <script>
-      // Locate one named control in this walkthrough.
+      // byID returns a named walkthrough control.
       const byID = (id) => document.getElementById(id);
-      const spec = {
-        pr: 18,
-        title: "Parse project configuration",
-        description:
-          "Validate a complete project document, including source revisions, group selections, and exception policies.",
-        signature:
-          "ParseConfiguration(input json.RawMessage) (Configuration, error)",
-        inputhelp:
-          "Schema version 1. Sources are sorted by alias; selections retain patterns or sorted IDs.",
-        inputlabel: "Configuration JSON",
-        details:
-          "Unknown fields, duplicate repositories, conflicting ref/version choices, and contradictory exclude/replace decisions are rejected. Replacement files must be contained beneath local/. Version constraints use HashiCorp syntax.",
-        boundaries:
-          "This is an offline syntax check. It does not discover local groups, open replacement files, fetch sources, or establish whether a group or revision exists. The current schema contains source declarations only; it has no output settings.",
-        operation: "configuration",
-        mode: "text",
-        location: "configuration",
-        examples: [
-          {
-            name: "Empty",
-            input: '{\n  "schemaVersion": 1,\n  "sources": {}\n}',
-          },
-          {
-            name: "Tag",
-            input:
-              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    }\n  }\n}',
-          },
-          {
-            name: "Constraint",
-            input:
-              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {},\n      "version": ">= 1.2.0"\n    }\n  }\n}',
-          },
-          {
-            name: "Exceptions",
-            input:
-              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {\n        "techs/go/a": " unused "\n      },\n      "replace": {\n        "techs/go/b": {\n          "file": "local/go/b.md",\n          "reason": "team policy"\n        }\n      }\n    }\n  }\n}',
-          },
-          {
-            name: "Sorted sources",
-            input:
-              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    },\n    "alpha": {\n      "repository": "git@example.com:team/rules",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    }\n  }\n}',
-          },
-          { name: "Malformed", input: "{" },
-          {
-            name: "Unknown",
-            input:
-              '{\n  "schemaVersion": 1,\n  "sources": {},\n  "future": true\n}',
-          },
-          {
-            name: "Both revisions",
-            input:
-              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {},\n      "version": "1.2.3"\n    }\n  }\n}',
-          },
-          {
-            name: "Traversal",
-            input:
-              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {\n        "techs/go/a": {\n          "file": "local/../a.md",\n          "reason": "x"\n        }\n      }\n    }\n  }\n}',
-          },
-          {
-            name: "Conflict",
-            input:
-              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {\n        "techs/go/a": "x"\n      },\n      "replace": {\n        "techs/go/a": {\n          "file": "local/a.md",\n          "reason": "x"\n        }\n      }\n    }\n  }\n}',
-          },
-          {
-            name: "Duplicate repository",
-            input:
-              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    },\n    "z": {\n      "repository": "git@github.com:fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    }\n  }\n}',
-          },
-        ],
-      };
-      // Clear prior output when the editable input changes.
+      const parseExamples = [
+        ["Exact version", "1.2.3"],
+        ["Trim spaces", "  >= 1.2.0  "],
+        ["Empty constraint", ""],
+        ["Invalid constraint", "^1.2.3"],
+      ];
+      const matchExamples = [
+        ["Exact match", "1.2.3", "1.2.3"],
+        ["Different patch", "1.2.3", "1.2.4"],
+        ["Tag prefix", "1.2.3", "v1.2.3"],
+        ["Invalid version", "1.2.3", "1.2"],
+      ];
+      // clearResult discards stale results after any input change.
       function clearResult() {
-        byID("output").textContent = "No invocation for this input.";
         byID("status").textContent = "Ready";
         byID("status").className = "badge";
-        byID("request").textContent = "No request sent.";
         byID("explanation").textContent =
-          "Input changed. Invoke Go to see its result.";
+          "Input changed. Invoke Go to see this result.";
+        byID("output").textContent = "No invocation for this input.";
+        byID("request").textContent = "No request sent.";
         byID("timing").textContent = "";
       }
-      // Fill an example without sending a request.
+      // loadExample fills editable controls without invoking the server.
       function loadExample(example) {
-        byID("input").value =
-          typeof example.input === "string"
-            ? example.input
-            : JSON.stringify(example.input, null, 2);
+        byID("input").value = example[1];
+        byID("version").value = example[2] || "1.2.3";
         clearResult();
       }
-      for (const example of spec.examples) {
-        const button = document.createElement("button");
-        button.textContent = example.name;
-        // Load the chosen editable example.
-        button.addEventListener("click", () => loadExample(example));
-        byID("presets").append(button);
+      // showOperation scopes the visible controls and presets to the selected function.
+      function showOperation() {
+        const matching = byID("operation").value === "versionMatch";
+        byID("version-field").hidden = !matching;
+        byID("signature").textContent = matching
+          ? "VersionConstraint.Matches(tag, location string) (bool, error)"
+          : "ParseVersionConstraint(text, location string) (VersionConstraint, error)";
+        byID("operation-hint").textContent = matching
+          ? "Parses the constraint, validates a complete release version, then checks whether it matches."
+          : "Validates native HashiCorp syntax and trims surrounding whitespace. Comma-separated comparisons must all hold.";
+        const examples = matching ? matchExamples : parseExamples;
+        byID("presets").replaceChildren(
+          // Create a button that loads each named example.
+          ...examples.map((example) => {
+            const button = document.createElement("button");
+            button.textContent = example[0];
+            // Replace the input with this example and invalidate old output.
+            button.addEventListener("click", () => loadExample(example));
+            return button;
+          }),
+        );
+        loadExample(examples[0]);
       }
+      byID("operation").addEventListener("change", showOperation);
       byID("input").addEventListener("input", clearResult);
-      loadExample(spec.examples[0]);
-      // Invoke native Go and keep invalid adapter JSON distinct from a domain validation error.
+      byID("version").addEventListener("input", clearResult);
+      byID("location").addEventListener("input", clearResult);
+      showOperation();
+      // Invoke native Go and show the exact JSON response without interpreting input as HTML.
       byID("invoke").addEventListener("click", async () => {
-        let input = byID("input").value;
-        if (spec.mode === "json") {
-          try {
-            input = JSON.parse(input);
-          } catch {
-            byID("status").textContent = "Invalid request JSON";
-            byID("status").className = "badge bad";
-            byID("output").textContent =
-              "The request must be JSON. Go has not been called.";
-            return;
-          }
-        }
+        const operation = byID("operation").value;
         const body = JSON.stringify({
-          operation: spec.operation,
-          input,
-          location: spec.location,
+          operation,
+          input:
+            operation === "versionMatch"
+              ? {
+                  constraint: byID("input").value,
+                  version: byID("version").value,
+                }
+              : byID("input").value,
+          location: byID("location").value,
         });
         byID("request").textContent = body;
-        // Freeze controls for the request whose result is being displayed.
+        // Freeze inputs while their request is in flight.
         document
-          .querySelectorAll("button,textarea")
+          .querySelectorAll("button,input,select")
           .forEach((element) => (element.disabled = true));
+        byID("status").textContent = "Running";
         const started = performance.now();
         try {
           const response = await fetch("/invoke", {
@@ -536,12 +579,20 @@
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
           byID("status").textContent = result.ok
-            ? "Returned value"
+            ? operation === "versionMatch"
+              ? result.value
+                ? "Matches"
+                : "Does not match"
+              : "Parsed constraint"
             : result.error.name;
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
-            ? "Go returned successfully. Inspect the data below."
-            : "Go returned an error. No partial result is returned.";
+            ? operation === "versionMatch"
+              ? result.value
+                ? "Go returned (true, nil): this version matches."
+                : "Go returned (false, nil): this version is valid but outside the constraint."
+              : "Go returned a parsed constraint and no error. Its trimmed text is shown below."
+            : "The Go function returned an error. The message explains why validation failed.";
         } catch (error) {
           byID("status").textContent = "Request failed";
           byID("explanation").textContent =
@@ -550,10 +601,10 @@
           byID("output").textContent = String(error);
         } finally {
           byID("timing").textContent =
-            Math.round(performance.now() - started) + " ms";
-          // Restore controls after either result.
+            Math.round(performance.now() - started) + " ms round trip";
+          // Restore controls after success or failure.
           document
-            .querySelectorAll("button,textarea")
+            .querySelectorAll("button,input,select")
             .forEach((element) => (element.disabled = false));
         }
       });

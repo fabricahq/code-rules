@@ -17,6 +17,7 @@ import repositoryCases from './repositories/cases.json';
 import refCases from './refs/cases.json';
 import { tagVersion, versionConstraint } from '../../src/versions';
 import { satisfies } from 'semver';
+import configurationCases from './configuration/cases.json';
 import constraintCases from './version-constraints/cases.json';
 import { repositoryAddress, repositoryFileUrl } from '../../src/repository';
 import contracts from '../../migration/contracts.json';
@@ -30,6 +31,7 @@ const cases = [
   ...repositoryCases,
   ...refCases,
   ...constraintCases,
+  ...configurationCases,
 ];
 deepStrictEqual(
   new Set(cases.map(({ id }) => id)).size,
@@ -47,7 +49,31 @@ deepStrictEqual(
 function reference(test: (typeof cases)[number]): unknown {
   try {
     let value: unknown;
-    if (test.operation === 'versionConstraint') {
+    if (test.operation === 'configuration') {
+      if (typeof test.input !== 'string')
+        throw new Error('Expected configuration text');
+      let input: unknown;
+      try {
+        input = JSON.parse(test.input);
+      } catch {
+        throw new ValidationError('configuration: invalid JSON');
+      }
+      const parsed = configuration(input);
+      value = {
+        sources: parsed.sources.map(
+          // Convert maps to JSON objects; omit the redundant version ref projection.
+          (source) => {
+            const { parsedRef, exclude, replace, ...fields } = source;
+            return {
+              ...fields,
+              ...(parsedRef.kind === 'version' ? {} : { parsedRef }),
+              exclude: Object.fromEntries(exclude),
+              replace: Object.fromEntries(replace),
+            };
+          },
+        ),
+      };
+    } else if (test.operation === 'versionConstraint') {
       value = versionConstraint(test.input, test.location);
     } else if (test.operation === 'versionMatch') {
       const input = test.input;
