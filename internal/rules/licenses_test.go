@@ -40,7 +40,7 @@ func TestLicenseFixtures(t *testing.T) {
 			for _, path := range test.Input.Paths {
 				files[path] = nil
 			}
-			got, err := rules.ReadLibraryLicenses(files, test.Location)
+			got, err := rules.ReadLibraryLicense(files, test.Location)
 			if !test.Expected.OK {
 				var validation *rules.ValidationError
 				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location || got != nil {
@@ -51,7 +51,7 @@ func TestLicenseFixtures(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var expected []rules.LicenseDeclaration
+			var expected *rules.LicenseDeclaration
 			if err := json.Unmarshal(test.Expected.Value, &expected); err != nil {
 				t.Fatal(err)
 			}
@@ -67,18 +67,18 @@ func TestLicenseBytesAndPaths(t *testing.T) {
 	license := []byte{0xff, 0, 13, 10}
 	notice := []byte("Notice\r\n")
 	files := map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE"]}}`), "LICENSE": license, "NOTICE": notice}
-	got, err := rules.ReadLibraryLicenses(files, "library")
+	got, err := rules.ReadLibraryLicense(files, "library")
 	if err != nil || !bytes.Equal(license, []byte{0xff, 0, 13, 10}) || !bytes.Equal(notice, []byte("Notice\r\n")) {
 		t.Fatalf("bytes changed or read failed: %v", err)
 	}
 	if paths := rules.LicensePaths(got); !reflect.DeepEqual(paths, []string{"LICENSE", "NOTICE"}) {
 		t.Fatal(paths)
 	}
-	paths := rules.LicensePaths([]rules.LicenseDeclaration{{Files: []string{"\ue000", "😀", "😀"}, AttributionFiles: []string{"a"}}})
+	paths := rules.LicensePaths(&rules.LicenseDeclaration{Files: []string{"\ue000", "😀", "😀"}, AttributionFiles: []string{"a"}})
 	if !reflect.DeepEqual(paths, []string{"a", "😀", "\ue000"}) {
 		t.Fatal(paths)
 	}
-	if _, err := rules.ReadLibraryLicenses(nil, "missing"); err == nil {
+	if _, err := rules.ReadLibraryLicense(nil, "missing"); err == nil {
 		t.Fatal("accepted missing manifest")
 	}
 }

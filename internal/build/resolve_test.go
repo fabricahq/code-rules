@@ -32,7 +32,7 @@ func fixture(t *testing.T, exclude, replace string) (rules.Configuration, map[st
 	if err != nil {
 		t.Fatal(err)
 	}
-	return config, map[string]build.Library{"team": {Commit: commit, Catalog: library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, Licenses: []rules.LicenseDeclaration{}, SupportingFiles: map[string][]byte{"techs/go/_group.json": []byte(metadata)}}}}
+	return config, map[string]build.Library{"team": {Commit: commit, Catalog: library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, License: nil, SupportingFiles: map[string][]byte{"techs/go/_group.json": []byte(metadata)}}}}
 }
 
 // TestResolveAdoption covers imported definitions, exclusions, replacements, local additions, and guidance precedence.

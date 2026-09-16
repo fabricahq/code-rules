@@ -336,8 +336,8 @@
           <div class="label">Invoke the new capability</div>
           <h2>Make the input your own</h2>
           <div class="signature">
-            ReadLibraryLicenses(files map[string][]byte, source string)
-            ([]LicenseDeclaration, error)
+            ReadLibraryLicense(files map[string][]byte, source string)
+            (*LicenseDeclaration, error)
           </div>
           <p class="hint">
             manifest contains the JSON document as text. paths lists available
@@ -364,9 +364,9 @@
           <details open>
             <summary>What this PR does</summary>
             <p>
-              The library may leave licensing undeclared, or declare a license
-              file, ordered notices, and an optional SPDX expression. Duplicate
-              notices and the license file itself are removed from
+              The result is null when licensing is undeclared, or one object for
+              a license file, ordered notices, and an optional SPDX expression.
+              Duplicate notices and the license file itself are removed from
               attributionFiles. Unknown license fields and missing declared
               files return precise errors.
             </p>
@@ -410,12 +410,12 @@
         description:
           "Validate rule-library.json and check that declared term files exist in a supplied inventory.",
         signature:
-          "ReadLibraryLicenses(files map[string][]byte, source string) ([]LicenseDeclaration, error)",
+          "ReadLibraryLicense(files map[string][]byte, source string) (*LicenseDeclaration, error)",
         inputhelp:
           "manifest contains the JSON document as text. paths lists available files; their contents are not interpreted.",
         inputlabel: "Manifest and file inventory",
         details:
-          "The library may leave licensing undeclared, or declare a license file, ordered notices, and an optional SPDX expression. Duplicate notices and the license file itself are removed from attributionFiles. Unknown license fields and missing declared files return precise errors.",
+          "The result is null when licensing is undeclared, or one object for a license file, ordered notices, and an optional SPDX expression. Duplicate notices and the license file itself are removed from attributionFiles. Unknown license fields and missing declared files return precise errors.",
         boundaries:
           "The function validates declarations, not legal meaning or compatibility. It never infers terms from file names. License and notice bytes remain untouched, including CRLF and binary content. File reads and output copying are separate capabilities. Unknown top-level manifest fields retain reference compatibility. SPDX identifiers and exceptions use the newer list bundled with go-spdx v2.7.0, as approved for the migration.",
         operation: "licenses",
@@ -438,7 +438,7 @@
             },
           },
           {
-            name: "Combined licenses",
+            name: "Compound expression",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "(MIT OR Apache-2.0) AND BSD-2-Clause"}}',

@@ -32,11 +32,11 @@ type Origin struct {
 
 // ActiveRule owns one parsed effective document. Upstream is non-nil only for replacements.
 type ActiveRule struct {
-	Rule     rules.Rule                 `json:"rule"`
-	Origin   Origin                     `json:"origin"`
-	Upstream *Origin                    `json:"upstream"`
-	Reason   string                     `json:"replacementReason,omitempty"`
-	Licenses []rules.LicenseDeclaration `json:"licenses"`
+	Rule     rules.Rule                `json:"rule"`
+	Origin   Origin                    `json:"origin"`
+	Upstream *Origin                   `json:"upstream"`
+	Reason   string                    `json:"replacementReason,omitempty"`
+	License  *rules.LicenseDeclaration `json:"license"`
 }
 
 // Guidance retains every source's group metadata; local guidance takes precedence for display.
@@ -55,18 +55,18 @@ type Group struct {
 // Source records the adopted revision and complete retained inventory, including excluded rules.
 // Files contains supporting bytes and inactive upstream documents; active rules own their original documents.
 type Source struct {
-	Name            string                     `json:"name"`
-	Repository      string                     `json:"repository"`
-	Ref             string                     `json:"ref,omitempty"`
-	Version         string                     `json:"version,omitempty"`
-	Tag             string                     `json:"resolvedTag,omitempty"`
-	ResolvedVersion string                     `json:"resolvedVersion,omitempty"`
-	Commit          string                     `json:"resolvedCommit"`
-	Selection       rules.GroupSelection       `json:"groupSelection"`
-	Groups          []string                   `json:"groups"`
-	Licenses        []rules.LicenseDeclaration `json:"licenses"`
-	Paths           []string                   `json:"paths"`
-	Files           map[string][]byte          `json:"retainedFiles"`
+	Name            string                    `json:"name"`
+	Repository      string                    `json:"repository"`
+	Ref             string                    `json:"ref,omitempty"`
+	Version         string                    `json:"version,omitempty"`
+	Tag             string                    `json:"resolvedTag,omitempty"`
+	ResolvedVersion string                    `json:"resolvedVersion,omitempty"`
+	Commit          string                    `json:"resolvedCommit"`
+	Selection       rules.GroupSelection      `json:"groupSelection"`
+	Groups          []string                  `json:"groups"`
+	License         *rules.LicenseDeclaration `json:"license"`
+	Paths           []string                  `json:"paths"`
+	Files           map[string][]byte         `json:"retainedFiles"`
 }
 
 // Resolved owns effective rules; supporting bytes are shared read-only with the input catalogs.
@@ -184,7 +184,7 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 			if source.Version != "" {
 				origin.Ref = supplied.Tag
 			}
-			active := ActiveRule{Rule: parsed, Origin: origin, Licenses: supplied.Catalog.Licenses}
+			active := ActiveRule{Rule: parsed, Origin: origin, License: supplied.Catalog.License}
 			if replacement, ok := source.Replace[id]; ok {
 				file := strings.TrimPrefix(replacement.File, "local/")
 				replacementRule, ok := localRules[file]
@@ -199,12 +199,12 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 				}
 				retained[parsed.Path] = []byte(parsed.Document)
 				used[file] = true
-				active = ActiveRule{Rule: replacementRule, Origin: Origin{Source: "local", File: file}, Upstream: &origin, Reason: replacement.Reason, Licenses: []rules.LicenseDeclaration{}}
+				active = ActiveRule{Rule: replacementRule, Origin: Origin{Source: "local", File: file}, Upstream: &origin, Reason: replacement.Reason, License: nil}
 			}
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, Source{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: supplied.Tag, ResolvedVersion: selectedVersion, Commit: ref.SHA, Selection: source.Groups, Groups: ids, Licenses: supplied.Catalog.Licenses, Paths: supplied.Catalog.Paths(), Files: retained})
+		result.Sources = append(result.Sources, Source{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: supplied.Tag, ResolvedVersion: selectedVersion, Commit: ref.SHA, Selection: source.Groups, Groups: ids, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {
@@ -215,7 +215,7 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 		if !ok || len(group.Guidance) == 0 {
 			return Resolved{}, invalid(file, "local rule group has no metadata; add local group metadata or import this group")
 		}
-		group.Rules = append(group.Rules, ActiveRule{Rule: parsed, Origin: Origin{Source: "local", File: file}, Licenses: []rules.LicenseDeclaration{}})
+		group.Rules = append(group.Rules, ActiveRule{Rule: parsed, Origin: Origin{Source: "local", File: file}, License: nil})
 	}
 	for _, id := range slices.Sorted(maps.Keys(groups)) {
 		group := groups[id]
