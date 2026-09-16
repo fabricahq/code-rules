@@ -470,7 +470,7 @@
           no direct equivalent. Check prerelease intent when converting.
         </p>
         <p>
-          61 new independent cases cover parsing and matching. Shared
+          63 new independent cases cover parsing and matching. Shared
           comparisons record intentional differences from TypeScript separately.
           Earlier capabilities remain in regression tests.
         </p>
@@ -492,6 +492,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       // byID returns a named walkthrough control.
       const byID = (id) => document.getElementById(id);
       const parseExamples = [
+        ["Exact version", "1.2.3"],
         ["Comma bounds", ">= 1.2.0, < 2.0.0"],
         ["Patch constraint", "~> 1.2.3"],
         ["Minor constraint", "~> 1.2"],
@@ -505,6 +506,8 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
         ["Missing comparison", ">= 1.2.0,"],
       ];
       const matchExamples = [
+        ["Exact match", "1.2.3", "1.2.3"],
+        ["Different patch", "1.2.3", "1.2.4"],
         ["Lower boundary", ">= 1.2.0, < 2.0.0", "1.2.0"],
         ["Upper boundary", ">= 1.2.0, < 2.0.0", "2.0.0"],
         ["Patch updates", "~> 1.2.3", "1.2.9"],

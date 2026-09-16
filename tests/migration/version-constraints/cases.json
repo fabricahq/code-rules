@@ -1007,5 +1007,31 @@
       }
     },
     "difference": "User-approved adoption of HashiCorp go-version constraint syntax and matching semantics instead of npm. The original reference result is retained without normalization."
+  },
+  {
+    "id": "match-bare-exact-equal",
+    "operation": "versionMatch",
+    "input": {
+      "constraint": "1.2.3",
+      "version": "1.2.3"
+    },
+    "location": "match",
+    "expected": {
+      "ok": true,
+      "value": true
+    }
+  },
+  {
+    "id": "match-bare-exact-different",
+    "operation": "versionMatch",
+    "input": {
+      "constraint": "1.2.3",
+      "version": "1.2.4"
+    },
+    "location": "match",
+    "expected": {
+      "ok": true,
+      "value": false
+    }
   }
 ]
