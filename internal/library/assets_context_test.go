@@ -5,6 +5,12 @@ package library
 import (
 	"context"
 	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 	"testing"
 )
 
@@ -16,6 +22,36 @@ func TestSupportingLinksCanceledWithoutReads(t *testing.T) {
 		r := reader{ctx: ctx, files: map[string][]byte{"techs/go/r.md": []byte(document)}}
 		if err := r.supportingLinks(nil); !errors.Is(err, context.Canceled) {
 			t.Fatalf("%q: %v", document, err)
+		}
+	}
+}
+
+// TestAssetLookupOperationalErrors preserves filesystem error identity instead of reporting invalid content.
+func TestAssetLookupOperationalErrors(t *testing.T) {
+	directory := t.TempDir()
+	assetDirectory := "techs/go/assets"
+	if err := os.MkdirAll(filepath.Join(directory, assetDirectory, "errors"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := os.ReadDir(filepath.Join(directory, assetDirectory))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := os.OpenRoot(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := root.Close(); err != nil {
+		t.Fatal(err)
+	}
+	r := reader{ctx: context.Background(), root: root, directories: map[string][]fs.DirEntry{assetDirectory: entries}}
+	for name, err := range map[string]error{"link": r.linkExists("assets/guide.md"), "owner": r.ownedAssets(assetDirectory, nil)} {
+		var validation *rules.ValidationError
+		if !errors.Is(err, os.ErrClosed) || errors.As(err, &validation) {
+			t.Fatalf("%s: lost operational error: %v", name, err)
+		}
+		if !strings.Contains(err.Error(), "assets") && !strings.Contains(err.Error(), "techs/go/errors.md") {
+			t.Fatalf("%s: lost path: %v", name, err)
 		}
 	}
 }
