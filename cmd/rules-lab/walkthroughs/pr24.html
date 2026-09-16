@@ -493,9 +493,9 @@
             },
           },
           {
-            name: "Pinned rule link",
+            name: "Cross-rule link",
             description:
-              "Links to the unselected techs/rust/other.md#example file. Expect a repository link pinned to the source commit, preserving the fragment.",
+              "Links to the unselected techs/rust/other.md#example file. Expect a rule-link error; the renderer cannot use a repository URL to bypass independent rule selection.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -623,9 +623,9 @@
             },
           },
           {
-            name: "Local missing link",
+            name: "Local rule link",
             description:
-              "Uses only a local rule linking to missing.md, which is absent. Expect an error rather than a broken generated link.",
+              "Uses only a local rule linking to missing.md. Expect a rule-link error regardless of whether the target file exists.",
             input: {
               configuration: { schemaVersion: 1, sources: {} },
               libraries: {},
