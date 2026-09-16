@@ -202,3 +202,28 @@ func TestRenderRejectsInvalidDocumentBytes(t *testing.T) {
 		t.Fatalf("expected contextual UTF-8 error without output, got %v, %v", output, err)
 	}
 }
+
+// TestRenderFlattensMetadataLineEndings keeps YAML-escaped CR, LF, and CRLF inside one rendered line.
+func TestRenderFlattensMetadataLineEndings(t *testing.T) {
+	for _, ending := range []string{`\r`, `\n`, `\r\n`} {
+		t.Run(ending, func(t *testing.T) {
+			config, libraries := fixture(t, `{}`, `{}`)
+			value := `"Safe` + ending + `## Extra"`
+			text := "---\ntitle: " + value + "\nimpact: HIGH\nimpactDescription: " + value + "\nwhenToRead: " + value + "\n---\nGuidance."
+			resolved, err := build.Resolve(config, libraries, map[string][]byte{"techs/go/local.md": []byte(text)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			output, err := build.RenderRules(resolved)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := output["rules/local/techs/go/local.md"]
+			for _, prefix := range []string{"# ", "**When to read:** ", "**Why it matters:** "} {
+				if !strings.Contains(got, prefix+"Safe \\#\\# Extra\n") {
+					t.Errorf("metadata was not flattened for %q: %q", prefix, got)
+				}
+			}
+		})
+	}
+}
