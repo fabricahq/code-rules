@@ -121,7 +121,7 @@ func TestRenderNestedHeadings(t *testing.T) {
 
 // TestRenderIgnoresInertHTML distinguishes comments and data attributes from actual resource URLs.
 func TestRenderIgnoresInertHTML(t *testing.T) {
-	for _, body := range []string{`<!-- href="draft.md" -->`, `<span data-href="draft.md">Text</span>`, `<script>const example='src="draft.md"';</script>`} {
+	for _, body := range []string{`Text <script>const example='<img src="draft.md">';</script>`, `Text <textarea><img src="draft.md"></textarea>`, `<!-- href="draft.md" -->`, `<span data-href="draft.md">Text</span>`, `<script>const example='src="draft.md"';</script>`} {
 		if _, err := renderFixture(t, body, nil); err != nil {
 			t.Fatalf("%q: %v", body, err)
 		}
@@ -137,5 +137,26 @@ func TestRenderRejectsFileDirectoryConflict(t *testing.T) {
 	}
 	if output, err := build.RenderRules(resolved); err == nil || output != nil {
 		t.Fatal("accepted file/directory conflict")
+	}
+}
+
+// TestRenderReferenceImages keeps shared image definitions usable as both images and file links.
+func TestRenderReferenceImages(t *testing.T) {
+	for _, body := range []string{"![diagram][asset]\n\n[asset]: ../rust/diagram.md", "[download][asset] ![diagram][asset]\n\n[asset]: ../rust/diagram.md"} {
+		config, libraries := fixture(t, `{}`, `{}`)
+		lib := libraries["team"]
+		lib.Catalog.Groups[0].Rules[0].Document = document + "\n" + body
+		libraries["team"] = lib
+		resolved, err := build.Resolve(config, libraries, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		output, err := build.RenderRules(resolved)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(output["rules/team/techs/go/errors.md"], "https://raw.githubusercontent.com/acme/rules/"+commit+"/techs/rust/diagram.md") {
+			t.Fatal(output)
+		}
 	}
 }
