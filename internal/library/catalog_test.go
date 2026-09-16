@@ -5,6 +5,7 @@ package library_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -264,5 +265,47 @@ func TestLoadRejectsHardLinks(t *testing.T) {
 	var validation *rules.ValidationError
 	if !errors.As(err, &validation) || !strings.Contains(err.Error(), "hard links") || got.Groups != nil {
 		t.Fatalf("hard link returned %+v, %v", got, err)
+	}
+}
+
+// TestLoadTermsDoNotCreateGroups excludes direct and nested declared terms from wildcard discovery.
+func TestLoadTermsDoNotCreateGroups(t *testing.T) {
+	for _, file := range []string{"techs/LICENSE", "techs/legal/LICENSE", "techs/legal/nested/NOTICE"} {
+		files := map[string]string{"rule-library.json": `{"formatVersion":1,"license":{"file":"` + file + `","notices":[]}}`, file: "terms"}
+		_, root := fixture(t, files)
+		got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"})
+		if err != nil || len(got.Groups) != 0 || string(got.SupportingFiles[file]) != "terms" {
+			t.Fatalf("%s: %+v, %v", file, got, err)
+		}
+	}
+	files := validFiles()
+	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE","notices":[]}}`
+	files["techs/go/LICENSE"] = "terms"
+	_, root := fixture(t, files)
+	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
+	if err != nil || len(got.Groups) != 1 {
+		t.Fatalf("mixed group omitted: %+v, %v", got, err)
+	}
+}
+
+// TestMixedTermsDiscoveryCountsOnce keeps explicit and wildcard selections equivalent near the discovery limit.
+func TestMixedTermsDiscoveryCountsOnce(t *testing.T) {
+	files := validFiles()
+	document := files["techs/go/errors.md"]
+	delete(files, "techs/go/errors.md")
+	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE","notices":[]}}`
+	files["techs/go/LICENSE"] = "terms"
+	for i := range 5000 {
+		files[fmt.Sprintf("techs/go/r%d.md", i)] = document
+	}
+	_, root := fixture(t, files)
+	for _, selection := range []rules.GroupSelection{{Groups: []string{"techs/go"}}, {Pattern: "techs/*"}} {
+		got, err := library.Load(context.Background(), root, "team", selection)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got.Groups) != 1 || len(got.Groups[0].Rules) != 5000 {
+			t.Fatal("incomplete catalog")
+		}
 	}
 }

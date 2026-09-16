@@ -43,12 +43,13 @@ type Group struct {
 
 // reader binds resource limits and cancellation to one rooted catalog read.
 type reader struct {
-	ctx       context.Context
-	root      *os.Root
-	files     map[string][]byte
-	total     int
-	visited   int
-	spellings map[string]string
+	ctx         context.Context
+	root        *os.Root
+	files       map[string][]byte
+	total       int
+	visited     int
+	spellings   map[string]string
+	directories map[string][]fs.DirEntry
 }
 
 var sourceAlias = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -89,12 +90,12 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	if err != nil {
 		return Catalog{}, err
 	}
-	ids, err := r.groups(selection)
+	terms := rules.LicensePaths(licenses)
+	ids, err := r.groups(selection, terms)
 	if err != nil {
 		return Catalog{}, err
 	}
 	catalog := Catalog{Groups: make([]Group, 0, len(ids)), Licenses: licenses}
-	terms := rules.LicensePaths(licenses)
 	for _, id := range ids {
 		group, err := r.group(id, source, terms)
 		if err != nil {
@@ -226,6 +227,9 @@ func (r *reader) entries(path string, optional bool) ([]fs.DirEntry, error) {
 	if err := r.ctx.Err(); err != nil {
 		return nil, fmt.Errorf("discover library groups: %w", err)
 	}
+	if entries, ok := r.directories[path]; ok {
+		return entries, nil
+	}
 	info, err := r.root.Lstat(path)
 	if optional && errors.Is(err, fs.ErrNotExist) {
 		return []fs.DirEntry{}, nil
@@ -254,11 +258,15 @@ func (r *reader) entries(path string, optional bool) ([]fs.DirEntry, error) {
 	}
 	// File-system enumeration order must not affect selected groups or the first error.
 	slices.SortFunc(entries, func(a, b fs.DirEntry) int { return strings.Compare(a.Name(), b.Name()) })
+	if r.directories == nil {
+		r.directories = make(map[string][]fs.DirEntry)
+	}
+	r.directories[path] = entries
 	return entries, nil
 }
 
 // groups expands supported patterns over metadata-bearing directories, including empty groups.
-func (r *reader) groups(selection rules.GroupSelection) ([]string, error) {
+func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]string, error) {
 	if selection.Pattern == "" {
 		return slices.Clone(selection.Groups), nil
 	}
@@ -274,6 +282,18 @@ func (r *reader) groups(selection rules.GroupSelection) ([]string, error) {
 		}
 		for _, entry := range entries {
 			id := root + "/" + entry.Name()
+			if slices.Contains(terms, id) {
+				continue
+			}
+			if entry.IsDir() {
+				onlyTerms, err := r.termDirectory(id, terms)
+				if err != nil {
+					return nil, err
+				}
+				if onlyTerms {
+					continue
+				}
+			}
 			if err := rules.ValidateGroupID(id, id); err != nil {
 				return nil, err
 			}
@@ -370,4 +390,39 @@ func (c Catalog) Paths() []string {
 	}
 	slices.Sort(paths)
 	return paths
+}
+
+// termDirectory identifies directories containing only declared terms, without hiding actual groups.
+func (r *reader) termDirectory(directory string, terms []string) (bool, error) {
+	hasTerm := false
+	for _, term := range terms {
+		if strings.HasPrefix(term, directory+"/") {
+			hasTerm = true
+			break
+		}
+	}
+	if !hasTerm {
+		return false, nil
+	}
+	entries, err := r.entries(directory, false)
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range entries {
+		file := directory + "/" + entry.Name()
+		if slices.Contains(terms, file) {
+			continue
+		}
+		if !entry.IsDir() {
+			return false, nil
+		}
+		onlyTerms, err := r.termDirectory(file, terms)
+		if err != nil {
+			return false, err
+		}
+		if !onlyTerms {
+			return false, nil
+		}
+	}
+	return true, nil
 }
