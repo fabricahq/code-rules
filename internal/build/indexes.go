@@ -1,4 +1,4 @@
-// Render applicability indexes with complete entries and bounded UTF-8 pages.
+// Render applicability indexes with complete entries and bounded Markdown pages.
 
 package build
 
@@ -10,17 +10,22 @@ import (
 	"unicode/utf8"
 )
 
-// IndexPages splits an index at entry boundaries; every returned file fits maxBytes.
+// DefaultIndexMaxLines keeps ordinary summaries together before pagination.
+const DefaultIndexMaxLines = 750
+
+// IndexPages counts Markdown source lines, including blank lines and reading instructions.
+// LF and CRLF both end one line; visual wrapping does not add lines.
+// IndexPages splits an index at entry boundaries; every returned file fits maxLines.
 // The original path is either the complete page or a complete directory of numbered parts.
-func IndexPages(file, header string, entries []string, footer string, maxBytes int) (map[string]string, error) {
+func IndexPages(file, header string, entries []string, footer string, maxLines int) (map[string]string, error) {
 	if !strings.HasSuffix(file, ".md") {
 		return nil, invalid(file, "expected a contained Markdown output path")
 	}
 	if err := validateOutputPaths(map[string]string{file: ""}); err != nil {
 		return nil, err
 	}
-	if maxBytes <= 0 {
-		return nil, invalid(file, "indexMaxBytes must be positive")
+	if maxLines <= 0 {
+		return nil, invalid(file, "indexMaxLines must be positive")
 	}
 	for _, value := range append([]string{file, header, footer}, entries...) {
 		if !utf8.ValidString(value) {
@@ -28,7 +33,7 @@ func IndexPages(file, header string, entries []string, footer string, maxBytes i
 		}
 	}
 	whole := indexDocument(header, entries, footer)
-	if len(whole) <= maxBytes {
+	if strings.Count(whole, "\n") <= maxLines {
 		return map[string]string{file: whole}, nil
 	}
 	output := map[string]string{}
@@ -39,8 +44,8 @@ func IndexPages(file, header string, entries []string, footer string, maxBytes i
 	partHeader := func() string {
 		return fmt.Sprintf("%s\n\nPart %d. [All parts](%s).", header, part, encodedPath(path.Base(file)))
 	}
-	overhead := len(indexDocument(partHeader(), nil, footer))
-	pageBytes := overhead
+	overhead := strings.Count(indexDocument(partHeader(), nil, footer), "\n")
+	pageLines := overhead
 	// finish records a complete page and its directory entry.
 	finish := func() {
 		partFile := fmt.Sprintf("%s.part-%d.md", strings.TrimSuffix(file, ".md"), part)
@@ -48,30 +53,30 @@ func IndexPages(file, header string, entries []string, footer string, maxBytes i
 		links = append(links, fmt.Sprintf("- [Part %d](%s)", part, encodedPath(path.Base(partFile))))
 		part++
 		pending = nil
-		overhead = len(indexDocument(partHeader(), nil, footer))
-		pageBytes = overhead
+		overhead = strings.Count(indexDocument(partHeader(), nil, footer), "\n")
+		pageLines = overhead
 	}
 	for _, entry := range entries {
-		entryBytes := 0
+		entryLines := 0
 		if entry != "" {
 			// A part header is always nonempty, so each nonempty entry adds one separator.
-			entryBytes = len(entry) + 2
+			entryLines = strings.Count(entry, "\n") + 2
 		}
-		if pageBytes+entryBytes > maxBytes && len(pending) > 0 {
+		if pageLines+entryLines > maxLines && len(pending) > 0 {
 			finish()
 		}
-		if overhead+entryBytes > maxBytes {
-			return nil, invalid(file, "an index entry and its reading instructions exceed indexMaxBytes; shorten the metadata or increase the budget")
+		if overhead+entryLines > maxLines {
+			return nil, invalid(file, "an index entry and its reading instructions exceed indexMaxLines; shorten the metadata or increase the budget")
 		}
 		pending = append(pending, entry)
-		pageBytes += entryBytes
+		pageLines += entryLines
 	}
 	if len(pending) > 0 {
 		finish()
 	}
 	directory := indexDocument(header, append([]string{"Read every numbered part to inspect this complete index. Rule bodies remain in their linked files."}, links...), footer)
-	if len(directory) > maxBytes {
-		return nil, invalid(file, "the complete index part directory exceeds indexMaxBytes; increase the budget")
+	if strings.Count(directory, "\n") > maxLines {
+		return nil, invalid(file, "the complete index part directory exceeds indexMaxLines; increase the budget")
 	}
 	output[file] = directory
 	return output, nil
@@ -90,7 +95,7 @@ func indexDocument(header string, entries []string, footer string) string {
 
 // RenderIndexes creates summary-only discovery pages for a Resolve result.
 // It never truncates a rule or embeds its body; each summary links to the standalone rendered file.
-func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
+func RenderIndexes(resolved Resolved, maxLines int) (map[string]string, error) {
 	output := map[string]string{}
 	groupEntries := []string{}
 	for _, group := range resolved.Groups {
@@ -108,7 +113,7 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 		}
 		header := groupIndexHeader(group.ID, name, cues)
 		footer := "For other technology and practice groups, open [RULES.md](../../RULES.md). These files are generated. Edit source rules or configuration and rebuild to change them."
-		pages, err := IndexPages(file, header, entries, footer, maxBytes)
+		pages, err := IndexPages(file, header, entries, footer, maxLines)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +122,7 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 		}
 	}
 	header := indexHeader()
-	pages, err := IndexPages("RULES.md", header, groupEntries, "These files are generated. Edit source rules or configuration and rebuild to change them.", maxBytes)
+	pages, err := IndexPages("RULES.md", header, groupEntries, "These files are generated. Edit source rules or configuration and rebuild to change them.", maxLines)
 	if err != nil {
 		return nil, err
 	}
