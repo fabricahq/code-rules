@@ -13,3 +13,5 @@ The user approved line-based summary pagination instead of the pinned TypeScript
 Both RULES.md entries and group headers show the resolved description before the reading cue. Local metadata replaces imported descriptions as well as cues. Multiple imported definitions keep each description and cue together under its source label. Descriptions are escaped as plain Markdown text.
 
 Every numbered page begins and ends with **Page X of Y**, an all-pages link, and direct previous/next links where those neighbors exist. Pagination reserves navigation lines before splitting entries, then renders the known total. Single-page indexes remain unchanged.
+
+A Markdown horizontal divider separates the final entry from footer navigation and the generated-file notice. Its lines count toward the same page limit.

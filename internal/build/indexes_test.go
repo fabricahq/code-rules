@@ -223,7 +223,7 @@ func BenchmarkIndexPagesLarge(b *testing.B) {
 // TestIndexPagesDefaultBoundary keeps exactly 750 lines together and splits only above it.
 func TestIndexPagesDefaultBoundary(t *testing.T) {
 	for _, ending := range []string{"\n", "\r\n"} {
-		entries := []string{strings.Repeat("界"+ending, 372), strings.Repeat("b"+ending, 371)}
+		entries := []string{strings.Repeat("界"+ending, 372), strings.Repeat("b"+ending, 369)}
 		exact, err := build.IndexPages("RULES.md", "# Rules", entries, "Footer", build.DefaultIndexMaxLines)
 		if err != nil || len(exact) != 1 || strings.Count(exact["RULES.md"], "\n") != 750 {
 			t.Fatalf("750 lines: %v, %v", exact, err)
@@ -323,6 +323,9 @@ func TestIndexPagesNavigation(t *testing.T) {
 		for page := 1; page <= total; page++ {
 			text := pages[fmt.Sprintf("groups/go tips.part-%d.md", page)]
 			label := fmt.Sprintf("**Page %d of %d**", page, total)
+			if !strings.Contains(text, "\n\n---\n\n"+label) {
+				t.Fatal("footer is not separated from the last entry")
+			}
 			if strings.Count(text, label) != 2 {
 				t.Fatalf("missing top/bottom label %q", label)
 			}
