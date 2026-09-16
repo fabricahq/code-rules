@@ -175,3 +175,33 @@ func TestProvenanceCompatibility(t *testing.T) {
 		t.Fatal("missing empty license inventory")
 	}
 }
+
+// TestProvenanceGuidanceOrder retains library-first provenance without changing effective local priority.
+func TestProvenanceGuidanceOrder(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	resolved, err := build.Resolve(config, libraries, map[string][]byte{"techs/go/_group.json": []byte(`{"name":"Local Go","description":"Local policy","whenToRead":"When editing Go"}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := append([]build.Guidance(nil), resolved.Groups[0].Guidance...)
+	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var data struct {
+		Groups []struct {
+			Guidance                 []build.Guidance
+			EffectiveGuidanceSources []string
+		}
+	}
+	if err := json.Unmarshal(output.Files["provenance.json"], &data); err != nil {
+		t.Fatal(err)
+	}
+	group := data.Groups[0]
+	if group.Guidance[0].Source != "team" || group.Guidance[1].Source != "local" || !reflect.DeepEqual(group.EffectiveGuidanceSources, []string{"local"}) {
+		t.Fatalf("%+v", group)
+	}
+	if !reflect.DeepEqual(resolved.Groups[0].Guidance, original) {
+		t.Fatal("mutated input guidance")
+	}
+}

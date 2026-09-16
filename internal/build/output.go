@@ -181,7 +181,18 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 		for _, guidance := range EffectiveGuidance(group) {
 			effective = append(effective, guidance.Source)
 		}
-		result.Groups = append(result.Groups, provenanceGroup{group.ID, group.Guidance, effective})
+		guidance := slices.Clone(group.Guidance)
+		// Keep source guidance in its established order, with local guidance last.
+		slices.SortStableFunc(guidance, func(a, b Guidance) int {
+			if a.Source == "local" && b.Source != "local" {
+				return 1
+			}
+			if a.Source != "local" && b.Source == "local" {
+				return -1
+			}
+			return 0
+		})
+		result.Groups = append(result.Groups, provenanceGroup{group.ID, guidance, effective})
 		for _, active := range group.Rules {
 			basis := "undeclared"
 			if len(active.Licenses) > 0 {
