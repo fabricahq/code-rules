@@ -72,6 +72,35 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "indexPages":
+		var input struct {
+			File     string   `json:"file"`
+			Header   string   `json:"header"`
+			Entries  []string `json:"entries"`
+			Footer   string   `json:"footer"`
+			MaxBytes int      `json:"maxBytes"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil {
+			return adapterError("expected index page fields"), nil
+		}
+		value, err = build.IndexPages(input.File, input.Header, input.Entries, input.Footer, input.MaxBytes)
+	case "renderIndexes":
+		var input struct {
+			Fixture  json.RawMessage `json:"fixture"`
+			MaxBytes int             `json:"maxBytes"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil {
+			return adapterError("expected fixture and maxBytes"), nil
+		}
+		var resolved build.Resolved
+		resolved, err = resolveBuildFixture(input.Fixture)
+		if err == nil {
+			value, err = build.RenderIndexes(resolved, input.MaxBytes)
+		}
 	case "renderRules":
 		var resolved build.Resolved
 		resolved, err = resolveBuildFixture(req.Input)
