@@ -15,34 +15,24 @@ import (
 	"github.com/yuin/goldmark/v2/text"
 )
 
-// MarkdownLink retains a decoded destination and its byte range in the original document.
-// Reference uses point to the definition's destination; ranges are unique and source ordered.
-type MarkdownLink struct {
-	URL   string `json:"url"`
-	Start int    `json:"start"`
-	End   int    `json:"end"`
-}
-
 var externalScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
 
-// MarkdownLinks finds links, images, and reference definitions, excluding code and frontmatter.
+// markdownLinks finds links, images, and reference definitions, excluding code and complete frontmatter envelopes.
 // HTML is left opaque, matching the existing Markdown contract.
-func MarkdownLinks(document string) ([]MarkdownLink, error) {
+func markdownLinks(document string) ([]string, error) {
 	if !utf8.ValidString(document) {
 		return nil, invalid("document", "expected UTF-8 text")
 	}
 	offset := 0
-	if strings.HasPrefix(document, "---\n") || strings.HasPrefix(document, "---\r\n") {
-		split, err := SplitDocument(document, "document")
-		if err != nil {
-			return nil, err
+	withoutBOM := strings.TrimPrefix(document, "\ufeff")
+	if strings.HasPrefix(withoutBOM, "---\n") || strings.HasPrefix(withoutBOM, "---\r\n") {
+		if split, err := SplitDocument(withoutBOM, "document"); err == nil {
+			offset = len(document) - len(split.Body)
 		}
-		offset = len(document) - len(split.Body)
 	}
 	source := []byte(document[offset:])
 	root := parser.New().Parse(source)
-	links := []MarkdownLink{}
-	seen := map[text.Index]bool{}
+	links := []string{}
 	err := ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -58,18 +48,14 @@ func MarkdownLinks(document string) ([]MarkdownLink, error) {
 		default:
 			return ast.WalkContinue, nil
 		}
-		index := destination.Index()
-		if !destination.IsOwned() && !seen[index] {
-			seen[index] = true
-			links = append(links, MarkdownLink{URL: destination.Value(source), Start: index.Start + offset, End: index.Stop + offset})
-		}
+		links = append(links, destination.Value(source))
 		return ast.WalkContinue, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	slices.SortFunc(links, func(a, b MarkdownLink) int { return a.Start - b.Start })
-	return links, nil
+	slices.Sort(links)
+	return slices.Compact(links), nil
 }
 
 // RelativeTarget resolves a decoded Markdown destination within its source root.
@@ -143,13 +129,13 @@ func RequireAllowedTarget(file, target string, terms []string) error {
 
 // MarkdownTargets returns distinct source-relative dependencies in deterministic path order.
 func MarkdownTargets(document, file string) ([]string, error) {
-	links, err := MarkdownLinks(document)
+	links, err := markdownLinks(document)
 	if err != nil {
 		return nil, err
 	}
 	targets := []string{}
 	for _, link := range links {
-		target, _, local, err := RelativeTarget(link.URL, file)
+		target, _, local, err := RelativeTarget(link, file)
 		if err != nil {
 			return nil, err
 		}

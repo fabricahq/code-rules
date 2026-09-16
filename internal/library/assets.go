@@ -97,10 +97,13 @@ func (r *reader) supportingLinks(terms []string) error {
 			}
 		}
 		if len(pending) == 0 {
-			return nil
+			return r.ctx.Err()
 		}
 		slices.Sort(pending)
 		for _, file := range pending {
+			if err := r.ctx.Err(); err != nil {
+				return err
+			}
 			checked[file] = true
 			if !strings.HasSuffix(file, ".md") || slices.Contains(terms, file) {
 				continue
@@ -109,17 +112,16 @@ func (r *reader) supportingLinks(terms []string) error {
 			if !utf8.Valid(data) {
 				return bad(file, "expected UTF-8 Markdown")
 			}
-			links, err := rules.MarkdownLinks(string(data))
+			targets, err := rules.MarkdownTargets(string(data), file)
+			if cancelErr := r.ctx.Err(); cancelErr != nil {
+				return cancelErr
+			}
 			if err != nil {
 				return fmt.Errorf("inspect links in %s: %w", file, err)
 			}
-			for _, link := range links {
-				target, _, local, err := rules.RelativeTarget(link.URL, file)
-				if err != nil {
+			for _, target := range targets {
+				if err := r.ctx.Err(); err != nil {
 					return err
-				}
-				if !local {
-					continue
 				}
 				if err := rules.RequireAllowedTarget(file, target, terms); err != nil {
 					return err

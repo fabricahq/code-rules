@@ -8,6 +8,12 @@ const candidate = process.argv[2];
 if (!candidate) throw new Error('Expected Go adapter path');
 const cases: ReadonlyArray<{ text: string; expected: string[] }> = [
   { text: 'plain', expected: [] },
+  { text: '[self]()', expected: ['techs/go/r.md'] },
+  { text: '---\n[x](a.md)', expected: ['techs/go/a.md'] },
+  {
+    text: '\uFEFF---\nfield: \"[skip](secret)\"\n---\n[x](a.md)',
+    expected: ['techs/go/a.md'],
+  },
   { text: '[one](a.md) [two](a.md#part)', expected: ['techs/go/a.md'] },
   { text: '![image](assets/r/a.png)', expected: ['techs/go/assets/r/a.png'] },
   {
@@ -36,18 +42,21 @@ const cases: ReadonlyArray<{ text: string; expected: string[] }> = [
 for (const { text, expected } of cases) {
   const input = { text, file: 'techs/go/r.md' };
   deepStrictEqual(markdownTargets(text, input.file), expected);
-  const result = Bun.spawnSync([resolve(candidate)], {
-    stdin: Buffer.from(
-      JSON.stringify({
-        operation: 'markdownTargets',
-        input,
-        location: 'links',
-      }) + '\n',
-    ),
-    stdout: 'pipe',
-    stderr: 'pipe',
-    timeout: 10_000,
-  });
+  const result: Bun.SyncSubprocess<'pipe', 'pipe'> = Bun.spawnSync(
+    [resolve(candidate)],
+    {
+      stdin: Buffer.from(
+        JSON.stringify({
+          operation: 'markdownTargets',
+          input,
+          location: 'links',
+        }) + '\n',
+      ),
+      stdout: 'pipe',
+      stderr: 'pipe',
+      timeout: 10_000,
+    },
+  );
   equal(result.exitCode, 0, result.stderr.toString());
   deepStrictEqual(JSON.parse(result.stdout.toString()), {
     ok: true,

@@ -9,26 +9,21 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// TestMarkdownLinks ignores code/frontmatter and preserves source ranges for references and nested syntax.
-func TestMarkdownLinks(t *testing.T) {
-	document := "---\nfield: '[ignored](secret)'\n---\n[one](assets/a/file\\(1\\).png) ![pic][ref]\n\n[ref]: </assets/image%20one.png>\n[unused]: other.md\n\n`[code](none)`\n\n```md\n[code](none)\n```\n"
-	got, err := rules.MarkdownLinks(document)
-	if err != nil {
-		t.Fatal(err)
-	}
-	urls := []string{}
-	for _, link := range got {
-		urls = append(urls, link.URL)
-		if link.End <= link.Start || link.End > len(document) {
-			t.Fatalf("bad range %+v", link)
+// TestMarkdownTargets covers CommonMark dependencies without treating code or metadata as links.
+func TestMarkdownTargets(t *testing.T) {
+	for _, test := range []struct {
+		document string
+		want     []string
+	}{
+		{"[self]()", []string{"techs/go/r.md"}},
+		{"---\n[x](a.md)", []string{"techs/go/a.md"}},
+		{"\ufeff---\nfield: '[skip](secret)'\n---\n[x](a.md)", []string{"techs/go/a.md"}},
+		{"[one](assets/r/a\\(b\\).png) ![pic][ref]\n\n[ref]: </assets/a%20b.png>\n[unused]: other.md\n\n`[code](none)`", []string{"assets/a b.png", "techs/go/assets/r/a(b).png", "techs/go/other.md"}},
+	} {
+		got, err := rules.MarkdownTargets(test.document, "techs/go/r.md")
+		if err != nil || !reflect.DeepEqual(got, test.want) {
+			t.Errorf("%q: %v, %v", test.document, got, err)
 		}
-	}
-	if !reflect.DeepEqual(urls, []string{"assets/a/file(1).png", "/assets/image%20one.png", "other.md"}) {
-		t.Fatalf("destinations: %v", urls)
-	}
-	empty, err := rules.MarkdownLinks("plain text")
-	if err != nil || len(empty) != 0 {
-		t.Fatalf("empty: %v %v", empty, err)
 	}
 }
 
