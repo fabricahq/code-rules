@@ -40,17 +40,18 @@ type ActiveRule struct {
 	License  *rules.LicenseDeclaration `json:"license"`
 }
 
-// Guidance retains every source's group metadata; local guidance takes precedence for display.
+// Guidance identifies the source of one complete group metadata definition.
 type Guidance struct {
 	Source   string              `json:"source"`
 	Metadata rules.GroupMetadata `json:"metadata"`
 }
 
-// Group contains ID-sorted effective rules and source-labeled reading guidance.
+// Group contains effective rules and guidance chosen by Resolve, plus original guidance for provenance.
 type Group struct {
-	ID       string       `json:"id"`
-	Guidance []Guidance   `json:"guidance"`
-	Rules    []ActiveRule `json:"rules"`
+	ID                string       `json:"id"`
+	EffectiveGuidance []Guidance   `json:"effectiveGuidance"`
+	Guidance          []Guidance   `json:"guidance"`
+	Rules             []ActiveRule `json:"rules"`
 }
 
 // Source records the adopted revision and complete retained inventory, including excluded rules.
@@ -225,6 +226,7 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 		group := groups[id]
 		slices.SortFunc(group.Rules, func(a, b ActiveRule) int { return strings.Compare(a.Rule.ID, b.Rule.ID) })
 		slices.SortFunc(group.Guidance, func(a, b Guidance) int { return strings.Compare(a.Source, b.Source) })
+		group.EffectiveGuidance = resolveGuidance(group.Guidance)
 		result.Groups = append(result.Groups, *group)
 	}
 	return result, nil
@@ -303,14 +305,14 @@ func invalid(location, problem string) error {
 	return &rules.ValidationError{Location: location, Problem: problem}
 }
 
-// EffectiveGuidance returns local metadata when present, otherwise all imported descriptions.
-func EffectiveGuidance(group Group) []Guidance {
-	for _, guidance := range group.Guidance {
+// resolveGuidance chooses the complete local definition when present, otherwise retains all imported definitions.
+func resolveGuidance(definitions []Guidance) []Guidance {
+	for _, guidance := range definitions {
 		if guidance.Source == "local" {
 			return []Guidance{guidance}
 		}
 	}
-	return slices.Clone(group.Guidance)
+	return slices.Clone(definitions)
 }
 
 // selectedVersion verifies a supplied release tag satisfies its requested constraint and returns its normalized version.
