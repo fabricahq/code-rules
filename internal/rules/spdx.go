@@ -10,6 +10,7 @@ import (
 )
 
 var spdxWord = regexp.MustCompile(`[A-Za-z0-9.-]+`)
+var spdxReferenceException = regexp.MustCompile(`((?:DocumentRef-[A-Za-z0-9.-]+:)?LicenseRef-[A-Za-z0-9.-]+) +WITH +([A-Za-z0-9.-]+)`)
 
 // validSPDXExpression delegates grammar to go-spdx, preserving case-sensitive IDs
 // and case-insensitive operators from the reference. It never rewrites the output.
@@ -42,7 +43,20 @@ func validSPDXExpression(text string) bool {
 	if !valid {
 		return false
 	}
+	// go-spdx v2.7.0 cannot parse WITH after custom references. Validate the
+	// exception separately, then parse the unchanged reference and surrounding grammar.
+	normalized = spdxReferenceException.ReplaceAllStringFunc(normalized, withoutReferenceException)
 	// ExtractLicenses parses without the validator's whitespace/case normalization shortcuts.
 	_, err := spdxexp.ExtractLicenses(normalized)
 	return err == nil
+}
+
+// withoutReferenceException removes a recognized exception only from the grammar-check copy.
+// Invalid exceptions stay intact so the dependency rejects them; authored text is retained.
+func withoutReferenceException(text string) string {
+	parts := spdxReferenceException.FindStringSubmatch(text)
+	if ok, canonical := spdxlicenses.IsException(parts[2]); ok && canonical == parts[2] {
+		return parts[1]
+	}
+	return text
 }

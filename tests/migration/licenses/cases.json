@@ -740,5 +740,97 @@
         "location": "library/rule-library.json: license.spdxExpression"
       }
     }
+  },
+  {
+    "id": "license-custom-exception",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH Classpath-exception-2.0\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "LicenseRef-Team WITH Classpath-exception-2.0",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-document-exception",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team with Classpath-exception-2.0\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "DocumentRef-Other:LicenseRef-Team with Classpath-exception-2.0",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-custom-exception-invalid",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team WITH MIT\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-custom-exception-plus",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team+ WITH Classpath-exception-2.0\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
   }
 ]
