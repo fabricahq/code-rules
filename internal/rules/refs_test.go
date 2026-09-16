@@ -1,4 +1,4 @@
-// Check exact ref classification and version-tag recognition against shared expectations.
+// Check exact ref classification and version-tag validation against shared expectations.
 
 package rules_test
 
@@ -11,7 +11,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// TestRefsSharedExpectations checks values, absence, and typed errors through the public Go API.
+// TestRefsSharedExpectations checks values and typed errors through the public Go API.
 func TestRefsSharedExpectations(t *testing.T) {
 	data, err := os.ReadFile("../../tests/migration/refs/cases.json")
 	if err != nil {
@@ -52,16 +52,23 @@ func TestRefsSharedExpectations(t *testing.T) {
 					t.Fatalf("got %#v, %v; want %#v", got, err, expected)
 				}
 			case "tagVersion":
-				var expected struct {
-					Version    string
-					Recognized bool
+				got, err := rules.TagVersion(test.Input, test.Location)
+				if !test.Expected.OK {
+					var validation *rules.ValidationError
+					if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
+						t.Fatalf("got %v; want %s", err, test.Expected.Error.Message)
+					}
+					if got != "" {
+						t.Fatalf("failure returned partial version: %q", got)
+					}
+					return
 				}
+				var expected string
 				if err := json.Unmarshal(test.Expected.Value, &expected); err != nil {
 					t.Fatal(err)
 				}
-				got, recognized := rules.TagVersion(test.Input)
-				if recognized != expected.Recognized || got != expected.Version {
-					t.Fatalf("got %q, %v; want %s", got, recognized, test.Expected.Value)
+				if err != nil || got != expected {
+					t.Fatalf("got %q, %v; want %q", got, err, expected)
 				}
 			default:
 				t.Fatalf("unhandled operation: %s", test.Operation)

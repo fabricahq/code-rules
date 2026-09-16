@@ -326,7 +326,7 @@
         <strong>CODE RULES / GO MIGRATION</strong
         ><span>Slice 06 · Exact refs and version tags</span>
       </header>
-      <h1>Name a revision.<br />Recognize a version.</h1>
+      <h1>Name a revision.<br />Validate a version.</h1>
       <p class="lede">
         A Git tag can be a release version or an arbitrary name. Explore two new
         Go functions that classify these inputs before any repository is
@@ -353,7 +353,7 @@
           <label for="operation">Operation</label>
           <select id="operation">
             <option value="gitRef">Parse an exact Git ref</option>
-            <option value="tagVersion">Recognize a version tag</option>
+            <option value="tagVersion">Validate a version tag</option>
           </select>
           <div class="signature" id="signature"></div>
           <p class="hint" id="operation-hint"></p>
@@ -386,18 +386,17 @@
               refs are rejected.
             </p>
             <p>
-              <code>TagVersion</code> takes an unqualified tag name. It removes
-              one optional lowercase <code>v</code> and retains prerelease and
-              build suffixes. Go returns <code>(version, true)</code> when
-              recognized.
+              <code>TagVersion</code> requires an unqualified tag containing a
+              complete semantic version. It removes one optional lowercase
+              <code>v</code> and retains prerelease and build suffixes. Success
+              returns <code>(version, nil)</code>.
             </p>
             <p>
-              The <code>value</code> object shows both Go return values:
-              <code>version</code> and <code>recognized</code>. For an
-              incomplete version, these are <code>""</code> and
-              <code>false</code>. <code>ok: true</code> means the function
-              returned without an error; <code>ok: false</code> means an error
-              occurred. A non-version tag is a normal result, not an error.
+              <code>ok: true</code> means the function returned without an
+              error; <code>value</code> is the validated version string.
+              <code>ok: false</code> means Go returned an error. Partial
+              versions and ordinary non-version tags now produce a
+              <code>ValidationError</code>, with an empty Go string result.
             </p>
             <p>
               No refs are resolved, repositories fetched, or files read or
@@ -436,13 +435,13 @@
             </p>
           </div>
           <div>
-            <h3>3. Recognize complete versions</h3>
+            <h3>3. Validate complete versions</h3>
             <p>
-              Switch to version recognition. Compare
+              Switch to version validation. Compare
               <strong>Prerelease + build</strong> with
               <strong>Partial version</strong> and
-              <strong>Leading zero</strong>. A non-version tag returns
-              recognized: false without throwing an error.
+              <strong>Leading zero</strong>. A non-version tag returns a
+              validation error.
             </p>
           </div>
         </div>
@@ -457,7 +456,8 @@
         <p>
           Shared fixtures compare exact values and errors with independent
           expectations and the pinned TypeScript implementation. No runtime
-          dependencies or approved behavior differences are added.
+          dependencies are added. The user-approved validation API now returns
+          errors for non-version tags; the pinned reference returns null.
         </p>
         <details>
           <summary>Run this slice yourself</summary>
@@ -519,10 +519,10 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       function showOperation() {
         const version = byID("operation").value === "tagVersion";
         byID("signature").textContent = version
-          ? "TagVersion(tag string) (string, bool)"
+          ? "TagVersion(tag, location string) (string, error)"
           : "ParseGitRef(ref, location string) (GitRef, error)";
         byID("operation-hint").textContent = version
-          ? "Recognizes a strict, complete version with an optional lowercase v. The result shows both Go return values: version and recognized."
+          ? "Requires a strict, complete version with an optional lowercase v. Invalid input returns a ValidationError at the caller-supplied location tag."
           : "Accepts a full commit SHA or an exact tag. Errors carry the caller-supplied location sources.team.ref. No branch is inferred.";
         const examples = version ? versionExamples : refExamples;
         byID("presets").replaceChildren(
@@ -568,16 +568,12 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
           byID("status").textContent = result.ok
-            ? operation === "tagVersion" && !result.value.recognized
-              ? "Not a version"
-              : "Returned value"
+            ? "Returned value"
             : result.error.name;
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
-            ? operation === "tagVersion" && !result.value.recognized
-              ? 'Go returned ("", false): no complete version was recognized. The call succeeded.'
-              : "The Go function returned successfully."
-            : "The request failed. The message identifies the invalid input.";
+            ? "The Go function returned successfully."
+            : "The Go function returned an error. The message explains why validation failed.";
         } catch (error) {
           byID("status").textContent = "Request failed";
           byID("status").className = "badge bad";

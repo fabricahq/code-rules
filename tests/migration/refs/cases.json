@@ -663,10 +663,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3",
-        "recognized": true
-      }
+      "value": "1.2.3"
     }
   },
   {
@@ -676,10 +673,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3",
-        "recognized": true
-      }
+      "value": "1.2.3"
     }
   },
   {
@@ -689,10 +683,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "0.0.0",
-        "recognized": true
-      }
+      "value": "0.0.0"
     }
   },
   {
@@ -702,10 +693,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3-beta.2",
-        "recognized": true
-      }
+      "value": "1.2.3-beta.2"
     }
   },
   {
@@ -715,10 +703,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3+build.001",
-        "recognized": true
-      }
+      "value": "1.2.3+build.001"
     }
   },
   {
@@ -728,10 +713,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3-rc.1+build.5",
-        "recognized": true
-      }
+      "value": "1.2.3-rc.1+build.5"
     }
   },
   {
@@ -741,10 +723,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3--",
-        "recognized": true
-      }
+      "value": "1.2.3--"
     }
   },
   {
@@ -754,10 +733,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3-01a",
-        "recognized": true
-      }
+      "value": "1.2.3-01a"
     }
   },
   {
@@ -767,10 +743,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "9007199254740991.0.0",
-        "recognized": true
-      }
+      "value": "9007199254740991.0.0"
     }
   },
   {
@@ -780,10 +753,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3-999999999999999999999999999999",
-        "recognized": true
-      }
+      "value": "1.2.3-999999999999999999999999999999"
     }
   },
   {
@@ -793,10 +763,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "recognized": true
-      }
+      "value": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     }
   },
   {
@@ -806,10 +773,7 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": {
-        "version": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "recognized": true
-      }
+      "value": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     }
   },
   {
@@ -818,12 +782,18 @@
     "input": "",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-partial",
@@ -831,12 +801,18 @@
     "input": "1.2",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-major-only",
@@ -844,12 +820,18 @@
     "input": "1",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-uppercase-v",
@@ -857,12 +839,18 @@
     "input": "V1.2.3",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-repeated-v",
@@ -870,12 +858,18 @@
     "input": "vv1.2.3",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-equals",
@@ -883,12 +877,18 @@
     "input": "=1.2.3",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-space",
@@ -896,12 +896,18 @@
     "input": " 1.2.3",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-newline",
@@ -909,12 +915,18 @@
     "input": "1.2.3\n",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-qualified",
@@ -922,12 +934,18 @@
     "input": "refs/tags/v1.2.3",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-prefix",
@@ -935,12 +953,18 @@
     "input": "release-1.2.3",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-leading-major-zero",
@@ -948,12 +972,18 @@
     "input": "01.2.3",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-leading-minor-zero",
@@ -961,12 +991,18 @@
     "input": "1.02.3",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-leading-patch-zero",
@@ -974,12 +1010,18 @@
     "input": "1.2.03",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-leading-prerelease-zero",
@@ -987,12 +1029,18 @@
     "input": "1.2.3-01",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-empty-pre",
@@ -1000,12 +1048,18 @@
     "input": "1.2.3-",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-empty-build",
@@ -1013,12 +1067,18 @@
     "input": "1.2.3+",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-empty-pre-part",
@@ -1026,12 +1086,18 @@
     "input": "1.2.3-a..b",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-empty-build-part",
@@ -1039,12 +1105,18 @@
     "input": "1.2.3+a..b",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-underscore",
@@ -1052,12 +1124,18 @@
     "input": "1.2.3-a_b",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-unicode",
@@ -1065,12 +1143,18 @@
     "input": "1.2.3-é",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-unsafe-major",
@@ -1078,12 +1162,18 @@
     "input": "9007199254740992.0.0",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: major, minor, and patch must each be at most 9007199254740991",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-unsafe-minor",
@@ -1091,12 +1181,18 @@
     "input": "1.9007199254740992.0",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: major, minor, and patch must each be at most 9007199254740991",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-unsafe-patch",
@@ -1104,12 +1200,18 @@
     "input": "1.2.9007199254740992",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: major, minor, and patch must each be at most 9007199254740991",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-huge-number",
@@ -1117,12 +1219,18 @@
     "input": "999999999999999999999999.0.0",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: major, minor, and patch must each be at most 9007199254740991",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-257-chars",
@@ -1130,12 +1238,18 @@
     "input": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: version must be at most 256 characters, excluding the optional v prefix",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-plus-repeat",
@@ -1143,12 +1257,18 @@
     "input": "1.2.3+build+other",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-wildcard",
@@ -1156,12 +1276,18 @@
     "input": "1.2.x",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   },
   {
     "id": "tag-range",
@@ -1169,11 +1295,17 @@
     "input": "^1.2.3",
     "location": "tag",
     "expected": {
-      "ok": true,
-      "value": {
-        "version": "",
-        "recognized": false
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "tag: expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5",
+        "location": "tag"
       }
-    }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": null
+    },
+    "difference": "User-approved TagVersion validation API returns a typed error for non-version input; the pinned TypeScript recognition API returns null. Accepted versions are unchanged."
   }
 ]

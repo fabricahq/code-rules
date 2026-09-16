@@ -63,8 +63,7 @@ function reference(test: (typeof cases)[number]): unknown {
       value = source.parsedRef;
     } else if (test.operation === 'tagVersion') {
       if (typeof test.input !== 'string') throw new Error('Expected tag text');
-      const version = tagVersion(test.input);
-      value = { version: version ?? '', recognized: version !== null };
+      value = tagVersion(test.input);
     } else if (test.operation === 'repository') {
       value = repositoryAddress(test.input, test.location);
     } else if (test.operation === 'repositoryFile') {

@@ -1,4 +1,4 @@
-// Classify exact Git refs and recognize strict semantic-version tags without Git access.
+// Classify exact Git refs and validate strict semantic-version tags without Git access.
 
 package rules
 
@@ -67,25 +67,24 @@ const (
 
 var versionTag = regexp.MustCompile(`^(` + versionNumber + `)\.(` + versionNumber + `)\.(` + versionNumber + `)(?:-` + versionPrerelease + `(?:\.` + versionPrerelease + `)*)?(?:\+[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*)?$`)
 
-// TagVersion recognizes a complete SemVer tag with an optional lowercase v.
-// It retains prerelease and build metadata, removes only that prefix, and never
-// coerces partial versions. False means the tag is not a version, not an input
-// failure: repositories may contain arbitrary non-version tags.
-func TagVersion(tag string) (string, bool) {
+// TagVersion validates a complete SemVer tag with an optional lowercase v.
+// It retains prerelease and build metadata and never coerces partial versions.
+// Invalid input returns an empty string and a ValidationError at the caller's location.
+func TagVersion(tag, location string) (string, error) {
 	version := strings.TrimPrefix(tag, "v")
 	// All accepted characters are ASCII, so this byte limit equals npm's string limit.
 	if len(version) > 256 {
-		return "", false
+		return "", invalid(location, "version must be at most 256 characters, excluding the optional v prefix")
 	}
 	parts := versionTag.FindStringSubmatch(version)
 	if parts == nil {
-		return "", false
+		return "", invalid(location, "expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5")
 	}
 	for _, part := range parts[1:4] {
 		number, err := strconv.ParseUint(part, 10, 64)
 		if err != nil || number > maxVersionComponent {
-			return "", false
+			return "", invalid(location, "major, minor, and patch must each be at most 9007199254740991")
 		}
 	}
-	return version, true
+	return version, nil
 }

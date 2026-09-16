@@ -15,23 +15,28 @@ if err != nil {
 }
 // ref.Kind is rules.GitRefTag; ref.Name is "refs/tags/deadbeef".
 
-version, recognized := rules.TagVersion("v1.2.3-beta.1+build.007")
-// version is "1.2.3-beta.1+build.007"; recognized is true.
+version, err := rules.TagVersion("v1.2.3-beta.1+build.007", "tag")
+if err != nil {
+    return err
+}
+// version is "1.2.3-beta.1+build.007".
 ```
 
 `ParseGitRef(ref, location string) (GitRef, error)` accepts a 40-digit hexadecimal commit SHA or an exact tag, with an optional `refs/tags/` prefix. Commit SHAs become lowercase. Tag names retain their spelling and get the explicit prefix. A bare `main` means a tag; branches are not inferred. Abbreviated commit-shaped names require the explicit tag prefix. Failures return a zero `GitRef` and a typed `ValidationError` at the caller's field location.
 
-`TagVersion(tag string) (string, bool)` recognizes a strict, complete semantic version with one optional lowercase `v`. It preserves prerelease and build suffixes. Unrecognized tags return `"", false`, shown explicitly as `{"version":"","recognized":false}` in the lab. The outer `ok` indicates whether an error occurred. Arbitrary non-version tags are normal, so this is not an error. The function expects an unqualified tag name, not `refs/tags/...`.
+`TagVersion(tag, location string) (string, error)` validates a strict, complete semantic version with one optional lowercase `v`. It preserves prerelease and build suffixes. Invalid input returns an empty string and a typed `ValidationError` at the caller's diagnostic location. The lab returns `ok: false` for these errors and `ok: true` with a version string for valid input. The function expects an unqualified tag name, not `refs/tags/...`.
+
+Future tag-scanning callers can use `errors.As` to skip validation failures while continuing to report unexpected errors. They do not need a replacement parser. Callers requiring a version can report the same validation error directly.
 
 The implementation preserves the pinned npm parser's core-number and length limits. It adds no runtime dependency. These functions do not fetch repositories, verify revision existence, order versions, expand ranges, or read or write files.
 
 ## Contract evidence
 
-This supplies partial evidence for `formats.versions.01`: exact refs and strict version-tag recognition. npm range parsing and matching, including prerelease exclusion, remain pending. `formats.versions.02` and `.03` still require tag resolution and ambiguity handling. No full capability is marked complete.
+This supplies partial evidence for `formats.versions.01`: exact refs and strict version-tag validation. npm range parsing and matching, including prerelease exclusion, remain pending. `formats.versions.02` and `.03` still require tag resolution and ambiguity handling. No full capability is marked complete.
 
-The baseline and comparison policy are unchanged. This slice adds no approved behavior differences. The earlier rule parser's documented CR-only YAML gap remains separate.
+The baseline and comparison policy are unchanged. The user approved changing TagVersion from recognition to validation: 28 non-version fixtures retain the reference null result separately from the Go error. Accepted-version syntax is unchanged. The earlier rule parser's documented CR-only YAML gap remains separate.
 
-The 88 new shared fixtures specify independent values or exact errors. They cover full and abbreviated SHAs, tag qualification, branch rejection, unsafe components, Unicode names, complete versions, prerelease/build identifiers, leading zeros, numeric limits, and the 256-character boundary. The suite also retains all 491 earlier cases. Direct Go tests check typed errors, zero failure results, and caller-owned locations. HTTP tests distinguish a false recognition result from validation and adapter failures.
+The 88 new shared fixtures specify independent values or exact errors. They cover full and abbreviated SHAs, tag qualification, branch rejection, unsafe components, Unicode names, complete versions, prerelease/build identifiers, leading zeros, numeric limits, and the 256-character boundary. The suite also retains all 491 earlier cases. Direct Go tests check typed errors, zero failure results, and caller-owned locations. HTTP tests distinguish version validation errors from adapter failures.
 
 ## Walkthrough and validation
 
@@ -58,7 +63,7 @@ Human review and merge separate migration iterations.
 
 ### Local evidence
 
-- All 579 shared comparisons pass: 88 new cases and 491 earlier cases. The 168 previously approved differences are unchanged.
+- All 579 shared comparisons pass: 88 new cases and 491 earlier cases. There are 196 explicit differences: the 168 earlier cases and 28 user-approved version-validation errors.
 - Go race tests, vet, and Staticcheck v0.8.1 pass on Go 1.27.1.
 - `bun run check` passes, including all 444 tests, formatting, lint, typecheck, documentation build, and link checks.
 - All six installed-package tests pass.
