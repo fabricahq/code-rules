@@ -5,6 +5,7 @@ package build_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,6 +13,73 @@ import (
 	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
+
+// TestPrepareReadableProvenance keeps constraint operators readable while preserving JSON string contents.
+func TestPrepareReadableProvenance(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	resolved, err := build.Resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	constraint := ">= 1.0.0, < 2.0.0"
+	resolved.Sources[0].Ref = ""
+	resolved.Sources[0].Version = constraint
+	version := "review & <test> \"quoted\"\\path\nnext"
+	output, err := build.Prepare(resolved, build.Options{ToolVersion: version, IndexMaxLines: build.DefaultIndexMaxLines})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := output.Files["provenance.json"]
+	if !bytes.Contains(data, []byte(`"version": ">= 1.0.0, < 2.0.0"`)) {
+		t.Fatalf("constraint is not readable in generated JSON: %s", data)
+	}
+	var parsed struct {
+		ToolVersion string
+		Sources     []struct{ Version string }
+	}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if parsed.ToolVersion != version || len(parsed.Sources) != 1 || parsed.Sources[0].Version != constraint {
+		t.Fatalf("JSON changed the supplied text: %+v", parsed)
+	}
+	if !bytes.HasSuffix(data, []byte("\n")) || bytes.HasSuffix(data, []byte("\n\n")) {
+		t.Fatal("provenance must end with exactly one newline")
+	}
+}
+
+// TestPrepareToolVersionWhitespace follows the established text contract without trimming retained values.
+func TestPrepareToolVersionWhitespace(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		version string
+		valid   bool
+	}{
+		{"empty", "", false},
+		{"blank", " \t\r\n", false},
+		{"BOM", "\uFEFF", false},
+		{"NEL", "\u0085", true},
+		{"padded", " v1.2.3 ", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			output, err := build.Prepare(build.Resolved{}, build.Options{ToolVersion: tc.version, IndexMaxLines: build.DefaultIndexMaxLines})
+			if !tc.valid {
+				var validation *rules.ValidationError
+				if !errors.As(err, &validation) || validation.Location != "toolVersion" || output.Files != nil {
+					t.Fatalf("expected toolVersion validation error and no output, got %v and %d files", err, len(output.Files))
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			var parsed struct{ ToolVersion string }
+			if err := json.Unmarshal(output.Files["provenance.json"], &parsed); err != nil || parsed.ToolVersion != tc.version {
+				t.Fatalf("tool version changed: %q, %v", parsed.ToolVersion, err)
+			}
+		})
+	}
+}
 
 // TestPrepareRetainsTermsWithoutActiveRules copies binary terms unchanged even after every upstream rule is excluded.
 func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
