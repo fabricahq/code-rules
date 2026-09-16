@@ -52,12 +52,15 @@ func TestRefsSharedExpectations(t *testing.T) {
 					t.Fatalf("got %#v, %v; want %#v", got, err, expected)
 				}
 			case "tagVersion":
-				var expected *string
+				var expected struct {
+					Version    string
+					Recognized bool
+				}
 				if err := json.Unmarshal(test.Expected.Value, &expected); err != nil {
 					t.Fatal(err)
 				}
 				got, recognized := rules.TagVersion(test.Input)
-				if recognized != (expected != nil) || (expected != nil && got != *expected) || (!recognized && got != "") {
+				if recognized != expected.Recognized || got != expected.Version {
 					t.Fatalf("got %q, %v; want %s", got, recognized, test.Expected.Value)
 				}
 			default:

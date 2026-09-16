@@ -322,15 +322,15 @@ func TestHTTPRepositories(t *testing.T) {
 	}
 }
 
-// TestHTTPRefs checks native ref results, non-version nulls, and adapter type errors.
+// TestHTTPRefs checks native ref results, recognition flags, and adapter type errors.
 func TestHTTPRefs(t *testing.T) {
 	for _, test := range []struct{ name, operation, input, expected string }{
 		{"tag", "gitRef", `"main"`, `{"ok":true,"value":{"kind":"tag","name":"refs/tags/main"}}`},
 		{"invalid ref", "gitRef", `"deadbeef"`, `{"ok":false,"error":{"name":"ValidationError","message":"custom.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>","location":"custom.ref"}}`},
-		{"version", "tagVersion", `"v1.2.3-beta.1+build"`, `{"ok":true,"value":"1.2.3-beta.1+build"}`},
-		{"non-version", "tagVersion", `"release"`, `{"ok":true,"value":null}`},
+		{"version", "tagVersion", `"v1.2.3-beta.1+build"`, `{"ok":true,"value":{"version":"1.2.3-beta.1+build","recognized":true}}`},
+		{"non-version", "tagVersion", `"1.2"`, `{"ok":true,"value":{"version":"","recognized":false}}`},
 	} {
-		// Exercise serialization through HTTP, including explicit null rather than a missing value.
+		// Exercise serialization through HTTP, including both return values when recognition is false.
 		t.Run(test.name, func(t *testing.T) {
 			payload := `{"operation":"` + test.operation + `","input":` + test.input + `,"location":"custom.ref"}`
 			recorder := httptest.NewRecorder()

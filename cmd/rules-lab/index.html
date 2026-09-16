@@ -392,10 +392,12 @@
               recognized.
             </p>
             <p>
-              A <code>null</code> version result represents Go's
-              <code>("", false)</code>. It means this tag is not a complete
-              version. It is not a validation error: a repository can have
-              non-version tags.
+              The <code>value</code> object shows both Go return values:
+              <code>version</code> and <code>recognized</code>. For an
+              incomplete version, these are <code>""</code> and
+              <code>false</code>. <code>ok: true</code> means the function
+              returned without an error; <code>ok: false</code> means an error
+              occurred. A non-version tag is a normal result, not an error.
             </p>
             <p>
               No refs are resolved, repositories fetched, or files read or
@@ -439,8 +441,8 @@
               Switch to version recognition. Compare
               <strong>Prerelease + build</strong> with
               <strong>Partial version</strong> and
-              <strong>Leading zero</strong>. A non-version tag returns null
-              without throwing an error.
+              <strong>Leading zero</strong>. A non-version tag returns
+              recognized: false without throwing an error.
             </p>
           </div>
         </div>
@@ -520,7 +522,7 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           ? "TagVersion(tag string) (string, bool)"
           : "ParseGitRef(ref, location string) (GitRef, error)";
         byID("operation-hint").textContent = version
-          ? "Recognizes a strict, complete version with an optional lowercase v. Non-version tags return false in Go, shown as null here."
+          ? "Recognizes a strict, complete version with an optional lowercase v. The result shows both Go return values: version and recognized."
           : "Accepts a full commit SHA or an exact tag. Errors carry the caller-supplied location sources.team.ref. No branch is inferred.";
         const examples = version ? versionExamples : refExamples;
         byID("presets").replaceChildren(
@@ -566,14 +568,14 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
           byID("status").textContent = result.ok
-            ? result.value === null
+            ? operation === "tagVersion" && !result.value.recognized
               ? "Not a version"
               : "Returned value"
             : result.error.name;
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
-            ? result.value === null
-              ? "Go returned false: this tag is not a complete version. No error occurred."
+            ? operation === "tagVersion" && !result.value.recognized
+              ? 'Go returned ("", false): no complete version was recognized. The call succeeded.'
               : "The Go function returned successfully."
             : "The request failed. The message identifies the invalid input.";
         } catch (error) {

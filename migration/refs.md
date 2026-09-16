@@ -21,7 +21,7 @@ version, recognized := rules.TagVersion("v1.2.3-beta.1+build.007")
 
 `ParseGitRef(ref, location string) (GitRef, error)` accepts a 40-digit hexadecimal commit SHA or an exact tag, with an optional `refs/tags/` prefix. Commit SHAs become lowercase. Tag names retain their spelling and get the explicit prefix. A bare `main` means a tag; branches are not inferred. Abbreviated commit-shaped names require the explicit tag prefix. Failures return a zero `GitRef` and a typed `ValidationError` at the caller's field location.
 
-`TagVersion(tag string) (string, bool)` recognizes a strict, complete semantic version with one optional lowercase `v`. It preserves prerelease and build suffixes. Unrecognized tags return `"", false`, rendered as JSON null in the lab. Arbitrary non-version tags are normal, so this is not an error. The function expects an unqualified tag name, not `refs/tags/...`.
+`TagVersion(tag string) (string, bool)` recognizes a strict, complete semantic version with one optional lowercase `v`. It preserves prerelease and build suffixes. Unrecognized tags return `"", false`, shown explicitly as `{"version":"","recognized":false}` in the lab. The outer `ok` indicates whether an error occurred. Arbitrary non-version tags are normal, so this is not an error. The function expects an unqualified tag name, not `refs/tags/...`.
 
 The implementation preserves the pinned npm parser's core-number and length limits. It adds no runtime dependency. These functions do not fetch repositories, verify revision existence, order versions, expand ranges, or read or write files.
 
@@ -31,7 +31,7 @@ This supplies partial evidence for `formats.versions.01`: exact refs and strict 
 
 The baseline and comparison policy are unchanged. This slice adds no approved behavior differences. The earlier rule parser's documented CR-only YAML gap remains separate.
 
-The 88 new shared fixtures specify independent values or exact errors. They cover full and abbreviated SHAs, tag qualification, branch rejection, unsafe components, Unicode names, complete versions, prerelease/build identifiers, leading zeros, numeric limits, and the 256-character boundary. The suite also retains all 491 earlier cases. Direct Go tests check typed errors, zero failure results, and caller-owned locations. HTTP tests distinguish version absence from validation and adapter failures.
+The 88 new shared fixtures specify independent values or exact errors. They cover full and abbreviated SHAs, tag qualification, branch rejection, unsafe components, Unicode names, complete versions, prerelease/build identifiers, leading zeros, numeric limits, and the 256-character boundary. The suite also retains all 491 earlier cases. Direct Go tests check typed errors, zero failure results, and caller-owned locations. HTTP tests distinguish a false recognition result from validation and adapter failures.
 
 ## Walkthrough and validation
 

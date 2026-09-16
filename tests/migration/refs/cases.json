@@ -663,7 +663,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3"
+      "value": {
+        "version": "1.2.3",
+        "recognized": true
+      }
     }
   },
   {
@@ -673,7 +676,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3"
+      "value": {
+        "version": "1.2.3",
+        "recognized": true
+      }
     }
   },
   {
@@ -683,7 +689,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "0.0.0"
+      "value": {
+        "version": "0.0.0",
+        "recognized": true
+      }
     }
   },
   {
@@ -693,7 +702,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3-beta.2"
+      "value": {
+        "version": "1.2.3-beta.2",
+        "recognized": true
+      }
     }
   },
   {
@@ -703,7 +715,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3+build.001"
+      "value": {
+        "version": "1.2.3+build.001",
+        "recognized": true
+      }
     }
   },
   {
@@ -713,7 +728,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3-rc.1+build.5"
+      "value": {
+        "version": "1.2.3-rc.1+build.5",
+        "recognized": true
+      }
     }
   },
   {
@@ -723,7 +741,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3--"
+      "value": {
+        "version": "1.2.3--",
+        "recognized": true
+      }
     }
   },
   {
@@ -733,7 +754,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3-01a"
+      "value": {
+        "version": "1.2.3-01a",
+        "recognized": true
+      }
     }
   },
   {
@@ -743,7 +767,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "9007199254740991.0.0"
+      "value": {
+        "version": "9007199254740991.0.0",
+        "recognized": true
+      }
     }
   },
   {
@@ -753,7 +780,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3-999999999999999999999999999999"
+      "value": {
+        "version": "1.2.3-999999999999999999999999999999",
+        "recognized": true
+      }
     }
   },
   {
@@ -763,7 +793,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "value": {
+        "version": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "recognized": true
+      }
     }
   },
   {
@@ -773,7 +806,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "value": {
+        "version": "1.2.3+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "recognized": true
+      }
     }
   },
   {
@@ -783,7 +819,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -793,7 +832,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -803,7 +845,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -813,7 +858,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -823,7 +871,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -833,7 +884,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -843,7 +897,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -853,7 +910,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -863,7 +923,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -873,7 +936,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -883,7 +949,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -893,7 +962,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -903,7 +975,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -913,7 +988,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -923,7 +1001,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -933,7 +1014,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -943,7 +1027,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -953,7 +1040,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -963,7 +1053,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -973,7 +1066,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -983,7 +1079,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -993,7 +1092,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -1003,7 +1105,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -1013,7 +1118,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -1023,7 +1131,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -1033,7 +1144,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -1043,7 +1157,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   },
   {
@@ -1053,7 +1170,10 @@
     "location": "tag",
     "expected": {
       "ok": true,
-      "value": null
+      "value": {
+        "version": "",
+        "recognized": false
+      }
     }
   }
 ]

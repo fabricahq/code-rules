@@ -112,11 +112,11 @@ func invoke(data []byte) (response, error) {
 		case "gitRef":
 			value, err = rules.ParseGitRef(text, req.Location)
 		case "tagVersion":
-			var version *string
-			if parsed, recognized := rules.TagVersion(text); recognized {
-				version = &parsed
-			}
-			value = version
+			version, recognized := rules.TagVersion(text)
+			value = struct {
+				Version    string `json:"version"`
+				Recognized bool   `json:"recognized"`
+			}{Version: version, Recognized: recognized}
 		case "groupID":
 			err = rules.ValidateGroupID(text, req.Location)
 			value = text
