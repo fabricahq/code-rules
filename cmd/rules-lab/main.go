@@ -29,6 +29,9 @@ var page []byte
 //go:embed walkthroughs/*.html
 var walkthroughs embed.FS
 
+//go:embed lab-assets/*
+var labAssets embed.FS
+
 // Allow an 8 MiB tag listing, up to sixfold JSON escaping, and the request envelope.
 const maxRequestBytes = 64 << 20
 
@@ -71,6 +74,17 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "markdownTargets":
+		var input struct {
+			Text *string `json:"text"`
+			File *string `json:"file"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Text == nil || input.File == nil || *input.File == "" {
+			return adapterError("expected text and file"), nil
+		}
+		value, err = rules.MarkdownTargets(*input.Text, *input.File)
 	case "loadLibrary":
 		if err := validateFixtureText(req.Input); err != nil {
 			return adapterError(err.Error()), nil
@@ -113,7 +127,7 @@ func invoke(data []byte) (response, error) {
 			files[path] = nil
 		}
 		files["rule-library.json"] = []byte(*input.Manifest)
-		value, err = rules.ReadLibraryLicenses(files, req.Location)
+		value, err = rules.ReadLibraryLicense(files, req.Location)
 	case "versionMatch":
 		var input struct {
 			Constraint *string `json:"constraint"`
@@ -227,6 +241,7 @@ func adapterError(message string) response {
 func handler(logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	// Serve the embedded walkthrough and report an undeliverable page once.
+	mux.Handle("GET /lab-assets/", http.FileServerFS(labAssets))
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")

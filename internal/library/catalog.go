@@ -27,11 +27,11 @@ const (
 
 // Catalog owns selected rules and supporting file bytes. Each rule owns its
 // original Document; SupportingFiles holds only manifest, group metadata, and terms.
-// Assets and Markdown link closure are deliberately left to the later import slice.
+// SupportingFiles also holds complete owned assets and referenced shared assets.
 type Catalog struct {
-	Groups          []Group                    `json:"groups"`
-	Licenses        []rules.LicenseDeclaration `json:"licenses"`
-	SupportingFiles map[string][]byte          `json:"supportingFiles"`
+	Groups          []Group                   `json:"groups"`
+	License         *rules.LicenseDeclaration `json:"license"`
+	SupportingFiles map[string][]byte         `json:"supportingFiles"`
 }
 
 // Group includes display metadata and path-sorted rules; empty groups are valid.
@@ -48,6 +48,7 @@ type reader struct {
 	files       map[string][]byte
 	total       int
 	visited     int
+	spellings   map[string]string
 	directories map[string][]fs.DirEntry
 }
 
@@ -85,22 +86,25 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	if _, err := r.read("rule-library.json"); err != nil {
 		return Catalog{}, err
 	}
-	licenses, err := r.licenses(source)
+	license, err := r.license(source)
 	if err != nil {
 		return Catalog{}, err
 	}
-	terms := rules.LicensePaths(licenses)
+	terms := rules.LicensePaths(license)
 	ids, err := r.groups(selection, terms)
 	if err != nil {
 		return Catalog{}, err
 	}
-	catalog := Catalog{Groups: make([]Group, 0, len(ids)), Licenses: licenses}
+	catalog := Catalog{Groups: make([]Group, 0, len(ids)), License: license}
 	for _, id := range ids {
 		group, err := r.group(id, source, terms)
 		if err != nil {
 			return Catalog{}, err
 		}
 		catalog.Groups = append(catalog.Groups, group)
+	}
+	if err := r.supportingLinks(terms); err != nil {
+		return Catalog{}, err
 	}
 	// Transfer each rule document to its Rule; retain only supporting files in the map.
 	for _, group := range catalog.Groups {
@@ -127,6 +131,9 @@ func (r *reader) read(path string) ([]byte, error) {
 	}
 	if !fs.ValidPath(path) || strings.ContainsAny(path, "\\\x00") {
 		return nil, bad(path, "expected a contained relative file path")
+	}
+	if err := r.registerPath(path); err != nil {
+		return nil, err
 	}
 	parts := strings.Split(path, "/")
 	for i := range parts {
@@ -174,13 +181,16 @@ func (r *reader) read(path string) ([]byte, error) {
 	if len(data) > maxFileBytes || r.total+len(data) > maxTotalBytes || len(r.files) >= maxFiles {
 		return nil, bad(path, "library exceeds file or total read limits")
 	}
+	if strings.HasPrefix(strings.ReplaceAll(string(data[:min(len(data), 128)]), "\r\n", "\n"), "version https://git-lfs.github.com/spec/v1\n") {
+		return nil, bad(path, "Git LFS pointers are unsupported")
+	}
 	r.total += len(data)
 	r.files[path] = data
 	return data, nil
 }
 
-// licenses validates declarations before reading their contained files; bytes stay unchanged.
-func (r *reader) licenses(source string) ([]rules.LicenseDeclaration, error) {
+// license validates the declaration before reading its contained files; bytes stay unchanged.
+func (r *reader) license(source string) (*rules.LicenseDeclaration, error) {
 	manifest := r.files["rule-library.json"]
 	inventory := map[string][]byte{"rule-library.json": manifest}
 	var raw struct {
@@ -200,16 +210,16 @@ func (r *reader) licenses(source string) ([]rules.LicenseDeclaration, error) {
 			}
 		}
 	}
-	declarations, err := rules.ReadLibraryLicenses(inventory, source)
+	declaration, err := rules.ReadLibraryLicense(inventory, source)
 	if err != nil {
 		return nil, err
 	}
-	for _, path := range rules.LicensePaths(declarations) {
+	for _, path := range rules.LicensePaths(declaration) {
 		if _, err := r.read(path); err != nil {
 			return nil, err
 		}
 	}
-	return declarations, nil
+	return declaration, nil
 }
 
 // entries lists a real directory and applies cancellation and discovery-count limits.
@@ -333,7 +343,7 @@ func (r *reader) group(id, source string, terms []string) (Group, error) {
 	return group, nil
 }
 
-// rulePaths discovers rules without reading assets; unsupported selected entries fail closed.
+// rulePaths discovers selected rules and their complete owned assets; unsafe entries fail closed.
 func (r *reader) rulePaths(directory, metadata string, terms []string, paths *[]string) error {
 	entries, err := r.entries(directory, false)
 	if err != nil {
@@ -349,6 +359,9 @@ func (r *reader) rulePaths(directory, metadata string, terms []string, paths *[]
 		}
 		if entry.IsDir() {
 			if entry.Name() == "assets" {
+				if err := r.ownedAssets(path, terms); err != nil {
+					return err
+				}
 				continue
 			}
 			if err := r.rulePaths(path, metadata, terms, paths); err != nil {

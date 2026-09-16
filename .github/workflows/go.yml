@@ -33,3 +33,4 @@ jobs:
       - run: go build -o dist/rules-lab ./cmd/rules-lab
       - run: bun tests/migration/compare-rules.ts dist/rules-lab
       - run: bun tests/migration/compare-version-selection.ts dist/rules-lab
+      - run: bun tests/migration/compare-links.ts dist/rules-lab
