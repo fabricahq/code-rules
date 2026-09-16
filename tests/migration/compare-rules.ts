@@ -25,6 +25,11 @@ const cases = [
   ...ruleCases,
   ...repositoryCases,
 ];
+deepStrictEqual(
+  new Set(cases.map(({ id }) => id)).size,
+  cases.length,
+  'Shared fixture IDs must be unique',
+);
 const referenceRevision = contracts.referenceRevision;
 deepStrictEqual(
   approvedDifferences,

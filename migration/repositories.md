@@ -52,7 +52,7 @@ PR #14's documented CR-only YAML compatibility gap remains open and separate fro
 
 ## Validation and walkthrough
 
-The 100 new shared fixtures specify independent values or exact errors for both implementations.
+The 101 new shared fixtures specify independent values or exact errors for both implementations.
 They cover known and custom hosts, transport aliases, ports, IPv6, IDNA, case, escaping, credentials, path traversal, malformed Unicode, and file/raw links.
 All 390 earlier cases remain in the same comparison suite.
 Direct Go tests also check zero results, typed errors, unchanged input, and malformed JSON.
@@ -81,10 +81,14 @@ Human review and merge separate migration iterations.
 
 ### Local evidence
 
-- All 490 shared comparisons pass: 100 new repository cases and all 390 earlier cases. Earlier approved differences remain unchanged.
+- All 491 shared comparisons pass: 101 new repository cases and all 390 earlier cases. Earlier approved differences remain unchanged.
 - Go race tests, vet, and Staticcheck v0.8.1 pass on Go 1.27.1.
 - A 15-second fuzz run completed 993,894 executions without a failure.
 - Autoreview found no actionable issues in the repository parser, adapter, or walkthrough.
 - All 20 browser examples return their expected values or errors. Desktop and narrow layouts have no horizontal overflow or browser console errors.
 - `bun run check` passes: formatting, lint, typecheck, all 444 tests, documentation build, and link checks.
 - All six installed-package tests pass.
+
+### Review follow-up
+
+CodeRabbit identified a duplicate fixture ID and a test branch that assumed file-link fixtures always succeed. The comparison runner now checks ID uniqueness. An invalid-address link fixture reproduces the test-helper failure and checks exact typed errors after the fix.

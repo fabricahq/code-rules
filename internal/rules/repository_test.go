@@ -46,6 +46,16 @@ func TestRepositorySharedExpectations(t *testing.T) {
 					t.Fatal(err)
 				}
 				repository, err := rules.ParseRepository(input.Repository, test.Location)
+				if !test.Expected.OK {
+					var validation *rules.ValidationError
+					if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
+						t.Fatalf("got %v; want %s", err, test.Expected.Error.Message)
+					}
+					if !reflect.DeepEqual(repository, rules.Repository{}) {
+						t.Fatalf("failure returned partial data: %#v", repository)
+					}
+					return
+				}
 				if err != nil {
 					t.Fatal(err)
 				}

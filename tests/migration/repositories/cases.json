@@ -884,7 +884,7 @@
     }
   },
   {
-    "id": "repository-file",
+    "id": "repository-file-protocol",
     "operation": "repository",
     "input": "file:///tmp/rules",
     "location": "sources.team.repository",
@@ -1463,6 +1463,25 @@
     "expected": {
       "ok": true,
       "value": null
+    }
+  },
+  {
+    "id": "repository-link-invalid-address",
+    "operation": "repositoryFile",
+    "input": {
+      "repository": "team/rules",
+      "commit": "abc123",
+      "path": "a.md",
+      "image": false
+    },
+    "location": "repository",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "repository: repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported",
+        "location": "repository"
+      }
     }
   }
 ]
