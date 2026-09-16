@@ -8,10 +8,8 @@ require (
 	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/yuin/goldmark/v2 v2.1.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
+	golang.org/x/net v0.34.0
 	golang.org/x/text v0.21.0
 )
 
-require (
-	github.com/bits-and-blooms/bitset v1.20.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
-)
+require github.com/bits-and-blooms/bitset v1.20.0 // indirect
