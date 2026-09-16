@@ -46,7 +46,13 @@ function mountFixtureFiles(input, onEdit) {
   input.before(section, advanced);
   if (label?.matches('label[for="input"]')) advanced.append(label);
   advanced.append(input);
-  input.closest(".workspace").classList.add("has-fixture-browser");
+  const workspace = input.closest(".workspace");
+  workspace.classList.add("has-fixture-browser");
+  // Keep invocation next to the files and leave explanatory notes available on demand.
+  section.before(input.closest(".panel").querySelector(".actions"));
+  for (const details of workspace.querySelectorAll(".result > details")) {
+    details.open = false;
+  }
 
   let request;
   let entries = [];
