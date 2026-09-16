@@ -1,4 +1,5 @@
 // Exercise adoption policy using native parsed rules and source-labeled catalogs.
+
 package build_test
 
 import (
@@ -97,7 +98,7 @@ func TestResolveFailures(t *testing.T) {
 		{name: "invalid excluded rule", exclude: `{"techs/go/errors":"Not needed"}`, replace: `{}`, alter: func(l map[string]build.Library) { l["team"].Catalog.Groups[0].Rules[0].Document = "broken" }},
 		{name: "missing exception", exclude: `{"techs/go/missing":"Not needed"}`, replace: `{}`},
 		{name: "missing replacement", exclude: `{}`, replace: `{"techs/go/errors":{"file":"local/techs/go/custom.md","reason":"Project policy"}}`},
-		{name: "wrong group", exclude: `{}`, replace: `{"techs/go/errors":{"file":"local/techs/go/custom.md","reason":"Project policy"}}`, local: map[string][]byte{"techs/rust/custom.md": []byte(document)}},
+		{name: "wrong group", exclude: `{}`, replace: `{"techs/go/errors":{"file":"local/techs/rust/custom.md","reason":"Project policy"}}`, local: map[string][]byte{"techs/rust/custom.md": []byte(document)}},
 		{name: "bad local path", exclude: `{}`, replace: `{}`, local: map[string][]byte{"../assets/data": []byte("x")}},
 		{name: "missing local metadata", exclude: `{}`, replace: `{}`, local: map[string][]byte{"practices/testing/a.md": []byte(document)}},
 	} {
@@ -123,5 +124,21 @@ func TestResolveLocalOnly(t *testing.T) {
 	got, err := build.Resolve(config, nil, map[string][]byte{"techs/go/_group.json": []byte(metadata), "techs/go/errors.md": []byte(document)})
 	if err != nil || len(got.Groups) != 1 || len(got.Groups[0].Rules) != 1 || got.Groups[0].Rules[0].Rule.ID != "local:techs/go/errors" {
 		t.Fatalf("%+v, %v", got, err)
+	}
+}
+
+// TestLocalSupportingFilesRemainSupport accepts inert support while rejecting unsafe names before asset classification.
+func TestLocalSupportingFilesRemainSupport(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	for _, file := range []string{"techs/go/_notes.md", "techs/go/notes.txt"} {
+		got, err := build.Resolve(config, libraries, map[string][]byte{file: []byte("support")})
+		if err != nil || string(got.LocalFiles[file]) != "support" || len(got.Groups[0].Rules) != 1 {
+			t.Fatalf("%s: %+v, %v", file, got, err)
+		}
+	}
+	for _, file := range []string{"assets/new\nline.txt", "assets/del\x7ffile.txt"} {
+		if _, err := build.Resolve(config, libraries, map[string][]byte{file: []byte("x")}); err == nil {
+			t.Fatalf("accepted %q", file)
+		}
 	}
 }

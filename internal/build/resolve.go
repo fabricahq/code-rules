@@ -221,13 +221,13 @@ func ensureGroup(groups map[string]*Group, id string) *Group {
 func parseLocal(files map[string][]byte, groups map[string]*Group) (map[string]rules.Rule, error) {
 	result := map[string]rules.Rule{}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
-		if !fs.ValidPath(file) || file == "." || strings.ContainsAny(file, "\\:\x00") {
+		if !fs.ValidPath(file) || file == "." || strings.ContainsAny(file, "\\:") || strings.ContainsFunc(file, func(r rune) bool { return r < 32 || r == 127 }) {
 			return nil, invalid(file, "expected a contained portable local path")
 		}
 		if file == "README.md" {
 			continue
 		}
-		if rules.AssetDirectory(file) != "" {
+		if slices.Contains(strings.Split(file, "/"), "assets") {
 			continue
 		}
 		if path.Base(file) == "_group.json" {
@@ -240,6 +240,9 @@ func parseLocal(files map[string][]byte, groups map[string]*Group) (map[string]r
 				return nil, err
 			}
 			ensureGroup(groups, id).Guidance = append(ensureGroup(groups, id).Guidance, Guidance{Source: "local", Metadata: metadata})
+			continue
+		}
+		if !strings.HasSuffix(file, ".md") || strings.HasPrefix(path.Base(file), "_") {
 			continue
 		}
 		parsed, err := rules.Parse(string(files[file]), file, "local")
