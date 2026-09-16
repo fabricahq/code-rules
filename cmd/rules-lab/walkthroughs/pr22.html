@@ -339,11 +339,12 @@
           <div class="signature">
             library.Load(ctx, root, source, selection) (Catalog, error)
           </div>
-          <p class="hint">
-            Edit fixture files and Markdown links. The adapter creates an
-            isolated temporary library and invokes native Go.
-          </p>
           <div class="presets" id="presets"></div>
+          <p
+            class="hint scenario-description"
+            id="scenario-description"
+            aria-live="polite"
+          ></p>
           <label for="input">Library and attachment fixture</label
           ><textarea id="input" rows="18" spellcheck="false"></textarea>
           <p class="hint">The request goes to the native Go implementation.</p>
@@ -402,6 +403,7 @@
     </main>
     <script src="/lab-assets/fixture-files.js"></script>
     <script>
+      /** @fileoverview Explain editable scenarios and display native Go results for this PR. */
       // Locate one named control in this walkthrough.
       const byID = (id) => document.getElementById(id);
       const spec = {
@@ -424,6 +426,8 @@
         examples: [
           {
             name: "Owned directory",
+            description:
+              "errors.md links to diagram.txt in its own assets/errors/ folder. Loading also retains the unlinked companion.txt beside it.",
             input: {
               files: {
                 "rule-library.json": '{"formatVersion":1}',
@@ -441,6 +445,8 @@
           },
           {
             name: "Shared cycle",
+            description:
+              "Adds a link to /assets/guide.md. That file and next.md link to each other; loading retains both and stops revisiting the cycle.",
             input: {
               files: {
                 "rule-library.json": '{"formatVersion":1}',
@@ -460,6 +466,8 @@
           },
           {
             name: "Unselected rule link",
+            description:
+              "Adds a link to techs/rust/other.md alongside the shared cycle. Loading checks that the Rust file exists without adopting its group.",
             input: {
               files: {
                 "rule-library.json": '{"formatVersion":1}',
@@ -480,6 +488,8 @@
           },
           {
             name: "Missing attachment",
+            description:
+              "Adds a link in errors.md to assets/errors/missing.txt, which is absent. Expect a missing-file error.",
             input: {
               files: {
                 "rule-library.json": '{"formatVersion":1}',
@@ -500,6 +510,8 @@
           },
           {
             name: "Root escape",
+            description:
+              "Adds a link in errors.md to ../../../outside. Expect an error because the path escapes the library root.",
             input: {
               files: {
                 "rule-library.json": '{"formatVersion":1}',
@@ -520,6 +532,8 @@
           },
           {
             name: "Wrong owner",
+            description:
+              "Adds a link in errors.md to assets/other/data.txt. Expect an error because that folder belongs to another rule.",
             input: {
               files: {
                 "rule-library.json": '{"formatVersion":1}',
@@ -540,6 +554,8 @@
           },
           {
             name: "Recursive unsafe link",
+            description:
+              "Links to /assets/guide.md, which links to ../../outside. Expect a root-escape error while checking the attachment.",
             input: {
               files: {
                 "rule-library.json": '{"formatVersion":1}',
@@ -560,6 +576,8 @@
           },
           {
             name: "Code is not a link",
+            description:
+              "Puts [not a link](../../../outside) inside a fenced code block in errors.md. Loading succeeds because code examples are not followed.",
             input: {
               files: {
                 "rule-library.json": '{"formatVersion":1}',
@@ -590,13 +608,21 @@
           "Input changed. Invoke Go to see its result.";
         byID("timing").textContent = "";
       }
-      // Fill an example without sending a request.
+      // Explain and select a preset without invoking Go; its description remains a preset reference after edits.
       function loadExample(example) {
         byID("input").value =
           typeof example.input === "string"
             ? example.input
             : JSON.stringify(example.input, null, 2);
         byID("input").dispatchEvent(new Event("input"));
+        byID("scenario-description").textContent =
+          `Preset: ${example.name}. ${example.description}`;
+        for (const button of byID("presets").querySelectorAll("button")) {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.textContent === example.name),
+          );
+        }
       }
       for (const example of spec.examples) {
         const button = document.createElement("button");
