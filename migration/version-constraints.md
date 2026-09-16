@@ -77,5 +77,5 @@ After this PR: complete project configuration parsing; library manifests and lic
 - Go race tests, vet, and Staticcheck v0.8.1 pass on Go 1.27.1.
 - All 640 shared comparisons pass; 34 new cases explicitly differ from TypeScript.
 - All 22 browser presets return the expected values or errors. Desktop and narrow layouts were inspected; no horizontal overflow or console warnings/errors were observed.
-- The 444 TypeScript tests pass. Full documentation and installed-package checks are recorded in the PR handoff when finished.
-- Independent CodeRabbit review is requested when the ready PR opens, with Devin as fallback. Human approval remains separate.
+- `bun run check` passes: all 444 TypeScript tests, formatting, lint, typecheck, documentation checks/build, and local links. All six installed-package tests pass with a writable temporary npm cache.
+- PR #17 is ready for review against `go-migration`. CodeRabbit acknowledged the manual full review and started processing the branch. Independent review completion and human approval remain separate.
