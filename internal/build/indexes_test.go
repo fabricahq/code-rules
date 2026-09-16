@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/rules"
+
 	"github.com/fabricahq/code-rules/internal/build"
 )
 
@@ -108,5 +110,93 @@ func TestRenderEmptyGroup(t *testing.T) {
 	}
 	if !strings.Contains(pages["groups/techs/go.md"], "No active rules in this group.") {
 		t.Fatal(pages)
+	}
+}
+
+// TestGroupPagesRepeatResolvedReadingGuidance keeps group selection cues available on every standalone page.
+func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
+	for _, local := range []bool{false, true} {
+		t.Run(fmt.Sprint("local=", local), func(t *testing.T) {
+			config, libraries := fixture(t, `{}`, `{}`)
+			var files map[string][]byte
+			want, unwanted := "When editing Go.", ""
+			if local {
+				files = map[string][]byte{"techs/go/_group.json": []byte(`{"name":"Project Go","description":"Project guidance.","whenToRead":"When editing this project."}`)}
+				want, unwanted = "When editing this project.", "When editing Go."
+			}
+			resolved, err := build.Resolve(config, libraries, files)
+			if err != nil {
+				t.Fatal(err)
+			}
+			original := resolved.Groups[0].Rules[0]
+			for i := range 12 {
+				active := original
+				active.Rule.ID = fmt.Sprintf("team:techs/go/rule-%d", i)
+				resolved.Groups[0].Rules = append(resolved.Groups[0].Rules, active)
+			}
+			pages, err := build.RenderIndexes(resolved, 1800)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, ok := pages["groups/techs/go.part-1.md"]; !ok {
+				t.Fatal("fixture did not exercise pagination")
+			}
+			for file, page := range pages {
+				if !strings.Contains(page, "**When to read this group:** "+want) || (unwanted != "" && strings.Contains(page, unwanted)) {
+					t.Fatalf("%s lost resolved guidance: %s", file, page)
+				}
+				if !strings.Contains(page, "reload needed rules after compaction") || len(page) > 1800 {
+					t.Fatalf("%s lost reading instructions or exceeded its budget", file)
+				}
+			}
+		})
+	}
+}
+
+// TestGroupPagesKeepMultipleSourceCues labels each imported definition when no local override applies.
+func TestGroupPagesKeepMultipleSourceCues(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	resolved, err := build.Resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved.Groups[0].EffectiveGuidance = append(resolved.Groups[0].EffectiveGuidance, build.Guidance{Source: "second", Metadata: rules.GroupMetadata{Name: "Go Services", Description: "Other guidance.", WhenToRead: "When reviewing services."}})
+	pages, err := build.RenderIndexes(resolved, 8000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range []string{"RULES.md", "groups/techs/go.md"} {
+		for _, cue := range []string{"**team: Go:** When editing Go.", "**second: Go Services:** When reviewing services."} {
+			if !strings.Contains(pages[file], cue) {
+				t.Fatalf("%s omitted %q", file, cue)
+			}
+		}
+	}
+}
+
+// TestIndexPagesRejectsNonportablePaths exercises direct callers before either pagination path returns output.
+func TestIndexPagesRejectsNonportablePaths(t *testing.T) {
+	for _, file := range []string{"groups/bad:name.md", "groups/bad\nname.md", "groups/bad\x7fname.md"} {
+		if pages, err := build.IndexPages(file, "# Index", []string{"Entry"}, "", 8000); err == nil || pages != nil {
+			t.Fatalf("accepted nonportable path %q", file)
+		}
+	}
+}
+
+// BenchmarkIndexPagesLarge exercises large multi-page inputs rather than the complete-page fast path.
+func BenchmarkIndexPagesLarge(b *testing.B) {
+	for _, count := range []int{1000, 10000} {
+		b.Run(fmt.Sprint(count), func(b *testing.B) {
+			entries := make([]string, count)
+			for i := range entries {
+				entries[i] = strings.Repeat("x", 100)
+			}
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := build.IndexPages("RULES.md", "# Rules", entries, "Footer", count*60); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }

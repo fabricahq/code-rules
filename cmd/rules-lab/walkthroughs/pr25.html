@@ -394,10 +394,12 @@
           <details open>
             <summary>What this PR does</summary>
             <p>
-              RULES.md points to group indexes. Each rule summary links to its
-              standalone file. If an index exceeds the budget, numbered sibling
-              parts and a complete directory replace it. Oversized entries or
-              directories return an error with no partial map.
+              RULES.md points to group indexes. Every group page repeats its
+              resolved reading cues and the shared reading instructions. Each
+              rule summary links to its standalone file. If an index exceeds the
+              budget, numbered sibling parts and a complete directory replace
+              it. Oversized entries or directories return an error with no
+              partial map.
             </p>
             <p>
               <code>ok: true</code> means Go returned no error.
@@ -444,7 +446,7 @@
           "maxBytes is a UTF-8 byte limit for each generated index file. This is a review input, not a change to CLI defaults.",
         inputlabel: "Index fixture and byte budget",
         details:
-          "RULES.md points to group indexes. Each rule summary links to its standalone file. If an index exceeds the budget, numbered sibling parts and a complete directory replace it. Oversized entries or directories return an error with no partial map.",
+          "RULES.md points to group indexes. Every group page repeats its resolved reading cues and the shared reading instructions. Each rule summary links to its standalone file. If an index exceeds the budget, numbered sibling parts and a complete directory replace it. Oversized entries or directories return an error with no partial map.",
         boundaries:
           "This slice creates summary-only discovery indexes in memory. Full rule files are produced by the preceding renderer. Inline combined group delivery and project writes are separate work.",
         operation: "renderIndexes",
@@ -861,6 +863,19 @@
           },
         ],
       };
+      // Demonstrate how resolved local metadata replaces the imported group cue on every index.
+      const localGuidance = structuredClone(spec.examples[0]);
+      localGuidance.name = "Local guidance";
+      localGuidance.description =
+        "Adds local Go metadata. Expect Project Go and its project-specific reading cue in RULES.md and the group header, with the imported rule unchanged.";
+      localGuidance.input.fixture.localFiles = {
+        "techs/go/_group.json": JSON.stringify({
+          name: "Project Go",
+          description: "Project-specific Go guidance.",
+          whenToRead: "When editing this project's Go services.",
+        }),
+      };
+      spec.examples.splice(1, 0, localGuidance);
       let previewRequest;
       let generatedView = "preview";
       // Switch between formatted Markdown and the exact returned source text.
