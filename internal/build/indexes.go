@@ -96,13 +96,16 @@ func indexPageNavigation(file string, page, total int) string {
 	return strings.Join(links, " | ")
 }
 
-// indexDocument joins nonempty blocks with stable spacing and one final newline.
+// indexDocument joins content, separates the footer with a thematic break, and adds one final newline.
 func indexDocument(header string, entries []string, footer string) string {
 	blocks := []string{}
-	for _, block := range append(append([]string{header}, entries...), footer) {
+	for _, block := range append([]string{header}, entries...) {
 		if block != "" {
 			blocks = append(blocks, block)
 		}
+	}
+	if footer != "" {
+		blocks = append(blocks, "---", footer)
 	}
 	return strings.Join(blocks, "\n\n") + "\n"
 }
