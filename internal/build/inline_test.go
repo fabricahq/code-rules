@@ -49,6 +49,9 @@ func TestPrepareInlineBoundaries(t *testing.T) {
 				t.Fatal(err)
 			}
 			page := string(got.Files[file])
+			if !strings.Contains(page, "Go guidance.\n\n**When to read this group:**") {
+				t.Fatal("group description missing from inline or summary mode")
+			}
 			if strings.Contains(page, "Return errors to the caller.") != test.full {
 				t.Fatalf("wrong delivery mode: %s", page)
 			}
