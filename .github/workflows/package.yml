@@ -21,4 +21,5 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: bun install --frozen-lockfile
-      - run: bun run test:package
+      # Installed CLI scenarios run several commands and Git imports on shared CI runners.
+      - run: bun run test:package --timeout 30000
