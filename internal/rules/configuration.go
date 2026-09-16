@@ -38,7 +38,8 @@ var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
 // ParseConfiguration validates schema version 1, rejecting unknown fields and
 // contradictory source declarations. Errors return no partial configuration.
-// Strings retain authored whitespace; group IDs and source aliases are sorted.
+// Version constraints trim surrounding whitespace; other strings retain authored spacing.
+// Group IDs and source aliases are sorted.
 func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	fields, err := jsonObject(input, "configuration")
 	if err != nil {
