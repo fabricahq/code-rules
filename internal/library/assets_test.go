@@ -4,6 +4,7 @@ package library_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -134,5 +135,43 @@ func TestLoadAllowsDeclaredGroupTerms(t *testing.T) {
 	}
 	if len(got.Groups[0].Rules) != 1 || string(got.SupportingFiles["techs/go/terms.md"]) != "License terms." {
 		t.Fatalf("did not retain terms separately from rules: %+v", got)
+	}
+}
+
+// TestLoadAssetTerms treats declared terms consistently with or without selecting their containing group.
+func TestLoadAssetTerms(t *testing.T) {
+	for _, term := range []string{"techs/go/assets/LICENSE", "techs/go/assets/legal/nested/LICENSE", "techs/go/assets/errors/LICENSE"} {
+		for _, groups := range [][]string{{}, {"techs/go"}} {
+			t.Run(term+strings.Join(groups, ","), func(t *testing.T) {
+				files := validFiles()
+				manifest, err := json.Marshal(map[string]any{"formatVersion": 1, "license": map[string]any{"file": term, "notices": []string{term + ".notice"}}})
+				if err != nil {
+					t.Fatal(err)
+				}
+				files["rule-library.json"] = string(manifest)
+				files[term], files[term+".notice"] = "License\r\n", "Notice\n"
+				_, root := fixture(t, files)
+				got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: groups})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got.License == nil || string(got.SupportingFiles[term]) != files[term] || string(got.SupportingFiles[term+".notice"]) != files[term+".notice"] {
+					t.Fatalf("lost declared terms: %+v", got)
+				}
+			})
+		}
+	}
+}
+
+// TestLoadRejectsUndeclaredFilesBesideAssetTerms keeps the term exemption from hiding ownerless attachments.
+func TestLoadRejectsUndeclaredFilesBesideAssetTerms(t *testing.T) {
+	files := validFiles()
+	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/assets/legal/LICENSE","notices":[]}}`
+	files["techs/go/assets/legal/LICENSE"] = "Terms"
+	files["techs/go/assets/legal/extra.txt"] = "Undeclared attachment"
+	_, root := fixture(t, files)
+	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
+	if err == nil || !strings.Contains(err.Error(), "no adjacent owning rule") || got.Groups != nil {
+		t.Fatalf("accepted ownerless attachment: %+v, %v", got, err)
 	}
 }
