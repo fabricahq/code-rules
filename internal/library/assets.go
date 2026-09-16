@@ -36,7 +36,7 @@ func (r *reader) registerPath(file string) error {
 	return nil
 }
 
-// ownedAssets validates each owner and retains the owner's entire attachment directory.
+// ownedAssets retains complete rule-owned directories while exempting declared terms and term-only directories.
 func (r *reader) ownedAssets(directory string, terms []string) error {
 	entries, err := r.entries(directory, false)
 	if err != nil {
@@ -44,9 +44,19 @@ func (r *reader) ownedAssets(directory string, terms []string) error {
 	}
 	for _, entry := range entries {
 		assetPath := directory + "/" + entry.Name()
+		if slices.Contains(terms, assetPath) {
+			continue
+		}
 		owner := path.Dir(directory) + "/" + entry.Name() + ".md"
 		if !entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
 			return bad(assetPath, "expected an owned assets directory")
+		}
+		onlyTerms, err := r.termDirectory(assetPath, terms)
+		if err != nil {
+			return err
+		}
+		if onlyTerms {
+			continue
 		}
 		if _, err := rules.GroupFromPath(owner, assetPath); err != nil {
 			return err
