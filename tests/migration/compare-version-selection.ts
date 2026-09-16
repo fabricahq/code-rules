@@ -29,13 +29,16 @@ function git(...args: string[]): string {
   if (result.exitCode !== 0) throw new Error(result.stderr.toString());
   return result.stdout.toString().trim();
 }
-/** Feed the real advertisement to native Go and read its serialized result. */
+/** Feed the real Git tag listing to native Go and read its serialized result. */
 function native(constraint: string): Record<string, unknown> {
-  const input = { advertisement: git('ls-remote', '--tags', root), constraint };
+  const input = {
+    availableGitTags: git('ls-remote', '--tags', root),
+    constraint,
+  };
   const result = Bun.spawnSync([resolve(candidate!)], {
     stdin: Buffer.from(
       JSON.stringify({
-        operation: 'selectVersion',
+        operation: 'selectReleaseTag',
         input,
         location: 'selection',
       }) + '\n',

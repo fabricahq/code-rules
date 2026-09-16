@@ -78,21 +78,21 @@ func invoke(data []byte) (response, error) {
 			return adapterError("loadLibrary input must contain files, groups, and source"), nil
 		}
 		value, err = loadLibraryFixture(input)
-	case "selectVersion":
+	case "selectReleaseTag":
 		var input struct {
-			Advertisement *string `json:"advertisement"`
-			Constraint    *string `json:"constraint"`
+			AvailableGitTags *string `json:"availableGitTags"`
+			Constraint       *string `json:"constraint"`
 		}
 		fields := json.NewDecoder(bytes.NewReader(req.Input))
 		fields.DisallowUnknownFields()
-		if fields.Decode(&input) != nil || input.Advertisement == nil || input.Constraint == nil {
-			return adapterError("selectVersion input must contain advertisement and constraint strings"), nil
+		if fields.Decode(&input) != nil || input.AvailableGitTags == nil || input.Constraint == nil {
+			return adapterError("selectReleaseTag input must contain availableGitTags and constraint strings"), nil
 		}
 		constraint, parseErr := rules.ParseVersionConstraint(*input.Constraint, req.Location+".constraint")
 		if parseErr != nil {
 			err = parseErr
 		} else {
-			value, err = rules.SelectVersion(*input.Advertisement, constraint)
+			value, err = rules.SelectReleaseTag(*input.AvailableGitTags, constraint)
 		}
 	case "licenses":
 		var input struct {
