@@ -302,6 +302,7 @@ func adapterError(message string) response {
 // handler serves the walkthrough and bounded, same-origin invocations without logging user content.
 func handler(logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /preview-markdown", markdownPreview(logger))
 	// Serve the embedded walkthrough and report an undeliverable page once.
 	mux.Handle("GET /lab-assets/", http.FileServerFS(labAssets))
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
