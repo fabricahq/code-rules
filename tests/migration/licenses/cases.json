@@ -1,0 +1,744 @@
+[
+  {
+    "id": "license-unspecified",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": []
+    }
+  },
+  {
+    "id": "license-mit",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "MIT",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-expression-2",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Apache-2.0\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "Apache-2.0",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-expression-3",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT OR Apache-2.0) AND BSD-2-Clause\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "(MIT OR Apache-2.0) AND BSD-2-Clause",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-expression-4",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0+\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "GPL-2.0+",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-expression-5",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH Classpath-exception-2.0\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "GPL-2.0-only WITH Classpath-exception-2.0",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-expression-6",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-Team\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "LicenseRef-Team",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-expression-7",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"DocumentRef-Other:LicenseRef-Team\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "DocumentRef-Other:LicenseRef-Team",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-expression-8",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT or Apache-2.0\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "MIT or Apache-2.0",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-expression-9",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" MIT \"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": " MIT ",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-unidentified",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"]}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": null,
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-deduplicate",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \"LICENSE\", \"NOTICE\"], \"spdxExpression\": \"MIT\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "MIT",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": [
+            "NOTICE"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-no-notices",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [], \"spdxExpression\": \"MIT\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": [
+        {
+          "spdxExpression": "MIT",
+          "files": [
+            "LICENSE"
+          ],
+          "attributionFiles": []
+        }
+      ]
+    }
+  },
+  {
+    "id": "license-malformed",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: invalid JSON",
+        "location": "library/rule-library.json"
+      }
+    }
+  },
+  {
+    "id": "license-null",
+    "operation": "licenses",
+    "input": {
+      "manifest": "null",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: expected an object",
+        "location": "library/rule-library.json"
+      }
+    }
+  },
+  {
+    "id": "license-version",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 2}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: formatVersion: only library formatVersion 1 is supported",
+        "location": "library/rule-library.json: formatVersion"
+      }
+    }
+  },
+  {
+    "id": "license-null-license",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": null}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license: expected an object",
+        "location": "library/rule-library.json: license"
+      }
+    }
+  },
+  {
+    "id": "license-missing-file",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}",
+      "paths": []
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.file: missing declared file \"LICENSE\"",
+        "location": "library/rule-library.json: license.file"
+      }
+    }
+  },
+  {
+    "id": "license-missing-notice",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}",
+      "paths": [
+        "LICENSE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.notices[0]: missing declared file \"NOTICE\"",
+        "location": "library/rule-library.json: license.notices[0]"
+      }
+    }
+  },
+  {
+    "id": "license-null-notices",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": null, \"spdxExpression\": \"MIT\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.notices: expected an array of notice paths",
+        "location": "library/rule-library.json: license.notices"
+      }
+    }
+  },
+  {
+    "id": "license-traversal",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"../LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.file: expected a contained relative path, got \"../LICENSE\"",
+        "location": "library/rule-library.json: license.file"
+      }
+    }
+  },
+  {
+    "id": "license-unknown",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"future\": true}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license: unknown field future",
+        "location": "library/rule-library.json: license"
+      }
+    }
+  },
+  {
+    "id": "license-renamed",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\", \"expression\": \"MIT\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.expression: renamed to license.spdxExpression; move the declaration to that field",
+        "location": "library/rule-library.json: license.expression"
+      }
+    }
+  },
+  {
+    "id": "license-blank",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \" \"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected nonempty text",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-multiline",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\\n\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected a single-line license expression",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-invalid-25",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"mit\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-invalid-26",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"Unreal-1.0\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-invalid-27",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT OR\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-invalid-28",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"(MIT\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-invalid-29",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT +\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-invalid-30",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"LicenseRef-\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-invalid-31",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT WITH Unknown\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-invalid-32",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"MIT\\u00a0\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  },
+  {
+    "id": "license-invalid-33",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\"], \"spdxExpression\": \"GPL-2.0-only WITH classpath-exception-2.0\"}}",
+      "paths": [
+        "LICENSE",
+        "NOTICE"
+      ]
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.json: license.spdxExpression"
+      }
+    }
+  }
+]

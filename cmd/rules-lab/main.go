@@ -69,6 +69,22 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "licenses":
+		var input struct {
+			Manifest *string   `json:"manifest"`
+			Paths    *[]string `json:"paths"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Manifest == nil || input.Paths == nil {
+			return adapterError("licenses input must contain manifest text and a paths array"), nil
+		}
+		files := make(map[string][]byte)
+		for _, path := range *input.Paths {
+			files[path] = nil
+		}
+		files["rule-library.json"] = []byte(*input.Manifest)
+		value, err = rules.ReadLibraryLicenses(files, req.Location)
 	case "versionMatch":
 		var input struct {
 			Constraint *string `json:"constraint"`
