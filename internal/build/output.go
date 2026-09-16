@@ -122,6 +122,7 @@ type provenanceSource struct {
 	Commit          string               `json:"resolvedCommit"`
 	Groups          []string             `json:"groups"`
 	Selection       rules.GroupSelection `json:"groupSelection"`
+	LicenseFiles    []string             `json:"licenseFiles"`
 	Licenses        []provenanceLicense  `json:"licenses"`
 }
 
@@ -136,21 +137,21 @@ type provenanceGroup struct {
 type provenanceRule struct {
 	ID           string              `json:"id"`
 	Group        string              `json:"group"`
-	Origin       Origin              `json:"origin"`
-	Upstream     *Origin             `json:"upstream"`
-	Reason       string              `json:"replacementReason,omitempty"`
+	Origin       provenanceOrigin    `json:"origin"`
+	Upstream     *provenanceOrigin   `json:"upstream"`
+	Reason       *string             `json:"replacementReason"`
 	LicenseBasis string              `json:"licenseBasis"`
 	Licenses     []provenanceLicense `json:"licenses"`
 	Attribution  []rules.Attribution `json:"attribution"`
 }
 
 // termProvenance maps declared source terms to retained workspace and generated paths.
-func termProvenance(source string, declarations []rules.LicenseDeclaration) []provenanceLicense {
+func termProvenance(source, originalPrefix string, declarations []rules.LicenseDeclaration) []provenanceLicense {
 	result := []provenanceLicense{}
 	for _, license := range declarations {
 		record := provenanceLicense{SPDXExpression: license.SPDXExpression, Files: []string{}, AttributionFiles: []string{}, GeneratedFiles: []string{}, GeneratedAttributionFiles: []string{}}
 		for _, mapping := range licenseMappings(source, license) {
-			original := "vendor/" + source + "/" + mapping.Source
+			original := originalPrefix + mapping.Source
 			if mapping.Kind == "license" {
 				record.Files = append(record.Files, original)
 				record.GeneratedFiles = append(record.GeneratedFiles, mapping.Generated)
@@ -173,7 +174,7 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 		Rules       []provenanceRule   `json:"rules"`
 	}{ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
 	for _, source := range resolved.Sources {
-		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: source.Tag, ResolvedVersion: source.ResolvedVersion, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, Licenses: termProvenance(source.Name, source.Licenses)})
+		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: source.Tag, ResolvedVersion: source.ResolvedVersion, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, LicenseFiles: rules.LicensePaths(source.Licenses), Licenses: termProvenance(source.Name, "", source.Licenses)})
 	}
 	for _, group := range resolved.Groups {
 		effective := []string{}
@@ -186,7 +187,7 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 			if len(active.Licenses) > 0 {
 				basis = "library"
 			}
-			result.Rules = append(result.Rules, provenanceRule{ID: active.Rule.ID, Group: active.Rule.Group, Origin: active.Origin, Upstream: active.Upstream, Reason: active.Reason, LicenseBasis: basis, Licenses: termProvenance(active.Origin.Source, active.Licenses), Attribution: active.Rule.Attribution})
+			result.Rules = append(result.Rules, provenanceRule{ID: active.Rule.ID, Group: active.Rule.Group, Origin: *originProvenance(&active.Origin), Upstream: originProvenance(active.Upstream), Reason: nullableText(active.Reason), LicenseBasis: basis, Licenses: termProvenance(active.Origin.Source, "vendor/"+active.Origin.Source+"/", active.Licenses), Attribution: active.Rule.Attribution})
 		}
 	}
 	slices.SortFunc(result.Sources, func(a, b provenanceSource) int { return strings.Compare(a.Name, b.Name) })
@@ -197,4 +198,29 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 		return nil, fmt.Errorf("encode provenance: %w", err)
 	}
 	return append(data, '\n'), nil
+}
+
+// provenanceOrigin preserves explicit nulls for unavailable repository identity fields.
+type provenanceOrigin struct {
+	Source     string  `json:"source"`
+	File       string  `json:"file"`
+	Repository *string `json:"repository"`
+	Ref        *string `json:"ref"`
+	Commit     *string `json:"resolvedCommit"`
+}
+
+// nullableText represents absent optional provenance text as JSON null.
+func nullableText(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+// originProvenance converts internal identity values to the public nullable provenance shape.
+func originProvenance(origin *Origin) *provenanceOrigin {
+	if origin == nil {
+		return nil
+	}
+	return &provenanceOrigin{origin.Source, origin.File, nullableText(origin.Repository), nullableText(origin.Ref), nullableText(origin.Commit)}
 }

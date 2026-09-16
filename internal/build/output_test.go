@@ -112,3 +112,66 @@ func TestPrepareNoPartialOutput(t *testing.T) {
 		t.Fatal("accepted missing terms")
 	}
 }
+
+// TestProvenanceCompatibility keeps source-relative terms and explicit absent identity fields.
+func TestProvenanceCompatibility(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	lib := libraries["team"]
+	lib.Catalog.Licenses = []rules.LicenseDeclaration{{Files: []string{"LICENSE"}, AttributionFiles: []string{"NOTICE"}}}
+	lib.Catalog.SupportingFiles["LICENSE"] = []byte("Terms")
+	lib.Catalog.SupportingFiles["NOTICE"] = []byte("Notice")
+	libraries["team"] = lib
+	resolved, err := build.Resolve(config, libraries, map[string][]byte{"techs/go/local.md": []byte(document)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var data struct {
+		Sources []struct {
+			LicenseFiles []string
+			Licenses     []struct {
+				Files            []string
+				AttributionFiles []string
+			}
+		}
+		Rules []struct {
+			ID                string
+			Origin            map[string]any
+			ReplacementReason json.RawMessage
+			Licenses          []struct{ Files []string }
+		}
+	}
+	if err := json.Unmarshal(output.Files["provenance.json"], &data); err != nil {
+		t.Fatal(err)
+	}
+	source := data.Sources[0]
+	if !reflect.DeepEqual(source.LicenseFiles, []string{"LICENSE", "NOTICE"}) || !reflect.DeepEqual(source.Licenses[0].Files, []string{"LICENSE"}) || !reflect.DeepEqual(source.Licenses[0].AttributionFiles, []string{"NOTICE"}) {
+		t.Fatalf("source paths: %+v", source)
+	}
+	for _, rule := range data.Rules {
+		if string(rule.ReplacementReason) != "null" {
+			t.Fatalf("reason missing for %s", rule.ID)
+		}
+		if strings.HasPrefix(rule.ID, "local:") {
+			for _, field := range []string{"repository", "ref", "resolvedCommit"} {
+				value, present := rule.Origin[field]
+				if !present || value != nil {
+					t.Fatalf("%s: %v", field, rule.Origin)
+				}
+			}
+		} else if !reflect.DeepEqual(rule.Licenses[0].Files, []string{"vendor/team/LICENSE"}) {
+			t.Fatalf("rule paths: %+v", rule)
+		}
+	}
+	resolved.Sources[0].Licenses = nil
+	output, err = build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(output.Files["provenance.json"]), `"licenseFiles": []`) {
+		t.Fatal("missing empty license inventory")
+	}
+}

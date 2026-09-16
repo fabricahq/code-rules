@@ -7,3 +7,7 @@ Declared terms are copied even when all rules from their source are excluded. Re
 Output paths are portable, contained, and free of file/directory conflicts. The returned byte slices belong to the output. No filesystem writes occur. Git authenticity and snapshot freshness remain the import boundary's responsibility; inline combined group delivery and production CLI integration are still unimplemented.
 
 `/walkthrough/pr26` calls the real pipeline on editable fixtures and lets reviewers browse each generated file. Go tests additionally cover binary terms, empty terms, unchanged CRLF bytes, all-excluded sources, replacement provenance, repeatability, and missing-term failure.
+
+## Provenance compatibility
+
+Source declarations keep library-relative `files` and `attributionFiles`; rule declarations use `vendor/<source>/` paths relative to the configuration directory. Both include corresponding generated-root-relative paths. Source records retain the sorted `licenseFiles` compatibility inventory, including an explicit empty array when undeclared. Absent rule replacement reasons and unavailable local origin repository/ref/commit fields are explicit JSON nulls. See the existing [provenance format](../docs/src/content/docs/reference/files.mdx#license-declarations-in-provenance).
