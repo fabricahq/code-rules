@@ -34,9 +34,10 @@ The user approved preparing PRs #17-#21 together. Each dependent PR targets its 
 
 1. Open each PR ready for review and provide its interactive walkthrough, covering only that PR's changes. Do not leave PRs in draft.
 2. Immediately request CodeRabbit review. If CodeRabbit is unavailable, request Devin review instead. Confirm that the reviewer actually starts; a skipped check is not a completed review.
-3. Resolve actionable bot findings as they arrive while the user reviews the walkthrough. Verify findings, update tests, and request another review when needed.
-4. Keep unresolved decisions and merge blockers explicit in the PR. Ready for review does not mean approved to merge.
-5. After human approval and successful checks, merge into `go-migration` and begin the next slice.
+3. For every migration PR, spawn a fresh independent validator subagent using the full [independent validation prompt](independent-validation.md). Supply the PR URL and exact base/head commits. This supplements CodeRabbit or Devin. The validator inspects source and runs checks independently, leaves submitted source unchanged, and reports its verdict, findings, and evidence to the human in this conversation.
+4. Resolve actionable findings while the user reviews the walkthrough. After fixes, have the validator review the new head and intervening diff; do not carry its earlier verdict forward unchanged.
+5. Keep unresolved decisions, incomplete validation, and merge blockers explicit in the PR. Ready for review does not mean approved to merge.
+6. After human approval, resolved feedback, completed independent validation, and successful checks, merge into `go-migration` and begin the next slice. When the user says a PR "is good," that approves the walkthrough and authorizes merging once these conditions are met.
 
 ## Inventory and evidence
 
