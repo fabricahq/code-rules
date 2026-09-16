@@ -19,8 +19,8 @@ func TestVersionSelectionFixtures(t *testing.T) {
 		t.Fatal(err)
 	}
 	var cases []struct {
-		ID, Constraint, Advertisement string
-		Expected                      struct {
+		ID, Constraint, AvailableGitTags string
+		Expected                         struct {
 			Code  rules.VersionSelectionKind
 			Value rules.VersionSelection
 		}
@@ -29,13 +29,13 @@ func TestVersionSelectionFixtures(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, test := range cases {
-		// Exercise each independently authored advertisement and selection expectation.
+		// Exercise each independently authored tag listing and selection expectation.
 		t.Run(test.ID, func(t *testing.T) {
 			constraint, err := rules.ParseVersionConstraint(test.Constraint, "constraint")
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := rules.SelectVersion(test.Advertisement, constraint)
+			got, err := rules.SelectReleaseTag(test.AvailableGitTags, constraint)
 			if test.Expected.Code != "" {
 				var selection *rules.VersionSelectionError
 				if !errors.As(err, &selection) || selection.Kind != test.Expected.Code || got != (rules.VersionSelection{}) {
@@ -60,20 +60,20 @@ func TestVersionSelectionLimits(t *testing.T) {
 	for i := range 20_000 {
 		fmt.Fprintf(&text, "%s\trefs/tags/ordinary-%d\n", strings.Repeat("a", 40), i)
 	}
-	_, err = rules.SelectVersion(text.String(), constraint)
+	_, err = rules.SelectReleaseTag(text.String(), constraint)
 	var selection *rules.VersionSelectionError
 	if !errors.As(err, &selection) || selection.Kind != rules.VersionNotFound {
 		t.Fatalf("exact limit: %v", err)
 	}
 	text.WriteString(strings.Repeat("a", 40) + "\trefs/tags/another\n")
-	_, err = rules.SelectVersion(text.String(), constraint)
+	_, err = rules.SelectReleaseTag(text.String(), constraint)
 	if !errors.As(err, &selection) || selection.Kind != rules.TagLimitExceeded {
 		t.Fatalf("over limit: %v", err)
 	}
-	if _, err := rules.SelectVersion("", rules.VersionConstraint{}); err == nil {
+	if _, err := rules.SelectReleaseTag("", rules.VersionConstraint{}); err == nil {
 		t.Fatal("accepted zero constraint")
 	}
-	_, err = rules.SelectVersion(strings.Repeat("\n", 8*1024*1024+1), constraint)
+	_, err = rules.SelectReleaseTag(strings.Repeat("\n", 8*1024*1024+1), constraint)
 	if !errors.As(err, &selection) || selection.Kind != rules.TagLimitExceeded {
 		t.Fatalf("byte limit: %v", err)
 	}

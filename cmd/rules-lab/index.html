@@ -328,24 +328,23 @@
       </header>
       <h1>Choose a matching release</h1>
       <p class="lede">
-        Select the highest matching release from supplied Git tag
-        advertisements, with deterministic aliases and explicit ambiguity
-        errors.
+        Select the highest matching release from available Git tags, with
+        deterministic aliases and explicit ambiguity errors.
       </p>
       <div class="workspace">
         <section class="panel">
           <div class="label">Invoke the new capability</div>
           <h2>Make the input your own</h2>
           <div class="signature">
-            SelectVersion(advertisement string, constraint VersionConstraint)
-            (VersionSelection, error)
+            SelectReleaseTag(availableGitTags string, constraint
+            VersionConstraint) (VersionSelection, error)
           </div>
           <p class="hint">
-            advertisement is ls-remote --tags output: object SHA, a tab, and
+            availableGitTags is ls-remote --tags output: object SHA, a tab, and
             refs/tags/name on each line. The lab parses the constraint first.
           </p>
           <div class="presets" id="presets"></div>
-          <label for="input">Constraint and tag advertisement</label
+          <label for="input">Constraint and available Git tags</label
           ><textarea id="input" rows="18" spellcheck="false"></textarea>
           <p class="hint">The request goes to the native Go implementation.</p>
           <div class="actions">
@@ -387,7 +386,7 @@
         <h2>Review boundaries</h2>
         <p>
           This function does not contact a repository or fetch a tag. It
-          consumes a bounded advertisement (8 MiB and 20,000 distinct records).
+          consumes a bounded tag listing (8 MiB and 20,000 distinct records).
           Annotated tags include a second name ending in ^{} for their peeled
           commit. No matching version and ambiguous aliases are typed selection
           errors. Fetch-time movement checks remain for the Git-import slice.
@@ -410,17 +409,17 @@
         pr: 20,
         title: "Choose a matching release",
         description:
-          "Select the highest matching release from supplied Git tag advertisements, with deterministic aliases and explicit ambiguity errors.",
+          "Select the highest matching release from available Git tags, with deterministic aliases and explicit ambiguity errors.",
         signature:
-          "SelectVersion(advertisement string, constraint VersionConstraint) (VersionSelection, error)",
+          "SelectReleaseTag(availableGitTags string, constraint VersionConstraint) (VersionSelection, error)",
         inputhelp:
-          "advertisement is ls-remote --tags output: object SHA, a tab, and refs/tags/name on each line. The lab parses the constraint first.",
-        inputlabel: "Constraint and tag advertisement",
+          "availableGitTags is ls-remote --tags output: object SHA, a tab, and refs/tags/name on each line. The lab parses the constraint first.",
+        inputlabel: "Constraint and available Git tags",
         details:
           "Non-version tags are skipped. The highest matching version wins under go-version semantics. Equivalent spellings and build metadata are safe only when they point to the same peeled commit. Lexical tag order chooses a stable spelling. The returned object is the original tag object, allowing later fetch code to detect a moved tag.",
         boundaries:
-          "This function does not contact a repository or fetch a tag. It consumes a bounded advertisement (8 MiB and 20,000 distinct records). Annotated tags include a second name ending in ^{} for their peeled commit. No matching version and ambiguous aliases are typed selection errors. Fetch-time movement checks remain for the Git-import slice.",
-        operation: "selectVersion",
+          "This function does not contact a repository or fetch a tag. It consumes a bounded tag listing (8 MiB and 20,000 distinct records). Annotated tags include a second name ending in ^{} for their peeled commit. No matching version and ambiguous aliases are typed selection errors. Fetch-time movement checks remain for the Git-import slice.",
+        operation: "selectReleaseTag",
         mode: "json",
         location: "selection",
         examples: [
@@ -428,19 +427,19 @@
             name: "Highest unsorted",
             input: {
               constraint: ">= 1.0.0",
-              advertisement:
+              availableGitTags:
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.9.0\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.0\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/v1.10.0\n",
             },
           },
           {
             name: "Empty",
-            input: { constraint: ">= 1.0.0", advertisement: "" },
+            input: { constraint: ">= 1.0.0", availableGitTags: "" },
           },
           {
             name: "Ordinary tags",
             input: {
               constraint: ">= 1.0.0",
-              advertisement:
+              availableGitTags:
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/main\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/1.2\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/v1.2.3\n",
             },
           },
@@ -448,7 +447,7 @@
             name: "Safe aliases",
             input: {
               constraint: ">= 1.0.0",
-              advertisement:
+              availableGitTags:
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/1.2.3\n",
             },
           },
@@ -456,7 +455,7 @@
             name: "Ambiguous",
             input: {
               constraint: ">= 1.0.0",
-              advertisement:
+              availableGitTags:
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/1.2.3\n",
             },
           },
@@ -464,7 +463,7 @@
             name: "Annotated safe",
             input: {
               constraint: ">= 1.0.0",
-              advertisement:
+              availableGitTags:
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3^{}\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/1.2.3\n",
             },
           },
@@ -472,7 +471,7 @@
             name: "Annotated retains object",
             input: {
               constraint: ">= 1.0.0",
-              advertisement:
+              availableGitTags:
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3^{}\n",
             },
           },
@@ -480,7 +479,7 @@
             name: "Annotated conflict",
             input: {
               constraint: ">= 1.0.0",
-              advertisement:
+              availableGitTags:
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3^{}\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/1.2.3\n",
             },
           },
@@ -488,7 +487,7 @@
             name: "Prerelease excluded",
             input: {
               constraint: ">= 1.0.0",
-              advertisement:
+              availableGitTags:
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v2.0.0-beta.1\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.9.0\n",
             },
           },
@@ -496,7 +495,7 @@
             name: "Prerelease selected",
             input: {
               constraint: ">= 1.2.3-beta.1",
-              advertisement:
+              availableGitTags:
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3-beta.1\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3-beta.2\n",
             },
           },
@@ -504,7 +503,7 @@
             name: "Pessimistic",
             input: {
               constraint: "~> 1.2.3",
-              advertisement:
+              availableGitTags:
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.9\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.3.0\n",
             },
           },
@@ -512,7 +511,7 @@
             name: "Short object",
             input: {
               constraint: ">= 1.0.0",
-              advertisement: "abcd\trefs/tags/v1.2.3\n",
+              availableGitTags: "abcd\trefs/tags/v1.2.3\n",
             },
           },
         ],

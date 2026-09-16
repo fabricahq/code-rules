@@ -40,15 +40,15 @@ func (e *VersionSelectionError) Error() string { return e.Problem }
 
 const maxAdvertisedTags = 20_000
 
-// SelectVersion picks the highest matching version using native go-version precedence.
+// SelectReleaseTag picks the highest matching version using native go-version precedence.
 // Ordinary non-version tags are skipped. Equal-precedence aliases must identify the
 // same peeled commit; otherwise selection fails. Tag spelling breaks safe ties.
 // Input is ls-remote --tags output; no Git invocation or filesystem access occurs.
-func SelectVersion(advertisement string, constraint VersionConstraint) (VersionSelection, error) {
+func SelectReleaseTag(availableGitTags string, constraint VersionConstraint) (VersionSelection, error) {
 	if len(constraint.comparisons) == 0 {
 		return VersionSelection{}, invalid("constraint", "version constraint must be parsed before matching")
 	}
-	records, err := tagRecords(advertisement)
+	records, err := tagRecords(availableGitTags)
 	if err != nil {
 		return VersionSelection{}, err
 	}
