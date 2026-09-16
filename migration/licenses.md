@@ -8,10 +8,12 @@ File presence is separate from contents: empty, CRLF, and binary term files are 
 
 SPDX grammar is delegated to [GitHub go-spdx](https://github.com/github/go-spdx), pinned at v2.7.0. The adapter retains case-sensitive identifiers and case-insensitive operators from the reference instead of accepting the dependency's broader normalization shortcuts. It preserves the authored expression. SPDX recognition is syntax validation, not legal advice or a determination that file contents match the declaration. License-list data comes from the pinned dependency; exhaustive equivalence with every future SPDX list is not claimed.
 
-38 independently specified shared cases cover valid compound expressions, WITH exceptions, deprecated identifiers, custom LicenseRef/DocumentRef, case rules, malformed expressions, notices, missing files, and manifest failures. All 656 accumulated comparisons pass. Direct Go tests verify byte preservation and Unicode path order. Existing TypeScript diagnostics encode file and nested field with two colons; the reference adapter recovers that field without modifying the diagnostic message.
+41 independently specified shared cases cover valid compound expressions, WITH exceptions, deprecated identifiers, custom LicenseRef/DocumentRef, case rules, malformed expressions, notices, missing files, and manifest failures. All 659 accumulated comparisons pass. Direct Go tests verify byte preservation and Unicode path order. Existing TypeScript diagnostics encode file and nested field with two colons; the reference adapter recovers that field without modifying the diagnostic message.
 
 Walkthrough: `/walkthrough/pr19`. It supplies manifest text and file names to the real Go function. It reads no user files. Run `go run ./cmd/rules-lab -serve -port 4391`.
 
 This is partial evidence for `formats.licenses`. Actual filesystem loading, output copying, and end-to-end license propagation remain separate. Source and engineering corpus pins are unchanged. Go race tests, vet, and shared fixtures run for this slice; stack-wide checks and independent review remain required before merge.
 
 The adapter validates standard exceptions attached to custom LicenseRef and DocumentRef terms before delegating the remaining grammar to go-spdx. This preserves the reference behavior despite go-spdx v2.7.0 not parsing WITH after custom references. Shared fixtures cover both reference forms and reject a license used as an exception or a plus suffix on custom terms.
+
+Incomplete expressions ending in an opening parenthesis or a DocumentRef colon return ValidationError before reaching go-spdx v2.7.0, which otherwise dereferences a missing token. Regression fixtures cover bare, nested, and trailing-space inputs.
