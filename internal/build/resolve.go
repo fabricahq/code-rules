@@ -53,7 +53,7 @@ type Group struct {
 }
 
 // Source records the adopted revision and complete retained inventory, including excluded rules.
-// Files contains supporting bytes only; active rules own their original documents.
+// Files contains supporting bytes and inactive upstream documents; active rules own their original documents.
 type Source struct {
 	Name            string                     `json:"name"`
 	Repository      string                     `json:"repository"`
@@ -66,7 +66,7 @@ type Source struct {
 	Groups          []string                   `json:"groups"`
 	Licenses        []rules.LicenseDeclaration `json:"licenses"`
 	Paths           []string                   `json:"paths"`
-	Files           map[string][]byte          `json:"supportingFiles"`
+	Files           map[string][]byte          `json:"retainedFiles"`
 }
 
 // Resolved owns effective rules; supporting bytes are shared read-only with the input catalogs.
@@ -170,9 +170,14 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 				return Resolved{}, invalid(source.Name+":"+target, "replacement target is missing from selected groups")
 			}
 		}
+		retained := maps.Clone(supplied.Catalog.SupportingFiles)
+		if retained == nil {
+			retained = map[string][]byte{}
+		}
 		for _, id := range slices.Sorted(maps.Keys(candidates)) {
 			parsed := candidates[id]
 			if _, excluded := source.Exclude[id]; excluded {
+				retained[parsed.Path] = []byte(parsed.Document)
 				continue
 			}
 			origin := Origin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref, Commit: ref.SHA}
@@ -192,13 +197,14 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 				if replacementRule.Group != parsed.Group {
 					return Resolved{}, invalid(replacement.File, "replacement must stay within the target group")
 				}
+				retained[parsed.Path] = []byte(parsed.Document)
 				used[file] = true
 				active = ActiveRule{Rule: replacementRule, Origin: Origin{Source: "local", File: file}, Upstream: &origin, Reason: replacement.Reason, Licenses: []rules.LicenseDeclaration{}}
 			}
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, Source{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: supplied.Tag, ResolvedVersion: selectedVersion, Commit: ref.SHA, Selection: source.Groups, Groups: ids, Licenses: supplied.Catalog.Licenses, Paths: supplied.Catalog.Paths(), Files: supplied.Catalog.SupportingFiles})
+		result.Sources = append(result.Sources, Source{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: supplied.Tag, ResolvedVersion: selectedVersion, Commit: ref.SHA, Selection: source.Groups, Groups: ids, Licenses: supplied.Catalog.Licenses, Paths: supplied.Catalog.Paths(), Files: retained})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {
