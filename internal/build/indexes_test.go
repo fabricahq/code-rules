@@ -97,7 +97,7 @@ func TestIndexPagesRejectsMalformedUTF8(t *testing.T) {
 
 // TestRenderEmptyGroup explains why an adopted group has no rule summaries.
 func TestRenderEmptyGroup(t *testing.T) {
-	config, libraries := fixture(t, `{"techs/go/errors.md":"Not applicable"}`, `{}`)
+	config, libraries := fixture(t, `{"techs/go/errors":"Not applicable"}`, `{}`)
 	resolved, err := build.Resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
