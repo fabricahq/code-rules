@@ -133,7 +133,7 @@ func TestLocalSupportingFilesRemainSupport(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
 	for _, file := range []string{"techs/go/_notes.md", "techs/go/notes.txt", "assets/examples/_group.json", "techs/go/assets/example/_group.json"} {
 		got, err := build.Resolve(config, libraries, map[string][]byte{file: []byte("support")})
-		if err != nil || string(got.LocalFiles[file]) != "support" || len(got.Groups[0].Rules) != 1 {
+		if err != nil || string(got.LocalFiles[file]) != "support" || len(got.Groups[0].Rules) != 1 || !reflect.DeepEqual(got.LocalPaths, []string{file}) {
 			t.Fatalf("%s: %+v, %v", file, got, err)
 		}
 	}

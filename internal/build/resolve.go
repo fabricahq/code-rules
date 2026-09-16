@@ -72,7 +72,8 @@ type Source struct {
 }
 
 // Resolved owns effective rules; supporting bytes are shared read-only with the input catalogs.
-// LocalPaths includes replacement and additional rule paths without duplicating their documents.
+// LocalPaths lists every supplied local path for link resolution, including metadata and attachments.
+// LocalFiles holds supporting bytes; active rules own their documents.
 type Resolved struct {
 	Groups     []Group           `json:"groups"`
 	Sources    []Source          `json:"sources"`
