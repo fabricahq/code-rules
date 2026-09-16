@@ -69,7 +69,7 @@ Otherwise shared assets are omitted. Nested folders and binary files are allowed
 No asset is executed. Markdown assets must be UTF-8 so their standard Markdown references can be checked.
 
 A rule or its assets may link to its own assets, shared assets, and declared library license or notice files.
-Shared assets may link to other shared assets, rules, and declared license files, but cannot depend on one rule's private assets.
+Shared assets may link to other shared assets and declared license files, but cannot depend on one rule's private assets.
 A link into another rule's assets is invalid: move that material to the shared directory.
 Missing local destinations and supporting references elsewhere in the repository fail import.
 In the Go migration, filesystem links to another rule document are invalid, even when the target is selected or retained. This also applies to Markdown attachments, including HTML `href` and `src` attributes. Rules must remain independently selectable; move shared supporting explanations into `assets/`. Self-links and anchors within the same document remain valid. External URLs remain links and are not downloaded.
