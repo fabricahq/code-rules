@@ -111,13 +111,15 @@ func invoke(data []byte) (response, error) {
 		value, err = resolveBuildFixture(req.Input)
 	case "markdownTargets":
 		var input struct {
-			Text string `json:"text"`
-			File string `json:"file"`
+			Text *string `json:"text"`
+			File *string `json:"file"`
 		}
-		if json.Unmarshal(req.Input, &input) != nil || input.File == "" {
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Text == nil || input.File == nil || *input.File == "" {
 			return adapterError("expected text and file"), nil
 		}
-		value, err = rules.MarkdownTargets(input.Text, input.File)
+		value, err = rules.MarkdownTargets(*input.Text, *input.File)
 	case "loadLibrary":
 		if err := validateFixtureText(req.Input); err != nil {
 			return adapterError(err.Error()), nil

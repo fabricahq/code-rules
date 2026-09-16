@@ -82,3 +82,25 @@ func TestRenderPinnedRemoteFallback(t *testing.T) {
 		t.Fatal(output)
 	}
 }
+
+// TestRenderPreservesEntityDestinations prevents a second Markdown decode from changing external URL semantics.
+func TestRenderPreservesEntityDestinations(t *testing.T) {
+	output, err := renderFixture(t, "[x](https://example.com/?q=&amp;copy;)\n", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output["rules/local/techs/go/local.md"], "?q=&amp;copy;") {
+		t.Fatal(output)
+	}
+}
+
+// TestRenderNestsEmptyHeading preserves empty heading structure below the generated Guidance section.
+func TestRenderNestsEmptyHeading(t *testing.T) {
+	output, err := renderFixture(t, "#\nAfter.\n", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output["rules/local/techs/go/local.md"], "###\nAfter.") {
+		t.Fatal(output)
+	}
+}

@@ -103,7 +103,7 @@ func renderBody(body string, active ActiveRule, paths []string, outputPath strin
 					return ast.WalkStop, err
 				}
 				// The existing delimiters remain intact; escape characters that can terminate a destination.
-				value = strings.NewReplacer(" ", "%20", "(", "%28", ")", "%29", "<", "%3C", ">", "%3E", "\\", "%5C").Replace(value)
+				value = strings.NewReplacer("&", "&amp;", " ", "%20", "(", "%28", ")", "%29", "<", "%3C", ">", "%3E", "\\", "%5C").Replace(value)
 				edits = append(edits, edit{index.Start, index.Stop, value})
 			}
 		}
@@ -148,6 +148,11 @@ func headingEdits(root ast.Node, source []byte, title string, edits []edit) []ed
 		}
 		segments := h.Source()
 		if len(segments) == 0 {
+			end := lineEnd(source, h.Pos())
+			for end > h.Pos() && (source[end-1] == '\n' || source[end-1] == '\r') {
+				end--
+			}
+			edits = append(edits, edit{h.Pos(), end, strings.Repeat("#", min(6, h.Level+offset))})
 			continue
 		}
 		start := h.Pos()
