@@ -1,4 +1,4 @@
-/** @fileoverview Browse and edit fixture files before the lab sends them to Go. */
+/** @fileoverview Browse fixture files and configuration before the lab sends them to Go. */
 
 /** Enhance a request textarea without changing file bytes until the user edits them. */
 function mountFixtureFiles(input, onEdit) {
@@ -43,30 +43,50 @@ function mountFixtureFiles(input, onEdit) {
       "Edit groups, sources, and other settings here. Add, rename, or remove files in the files objects.",
     ),
   );
+  const configuration = element("section", "fixture-configuration");
+  configuration.id = "fixture-configuration";
+  configuration.append(
+    element("h3", "", ".code-rules/config.json"),
+    element(
+      "p",
+      "hint",
+      "Project configuration for this scenario. Edit it in Request JSON and settings.",
+    ),
+  );
+  const configText = element("pre", "");
+  configuration.append(configText);
   const switcher = element("div", "fixture-views");
   switcher.setAttribute("role", "group");
   switcher.setAttribute("aria-label", "Input view");
   const filesView = element("button", "", "Files");
   const requestView = element("button", "", "Request JSON and settings");
-  filesView.type = requestView.type = "button";
+  const configView = element("button", "", "config.json");
+  filesView.type = requestView.type = configView.type = "button";
   filesView.setAttribute("aria-controls", section.id);
   requestView.setAttribute("aria-controls", advanced.id);
-  switcher.append(filesView, requestView);
+  configView.setAttribute("aria-controls", configuration.id);
+  configView.hidden = true;
+  switcher.append(filesView, configView, requestView);
+  let currentView = "files";
 
-  // Switch presentation only; both views continue to share the same request.
-  function showView(files) {
-    section.hidden = !files;
-    advanced.hidden = files;
-    filesView.setAttribute("aria-pressed", String(files));
-    requestView.setAttribute("aria-pressed", String(!files));
+  // Switch presentation only; all views share the same request.
+  function showView(view) {
+    currentView = view;
+    section.hidden = view !== "files";
+    advanced.hidden = view !== "request";
+    configuration.hidden = view !== "config";
+    filesView.setAttribute("aria-pressed", String(view === "files"));
+    requestView.setAttribute("aria-pressed", String(view === "request"));
+    configView.setAttribute("aria-pressed", String(view === "config"));
   }
   // Selecting a view never invokes Go or clears an existing result.
-  filesView.addEventListener("click", () => showView(true));
-  requestView.addEventListener("click", () => showView(false));
-  showView(true);
+  filesView.addEventListener("click", () => showView("files"));
+  requestView.addEventListener("click", () => showView("request"));
+  configView.addEventListener("click", () => showView("config"));
+  showView("files");
 
   const label = input.previousElementSibling;
-  input.before(switcher, section, advanced);
+  input.before(switcher, section, configuration, advanced);
   if (label?.matches('label[for="input"]')) advanced.append(label);
   advanced.append(input);
   const workspace = input.closest(".workspace");
@@ -164,6 +184,8 @@ function mountFixtureFiles(input, onEdit) {
 
   // Rebuild from presets or raw JSON, removing stale files when input is invalid.
   function refresh() {
+    configView.hidden = true;
+    configText.textContent = "";
     const previous = selected;
     selected = undefined;
     entries = [];
@@ -182,7 +204,7 @@ function mountFixtureFiles(input, onEdit) {
           "Invalid request JSON. Fix it in Request JSON and settings to view files.",
         ),
       );
-      showView(false);
+      showView("request");
       return;
     }
     const fixture =
@@ -190,6 +212,10 @@ function mountFixtureFiles(input, onEdit) {
         ? request.fixture
         : request;
     if (isObject(fixture)) {
+      if (Object.hasOwn(fixture, "configuration")) {
+        configView.hidden = false;
+        configText.textContent = JSON.stringify(fixture.configuration, null, 2);
+      }
       if (Object.hasOwn(fixture, "files"))
         addRoot(
           `Library: ${typeof fixture.source === "string" && fixture.source ? fixture.source : "library"}`,
@@ -210,8 +236,9 @@ function mountFixtureFiles(input, onEdit) {
           "No input file maps. Edit Request JSON and settings.",
         ),
       );
-      showView(false);
+      showView("request");
     }
+    if (currentView === "config" && configView.hidden) showView("request");
     // Prefer the previous file, then a rule document, then the first available file.
     const initial =
       entries.find(
