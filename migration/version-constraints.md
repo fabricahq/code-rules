@@ -44,15 +44,15 @@ These functions do not fetch tags, select the highest release, inspect files, or
 
 Constraint operands use the library's permissive version parser, including leading zeros and extra components. Actual release tags still require complete strict versions. Constraints retain the existing 1024 UTF-16-unit input limit before trimming surrounding whitespace. Internal spacing stays unchanged.
 
-Prerelease behavior is also native to go-version. Each relational comparison must allow a candidate prerelease; `>= 1.2.3-beta.1` accepts `1.2.3-beta.2`, but adding `< 2.0.0` excludes it. Equality and inequality follow the dependency's own semantics. The tests explicitly cover these differences; do not assume an npm expression translates without checking prerelease intent.
+Prerelease behavior is also native to go-version. Each relational comparison must allow a candidate prerelease; `>= 1.2.3-beta.1` accepts `1.2.3-beta.2`, but adding `< 2.0.0` excludes it. Equality and inequality follow the dependency's own semantics. Do not assume an npm expression translates without checking prerelease intent.
 
 The shipping TypeScript sources and npm documentation remain pinned. This document owns the new Go format until configuration migration and eventual cutover update the product documentation. No deployed configuration is rewritten here.
 
 ## Evidence
 
-The 63 independently authored fixtures include 21 valid constraints, 17 invalid constraints, and 25 matching cases. The shared runner checks the actual pinned TypeScript result separately from the intended Go result. There are 34 new explicitly recorded differences approved by the user's choice of native HashiCorp semantics. All 642 comparisons pass with 230 total approved differences, including earlier slices.
+Ten shared fixtures cover exact and compound constraints, surrounding-space trimming, blank input, the input-length boundary, dependency parse-error translation, and a representative exact match/nonmatch. The shared runner checks the pinned TypeScript result separately from the intended Go result. Four cases retain explicit approved differences; the earlier exhaustive dependency-semantics matrix was removed at the user's request.
 
-Direct Go tests also cover zero constraints, invalid complete versions, typed diagnostic locations, failure without partial parsed values, and reuse. HTTP tests distinguish matching false from validation errors and reject malformed adapter input.
+Direct Go tests cover zero constraints, incomplete release versions, optional v-prefix normalization, typed diagnostic locations, no partial values on failure, parsed-constraint reuse, and Unicode whitespace trimming. HTTP tests verify the serialized success/error boundary and malformed adapter inputs. Version operators, prerelease ordering, and build-metadata semantics remain owned by go-version's tests.
 
 This supplies partial evidence for `formats.versions.01`. Tag selection, ambiguity handling, and actual Git resolution remain pending; no complete capability is marked accepted.
 
@@ -76,7 +76,7 @@ After this PR: complete project configuration parsing; library manifests and lic
 ### Local validation
 
 - Go race tests, vet, and Staticcheck v0.8.1 pass on Go 1.27.1.
-- All 642 shared comparisons pass; 34 new cases explicitly differ from TypeScript.
-- All 25 browser presets return the expected values or errors. Desktop and narrow layouts were inspected; no horizontal overflow or console warnings/errors were observed.
+- All 589 shared comparisons pass for this slice; four constraint cases explicitly differ from TypeScript.
+- All eight browser presets return the expected values or errors. Desktop and narrow layouts were inspected; no horizontal overflow or console warnings/errors were observed.
 - `bun run check` passes: all 444 TypeScript tests, formatting, lint, typecheck, documentation checks/build, and local links. All six installed-package tests pass with a writable temporary npm cache.
 - PR #17 is ready for review against `go-migration`. CodeRabbit acknowledged the manual full review and started processing the branch. Independent review completion and human approval remain separate.

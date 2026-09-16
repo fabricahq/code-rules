@@ -109,3 +109,5 @@ Evidence: [repository address fixtures](../tests/migration/repositories/cases.js
 Evidence: [version constraints](version-constraints.md) and its shared fixtures.
 
 - PR #17 review: trim surrounding whitespace in version constraints, preserving internal spacing. This user-approved normalization applies to parsed configuration versions too.
+
+- Keep dependency integration coverage small: test the behavior we add and representative delegation, rather than duplicating go-version's operator and ordering tests. The PR #17 walkthrough follows the same scope.

@@ -427,31 +427,29 @@
       </div>
       <section class="section">
         <div class="label">Walk through this PR</div>
-        <h2>Three things to inspect</h2>
+        <h2>What our wrapper adds</h2>
         <div class="review">
           <div>
-            <h3>1. Use native syntax</h3>
+            <h3>1. Trim surrounding whitespace</h3>
             <p>
-              Compare <strong>Comma bounds</strong> with
-              <strong>npm caret</strong>. Operators are =, !=, &gt;, &gt;=,
-              &lt;, &lt;=, and ~&gt;. Carets, wildcards, and OR are rejected.
+              Try <strong>Trim spaces</strong>. The parser removes leading and
+              trailing whitespace while preserving internal spacing.
             </p>
           </div>
           <div>
-            <h3>2. Explore the boundaries</h3>
+            <h3>2. Validate release tags</h3>
             <p>
-              Switch to matching. <strong>Patch updates</strong> permits 1.2.9
-              under ~&gt; 1.2.3. <strong>Next minor</strong> excludes 1.3.0. A
-              partial constraint 1.2 means exactly 1.2.0.
+              <strong>Tag prefix</strong> accepts v1.2.3.
+              <strong>Invalid version</strong> returns a validation error for
+              the incomplete release 1.2, with your error location.
             </p>
           </div>
           <div>
-            <h3>3. Check prereleases</h3>
+            <h3>3. Separate nonmatches from errors</h3>
             <p>
-              Compare <strong>Prerelease allowed</strong> with
-              <strong>Stable bound</strong>. Native go-version requires each
-              relational comparison to permit the prerelease; a stable upper
-              bound excludes it.
+              <strong>Exact match</strong> returns true.
+              <strong>Different patch</strong> returns false without an error.
+              Invalid inputs return an error instead.
             </p>
           </div>
         </div>
@@ -470,9 +468,9 @@
           no direct equivalent. Check prerelease intent when converting.
         </p>
         <p>
-          63 new independent cases cover parsing and matching. Shared
-          comparisons record intentional differences from TypeScript separately.
-          Earlier capabilities remain in regression tests.
+          Ten focused fixtures cover our input boundaries and representative
+          integration with go-version. Operator and version-ordering semantics
+          belong to the dependency. Earlier capabilities remain in regression tests.
         </p>
         <details>
           <summary>Run this slice yourself</summary>
@@ -493,32 +491,15 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       const byID = (id) => document.getElementById(id);
       const parseExamples = [
         ["Exact version", "1.2.3"],
-        ["Comma bounds", ">= 1.2.0, < 2.0.0"],
-        ["Patch constraint", "~> 1.2.3"],
-        ["Minor constraint", "~> 1.2"],
-        ["Exclude release", "!= 1.2.3"],
-        ["Partial constraint", "1.2"],
         ["Trim spaces", "  >= 1.2.0  "],
-        ["npm caret", "^1.2.3"],
-        ["npm wildcard", "1.x"],
-        ["npm OR", "1.2.3 || 2.0.0"],
         ["Empty constraint", ""],
-        ["Missing comparison", ">= 1.2.0,"],
+        ["Invalid constraint", "^1.2.3"],
       ];
       const matchExamples = [
         ["Exact match", "1.2.3", "1.2.3"],
         ["Different patch", "1.2.3", "1.2.4"],
-        ["Lower boundary", ">= 1.2.0, < 2.0.0", "1.2.0"],
-        ["Upper boundary", ">= 1.2.0, < 2.0.0", "2.0.0"],
-        ["Patch updates", "~> 1.2.3", "1.2.9"],
-        ["Next minor", "~> 1.2.3", "1.3.0"],
-        ["Minor updates", "~> 1.2", "1.9.0"],
-        ["Partial means exact", "1.2", "1.2.5"],
-        ["Prerelease allowed", ">= 1.2.3-beta.1", "1.2.3-beta.2"],
-        ["Stable bound", ">= 1.2.3-beta.1, < 2.0.0", "1.2.3-beta.2"],
-        ["Invalid version", "~> 1.2.3", "1.2"],
-        ["Empty interval", "> 2.0.0, < 1.0.0", "1.5.0"],
-        ["Build metadata", "= 1.2.3", "v1.2.3+build.7"],
+        ["Tag prefix", "1.2.3", "v1.2.3"],
+        ["Invalid version", "1.2.3", "1.2"],
       ];
       // clearResult discards stale results after any input change.
       function clearResult() {
