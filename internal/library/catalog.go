@@ -410,6 +410,10 @@ func (r *reader) termDirectory(directory string, terms []string) (bool, error) {
 	}
 	for _, entry := range entries {
 		file := directory + "/" + entry.Name()
+		// Group metadata retains its group role even when it also supplies terms.
+		if strings.Count(directory, "/") == 1 && entry.Name() == "_group.json" {
+			return false, nil
+		}
 		if slices.Contains(terms, file) {
 			continue
 		}

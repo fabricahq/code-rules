@@ -309,3 +309,15 @@ func TestMixedTermsDiscoveryCountsOnce(t *testing.T) {
 		}
 	}
 }
+
+// TestMetadataCanAlsoBeATerm preserves an empty group's metadata role during wildcard selection.
+func TestMetadataCanAlsoBeATerm(t *testing.T) {
+	files := validFiles()
+	delete(files, "techs/go/errors.md")
+	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/_group.json","notices":[]}}`
+	_, root := fixture(t, files)
+	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
+	if err != nil || len(got.Groups) != 1 {
+		t.Fatalf("empty group lost: %+v, %v", got, err)
+	}
+}
