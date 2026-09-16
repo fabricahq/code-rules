@@ -91,6 +91,18 @@ func indexDocument(header string, entries []string, footer string) string {
 // RenderIndexes creates summary-only discovery pages for a Resolve result.
 // It never truncates a rule or embeds its body; each summary links to the standalone rendered file.
 func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
+	return renderIndexes(resolved, maxBytes, 0)
+}
+
+// renderIndexes selects complete inline groups when both budgets permit, otherwise paginates summaries.
+func renderIndexes(resolved Resolved, maxBytes, inlineMaxBytes int) (map[string]string, error) {
+	if maxBytes <= 0 {
+		return nil, invalid("indexMaxBytes", "indexMaxBytes must be positive")
+	}
+	if inlineMaxBytes < 0 {
+		return nil, invalid("groupInlineMaxBytes", "groupInlineMaxBytes must be nonnegative")
+	}
+	paths := renderSourcePaths(resolved)
 	output := map[string]string{}
 	groupEntries := []string{}
 	for _, group := range resolved.Groups {
@@ -98,6 +110,17 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 		name := groupTitle(group)
 		cues := groupReadingGuidance(group)
 		groupEntries = append(groupEntries, "### "+name+"\n\n"+cues+"\n\n**Open group:** ["+name+"]("+encodedPath(file)+")")
+		footer := "For other technology and practice groups, open [RULES.md](../../RULES.md). These files are generated. Edit source rules or configuration and rebuild to change them."
+		if inlineMaxBytes > 0 && len(group.Rules) > 0 {
+			page, fits, err := inlineGroupPage(group, paths, file, footer, min(maxBytes, inlineMaxBytes))
+			if err != nil {
+				return nil, err
+			}
+			if fits {
+				output[file] = page
+				continue
+			}
+		}
 		entries := []string{}
 		for _, active := range group.Rules {
 			r := active.Rule
@@ -106,8 +129,7 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 		if len(entries) == 0 {
 			entries = append(entries, "No active rules in this group.")
 		}
-		header := groupIndexHeader(group.ID, name, cues)
-		footer := "For other technology and practice groups, open [RULES.md](../../RULES.md). These files are generated. Edit source rules or configuration and rebuild to change them."
+		header := groupIndexHeader(group.ID, name, cues, false)
 		pages, err := IndexPages(file, header, entries, footer, maxBytes)
 		if err != nil {
 			return nil, err
@@ -124,7 +146,30 @@ func RenderIndexes(resolved Resolved, maxBytes int) (map[string]string, error) {
 	for path, text := range pages {
 		output[path] = text
 	}
+	if err := validateOutputPaths(output); err != nil {
+		return nil, err
+	}
 	return output, nil
+}
+
+// inlineGroupPage returns a whole group or a size miss, without truncation or partial output.
+func inlineGroupPage(group Group, paths map[string][]string, file, footer string, maxBytes int) (string, bool, error) {
+	header := groupIndexHeader(group.ID, groupTitle(group), groupReadingGuidance(group), true)
+	bytes := len(indexDocument(header, nil, footer))
+	entries := []string{}
+	for _, active := range group.Rules {
+		section, err := renderRule(active, paths[active.Origin.Source], file)
+		if err != nil {
+			return "", false, err
+		}
+		section = strings.TrimSuffix(section, "\n")
+		bytes += len(section) + 2
+		if bytes > maxBytes {
+			return "", false, nil
+		}
+		entries = append(entries, section)
+	}
+	return indexDocument(header, entries, footer), true, nil
 }
 
 // groupTitle joins distinct effective names in deterministic order.
@@ -151,7 +196,7 @@ func indexHeader() string {
 		"# Code Rules",
 		"This project uses [Fabrica Code Rules](https://github.com/fabricahq/code-rules) to declare its adopted engineering practices.",
 		"Before planning or writing code, use the descriptions under **Technology and practice group indexes** below to choose which indexes to open. Consider the intended behavior as well as the technology; testing guidance can apply even when no test files have changed.",
-		"Each group page includes summaries with explicit reading links. Exclusions and replacements are already applied.",
+		"Each group page includes full rules or summaries with explicit reading links. Exclusions and replacements are already applied.",
 		fullReadingInstructions,
 		validationInstructions,
 		"## Technology and practice group indexes",
@@ -160,15 +205,21 @@ func indexHeader() string {
 }
 
 // groupIndexHeader combines resolved selection cues with the reference CLI's numbered reading procedure.
-func groupIndexHeader(id, name, cues string) string {
+func groupIndexHeader(id, name, cues string, inline bool) string {
+	mode := "This file contains summaries only. Follow the reading instructions below to load the full rules."
+	read := "2. For every relevant or plausibly relevant rule, open its “Read full rule” link and read the complete file. Complete truncated reads."
+	if inline {
+		mode = "Full rules are included below. Read each relevant or plausibly relevant rule completely before planning, implementation, validation, or diagnosis. Separate rule files remain available for direct references."
+		read = "2. Read every relevant or plausibly relevant rule below completely, including its guidance and exceptions. Complete truncated reads."
+	}
 	return strings.Join([]string{
 		"# " + name,
 		"Group ID: `" + id + "`",
 		cues,
 		"## How to use this group",
-		"This file contains summaries only. Follow the reading instructions below to load the full rules.",
+		mode,
 		"1. Compare each “When to read” cue with your intended task or the behavior you are reviewing.",
-		"2. For every relevant or plausibly relevant rule, open its “Read full rule” link and read the complete file. Complete truncated reads.",
+		read,
 		"3. Apply the full rule’s guidance and exceptions. When present, use Implementation guidance when planning or changing code, and Validation guidance when reviewing, testing, or diagnosing behavior. Use both when your task includes both activities. These sections support the rule’s guidance; they do not replace it. Selection alone is insufficient evidence for a review finding.",
 		"Use “When to read” to select rules. Read and follow every applicable rule, regardless of impact. Impact describes the consequence the rule addresses; it does not determine applicability, override exceptions, or set a review finding’s severity. Assess findings from concrete evidence and consequences.",
 		fullReadingInstructions,

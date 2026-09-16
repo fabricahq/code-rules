@@ -24,18 +24,11 @@ func RulePath(rule rules.Rule) string {
 // Each rule gets one standalone document; combined group delivery is a separate capability.
 func RenderRules(resolved Resolved) (map[string]string, error) {
 	output := map[string]string{}
-	sources := map[string]Source{}
-	for _, source := range resolved.Sources {
-		sources[source.Name] = source
-	}
+	paths := renderSourcePaths(resolved)
 	for _, group := range resolved.Groups {
 		for _, active := range group.Rules {
-			paths := resolved.LocalPaths
-			if active.Origin.Source != "local" {
-				paths = sources[active.Origin.Source].Paths
-			}
 			file := RulePath(active.Rule)
-			text, err := renderRule(active, paths, file)
+			text, err := renderRule(active, paths[active.Origin.Source], file)
 			if err != nil {
 				return nil, err
 			}
@@ -49,6 +42,15 @@ func RenderRules(resolved Resolved) (map[string]string, error) {
 		return nil, err
 	}
 	return output, nil
+}
+
+// renderSourcePaths selects the retained inventory by the resolved rule's actual origin.
+func renderSourcePaths(resolved Resolved) map[string][]string {
+	paths := map[string][]string{"local": resolved.LocalPaths}
+	for _, source := range resolved.Sources {
+		paths[source.Name] = source.Paths
+	}
+	return paths
 }
 
 // renderRule wraps rewritten guidance in applicability, origin, and original frontmatter sections.
@@ -69,7 +71,15 @@ func renderRule(active ActiveRule, paths []string, outputPath string) (string, e
 		return "", err
 	}
 	r := active.Rule
-	lines := []string{"# " + escapeText(r.Title), "", "Rule ID: `" + r.ID + "`", "", "**When to read:** " + escapeText(r.WhenToRead), "", "**Impact:** " + escapeText(string(r.Impact)), "", "**Why it matters:** " + escapeText(r.ImpactDescription), "", "## Guidance", "", body, "", "## Source and attribution", "", "**Rule source:** [Original rule](" + source + ")"}
+	titleHeading := "#"
+	if outputPath != RulePath(r) {
+		titleHeading = "###"
+	}
+	sectionHeading := titleHeading + "#"
+	lines := []string{titleHeading + " " + escapeText(r.Title), "", "Rule ID: `" + r.ID + "`", "", "**When to read:** " + escapeText(r.WhenToRead), "", "**Impact:** " + escapeText(string(r.Impact)), "", "**Why it matters:** " + escapeText(r.ImpactDescription), "", sectionHeading + " Guidance", "", body, "", sectionHeading + " Source and attribution", "", "**Rule source:** [Original rule](" + source + ")"}
+	if outputPath != RulePath(r) {
+		lines = append(lines, "", "**Separate rule file:** ["+escapeText(r.Title)+"]("+relativeURL(outputPath, RulePath(r))+")")
+	}
 	for _, attribution := range r.Attribution {
 		lines = append(lines, "", "**Attribution:** ["+escapeText(attribution.Description)+"](<"+strings.NewReplacer("<", "%3C", ">", "%3E").Replace(attribution.URL)+">)")
 	}
@@ -87,7 +97,7 @@ func renderRule(active ActiveRule, paths []string, outputPath string) (string, e
 			fence = strings.Repeat("`", len(run)+1)
 		}
 	}
-	lines = append(lines, "", "### Source metadata", "", fence+"yaml\n"+split.Frontmatter+"\n"+fence)
+	lines = append(lines, "", sectionHeading+"# Source metadata", "", fence+"yaml\n"+split.Frontmatter+"\n"+fence)
 	return strings.Join(lines, "\n") + "\n", nil
 }
 
@@ -145,6 +155,9 @@ func sourceLink(origin Origin, outputPath string) (string, error) {
 // relocatedURL validates ownership and links local destinations to terms or retained files.
 func relocatedURL(destination string, active ActiveRule, paths []string, outputPath string) (string, error) {
 	if strings.HasPrefix(destination, "#") {
+		if outputPath != RulePath(active.Rule) {
+			return relativeURL(outputPath, RulePath(active.Rule)) + destination, nil
+		}
 		return destination, nil
 	}
 	target, suffix, local, err := rules.RelativeTarget(destination, active.Origin.File)

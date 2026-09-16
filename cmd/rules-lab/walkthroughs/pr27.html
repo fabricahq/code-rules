@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Code Rules · Read short groups in full</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: #fff;
+        --surface: #f6f6f6;
+        --ink: #1c1c1c;
+        --muted: #626262;
+        --line: #d5d5d5;
+        --accent: #245acf;
+        --good: #176546;
+        --bad: #ae2929;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #151515;
+          --surface: #202020;
+          --ink: #f2f2f2;
+          --muted: #b8b8b8;
+          --line: #444;
+          --accent: #94b6ff;
+          --good: #7ed4a7;
+          --bad: #ffa3a3;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          16px/1.6 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1200px;
+        margin: auto;
+        padding: 32px 32px 80px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 20px;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+      a {
+        color: var(--accent);
+      }
+      h1 {
+        font-size: clamp(36px, 5vw, 58px);
+        line-height: 1.08;
+        letter-spacing: -0.045em;
+        margin: 40px 0 20px;
+        max-width: 780px;
+      }
+      h2 {
+        font-size: 25px;
+        letter-spacing: -0.025em;
+        line-height: 1.3;
+        margin: 0 0 15px;
+      }
+      h3 {
+        font-size: 17px;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0 0 16px;
+      }
+      .lede {
+        max-width: 780px;
+        font-size: 19px;
+        color: var(--muted);
+      }
+      .label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--muted);
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-block: 1px solid var(--line);
+        margin: 30px 0 36px;
+      }
+      .flow > div {
+        padding: 20px 24px 20px 0;
+      }
+      .flow span {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .panel {
+        min-width: 0;
+        padding: 28px;
+      }
+      .result {
+        background: var(--surface);
+        border-left: 1px solid var(--line);
+      }
+      button,
+      select,
+      input,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--paper);
+        padding: 9px 13px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--ink);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      button.primary {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+        padding: 11px 22px;
+        font-weight: 600;
+      }
+      select,
+      input,
+      textarea {
+        width: 100%;
+        min-width: 0;
+        background: var(--paper);
+      }
+      input,
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 11px 12px;
+      }
+      textarea {
+        font:
+          14px/1.6 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        resize: vertical;
+        min-height: 145px;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin: 18px 0 6px;
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .presets {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin: 12px 0 20px;
+      }
+      .presets button {
+        font-size: 12px;
+        padding: 5px 9px;
+        border-radius: 20px;
+      }
+      .hint {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .signature {
+        font:
+          13px/1.6 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        overflow-wrap: anywhere;
+        padding: 15px 0;
+        color: var(--muted);
+      }
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .badge {
+        font-size: 12px;
+        padding: 4px 10px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+      }
+      .badge.good {
+        color: var(--good);
+      }
+      .badge.bad {
+        color: var(--bad);
+      }
+      pre {
+        font:
+          13px/1.65 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 0;
+        padding: 18px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        max-height: 420px;
+        overflow: auto;
+      }
+      .result h3 {
+        margin-top: 24px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .section {
+        margin-top: 48px;
+      }
+      .review {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 30px;
+      }
+      .review > div {
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+      }
+      .review p {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.88em;
+        overflow-wrap: anywhere;
+      }
+      details {
+        margin-top: 24px;
+        border-top: 1px solid var(--line);
+        padding-top: 15px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      details p,
+      details pre {
+        margin-top: 14px;
+      }
+      .notice {
+        border-left: 3px solid var(--line);
+        padding-left: 16px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 45px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        color: var(--muted);
+      }
+      @media (max-width: 760px) {
+        main {
+          padding: 20px 18px 45px;
+        }
+        .workspace,
+        .review {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .result {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+        .panel {
+          padding: 20px;
+        }
+        .flow {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .flow > div {
+          padding: 12px 0;
+        }
+        header {
+          flex-wrap: wrap;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="/lab-assets/fixture-files.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <a href="/">CODE RULES / REVIEW COLLECTION</a
+        ><span>PR #27 · Read short groups in full</span>
+      </header>
+      <h1>Read short groups in full</h1>
+      <p class="lede">
+        Read complete rules directly in small group files. Groups that exceed
+        either byte limit fall back to summaries, with standalone rule files
+        always available.
+      </p>
+      <div class="workspace">
+        <section class="panel">
+          <div class="label">Invoke the new capability</div>
+          <h2>Make the input your own</h2>
+          <div class="signature">
+            build.Prepare(resolved, options) (Output, error)
+          </div>
+          <div class="presets" id="presets"></div>
+          <p
+            class="hint scenario-description"
+            id="scenario-description"
+            aria-live="polite"
+          ></p>
+          <label for="input">Group fixture and delivery limits</label
+          ><textarea id="input" rows="18" spellcheck="false"></textarea>
+          <p class="hint">The request goes to the native Go implementation.</p>
+          <div class="actions">
+            <button class="primary" id="invoke">Invoke Go function</button
+            ><span class="hint" id="timing"></span>
+          </div>
+        </section>
+        <section class="panel result">
+          <div class="result-head">
+            <h2>Result</h2>
+            <span class="badge" id="status">Ready</span>
+          </div>
+          <p id="explanation">
+            Invoke Go to inspect its returned data or error.
+          </p>
+          <section id="generated-files" hidden>
+            <label for="generated-path">Generated file</label
+            ><select id="generated-path"></select>
+            <p class="hint" id="generated-size"></p>
+            <div class="fixture-views" aria-label="Generated file view">
+              <button id="view-preview" aria-pressed="true">Preview</button>
+              <button id="view-source" aria-pressed="false">
+                Markdown source
+              </button>
+            </div>
+            <p class="hint">
+              Preview the selected file below. Links are shown for reference;
+              use Generated file to switch files.
+            </p>
+            <iframe
+              id="generated-preview"
+              title="Generated Markdown preview"
+              sandbox=""
+              style="
+                width: 100%;
+                height: clamp(240px, calc(100dvh - 440px), 640px);
+                border: 1px solid var(--line);
+                border-radius: 8px;
+                background: var(--paper);
+              "
+            ></iframe>
+            <pre id="generated-text" hidden></pre>
+          </section>
+          <pre id="output" aria-live="polite">No invocation yet.</pre>
+          <details open>
+            <summary>What this PR does</summary>
+            <p>
+              A complete group, including instructions and all rules, must fit
+              both maxBytes and groupInlineMaxBytes. Omitting
+              groupInlineMaxBytes uses 8 KiB; zero forces summaries. An
+              oversized group falls back as a whole, without truncating any
+              rule. Generated links account for the group’s location, and
+              reference labels stay separate between rules.
+            </p>
+            <p>
+              <code>ok: true</code> means Go returned no error.
+              <code>value</code> contains its result.
+              <code>ok: false</code> includes the returned error and its
+              location. Preview uses a sandbox and disables authored HTML.
+            </p>
+          </details>
+          <h3>What crossed the boundary</h3>
+          <pre id="request">No request sent.</pre>
+        </section>
+      </div>
+      <section class="section">
+        <h2>Review boundaries</h2>
+        <p>
+          This slice adds automatic full-rule group delivery to the existing
+          in-memory build. The output includes standalone rules, indexes, terms,
+          and provenance. No project files are written. PR25 remains a
+          summary-only demonstration.
+        </p>
+        <p>
+          <a href="https://github.com/fabricahq/code-rules/pull/27"
+            >Review the PR on GitHub</a
+          >
+        </p>
+      </section>
+      <footer>
+        Existing Code Rules gallery styling · Native Go · Only this PR's
+        capability
+      </footer>
+    </main>
+    <script src="/lab-assets/fixture-files.js"></script>
+    <script>
+      /** @fileoverview Explain editable scenarios and display native Go results for this PR. */
+      // Locate one named control in this walkthrough.
+      const byID = (id) => document.getElementById(id);
+      // Build one valid library fixture; each scenario changes only the capability under review.
+      function groupFixture(bodies) {
+        const files = {
+          "rule-library.json": JSON.stringify({ formatVersion: 1 }),
+          "techs/go/_group.json": JSON.stringify({
+            name: "Go",
+            description: "Go guidance.",
+            whenToRead: "When writing or reviewing Go code.",
+          }),
+        };
+        bodies.forEach((body, index) => {
+          files[`techs/go/rule-${index}.md`] =
+            `---\ntitle: Rule ${index}\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling fallible functions.\n---\n# Rule ${index}\n\n${body}\n`;
+        });
+        return {
+          fixture: {
+            configuration: {
+              schemaVersion: 1,
+              sources: {
+                team: {
+                  repository: "https://github.com/acme/rules",
+                  ref: "v1.0.0",
+                  groups: ["techs/go"],
+                  exclude: {},
+                  replace: {},
+                },
+              },
+            },
+            libraries: {
+              team: {
+                commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                files,
+              },
+            },
+            localFiles: {},
+          },
+          maxBytes: 8000,
+          toolVersion: "lab",
+        };
+      }
+      const short = groupFixture([
+        "Return errors to the caller.\n\n## Example\n\nCheck the error before using the result.",
+      ]);
+      const shared = groupFixture([
+        "Read [the guide][guide]. Jump to [details](#details).\n\n## Details\n\nFirst rule details.\n\n[guide]: /assets/first.md",
+        "Read [the guide][guide]. Jump to [details](#details).\n\n## Details\n\nSecond rule details.\n\n[guide]: /assets/second.md",
+      ]);
+      shared.fixture.libraries.team.files["assets/first.md"] =
+        "First attachment.";
+      shared.fixture.libraries.team.files["assets/second.md"] =
+        "Second attachment.";
+      const spec = {
+        operation: "prepareOutput",
+        mode: "json",
+        location: "fixture",
+        examples: [
+          {
+            name: "One short rule",
+            description:
+              "Uses one short rule with the default 8 KiB inline limit. Expect its complete guidance directly in groups/techs/go.md, plus a standalone rule file.",
+            input: short,
+          },
+          {
+            name: "Two complete rules",
+            description:
+              "Adds a second short rule. The entire group still fits, so both rules appear in full.",
+            input: groupFixture([
+              "First complete rule body.",
+              "Second complete rule body.",
+            ]),
+          },
+          {
+            name: "Long group",
+            description:
+              "Expands one body beyond 8 KiB. Expect summaries for the entire group and the complete body in its standalone file.",
+            input: groupFixture([
+              "Keep every detail. ".repeat(650),
+              "Second complete rule body.",
+            ]),
+          },
+          {
+            name: "Force summaries",
+            description:
+              "Sets groupInlineMaxBytes to zero on the same short rule. Expect a summary even though the full rule would fit.",
+            input: { ...structuredClone(short), groupInlineMaxBytes: 0 },
+          },
+          {
+            name: "Small index limit",
+            description:
+              "Lowers maxBytes to 2,100 while keeping the default inline limit. The complete group exceeds the index limit and falls back to a summary.",
+            input: { ...structuredClone(short), maxBytes: 2100 },
+          },
+          {
+            name: "Shared labels",
+            description:
+              "Both rules use [guide] and #details. Each guide must keep its own attachment; fragment links point to each rule’s standalone file.",
+            input: shared,
+          },
+          {
+            name: "Empty group",
+            description:
+              "Removes every rule. Expect an explicit empty-group message, without claiming full rules are included.",
+            input: groupFixture([]),
+          },
+          {
+            name: "Invalid limit",
+            description:
+              "Sets groupInlineMaxBytes to -1. Expect a validation error and no partial output.",
+            input: { ...structuredClone(short), groupInlineMaxBytes: -1 },
+          },
+        ],
+      };
+      let previewRequest;
+      let generatedView = "preview";
+      // Switch between formatted Markdown and the exact returned source text.
+      function setGeneratedView(view) {
+        generatedView = view;
+        byID("generated-preview").hidden = view !== "preview";
+        byID("generated-text").hidden = view !== "source";
+        byID("view-preview").setAttribute(
+          "aria-pressed",
+          String(view === "preview"),
+        );
+        byID("view-source").setAttribute(
+          "aria-pressed",
+          String(view === "source"),
+        );
+      }
+      byID("view-preview").onclick = () => setGeneratedView("preview");
+      byID("view-source").onclick = () => setGeneratedView("source");
+      // Clear prior output when the editable input changes.
+      function clearResult() {
+        previewRequest?.abort();
+        byID("generated-preview").removeAttribute("srcdoc");
+        byID("generated-files").hidden = true;
+        byID("output").hidden = false;
+        byID("output").textContent = "No invocation for this input.";
+        byID("status").textContent = "Ready";
+        byID("status").className = "badge";
+        byID("request").textContent = "No request sent.";
+        byID("explanation").textContent =
+          "Input changed. Invoke Go to see its result.";
+        byID("timing").textContent = "";
+      }
+      // Explain and select a preset without invoking Go; its description remains a preset reference after edits.
+      function loadExample(example) {
+        byID("input").value =
+          typeof example.input === "string"
+            ? example.input
+            : JSON.stringify(example.input, null, 2);
+        byID("input").dispatchEvent(new Event("input"));
+        byID("scenario-description").textContent =
+          `Preset: ${example.name}. ${example.description}`;
+        for (const button of byID("presets").querySelectorAll("button")) {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.textContent === example.name),
+          );
+        }
+      }
+      for (const example of spec.examples) {
+        const button = document.createElement("button");
+        button.textContent = example.name;
+        // Load the chosen editable example.
+        button.addEventListener("click", () => loadExample(example));
+        byID("presets").append(button);
+      }
+      byID("input").addEventListener("input", clearResult);
+      loadExample(spec.examples[0]);
+      mountFixtureFiles(byID("input"), clearResult);
+      // Display each native output file without requiring reviewers to decode JSON string escapes.
+      function showGeneratedFiles(result) {
+        const files = result.ok && result.value;
+        const valid =
+          files &&
+          typeof files === "object" &&
+          !Array.isArray(files) &&
+          Object.values(files).every((value) => typeof value === "string");
+        byID("generated-files").hidden = !valid;
+        byID("output").hidden = Boolean(valid);
+        if (!valid) return;
+        const select = byID("generated-path");
+        select.replaceChildren();
+        for (const path of Object.keys(files).sort()) {
+          const option = document.createElement("option");
+          option.value = path;
+          option.textContent = path;
+          select.append(option);
+        }
+        select.value =
+          Object.keys(files)
+            .sort()
+            .find(
+              (path) =>
+                path.startsWith("groups/") &&
+                path !== "groups/README.md" &&
+                !/\.part-\d+\.md$/.test(path),
+            ) || select.value;
+        // Show exact file bytes and request an isolated preview; cancel stale requests when selection changes.
+        async function showFile() {
+          const text = files[select.value] || "";
+          byID("generated-text").textContent = text || "Empty file (0 bytes).";
+          byID("generated-size").textContent =
+            new TextEncoder().encode(text).length +
+            " UTF-8 bytes · " +
+            Object.keys(files).length +
+            " files returned";
+          previewRequest?.abort();
+          const controller = new AbortController();
+          previewRequest = controller;
+          byID("generated-preview").removeAttribute("srcdoc");
+          setGeneratedView(generatedView);
+          try {
+            const response = await fetch("/preview-markdown", {
+              method: "POST",
+              body: text,
+              signal: controller.signal,
+              headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            });
+            const html = await response.text();
+            if (controller.signal.aborted) return;
+            if (!response.ok) throw new Error(html);
+            byID("generated-preview").srcdoc = html;
+          } catch (error) {
+            if (controller.signal.aborted) return;
+            setGeneratedView("source");
+            byID("generated-size").textContent +=
+              " · Preview unavailable; showing source.";
+          }
+        }
+        select.onchange = showFile;
+        showFile();
+      }
+      // Invoke native Go and keep invalid adapter JSON distinct from a domain validation error.
+      byID("invoke").addEventListener("click", async () => {
+        clearResult();
+        let input = byID("input").value;
+        if (spec.mode === "json") {
+          try {
+            input = JSON.parse(input);
+          } catch {
+            byID("status").textContent = "Invalid request JSON";
+            byID("status").className = "badge bad";
+            byID("output").textContent =
+              "The request must be JSON. Go has not been called.";
+            return;
+          }
+        }
+        const body = JSON.stringify({
+          operation: spec.operation,
+          input,
+          location: spec.location,
+        });
+        byID("request").textContent = body;
+        // Freeze controls for the request whose result is being displayed.
+        document
+          .querySelectorAll("button,textarea")
+          .forEach((element) => (element.disabled = true));
+        const started = performance.now();
+        try {
+          const response = await fetch("/invoke", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+          if (!response.ok)
+            throw new Error(
+              "HTTP " + response.status + ": " + (await response.text()),
+            );
+          const result = await response.json();
+          byID("output").textContent = JSON.stringify(result, null, 2);
+          showGeneratedFiles(result);
+          byID("status").textContent = result.ok
+            ? "Returned value"
+            : result.error.name;
+          byID("status").className = "badge " + (result.ok ? "good" : "bad");
+          byID("explanation").textContent = result.ok
+            ? "Go returned successfully. Inspect the data below."
+            : "Go returned an error. No partial result is returned.";
+        } catch (error) {
+          byID("explanation").textContent =
+            "The request failed. No Go result was received.";
+          byID("status").textContent = "Request failed";
+          byID("status").className = "badge bad";
+          byID("output").textContent = String(error);
+        } finally {
+          byID("timing").textContent =
+            Math.round(performance.now() - started) + " ms";
+          // Restore controls after either result.
+          document
+            .querySelectorAll("button,textarea")
+            .forEach((element) => (element.disabled = false));
+        }
+      });
+    </script>
+  </body>
+</html>
