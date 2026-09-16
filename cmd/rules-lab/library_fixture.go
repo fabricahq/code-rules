@@ -27,61 +27,70 @@ type libraryFixture struct {
 	Source string            `json:"source"`
 }
 
-// loadLibraryFixture writes a bounded request into a new directory and removes it after reading.
+// readLibraryFixture writes a bounded request into a new directory and removes it after reading.
 // All paths and link targets stay within that fixture. Callers cannot choose a host directory.
-func loadLibraryFixture(input libraryFixture) (result any, err error) {
+func readLibraryFixture(input libraryFixture) (result library.Catalog, err error) {
 	selection, err := rules.ParseGroupSelection(input.Groups, "groups")
 	if err != nil {
-		return nil, err
+		return library.Catalog{}, err
 	}
 	for path := range input.Files {
 		if !fixturePath(path) {
-			return nil, &rules.ValidationError{Location: "files", Problem: "fixture paths must be contained relative paths"}
+			return library.Catalog{}, &rules.ValidationError{Location: "files", Problem: "fixture paths must be contained relative paths"}
 		}
 	}
 	for path, target := range input.Links {
 		if !fixturePath(path) || !fixturePath(target) {
-			return nil, &rules.ValidationError{Location: "links", Problem: "fixture links must use contained relative paths"}
+			return library.Catalog{}, &rules.ValidationError{Location: "links", Problem: "fixture links must use contained relative paths"}
 		}
 	}
 	directory, err := os.MkdirTemp("", "code-rules-lab-library-")
 	if err != nil {
-		return nil, fmt.Errorf("create library fixture: %v", err)
+		return library.Catalog{}, fmt.Errorf("create library fixture: %v", err)
 	}
 	// Remove only the directory created by this invocation, including after a failed load.
 	defer func() {
 		if cleanupErr := os.RemoveAll(directory); cleanupErr != nil {
-			result = nil
+			result = library.Catalog{}
 			err = fmt.Errorf("remove library fixture: %v (load result: %v)", cleanupErr, err)
 		}
 	}()
 	for path, text := range input.Files {
 		target := filepath.Join(directory, filepath.FromSlash(path))
 		if err := os.MkdirAll(filepath.Dir(target), 0700); err != nil {
-			return nil, fmt.Errorf("create fixture directory: %v", err)
+			return library.Catalog{}, fmt.Errorf("create fixture directory: %v", err)
 		}
 		if err := os.WriteFile(target, []byte(text), 0600); err != nil {
-			return nil, fmt.Errorf("write fixture file: %v", err)
+			return library.Catalog{}, fmt.Errorf("write fixture file: %v", err)
 		}
 	}
 	// Links are created after regular files so writes cannot follow a fixture-supplied link.
 	for path, target := range input.Links {
 		link := filepath.Join(directory, filepath.FromSlash(path))
 		if err := os.MkdirAll(filepath.Dir(link), 0700); err != nil {
-			return nil, fmt.Errorf("create fixture link directory: %v", err)
+			return library.Catalog{}, fmt.Errorf("create fixture link directory: %v", err)
 		}
 		if err := os.Symlink(filepath.Join(directory, filepath.FromSlash(target)), link); err != nil {
-			return nil, fmt.Errorf("create fixture link: %v", err)
+			return library.Catalog{}, fmt.Errorf("create fixture link: %v", err)
 		}
 	}
 	root, err := os.OpenRoot(directory)
 	if err != nil {
-		return nil, fmt.Errorf("open library fixture: %v", err)
+		return library.Catalog{}, fmt.Errorf("open library fixture: %v", err)
 	}
 	defer root.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	catalog, err := library.Load(ctx, root, input.Source, selection)
+	if err != nil {
+		return library.Catalog{}, err
+	}
+	return catalog, nil
+}
+
+// loadLibraryFixture projects the native catalog into readable JSON for the walkthrough.
+func loadLibraryFixture(input libraryFixture) (any, error) {
+	catalog, err := readLibraryFixture(input)
 	if err != nil {
 		return nil, err
 	}
