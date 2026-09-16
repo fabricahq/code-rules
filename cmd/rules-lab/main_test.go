@@ -390,3 +390,23 @@ func TestHTTPVersionConstraints(t *testing.T) {
 		}
 	}
 }
+
+// TestLibraryFixtureBoundary exercises actual disposable filesystem loading and rejects escaped writes.
+func TestLibraryFixtureBoundary(t *testing.T) {
+	for _, test := range []struct {
+		name, input string
+		ok          bool
+	}{
+		{"empty library", `{"files":{"rule-library.json":"{\"formatVersion\":1}"},"groups":"*","source":"team"}`, true},
+		{"escape", `{"files":{"../escape":"x"},"groups":"*","source":"team"}`, false},
+		{"missing manifest", `{"files":{},"groups":"*","source":"team"}`, false},
+	} {
+		// Execute the serialized lab boundary so fixture safety is checked before writes.
+		t.Run(test.name, func(t *testing.T) {
+			got, err := invoke([]byte(`{"operation":"loadLibrary","input":` + test.input + `,"location":"fixture"}`))
+			if err != nil || got.OK != test.ok || (!test.ok && (got.Error == nil || got.Error.Name != "ValidationError")) {
+				t.Fatalf("%+v, %v", got, err)
+			}
+		})
+	}
+}

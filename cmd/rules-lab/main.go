@@ -70,6 +70,14 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "loadLibrary":
+		var input libraryFixture
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Files == nil || input.Source == "" {
+			return adapterError("loadLibrary input must contain files, groups, and source"), nil
+		}
+		value, err = loadLibraryFixture(input)
 	case "selectVersion":
 		var input struct {
 			Advertisement *string `json:"advertisement"`
