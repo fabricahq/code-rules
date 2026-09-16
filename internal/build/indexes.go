@@ -182,14 +182,16 @@ func groupIndexHeader(id, name, cues string) string {
 	}, "\n\n")
 }
 
-// groupReadingGuidance repeats the resolved group cues, labeling sources only when multiple definitions apply.
+// groupReadingGuidance repeats resolved descriptions and reading cues, labeling multiple definitions by source.
 func groupReadingGuidance(group Group) string {
-	if len(group.EffectiveGuidance) == 1 {
-		return "**When to read this group:** " + escapeText(group.EffectiveGuidance[0].Metadata.WhenToRead)
-	}
-	cues := []string{"**When to read this group:**"}
+	blocks := []string{}
 	for _, guidance := range group.EffectiveGuidance {
-		cues = append(cues, "**"+escapeText(guidance.Source)+": "+escapeText(guidance.Metadata.Name)+":** "+escapeText(guidance.Metadata.WhenToRead))
+		metadata := guidance.Metadata
+		text := escapeText(metadata.Description) + "\n\n**When to read this group:** " + escapeText(metadata.WhenToRead)
+		if len(group.EffectiveGuidance) > 1 {
+			text = "**" + escapeText(guidance.Source) + ": " + escapeText(metadata.Name) + ":**\n\n" + text
+		}
+		blocks = append(blocks, text)
 	}
-	return strings.Join(cues, "\n\n")
+	return strings.Join(blocks, "\n\n")
 }
