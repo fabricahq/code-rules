@@ -92,3 +92,5 @@ Human review and merge separate migration iterations.
 ### Review follow-up
 
 CodeRabbit identified a duplicate fixture ID and a test branch that assumed file-link fixtures always succeed. The comparison runner now checks ID uniqueness. An invalid-address link fixture reproduces the test-helper failure and checks exact typed errors after the fix.
+
+Devin also identified a missing required repository field at the lab boundary. Missing fields now return AdapterError; explicit null remains a domain ValidationError. The file-link adapter retains the pinned reference location `repository`, while standalone parsing accepts a caller-supplied location. HTTP tests cover both boundaries.

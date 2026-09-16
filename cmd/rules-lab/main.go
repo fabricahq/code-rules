@@ -77,10 +77,12 @@ func invoke(data []byte) (response, error) {
 		}
 		fields := json.NewDecoder(bytes.NewReader(req.Input))
 		fields.DisallowUnknownFields()
-		if fields.Decode(&input) != nil || input.Commit == nil || input.Path == nil || input.Image == nil {
+		if fields.Decode(&input) != nil || input.Repository == nil || input.Commit == nil || input.Path == nil || input.Image == nil {
 			return adapterError("repositoryFile input must contain repository, commit, path, and image"), nil
 		}
 		var repository rules.Repository
+		// Mirror repositoryFileUrl: its diagnostic location is always "repository".
+		// The standalone repository operation accepts caller-defined locations.
 		repository, err = rules.ParseRepository(input.Repository, "repository")
 		var link *string
 		if err == nil {
