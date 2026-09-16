@@ -219,7 +219,7 @@ func groupIndexHeader(id, name, cues string, inline bool) string {
 	}
 	return strings.Join([]string{
 		"# " + name,
-		"Group ID: `" + id + "`",
+		"**Group ID:** `" + id + "`",
 		cues,
 		"## How to use this group",
 		mode,
