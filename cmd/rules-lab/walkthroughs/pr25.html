@@ -340,11 +340,12 @@
           <div class="signature">
             build.RenderIndexes(resolved, maxBytes) (map[string]string, error)
           </div>
-          <p class="hint">
-            maxBytes is a UTF-8 byte limit for each generated index file. This
-            is a review input, not a change to CLI defaults.
-          </p>
           <div class="presets" id="presets"></div>
+          <p
+            class="hint scenario-description"
+            id="scenario-description"
+            aria-live="polite"
+          ></p>
           <label for="input">Index fixture and byte budget</label
           ><textarea id="input" rows="18" spellcheck="false"></textarea>
           <p class="hint">The request goes to the native Go implementation.</p>
@@ -407,6 +408,7 @@
     </main>
     <script src="/lab-assets/fixture-files.js"></script>
     <script>
+      /** @fileoverview Explain editable scenarios and display native Go results for this PR. */
       // Locate one named control in this walkthrough.
       const byID = (id) => document.getElementById(id);
       const spec = {
@@ -429,6 +431,8 @@
         examples: [
           {
             name: "One group",
+            description:
+              "Uses one Go rule and an 8,000-byte limit per index. Expect RULES.md and a group index linking to the standalone rule.",
             input: {
               fixture: {
                 configuration: {
@@ -462,6 +466,8 @@
           },
           {
             name: "Paginated summaries",
+            description:
+              "Expands the Go group to 12 rules and lowers maxBytes to 1,800. Expect numbered index parts and a directory linking to them.",
             input: {
               fixture: {
                 configuration: {
@@ -517,6 +523,8 @@
           },
           {
             name: "Empty group",
+            description:
+              "Removes the only rule but keeps the Go group metadata. Expect valid indexes for the empty group.",
             input: {
               fixture: {
                 configuration: {
@@ -548,6 +556,8 @@
           },
           {
             name: "Entry too large",
+            description:
+              "Lowers maxBytes to 300 for the single-rule fixture. Expect an error because a summary cannot fit, with no partial output.",
             input: {
               fixture: {
                 configuration: {
@@ -581,6 +591,8 @@
           },
           {
             name: "Directory too large",
+            description:
+              "Uses 90 rules and a 1,000-byte limit. Expect an error because the directory of index parts cannot fit.",
             input: {
               fixture: {
                 configuration: {
@@ -792,6 +804,8 @@
           },
           {
             name: "Zero budget",
+            description:
+              "Sets maxBytes to 0. Expect a validation error because the index byte limit must be positive.",
             input: {
               fixture: {
                 configuration: {
@@ -837,13 +851,21 @@
           "Input changed. Invoke Go to see its result.";
         byID("timing").textContent = "";
       }
-      // Fill an example without sending a request.
+      // Explain and select a preset without invoking Go; its description remains a preset reference after edits.
       function loadExample(example) {
         byID("input").value =
           typeof example.input === "string"
             ? example.input
             : JSON.stringify(example.input, null, 2);
         byID("input").dispatchEvent(new Event("input"));
+        byID("scenario-description").textContent =
+          `Preset: ${example.name}. ${example.description}`;
+        for (const button of byID("presets").querySelectorAll("button")) {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.textContent === example.name),
+          );
+        }
       }
       for (const example of spec.examples) {
         const button = document.createElement("button");
