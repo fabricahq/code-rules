@@ -395,11 +395,11 @@
             <summary>What this PR does</summary>
             <p>
               RULES.md points to group indexes. Every group page repeats its
-              resolved reading cues and the shared reading instructions. Each
-              rule summary links to its standalone file. If an index exceeds the
-              budget, numbered sibling parts and a complete directory replace
-              it. Oversized entries or directories return an error with no
-              partial map.
+              resolved descriptions and reading cues and the shared reading
+              instructions. Each rule summary links to its standalone file. If
+              an index exceeds the budget, numbered sibling parts and a complete
+              directory replace it. Oversized entries or directories return an
+              error with no partial map.
             </p>
             <p>
               <code>ok: true</code> means Go returned no error.
@@ -441,7 +441,7 @@
           "rule-library.json": '{"formatVersion":1}',
           "techs/go/_group.json": JSON.stringify({
             name: "Go",
-            description: "Go guidance.",
+            description: "Conventions for writing and reviewing Go code.",
             whenToRead: "When editing Go.",
           }),
         };
@@ -488,7 +488,7 @@ Return errors to the caller.
           "Summary indexes stay together through 750 Markdown source lines, including instructions and blank lines. Visual wrapping and byte length do not cause pagination.",
         inputlabel: "Index fixture and line limit",
         details:
-          "RULES.md points to group indexes. Every group page repeats its resolved reading cues and the shared reading instructions. Each rule summary links to its standalone file. If an index exceeds the budget, numbered sibling parts and a complete directory replace it. Oversized entries or directories return an error with no partial map.",
+          "RULES.md points to group indexes. Every group page repeats its resolved descriptions and reading cues and the shared reading instructions. Each rule summary links to its standalone file. If an index exceeds the budget, numbered sibling parts and a complete directory replace it. Oversized entries or directories return an error with no partial map.",
         boundaries:
           "This slice creates summary-only discovery indexes in memory. Full rule files are produced by the preceding renderer. Inline combined group delivery and project writes are separate work.",
         operation: "renderIndexes",
@@ -508,15 +508,15 @@ Return errors to the caller.
             input: summaryFixture(12),
           },
           {
-            name: "745 lines",
+            name: "747 lines",
             description:
-              "Uses 60 summaries, producing 745 Markdown source lines including blank lines and instructions. Expect one complete group page.",
+              "Uses 60 summaries, producing 747 Markdown source lines including blank lines and instructions. Expect one complete group page.",
             input: summaryFixture(60),
           },
           {
-            name: "757 lines",
+            name: "759 lines",
             description:
-              "Adds one more rule summary, bringing the unsplit group to 757 lines. It now exceeds 750, so expect numbered pages and a complete parts directory.",
+              "Adds one more rule summary, bringing the unsplit group to 759 lines. It now exceeds 750, so expect numbered pages and a complete parts directory.",
             input: summaryFixture(61),
           },
           {
@@ -537,7 +537,7 @@ Return errors to the caller.
       const localGuidance = structuredClone(spec.examples[0]);
       localGuidance.name = "Local guidance";
       localGuidance.description =
-        "Adds local Go metadata. Expect Project Go and its project-specific reading cue in RULES.md and the group header, with the imported rule unchanged.";
+        "Adds local Go metadata. Expect Project Go and its project-specific description and reading cue in RULES.md and the group header, with the imported rule unchanged.";
       localGuidance.input.fixture.localFiles = {
         "techs/go/_group.json": JSON.stringify({
           name: "Project Go",
