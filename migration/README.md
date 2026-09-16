@@ -26,6 +26,10 @@ The user approved merging [the harness PR #10](https://github.com/fabricahq/code
 The product checkout and private rule corpus had unrelated local changes. This work uses a separate clone and committed corpus contents.
 The harness slice introduced no Go implementation. The merged identity slice added a native package and development adapter; the current slice adds native HashiCorp version constraints and matching. Release publication and scheduled work remain unauthorized. The user-approved validation diagnostic improvements are recorded in [the identity slice](identities.md#user-approved-diagnostic-improvement).
 
+## Concurrent review stack
+
+The user approved preparing PRs #17-#21 together. Each dependent PR targets its predecessor so the review diff contains only the new capability. Keep the branches separate, propagate predecessor fixes forward, and retarget to `go-migration` as predecessors merge. This supersedes the one-pending-PR rule for this batch; human merge approval is still required. Each walkthrough has a stable `/walkthrough/pr<number>` URL.
+
 ## PR review workflow
 
 1. Open each PR ready for review and provide its interactive walkthrough, covering only that PR's changes. Do not leave PRs in draft.

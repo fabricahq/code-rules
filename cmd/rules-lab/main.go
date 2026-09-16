@@ -6,7 +6,7 @@ package main
 import (
 	"bufio"
 	"bytes"
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -25,6 +25,9 @@ import (
 
 //go:embed index.html
 var page []byte
+
+//go:embed walkthroughs/*.html
+var walkthroughs embed.FS
 
 const maxRequestBytes = 1 << 20
 
@@ -119,12 +122,14 @@ func invoke(data []byte) (response, error) {
 			return adapterError("rule input must contain text, path, and source strings"), nil
 		}
 		value, err = rules.Parse(*input.Text, *input.Path, *input.Source)
-	case "groupID", "ruleGroup", "groupMetadata", "document", "gitRef", "tagVersion", "versionConstraint":
+	case "groupID", "ruleGroup", "groupMetadata", "document", "gitRef", "tagVersion", "versionConstraint", "configuration":
 		var text string
 		if len(req.Input) == 0 || bytes.Equal(bytes.TrimSpace(req.Input), []byte("null")) || json.Unmarshal(req.Input, &text) != nil {
 			return adapterError("input must be a string for " + req.Operation), nil
 		}
 		switch req.Operation {
+		case "configuration":
+			value, err = rules.ParseConfiguration(json.RawMessage(text))
 		case "versionConstraint":
 			var constraint rules.VersionConstraint
 			constraint, err = rules.ParseVersionConstraint(text, req.Location)
@@ -178,6 +183,19 @@ func handler(logger *slog.Logger) http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		if _, err := w.Write(page); err != nil {
 			logger.WarnContext(r.Context(), "write lab page failed", "error", err)
+		}
+	})
+	// Serve immutable review pages so later slices do not replace earlier walkthroughs.
+	mux.HandleFunc("GET /walkthrough/{name}", func(w http.ResponseWriter, r *http.Request) {
+		data, err := walkthroughs.ReadFile("walkthroughs/" + r.PathValue("name") + ".html")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		if _, err := w.Write(data); err != nil {
+			logger.WarnContext(r.Context(), "write walkthrough failed", "error", err)
 		}
 	})
 	// Decode a bounded invocation and return its result without logging request contents.
