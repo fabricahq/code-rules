@@ -340,12 +340,12 @@
             build.Resolve(configuration, libraries, localFiles) (Resolved,
             error)
           </div>
-          <p class="hint">
-            Libraries are written into disposable fixtures and loaded by Go.
-            Local files stay in memory. Commits here are supplied fixture
-            identities, not fetched or verified against a Git server.
-          </p>
           <div class="presets" id="presets"></div>
+          <p
+            class="hint scenario-description"
+            id="scenario-description"
+            aria-live="polite"
+          ></p>
           <label for="input">Configuration and source fixtures</label
           ><textarea id="input" rows="18" spellcheck="false"></textarea>
           <p class="hint">The request goes to the native Go implementation.</p>
@@ -403,6 +403,7 @@
     </main>
     <script src="/lab-assets/fixture-files.js"></script>
     <script>
+      /** @fileoverview Explain editable scenarios and display native Go results for this PR. */
       // Locate one named control in this walkthrough.
       const byID = (id) => document.getElementById(id);
       const spec = {
@@ -425,6 +426,8 @@
         examples: [
           {
             name: "Imported rule",
+            description:
+              "Selects techs/go from the team library with no exclusions, replacements, or local rules. Expect one active imported rule.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -455,6 +458,8 @@
           },
           {
             name: "Exclude",
+            description:
+              'Adds techs/go/errors to the team source exclusions with reason "Project policy". Expect no active rules, with the exclusion recorded.',
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -485,6 +490,8 @@
           },
           {
             name: "Replace",
+            description:
+              "Replaces team:techs/go/errors with local/techs/go/custom.md. Expect the local rule to take its place, with replacement history recorded.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -523,6 +530,8 @@
           },
           {
             name: "Local addition",
+            description:
+              "Adds local techs/go/custom.md without replacing the imported rule. Expect both rules to remain active.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -556,6 +565,8 @@
           },
           {
             name: "Local guidance",
+            description:
+              "Adds local techs/go/_group.json with a project-specific description. Expect local group guidance alongside the imported rule.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -589,6 +600,8 @@
           },
           {
             name: "Missing target",
+            description:
+              "Excludes techs/go/missing, which is not in the selected library. Expect an unknown-target error.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -619,6 +632,8 @@
           },
           {
             name: "Missing replacement",
+            description:
+              "Points the replacement at local/techs/go/missing.md without adding that file. Expect a missing-replacement error.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -654,6 +669,8 @@
           },
           {
             name: "Invalid excluded rule",
+            description:
+              "Breaks the imported rule document and excludes it. Expect a validation error: exclusion does not bypass parsing.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -683,6 +700,8 @@
           },
           {
             name: "Local only",
+            description:
+              "Removes the team source and adds local Go group metadata and errors.md. Expect one local rule without an imported library.",
             input: {
               configuration: { schemaVersion: 1, sources: {} },
               libraries: {},
@@ -706,13 +725,21 @@
           "Input changed. Invoke Go to see its result.";
         byID("timing").textContent = "";
       }
-      // Fill an example without sending a request.
+      // Explain and select a preset without invoking Go; its description remains a preset reference after edits.
       function loadExample(example) {
         byID("input").value =
           typeof example.input === "string"
             ? example.input
             : JSON.stringify(example.input, null, 2);
         byID("input").dispatchEvent(new Event("input"));
+        byID("scenario-description").textContent =
+          `Preset: ${example.name}. ${example.description}`;
+        for (const button of byID("presets").querySelectorAll("button")) {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.textContent === example.name),
+          );
+        }
       }
       for (const example of spec.examples) {
         const button = document.createElement("button");

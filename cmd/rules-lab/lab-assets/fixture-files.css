@@ -281,3 +281,15 @@ body:has(.has-fixture-browser) .section {
 .fixture-advanced textarea {
   height: clamp(220px, calc(100dvh - 440px), 560px);
 }
+
+/* Explain the selected preset within the compact input panel. */
+.has-fixture-browser .scenario-description {
+  min-height: 3lh;
+  line-height: 1.45;
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+.has-fixture-browser .presets button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
