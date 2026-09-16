@@ -72,6 +72,9 @@ func invoke(data []byte) (response, error) {
 	var err error
 	switch req.Operation {
 	case "loadLibrary":
+		if err := validateFixtureText(req.Input); err != nil {
+			return adapterError(err.Error()), nil
+		}
 		var input libraryFixture
 		fields := json.NewDecoder(bytes.NewReader(req.Input))
 		fields.DisallowUnknownFields()

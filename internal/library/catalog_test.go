@@ -249,3 +249,20 @@ func TestLoadRejectsReservedSource(t *testing.T) {
 		t.Fatalf("reserved source returned %+v, %v", got, err)
 	}
 }
+
+// TestLoadRejectsHardLinks exercises a real outside file linked into a selected library.
+func TestLoadRejectsHardLinks(t *testing.T) {
+	directory, root := fixture(t, validFiles())
+	outside := filepath.Join(t.TempDir(), "outside.md")
+	if err := os.WriteFile(outside, []byte(document), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(outside, filepath.Join(directory, "techs/go/linked.md")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"})
+	var validation *rules.ValidationError
+	if !errors.As(err, &validation) || !strings.Contains(err.Error(), "hard links") || got.Groups != nil {
+		t.Fatalf("hard link returned %+v, %v", got, err)
+	}
+}

@@ -159,6 +159,10 @@ func (r *reader) read(path string) ([]byte, error) {
 	if !info.Mode().IsRegular() {
 		return nil, bad(path, "expected an ordinary file")
 	}
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || stat.Nlink != 1 {
+		return nil, bad(path, "hard links are unsupported")
+	}
 	data, err := io.ReadAll(io.LimitReader(file, maxFileBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("read library file %s: %v", path, err)

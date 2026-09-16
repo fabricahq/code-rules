@@ -459,3 +459,13 @@ func TestLibraryFixtureBoundary(t *testing.T) {
 		})
 	}
 }
+
+// TestFixtureRejectsNullText prevents JSON null from silently becoming an empty fixture file.
+func TestFixtureRejectsNullText(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(`{"operation":"loadLibrary","location":"fixture","input":{"files":{"rule-library.json":"{\"formatVersion\":1}","extra.txt":null},"groups":[],"source":"team"}}`))
+	recorder := httptest.NewRecorder()
+	handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, req)
+	if !strings.Contains(recorder.Body.String(), `"ok":false`) || !strings.Contains(recorder.Body.String(), `AdapterError`) {
+		t.Fatalf("null text accepted: %s", recorder.Body)
+	}
+}
