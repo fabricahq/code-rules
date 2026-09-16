@@ -29,6 +29,7 @@ const (
 // original Document; SupportingFiles holds only manifest, group metadata, and terms.
 // SupportingFiles also holds complete owned assets and referenced shared assets.
 type Catalog struct {
+	Selection       rules.GroupSelection      `json:"groupSelection"`
 	Groups          []Group                   `json:"groups"`
 	License         *rules.LicenseDeclaration `json:"license"`
 	SupportingFiles map[string][]byte         `json:"supportingFiles"`
@@ -95,7 +96,7 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	if err != nil {
 		return Catalog{}, err
 	}
-	catalog := Catalog{Groups: make([]Group, 0, len(ids)), License: license}
+	catalog := Catalog{Selection: selection, Groups: make([]Group, 0, len(ids)), License: license}
 	for _, id := range ids {
 		group, err := r.group(id, source, terms)
 		if err != nil {

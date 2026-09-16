@@ -74,6 +74,8 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "resolveRules":
+		value, err = resolveBuildFixture(req.Input)
 	case "markdownTargets":
 		var input struct {
 			Text *string `json:"text"`
