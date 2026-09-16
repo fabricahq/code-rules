@@ -338,6 +338,8 @@ They do not independently authenticate a locally modified snapshot against its r
 
 ### License declarations in provenance
 
+The following examples describe the current TypeScript output. The Go migration uses a singular `license` field on each source and rule: one declaration object, or `null` when undeclared. Notice lists and generated term-file paths are unchanged.
+
 Source records include `licenses` with library-relative paths and retain `licenseFiles` for compatibility. The array contains the single library declaration, or is empty when licensing is undeclared.
 Each active imported rule records that same declaration, its `attribution`, and `licenseBasis: "library"`. Its original `files` and `attributionFiles` paths start with `vendor/<source>/` and resolve from the configuration directory, above `generated/`. Both source and rule declarations add `generatedFiles` and `generatedAttributionFiles`, relative to `generated/`. Each generated path corresponds to the original path at the same array position. Generated rule links use these standardized copies.
 Local additions and original local replacements have no imported library license: their `licenses` array is empty and `licenseBasis` is `undeclared`. An upstream rule ID does not assign the upstream license to a local replacement. Its source library's declaration remains in the source record.

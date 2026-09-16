@@ -18,7 +18,7 @@ func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
 	config, libraries := fixture(t, `{"techs/go/errors":"Use local policy"}`, `{}`)
 	supplied := libraries["team"]
 	terms := []byte{'x', '\r', '\n', 0, 255}
-	supplied.Catalog.Licenses = []rules.LicenseDeclaration{{Files: []string{"LICENSE"}, AttributionFiles: []string{"NOTICE"}}}
+	supplied.Catalog.License = &rules.LicenseDeclaration{Files: []string{"LICENSE"}, AttributionFiles: []string{"NOTICE"}}
 	supplied.Catalog.SupportingFiles["LICENSE"] = terms
 	supplied.Catalog.SupportingFiles["NOTICE"] = []byte("Notice\r\n")
 	libraries["team"] = supplied
@@ -106,7 +106,7 @@ func TestPrepareNoPartialOutput(t *testing.T) {
 			t.Fatal("accepted invalid options or returned partial output")
 		}
 	}
-	resolved.Sources[0].Licenses = []rules.LicenseDeclaration{{Files: []string{"missing"}}}
+	resolved.Sources[0].License = &rules.LicenseDeclaration{Files: []string{"missing"}}
 	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
 	if err == nil || output.Files != nil {
 		t.Fatal("accepted missing terms")
@@ -117,7 +117,7 @@ func TestPrepareNoPartialOutput(t *testing.T) {
 func TestProvenanceCompatibility(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
 	lib := libraries["team"]
-	lib.Catalog.Licenses = []rules.LicenseDeclaration{{Files: []string{"LICENSE"}, AttributionFiles: []string{"NOTICE"}}}
+	lib.Catalog.License = &rules.LicenseDeclaration{Files: []string{"LICENSE"}, AttributionFiles: []string{"NOTICE"}}
 	lib.Catalog.SupportingFiles["LICENSE"] = []byte("Terms")
 	lib.Catalog.SupportingFiles["NOTICE"] = []byte("Notice")
 	libraries["team"] = lib
@@ -132,7 +132,7 @@ func TestProvenanceCompatibility(t *testing.T) {
 	var data struct {
 		Sources []struct {
 			LicenseFiles []string
-			Licenses     []struct {
+			License      *struct {
 				Files            []string
 				AttributionFiles []string
 			}
@@ -141,14 +141,14 @@ func TestProvenanceCompatibility(t *testing.T) {
 			ID                string
 			Origin            map[string]any
 			ReplacementReason json.RawMessage
-			Licenses          []struct{ Files []string }
+			License           *struct{ Files []string }
 		}
 	}
 	if err := json.Unmarshal(output.Files["provenance.json"], &data); err != nil {
 		t.Fatal(err)
 	}
 	source := data.Sources[0]
-	if !reflect.DeepEqual(source.LicenseFiles, []string{"LICENSE", "NOTICE"}) || !reflect.DeepEqual(source.Licenses[0].Files, []string{"LICENSE"}) || !reflect.DeepEqual(source.Licenses[0].AttributionFiles, []string{"NOTICE"}) {
+	if source.License == nil || !reflect.DeepEqual(source.LicenseFiles, []string{"LICENSE", "NOTICE"}) || !reflect.DeepEqual(source.License.Files, []string{"LICENSE"}) || !reflect.DeepEqual(source.License.AttributionFiles, []string{"NOTICE"}) {
 		t.Fatalf("source paths: %+v", source)
 	}
 	for _, rule := range data.Rules {
@@ -156,23 +156,32 @@ func TestProvenanceCompatibility(t *testing.T) {
 			t.Fatalf("reason missing for %s", rule.ID)
 		}
 		if strings.HasPrefix(rule.ID, "local:") {
+			if rule.License != nil {
+				t.Fatal("local rule inherited a library license")
+			}
 			for _, field := range []string{"repository", "ref", "resolvedCommit"} {
 				value, present := rule.Origin[field]
 				if !present || value != nil {
 					t.Fatalf("%s: %v", field, rule.Origin)
 				}
 			}
-		} else if !reflect.DeepEqual(rule.Licenses[0].Files, []string{"vendor/team/LICENSE"}) {
+		} else if rule.License == nil || !reflect.DeepEqual(rule.License.Files, []string{"vendor/team/LICENSE"}) {
 			t.Fatalf("rule paths: %+v", rule)
 		}
 	}
-	resolved.Sources[0].Licenses = nil
+	if strings.Contains(string(output.Files["provenance.json"]), `"licenses":`) {
+		t.Fatal("obsolete licenses array in provenance")
+	}
+	resolved.Sources[0].License = nil
 	output, err = build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxBytes: 8000})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(output.Files["provenance.json"]), `"licenseFiles": []`) {
 		t.Fatal("missing empty license inventory")
+	}
+	if err := json.Unmarshal(output.Files["provenance.json"], &data); err != nil || data.Sources[0].License != nil {
+		t.Fatalf("undeclared source license must be null: %s, %v", output.Files["provenance.json"], err)
 	}
 }
 

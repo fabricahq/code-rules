@@ -11,3 +11,5 @@ Output paths are portable, contained, and free of file/directory conflicts. The 
 ## Provenance compatibility
 
 Source declarations keep library-relative `files` and `attributionFiles`; rule declarations use `vendor/<source>/` paths relative to the configuration directory. Both include corresponding generated-root-relative paths. Source records retain the sorted `licenseFiles` compatibility inventory, including an explicit empty array when undeclared. Absent rule replacement reasons and unavailable local origin repository/ref/commit fields are explicit JSON nulls. See the existing [provenance format](../docs/src/content/docs/reference/files.mdx#license-declarations-in-provenance).
+
+The Go model now uses a singular optional `license` on sources and effective rules, including their provenance records. Undeclared licensing is explicit `null`; declared licensing is one object with any required notice files. This user-approved shape differs from the pinned TypeScript `licenses` array. Generated license/notice paths and file contents remain unchanged.

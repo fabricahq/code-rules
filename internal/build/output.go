@@ -49,7 +49,7 @@ func Prepare(resolved Resolved, options Options) (Output, error) {
 		files[file] = []byte(text)
 	}
 	for _, source := range resolved.Sources {
-		for _, license := range source.Licenses {
+		if license := source.License; license != nil {
 			for _, mapping := range licenseMappings(source.Name, license) {
 				data, ok := source.Files[mapping.Source]
 				if !ok {
@@ -87,10 +87,10 @@ func libraryReadme(source Source) string {
 	if source.Tag != "" {
 		sections = append(sections, "**Selected tag:** "+escapeText(source.Tag), "**Selected version:** "+escapeText(source.ResolvedVersion))
 	}
-	if len(source.Licenses) == 0 {
+	if source.License == nil {
 		sections = append(sections, "No library license declaration was supplied.")
 	}
-	for _, license := range source.Licenses {
+	if license := source.License; license != nil {
 		if license.SPDXExpression != nil {
 			sections = append(sections, "**Declared license:** "+escapeText(*license.SPDXExpression))
 		}
@@ -123,7 +123,7 @@ type provenanceSource struct {
 	Groups          []string             `json:"groups"`
 	Selection       rules.GroupSelection `json:"groupSelection"`
 	LicenseFiles    []string             `json:"licenseFiles"`
-	Licenses        []provenanceLicense  `json:"licenses"`
+	License         *provenanceLicense   `json:"license"`
 }
 
 // provenanceGroup retains all guidance plus the sources chosen for display.
@@ -141,28 +141,27 @@ type provenanceRule struct {
 	Upstream     *provenanceOrigin   `json:"upstream"`
 	Reason       *string             `json:"replacementReason"`
 	LicenseBasis string              `json:"licenseBasis"`
-	Licenses     []provenanceLicense `json:"licenses"`
+	License      *provenanceLicense  `json:"license"`
 	Attribution  []rules.Attribution `json:"attribution"`
 }
 
 // termProvenance maps declared source terms to retained workspace and generated paths.
-func termProvenance(source, originalPrefix string, declarations []rules.LicenseDeclaration) []provenanceLicense {
-	result := []provenanceLicense{}
-	for _, license := range declarations {
-		record := provenanceLicense{SPDXExpression: license.SPDXExpression, Files: []string{}, AttributionFiles: []string{}, GeneratedFiles: []string{}, GeneratedAttributionFiles: []string{}}
-		for _, mapping := range licenseMappings(source, license) {
-			original := originalPrefix + mapping.Source
-			if mapping.Kind == "license" {
-				record.Files = append(record.Files, original)
-				record.GeneratedFiles = append(record.GeneratedFiles, mapping.Generated)
-			} else {
-				record.AttributionFiles = append(record.AttributionFiles, original)
-				record.GeneratedAttributionFiles = append(record.GeneratedAttributionFiles, mapping.Generated)
-			}
-		}
-		result = append(result, record)
+func termProvenance(source, originalPrefix string, license *rules.LicenseDeclaration) *provenanceLicense {
+	if license == nil {
+		return nil
 	}
-	return result
+	record := &provenanceLicense{SPDXExpression: license.SPDXExpression, Files: []string{}, AttributionFiles: []string{}, GeneratedFiles: []string{}, GeneratedAttributionFiles: []string{}}
+	for _, mapping := range licenseMappings(source, license) {
+		original := originalPrefix + mapping.Source
+		if mapping.Kind == "license" {
+			record.Files = append(record.Files, original)
+			record.GeneratedFiles = append(record.GeneratedFiles, mapping.Generated)
+		} else {
+			record.AttributionFiles = append(record.AttributionFiles, original)
+			record.GeneratedAttributionFiles = append(record.GeneratedAttributionFiles, mapping.Generated)
+		}
+	}
+	return record
 }
 
 // renderProvenance serializes stable identities and policy outcomes, without redundant raw documents.
@@ -174,7 +173,7 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 		Rules       []provenanceRule   `json:"rules"`
 	}{ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
 	for _, source := range resolved.Sources {
-		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: source.Tag, ResolvedVersion: source.ResolvedVersion, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, LicenseFiles: rules.LicensePaths(source.Licenses), Licenses: termProvenance(source.Name, "", source.Licenses)})
+		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: source.Tag, ResolvedVersion: source.ResolvedVersion, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, LicenseFiles: rules.LicensePaths(source.License), License: termProvenance(source.Name, "", source.License)})
 	}
 	for _, group := range resolved.Groups {
 		effective := []string{}
@@ -195,10 +194,10 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 		result.Groups = append(result.Groups, provenanceGroup{group.ID, guidance, effective})
 		for _, active := range group.Rules {
 			basis := "undeclared"
-			if len(active.Licenses) > 0 {
+			if active.License != nil {
 				basis = "library"
 			}
-			result.Rules = append(result.Rules, provenanceRule{ID: active.Rule.ID, Group: active.Rule.Group, Origin: *originProvenance(&active.Origin), Upstream: originProvenance(active.Upstream), Reason: nullableText(active.Reason), LicenseBasis: basis, Licenses: termProvenance(active.Origin.Source, "vendor/"+active.Origin.Source+"/", active.Licenses), Attribution: active.Rule.Attribution})
+			result.Rules = append(result.Rules, provenanceRule{ID: active.Rule.ID, Group: active.Rule.Group, Origin: *originProvenance(&active.Origin), Upstream: originProvenance(active.Upstream), Reason: nullableText(active.Reason), LicenseBasis: basis, License: termProvenance(active.Origin.Source, "vendor/"+active.Origin.Source+"/", active.License), Attribution: active.Rule.Attribution})
 		}
 	}
 	slices.SortFunc(result.Sources, func(a, b provenanceSource) int { return strings.Compare(a.Name, b.Name) })
