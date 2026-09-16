@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Code Rules · Choose a matching release</title>
+    <title>Code Rules · Migration review collection</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -323,285 +323,109 @@
   <body>
     <main>
       <header>
-        <a href="/">CODE RULES / REVIEW COLLECTION</a
-        ><span>PR #20 · Choose a matching release</span>
+        <strong>CODE RULES / GO MIGRATION</strong
+        ><span>Five PRs · One review collection</span>
       </header>
-      <h1>Choose a matching release</h1>
+      <h1>Your migration review collection.</h1>
       <p class="lede">
-        Select the highest matching release from available Git tags, with
-        deterministic aliases and explicit ambiguity errors.
+        Review these capabilities in order. Each walkthrough invokes native Go
+        and contains only what its PR adds.
       </p>
-      <div class="workspace">
-        <section class="panel">
-          <div class="label">Invoke the new capability</div>
-          <h2>Make the input your own</h2>
-          <div class="signature">
-            SelectReleaseTag(availableGitTags string, constraint
-            VersionConstraint) (VersionSelection, error)
-          </div>
-          <p class="hint">
-            availableGitTags is ls-remote --tags output: object SHA, a tab, and
-            refs/tags/name on each line. The lab parses the constraint first.
+      <div
+        class="review"
+        style="
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(100%, 300px), 1fr)
+          );
+          margin-top: 40px;
+        "
+      >
+        <div>
+          <div class="label">PR #17</div>
+          <h2>Version constraints</h2>
+          <p>
+            Parse HashiCorp constraints and check individual release versions.
           </p>
-          <div class="presets" id="presets"></div>
-          <label for="input">Constraint and available Git tags</label
-          ><textarea id="input" rows="18" spellcheck="false"></textarea>
-          <p class="hint">The request goes to the native Go implementation.</p>
-          <div class="actions">
-            <button class="primary" id="invoke">Invoke Go function</button
-            ><span class="hint" id="timing"></span>
-          </div>
-        </section>
-        <section class="panel result">
-          <div class="result-head">
-            <h2>Result</h2>
-            <span class="badge" id="status">Ready</span>
-          </div>
-          <p id="explanation">
-            Invoke Go to inspect its returned data or error.
+          <p><a href="/walkthrough/pr17">Open interactive walkthrough</a></p>
+          <p>
+            <a href="https://github.com/fabricahq/code-rules/pull/17"
+              >Review code on GitHub</a
+            >
           </p>
-          <pre id="output" aria-live="polite">No invocation yet.</pre>
-          <details open>
-            <summary>What this PR does</summary>
-            <p>
-              Non-version tags are skipped. The highest matching version wins
-              under go-version semantics. Equivalent spellings and build
-              metadata are safe only when they point to the same peeled commit.
-              Lexical tag order chooses a stable spelling. The returned object
-              is the original tag object, allowing later fetch code to detect a
-              moved tag.
-            </p>
-            <p>
-              <code>ok: true</code> means Go returned no error.
-              <code>value</code> contains its result.
-              <code>ok: false</code> includes the returned error and its
-              location. Input text is never inserted as HTML.
-            </p>
-          </details>
-          <h3>What crossed the boundary</h3>
-          <pre id="request">No request sent.</pre>
-        </section>
+        </div>
+        <div>
+          <div class="label">PR #18</div>
+          <h2>Project configuration</h2>
+          <p>
+            Validate source declarations, group choices, and exception policies.
+          </p>
+          <p><a href="/walkthrough/pr18">Open interactive walkthrough</a></p>
+          <p>
+            <a href="https://github.com/fabricahq/code-rules/pull/18"
+              >Review code on GitHub</a
+            >
+          </p>
+        </div>
+        <div>
+          <div class="label">PR #19</div>
+          <h2>License declarations</h2>
+          <p>
+            Check library manifests, SPDX expressions, and declared file
+            presence.
+          </p>
+          <p><a href="/walkthrough/pr19">Open interactive walkthrough</a></p>
+          <p>
+            <a href="https://github.com/fabricahq/code-rules/pull/19"
+              >Review code on GitHub</a
+            >
+          </p>
+        </div>
+        <div>
+          <div class="label">PR #20</div>
+          <h2>Release selection</h2>
+          <p>
+            Choose a release from Git tag advertisements and inspect ambiguity.
+          </p>
+          <p><a href="/walkthrough/pr20">Open interactive walkthrough</a></p>
+          <p>
+            <a href="https://github.com/fabricahq/code-rules/pull/20"
+              >Review code on GitHub</a
+            >
+          </p>
+        </div>
+        <div>
+          <div class="label">PR #21</div>
+          <h2>Local library catalog</h2>
+          <p>
+            Load an isolated on-disk fixture and expand its selected groups.
+          </p>
+          <p><a href="/walkthrough/pr21">Open interactive walkthrough</a></p>
+          <p>
+            <a href="https://github.com/fabricahq/code-rules/pull/21"
+              >Review code on GitHub</a
+            >
+          </p>
+        </div>
       </div>
       <section class="section">
-        <h2>Review boundaries</h2>
+        <h2>How the stack works</h2>
         <p>
-          This function does not contact a repository or fetch a tag. It
-          consumes a bounded tag listing (8 MiB and 20,000 distinct records).
-          Annotated tags include a second name ending in ^{} for their peeled
-          commit. No matching version and ambiguous aliases are typed selection
-          errors. Fetch-time movement checks remain for the Git-import slice.
+          PRs #17-20 have merged into go-migration. PR #21 targets go-migration
+          and remains open for review. Each walkthrough covers only its own
+          slice.
         </p>
         <p>
-          <a href="https://github.com/fabricahq/code-rules/pull/20"
-            >Review the PR on GitHub</a
-          >
+          The first four capabilities operate on supplied data. The local
+          library walkthrough writes a disposable fixture, reads it with the
+          real loader, and removes it before returning. It cannot select a
+          directory on your computer.
         </p>
       </section>
       <footer>
-        Existing Code Rules gallery styling · Native Go · Only this PR's
-        capability
+        Existing Code Rules gallery styling · Real Go functions · No migration
+        PR merged without approval
       </footer>
     </main>
-    <script>
-      // Locate one named control in this walkthrough.
-      const byID = (id) => document.getElementById(id);
-      const spec = {
-        pr: 20,
-        title: "Choose a matching release",
-        description:
-          "Select the highest matching release from available Git tags, with deterministic aliases and explicit ambiguity errors.",
-        signature:
-          "SelectReleaseTag(availableGitTags string, constraint VersionConstraint) (VersionSelection, error)",
-        inputhelp:
-          "availableGitTags is ls-remote --tags output: object SHA, a tab, and refs/tags/name on each line. The lab parses the constraint first.",
-        inputlabel: "Constraint and available Git tags",
-        details:
-          "Non-version tags are skipped. The highest matching version wins under go-version semantics. Equivalent spellings and build metadata are safe only when they point to the same peeled commit. Lexical tag order chooses a stable spelling. The returned object is the original tag object, allowing later fetch code to detect a moved tag.",
-        boundaries:
-          "This function does not contact a repository or fetch a tag. It consumes a bounded tag listing (8 MiB and 20,000 distinct records). Annotated tags include a second name ending in ^{} for their peeled commit. No matching version and ambiguous aliases are typed selection errors. Fetch-time movement checks remain for the Git-import slice.",
-        operation: "selectReleaseTag",
-        mode: "json",
-        location: "selection",
-        examples: [
-          {
-            name: "Highest unsorted",
-            input: {
-              constraint: ">= 1.0.0",
-              availableGitTags:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.9.0\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.0\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/v1.10.0\n",
-            },
-          },
-          {
-            name: "Empty",
-            input: { constraint: ">= 1.0.0", availableGitTags: "" },
-          },
-          {
-            name: "Ordinary tags",
-            input: {
-              constraint: ">= 1.0.0",
-              availableGitTags:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/main\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/1.2\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/v1.2.3\n",
-            },
-          },
-          {
-            name: "Safe aliases",
-            input: {
-              constraint: ">= 1.0.0",
-              availableGitTags:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/1.2.3\n",
-            },
-          },
-          {
-            name: "Ambiguous",
-            input: {
-              constraint: ">= 1.0.0",
-              availableGitTags:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/1.2.3\n",
-            },
-          },
-          {
-            name: "Annotated safe",
-            input: {
-              constraint: ">= 1.0.0",
-              availableGitTags:
-                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3^{}\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/1.2.3\n",
-            },
-          },
-          {
-            name: "Annotated retains object",
-            input: {
-              constraint: ">= 1.0.0",
-              availableGitTags:
-                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3^{}\n",
-            },
-          },
-          {
-            name: "Annotated conflict",
-            input: {
-              constraint: ">= 1.0.0",
-              availableGitTags:
-                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3^{}\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/1.2.3\n",
-            },
-          },
-          {
-            name: "Prerelease excluded",
-            input: {
-              constraint: ">= 1.0.0",
-              availableGitTags:
-                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v2.0.0-beta.1\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.9.0\n",
-            },
-          },
-          {
-            name: "Prerelease selected",
-            input: {
-              constraint: ">= 1.2.3-beta.1",
-              availableGitTags:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3-beta.1\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3-beta.2\n",
-            },
-          },
-          {
-            name: "Pessimistic",
-            input: {
-              constraint: "~> 1.2.3",
-              availableGitTags:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.9\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.3.0\n",
-            },
-          },
-          {
-            name: "Short object",
-            input: {
-              constraint: ">= 1.0.0",
-              availableGitTags: "abcd\trefs/tags/v1.2.3\n",
-            },
-          },
-        ],
-      };
-      // Clear prior output when the editable input changes.
-      function clearResult() {
-        byID("output").textContent = "No invocation for this input.";
-        byID("status").textContent = "Ready";
-        byID("status").className = "badge";
-        byID("request").textContent = "No request sent.";
-        byID("explanation").textContent =
-          "Input changed. Invoke Go to see its result.";
-        byID("timing").textContent = "";
-      }
-      // Fill an example without sending a request.
-      function loadExample(example) {
-        byID("input").value =
-          typeof example.input === "string"
-            ? example.input
-            : JSON.stringify(example.input, null, 2);
-        clearResult();
-      }
-      for (const example of spec.examples) {
-        const button = document.createElement("button");
-        button.textContent = example.name;
-        // Load the chosen editable example.
-        button.addEventListener("click", () => loadExample(example));
-        byID("presets").append(button);
-      }
-      byID("input").addEventListener("input", clearResult);
-      loadExample(spec.examples[0]);
-      // Invoke native Go and keep invalid adapter JSON distinct from a domain validation error.
-      byID("invoke").addEventListener("click", async () => {
-        let input = byID("input").value;
-        if (spec.mode === "json") {
-          try {
-            input = JSON.parse(input);
-          } catch {
-            byID("status").textContent = "Invalid request JSON";
-            byID("status").className = "badge bad";
-            byID("output").textContent =
-              "The request must be JSON. Go has not been called.";
-            return;
-          }
-        }
-        const body = JSON.stringify({
-          operation: spec.operation,
-          input,
-          location: spec.location,
-        });
-        byID("request").textContent = body;
-        // Freeze controls for the request whose result is being displayed.
-        document
-          .querySelectorAll("button,textarea")
-          .forEach((element) => (element.disabled = true));
-        const started = performance.now();
-        try {
-          const response = await fetch("/invoke", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body,
-          });
-          if (!response.ok)
-            throw new Error(
-              "HTTP " + response.status + ": " + (await response.text()),
-            );
-          const result = await response.json();
-          byID("output").textContent = JSON.stringify(result, null, 2);
-          byID("status").textContent = result.ok
-            ? "Returned value"
-            : result.error.name;
-          byID("status").className = "badge " + (result.ok ? "good" : "bad");
-          byID("explanation").textContent = result.ok
-            ? "Go returned successfully. Inspect the data below."
-            : "Go returned an error. No partial result is returned.";
-        } catch (error) {
-          byID("status").textContent = "Request failed";
-          byID("explanation").textContent =
-            "The request failed. No Go result was received.";
-          byID("status").className = "badge bad";
-          byID("output").textContent = String(error);
-        } finally {
-          byID("timing").textContent =
-            Math.round(performance.now() - started) + " ms";
-          // Restore controls after either result.
-          document
-            .querySelectorAll("button,textarea")
-            .forEach((element) => (element.disabled = false));
-        }
-      });
-    </script>
   </body>
 </html>

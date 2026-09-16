@@ -71,6 +71,17 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "loadLibrary":
+		if err := validateFixtureText(req.Input); err != nil {
+			return adapterError(err.Error()), nil
+		}
+		var input libraryFixture
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil || input.Files == nil || input.Source == "" {
+			return adapterError("loadLibrary input must contain files, groups, and source"), nil
+		}
+		value, err = loadLibraryFixture(input)
 	case "selectReleaseTag":
 		var input struct {
 			AvailableGitTags *string `json:"availableGitTags"`

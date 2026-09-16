@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/fabricahq/code-rules/internal/rules"
 	"io"
 	"log/slog"
 	"net/http"
@@ -16,6 +14,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // TestHTTPValidationDoesNotLogInput checks that expected validation failures never expose user input in logs.
@@ -268,7 +268,7 @@ func TestHTTPParsesCompleteRule(t *testing.T) {
 				t.Fatalf("HTTP %d: %s", recorder.Code, recorder.Body)
 			}
 			if test.errorName == "" {
-				if !got.OK || got.Value["id"] != "team:techs/go/example" || got.Value["metadata"] != metadata || got.Value["body"] != " Body  \r\n" {
+				if !got.OK || got.Value["id"] != "team:techs/go/example" || got.Value["document"] != test.text {
 					t.Fatalf("unexpected rule: %s", recorder.Body)
 				}
 			} else if got.OK || got.Value != nil || got.Error == nil || got.Error.Name != test.errorName || !strings.HasPrefix(got.Error.Location, "team:techs/go/example.md") {
@@ -437,5 +437,35 @@ func TestReleaseTagTransportLimits(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// TestLibraryFixtureBoundary exercises actual disposable filesystem loading and rejects escaped writes.
+func TestLibraryFixtureBoundary(t *testing.T) {
+	for _, test := range []struct {
+		name, input string
+		ok          bool
+	}{
+		{"empty library", `{"files":{"rule-library.json":"{\"formatVersion\":1}"},"groups":"*","source":"team"}`, true},
+		{"escape", `{"files":{"../escape":"x"},"groups":"*","source":"team"}`, false},
+		{"missing manifest", `{"files":{},"groups":"*","source":"team"}`, false},
+	} {
+		// Execute the serialized lab boundary so fixture safety is checked before writes.
+		t.Run(test.name, func(t *testing.T) {
+			got, err := invoke([]byte(`{"operation":"loadLibrary","input":` + test.input + `,"location":"fixture"}`))
+			if err != nil || got.OK != test.ok || (!test.ok && (got.Error == nil || got.Error.Name != "ValidationError")) {
+				t.Fatalf("%+v, %v", got, err)
+			}
+		})
+	}
+}
+
+// TestFixtureRejectsNullText prevents JSON null from silently becoming an empty fixture file.
+func TestFixtureRejectsNullText(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(`{"operation":"loadLibrary","location":"fixture","input":{"files":{"rule-library.json":"{\"formatVersion\":1}","extra.txt":null},"groups":[],"source":"team"}}`))
+	recorder := httptest.NewRecorder()
+	handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, req)
+	if !strings.Contains(recorder.Body.String(), `"ok":false`) || !strings.Contains(recorder.Body.String(), `AdapterError`) {
+		t.Fatalf("null text accepted: %s", recorder.Body)
 	}
 }

@@ -78,8 +78,7 @@ func FuzzParse(f *testing.F) {
 			}
 			return
 		}
-		raw, err := rules.SplitDocument(text, "rule")
-		if err != nil || got.Metadata != raw.Frontmatter || got.Body != raw.Body {
+		if got.Document != text {
 			t.Fatal("successful parse changed authored text")
 		}
 	})
@@ -92,8 +91,7 @@ func TestParseManyEscapedScalars(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	original, err := rules.SplitDocument(text, "rule")
-	if err != nil || got.Metadata != original.Frontmatter || got.Title != "🐹" {
+	if got.Document != text || got.Title != "🐹" {
 		t.Fatal("large document lost its values or original text")
 	}
 }
