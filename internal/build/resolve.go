@@ -225,7 +225,7 @@ func Resolve(config rules.Configuration, libraries map[string]Library, localFile
 	}
 	for _, id := range slices.Sorted(maps.Keys(groups)) {
 		group := groups[id]
-		slices.SortFunc(group.Rules, func(a, b ActiveRule) int { return strings.Compare(a.Rule.ID, b.Rule.ID) })
+		slices.SortFunc(group.Rules, func(a, b ActiveRule) int { return compareRuleIDs(a.Rule.ID, b.Rule.ID) })
 		slices.SortFunc(group.Guidance, func(a, b Guidance) int { return strings.Compare(a.Source, b.Source) })
 		group.EffectiveGuidance = resolveGuidance(group.Guidance)
 		result.Groups = append(result.Groups, *group)
@@ -340,4 +340,47 @@ func selectedVersion(source rules.Source, supplied Library) (string, error) {
 		return "", invalid(source.Name, "selected release does not satisfy the configured version constraint")
 	}
 	return version, nil
+}
+
+// compareRuleIDs compares digit runs numerically and other bytes lexically, without integer overflow.
+// Numerically equivalent spellings use the full ID as a deterministic tie-breaker.
+func compareRuleIDs(a, b string) int {
+	left, right := a, b
+	for len(left) > 0 && len(right) > 0 {
+		if left[0] >= '0' && left[0] <= '9' && right[0] >= '0' && right[0] <= '9' {
+			i, j := digitRunEnd(left), digitRunEnd(right)
+			x, y := strings.TrimLeft(left[:i], "0"), strings.TrimLeft(right[:j], "0")
+			if len(x) < len(y) {
+				return -1
+			}
+			if len(x) > len(y) {
+				return 1
+			}
+			if order := strings.Compare(x, y); order != 0 {
+				return order
+			}
+			left, right = left[i:], right[j:]
+			continue
+		}
+		if left[0] < right[0] {
+			return -1
+		}
+		if left[0] > right[0] {
+			return 1
+		}
+		left, right = left[1:], right[1:]
+	}
+	if order := strings.Compare(left, right); order != 0 {
+		return order
+	}
+	return strings.Compare(a, b)
+}
+
+// digitRunEnd finds the end of a leading ASCII decimal run in a rule ID.
+func digitRunEnd(text string) int {
+	i := 0
+	for i < len(text) && text[i] >= '0' && text[i] <= '9' {
+		i++
+	}
+	return i
 }

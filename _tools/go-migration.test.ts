@@ -29,9 +29,11 @@ afterAll(async () => {
   if (root) await rm(root, { recursive: true, force: true });
 });
 
+/** Run the real comparator and retain its evidence for cleanup, with optional child-only instrumentation. */
 async function run(
   candidate: string,
   name: string,
+  env: NodeJS.ProcessEnv = process.env,
 ): Promise<{
   readonly status: number | null;
   readonly report: Record<string, unknown>;
@@ -50,7 +52,7 @@ async function run(
       '--report',
       reportPath,
     ],
-    { encoding: 'utf8', timeout: 90_000 },
+    { encoding: 'utf8', timeout: 90_000, env },
   );
   expect(result.error).toBeUndefined();
   expect(result.status, result.stderr).not.toBe(2);
@@ -77,9 +79,16 @@ async function mutant(name: string, mutation: string): Promise<string> {
 }
 
 test('should pass real reference comparisons and independent assertions in separate workspaces', async () => {
-  const result = await run(executable, 'reference-self');
+  const trace = join(root, 'git-trace.log');
+  const result = await run(executable, 'reference-self', {
+    ...process.env,
+    GIT_TRACE: trace,
+  });
   expect(result.status, JSON.stringify(result.report.results)).toBe(0);
   expect(result.report.passed).toBe(true);
+  const gitTrace = await readFile(trace, 'utf8');
+  expect(gitTrace).toContain('git commit');
+  expect(gitTrace).not.toMatch(/git (?:maintenance run|gc) --auto/);
 }, 90_000);
 
 test('should reject a candidate that reports the wrong version output', async () => {

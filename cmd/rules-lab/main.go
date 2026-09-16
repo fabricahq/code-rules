@@ -75,6 +75,35 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "indexPages":
+		var input struct {
+			File     string   `json:"file"`
+			Header   string   `json:"header"`
+			Entries  []string `json:"entries"`
+			Footer   string   `json:"footer"`
+			MaxLines int      `json:"maxLines"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil {
+			return adapterError("expected index page fields"), nil
+		}
+		value, err = build.IndexPages(input.File, input.Header, input.Entries, input.Footer, input.MaxLines)
+	case "renderIndexes":
+		var input struct {
+			Fixture  json.RawMessage `json:"fixture"`
+			MaxLines int             `json:"maxLines"`
+		}
+		fields := json.NewDecoder(bytes.NewReader(req.Input))
+		fields.DisallowUnknownFields()
+		if fields.Decode(&input) != nil {
+			return adapterError("expected fixture and maxLines"), nil
+		}
+		var resolved build.Resolved
+		resolved, err = resolveBuildFixture(input.Fixture)
+		if err == nil {
+			value, err = build.RenderIndexes(resolved, input.MaxLines)
+		}
 	case "renderRules":
 		var resolved build.Resolved
 		resolved, err = resolveBuildFixture(req.Input)
@@ -249,6 +278,7 @@ func adapterError(message string) response {
 // handler serves the walkthrough and bounded, same-origin invocations without logging user content.
 func handler(logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /preview-markdown", markdownPreview(logger))
 	// Serve the embedded walkthrough and report an undeliverable page once.
 	mux.Handle("GET /lab-assets/", http.FileServerFS(labAssets))
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
