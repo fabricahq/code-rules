@@ -120,9 +120,11 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 			config, libraries := fixture(t, `{}`, `{}`)
 			var files map[string][]byte
 			want, unwanted := "When editing Go.", ""
+			description, unwantedDescription := "Go guidance.", ""
 			if local {
 				files = map[string][]byte{"techs/go/_group.json": []byte(`{"name":"Project Go","description":"Project guidance.","whenToRead":"When editing this project."}`)}
 				want, unwanted = "When editing this project.", "When editing Go."
+				description, unwantedDescription = "Project guidance.", "Go guidance."
 			}
 			resolved, err := build.Resolve(config, libraries, files)
 			if err != nil {
@@ -144,6 +146,9 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 			for file, page := range pages {
 				if !strings.Contains(page, "**When to read this group:** "+want) || (unwanted != "" && strings.Contains(page, unwanted)) {
 					t.Fatalf("%s lost resolved guidance: %s", file, page)
+				}
+				if !strings.Contains(page, description+"\n\n**When to read this group:**") || (unwantedDescription != "" && strings.Contains(page, unwantedDescription)) {
+					t.Fatalf("%s lost resolved description or included overridden description", file)
 				}
 				instructions := []string{"These files are generated. Edit source rules or configuration and rebuild to change them.", "Read the full text of every applicable or plausibly applicable rule", "Cite rule IDs and concrete evidence for findings"}
 				if strings.HasPrefix(file, "groups/") {
@@ -177,7 +182,7 @@ func TestGroupPagesKeepMultipleSourceCues(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, file := range []string{"RULES.md", "groups/techs/go.md"} {
-		for _, cue := range []string{"**team: Go:** When editing Go.", "**second: Go Services:** When reviewing services."} {
+		for _, cue := range []string{"**team: Go:**\n\nGo guidance.\n\n**When to read this group:** When editing Go.", "**second: Go Services:**\n\nOther guidance.\n\n**When to read this group:** When reviewing services."} {
 			if !strings.Contains(pages[file], cue) {
 				t.Fatalf("%s omitted %q", file, cue)
 			}
@@ -251,5 +256,24 @@ func TestOrdinarySummaryStaysTogether(t *testing.T) {
 	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
 	if err != nil || len(pages) != 2 {
 		t.Fatalf("twelve summaries should stay together: %v", err)
+	}
+}
+
+// TestGroupDescriptionsEscapeMarkdown keeps authored descriptions from adding links or headings.
+func TestGroupDescriptionsEscapeMarkdown(t *testing.T) {
+	config, libraries := fixture(t, "{}", "{}")
+	resolved, err := build.Resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved.Groups[0].EffectiveGuidance[0].Metadata.Description = "[guide](https://example.com)\n# Heading"
+	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range []string{"RULES.md", "groups/techs/go.md"} {
+		if !strings.Contains(pages[file], `\[guide\]\(https://example.com\) \# Heading`) {
+			t.Fatalf("%s description was not escaped: %s", file, pages[file])
+		}
 	}
 }
