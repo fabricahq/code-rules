@@ -1,6 +1,6 @@
 # Exact refs and version tags: sixth Go slice
 
-Status: implemented on `codex/go-refs`, awaiting review. The walkthrough covers only this slice.
+Status: human-approved and merged in PR #16 at `76e30d5c29881a4f74821a5b3bb23a3e1683ca96`. All 15 checks passed; Devin completed review on the approved head.
 
 Base: `ef88c4c6e7d7061da428a8c5783e84e7b3c6906e`, the approved PR #15 merge into `go-migration`.
 TypeScript reference: `7013d3d374a33a5cf65a2a48ff6870e46f9d7209`.
@@ -32,7 +32,7 @@ The implementation preserves the pinned npm parser's core-number and length limi
 
 ## Contract evidence
 
-This supplies partial evidence for `formats.versions.01`: exact refs and strict version-tag validation. npm range parsing and matching, including prerelease exclusion, remain pending. `formats.versions.02` and `.03` still require tag resolution and ambiguity handling. No full capability is marked complete.
+This supplies partial evidence for `formats.versions.01`: exact refs and strict version-tag validation. Constraint parsing and matching follow in the [next slice](version-constraints.md), using user-approved native HashiCorp semantics. `formats.versions.02` and `.03` still require tag resolution and ambiguity handling. No full capability is marked complete.
 
 The baseline and comparison policy are unchanged. The user approved changing TagVersion from recognition to validation: 28 non-version fixtures retain the reference null result separately from the Go error. Accepted-version syntax is unchanged. The earlier rule parser's documented CR-only YAML gap remains separate.
 
@@ -57,7 +57,7 @@ The implementation follows the existing [Go conventions](../_internal/go-convent
 
 ## Next boundary
 
-npm-compatible range parsing is the next prerequisite for complete configuration parsing. An isolated evaluation of `deps.dev/util/semver` found differences from the pinned npm parser for empty OR arms, leading zeros, wildcard placement, numeric bounds, and whitespace. It is not a drop-in replacement. No dependency or partial range implementation from that evaluation is included here.
+The next slice implements [native HashiCorp version constraints](version-constraints.md), as explicitly requested by the user after this PR. That decision supersedes npm syntax compatibility for the Go target.
 
 Human review and merge separate migration iterations.
 
@@ -68,4 +68,4 @@ Human review and merge separate migration iterations.
 - `bun run check` passes, including all 444 tests, formatting, lint, typecheck, documentation build, and link checks.
 - All six installed-package tests pass.
 - All 20 browser examples return expected results. Desktop and 390px layouts have no horizontal overflow or console errors.
-- Local autoreview could not run: automatic approval review rejected its unspecified external code destination. The PR requests the explicitly authorized CodeRabbit review, with Devin as fallback. Independent review is pending.
+- Local autoreview could not run: automatic approval review rejected its unspecified external code destination. The PR requests the explicitly authorized CodeRabbit review, with Devin as fallback. CodeRabbit was unavailable; Devin completed review successfully before the authorized merge.

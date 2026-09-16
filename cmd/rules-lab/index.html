@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Code Rules · Git ref lab</title>
+    <title>Code Rules · Version constraint lab</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -324,44 +324,58 @@
     <main>
       <header>
         <strong>CODE RULES / GO MIGRATION</strong
-        ><span>Slice 06 · Exact refs and version tags</span>
+        ><span>Slice 07 · Version constraints</span>
       </header>
-      <h1>Name a revision.<br />Validate a version.</h1>
+      <h1>Define a range.<br />Test a release.</h1>
       <p class="lede">
-        A Git tag can be a release version or an arbitrary name. Explore two new
-        Go functions that classify these inputs before any repository is
-        contacted.
+        Use HashiCorp go-version constraints to express which releases are
+        allowed. Invoke the real Go parser and matcher below.
       </p>
       <div class="flow">
         <div>
-          <strong>01 &nbsp; An authored ref</strong
-          ><span>A complete commit SHA or exact tag name</span>
+          <strong>01 &nbsp; Write a constraint</strong
+          ><span>Use comparisons, commas, or ~&gt;</span>
         </div>
         <div>
-          <strong>02 &nbsp; Explicit meaning</strong
-          ><span>Commit or tag, with no branch inference</span>
+          <strong>02 &nbsp; Parse once</strong
+          ><span>Keep the original text and parsed comparisons</span>
         </div>
         <div>
-          <strong>03 &nbsp; A version, if present</strong
-          ><span>Strict major.minor.patch, with optional suffixes</span>
+          <strong>03 &nbsp; Match releases</strong
+          ><span>Every comparison must accept the version</span>
         </div>
       </div>
       <div class="workspace">
         <section class="panel" aria-labelledby="input-heading">
           <div class="label">Invoke a new function</div>
-          <h2 id="input-heading">Explore refs and tags</h2>
+          <h2 id="input-heading">Explore version constraints</h2>
           <label for="operation">Operation</label>
           <select id="operation">
-            <option value="gitRef">Parse an exact Git ref</option>
-            <option value="tagVersion">Validate a version tag</option>
+            <option value="versionConstraint">
+              Parse a version constraint
+            </option>
+            <option value="versionMatch">Match a version</option>
           </select>
           <div class="signature" id="signature"></div>
           <p class="hint" id="operation-hint"></p>
           <div class="presets" id="presets" aria-label="Example inputs"></div>
-          <label for="input">Ref or tag text</label
+          <label for="input">Version constraint</label
           ><input id="input" spellcheck="false" aria-describedby="input-hint" />
           <p id="input-hint" class="hint">
-            Enter plain text. Spaces are preserved and sent to Go.
+            Plain text, for example &gt;= 1.2.0, &lt; 2.0.0. Commas mean AND.
+          </p>
+          <div id="version-field">
+            <label for="version">Release version</label
+            ><input id="version" spellcheck="false" />
+            <p class="hint">
+              A complete version such as 1.2.3 or v1.2.3-beta.1.
+            </p>
+          </div>
+          <label for="location">Error location</label
+          ><input id="location" value="release" spellcheck="false" />
+          <p class="hint">
+            A caller-supplied diagnostic label. Matching appends .constraint or
+            .version to identify the invalid input. No file is opened.
           </p>
           <div class="actions">
             <button class="primary" id="invoke">Invoke Go function</button
@@ -380,35 +394,33 @@
           <details open>
             <summary>How to read the result</summary>
             <p>
-              <code>ParseGitRef</code> returns either a lowercase 40-digit
-              commit SHA or a tag name beginning with <code>refs/tags/</code>. A
-              bare <code>main</code> means the tag named main. Explicit branch
-              refs are rejected.
+              <code>ParseVersionConstraint</code> returns a reusable constraint
+              and an error. The adapter shows its <code>String()</code> value,
+              preserving the authored text.
             </p>
             <p>
-              <code>TagVersion</code> requires an unqualified tag containing a
-              complete semantic version. It removes one optional lowercase
-              <code>v</code> and retains prerelease and build suffixes. Success
-              returns <code>(version, nil)</code>.
+              <code>Matches</code> returns <code>(bool, error)</code>. A
+              complete version inside the constraint returns
+              <code>(true, nil)</code>; a complete version outside it returns
+              <code>(false, nil)</code>.
             </p>
             <p>
-              <code>ok: true</code> means the function returned without an
-              error; <code>value</code> is the validated version string.
-              <code>ok: false</code> means Go returned an error. Partial
-              versions and ordinary non-version tags now produce a
-              <code>ValidationError</code>, with an empty Go string result.
+              <code>ok: true</code> means Go returned no error.
+              <code>value: false</code> means a valid version did not match.
+              Invalid constraint syntax or an incomplete version returns an
+              error, shown as <code>ok: false</code>.
             </p>
             <p>
-              No refs are resolved, repositories fetched, or files read or
-              written. These functions do not establish that a revision exists.
-              npm ranges such as <code>^1.2.3</code> belong to a later slice.
+              No releases are fetched or selected. This PR validates constraints
+              and checks individual versions; it reads and writes no project
+              files.
             </p>
           </details>
           <h3>What crossed the boundary</h3>
           <p class="hint">
-            The browser sends this request to <code>POST /invoke</code>. The
-            native Go adapter calls the selected function in
-            <code>internal/rules</code>.
+            The browser sends this request to <code>POST /invoke</code>. Native
+            Go calls <code>internal/rules</code>, which uses HashiCorp
+            go-version v1.9.0.
           </p>
           <pre id="request">No request sent.</pre>
         </section>
@@ -418,46 +430,49 @@
         <h2>Three things to inspect</h2>
         <div class="review">
           <div>
-            <h3>1. Remove ref ambiguity</h3>
+            <h3>1. Use native syntax</h3>
             <p>
-              Try <strong>Full SHA</strong>, <strong>Main is a tag</strong>, and
-              <strong>Short hex</strong>. A 4-39 digit hexadecimal name needs
-              the explicit tag prefix; a full 40-digit SHA means a commit.
+              Compare <strong>Comma bounds</strong> with
+              <strong>npm caret</strong>. Operators are =, !=, &gt;, &gt;=,
+              &lt;, &lt;=, and ~&gt;. Carets, wildcards, and OR are rejected.
             </p>
           </div>
           <div>
-            <h3>2. Keep exact names</h3>
+            <h3>2. Explore the boundaries</h3>
             <p>
-              Try <strong>Explicit hex tag</strong> and
-              <strong>Nested tag</strong>. Tag case and spelling stay intact.
-              <strong>Branch ref</strong> and <strong>Traversal</strong> show
-              typed validation errors.
+              Switch to matching. <strong>Patch updates</strong> permits 1.2.9
+              under ~&gt; 1.2.3. <strong>Next minor</strong> excludes 1.3.0. A
+              partial constraint 1.2 means exactly 1.2.0.
             </p>
           </div>
           <div>
-            <h3>3. Validate complete versions</h3>
+            <h3>3. Check prereleases</h3>
             <p>
-              Switch to version validation. Compare
-              <strong>Prerelease + build</strong> with
-              <strong>Partial version</strong> and
-              <strong>Leading zero</strong>. A non-version tag returns a
-              validation error.
+              Compare <strong>Prerelease allowed</strong> with
+              <strong>Stable bound</strong>. Native go-version requires each
+              relational comparison to permit the prerelease; a stable upper
+              bound excludes it.
             </p>
           </div>
         </div>
       </section>
       <section class="section">
-        <h2>What is ready to review</h2>
+        <h2>An intentional syntax change</h2>
         <p class="notice">
-          Only exact refs and strict version tags are new here. Earlier
-          operations remain in regression tests. Range matching, version
-          ordering, and Git resolution remain for later PRs.
+          The Go target uses HashiCorp syntax and matching behavior. The pinned
+          TypeScript reference retains npm syntax. This is a user-approved
+          format change, not a compatibility layer.
         </p>
         <p>
-          Shared fixtures compare exact values and errors with independent
-          expectations and the pinned TypeScript implementation. No runtime
-          dependencies are added. The user-approved validation API now returns
-          errors for non-version tags; the pinned reference returns null.
+          For example, replace npm <code>^1.2.3</code> with
+          <code>&gt;= 1.2.3, &lt; 2.0.0</code> for stable releases. Replace
+          <code>~1.2.3</code> with <code>~&gt; 1.2.3</code>. OR expressions have
+          no direct equivalent. Check prerelease intent when converting.
+        </p>
+        <p>
+          61 new independent cases cover parsing and matching. Shared
+          comparisons record intentional differences from TypeScript separately.
+          Earlier capabilities remain in regression tests.
         </p>
         <details>
           <summary>Run this slice yourself</summary>
@@ -476,29 +491,31 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
     <script>
       // byID returns a named walkthrough control.
       const byID = (id) => document.getElementById(id);
-      const refExamples = [
-        ["Release tag", "v1.2.3"],
-        ["Full SHA", "ABCDEF0123456789ABCDEF0123456789ABCDEF01"],
-        ["Qualified tag", "refs/tags/v1.2.3"],
-        ["Nested tag", "releases/stable/v1"],
-        ["Main is a tag", "main"],
-        ["Short hex", "deadbeef"],
-        ["Explicit hex tag", "refs/tags/deadbeef"],
-        ["Branch ref", "refs/heads/main"],
-        ["Traversal", "release/../stable"],
-        ["Empty ref", ""],
+      const parseExamples = [
+        ["Comma bounds", ">= 1.2.0, < 2.0.0"],
+        ["Patch constraint", "~> 1.2.3"],
+        ["Minor constraint", "~> 1.2"],
+        ["Exclude release", "!= 1.2.3"],
+        ["Partial constraint", "1.2"],
+        ["Preserve spaces", "  >= 1.2.0  "],
+        ["npm caret", "^1.2.3"],
+        ["npm wildcard", "1.x"],
+        ["npm OR", "1.2.3 || 2.0.0"],
+        ["Empty constraint", ""],
+        ["Missing comparison", ">= 1.2.0,"],
       ];
-      const versionExamples = [
-        ["Stable", "1.2.3"],
-        ["v prefix", "v1.2.3"],
-        ["Prerelease + build", "v1.2.3-beta.1+build.007"],
-        ["Partial version", "1.2"],
-        ["Leading zero", "01.2.3"],
-        ["Qualified name", "refs/tags/v1.2.3"],
-        ["Ordinary tag", "release-stable"],
-        ["Range", "^1.2.3"],
-        ["Numeric limit", "9007199254740991.0.0"],
-        ["Over the limit", "9007199254740992.0.0"],
+      const matchExamples = [
+        ["Lower boundary", ">= 1.2.0, < 2.0.0", "1.2.0"],
+        ["Upper boundary", ">= 1.2.0, < 2.0.0", "2.0.0"],
+        ["Patch updates", "~> 1.2.3", "1.2.9"],
+        ["Next minor", "~> 1.2.3", "1.3.0"],
+        ["Minor updates", "~> 1.2", "1.9.0"],
+        ["Partial means exact", "1.2", "1.2.5"],
+        ["Prerelease allowed", ">= 1.2.3-beta.1", "1.2.3-beta.2"],
+        ["Stable bound", ">= 1.2.3-beta.1, < 2.0.0", "1.2.3-beta.2"],
+        ["Invalid version", "~> 1.2.3", "1.2"],
+        ["Empty interval", "> 2.0.0, < 1.0.0", "1.5.0"],
+        ["Build metadata", "= 1.2.3", "v1.2.3+build.7"],
       ];
       // clearResult discards stale results after any input change.
       function clearResult() {
@@ -513,18 +530,20 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       // loadExample fills editable controls without invoking the server.
       function loadExample(example) {
         byID("input").value = example[1];
+        byID("version").value = example[2] || "1.2.3";
         clearResult();
       }
       // showOperation scopes the visible controls and presets to the selected function.
       function showOperation() {
-        const version = byID("operation").value === "tagVersion";
-        byID("signature").textContent = version
-          ? "TagVersion(tag, location string) (string, error)"
-          : "ParseGitRef(ref, location string) (GitRef, error)";
-        byID("operation-hint").textContent = version
-          ? "Requires a strict, complete version with an optional lowercase v. Invalid input returns a ValidationError at the caller-supplied location tag."
-          : "Accepts a full commit SHA or an exact tag. Errors carry the caller-supplied location sources.team.ref. No branch is inferred.";
-        const examples = version ? versionExamples : refExamples;
+        const matching = byID("operation").value === "versionMatch";
+        byID("version-field").hidden = !matching;
+        byID("signature").textContent = matching
+          ? "VersionConstraint.Matches(tag, location string) (bool, error)"
+          : "ParseVersionConstraint(text, location string) (VersionConstraint, error)";
+        byID("operation-hint").textContent = matching
+          ? "Parses the constraint, validates a complete release version, then checks whether it matches."
+          : "Validates native HashiCorp syntax and retains the original text. Comma-separated comparisons must all hold.";
+        const examples = matching ? matchExamples : parseExamples;
         byID("presets").replaceChildren(
           // Create a button that loads each named example.
           ...examples.map((example) => {
@@ -539,14 +558,22 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       }
       byID("operation").addEventListener("change", showOperation);
       byID("input").addEventListener("input", clearResult);
+      byID("version").addEventListener("input", clearResult);
+      byID("location").addEventListener("input", clearResult);
       showOperation();
       // Invoke native Go and show the exact JSON response without interpreting input as HTML.
       byID("invoke").addEventListener("click", async () => {
         const operation = byID("operation").value;
         const body = JSON.stringify({
           operation,
-          input: byID("input").value,
-          location: operation === "gitRef" ? "sources.team.ref" : "tag",
+          input:
+            operation === "versionMatch"
+              ? {
+                  constraint: byID("input").value,
+                  version: byID("version").value,
+                }
+              : byID("input").value,
+          location: byID("location").value,
         });
         byID("request").textContent = body;
         // Freeze inputs while their request is in flight.
@@ -568,11 +595,19 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
           byID("status").textContent = result.ok
-            ? "Returned value"
+            ? operation === "versionMatch"
+              ? result.value
+                ? "Matches"
+                : "Does not match"
+              : "Parsed constraint"
             : result.error.name;
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
-            ? "The Go function returned successfully."
+            ? operation === "versionMatch"
+              ? result.value
+                ? "Go returned (true, nil): this version matches."
+                : "Go returned (false, nil): this version is valid but outside the constraint."
+              : "Go returned a parsed constraint and no error. Its original text is shown below."
             : "The Go function returned an error. The message explains why validation failed.";
         } catch (error) {
           byID("status").textContent = "Request failed";

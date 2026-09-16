@@ -99,3 +99,11 @@ Evidence and the approved Unicode behavior live in [complete rule parsing](rule-
 - Return an explicit absent web convention instead of guessing a custom host's routes.
 
 Evidence: [repository address fixtures](../tests/migration/repositories/cases.json) and [slice scope](repositories.md).
+
+## Version validation and constraints
+
+- Use Go errors to distinguish invalid input from a valid negative answer. TagVersion returns an error for an invalid version; constraint matching returns false without an error when a valid version is outside the range.
+- An explicitly approved API or format improvement can supersede TypeScript behavior. Keep independent intended results and pinned reference results separate instead of disguising the change as parity.
+- Use the requested dependency's native language when that is the product decision. The user chose HashiCorp syntax and matching semantics over npm compatibility.
+
+Evidence: [version constraints](version-constraints.md) and its shared fixtures.

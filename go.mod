@@ -3,6 +3,7 @@ module github.com/fabricahq/code-rules
 go 1.27.1
 
 require (
+	github.com/hashicorp/go-version v1.9.0
 	github.com/nlnwa/whatwg-url v0.6.2
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 )
