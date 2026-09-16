@@ -160,7 +160,10 @@ function mountFixtureFiles(input, onEdit) {
         : request;
     if (isObject(fixture)) {
       if (Object.hasOwn(fixture, "files"))
-        addRoot(`Library: ${fixture.source || "library"}`, fixture.files);
+        addRoot(
+          `Library: ${typeof fixture.source === "string" && fixture.source ? fixture.source : "library"}`,
+          fixture.files,
+        );
       if (isObject(fixture.libraries)) {
         for (const [alias, library] of Object.entries(fixture.libraries))
           addRoot(`Library: ${alias}`, library?.files);
