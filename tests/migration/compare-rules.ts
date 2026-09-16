@@ -17,6 +17,8 @@ import repositoryCases from './repositories/cases.json';
 import refCases from './refs/cases.json';
 import { tagVersion, versionConstraint } from '../../src/versions';
 import { satisfies } from 'semver';
+import { readLibraryLicenses } from '../../src/formats/manifest';
+import licenseCases from './licenses/cases.json';
 import configurationCases from './configuration/cases.json';
 import constraintCases from './version-constraints/cases.json';
 import { repositoryAddress, repositoryFileUrl } from '../../src/repository';
@@ -32,6 +34,7 @@ const cases = [
   ...refCases,
   ...constraintCases,
   ...configurationCases,
+  ...licenseCases,
 ];
 deepStrictEqual(
   new Set(cases.map(({ id }) => id)).size,
@@ -49,7 +52,21 @@ deepStrictEqual(
 function reference(test: (typeof cases)[number]): unknown {
   try {
     let value: unknown;
-    if (test.operation === 'configuration') {
+    if (test.operation === 'licenses') {
+      const input = test.input;
+      if (
+        typeof input !== 'object' ||
+        input === null ||
+        !('manifest' in input) ||
+        !('paths' in input)
+      )
+        throw new Error('Expected manifest and paths');
+      value = readLibraryLicenses(
+        new Map([['rule-library.json', input.manifest]]),
+        test.location,
+        new Set(input.paths),
+      );
+    } else if (test.operation === 'configuration') {
       if (typeof test.input !== 'string')
         throw new Error('Expected configuration text');
       let input: unknown;
@@ -180,10 +197,22 @@ function reference(test: (typeof cases)[number]): unknown {
       error: {
         name: error.name,
         message: error.message,
-        location: error.message.slice(0, error.message.indexOf(': ')),
+        location: referenceLocation(error.message, test.operation),
       },
     };
   }
+}
+
+/** Recover the field location from the reference's unstructured diagnostic without changing its message. */
+function referenceLocation(message: string, operation: string): string {
+  let end = message.indexOf(': ');
+  // Manifest diagnostics separate the file and nested field with an additional colon.
+  if (
+    operation === 'licenses' &&
+    /^(formatVersion|license(?:[.[]|:))/.test(message.slice(end + 2))
+  )
+    end = message.indexOf(': ', end + 2);
+  return message.slice(0, end);
 }
 
 const candidate = process.argv[2];
