@@ -1,6 +1,6 @@
 # Repository addresses: fifth Go slice
 
-Status: implemented on `codex/go-repositories`, awaiting review. The walkthrough covers only this slice.
+Status: merged in PR #15 at `ef88c4c6e7d7061da428a8c5783e84e7b3c6906e`. Its walkthrough covered only this slice.
 
 Base: `39c327f103a7eab19468d815d5250acb5f7f5de7`, the approved PR #14 merge into `go-migration`.
 TypeScript reference: `7013d3d374a33a5cf65a2a48ff6870e46f9d7209`.
@@ -76,7 +76,7 @@ Earlier operations remain available to regression tests but do not appear in thi
 [Feedback](feedback.md#rules-used) lists the relevant rules. [Go conventions](../_internal/go-conventions.md) govern errors and logging.
 Every new function has a concise comment, including helpers and test callbacks.
 
-The next recommended slice is configuration parsing with compatible npm version-range semantics.
+The next slice handles [exact refs and strict version tags](refs.md). Configuration parsing still requires compatible npm version-range semantics.
 Human review and merge separate migration iterations.
 
 ### Local evidence

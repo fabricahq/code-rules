@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Code Rules · Repository lab</title>
+    <title>Code Rules · Git ref lab</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -324,62 +324,45 @@
     <main>
       <header>
         <strong>CODE RULES / GO MIGRATION</strong
-        ><span>Slice 05 · Repository addresses</span>
+        ><span>Slice 06 · Exact refs and version tags</span>
       </header>
-      <h1>Recognize the source.<br />Build the right link.</h1>
+      <h1>Name a revision.<br />Validate a version.</h1>
       <p class="lede">
-        A Git address can identify the same repository across different
-        transports. Try the new Go parser and link builder. Each invocation runs
-        native Go and returns its actual result.
+        A Git tag can be a release version or an arbitrary name. Explore two new
+        Go functions that classify these inputs before any repository is
+        contacted.
       </p>
       <div class="flow">
         <div>
-          <strong>01 &nbsp; An explicit address</strong
-          ><span>HTTPS, ssh://, or user@host:path</span>
+          <strong>01 &nbsp; An authored ref</strong
+          ><span>A complete commit SHA or exact tag name</span>
         </div>
         <div>
-          <strong>02 &nbsp; Validate and identify</strong
-          ><span>Check paths, credentials, host, and transport</span>
+          <strong>02 &nbsp; Explicit meaning</strong
+          ><span>Commit or tag, with no branch inference</span>
         </div>
         <div>
-          <strong>03 &nbsp; Identity and links</strong
-          ><span>Known web routes, or an explicit null</span>
+          <strong>03 &nbsp; A version, if present</strong
+          ><span>Strict major.minor.patch, with optional suffixes</span>
         </div>
       </div>
       <div class="workspace">
         <section class="panel" aria-labelledby="input-heading">
           <div class="label">Invoke a new function</div>
-          <h2 id="input-heading">Explore a repository address</h2>
+          <h2 id="input-heading">Explore refs and tags</h2>
           <label for="operation">Operation</label>
           <select id="operation">
-            <option value="repository">Parse a repository address</option>
-            <option value="repositoryFile">Build a file or raw link</option>
+            <option value="gitRef">Parse an exact Git ref</option>
+            <option value="tagVersion">Validate a version tag</option>
           </select>
           <div class="signature" id="signature"></div>
           <p class="hint" id="operation-hint"></p>
           <div class="presets" id="presets" aria-label="Example inputs"></div>
-          <label for="input">Repository address</label
+          <label for="input">Ref or tag text</label
           ><input id="input" spellcheck="false" aria-describedby="input-hint" />
           <p id="input-hint" class="hint">
-            The original address stays unchanged. Use fictional credentials when
-            testing errors.
+            Enter plain text. Spaces are preserved and sent to Go.
           </p>
-          <div id="link-fields" hidden>
-            <label for="commit">Resolved commit</label
-            ><input id="commit" value="abc123" spellcheck="false" />
-            <label for="path">Path within the repository</label
-            ><input id="path" value="techs/go/errors.md" spellcheck="false" />
-            <label for="image">Link kind</label
-            ><select id="image">
-              <option value="false">File in the web interface</option>
-              <option value="true">Raw file contents</option>
-            </select>
-            <p class="hint">
-              The caller supplies a resolved commit and a validated path. This
-              function only builds the link; it does not check that the file
-              exists.
-            </p>
-          </div>
           <div class="actions">
             <button class="primary" id="invoke">Invoke Go function</button
             ><span id="timing" class="hint"></span>
@@ -397,31 +380,35 @@
           <details open>
             <summary>How to read the result</summary>
             <p>
-              <code>identity</code> is a comparison key for duplicate sources.
-              GitHub paths compare in lowercase; GitLab paths retain case.
-              Standard HTTPS and git-user SSH transports share the same
-              known-host identity.
+              <code>ParseGitRef</code> returns either a lowercase 40-digit
+              commit SHA or a tag name beginning with <code>refs/tags/</code>. A
+              bare <code>main</code> means the tag named main. Explicit branch
+              refs are rejected.
             </p>
             <p>
-              <code>web</code> contains root, tree, file, and raw endpoints. A
-              custom host, port, or SSH user may produce <code>web: null</code>.
-              This is a valid address with no recognized browser convention.
+              <code>TagVersion</code> requires an unqualified tag containing a
+              complete semantic version. It removes one optional lowercase
+              <code>v</code> and retains prerelease and build suffixes. Success
+              returns <code>(version, nil)</code>.
             </p>
             <p>
-              Link building returns a URL string, or <code>null</code> when no
-              web convention is known. Encoded path segments retain their slash
-              boundaries.
+              <code>ok: true</code> means the function returned without an
+              error; <code>value</code> is the validated version string.
+              <code>ok: false</code> means Go returned an error. Partial
+              versions and ordinary non-version tags now produce a
+              <code>ValidationError</code>, with an empty Go string result.
             </p>
             <p>
-              No repositories are fetched, and no files are read or written. A
-              valid address does not establish access or existence.
+              No refs are resolved, repositories fetched, or files read or
+              written. These functions do not establish that a revision exists.
+              npm ranges such as <code>^1.2.3</code> belong to a later slice.
             </p>
           </details>
           <h3>What crossed the boundary</h3>
           <p class="hint">
-            The browser sends this request to <code>POST /invoke</code>. The Go
-            adapter invokes <code>rules.ParseRepository</code> and, for a link,
-            <code>Repository.FileURL</code>.
+            The browser sends this request to <code>POST /invoke</code>. The
+            native Go adapter calls the selected function in
+            <code>internal/rules</code>.
           </p>
           <pre id="request">No request sent.</pre>
         </section>
@@ -431,27 +418,30 @@
         <h2>Three things to inspect</h2>
         <div class="review">
           <div>
-            <h3>1. One repository, several addresses</h3>
+            <h3>1. Remove ref ambiguity</h3>
             <p>
-              Try <strong>GitHub HTTPS</strong>, <strong>GitHub SSH</strong>,
-              and <strong>GitHub SCP</strong>. Their identities match. GitLab
-              retains the case of nested group paths.
+              Try <strong>Full SHA</strong>, <strong>Main is a tag</strong>, and
+              <strong>Short hex</strong>. A 4-39 digit hexadecimal name needs
+              the explicit tag prefix; a full 40-digit SHA means a commit.
             </p>
           </div>
           <div>
-            <h3>2. Reject ambiguity early</h3>
+            <h3>2. Keep exact names</h3>
             <p>
-              Try <strong>Credentials</strong>, <strong>Traversal</strong>, and
-              <strong>Encoded slash</strong>. The parser checks authored path
-              segments before a URL parser could normalize them away.
+              Try <strong>Explicit hex tag</strong> and
+              <strong>Nested tag</strong>. Tag case and spelling stay intact.
+              <strong>Branch ref</strong> and <strong>Traversal</strong> show
+              typed validation errors.
             </p>
           </div>
           <div>
-            <h3>3. Known links, honest limits</h3>
+            <h3>3. Validate complete versions</h3>
             <p>
-              Switch to link building. Try <strong>Raw image</strong>,
-              <strong>Encoded file</strong>, and <strong>Unknown host</strong>.
-              A null result prevents callers from guessing a host's web routes.
+              Switch to version validation. Compare
+              <strong>Prerelease + build</strong> with
+              <strong>Partial version</strong> and
+              <strong>Leading zero</strong>. A non-version tag returns a
+              validation error.
             </p>
           </div>
         </div>
@@ -459,13 +449,15 @@
       <section class="section">
         <h2>What is ready to review</h2>
         <p class="notice">
-          This walkthrough covers only repository addresses and links. Earlier
-          rule and group operations remain in regression tests.
+          Only exact refs and strict version tags are new here. Earlier
+          operations remain in regression tests. Range matching, version
+          ordering, and Git resolution remain for later PRs.
         </p>
         <p>
-          Shared fixtures check exact results and errors against independent
-          expectations and the pinned TypeScript implementation. This slice adds
-          no approved behavior differences or runtime dependencies.
+          Shared fixtures compare exact values and errors with independent
+          expectations and the pinned TypeScript implementation. No runtime
+          dependencies are added. The user-approved validation API now returns
+          errors for non-version tags; the pinned reference returns null.
         </p>
         <details>
           <summary>Run this slice yourself</summary>
@@ -484,49 +476,29 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
     <script>
       // byID returns a named walkthrough control.
       const byID = (id) => document.getElementById(id);
-      const parseExamples = [
-        ["GitHub HTTPS", "https://github.com/Team/Rules.git"],
-        ["GitHub SSH", "ssh://git@GITHUB.COM:22/Team/Rules.git"],
-        ["GitHub SCP", "git@github.com:Team/Rules.git"],
-        ["GitLab nested", "https://gitlab.com/Team/Engineering/Rules.git"],
-        ["Unknown host", "git@git.example.org:Team/Rules.git"],
-        ["Custom port", "ssh://git@github.com:2222/Team/Rules.git"],
-        ["Credentials", "https://user:secret@example.org/rules.git"],
-        ["Traversal", "https://example.org/team/../rules.git"],
-        ["Encoded slash", "https://example.org/team%2frules.git"],
-        ["Shorthand", "Team/Rules"],
-        ["Punctuation", "https://github.com/team/rules)notes.git"],
-        ["Unicode", "https://github.com/team/café🐹.git"],
-        ["Literal SCP percent", "git@github.com:team/%72ules.git"],
-        ["IPv6", "ssh://git@[::1]:2222/Rules.git"],
+      const refExamples = [
+        ["Release tag", "v1.2.3"],
+        ["Full SHA", "ABCDEF0123456789ABCDEF0123456789ABCDEF01"],
+        ["Qualified tag", "refs/tags/v1.2.3"],
+        ["Nested tag", "releases/stable/v1"],
+        ["Main is a tag", "main"],
+        ["Short hex", "deadbeef"],
+        ["Explicit hex tag", "refs/tags/deadbeef"],
+        ["Branch ref", "refs/heads/main"],
+        ["Traversal", "release/../stable"],
+        ["Empty ref", ""],
       ];
-      const linkExamples = [
-        [
-          "GitHub file",
-          "https://github.com/Team/Rules.git",
-          "techs/go/errors.md",
-          false,
-        ],
-        [
-          "Raw image",
-          "git@github.com:Team/Rules.git",
-          "assets/chart.png",
-          true,
-        ],
-        [
-          "GitLab file",
-          "https://gitlab.com/Team/Sub/Rules.git",
-          "guide.md",
-          false,
-        ],
-        [
-          "Encoded file",
-          "https://github.com/team/rules",
-          "guides/café notes.md",
-          false,
-        ],
-        ["Unknown host", "git@host.example:Rules.git", "guide.md", false],
-        ["Invalid address", "team/rules", "guide.md", false],
+      const versionExamples = [
+        ["Stable", "1.2.3"],
+        ["v prefix", "v1.2.3"],
+        ["Prerelease + build", "v1.2.3-beta.1+build.007"],
+        ["Partial version", "1.2"],
+        ["Leading zero", "01.2.3"],
+        ["Qualified name", "refs/tags/v1.2.3"],
+        ["Ordinary tag", "release-stable"],
+        ["Range", "^1.2.3"],
+        ["Numeric limit", "9007199254740991.0.0"],
+        ["Over the limit", "9007199254740992.0.0"],
       ];
       // clearResult discards stale results after any input change.
       function clearResult() {
@@ -541,21 +513,18 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
       // loadExample fills editable controls without invoking the server.
       function loadExample(example) {
         byID("input").value = example[1];
-        byID("path").value = example[2] || "techs/go/errors.md";
-        byID("image").value = String(example[3] || false);
         clearResult();
       }
       // showOperation scopes the visible controls and presets to the selected function.
       function showOperation() {
-        const links = byID("operation").value === "repositoryFile";
-        byID("link-fields").hidden = !links;
-        byID("signature").textContent = links
-          ? "repository.FileURL(commit, path string, raw bool) (string, bool)"
-          : "ParseRepository(input json.RawMessage, location string) (Repository, error)";
-        byID("operation-hint").textContent = links
-          ? "First parses the address, then constructs a link. Unknown web routes return false in Go, represented as null here."
-          : "Accepts a JSON string. The adapter quotes your address, preserving Unicode for validation. Errors carry the field location sources.team.repository.";
-        const examples = links ? linkExamples : parseExamples;
+        const version = byID("operation").value === "tagVersion";
+        byID("signature").textContent = version
+          ? "TagVersion(tag, location string) (string, error)"
+          : "ParseGitRef(ref, location string) (GitRef, error)";
+        byID("operation-hint").textContent = version
+          ? "Requires a strict, complete version with an optional lowercase v. Invalid input returns a ValidationError at the caller-supplied location tag."
+          : "Accepts a full commit SHA or an exact tag. Errors carry the caller-supplied location sources.team.ref. No branch is inferred.";
+        const examples = version ? versionExamples : refExamples;
         byID("presets").replaceChildren(
           // Create a button that loads each named example.
           ...examples.map((example) => {
@@ -569,24 +538,15 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
         loadExample(examples[0]);
       }
       byID("operation").addEventListener("change", showOperation);
-      for (const id of ["input", "commit", "path", "image"])
-        byID(id).addEventListener("input", clearResult);
+      byID("input").addEventListener("input", clearResult);
       showOperation();
-      // Invoke native Go and show the exact JSON response without interpreting URLs as HTML.
+      // Invoke native Go and show the exact JSON response without interpreting input as HTML.
       byID("invoke").addEventListener("click", async () => {
         const operation = byID("operation").value;
-        const link = operation === "repositoryFile";
         const body = JSON.stringify({
           operation,
-          input: link
-            ? {
-                repository: byID("input").value,
-                commit: byID("commit").value,
-                path: byID("path").value,
-                image: byID("image").value === "true",
-              }
-            : byID("input").value,
-          location: link ? "repository" : "sources.team.repository",
+          input: byID("input").value,
+          location: operation === "gitRef" ? "sources.team.ref" : "tag",
         });
         byID("request").textContent = body;
         // Freeze inputs while their request is in flight.
@@ -608,16 +568,12 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
           byID("status").textContent = result.ok
-            ? result.value === null
-              ? "No known web route"
-              : "Returned value"
+            ? "Returned value"
             : result.error.name;
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
-            ? result.value === null
-              ? "The address is valid. This host or transport has no recognized web link."
-              : "The Go function returned successfully."
-            : "The request failed. The message identifies the invalid input.";
+            ? "The Go function returned successfully."
+            : "The Go function returned an error. The message explains why validation failed.";
         } catch (error) {
           byID("status").textContent = "Request failed";
           byID("status").className = "badge bad";
