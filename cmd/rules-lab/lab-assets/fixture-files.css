@@ -254,7 +254,9 @@ body:has(.has-fixture-browser) .section {
 
 /* Show one editable input representation at a time without discarding its state. */
 .fixture-browser[hidden],
-.fixture-advanced[hidden] {
+.fixture-advanced[hidden],
+.fixture-configuration[hidden],
+.fixture-views button[hidden] {
   display: none;
 }
 .fixture-toolbar {
@@ -292,4 +294,17 @@ body:has(.has-fixture-browser) .section {
 .has-fixture-browser .presets button[aria-pressed="true"] {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Keep formatted configuration within the same compact input viewport. */
+.fixture-configuration {
+  margin-top: 10px;
+}
+.fixture-configuration h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.fixture-configuration pre {
+  max-height: clamp(220px, calc(100dvh - 440px), 560px);
+  overflow: auto;
 }
