@@ -88,12 +88,12 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	if err != nil {
 		return Catalog{}, err
 	}
-	ids, err := r.groups(selection)
+	terms := rules.LicensePaths(licenses)
+	ids, err := r.groups(selection, terms)
 	if err != nil {
 		return Catalog{}, err
 	}
 	catalog := Catalog{Groups: make([]Group, 0, len(ids)), Licenses: licenses}
-	terms := rules.LicensePaths(licenses)
 	for _, id := range ids {
 		group, err := r.group(id, source, terms)
 		if err != nil {
@@ -248,7 +248,7 @@ func (r *reader) entries(path string, optional bool) ([]fs.DirEntry, error) {
 }
 
 // groups expands supported patterns over metadata-bearing directories, including empty groups.
-func (r *reader) groups(selection rules.GroupSelection) ([]string, error) {
+func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]string, error) {
 	if selection.Pattern == "" {
 		return slices.Clone(selection.Groups), nil
 	}
@@ -264,6 +264,18 @@ func (r *reader) groups(selection rules.GroupSelection) ([]string, error) {
 		}
 		for _, entry := range entries {
 			id := root + "/" + entry.Name()
+			if slices.Contains(terms, id) {
+				continue
+			}
+			if entry.IsDir() {
+				onlyTerms, err := r.termDirectory(id, terms)
+				if err != nil {
+					return nil, err
+				}
+				if onlyTerms {
+					continue
+				}
+			}
 			if err := rules.ValidateGroupID(id, id); err != nil {
 				return nil, err
 			}
@@ -357,4 +369,39 @@ func (c Catalog) Paths() []string {
 	}
 	slices.Sort(paths)
 	return paths
+}
+
+// termDirectory identifies directories containing only declared terms, without hiding actual groups.
+func (r *reader) termDirectory(directory string, terms []string) (bool, error) {
+	hasTerm := false
+	for _, term := range terms {
+		if strings.HasPrefix(term, directory+"/") {
+			hasTerm = true
+			break
+		}
+	}
+	if !hasTerm {
+		return false, nil
+	}
+	entries, err := r.entries(directory, false)
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range entries {
+		file := directory + "/" + entry.Name()
+		if slices.Contains(terms, file) {
+			continue
+		}
+		if !entry.IsDir() {
+			return false, nil
+		}
+		onlyTerms, err := r.termDirectory(file, terms)
+		if err != nil {
+			return false, err
+		}
+		if !onlyTerms {
+			return false, nil
+		}
+	}
+	return true, nil
 }

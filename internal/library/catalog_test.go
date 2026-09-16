@@ -266,3 +266,23 @@ func TestLoadRejectsHardLinks(t *testing.T) {
 		t.Fatalf("hard link returned %+v, %v", got, err)
 	}
 }
+
+// TestLoadTermsDoNotCreateGroups excludes direct and nested declared terms from wildcard discovery.
+func TestLoadTermsDoNotCreateGroups(t *testing.T) {
+	for _, file := range []string{"techs/LICENSE", "techs/legal/LICENSE", "techs/legal/nested/NOTICE"} {
+		files := map[string]string{"rule-library.json": `{"formatVersion":1,"license":{"file":"` + file + `","notices":[]}}`, file: "terms"}
+		_, root := fixture(t, files)
+		got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"})
+		if err != nil || len(got.Groups) != 0 || string(got.SupportingFiles[file]) != "terms" {
+			t.Fatalf("%s: %+v, %v", file, got, err)
+		}
+	}
+	files := validFiles()
+	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE","notices":[]}}`
+	files["techs/go/LICENSE"] = "terms"
+	_, root := fixture(t, files)
+	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
+	if err != nil || len(got.Groups) != 1 {
+		t.Fatalf("mixed group omitted: %+v, %v", got, err)
+	}
+}
