@@ -104,3 +104,38 @@ func TestRenderNestsEmptyHeading(t *testing.T) {
 		t.Fatal(output)
 	}
 }
+
+// TestRenderNestedHeadings nests container headings without consuming following guidance.
+func TestRenderNestedHeadings(t *testing.T) {
+	for _, body := range []string{"> # Caveat\n> Keep this.\n", "- # Caveat\n\n  Keep this.\n", "> Multi\n> line\n> ===\n> Keep this.\n"} {
+		output, err := renderFixture(t, body, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := output["rules/local/techs/go/local.md"]
+		if !strings.Contains(got, "### ") || !strings.Contains(got, "Keep this.") {
+			t.Fatal(got)
+		}
+	}
+}
+
+// TestRenderIgnoresInertHTML distinguishes comments and data attributes from actual resource URLs.
+func TestRenderIgnoresInertHTML(t *testing.T) {
+	for _, body := range []string{`<!-- href="draft.md" -->`, `<span data-href="draft.md">Text</span>`, `<script>const example='src="draft.md"';</script>`} {
+		if _, err := renderFixture(t, body, nil); err != nil {
+			t.Fatalf("%q: %v", body, err)
+		}
+	}
+}
+
+// TestRenderRejectsFileDirectoryConflict refuses an output path that must be both file and directory.
+func TestRenderRejectsFileDirectoryConflict(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	resolved, err := build.Resolve(config, libraries, map[string][]byte{"techs/go/a.md": []byte(document), "techs/go/a.md/b.md": []byte(document)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if output, err := build.RenderRules(resolved); err == nil || output != nil {
+		t.Fatal("accepted file/directory conflict")
+	}
+}
