@@ -145,11 +145,11 @@ func TestLoadTermsAndLimits(t *testing.T) {
 	if err != nil || string(got.SupportingFiles["LICENSE"]) != files["LICENSE"] || string(got.SupportingFiles["NOTICE"]) != files["NOTICE"] {
 		t.Fatalf("terms changed: %v", err)
 	}
-	for _, size := range []int{4 * 1024 * 1024, 4*1024*1024 + 1} {
+	for _, size := range []int{8 * 1024 * 1024, 8*1024*1024 + 1} {
 		bounded := map[string]string{"rule-library.json": files["rule-library.json"], "LICENSE": strings.Repeat("x", size), "NOTICE": ""}
 		_, root := fixture(t, bounded)
 		_, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{}})
-		if (err != nil) != (size > 4*1024*1024) {
+		if (err != nil) != (size > 8*1024*1024) {
 			t.Fatalf("size %d: %v", size, err)
 		}
 	}
@@ -237,5 +237,15 @@ func TestLoadOwnsOriginalDocuments(t *testing.T) {
 	}
 	if string(got.SupportingFiles["techs/go/_group.json"]) != metadata {
 		t.Fatal("supporting metadata bytes changed")
+	}
+}
+
+// TestLoadRejectsReservedSource keeps imported identities separate from project rules.
+func TestLoadRejectsReservedSource(t *testing.T) {
+	_, root := fixture(t, validFiles())
+	got, err := library.Load(context.Background(), root, "local", rules.GroupSelection{Pattern: "*"})
+	var validation *rules.ValidationError
+	if !errors.As(err, &validation) || validation.Location != "source" || !strings.Contains(err.Error(), "reserved") || got.Groups != nil {
+		t.Fatalf("reserved source returned %+v, %v", got, err)
 	}
 }

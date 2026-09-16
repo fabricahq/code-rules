@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	maxFileBytes  = 4 * 1024 * 1024
-	maxTotalBytes = 32 * 1024 * 1024
+	maxFileBytes  = 8 * 1024 * 1024
+	maxTotalBytes = 64 * 1024 * 1024
 	maxFiles      = 10_000
 )
 
@@ -62,6 +62,9 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	}
 	if root == nil {
 		return Catalog{}, bad("library", "expected an open filesystem root")
+	}
+	if source == "local" {
+		return Catalog{}, bad("source", "local is reserved for project rules; choose another source alias")
 	}
 	if !sourceAlias.MatchString(source) {
 		return Catalog{}, bad("source", "expected a lowercase source alias")
