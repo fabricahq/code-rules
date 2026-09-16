@@ -71,6 +71,15 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "markdownTargets":
+		var input struct {
+			Text string `json:"text"`
+			File string `json:"file"`
+		}
+		if json.Unmarshal(req.Input, &input) != nil || input.File == "" {
+			return adapterError("expected text and file"), nil
+		}
+		value, err = rules.MarkdownTargets(input.Text, input.File)
 	case "loadLibrary":
 		var input libraryFixture
 		fields := json.NewDecoder(bytes.NewReader(req.Input))

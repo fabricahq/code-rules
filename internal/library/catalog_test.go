@@ -52,7 +52,7 @@ func validFiles() map[string]string {
 // TestLoadCatalog checks wildcard expansion, empty groups, exact bytes, and explicit empty selection.
 func TestLoadCatalog(t *testing.T) {
 	files := validFiles()
-	files["techs/go/assets/image.bin"] = "\xff\x00"
+	files["techs/go/assets/errors/image.bin"] = "\xff\x00"
 	_, root := fixture(t, files)
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"})
 	if err != nil {
@@ -67,11 +67,11 @@ func TestLoadCatalog(t *testing.T) {
 	if _, ok := got.SupportingFiles["techs/go/errors.md"]; ok {
 		t.Fatal("rule document duplicated in supporting files")
 	}
-	if !reflect.DeepEqual(got.Paths(), []string{"practices/testing/_group.json", "rule-library.json", "techs/go/_group.json", "techs/go/errors.md"}) {
+	if !reflect.DeepEqual(got.Paths(), []string{"practices/testing/_group.json", "rule-library.json", "techs/go/_group.json", "techs/go/assets/errors/image.bin", "techs/go/errors.md"}) {
 		t.Fatalf("incomplete read inventory: %v", got.Paths())
 	}
-	if _, ok := got.SupportingFiles["techs/go/assets/image.bin"]; ok {
-		t.Fatal("catalog unexpectedly read assets")
+	if string(got.SupportingFiles["techs/go/assets/errors/image.bin"]) != "\xff\x00" {
+		t.Fatal("catalog lost binary asset bytes")
 	}
 	techs, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
 	if err != nil || len(techs.Groups) != 1 {

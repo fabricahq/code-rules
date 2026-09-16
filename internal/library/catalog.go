@@ -27,7 +27,7 @@ const (
 
 // Catalog owns selected rules and supporting file bytes. Each rule owns its
 // original Document; SupportingFiles holds only manifest, group metadata, and terms.
-// Assets and Markdown link closure are deliberately left to the later import slice.
+// SupportingFiles also holds complete owned assets and referenced shared assets.
 type Catalog struct {
 	Groups          []Group                    `json:"groups"`
 	Licenses        []rules.LicenseDeclaration `json:"licenses"`
@@ -43,11 +43,12 @@ type Group struct {
 
 // reader binds resource limits and cancellation to one rooted catalog read.
 type reader struct {
-	ctx     context.Context
-	root    *os.Root
-	files   map[string][]byte
-	total   int
-	visited int
+	ctx       context.Context
+	root      *os.Root
+	files     map[string][]byte
+	total     int
+	visited   int
+	spellings map[string]string
 }
 
 var sourceAlias = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -101,6 +102,9 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 		}
 		catalog.Groups = append(catalog.Groups, group)
 	}
+	if err := r.supportingLinks(terms); err != nil {
+		return Catalog{}, err
+	}
 	// Transfer each rule document to its Rule; retain only supporting files in the map.
 	for _, group := range catalog.Groups {
 		for _, rule := range group.Rules {
@@ -126,6 +130,9 @@ func (r *reader) read(path string) ([]byte, error) {
 	}
 	if !fs.ValidPath(path) || strings.ContainsAny(path, "\\\x00") {
 		return nil, bad(path, "expected a contained relative file path")
+	}
+	if err := r.registerPath(path); err != nil {
+		return nil, err
 	}
 	parts := strings.Split(path, "/")
 	for i := range parts {
@@ -168,6 +175,9 @@ func (r *reader) read(path string) ([]byte, error) {
 	}
 	if len(data) > maxFileBytes || r.total+len(data) > maxTotalBytes || len(r.files) >= maxFiles {
 		return nil, bad(path, "library exceeds file or total read limits")
+	}
+	if strings.HasPrefix(strings.ReplaceAll(string(data[:min(len(data), 128)]), "\r\n", "\n"), "version https://git-lfs.github.com/spec/v1\n") {
+		return nil, bad(path, "Git LFS pointers are unsupported")
 	}
 	r.total += len(data)
 	r.files[path] = data
@@ -309,7 +319,7 @@ func (r *reader) group(id, source string, terms []string) (Group, error) {
 	return group, nil
 }
 
-// rulePaths discovers rules without reading assets; unsupported selected entries fail closed.
+// rulePaths discovers selected rules and their complete owned assets; unsafe entries fail closed.
 func (r *reader) rulePaths(directory, metadata string, terms []string, paths *[]string) error {
 	entries, err := r.entries(directory, false)
 	if err != nil {
@@ -325,6 +335,9 @@ func (r *reader) rulePaths(directory, metadata string, terms []string, paths *[]
 		}
 		if entry.IsDir() {
 			if entry.Name() == "assets" {
+				if err := r.ownedAssets(path, terms); err != nil {
+					return err
+				}
 				continue
 			}
 			if err := r.rulePaths(path, metadata, terms, paths); err != nil {
