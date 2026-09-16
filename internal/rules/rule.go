@@ -7,6 +7,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/nlnwa/whatwg-url/url"
 	"go.yaml.in/yaml/v4"
@@ -46,7 +47,7 @@ type Rule struct {
 	Document          string        `json:"document"`
 }
 
-// Parse validates a rule's path, YAML metadata, nonblank body, and attribution.
+// Parse validates a rule's path, UTF-8 document, YAML metadata, nonblank body, and attribution.
 // Unknown metadata and attribution fields are rejected.
 // Source is a caller-owned alias, not an authenticated origin. Path is a relative
 // rule path; neither argument causes file access. Text values retain whitespace.
@@ -56,6 +57,9 @@ func Parse(text, path, source string) (Rule, error) {
 	group, err := GroupFromPath(path, location)
 	if err != nil {
 		return Rule{}, err
+	}
+	if !utf8.ValidString(text) {
+		return Rule{}, invalid(location, "expected UTF-8 text")
 	}
 	document, err := SplitDocument(text, location)
 	if err != nil {

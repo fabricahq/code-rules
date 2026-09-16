@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/logging"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -74,6 +75,12 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "renderRules":
+		var resolved build.Resolved
+		resolved, err = resolveBuildFixture(req.Input)
+		if err == nil {
+			value, err = build.RenderRules(resolved)
+		}
 	case "resolveRules":
 		value, err = resolveBuildFixture(req.Input)
 	case "markdownTargets":
