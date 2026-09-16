@@ -33,23 +33,48 @@ function mountFixtureFiles(input, onEdit) {
   pane.append(filename, editor, info);
   section.append(heading, tree, pane);
 
-  const advanced = element("details", "fixture-advanced");
+  const advanced = element("section", "fixture-advanced");
+  advanced.id = "fixture-request";
+  section.id = "fixture-files";
   advanced.append(
-    element("summary", "", "Request JSON and settings"),
     element(
       "p",
       "hint",
       "Edit groups, sources, and other settings here. Add, rename, or remove files in the files objects.",
     ),
   );
+  const switcher = element("div", "fixture-views");
+  switcher.setAttribute("role", "group");
+  switcher.setAttribute("aria-label", "Input view");
+  const filesView = element("button", "", "Files");
+  const requestView = element("button", "", "Request JSON and settings");
+  filesView.type = requestView.type = "button";
+  filesView.setAttribute("aria-controls", section.id);
+  requestView.setAttribute("aria-controls", advanced.id);
+  switcher.append(filesView, requestView);
+
+  // Switch presentation only; both views continue to share the same request.
+  function showView(files) {
+    section.hidden = !files;
+    advanced.hidden = files;
+    filesView.setAttribute("aria-pressed", String(files));
+    requestView.setAttribute("aria-pressed", String(!files));
+  }
+  // Selecting a view never invokes Go or clears an existing result.
+  filesView.addEventListener("click", () => showView(true));
+  requestView.addEventListener("click", () => showView(false));
+  showView(true);
+
   const label = input.previousElementSibling;
-  input.before(section, advanced);
+  input.before(switcher, section, advanced);
   if (label?.matches('label[for="input"]')) advanced.append(label);
   advanced.append(input);
   const workspace = input.closest(".workspace");
   workspace.classList.add("has-fixture-browser");
   // Keep invocation next to the files and leave explanatory notes available on demand.
-  section.before(input.closest(".panel").querySelector(".actions"));
+  const toolbar = element("div", "fixture-toolbar");
+  switcher.before(toolbar);
+  toolbar.append(input.closest(".panel").querySelector(".actions"), switcher);
   for (const details of workspace.querySelectorAll(".result > details")) {
     details.open = false;
   }
@@ -154,10 +179,10 @@ function mountFixtureFiles(input, onEdit) {
         element(
           "p",
           "hint",
-          "Invalid request JSON. Fix it below to view files.",
+          "Invalid request JSON. Fix it in Request JSON and settings to view files.",
         ),
       );
-      advanced.open = true;
+      showView(false);
       return;
     }
     const fixture =
@@ -182,10 +207,10 @@ function mountFixtureFiles(input, onEdit) {
         element(
           "p",
           "hint",
-          "No input file maps. Edit Request JSON and settings below.",
+          "No input file maps. Edit Request JSON and settings.",
         ),
       );
-      advanced.open = true;
+      showView(false);
     }
     // Prefer the previous file, then a rule document, then the first available file.
     const initial =
