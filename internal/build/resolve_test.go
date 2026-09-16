@@ -218,3 +218,31 @@ func TestResolveRetainsInactiveDocuments(t *testing.T) {
 		t.Fatal("duplicated active document")
 	}
 }
+
+// TestResolveRejectsLocalRuleLinks applies the library link policy to local rules and retained Markdown attachments.
+func TestResolveRejectsLocalRuleLinks(t *testing.T) {
+	for _, from := range []string{"techs/go/one.md", "assets/guide.md", "techs/go/assets/one/guide.md"} {
+		t.Run(from, func(t *testing.T) {
+			config, libraries := fixture(t, `{}`, `{}`)
+			local := map[string][]byte{"techs/go/one.md": []byte(document), "techs/go/two.md": []byte(document)}
+			local[from] = append(local[from], []byte("\n[other](/techs/go/two.md)\n")...)
+			got, err := build.Resolve(config, libraries, local)
+			if err == nil || !strings.Contains(err.Error(), "links to other rule documents are not allowed") || got.Groups != nil {
+				t.Fatalf("expected rule-link error with no partial result: %+v, %v", got, err)
+			}
+		})
+	}
+}
+
+// TestResolveAllowsLocalSupportingLinks keeps same-document anchors, shared explanations, and code examples valid.
+func TestResolveAllowsLocalSupportingLinks(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	local := map[string][]byte{
+		"techs/go/one.md": []byte(document + "\n[self](#details) [guide](/assets/guide.md) `\x5bother](two.md)`\n"),
+		"assets/guide.md": []byte("[next](next.md) [external](https://example.com/reference)"),
+		"assets/next.md":  []byte("Supporting text."),
+	}
+	if _, err := build.Resolve(config, libraries, local); err != nil {
+		t.Fatal(err)
+	}
+}

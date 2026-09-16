@@ -7,3 +7,5 @@ Catalogs retain the selector used by `library.Load`; it must match configuration
 Inputs are not modified. Supporting byte slices are shared read-only. Catalogs must come from `library.Load`, and configuration must come from `rules.ParseConfiguration`. This boundary does not verify Git authenticity or snapshot freshness. It does not fetch repositories, render output, or write project files.
 
 The `/walkthrough/pr23` page calls the native resolver through disposable library fixtures. Presets cover imported rules, exclusions, replacements, local additions, guidance precedence, missing targets, invalid excluded definitions, and local-only projects.
+
+Local rule documents and retained Markdown attachments use the same link policy as libraries: filesystem links to other rule documents fail before adoption. Self-links, anchors, allowed assets, and external references remain valid.
