@@ -36,34 +36,22 @@ func IndexPages(file, header string, entries []string, footer string, maxLines i
 	if strings.Count(whole, "\n") <= maxLines {
 		return map[string]string{file: whole}, nil
 	}
-	output := map[string]string{}
-	links := []string{}
+	// Navigation is one source line regardless of page count or which adjacent links exist.
+	// Reserve its top and bottom spacing before partitioning; render once the total is known.
+	navigation := indexPageNavigation(file, 1, 1)
+	overhead := strings.Count(indexDocument(navigation+"\n\n"+header, nil, navigation+"\n\n"+footer), "\n")
+	parts := [][]string{}
 	pending := []string{}
-	part := 1
-	// partHeader identifies the numbered page and provides a return path.
-	partHeader := func() string {
-		return fmt.Sprintf("%s\n\nPart %d. [All parts](%s).", header, part, encodedPath(path.Base(file)))
-	}
-	overhead := strings.Count(indexDocument(partHeader(), nil, footer), "\n")
 	pageLines := overhead
-	// finish records a complete page and its directory entry.
-	finish := func() {
-		partFile := fmt.Sprintf("%s.part-%d.md", strings.TrimSuffix(file, ".md"), part)
-		output[partFile] = indexDocument(partHeader(), pending, footer)
-		links = append(links, fmt.Sprintf("- [Part %d](%s)", part, encodedPath(path.Base(partFile))))
-		part++
-		pending = nil
-		overhead = strings.Count(indexDocument(partHeader(), nil, footer), "\n")
-		pageLines = overhead
-	}
 	for _, entry := range entries {
 		entryLines := 0
 		if entry != "" {
-			// A part header is always nonempty, so each nonempty entry adds one separator.
 			entryLines = strings.Count(entry, "\n") + 2
 		}
 		if pageLines+entryLines > maxLines && len(pending) > 0 {
-			finish()
+			parts = append(parts, pending)
+			pending = nil
+			pageLines = overhead
 		}
 		if overhead+entryLines > maxLines {
 			return nil, invalid(file, "an index entry and its reading instructions exceed indexMaxLines; shorten the metadata or increase the budget")
@@ -72,14 +60,40 @@ func IndexPages(file, header string, entries []string, footer string, maxLines i
 		pageLines += entryLines
 	}
 	if len(pending) > 0 {
-		finish()
+		parts = append(parts, pending)
 	}
-	directory := indexDocument(header, append([]string{"Read every numbered part to inspect this complete index. Rule bodies remain in their linked files."}, links...), footer)
+	output := map[string]string{}
+	links := []string{}
+	for i, entries := range parts {
+		page := i + 1
+		partFile := indexPartPath(file, page)
+		navigation := indexPageNavigation(file, page, len(parts))
+		output[partFile] = indexDocument(navigation+"\n\n"+header, entries, navigation+"\n\n"+footer)
+		links = append(links, fmt.Sprintf("- [Page %d of %d](%s)", page, len(parts), encodedPath(path.Base(partFile))))
+	}
+	directory := indexDocument(header, append([]string{"Read every numbered page to inspect this complete index. Rule bodies remain in their linked files."}, links...), footer)
 	if strings.Count(directory, "\n") > maxLines {
 		return nil, invalid(file, "the complete index part directory exceeds indexMaxLines; increase the budget")
 	}
 	output[file] = directory
 	return output, nil
+}
+
+// indexPartPath names a numbered sibling of the index directory.
+func indexPartPath(file string, page int) string {
+	return fmt.Sprintf("%s.part-%d.md", strings.TrimSuffix(file, ".md"), page)
+}
+
+// indexPageNavigation identifies the page and links directly to its neighbors and directory.
+func indexPageNavigation(file string, page, total int) string {
+	links := []string{fmt.Sprintf("**Page %d of %d**", page, total), "[All pages](" + encodedPath(path.Base(file)) + ")"}
+	if page > 1 {
+		links = append(links, "[Previous page]("+encodedPath(path.Base(indexPartPath(file, page-1)))+")")
+	}
+	if page < total {
+		links = append(links, "[Next page]("+encodedPath(path.Base(indexPartPath(file, page+1)))+")")
+	}
+	return strings.Join(links, " | ")
 }
 
 // indexDocument joins nonempty blocks with stable spacing and one final newline.

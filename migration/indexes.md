@@ -11,3 +11,5 @@ The root selection procedure and numbered group instructions preserve the TypeSc
 The user approved line-based summary pagination instead of the pinned TypeScript byte threshold. Exactly 750 lines remain one page; pagination starts above that. Long or multibyte lines do not count as extra lines. This does not change the separate byte limit for full-rule inline delivery. The frozen reference remains unchanged.
 
 Both RULES.md entries and group headers show the resolved description before the reading cue. Local metadata replaces imported descriptions as well as cues. Multiple imported definitions keep each description and cue together under its source label. Descriptions are escaped as plain Markdown text.
+
+Every numbered page begins and ends with **Page X of Y**, an all-pages link, and direct previous/next links where those neighbors exist. Pagination reserves navigation lines before splitting entries, then renders the known total. Single-page indexes remain unchanged.
