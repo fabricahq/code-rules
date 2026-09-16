@@ -1,14 +1,14 @@
 # Review PRs 22-26 together
 
-PRs 17-24 have merged into `go-migration` after user approval, resolved feedback, final review, and passing checks. PRs #25-26 remain open for human review. Passing CI or automated reviews does not authorize merging those two.
+PRs 17-25 have merged into `go-migration` after user approval, resolved feedback, final review, and passing checks. PR #26 remains open for human review. Passing CI or automated reviews does not authorize merging it.
 
 | PR | Capability | Branch | Review base | Walkthrough |
 | --- | --- | --- | --- | --- |
 | #22 (merged) | Library assets | codex/go-library-assets | go-migration | /walkthrough/pr22 |
 | #23 (merged) | Effective rules | codex/go-rule-resolution | go-migration | /walkthrough/pr23 |
 | #24 (merged) | Standalone rendering | codex/go-rule-rendering | go-migration | /walkthrough/pr24 |
-| #25 | Discovery indexes | codex/go-discovery-indexes | go-migration | /walkthrough/pr25 |
-| #26 | Licensed output | codex/go-licensed-output | codex/go-discovery-indexes | /walkthrough/pr26 |
+| #25 (merged) | Discovery indexes | codex/go-discovery-indexes | go-migration | /walkthrough/pr25 |
+| #26 | Licensed output | codex/go-licensed-output | go-migration | /walkthrough/pr26 |
 
 Run `go run ./cmd/rules-lab -serve -port 4391` from the top branch. The root page links to every new walkthrough, with earlier walkthroughs under a separate disclosure. Each page invokes real Go and shows only its PR's capability. Libraries use temporary fixtures; generated output stays in memory.
 
