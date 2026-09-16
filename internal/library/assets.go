@@ -85,7 +85,7 @@ func (r *reader) assetTree(directory string) error {
 }
 
 // supportingLinks checks retained Markdown and loads shared assets until no new files remain.
-// Links to other rules prove existence without adopting those rules or their groups.
+// Links to other rules fail before checking target existence, including inside attachments.
 func (r *reader) supportingLinks(terms []string) error {
 	checked := map[string]bool{}
 	shared := false
@@ -140,7 +140,7 @@ func (r *reader) supportingLinks(terms []string) error {
 	}
 }
 
-// linkExists checks every component without reading or adopting an unselected destination.
+// linkExists checks every component without reading the destination.
 func (r *reader) linkExists(file string) error {
 	if !fs.ValidPath(file) {
 		return bad(file, "invalid link destination")

@@ -13,10 +13,10 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// TestLoadAssets retains complete owned/shared trees without adopting referenced rules.
+// TestLoadAssets retains complete owned/shared trees while leaving unrelated rules unselected.
 func TestLoadAssets(t *testing.T) {
 	files := validFiles()
-	files["techs/go/errors.md"] += "\n![image](assets/errors/image.bin) [shared](/assets/guide.md) [other](../rust/other.md)\n"
+	files["techs/go/errors.md"] += "\n![image](assets/errors/image.bin) [shared](/assets/guide.md)\n"
 	files["techs/go/assets/errors/image.bin"] = "\x00\xff\r\n"
 	files["techs/go/assets/errors/unused.bin"] = "unreferenced owned"
 	files["assets/guide.md"] = "[cycle](guide.md) [next](next.md)"
@@ -83,5 +83,37 @@ func TestLoadSkipsUnusedSharedAndRejectsLinkedAssets(t *testing.T) {
 	}
 	if _, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"}); err == nil || !strings.Contains(err.Error(), "symlink") {
 		t.Fatalf("symlink: %v", err)
+	}
+}
+
+// TestLoadRejectsRuleLinks rejects dependencies on selected, unselected, or absent rules and links inside attachments.
+func TestLoadRejectsRuleLinks(t *testing.T) {
+	for _, test := range []struct{ name, from, link, target string }{
+		{"selected", "techs/go/errors.md", "other.md", "techs/go/other.md"},
+		{"unselected", "techs/go/errors.md", "../rust/other.md", "techs/rust/other.md"},
+		{"missing", "techs/go/errors.md", "missing.md", ""},
+		{"reference", "techs/go/errors.md", "", "techs/go/other.md"},
+		{"shared attachment", "assets/guide.md", "/techs/go/errors.md", ""},
+		{"owned attachment", "techs/go/assets/errors/guide.md", "../../errors.md", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			files := validFiles()
+			if test.target != "" {
+				files[test.target] = files["techs/go/errors.md"]
+			}
+			if test.from != "techs/go/errors.md" {
+				files["techs/go/errors.md"] += "\n[guide](/" + test.from + ")\n"
+			}
+			if test.name == "reference" {
+				files[test.from] += "\n[other][rule]\n\n[rule]: other.md#details\n"
+			} else {
+				files[test.from] += "\n[other](" + test.link + ")\n"
+			}
+			_, root := fixture(t, files)
+			got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
+			if err == nil || !strings.Contains(err.Error(), "links to other rule documents are not allowed") || got.Groups != nil {
+				t.Fatalf("expected rule-link error without partial catalog: %+v, %v", got, err)
+			}
+		})
 	}
 }

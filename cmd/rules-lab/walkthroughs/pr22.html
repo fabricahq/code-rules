@@ -368,9 +368,8 @@
               Owned asset directories are retained completely, including binary
               files. A link into root assets/ retains that whole shared tree.
               Markdown inside attachments is checked recursively; cycles
-              terminate. References to other rules check existence without
-              adopting another group. Rules still own their one original
-              document.
+              terminate. Links to other rule documents are rejected, including
+              inside attachments. Rules still own their one original document.
             </p>
             <p>
               <code>ok: true</code> means Go returned no error.
@@ -417,7 +416,7 @@
           "Edit fixture files and Markdown links. The adapter creates an isolated temporary library and invokes native Go.",
         inputlabel: "Library and attachment fixture",
         details:
-          "Owned asset directories are retained completely, including binary files. A link into root assets/ retains that whole shared tree. Markdown inside attachments is checked recursively; cycles terminate. References to other rules check existence without adopting another group. Rules still own their one original document.",
+          "Owned asset directories are retained completely, including binary files. A link into root assets/ retains that whole shared tree. Markdown inside attachments is checked recursively; cycles terminate. Links to other rule documents are rejected, including inside attachments. Rules still own their one original document.",
         boundaries:
           "This PR reads and validates supporting files. It does not fetch Git repositories, rewrite links, render output, or install project files. The walkthrough writes and removes only its temporary fixture.",
         operation: "loadLibrary",
@@ -467,7 +466,7 @@
           {
             name: "Unselected rule link",
             description:
-              "Adds a link to techs/rust/other.md alongside the shared cycle. Loading checks that the Rust file exists without adopting its group.",
+              "Adds a link to techs/rust/other.md. Expect an error: rules cannot depend on other rule documents, even when the file exists.",
             input: {
               files: {
                 "rule-library.json": '{"formatVersion":1}',
@@ -562,7 +561,7 @@
                 "techs/go/_group.json":
                   '{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}',
                 "techs/go/errors.md":
-                  "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\n![diagram](assets/errors/diagram.txt)\n\n[shared](/assets/guide.md)\n[other](../rust/other.md)",
+                  "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\n![diagram](assets/errors/diagram.txt)\n\n[shared](/assets/guide.md)",
                 "techs/go/assets/errors/diagram.txt": "Original attachment",
                 "techs/go/assets/errors/companion.txt":
                   "Retained even without a direct link",
@@ -591,6 +590,47 @@
                 "assets/guide.md": "[next](next.md)",
                 "assets/next.md": "[cycle](guide.md)",
                 "techs/rust/other.md": "Not adopted or parsed",
+              },
+              groups: ["techs/go"],
+              source: "team",
+            },
+          },
+          {
+            name: "Selected rule link",
+            description:
+              "Adds other.md to the selected Go group and links to it from errors.md. Expect the same rule-link error even though both rules are selected.",
+            input: {
+              files: {
+                "rule-library.json": '{"formatVersion":1}',
+                "techs/go/_group.json":
+                  '{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}',
+                "techs/go/errors.md":
+                  "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\n![diagram](assets/errors/diagram.txt)\n\n[other](other.md#details)\n",
+                "techs/go/assets/errors/diagram.txt": "Original attachment",
+                "techs/go/assets/errors/companion.txt":
+                  "Retained even without a direct link",
+                "techs/go/other.md":
+                  "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\n![diagram](assets/errors/diagram.txt)\n",
+              },
+              groups: ["techs/go"],
+              source: "team",
+            },
+          },
+          {
+            name: "Attachment rule link",
+            description:
+              "Adds shared assets/guide.md with a link back to errors.md. Expect a rule-link error inside the attachment; move shared explanations into assets/.",
+            input: {
+              files: {
+                "rule-library.json": '{"formatVersion":1}',
+                "techs/go/_group.json":
+                  '{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}',
+                "techs/go/errors.md":
+                  "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\n![diagram](assets/errors/diagram.txt)\n\n[guide](/assets/guide.md)\n",
+                "techs/go/assets/errors/diagram.txt": "Original attachment",
+                "techs/go/assets/errors/companion.txt":
+                  "Retained even without a direct link",
+                "assets/guide.md": "[rule](/techs/go/errors.md)",
               },
               groups: ["techs/go"],
               source: "team",
