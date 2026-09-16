@@ -154,7 +154,7 @@
     "location": "sources.team.version",
     "expected": {
       "ok": true,
-      "value": "  >= 1.2.0,   < 2.0.0  "
+      "value": ">= 1.2.0,   < 2.0.0"
     },
     "referenceExpected": {
       "ok": false,

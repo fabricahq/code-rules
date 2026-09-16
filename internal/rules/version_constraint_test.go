@@ -106,7 +106,21 @@ func TestVersionConstraintInvalidMatch(t *testing.T) {
 			t.Fatalf("%s: %v, %v", tag, got, err)
 		}
 	}
-	if parsed.String() != " >= 1.2.0, < 2.0.0 " {
-		t.Fatal("matching changed original text")
+	if parsed.String() != ">= 1.2.0, < 2.0.0" {
+		t.Fatal("matching changed trimmed text")
+	}
+}
+
+// TestVersionConstraintTrimsEdges keeps internal spacing while accepting surrounding whitespace.
+func TestVersionConstraintTrimsEdges(t *testing.T) {
+	for _, input := range []string{"  >= 1.2.0,   < 2.0.0  ", "\t\r\n>= 1.2.0,   < 2.0.0\n", "\u00a0>= 1.2.0,   < 2.0.0\ufeff"} {
+		parsed, err := rules.ParseVersionConstraint(input, "release")
+		if err != nil || parsed.String() != ">= 1.2.0,   < 2.0.0" {
+			t.Fatalf("input %q: got %q, %v", input, parsed.String(), err)
+		}
+		matched, err := parsed.Matches("1.5.0", "release")
+		if err != nil || !matched {
+			t.Fatalf("trimmed constraint did not match: %v", err)
+		}
 	}
 }

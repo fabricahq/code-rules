@@ -107,3 +107,5 @@ Evidence: [repository address fixtures](../tests/migration/repositories/cases.js
 - Use the requested dependency's native language when that is the product decision. The user chose HashiCorp syntax and matching semantics over npm compatibility.
 
 Evidence: [version constraints](version-constraints.md) and its shared fixtures.
+
+- PR #17 review: trim surrounding whitespace in version constraints, preserving internal spacing. This user-approved normalization applies to parsed configuration versions too.
