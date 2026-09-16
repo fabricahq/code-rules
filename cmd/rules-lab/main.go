@@ -165,7 +165,7 @@ func invoke(data []byte) (response, error) {
 			files[path] = nil
 		}
 		files["rule-library.json"] = []byte(*input.Manifest)
-		value, err = rules.ReadLibraryLicenses(files, req.Location)
+		value, err = rules.ReadLibraryLicense(files, req.Location)
 	case "versionMatch":
 		var input struct {
 			Constraint *string `json:"constraint"`

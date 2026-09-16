@@ -481,3 +481,34 @@ func TestMarkdownTargetsRequiresExplicitText(t *testing.T) {
 		}
 	}
 }
+
+// TestLibraryLicenseJSON exposes no declaration as null and one declaration with multiple notices as an object.
+func TestLibraryLicenseJSON(t *testing.T) {
+	for _, test := range []struct{ name, manifest, want string }{
+		{"undeclared", `{"formatVersion":1}`, `null`},
+		{"one with notices", `{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE","AUTHORS"],"spdxExpression":"MIT"}}`, `{"spdxExpression":"MIT","files":["LICENSE"],"attributionFiles":["NOTICE","AUTHORS"]}`},
+	} {
+		// Use real temporary library loading behind the same HTTP boundary as the browser.
+		t.Run(test.name, func(t *testing.T) {
+			payload, err := json.Marshal(map[string]any{"operation": "loadLibrary", "location": "fixture", "input": map[string]any{"files": map[string]string{"rule-library.json": test.manifest, "LICENSE": "Terms\r\n", "NOTICE": "Notice", "AUTHORS": "Authors"}, "groups": []string{}, "source": "team"}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			recorder := httptest.NewRecorder()
+			handler(slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/invoke", bytes.NewReader(payload)))
+			var result struct {
+				OK    bool                       `json:"ok"`
+				Value map[string]json.RawMessage `json:"value"`
+			}
+			if err := json.Unmarshal(recorder.Body.Bytes(), &result); err != nil || !result.OK {
+				t.Fatalf("load failed: %s, %v", recorder.Body, err)
+			}
+			if string(result.Value["license"]) != test.want {
+				t.Fatalf("license = %s; want %s", result.Value["license"], test.want)
+			}
+			if _, exists := result.Value["licenses"]; exists {
+				t.Fatal("obsolete licenses array is still exposed")
+			}
+		})
+	}
+}
