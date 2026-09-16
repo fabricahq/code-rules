@@ -614,8 +614,6 @@ bun tests/migration/compare-rules.ts /tmp/code-rules-lab</pre>
           byID("explanation").textContent =
             "The request failed. No Go result was received.";
           byID("status").className = "badge bad";
-          byID("explanation").textContent =
-            "Check the response below and that the local Go server is running.";
           byID("output").textContent = String(error);
         } finally {
           byID("timing").textContent =
