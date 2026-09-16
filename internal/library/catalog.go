@@ -43,11 +43,12 @@ type Group struct {
 
 // reader binds resource limits and cancellation to one rooted catalog read.
 type reader struct {
-	ctx     context.Context
-	root    *os.Root
-	files   map[string][]byte
-	total   int
-	visited int
+	ctx         context.Context
+	root        *os.Root
+	files       map[string][]byte
+	total       int
+	visited     int
+	directories map[string][]fs.DirEntry
 }
 
 var sourceAlias = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -216,6 +217,9 @@ func (r *reader) entries(path string, optional bool) ([]fs.DirEntry, error) {
 	if err := r.ctx.Err(); err != nil {
 		return nil, fmt.Errorf("discover library groups: %w", err)
 	}
+	if entries, ok := r.directories[path]; ok {
+		return entries, nil
+	}
 	info, err := r.root.Lstat(path)
 	if optional && errors.Is(err, fs.ErrNotExist) {
 		return []fs.DirEntry{}, nil
@@ -244,6 +248,10 @@ func (r *reader) entries(path string, optional bool) ([]fs.DirEntry, error) {
 	}
 	// File-system enumeration order must not affect selected groups or the first error.
 	slices.SortFunc(entries, func(a, b fs.DirEntry) int { return strings.Compare(a.Name(), b.Name()) })
+	if r.directories == nil {
+		r.directories = make(map[string][]fs.DirEntry)
+	}
+	r.directories[path] = entries
 	return entries, nil
 }
 

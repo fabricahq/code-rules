@@ -5,6 +5,7 @@ package library_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -284,5 +285,27 @@ func TestLoadTermsDoNotCreateGroups(t *testing.T) {
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
 	if err != nil || len(got.Groups) != 1 {
 		t.Fatalf("mixed group omitted: %+v, %v", got, err)
+	}
+}
+
+// TestMixedTermsDiscoveryCountsOnce keeps explicit and wildcard selections equivalent near the discovery limit.
+func TestMixedTermsDiscoveryCountsOnce(t *testing.T) {
+	files := validFiles()
+	document := files["techs/go/errors.md"]
+	delete(files, "techs/go/errors.md")
+	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE","notices":[]}}`
+	files["techs/go/LICENSE"] = "terms"
+	for i := range 5000 {
+		files[fmt.Sprintf("techs/go/r%d.md", i)] = document
+	}
+	_, root := fixture(t, files)
+	for _, selection := range []rules.GroupSelection{{Groups: []string{"techs/go"}}, {Pattern: "techs/*"}} {
+		got, err := library.Load(context.Background(), root, "team", selection)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got.Groups) != 1 || len(got.Groups[0].Rules) != 5000 {
+			t.Fatal("incomplete catalog")
+		}
 	}
 }
