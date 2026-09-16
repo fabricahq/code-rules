@@ -29,6 +29,9 @@ var page []byte
 //go:embed walkthroughs/*.html
 var walkthroughs embed.FS
 
+//go:embed lab-assets/*
+var labAssets embed.FS
+
 // Allow an 8 MiB tag listing, up to sixfold JSON escaping, and the request envelope.
 const maxRequestBytes = 64 << 20
 
@@ -238,6 +241,7 @@ func adapterError(message string) response {
 func handler(logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	// Serve the embedded walkthrough and report an undeliverable page once.
+	mux.Handle("GET /lab-assets/", http.FileServerFS(labAssets))
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")

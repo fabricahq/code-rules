@@ -319,6 +319,7 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="/lab-assets/fixture-files.css" />
   </head>
   <body>
     <main>
@@ -399,6 +400,7 @@
         capability
       </footer>
     </main>
+    <script src="/lab-assets/fixture-files.js"></script>
     <script>
       // Locate one named control in this walkthrough.
       const byID = (id) => document.getElementById(id);
@@ -594,7 +596,7 @@
           typeof example.input === "string"
             ? example.input
             : JSON.stringify(example.input, null, 2);
-        clearResult();
+        byID("input").dispatchEvent(new Event("input"));
       }
       for (const example of spec.examples) {
         const button = document.createElement("button");
@@ -605,6 +607,7 @@
       }
       byID("input").addEventListener("input", clearResult);
       loadExample(spec.examples[0]);
+      mountFixtureFiles(byID("input"), clearResult);
       // Invoke native Go and keep invalid adapter JSON distinct from a domain validation error.
       byID("invoke").addEventListener("click", async () => {
         let input = byID("input").value;
