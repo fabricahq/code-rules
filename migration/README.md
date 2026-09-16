@@ -14,7 +14,7 @@ Use the [Go conventions](../_internal/go-conventions.md) when implementing or re
 - [Document boundaries](rule-documents.md) merged in PR #13 at `301caa59654e8170f66ef6347eba4c0951d44560`.
 - [Group metadata](group-metadata.md) was human-approved and merged in PR #12 at `5c2c10a23cf556d9533bed316397338213f22fbd`.
 - [The identity slice](identities.md) was human-approved and merged in PR #11 at `6bfcaf608bc5ce9c36af4c3c27c02d751a7fdd30`.
-- Every migration PR targets `go-migration`. Merge each slice after explicit human approval before starting the next iteration.
+- Migration PRs normally target `go-migration`; the authorized concurrent stack below temporarily targets predecessor branches. Merge each slice after explicit human approval before starting the next iteration.
 - A separate human decision authorizes the eventual `go-migration` to `main` PR, distribution changes, and removal of TypeScript runtime code.
 
 The initial integration branch and TypeScript reference both start at `7013d3d374a33a5cf65a2a48ff6870e46f9d7209`.
