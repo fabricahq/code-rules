@@ -142,3 +142,13 @@ func TestLocalSupportingFilesRemainSupport(t *testing.T) {
 		}
 	}
 }
+
+// TestReservedLocalGroupMetadata cannot hide reserved group names in the asset classification.
+func TestReservedLocalGroupMetadata(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	for _, file := range []string{"techs/assets/_group.json", "practices/assets/_group.json"} {
+		if _, err := build.Resolve(config, libraries, map[string][]byte{file: []byte(metadata)}); err == nil {
+			t.Fatalf("accepted %s", file)
+		}
+	}
+}

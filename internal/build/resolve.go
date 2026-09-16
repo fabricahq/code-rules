@@ -227,7 +227,7 @@ func parseLocal(files map[string][]byte, groups map[string]*Group) (map[string]r
 		if file == "README.md" {
 			continue
 		}
-		if slices.Contains(strings.Split(file, "/"), "assets") {
+		if slices.Contains(strings.Split(file, "/"), "assets") && !(strings.Count(file, "/") == 2 && path.Base(file) == "_group.json") {
 			continue
 		}
 		if path.Base(file) == "_group.json" {
