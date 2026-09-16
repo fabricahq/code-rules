@@ -177,7 +177,7 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 	}
 	for _, group := range resolved.Groups {
 		effective := []string{}
-		for _, guidance := range EffectiveGuidance(group) {
+		for _, guidance := range group.EffectiveGuidance {
 			effective = append(effective, guidance.Source)
 		}
 		guidance := slices.Clone(group.Guidance)
