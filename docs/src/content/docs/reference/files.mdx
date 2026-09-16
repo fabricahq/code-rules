@@ -68,11 +68,11 @@ If a selected rule or one of its Markdown assets references root `assets/`, Impo
 Otherwise shared assets are omitted. Nested folders and binary files are allowed within these directories, subject to the import size and file-type limits.
 No asset is executed. Markdown assets must be UTF-8 so their standard Markdown references can be checked.
 
-A rule or its assets may link to its own assets, shared assets, other rules, and declared library license or notice files.
+A rule or its assets may link to its own assets, shared assets, and declared library license or notice files.
 Shared assets may link to other shared assets, rules, and declared license files, but cannot depend on one rule's private assets.
 A link into another rule's assets is invalid: move that material to the shared directory.
 Missing local destinations and supporting references elsewhere in the repository fail import.
-References to another rule do not adopt it or import its group. External URLs remain links and are not downloaded.
+In the Go migration, filesystem links to another rule document are invalid, even when the target is selected or retained. This also applies to Markdown attachments. Rules must remain independently selectable; move shared supporting explanations into `assets/`. Self-links and anchors within the same document remain valid. External URLs remain links and are not downloaded.
 
 Files elsewhere in the repository can still hold project documentation or tooling, but cannot serve as local supporting dependencies for rules.
 The existing manifest-based paths for library licenses and notices remain unchanged.
@@ -265,7 +265,7 @@ Excluded rules and superseded bodies have no generated rule file.
 Source links, attribution, and applicable library license links remain with the resolved definition in both formats. Replacement history appears only in configuration and provenance.
 Individual rule files remain available at stable paths even when the group includes full rules.
 Both copies come from the same resolved definition. Relative links are relocated from the actual output directory.
-Links to declared license and notice files target their generated copies. Other retained files use workspace-relative links. References to unselected rules use commit-pinned URLs for recognized GitHub.com and GitLab.com endpoints; other hosts require an explicit URL when the target is absent from the snapshot. Missing assets fail generation on every host.
+Links to declared license and notice files target their generated copies. Other retained files use workspace-relative links. The Go migration rejects filesystem references to other rule documents instead of generating fallback repository links. Missing assets fail generation on every host.
 Relative links in raw HTML are rejected; use Markdown links, images, or reference definitions instead.
 Inline rules nest their headings and namespace Markdown reference labels.
 Same-file fragment links in inline rules point to the standalone definition, avoiding ambiguity between repeated headings across rules.

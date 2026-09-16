@@ -108,9 +108,16 @@ func RuleAssetDirectory(file string) string {
 	return path.Dir(file) + "/assets/" + strings.TrimSuffix(path.Base(file), ".md") + "/"
 }
 
-// RequireAllowedTarget enforces shared assets, own assets, rule links, and declared terms.
+// RequireAllowedTarget permits self-links, shared/owned assets, and declared terms.
+// Links to other rule documents fail regardless of selection or target existence.
 func RequireAllowedTarget(file, target string, terms []string) error {
-	if file == target || slices.Contains(terms, target) {
+	if file == target {
+		return nil
+	}
+	if _, err := GroupFromPath(target, file); err == nil {
+		return invalid(file, "links to other rule documents are not allowed: "+target+"; move shared supporting material to the library-root assets/ directory")
+	}
+	if slices.Contains(terms, target) {
 		return nil
 	}
 	own := AssetDirectory(file)
@@ -119,9 +126,6 @@ func RequireAllowedTarget(file, target string, terms []string) error {
 	}
 	destination := AssetDirectory(target)
 	if destination == "assets/" || (destination != "" && destination == own) {
-		return nil
-	}
-	if _, err := GroupFromPath(target, file); err == nil {
 		return nil
 	}
 	return invalid(file, "unsupported supporting-file link: "+target+"; use this rule's assets directory or the library-root assets directory")
