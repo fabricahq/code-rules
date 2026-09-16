@@ -1,12 +1,12 @@
 # Review PRs 22-26 together
 
-PRs 17-22 have merged into `go-migration`. PR #22 merged after user approval, resolved feedback, final Devin review, and passing checks. PRs #23-26 remain open for human review. Passing CI or automated reviews does not authorize merging those four.
+PRs 17-23 have merged into `go-migration` after user approval, resolved feedback, final review, and passing checks. PRs #24-26 remain open for human review. Passing CI or automated reviews does not authorize merging those three.
 
 | PR | Capability | Branch | Review base | Walkthrough |
 | --- | --- | --- | --- | --- |
 | #22 (merged) | Library assets | codex/go-library-assets | go-migration | /walkthrough/pr22 |
-| #23 | Effective rules | codex/go-rule-resolution | go-migration | /walkthrough/pr23 |
-| #24 | Standalone rendering | codex/go-rule-rendering | codex/go-rule-resolution | /walkthrough/pr24 |
+| #23 (merged) | Effective rules | codex/go-rule-resolution | go-migration | /walkthrough/pr23 |
+| #24 | Standalone rendering | codex/go-rule-rendering | go-migration | /walkthrough/pr24 |
 | #25 | Discovery indexes | codex/go-discovery-indexes | codex/go-rule-rendering | /walkthrough/pr25 |
 | #26 | Licensed output | codex/go-licensed-output | codex/go-discovery-indexes | /walkthrough/pr26 |
 
