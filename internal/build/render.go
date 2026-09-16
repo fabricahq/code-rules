@@ -94,7 +94,7 @@ func renderRule(active ActiveRule, paths []string, outputPath string) (string, e
 // escapeText keeps metadata on one line and escapes Markdown punctuation.
 func escapeText(value string) string {
 	var result strings.Builder
-	for _, r := range strings.ReplaceAll(strings.ReplaceAll(value, "\r\n", " "), "\n", " ") {
+	for _, r := range strings.NewReplacer("\r\n", " ", "\r", " ", "\n", " ").Replace(value) {
 		if strings.ContainsRune("\\`*_{}[]()<>#+|", r) {
 			result.WriteByte('\\')
 		}
