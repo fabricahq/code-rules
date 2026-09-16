@@ -18,10 +18,10 @@ type Output struct {
 	Files map[string][]byte `json:"files"`
 }
 
-// Options provides the declared tool version and per-index UTF-8 byte budget.
+// Options provides the declared tool version and per-index Markdown line limit.
 type Options struct {
 	ToolVersion   string
-	IndexMaxBytes int
+	IndexMaxLines int
 }
 
 // Prepare combines rendering and summary indexes with terms and provenance, returning no partial output.
@@ -34,7 +34,7 @@ func Prepare(resolved Resolved, options Options) (Output, error) {
 	if err != nil {
 		return Output{}, err
 	}
-	indexes, err := RenderIndexes(resolved, options.IndexMaxBytes)
+	indexes, err := RenderIndexes(resolved, options.IndexMaxLines)
 	if err != nil {
 		return Output{}, err
 	}
