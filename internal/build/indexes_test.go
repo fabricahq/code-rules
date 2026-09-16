@@ -305,3 +305,53 @@ func TestGroupDescriptionsRemainLiteral(t *testing.T) {
 		}
 	}
 }
+
+// TestIndexPagesNavigation labels total pages and links adjacent pages without exceeding the line limit.
+func TestIndexPagesNavigation(t *testing.T) {
+	for _, total := range []int{2, 3, 12} {
+		entries := make([]string, total)
+		for i := range entries {
+			entries[i] = fmt.Sprintf("Entry %d\n%s", i, strings.Repeat("Content\n", 50))
+		}
+		pages, err := build.IndexPages("groups/go tips.md", "# Go", entries, "Footer", 70)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(pages) != total+1 {
+			t.Fatalf("got %d files, want %d", len(pages), total+1)
+		}
+		for page := 1; page <= total; page++ {
+			text := pages[fmt.Sprintf("groups/go tips.part-%d.md", page)]
+			label := fmt.Sprintf("**Page %d of %d**", page, total)
+			if strings.Count(text, label) != 2 {
+				t.Fatalf("missing top/bottom label %q", label)
+			}
+			if strings.Count(text, "\n") > 70 {
+				t.Fatal("navigation exceeded the page limit")
+			}
+			if !strings.Contains(text, "[All pages](go%20tips.md)") {
+				t.Fatal("missing directory link")
+			}
+			if page < total {
+				link := fmt.Sprintf("[Next page](go%%20tips.part-%d.md)", page+1)
+				if strings.Count(text, link) != 2 {
+					t.Fatalf("missing %s", link)
+				}
+			} else if strings.Contains(text, "[Next page]") {
+				t.Fatal("last page points beyond the end")
+			}
+			if page > 1 {
+				link := fmt.Sprintf("[Previous page](go%%20tips.part-%d.md)", page-1)
+				if strings.Count(text, link) != 2 {
+					t.Fatalf("missing %s", link)
+				}
+			} else if strings.Contains(text, "[Previous page]") {
+				t.Fatal("first page points before the start")
+			}
+		}
+	}
+	pages, err := build.IndexPages("RULES.md", "# Rules", []string{"Short summary"}, "", 750)
+	if err != nil || len(pages) != 1 || strings.Contains(pages["RULES.md"], "**Page ") {
+		t.Fatal("unpaginated output changed")
+	}
+}
