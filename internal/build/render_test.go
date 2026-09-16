@@ -3,6 +3,7 @@
 package build_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -175,5 +176,29 @@ func TestRenderReferenceImages(t *testing.T) {
 		if !strings.Contains(output["rules/team/techs/go/errors.md"], "../../../../../vendor/team/assets/diagram.png") {
 			t.Fatal(output)
 		}
+	}
+}
+
+// TestRenderRejectsInvalidUTF8 prevents local bytes from being silently replaced during JSON delivery.
+func TestRenderRejectsInvalidUTF8(t *testing.T) {
+	output, err := renderFixture(t, "Guidance: \xff", nil)
+	var validation *rules.ValidationError
+	if !errors.As(err, &validation) || validation.Location != "local:techs/go/local.md" || !strings.Contains(err.Error(), "UTF-8") || output != nil {
+		t.Fatalf("expected contextual UTF-8 error without output, got %v, %v", output, err)
+	}
+}
+
+// TestRenderRejectsInvalidDocumentBytes checks callers that construct a resolved value directly.
+func TestRenderRejectsInvalidDocumentBytes(t *testing.T) {
+	config, libraries := fixture(t, `{}`, `{}`)
+	resolved, err := build.Resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved.Groups[0].Rules[0].Rule.Document += "\xff"
+	output, err := build.RenderRules(resolved)
+	var validation *rules.ValidationError
+	if !errors.As(err, &validation) || validation.Location != "team:techs/go/errors" || !strings.Contains(err.Error(), "UTF-8") || output != nil {
+		t.Fatalf("expected contextual UTF-8 error without output, got %v, %v", output, err)
 	}
 }

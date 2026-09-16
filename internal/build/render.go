@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -52,6 +53,9 @@ func RenderRules(resolved Resolved) (map[string]string, error) {
 
 // renderRule wraps rewritten guidance in applicability, origin, and original frontmatter sections.
 func renderRule(active ActiveRule, paths []string, outputPath string) (string, error) {
+	if !utf8.ValidString(active.Rule.Document) {
+		return "", invalid(active.Rule.ID, "expected UTF-8 text")
+	}
 	split, err := rules.SplitDocument(active.Rule.Document, active.Rule.ID)
 	if err != nil {
 		return "", err
