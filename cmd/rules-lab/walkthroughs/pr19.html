@@ -423,14 +423,14 @@
         location: "library",
         examples: [
           {
-            name: "unspecified",
+            name: "No declaration",
             input: {
               manifest: '{"formatVersion": 1}',
               paths: ["LICENSE", "NOTICE"],
             },
           },
           {
-            name: "mit",
+            name: "MIT",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "MIT"}}',
@@ -438,7 +438,7 @@
             },
           },
           {
-            name: "expression-3",
+            name: "Combined licenses",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "(MIT OR Apache-2.0) AND BSD-2-Clause"}}',
@@ -446,7 +446,7 @@
             },
           },
           {
-            name: "expression-5",
+            name: "License exception",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "GPL-2.0-only WITH Classpath-exception-2.0"}}',
@@ -454,7 +454,7 @@
             },
           },
           {
-            name: "expression-6",
+            name: "Custom license",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "LicenseRef-Team"}}',
@@ -462,7 +462,7 @@
             },
           },
           {
-            name: "unidentified",
+            name: "Without SPDX",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"]}}',
@@ -470,7 +470,7 @@
             },
           },
           {
-            name: "deduplicate",
+            name: "Deduplicate notices",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE", "LICENSE", "NOTICE"], "spdxExpression": "MIT"}}',
@@ -478,7 +478,7 @@
             },
           },
           {
-            name: "missing-file",
+            name: "Missing file",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "MIT"}}',
@@ -486,7 +486,7 @@
             },
           },
           {
-            name: "traversal",
+            name: "Path traversal",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "../LICENSE", "notices": ["NOTICE"], "spdxExpression": "MIT"}}',
@@ -494,7 +494,7 @@
             },
           },
           {
-            name: "unknown",
+            name: "Unknown field",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "MIT", "future": true}}',
@@ -502,7 +502,7 @@
             },
           },
           {
-            name: "renamed",
+            name: "Obsolete field",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "MIT", "expression": "MIT"}}',
@@ -510,7 +510,7 @@
             },
           },
           {
-            name: "invalid-25",
+            name: "Wrong identifier case",
             input: {
               manifest:
                 '{"formatVersion": 1, "license": {"file": "LICENSE", "notices": ["NOTICE"], "spdxExpression": "mit"}}',
