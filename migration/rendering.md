@@ -6,6 +6,6 @@ Each standalone rule includes applicability, impact, guidance, origin, attributi
 
 Retained paths use workspace-relative links. Unretained rule paths on recognized hosts use immutable commit URLs. Supporting assets must be retained; they cannot silently fall back to a remote URL. Generated license destinations are fixed, with copying supplied by the licensed-output slice.
 
-A matching leading plain-text title is omitted. Top-level headings nest below Guidance. Reference labels need no namespace in standalone files; combining rule bodies is intentionally outside this slice. Group delivery, index pagination, provenance, and output persistence are not implemented here.
+A matching leading plain-text title is omitted. Headings, including those inside lists and blockquotes, nest below Guidance. Shared reference definitions used by images choose raw content URLs so images can load. Reference labels need no namespace in standalone files; combining rule bodies is intentionally outside this slice. Group delivery, index pagination, provenance, and output persistence are not implemented here.
 
 The `/walkthrough/pr24` native walkthrough exercises complete returned files, retained assets, pinned links, references, empty destinations, code examples, Setext headings, and error cases.
