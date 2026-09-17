@@ -559,7 +559,7 @@
           {
             name: "Invalid local rule",
             description:
-              "Seeds a valid sync, then adds a malformed local rule. Validation fails before installation; existing vendor and generated files stay unchanged.",
+              "After a valid sync, adds local/techs/go/bad.md without required YAML frontmatter. The changed file is selected below. Validation fails; existing vendor and generated files stay unchanged.",
             input: {
               configuration: {
                 schemaVersion: 1,

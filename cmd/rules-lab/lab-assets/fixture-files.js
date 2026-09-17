@@ -115,18 +115,33 @@ function mountFixtureFiles(input, onEdit) {
     const content = entry.files[entry.path];
     editor.readOnly = typeof content !== "string";
     editor.value =
-      typeof content === "string" ? content : JSON.stringify(content, null, 2);
-    info.textContent = editor.readOnly
-      ? "This file value is not text. Correct it in Request JSON and settings."
-      : `${new TextEncoder().encode(content).length} bytes · Edits update the input fixture. Invoke Go to see the result.`;
+      entry.change && content === null
+        ? "This file is deleted before invocation."
+        : typeof content === "string"
+          ? content
+          : JSON.stringify(content, null, 2);
+    info.textContent =
+      entry.change && content === null
+        ? "Deletion is represented by null in Request JSON and settings."
+        : editor.readOnly
+          ? "This file value is not text. Correct it in Request JSON and settings."
+          : `${new TextEncoder().encode(content).length} bytes · Edits update the input fixture. Invoke Go to see the result.`;
     for (const file of entries)
       file.button.setAttribute("aria-pressed", String(file === entry));
   }
 
   // Render one root with nested folders; Maps keep special property names literal.
-  function addRoot(root, files) {
+  function addRoot(root, files, change = false) {
     const group = element("div", "fixture-root");
     group.append(element("p", "fixture-root-name", root));
+    if (change)
+      group.append(
+        element(
+          "p",
+          "hint",
+          "Applied after setup, before the function runs. Null deletes a file.",
+        ),
+      );
     tree.append(group);
     if (!isObject(files)) {
       group.append(
@@ -165,12 +180,13 @@ function mountFixtureFiles(input, onEdit) {
       const button = element(
         "button",
         "fixture-file",
-        parts.at(-1) || "(empty filename)",
+        (parts.at(-1) || "(empty filename)") +
+          (change && files[path] === null ? " (deleted)" : ""),
       );
       button.type = "button";
       button.setAttribute("aria-label", `${root} / ${path}`);
       button.title = path;
-      const entry = { root, path, files, button };
+      const entry = { root, path, files, button, change };
       // Navigation leaves both fixture bytes and the last result untouched.
       button.addEventListener("click", () => select(entry));
       entries.push(entry);
@@ -212,6 +228,10 @@ function mountFixtureFiles(input, onEdit) {
         ? request.fixture
         : request;
     if (isObject(fixture)) {
+      const hasChanges =
+        isObject(fixture.changes) && Object.keys(fixture.changes).length > 0;
+      if (hasChanges)
+        addRoot("Changes before invocation", fixture.changes, true);
       if (Object.hasOwn(fixture, "configuration")) {
         configView.hidden = false;
         configText.textContent = JSON.stringify(fixture.configuration, null, 2);
@@ -234,7 +254,10 @@ function mountFixtureFiles(input, onEdit) {
           addRoot(`Library: ${alias}`, library?.files);
       }
       if (Object.hasOwn(fixture, "localFiles"))
-        addRoot("Local rules", fixture.localFiles);
+        addRoot(
+          hasChanges ? "Local rules before changes" : "Local rules",
+          fixture.localFiles,
+        );
     }
     if (!tree.childElementCount) {
       tree.append(
@@ -247,8 +270,15 @@ function mountFixtureFiles(input, onEdit) {
       showView("request");
     }
     if (currentView === "config" && configView.hidden) showView("request");
-    // Prefer the previous file, then a rule document, then the first available file.
+    // Show scenario changes first so the file causing a failure is visible before invocation.
     const initial =
+      entries.find(
+        (entry) =>
+          entry.change &&
+          entry.root === previous?.root &&
+          entry.path === previous?.path,
+      ) ||
+      entries.find((entry) => entry.change) ||
       entries.find(
         (entry) =>
           entry.root === previous?.root && entry.path === previous?.path,
