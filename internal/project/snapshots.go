@@ -262,8 +262,23 @@ func matchSnapshotSource(want, got rules.Source, record sourceRecord, where stri
 
 // validateFilePaths enforces contained portable names and rejects file/directory collisions before use.
 func validateFilePaths(files map[string][]byte) error {
+	return validatePaths(files, nil)
+}
+
+// validatePaths checks portable spelling across both files and empty directories.
+func validatePaths(files map[string][]byte, directories []string) error {
+	names := maps.Clone(files)
+	if names == nil {
+		names = map[string][]byte{}
+	}
+	for _, dir := range directories {
+		if _, ok := files[dir]; ok {
+			return invalidSnapshot(dir, "file also used as directory")
+		}
+		names[dir] = nil
+	}
 	spellings := map[string]string{}
-	for _, file := range slices.Sorted(maps.Keys(files)) {
+	for _, file := range slices.Sorted(maps.Keys(names)) {
 		if file == "." || !fs.ValidPath(file) || strings.ContainsAny(file, "\\:\x00") || !utf8.ValidString(file) {
 			return invalidSnapshot(file, "expected a contained relative file path")
 		}
