@@ -86,6 +86,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 		}
 		root.AddCommand(cmd)
 	}
+	addProjectAuthoringCommands(root, options, &started)
 	if err := rejectMissingValues(root, args); err != nil {
 		fmt.Fprintln(streams.Err, err)
 		return 2

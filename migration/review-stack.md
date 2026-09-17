@@ -1,12 +1,13 @@
 # Review the migration stack
 
-PRs #17-#31 have merged into `go-migration`. PR #32 has human approval and is awaiting final review closeout. The user authorized preparing all remaining slices for review; passing CI or automated review does not authorize merging those new PRs.
+PRs #17-#32 have merged into `go-migration`. The user authorized preparing all remaining slices for review; passing CI or automated review does not authorize merging those new PRs.
 
-| PR  | Capability                   | Branch                | Review base           | Walkthrough       |
-| --- | ---------------------------- | --------------------- | --------------------- | ----------------- |
-| #32 | Complete Git library imports | codex/go-git-imports  | go-migration          | /walkthrough/pr32 |
-| #33 | Sync complete projects       | codex/go-project-sync | codex/go-git-imports  | /walkthrough/pr33 |
-| #34 | Native project CLI           | codex/go-cli          | codex/go-project-sync | /walkthrough/pr34 |
+| PR  | Capability             | Branch                | Review base           | Walkthrough       |
+| --- | ---------------------- | --------------------- | --------------------- | ----------------- |
+| #33 | Sync complete projects | codex/go-project-sync | go-migration          | /walkthrough/pr33 |
+| #34 | Native project CLI     | codex/go-cli          | codex/go-project-sync | /walkthrough/pr34 |
+
+| #35 | Project authoring | codex/go-project-authoring | codex/go-cli | /walkthrough/pr35 |
 
 Build `cmd/code-rules` and `cmd/rules-lab` into the same output directory, then run `dist/rules-lab -serve -port 4391` from the top branch. The root page links to available walkthroughs. Each invokes native Go and covers only its PR's capability. Filesystem writes and Git repositories use isolated disposable fixtures.
 
