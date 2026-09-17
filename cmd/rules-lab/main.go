@@ -77,6 +77,8 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "gitRevision":
+		value, err = invokeGitRevision(req.Input)
 	case "offlineProject":
 		return offlineResponse(req.Input)
 	case "projectWrite":
@@ -290,6 +292,9 @@ func invoke(data []byte) (response, error) {
 		return adapterError("unknown operation " + req.Operation), nil
 	}
 	if err != nil {
+		if failure := gitFailure(err); failure != nil {
+			return response{Error: failure}, nil
+		}
 		var selection *rules.VersionSelectionError
 		if errors.As(err, &selection) {
 			return response{Error: &failure{Name: "VersionSelectionError", Code: string(selection.Kind), Message: err.Error()}}, nil
