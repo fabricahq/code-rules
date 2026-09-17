@@ -52,7 +52,7 @@ func (f *authoringFlags) value(name string) string {
 func (f *authoringFlags) require(names ...string) error {
 	for _, name := range names {
 		if f.value(name) == "" {
-			value, err := f.ask(f.command.Flags().Lookup(name).Usage + " (--" + name + "):")
+			value, err := f.ask(f.command.Flags().Lookup(name).Usage + ":")
 			if err != nil {
 				return err
 			}
