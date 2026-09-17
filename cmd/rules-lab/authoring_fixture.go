@@ -30,6 +30,11 @@ type authoringObservation struct {
 
 // authoringResponse captures real executable statuses; fixture validation is reported separately.
 func authoringResponse(input json.RawMessage) (response, error) {
+	return authoringSequenceResponse(input, validateAuthoringArguments)
+}
+
+// authoringSequenceResponse owns the disposable project and captures a bounded sequence of reviewed commands.
+func authoringSequenceResponse(input json.RawMessage, validate func([]string) error) (response, error) {
 	var fixture authoringFixture
 	decoder := json.NewDecoder(bytes.NewReader(input))
 	decoder.DisallowUnknownFields()
@@ -40,7 +45,7 @@ func authoringResponse(input json.RawMessage) (response, error) {
 		return adapterError("provide 1 to 12 authoring commands"), nil
 	}
 	for _, args := range fixture.Commands {
-		if err := validateAuthoringArguments(args); err != nil {
+		if err := validate(args); err != nil {
 			return response{Error: describeProjectError(err)}, nil
 		}
 	}
