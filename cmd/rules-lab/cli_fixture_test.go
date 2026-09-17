@@ -15,3 +15,17 @@ func TestCLIRejectsDefaultConfig(t *testing.T) {
 		t.Fatalf("expected argument rejection before process setup: %+v, %v", result, err)
 	}
 }
+
+// TestSubcommandHelpNeedsNoConfig preserves help-only invocations without allowing help=false to bypass confinement.
+func TestSubcommandHelpNeedsNoConfig(t *testing.T) {
+	for _, args := range [][]string{{"sync", "--help"}, {"build", "-h"}, {"check", "--help=true"}} {
+		if err := validateCLIArguments(args); err != nil {
+			t.Fatal(args, err)
+		}
+	}
+	for _, args := range [][]string{{"sync", "--help=false"}, {"sync", "--help", "--help=false"}, {"sync", "--", "--help"}, {"sync", "--help", "--config", "/tmp/outside.json"}} {
+		if err := validateCLIArguments(args); err == nil {
+			t.Fatal("confinement bypass", args)
+		}
+	}
+}
