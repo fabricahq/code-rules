@@ -20,3 +20,5 @@ Observed symlinks, hard links, case aliases, stale prior bytes, and pending auth
 Build both native binaries into one directory, then start rules-lab. `/walkthrough/pr35` runs real command sequences in disposable projects, stops at the first nonzero exit, and displays stdout, stderr, status, and before/after files. No source is fetched by this walkthrough.
 
 Validation includes the actual compiled CLI without runtime tools on PATH, idempotent initialization, source-only edits, local build/check, optional group creation, no-overwrite failures, unsafe input refusal, and stale prior-byte rejection. The shared canonical draft body is compiled into the Go binary.
+
+If publication completes but stage or writer-lock cleanup fails, the result still lists the committed paths and includes a visible `warnings` array. It does not misreport a completed source addition as an operation that should be retried. Pending cleanup stages must be inspected before another authoring operation.

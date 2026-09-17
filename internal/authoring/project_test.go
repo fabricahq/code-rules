@@ -253,3 +253,48 @@ func TestReplacementCollisionRetainsRecovery(t *testing.T) {
 		t.Fatal(string(data), string(old))
 	}
 }
+
+// TestCommittedCleanupWarning keeps committed file paths visible when post-publication cleanup fails.
+func TestCommittedCleanupWarning(t *testing.T) {
+	for _, replace := range []bool{false, true} {
+		t.Run(map[bool]string{false: "creation", true: "replacement"}[replace], func(t *testing.T) {
+			root, err := os.OpenRoot(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			stage := ".code-rules-authoring-cleanup"
+			if err = root.Mkdir(stage, 0700); err != nil {
+				t.Fatal(err)
+			}
+			file := authoredFile{name: "config.json", data: []byte("new")}
+			if replace {
+				file.before = []byte("old")
+				if err = root.WriteFile(file.name, file.before, 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			cleanupErr := errors.New("injected stage cleanup failure")
+			operation := &publication{ctx: context.Background(), root: root, stage: stage, link: root.Link, removeStage: func(string) error { return cleanupErr }}
+			err = operation.run([]authoredFile{file})
+			if !errors.Is(err, cleanupErr) || !publicationComplete(err) {
+				t.Fatal("lost committed status", err)
+			}
+			result, err := finishAuthoring(root, []authoredFile{file}, "Review committed files.", publicationComplete(err), err)
+			if err != nil || len(result.Files) != 1 || len(result.Warnings) != 1 {
+				t.Fatal(result, err)
+			}
+			data, _ := root.ReadFile(file.name)
+			if string(data) != "new" {
+				t.Fatal("lost committed bytes")
+			}
+			encoded, _ := json.Marshal(result)
+			if !bytes.Contains(encoded, []byte(`"warnings"`)) {
+				t.Fatal("cleanup hidden from JSON", string(encoded))
+			}
+			if err = validatePublication(root, []authoredFile{file}); err == nil {
+				t.Fatal("ignored pending cleanup stage")
+			}
+		})
+	}
+}

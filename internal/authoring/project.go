@@ -24,6 +24,8 @@ type Options struct{ ConfigPath string }
 type Result struct {
 	Files []string `json:"files"`
 	Next  string   `json:"next"`
+	// Warnings describe cleanup failures after all requested files were committed.
+	Warnings []string `json:"warnings,omitempty"`
 }
 
 // RuleOptions distinguishes a supplied body from an unfinished draft and optional new group creation.
@@ -107,6 +109,7 @@ func InitializeProject(ctx context.Context, options Options) (Result, error) {
 	}
 	defer root.Close()
 	var files []authoredFile
+	committed := false
 	err = project.WithWriter(ctx, root, func(_ *project.Writer) error {
 		old, err := optionalFile(ctx, root, name)
 		if err != nil {
@@ -131,12 +134,11 @@ func InitializeProject(ctx context.Context, options Options) (Result, error) {
 		if readme == nil {
 			files = append(files, authoredFile{name: "local/README.md", data: []byte(localReadme)})
 		}
-		return publishAuthored(ctx, root, files)
+		err = publishAuthored(ctx, root, files)
+		committed = publicationComplete(err)
+		return err
 	})
-	if err != nil {
-		return Result{}, err
-	}
-	return authoredResult(root, files, "Add a local group and rule, then run build. Or add a source and run sync."), nil
+	return finishAuthoring(root, files, "Add a local group and rule, then run build. Or add a source and run sync.", committed, err)
 }
 
 // authoredResult reports only paths published by this operation in deterministic publication order.
@@ -156,6 +158,7 @@ func editProject(ctx context.Context, options Options, next string, prepare func
 	}
 	defer root.Close()
 	var files []authoredFile
+	committed := false
 	err = project.WithWriter(ctx, root, func(_ *project.Writer) error {
 		original, config, err := configuration(ctx, root, name)
 		if err != nil {
@@ -168,12 +171,11 @@ func editProject(ctx context.Context, options Options, next string, prepare func
 		if err != nil {
 			return err
 		}
-		return publishAuthored(ctx, root, files)
+		err = publishAuthored(ctx, root, files)
+		committed = publicationComplete(err)
+		return err
 	})
-	if err != nil {
-		return Result{}, err
-	}
-	return authoredResult(root, files, next), nil
+	return finishAuthoring(root, files, next, committed, err)
 }
 
 // AddLocalGroup creates one complete local group definition without overwriting existing metadata.
@@ -309,4 +311,16 @@ func AddSource(ctx context.Context, alias string, source json.RawMessage, option
 		}
 		return []authoredFile{{name: name, data: data, before: original}}, nil
 	})
+}
+
+// finishAuthoring preserves committed paths and reports cleanup failures as visible result warnings.
+func finishAuthoring(root *os.Root, files []authoredFile, next string, committed bool, err error) (Result, error) {
+	if err != nil && !committed {
+		return Result{}, err
+	}
+	result := authoredResult(root, files, next)
+	if err != nil {
+		result.Warnings = []string{"All requested files were committed. Cleanup needs attention before another authoring operation: " + err.Error()}
+	}
+	return result, nil
 }

@@ -157,6 +157,8 @@ type publication struct {
 	published []authoredFile
 	// link is the exclusive installation boundary; tests can fail a specific publication.
 	link func(string, string) error
+	// removeStage is the post-publication cleanup boundary.
+	removeStage func(string) error
 }
 
 // publishAuthored validates targets, prepares a private stage, and publishes under the caller's writer lock.
@@ -174,7 +176,7 @@ func publishAuthored(ctx context.Context, root *os.Root, files []authoredFile) (
 	if err = root.Mkdir(stage, 0700); err != nil {
 		return err
 	}
-	operation := &publication{ctx: ctx, root: root, stage: stage, link: root.Link}
+	operation := &publication{ctx: ctx, root: root, stage: stage, link: root.Link, removeStage: root.RemoveAll}
 	return operation.run(files)
 }
 
@@ -218,9 +220,12 @@ func validatePublication(root *os.Root, files []authoredFile) error {
 func (p *publication) run(files []authoredFile) (err error) {
 	defer func() {
 		if err != nil {
-			err = errors.Join(err, p.rollback())
+			err = errors.Join(err, p.rollback(), p.cleanup())
+			return
 		}
-		err = errors.Join(err, p.cleanup())
+		if cleanupErr := p.cleanup(); cleanupErr != nil {
+			err = &committedCleanupError{Cause: cleanupErr}
+		}
 	}()
 	for _, f := range files {
 		if err = p.prepare(f); err != nil {
@@ -350,7 +355,11 @@ func (p *publication) rollback() (err error) {
 // cleanup removes a completed stage and empty created parents, preserving every uncertain recovery stage.
 func (p *publication) cleanup() (err error) {
 	if !p.retain {
-		err = p.root.RemoveAll(p.stage)
+		if p.removeStage != nil {
+			err = p.removeStage(p.stage)
+		} else {
+			err = p.root.RemoveAll(p.stage)
+		}
 	}
 	for _, name := range slices.Backward(p.created) {
 		e := p.root.Remove(name)
@@ -359,4 +368,21 @@ func (p *publication) cleanup() (err error) {
 		}
 	}
 	return err
+}
+
+// committedCleanupError distinguishes a fully published result from failed best-effort cleanup.
+type committedCleanupError struct{ Cause error }
+
+// Error explains that retrying publication is unnecessary even though cleanup needs attention.
+func (e *committedCleanupError) Error() string {
+	return "all authored files were committed; cleanup needs attention: " + e.Cause.Error()
+}
+
+// Unwrap preserves the filesystem failure for callers inspecting the warning's cause.
+func (e *committedCleanupError) Unwrap() error { return e.Cause }
+
+// publicationComplete recognizes successful publication even when its later cleanup failed.
+func publicationComplete(err error) bool {
+	var cleanup *committedCleanupError
+	return err == nil || errors.As(err, &cleanup)
 }
