@@ -20,11 +20,17 @@ func TestNativeLifecycle(t *testing.T) {
 	if data, err := command.CombinedOutput(); err != nil {
 		t.Fatal(err, string(data))
 	}
+	t.Setenv("CODE_RULES_ACCEPTANCE_POISON", "must not reach CLI")
+	wrapper := filepath.Join(t.TempDir(), "isolated-cli")
+	script := fmt.Sprintf("#!/bin/sh\nif [ -n \"$CODE_RULES_ACCEPTANCE_POISON\" ]; then echo 'application environment leaked' >&2; exit 99; fi\nexec '%s' \"$@\"\n", binary)
+	if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
 	for _, scenario := range []string{"lifecycle", "update", "changed-vendor", "failed-sync"} {
 		t.Run(scenario, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 			defer cancel()
-			report, err := Run(ctx, binary, scenario)
+			report, err := Run(ctx, wrapper, scenario)
 			if err != nil {
 				t.Fatalf("%v\n%+v", err, report.Steps)
 			}

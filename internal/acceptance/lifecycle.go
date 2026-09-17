@@ -142,7 +142,13 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	if err := os.Symlink(fixture.GitPath, filepath.Join(gitBin, "git")); err != nil {
 		return report, err
 	}
-	online := append(append([]string{}, fixture.Environment...), "PATH="+gitBin)
+	online := []string{"PATH=" + gitBin}
+	for _, value := range fixture.Environment {
+		key, _, _ := strings.Cut(value, "=")
+		if strings.HasPrefix(key, "GIT_") || key == "HOME" || key == "XDG_CONFIG_HOME" {
+			online = append(online, value)
+		}
+	}
 	for _, args := range [][]string{{"init"}, {"add", "source", "team", "--repository", fixture.Repository, "--version", ">= 1.0.0, < 2.0.0", "--groups", "techs/go"}} {
 		if err := invoke("Configure consumer", consumer, offline, 0, args...); err != nil {
 			return report, err
