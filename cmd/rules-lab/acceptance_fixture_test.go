@@ -4,7 +4,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -27,5 +29,19 @@ func TestAcceptanceFilesPreserveBytes(t *testing.T) {
 	}
 	if result.Binary.Encoding != "base64" || !bytes.Equal(original, result.Binary.Bytes) || result.Text != "Original\r\n" {
 		t.Fatalf("evidence changed: %s", data)
+	}
+}
+
+// TestAcceptanceBoundary rejects trailing values and propagates canceled callers before launching a pilot.
+func TestAcceptanceBoundary(t *testing.T) {
+	result, err := acceptanceResponse(context.Background(), json.RawMessage(`{"scenario":"lifecycle"} {}`))
+	if err != nil || result.OK || result.Error == nil || !strings.Contains(result.Error.Message, "one acceptance scenario") {
+		t.Fatal(result, err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	result, err = invokeContext(ctx, []byte(`{"operation":"nativeAcceptance","input":{"scenario":"lifecycle"},"location":"pilot"}`))
+	if err != nil || result.OK || result.Error == nil || !strings.Contains(result.Error.Message, "canceled") {
+		t.Fatal(result, err)
 	}
 }

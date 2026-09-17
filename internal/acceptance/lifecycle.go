@@ -37,8 +37,8 @@ type Report struct {
 
 // Run exercises a real native CLI from library authoring through Git sync and offline checks.
 // All writes and Git history belong to disposable directories; no external network or global install is used.
-func Run(ctx context.Context, binary, scenario string) (Report, error) {
-	report := Report{Scenario: scenario, Steps: []Step{}, Verified: []string{}}
+func Run(ctx context.Context, binary, scenario string) (report Report, err error) {
+	report = Report{Scenario: scenario, Steps: []Step{}, Verified: []string{}}
 	if scenario != "lifecycle" && scenario != "update" && scenario != "changed-vendor" && scenario != "failed-sync" {
 		return report, fmt.Errorf("unknown acceptance scenario")
 	}
@@ -46,7 +46,7 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 	if err != nil {
 		return report, err
 	}
-	defer os.RemoveAll(directory)
+	defer func() { err = errors.Join(err, os.RemoveAll(directory)) }()
 	libraryDir := filepath.Join(directory, "library")
 	consumer := filepath.Join(directory, "consumer")
 	for _, dir := range []string{libraryDir, consumer} {
@@ -134,7 +134,7 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 	if err != nil {
 		return report, err
 	}
-	defer fixture.Close()
+	defer func() { err = errors.Join(err, fixture.Close()) }()
 	gitBin := filepath.Join(directory, "git-only")
 	if err := os.Mkdir(gitBin, 0700); err != nil {
 		return report, err

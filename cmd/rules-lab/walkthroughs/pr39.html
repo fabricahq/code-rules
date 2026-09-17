@@ -515,6 +515,7 @@
       // Invoke the bounded real-CLI pilot and distinguish expected refusal steps from a failed assertion.
       byID("invoke").addEventListener("click", async () => {
         const start = performance.now();
+        clearResult();
         byID("invoke").disabled = true;
         byID("input").disabled = true;
         for (const button of byID("presets").children) button.disabled = true;
@@ -572,6 +573,7 @@
             ? "All expected outcomes were verified. Some scenarios intentionally require a command to fail; inspect its stderr and exit status in Command transcript."
             : "The pilot could not verify its expected behavior. Inspect the failure and partial command evidence.";
         } catch (error) {
+          clearResult();
           byID("status").textContent = "Request failed";
           byID("explanation").textContent = String(error);
         } finally {

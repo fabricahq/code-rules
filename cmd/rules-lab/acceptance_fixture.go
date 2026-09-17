@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"time"
 	"unicode/utf8"
 
@@ -13,7 +14,7 @@ import (
 )
 
 // acceptanceResponse runs only predefined disposable workflows and returns assertions alongside original project files.
-func acceptanceResponse(input json.RawMessage) (response, error) {
+func acceptanceResponse(parent context.Context, input json.RawMessage) (response, error) {
 	var fixture struct {
 		Scenario string `json:"scenario"`
 	}
@@ -22,11 +23,17 @@ func acceptanceResponse(input json.RawMessage) (response, error) {
 	if err := decoder.Decode(&fixture); err != nil {
 		return adapterError("expected an acceptance scenario"), nil
 	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return adapterError("expected one acceptance scenario"), nil
+	}
+	if err := parent.Err(); err != nil {
+		return response{Error: &failure{Name: "AcceptanceError", Message: err.Error()}}, nil
+	}
 	binary, err := fixtureCLIPath()
 	if err != nil {
 		return response{}, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(parent, 90*time.Second)
 	defer cancel()
 	report, err := acceptance.Run(ctx, binary, fixture.Scenario)
 	observed := map[string]any{"steps": report.Steps, "verified": report.Verified, "files": acceptanceFiles(report.Files)}
