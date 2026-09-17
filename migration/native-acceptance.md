@@ -23,8 +23,10 @@ Run those commands in a disposable project with an authored `body.md`. Missing
 metadata prompts only on a terminal. `--non-interactive` requires explicit inputs.
 `add source` edits configuration without fetching. `sync` needs Git; `build` and
 `check` use verified vendored bytes without Node, Bun, or Git. Exit 0 is success,
-1 is an operation failure or stale check, and 2 is invalid usage. Operation JSON
-goes to stdout; errors and prompts go to stderr.
+1 is an operation failure or stale check, and 2 is invalid usage. By default,
+commands write human-readable results to stdout and errors and prompts to stderr.
+Add `--json` for a structured `{ok, value, error}` response on stdout, including
+failures; JSON mode never prompts.
 
 ## Complete CLI pilots
 
