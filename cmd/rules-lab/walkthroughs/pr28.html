@@ -319,6 +319,35 @@
           flex-wrap: wrap;
         }
       }
+      /* Keep the returned file tree and its selected contents in one compact pane. */
+      @media (min-width: 901px) {
+        .workspace.has-fixture-browser:has(.vendor-browser) {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+      }
+      @media (min-width: 701px) {
+        .vendor-browser.fixture-browser {
+          grid-template-columns: minmax(170px, 32%) minmax(0, 1fr);
+        }
+      }
+      .has-fixture-browser .vendor-browser .fixture-heading .hint {
+        display: block;
+      }
+      .vendor-browser .fixture-tree {
+        max-height: 390px;
+      }
+      .vendor-browser .fixture-pane {
+        min-width: 0;
+      }
+      .vendor-browser #vendor-content {
+        margin: 0;
+        min-height: 220px;
+        max-height: 340px;
+        overflow: auto;
+      }
+      .vendor-browser #vendor-info {
+        margin: 6px 0 0;
+      }
     </style>
     <link rel="stylesheet" href="/lab-assets/fixture-files.css" />
   </head>
@@ -362,9 +391,30 @@
           <p id="explanation">
             Invoke Go to inspect its returned data or error.
           </p>
-          <label for="vendor-file">Persisted vendor file</label
-          ><select id="vendor-file"></select>
-          <pre id="vendor-content">Invoke Go to inspect a file.</pre>
+          <section
+            class="fixture-browser vendor-browser"
+            aria-label="Vendored filesystem"
+          >
+            <div class="fixture-heading">
+              <h3>Vendored files</h3>
+              <p class="hint" id="vendor-count">No files returned yet.</p>
+            </div>
+            <nav
+              class="fixture-tree"
+              id="vendor-tree"
+              aria-label="Vendored files"
+            ></nav>
+            <div class="fixture-pane">
+              <div class="fixture-filename" id="vendor-path">Select a file</div>
+              <pre
+                id="vendor-content"
+                tabindex="0"
+                aria-label="Vendored file contents"
+              >
+Invoke Go to inspect a file.</pre>
+              <p class="hint" id="vendor-info"></p>
+            </div>
+          </section>
           <details>
             <summary>Full function result</summary>
             <pre id="output" aria-live="polite">No invocation yet.</pre>
@@ -692,18 +742,99 @@
         ],
       };
       let vendorFiles = {};
-      // Display original persisted text or a labeled base64 representation of binary bytes.
-      function showVendorFile() {
-        const value = vendorFiles[byID("vendor-file").value];
+      const vendorButtons = new Map();
+      // Show original returned text or an explicitly labeled base64 object without interpreting HTML.
+      function showVendorFile(path) {
+        const value = vendorFiles[path];
+        byID("vendor-path").textContent = "vendor/" + path;
         byID("vendor-content").textContent =
           typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        byID("vendor-info").textContent =
+          typeof value === "string"
+            ? new TextEncoder().encode(value).length +
+              " bytes · Original returned contents"
+            : "Binary file · Base64 representation of original bytes";
+        for (const [name, button] of vendorButtons)
+          button.setAttribute("aria-pressed", String(name === path));
       }
-      byID("vendor-file").addEventListener("change", showVendorFile);
+      // Render expandable folders and selectable files from the actual native result paths.
+      function renderVendorTree() {
+        byID("vendor-tree").replaceChildren();
+        vendorButtons.clear();
+        const paths = Object.keys(vendorFiles).sort();
+        byID("vendor-count").textContent =
+          paths.length + " files · Paths relative to vendor/";
+        const root = new Map();
+        for (const path of paths) {
+          let children = root;
+          const parts = path.split("/");
+          for (let i = 0; i < parts.length; i++) {
+            if (!children.has(parts[i]))
+              children.set(parts[i], { children: new Map(), path: null });
+            const node = children.get(parts[i]);
+            if (i === parts.length - 1) node.path = path;
+            children = node.children;
+          }
+        }
+        // Build each directory using text nodes, keeping authored names inert.
+        function appendChildren(parent, children) {
+          const list = document.createElement("ul");
+          for (const [name, node] of children) {
+            const item = document.createElement("li");
+            if (node.path !== null) {
+              const button = document.createElement("button");
+              button.type = "button";
+              button.className = "fixture-file";
+              button.textContent = name;
+              button.title = "vendor/" + node.path;
+              button.setAttribute("aria-label", "vendor/" + node.path);
+              button.setAttribute("aria-pressed", "false");
+              // Select a returned file without changing inputs or invoking Go again.
+              button.addEventListener("click", () => showVendorFile(node.path));
+              vendorButtons.set(node.path, button);
+              item.append(button);
+            } else {
+              const folder = document.createElement("details");
+              folder.className = "fixture-folder";
+              folder.open = true;
+              const label = document.createElement("summary");
+              label.textContent = name + "/";
+              folder.append(label);
+              appendChildren(folder, node.children);
+              item.append(folder);
+            }
+            list.append(item);
+          }
+          parent.append(list);
+        }
+        const treeRoot = document.createElement("div");
+        treeRoot.className = "fixture-root";
+        const rootName = document.createElement("div");
+        rootName.className = "fixture-root-name";
+        rootName.textContent = "vendor/";
+        treeRoot.append(rootName);
+        appendChildren(treeRoot, root);
+        byID("vendor-tree").append(treeRoot);
+        if (paths.length)
+          showVendorFile(
+            paths.find((path) => path.endsWith("/_source.json")) || paths[0],
+          );
+        else resetVendorTree("No vendored files returned.");
+      }
+      // Remove stale returned files after edits or failures.
+      function resetVendorTree(message) {
+        vendorFiles = {};
+        vendorButtons.clear();
+        byID("vendor-tree").replaceChildren();
+        byID("vendor-count").textContent = "No files returned.";
+        byID("vendor-path").textContent = "Select a file";
+        byID("vendor-content").textContent = message;
+        byID("vendor-info").textContent = "";
+      }
       // Clear prior output when the editable input changes.
       function clearResult() {
         byID("output").textContent = "No invocation for this input.";
-        byID("vendor-file").replaceChildren();
-        byID("vendor-content").textContent = "Invoke Go to inspect a file.";
+        resetVendorTree("Invoke Go to inspect a file.");
         byID("status").textContent = "Ready";
         byID("status").className = "badge";
         byID("request").textContent = "No request sent.";
@@ -774,20 +905,11 @@
             );
           const result = await response.json();
           byID("output").textContent = JSON.stringify(result, null, 2);
-          byID("vendor-file").replaceChildren();
-          vendorFiles = result.value?.vendorFiles || {};
-          for (const path of Object.keys(vendorFiles).sort()) {
-            const option = document.createElement("option");
-            option.value = option.textContent = path;
-            byID("vendor-file").append(option);
-          }
           if (result.ok) {
-            byID("vendor-file").value = Object.keys(vendorFiles).find((path) =>
-              path.endsWith("/_source.json"),
-            );
-            showVendorFile();
+            vendorFiles = result.value.vendorFiles;
+            renderVendorTree();
           } else {
-            byID("vendor-content").textContent = result.error.message;
+            resetVendorTree(result.error.message);
           }
           byID("status").textContent = result.ok
             ? "Returned value"
@@ -797,6 +919,7 @@
             ? "Go returned successfully. Inspect the data below."
             : "Go returned an error. No partial result is returned.";
         } catch (error) {
+          resetVendorTree("The request failed. No files returned.");
           byID("explanation").textContent =
             "The request failed. No Go result was received.";
           byID("status").textContent = "Request failed";
