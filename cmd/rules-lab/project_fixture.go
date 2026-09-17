@@ -38,20 +38,9 @@ func projectWriteResponse(input json.RawMessage) (response, error) {
 	if err == nil {
 		return response{OK: true, Value: observed}, nil
 	}
-	var validation *rules.ValidationError
-	var expected *project.Error
-	if !errors.As(err, &validation) && !errors.As(err, &expected) && !errors.Is(err, context.Canceled) {
+	failure := describeProjectError(err)
+	if failure == nil {
 		return response{}, err
-	}
-	failure := &failure{Name: "Error", Message: err.Error()}
-	var projectErr *project.Error
-	if errors.As(err, &projectErr) {
-		failure.Name = "ProjectError"
-		failure.Code = projectErr.Code
-	}
-	if errors.As(err, &validation) {
-		failure.Name = "ValidationError"
-		failure.Location = validation.Location
 	}
 	return response{Error: failure, Observation: observed}, nil
 }
@@ -228,4 +217,25 @@ func stageRecoveryFixture(root *os.Root, files map[string][]byte) error {
 		}
 	}
 	return root.Rename(staged, "generated")
+}
+
+// describeProjectError keeps domain categories and locations visible at the lab boundary.
+func describeProjectError(err error) *failure {
+	var expected *project.Error
+	var input *rules.ValidationError
+	if !errors.As(err, &expected) && !errors.As(err, &input) && !errors.Is(err, context.Canceled) {
+		return nil
+	}
+	failure := &failure{Name: "Error", Message: err.Error()}
+	var projectErr *project.Error
+	if errors.As(err, &projectErr) {
+		failure.Name = "ProjectError"
+		failure.Code = projectErr.Code
+	}
+	var validation *rules.ValidationError
+	if errors.As(err, &validation) {
+		failure.Name = "ValidationError"
+		failure.Location = validation.Location
+	}
+	return failure
 }

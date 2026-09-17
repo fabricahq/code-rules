@@ -77,6 +77,8 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "offlineProject":
+		return offlineResponse(req.Input)
 	case "projectWrite":
 		return projectWriteResponse(req.Input)
 	case "snapshots":
