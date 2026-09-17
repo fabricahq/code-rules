@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -59,6 +60,31 @@ func gitEnvironment(base []string) []string {
 	return append(env, "GIT_TERMINAL_PROMPT=0", "GCM_INTERACTIVE=Never", "GIT_NO_REPLACE_OBJECTS=1")
 }
 
+// gitExecutable resolves a trusted command against the child's PATH, without implicit current-directory lookup.
+func gitExecutable(name string, environment []string) (string, error) {
+	if strings.ContainsRune(name, '/') {
+		return filepath.Abs(name)
+	}
+	var search string
+	for _, item := range environment {
+		if value, ok := strings.CutPrefix(item, "PATH="); ok {
+			search = value
+		}
+	}
+	for _, directory := range filepath.SplitList(search) {
+		candidate := filepath.Join(directory, name)
+		info, err := os.Stat(candidate)
+		if err != nil || info.IsDir() || info.Mode()&0111 == 0 {
+			continue
+		}
+		if !filepath.IsAbs(candidate) {
+			break
+		}
+		return candidate, nil
+	}
+	return "", fail("git-unavailable", "Cannot find Git; install Git 2.30 or later and check PATH.", nil)
+}
+
 // outputBudget counts both streams under one ceiling while retaining stdout only.
 type outputBudget struct {
 	mu        sync.Mutex
@@ -91,6 +117,28 @@ func (w budgetStream) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
+// processGroup serializes signalling with release of the owned, unreaped child.
+type processGroup struct {
+	mu       sync.Mutex
+	command  *exec.Cmd
+	released bool
+}
+
+// stop kills helpers while the leader's ID is owned; release forbids further signals before reaping.
+func (g *processGroup) stop(release bool) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.released {
+		return os.ErrProcessDone
+	}
+	g.released = release
+	err := syscall.Kill(-g.command.Process.Pid, syscall.SIGKILL)
+	if errors.Is(err, syscall.ESRCH) {
+		return os.ErrProcessDone
+	}
+	return err
+}
+
 // run executes literal arguments without a shell and drains both streams before returning.
 func (r gitRunner) run(ctx context.Context, cwd string, args []string, maxBytes int, input []byte) (gitResult, error) {
 	if err := ctx.Err(); err != nil {
@@ -102,16 +150,8 @@ func (r gitRunner) run(ctx context.Context, cwd string, args []string, maxBytes 
 	cmd.Env = r.environment
 	cmd.Stdin = bytes.NewReader(input)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error {
-		if cmd.Process == nil {
-			return os.ErrProcessDone
-		}
-		err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		if errors.Is(err, syscall.ESRCH) {
-			return os.ErrProcessDone
-		}
-		return err
-	}
+	group := &processGroup{command: cmd}
+	cmd.Cancel = func() error { return group.stop(false) }
 	cmd.WaitDelay = time.Second
 	budget := &outputBudget{remaining: maxBytes, stop: cmd.Cancel}
 	cmd.Stdout = budgetStream{budget: budget, retain: true}
@@ -119,14 +159,18 @@ func (r gitRunner) run(ctx context.Context, cwd string, args []string, maxBytes 
 	if err := cmd.Start(); err != nil {
 		return gitResult{}, fail("git-unavailable", "Cannot start Git; install Git 2.30 or later and check PATH.", nil)
 	}
+	// Keep the leader unreaped until every group signal is finished. Its ID cannot be reused yet.
+	exitErr := waitForExit(cmd.Process.Pid)
+	_ = group.stop(true)
 	err := cmd.Wait()
-	// Descendants must not outlive this invocation, even if Git exited before its helper.
-	_ = cmd.Cancel()
 	if ctx.Err() != nil {
 		return gitResult{}, contextFailure(ctx.Err())
 	}
 	if budget.exceeded {
 		return gitResult{}, fail("limit-exceeded", "Git output exceeds the import limit.", nil)
+	}
+	if exitErr != nil {
+		return gitResult{}, fail("git-failed", "Cannot observe Git process completion.", nil)
 	}
 	if errors.Is(err, exec.ErrWaitDelay) {
 		return gitResult{}, fail("git-failed", "Git helpers did not close their streams.", nil)
