@@ -8,7 +8,9 @@ and return no partial result on failure. They accept parsed configuration.
 The source record retains the TypeScript field names and SHA-256 digests. Missing
 `groupSelection` falls back to explicit recorded `groups`; that cannot satisfy a
 wildcard request. Ref/version selection, commit shape, selected release, and
-resolved groups must agree. Unknown/null fields, unsupported versions, path
+resolved groups must agree. The repository address must match configuration exactly,
+including transport, case, and any `.git` suffix; changing it requires sync even
+when both addresses refer to the same repository. Unknown/null fields, unsupported versions, path
 collisions, reserved records, missing/changed/extra files, and removed sources fail.
 
 Manifest and group metadata must appear in the inventory. Rule/library content
