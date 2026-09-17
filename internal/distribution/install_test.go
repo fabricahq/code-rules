@@ -6,6 +6,10 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -38,5 +42,43 @@ func TestArchiveRejectsUnsafeMembers(t *testing.T) {
 				t.Fatal("accepted unsafe archive")
 			}
 		})
+	}
+}
+
+// TestInstallWriteFailureRemovesPartialDestination verifies retry works after a later member fails.
+func TestInstallWriteFailureRemovesPartialDestination(t *testing.T) {
+	destination := filepath.Join(t.TempDir(), "installed")
+	entries := []archiveEntry{{"code-rules", []byte("binary"), 0755}, {"README.txt", []byte("readme"), 0644}}
+	failure := errors.New("disk full")
+	err := installEntries(destination, entries, func(dir string, entry archiveEntry) error {
+		if entry.name == "README.txt" {
+			return failure
+		}
+		return writeEntry(dir, entry)
+	})
+	if !errors.Is(err, failure) {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(destination); !os.IsNotExist(err) {
+		t.Fatal("partial install left behind", err)
+	}
+	if err := installEntries(destination, entries, writeEntry); err != nil {
+		t.Fatal("retry failed", err)
+	}
+}
+
+// cancelWriter simulates cancellation once compressed output starts.
+type cancelWriter struct{ cancel context.CancelFunc }
+
+// Write accepts one output chunk and cancels subsequent writes.
+func (w cancelWriter) Write(data []byte) (int, error) { w.cancel(); return len(data), nil }
+
+// TestArchiveCancellation prevents a final target's compression from masking interruption.
+func TestArchiveCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err := writeArchive(ctx, cancelWriter{cancel}, []archiveEntry{{"code-rules", bytes.Repeat([]byte("data"), 10000), 0755}})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
 	}
 }

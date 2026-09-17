@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -67,24 +68,38 @@ func Install(directory, target, destination string) (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
-	if err = os.Mkdir(destination, 0755); err != nil {
-		return Manifest{}, fmt.Errorf("installation directory must be new: %w", err)
-	}
-	for _, entry := range entries {
-		file, err := os.OpenFile(filepath.Join(destination, entry.name), os.O_CREATE|os.O_EXCL|os.O_WRONLY, os.FileMode(entry.mode))
-		if err != nil {
-			return Manifest{}, err
-		}
-		_, writeErr := file.Write(entry.data)
-		closeErr := file.Close()
-		if writeErr != nil {
-			return Manifest{}, writeErr
-		}
-		if closeErr != nil {
-			return Manifest{}, closeErr
-		}
+	if err = installEntries(destination, entries, writeEntry); err != nil {
+		return Manifest{}, err
 	}
 	return manifest, nil
+}
+
+// installEntries owns a new destination and removes partial installation files on publication failure.
+func installEntries(destination string, entries []archiveEntry, write func(string, archiveEntry) error) (err error) {
+	if err = os.Mkdir(destination, 0755); err != nil {
+		return fmt.Errorf("installation directory must be new: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, os.RemoveAll(destination))
+		}
+	}()
+	for _, entry := range entries {
+		if err = write(destination, entry); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// writeEntry exclusively installs one validated archive member with its fixed permissions.
+func writeEntry(destination string, entry archiveEntry) error {
+	file, err := os.OpenFile(filepath.Join(destination, entry.name), os.O_CREATE|os.O_EXCL|os.O_WRONLY, os.FileMode(entry.mode))
+	if err != nil {
+		return err
+	}
+	_, writeErr := file.Write(entry.data)
+	return errors.Join(writeErr, file.Close())
 }
 
 // readArchive validates the entire bounded archive before any installation file is written.

@@ -95,7 +95,7 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 	}
 	license, licenseErr := os.ReadFile(filepath.Join(source, "LICENSE.md"))
 	if !options.Candidate && (metadata.License == "" || metadata.License == "UNLICENSED" || licenseErr != nil || len(strings.TrimSpace(string(license))) == 0 || version != metadata.Version) {
-		return Manifest{}, fmt.Errorf("release artifacts require the approved tool license and package.json version; use --candidate for unpublished review builds")
+		return Manifest{}, fmt.Errorf("release artifacts require a declared tool license and package.json version; use --candidate for unpublished review builds")
 	}
 	if licenseErr != nil && !os.IsNotExist(licenseErr) {
 		return Manifest{}, licenseErr
@@ -129,6 +129,9 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 		}
 		manifest.Artifacts = append(manifest.Artifacts, artifact)
 	}
+	if err := ctx.Err(); err != nil {
+		return Manifest{}, err
+	}
 	encoded, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return Manifest{}, err
@@ -141,6 +144,9 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 		fmt.Fprintf(&checksums, "%s  %s\n", artifact.SHA256, artifact.File)
 	}
 	if err = os.WriteFile(filepath.Join(options.Output, "SHA256SUMS"), []byte(checksums.String()), 0644); err != nil {
+		return Manifest{}, err
+	}
+	if err := ctx.Err(); err != nil {
 		return Manifest{}, err
 	}
 	if err = os.Remove(marker); err != nil {
@@ -194,7 +200,7 @@ func buildTarget(ctx context.Context, source, directory, version, target string,
 	}
 	digest := sha256.New()
 	counter := &byteCounter{}
-	err = writeArchive(io.MultiWriter(file, digest, counter), entries)
+	err = writeArchive(ctx, io.MultiWriter(file, digest, counter), entries)
 	closeErr := file.Close()
 	if err != nil {
 		return Artifact{}, err
@@ -213,8 +219,8 @@ type archiveEntry struct {
 }
 
 // writeArchive uses stable ordering and timestamps so repeated builds can produce identical archive bytes.
-func writeArchive(output io.Writer, entries []archiveEntry) error {
-	gzipWriter := gzip.NewWriter(output)
+func writeArchive(ctx context.Context, output io.Writer, entries []archiveEntry) error {
+	gzipWriter := gzip.NewWriter(contextWriter{ctx, output})
 	tarWriter := tar.NewWriter(gzipWriter)
 	for _, entry := range entries {
 		if err := tarWriter.WriteHeader(&tar.Header{Name: entry.name, Mode: entry.mode, Size: int64(len(entry.data)), ModTime: time.Unix(0, 0), Typeflag: tar.TypeReg}); err != nil {
@@ -310,4 +316,18 @@ func committedSource(ctx context.Context, source, revision string) (_ string, er
 	}
 	// The caller removes the container; return its tree through a dedicated cleanup boundary.
 	return directory, nil
+}
+
+// contextWriter stops archive compression as soon as cancellation reaches an output write.
+type contextWriter struct {
+	ctx    context.Context
+	writer io.Writer
+}
+
+// Write preserves cancellation identity instead of completing an interrupted artifact.
+func (w contextWriter) Write(data []byte) (int, error) {
+	if err := w.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return w.writer.Write(data)
 }

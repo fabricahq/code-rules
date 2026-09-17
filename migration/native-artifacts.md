@@ -35,7 +35,7 @@ in a temporary project, and shows artifact metadata, commands, and output files.
 ## Publication is separate
 
 These are review candidates. The current package declares UNLICENSED and has no
-approved tool license. Non-candidate packaging refuses missing terms, mismatched
+declared tool license. Non-candidate packaging checks declared terms as a prerequisite; it cannot establish owner approval and never publishes. It refuses missing terms, mismatched
 package versions, and dirty source. Publishing, an npm native loader, release
 signing, and changing the default distribution require separate owner approval.
 The existing TypeScript npm entrypoint remains intact.

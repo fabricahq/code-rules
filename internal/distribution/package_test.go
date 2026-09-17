@@ -102,7 +102,7 @@ func TestPackagingRefusesUnapprovedRelease(t *testing.T) {
 	defer fixture.Close()
 	source := filepath.Join(fixture.Directory, "repository")
 	output := filepath.Join(t.TempDir(), "release")
-	if _, err := Build(context.Background(), Options{Source: source, Output: output}); err == nil || !strings.Contains(err.Error(), "approved tool license") {
+	if _, err := Build(context.Background(), Options{Source: source, Output: output}); err == nil || !strings.Contains(err.Error(), "declared tool license") {
 		t.Fatal("expected licensing gate")
 	}
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
