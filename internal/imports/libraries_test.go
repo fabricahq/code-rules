@@ -154,6 +154,17 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 			if err == nil || result != nil {
 				t.Fatal("invalid content returned usable import")
 			}
+			if kind == "missing-manifest" {
+				var validation *rules.ValidationError
+				if !errors.As(err, &validation) || validation.Location != "rule-library.json" {
+					t.Fatalf("lost manifest error identity: %v", err)
+				}
+				for _, detail := range []string{`import source "team"`, "missing library manifest at the repository root", "declares the library format and optional license", "No libraries were returned because all configured sources must succeed"} {
+					if !strings.Contains(err.Error(), detail) {
+						t.Fatalf("missing diagnostic context %q: %v", detail, err)
+					}
+				}
+			}
 			if strings.Contains(err.Error(), "license:") || strings.Contains(err.Error(), "configuration:") {
 				t.Fatalf("fixture failed before the selected-content check: %v", err)
 			}

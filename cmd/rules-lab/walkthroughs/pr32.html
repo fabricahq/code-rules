@@ -901,7 +901,7 @@
           {
             name: "Second source fails",
             description:
-              "Removes the second source manifest. Even though the first source is valid, the function returns no partial result.",
+              "Removes rule-library.json from source zeta. This required root file declares the library format and optional license. The entire import fails, so even the valid team library is not returned.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -1113,8 +1113,8 @@
             : result.error.name;
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
-            ? "Go imported every source. Inspect catalogs or select an original vendor file below."
-            : result.error.message + " No partial libraries were returned.";
+            ? "Go imported every configured source. Only selected groups and their required files were validated. Inspect catalogs or select an original vendor file below."
+            : "Import failed. No libraries were returned. The error below explains the cause.";
         } catch (error) {
           byID("explanation").textContent =
             "The request failed. No Go result was received.";

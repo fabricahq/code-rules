@@ -149,6 +149,9 @@ func (r *reader) read(path string) ([]byte, error) {
 		info, err := r.input.Lstat(prefix)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
+				if path == "rule-library.json" {
+					return nil, bad(path, "missing library manifest at the repository root; this required file declares the library format and optional license")
+				}
 				return nil, bad(path, "missing required file")
 			}
 			return nil, fmt.Errorf("inspect library path %s: %w", prefix, err)

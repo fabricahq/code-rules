@@ -34,7 +34,7 @@ func ImportLibraries(ctx context.Context, configuration rules.Configuration, opt
 		}
 		imported, err := importLibrary(ctx, source, options)
 		if err != nil {
-			return nil, fmt.Errorf("source %s: %w", source.Name, err)
+			return nil, fmt.Errorf("import source %q: %w. No libraries were returned because all configured sources must succeed.", source.Name, err)
 		}
 		result[source.Name] = imported
 	}
