@@ -28,7 +28,7 @@ The harness slice introduced no Go implementation. The merged identity slice add
 
 ## Concurrent review stack
 
-The user approved preparing PRs #28-#32 together after PR #27 merged. See [the current stack](review-stack.md). Each dependent PR targets its predecessor so the review diff contains only the new capability. Keep the branches separate, propagate predecessor fixes forward, and retarget to `go-migration` as predecessors merge. This supersedes the one-pending-PR rule for this batch; human merge approval is still required. Each walkthrough has a stable `/walkthrough/pr<number>` URL.
+The user approved preparing all remaining migration slices together after reviewing PR #32. See [the current stack](review-stack.md). Each dependent PR targets its predecessor so the review diff contains only the new capability. Keep the branches separate, propagate predecessor fixes forward, and retarget to `go-migration` as predecessors merge. This supersedes the one-pending-PR rule for this batch; human merge approval is still required. Each walkthrough has a stable `/walkthrough/pr<number>` URL.
 
 ## PR review workflow
 

@@ -11,14 +11,13 @@ import (
 	"time"
 
 	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // Library keeps the parsed catalog and its byte-preserving, verified source snapshot together.
 type Library struct {
 	Catalog  library.Catalog  `json:"catalog"`
-	Snapshot project.Snapshot `json:"snapshot"`
+	Snapshot library.Snapshot `json:"snapshot"`
 }
 
 // ImportLibraries imports every configured source or returns no partial result.
@@ -34,7 +33,7 @@ func ImportLibraries(ctx context.Context, configuration rules.Configuration, opt
 		}
 		imported, err := importLibrary(ctx, source, options)
 		if err != nil {
-			return nil, fmt.Errorf("import source %q: %w. No libraries were returned because all configured sources must succeed", source.Name, err)
+			return nil, fmt.Errorf("import source %q failed (no libraries were returned because all configured sources must succeed): %w", source.Name, err)
 		}
 		result[source.Name] = imported
 	}
@@ -81,7 +80,7 @@ func importLibrary(ctx context.Context, source rules.Source, options Options) (_
 	}
 	selection := catalog.Selection
 	selection.Groups = slices.Clone(selection.Groups)
-	snapshot := project.Snapshot{Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: revision.Tag, ResolvedVersion: revision.Version, Commit: revision.Commit, Selection: selection, Groups: groups, Files: files}
+	snapshot := library.Snapshot{Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: revision.Tag, ResolvedVersion: revision.Version, Commit: revision.Commit, Selection: selection, Groups: groups, Files: files}
 	if err := ctx.Err(); err != nil {
 		return Library{}, contextFailure(err)
 	}

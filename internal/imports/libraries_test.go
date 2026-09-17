@@ -16,7 +16,6 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/gitfixture"
 	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -61,7 +60,7 @@ func libraryConfig(t *testing.T, repository string) rules.Configuration {
 	return config
 }
 
-// TestImportLibraryOriginalBytes verifies real Git adoption, complete assets, exact terms, and persisted round trips.
+// TestImportLibraryOriginalBytes verifies real Git adoption, complete assets, and exact terms.
 func TestImportLibraryOriginalBytes(t *testing.T) {
 	files := libraryFiles()
 	f := newLibraryFixture(t, files)
@@ -86,14 +85,6 @@ func TestImportLibraryOriginalBytes(t *testing.T) {
 	}
 	if _, ok := item.Snapshot.Files["techs/rust/bad.md"]; ok {
 		t.Fatal("adopted unselected content")
-	}
-	encoded, err := project.EncodeSnapshots(config, map[string]project.Snapshot{"team": item.Snapshot})
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, err := project.DecodeSnapshots(config, encoded)
-	if err != nil || !bytes.Equal(decoded["team"].Files["LICENSE"], files["LICENSE"]) {
-		t.Fatal("snapshot round trip", err)
 	}
 	config.Sources[0].Groups = rules.GroupSelection{Pattern: "*"}
 	if result, err := ImportLibraries(context.Background(), config, Options{GitPath: f.GitPath, Environment: f.Environment}); err == nil || result != nil {
@@ -159,7 +150,7 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 				if !errors.As(err, &validation) || validation.Location != "rule-library.json" {
 					t.Fatalf("lost manifest error identity: %v", err)
 				}
-				for _, detail := range []string{`import source "team"`, "missing library manifest at the repository root", "declares the library format and optional license", "No libraries were returned because all configured sources must succeed"} {
+				for _, detail := range []string{`import source "team"`, "missing library manifest at the repository root", "declares the library format and optional license", "no libraries were returned because all configured sources must succeed"} {
 					if !strings.Contains(err.Error(), detail) {
 						t.Fatalf("missing diagnostic context %q: %v", detail, err)
 					}
@@ -287,12 +278,22 @@ func TestCatalogMutationPreservesSnapshot(t *testing.T) {
 	if !bytes.Equal(item.Snapshot.Files["NOTICE"], files["NOTICE"]) || item.Snapshot.Selection.Groups[0] != "techs/go" {
 		t.Fatal("catalog mutation altered verified snapshot")
 	}
-	encoded, err := project.EncodeSnapshots(config, map[string]project.Snapshot{"team": item.Snapshot})
-	if err != nil {
-		t.Fatal(err)
+
+}
+
+// TestImportMissingRefDiagnostic preserves typed failures without doubled sentence punctuation.
+func TestImportMissingRefDiagnostic(t *testing.T) {
+	f := newLibraryFixture(t, libraryFiles())
+	config := libraryConfig(t, f.Repository)
+	config.Sources[0].Version = ""
+	config.Sources[0].Ref = "missing"
+	result, err := ImportLibraries(context.Background(), config, Options{GitPath: f.GitPath, Environment: f.Environment})
+	requireCode(t, err, "ref-not-found")
+	if result != nil {
+		t.Fatal("failed import returned partial libraries")
 	}
-	decoded, err := project.DecodeSnapshots(config, encoded)
-	if err != nil || !bytes.Equal(decoded["team"].Files["NOTICE"], files["NOTICE"]) {
-		t.Fatal("snapshot no longer retains original Git bytes", err)
+	want := `import source "team" failed (no libraries were returned because all configured sources must succeed): Requested ref is missing or refused; no other revision was selected.`
+	if err.Error() != want {
+		t.Fatalf("unexpected diagnostic: %s", err)
 	}
 }

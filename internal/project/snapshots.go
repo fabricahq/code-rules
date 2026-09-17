@@ -13,27 +13,14 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/unicode/norm"
 )
 
-// Snapshot owns original library bytes and the identity recorded when they were imported.
-// A verified digest establishes integrity against the record, not authenticity of its origin.
-// Files excludes _source.json. Binary content remains bytes; required text is checked by the loader.
-type Snapshot struct {
-	Repository string `json:"repository"`
-	Ref        string `json:"ref,omitempty"`
-	Version    string `json:"version,omitempty"`
-	// Tag and ResolvedVersion are present only for a version constraint, not an exact ref.
-	Tag             string `json:"resolvedTag,omitempty"`
-	ResolvedVersion string `json:"resolvedVersion,omitempty"`
-	Commit          string `json:"resolvedCommit"`
-	// Groups lists the resolved IDs; Selection retains the requested IDs or wildcard.
-	Groups    []string             `json:"groups"`
-	Selection rules.GroupSelection `json:"groupSelection"`
-	Files     map[string][]byte    `json:"files"`
-}
+// Snapshot is the library-owned value persisted by project snapshot encoding.
+type Snapshot = library.Snapshot
 
 // sourceRecord preserves the version-1 TypeScript record layout without embedding file content.
 type sourceRecord struct {
@@ -129,7 +116,7 @@ func DecodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		if err != nil {
 			return nil, err
 		}
-		result[source.Name] = Snapshot{record.Repository, record.Ref, record.Version, record.Tag, record.ResolvedVersion, record.Commit, record.Groups, selection, files}
+		result[source.Name] = Snapshot{Repository: record.Repository, Ref: record.Ref, Version: record.Version, Tag: record.Tag, ResolvedVersion: record.ResolvedVersion, Commit: record.Commit, Groups: record.Groups, Selection: selection, Files: files}
 	}
 	for _, file := range slices.Sorted(maps.Keys(vendor)) {
 		if !expected[file] {

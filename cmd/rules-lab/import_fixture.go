@@ -47,6 +47,20 @@ func invokeImports(input json.RawMessage) (_ any, err error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
+	return withImportFixture(ctx, request, func(options imports.Options) (any, error) {
+		if request.Scenario == "cancel" {
+			cancel()
+		}
+		return importFixtureLibraries(ctx, config, options)
+	})
+}
+
+// withImportFixture owns local Git repositories and routes imports exclusively to those fixtures.
+func withImportFixture(ctx context.Context, request importFixture, operation func(imports.Options) (any, error)) (_ any, err error) {
+	config, err := rules.ParseConfiguration(request.Configuration)
+	if err != nil {
+		return nil, err
+	}
 	fixtures := map[string]*gitfixture.Fixture{}
 	defer func() {
 		for _, fixture := range fixtures {
@@ -106,9 +120,11 @@ func invokeImports(input json.RawMessage) (_ any, err error) {
 			return nil, err
 		}
 	}
-	if request.Scenario == "cancel" {
-		cancel()
-	}
+	return operation(options)
+}
+
+// importFixtureLibraries shows imported catalogs and the exact snapshot bytes they retain.
+func importFixtureLibraries(ctx context.Context, config rules.Configuration, options imports.Options) (any, error) {
 	imported, err := imports.ImportLibraries(ctx, config, options)
 	if err != nil {
 		return nil, err
