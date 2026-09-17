@@ -319,6 +319,47 @@
           flex-wrap: wrap;
         }
       }
+      /* Keep the invocation and evidence visible together on laptop viewports. */
+      main {
+        max-width: 1600px;
+        padding: 18px 24px 32px;
+      }
+      header {
+        padding-bottom: 12px;
+      }
+      h1 {
+        font-size: 30px;
+        margin: 20px 0 10px;
+      }
+      .lede {
+        font-size: 16px;
+      }
+      .panel {
+        padding: 18px;
+      }
+      .panel > .label,
+      .panel > h2 {
+        display: none;
+      }
+      .signature {
+        margin-bottom: 12px;
+      }
+      .presets {
+        margin: 10px 0;
+      }
+      textarea {
+        min-height: 90px;
+        height: 100px;
+      }
+      label {
+        margin-top: 10px;
+      }
+      .actions {
+        margin-top: 12px;
+      }
+      #vendor-content {
+        max-height: 340px;
+      }
     </style>
     <link rel="stylesheet" href="/lab-assets/fixture-files.css" />
   </head>

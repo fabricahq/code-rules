@@ -4,12 +4,14 @@ package acceptance
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/gitfixture"
@@ -55,6 +57,14 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 	offline := []string{"PATH=" + filepath.Join(directory, "no-runtime")}
 	// invoke captures real exit status and fails the pilot when it differs from the stated scenario.
 	invoke := func(label, dir string, env []string, want int, args ...string) error {
+		var original *project.Tree
+		var err error
+		if len(args) > 0 && args[0] == "check" {
+			original, err = readTree(ctx, dir)
+			if err != nil {
+				return err
+			}
+		}
 		command := exec.CommandContext(ctx, binary, args...)
 		command.Dir = dir
 		command.Env = env
@@ -73,6 +83,18 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 		report.Steps = append(report.Steps, Step{label, args, out.String(), diagnostic.String(), code})
 		if code != want {
 			return fmt.Errorf("%s: exit %d, expected %d: %s", label, code, want, diagnostic.String())
+		}
+		if want != 0 && strings.TrimSpace(diagnostic.String()) == "" && !(len(args) > 0 && args[0] == "check" && reportsChangedFiles(out.Bytes())) {
+			return fmt.Errorf("%s: refusal returned no diagnostic", label)
+		}
+		if original != nil {
+			after, err := readTree(ctx, dir)
+			if err != nil {
+				return err
+			}
+			if !equalTrees(original, after) {
+				return fmt.Errorf("%s: read-only check changed project", label)
+			}
 		}
 		return ctx.Err()
 	}
@@ -104,11 +126,11 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 	if err := invoke("Validate complete library", libraryDir, offline, 0, "library", "check"); err != nil {
 		return report, err
 	}
-	libraryFiles, err := readFiles(ctx, libraryDir)
+	libraryTree, err := readTree(ctx, libraryDir)
 	if err != nil {
 		return report, err
 	}
-	fixture, err := gitfixture.New(ctx, libraryFiles)
+	fixture, err := gitfixture.New(ctx, libraryTree.Files)
 	if err != nil {
 		return report, err
 	}
@@ -129,16 +151,16 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 	if err := invoke("Sync from real Git with no Node/Bun", consumer, online, 0, "sync"); err != nil {
 		return report, err
 	}
-	files, err := readFiles(ctx, consumer)
+	files, err := readTree(ctx, consumer)
 	if err != nil {
 		return report, err
 	}
 	for name, want := range map[string][]byte{".code-rules/vendor/team/LICENSE.md": terms, ".code-rules/vendor/team/NOTICE.md": notice, ".code-rules/vendor/team/techs/go/assets/errors/diagram.bin": asset} {
-		if !bytes.Equal(files[name], want) {
+		if !bytes.Equal(files.Files[name], want) {
 			return report, fmt.Errorf("original bytes not preserved: %s", name)
 		}
 	}
-	provenance := string(files[".code-rules/generated/provenance.json"])
+	provenance := string(files.Files[".code-rules/generated/provenance.json"])
 	if !strings.Contains(provenance, fixture.LatestCommit) || !strings.Contains(provenance, "v1.2.0") {
 		return report, fmt.Errorf("selected revision missing from provenance")
 	}
@@ -152,21 +174,21 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 	if err := invoke("Check offline", consumer, offline, 0, "check"); err != nil {
 		return report, err
 	}
-	before, err := readFiles(ctx, consumer)
+	before, err := readTree(ctx, consumer)
 	if err != nil {
 		return report, err
 	}
-	if !strings.Contains(string(before[".code-rules/generated/RULES.md"]), "Project-specific Go guidance.") {
+	if !strings.Contains(string(before.Files[".code-rules/generated/RULES.md"]), "Project-specific Go guidance.") {
 		return report, fmt.Errorf("local group guidance missing")
 	}
 	if err := invoke("Repeat build", consumer, offline, 0, "build"); err != nil {
 		return report, err
 	}
-	after, err := readFiles(ctx, consumer)
+	after, err := readTree(ctx, consumer)
 	if err != nil {
 		return report, err
 	}
-	if !maps.EqualFunc(before, after, bytes.Equal) {
+	if !equalTrees(before, after) {
 		return report, fmt.Errorf("repeat build changed bytes")
 	}
 	report.Verified = append(report.Verified, "Local group guidance wins", "Offline build/check work with no runtimes on PATH", "Repeated build is byte-for-byte stable")
@@ -179,10 +201,6 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 		report.Steps = append(report.Steps, Step{Label: "Fixture edit: replace generated RULES.md with stale text"})
 		if err := invoke("Read-only check detects stale output", consumer, offline, 1, "check"); err != nil {
 			return report, err
-		}
-		data, err := os.ReadFile(filepath.Join(consumer, name))
-		if err != nil || string(data) != "Stale output" {
-			return report, fmt.Errorf("check modified stale output: %w", err)
 		}
 		if err := invoke("Rebuild repairs generated output", consumer, offline, 0, "build"); err != nil {
 			return report, err
@@ -197,24 +215,24 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 			return report, err
 		}
 		report.Steps = append(report.Steps, Step{Label: "Fixture edit: manually change vendored LICENSE.md"})
-		before, err = readFiles(ctx, consumer)
+		before, err = readTree(ctx, consumer)
 		if err != nil {
 			return report, err
 		}
 		if err := invoke("Refuse changed snapshot", consumer, offline, 1, "build"); err != nil {
 			return report, err
 		}
-		after, err = readFiles(ctx, consumer)
+		after, err = readTree(ctx, consumer)
 		if err != nil {
 			return report, err
 		}
-		if !maps.EqualFunc(before, after, bytes.Equal) {
+		if !equalTrees(before, after) {
 			return report, fmt.Errorf("failed build changed files")
 		}
 		report.Verified = append(report.Verified, "Changed vendor bytes produce an error and preserve all project files")
 	case "update", "failed-sync":
 		rulePath := filepath.Join(fixture.Directory, "repository/techs/go/errors.md")
-		document := libraryFiles["techs/go/errors.md"]
+		document := libraryTree.Files["techs/go/errors.md"]
 		if scenario == "update" {
 			document = bytes.ReplaceAll(document, []byte("Return every failure."), []byte("Return updated failures."))
 		} else {
@@ -236,20 +254,20 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 		if err := invoke("Sync newer selected release", consumer, online, want, "sync"); err != nil {
 			return report, err
 		}
-		after, err = readFiles(ctx, consumer)
+		after, err = readTree(ctx, consumer)
 		if err != nil {
 			return report, err
 		}
 		if want == 1 {
-			if !maps.EqualFunc(before, after, bytes.Equal) {
+			if !equalTrees(before, after) {
 				return report, fmt.Errorf("failed sync changed project")
 			}
 			report.Verified = append(report.Verified, "Failed import preserves vendor and generated bytes")
 		} else {
-			if !bytes.Equal(after[".code-rules/vendor/team/techs/go/errors.md"], document) {
+			if !bytes.Equal(after.Files[".code-rules/vendor/team/techs/go/errors.md"], document) {
 				return report, fmt.Errorf("sync did not retain new rule")
 			}
-			if !strings.Contains(string(after[".code-rules/generated/provenance.json"]), "v1.3.0") {
+			if !strings.Contains(string(after.Files[".code-rules/generated/provenance.json"]), "v1.3.0") {
 				return report, fmt.Errorf("new tag missing from provenance")
 			}
 			if err := invoke("Check updated release offline", consumer, offline, 0, "check"); err != nil {
@@ -258,12 +276,15 @@ func Run(ctx context.Context, binary, scenario string) (Report, error) {
 			report.Verified = append(report.Verified, "New release updates retained bytes and provenance, then checks offline")
 		}
 	}
-	report.Files, err = readFiles(ctx, consumer)
+	final, err := readTree(ctx, consumer)
+	if err == nil {
+		report.Files = final.Files
+	}
 	return report, err
 }
 
-// readFiles captures original bytes through the same confined tree reader used for project diagnostics.
-func readFiles(ctx context.Context, directory string) (map[string][]byte, error) {
+// readTree captures file bytes and empty directories through the confined project reader.
+func readTree(ctx context.Context, directory string) (*project.Tree, error) {
 	root, err := os.OpenRoot(directory)
 	if err != nil {
 		return nil, err
@@ -273,5 +294,16 @@ func readFiles(ctx context.Context, directory string) (map[string][]byte, error)
 	if err != nil {
 		return nil, err
 	}
-	return tree.Files, nil
+	return tree, nil
+}
+
+// equalTrees compares original bytes and directory inventory, including empty directories.
+func equalTrees(before, after *project.Tree) bool {
+	return maps.EqualFunc(before.Files, after.Files, bytes.Equal) && slices.Equal(before.Directories, after.Directories)
+}
+
+// reportsChangedFiles recognizes the check command's structured stale-output diagnostic on stdout.
+func reportsChangedFiles(data []byte) bool {
+	var changes struct{ Added, Changed, Removed []string }
+	return json.Unmarshal(data, &changes) == nil && len(changes.Added)+len(changes.Changed)+len(changes.Removed) > 0
 }
