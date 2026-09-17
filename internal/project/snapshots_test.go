@@ -55,6 +55,28 @@ func TestSnapshotsRoundTripOwnsExactBytes(t *testing.T) {
 	}
 }
 
+// TestSnapshotRepositoryAddressChangeRequiresSync rejects stale authored provenance even for the same repository.
+func TestSnapshotRepositoryAddressChangeRequiresSync(t *testing.T) {
+	for _, address := range []string{"git@github.com:acme/rules.git", "https://github.com/acme/rules.git", "https://github.com/ACME/rules"} {
+		t.Run(address, func(t *testing.T) {
+			config, snapshots := snapshotFixture(t)
+			vendor, err := EncodeSnapshots(config, snapshots)
+			if err != nil {
+				t.Fatal(err)
+			}
+			config.Sources[0].Repository = address
+			got, err := DecodeSnapshots(config, vendor)
+			var validation *rules.ValidationError
+			if got != nil || !errors.As(err, &validation) {
+				t.Fatalf("accepted stale repository address: %v, %v", got, err)
+			}
+			if validation.Location != "team/_source.json" || !strings.Contains(validation.Problem, "run sync") {
+				t.Fatalf("missing source location or recovery instruction: %v", err)
+			}
+		})
+	}
+}
+
 // TestSnapshotCorruptionReturnsNoPartialResult covers malformed records and altered inventories.
 func TestSnapshotCorruptionReturnsNoPartialResult(t *testing.T) {
 	cases := []struct {
