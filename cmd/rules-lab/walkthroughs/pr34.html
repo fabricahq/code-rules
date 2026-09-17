@@ -741,11 +741,13 @@
         ],
       };
       let vendorFiles = {};
-      // Display original persisted text or a labeled base64 representation of binary bytes.
+      // Display file contents with readable configuration JSON and labeled binary bytes.
       function showVendorFile() {
         const value = vendorFiles[byID("vendor-file").value];
-        byID("vendor-content").textContent =
-          typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        byID("vendor-content").textContent = formatFixtureFile(
+          byID("vendor-file").value,
+          value,
+        );
       }
       byID("vendor-file").addEventListener("change", showVendorFile);
       // Clear prior output when the editable input changes.

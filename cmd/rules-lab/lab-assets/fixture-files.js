@@ -1,5 +1,16 @@
 /** @fileoverview Browse fixture files and configuration before the lab sends them to Go. */
 
+/** Indent valid config.json for display while preserving malformed JSON and other file text. */
+function formatFixtureFile(path, content) {
+  if (typeof content !== "string") return JSON.stringify(content, null, 2);
+  if (path.split("/").at(-1).trim() !== "config.json") return content;
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return content;
+  }
+}
+
 /** Enhance a request textarea without changing file bytes until the user edits them. */
 function mountFixtureFiles(input, onEdit) {
   // Build UI nodes using text, including untrusted filenames and source aliases.
@@ -108,7 +119,7 @@ function mountFixtureFiles(input, onEdit) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
   }
 
-  // Show stored text verbatim; selecting a file does not rewrite the request.
+  // Format configuration for reading; selecting a file never rewrites the request.
   function select(entry) {
     selected = entry;
     filename.textContent = `${entry.root} / ${entry.path}`;
@@ -117,9 +128,7 @@ function mountFixtureFiles(input, onEdit) {
     editor.value =
       entry.change && content === null
         ? "This file is deleted before invocation."
-        : typeof content === "string"
-          ? content
-          : JSON.stringify(content, null, 2);
+        : formatFixtureFile(entry.path, content);
     info.textContent =
       entry.change && content === null
         ? "Deletion is represented by null in Request JSON and settings."

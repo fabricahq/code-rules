@@ -483,11 +483,13 @@
       };
       const byID = (id) => document.getElementById(id);
       let views = {};
-      // Display original project text or one captured evidence view without executing its content.
+      // Display project files with readable configuration JSON or a captured evidence view.
       function showView() {
         const value = views[byID("vendor-file").value] ?? "No result.";
-        byID("vendor-content").textContent =
-          typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        byID("vendor-content").textContent = formatFixtureFile(
+          byID("vendor-file").value,
+          value,
+        );
       }
       // Clear stale evidence whenever the scenario changes.
       function clearResult() {
