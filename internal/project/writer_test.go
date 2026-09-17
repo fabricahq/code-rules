@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -436,5 +437,83 @@ func TestRecoveryResumesAfterQuarantine(t *testing.T) {
 		if err := RequireIdle(root); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+// TestWriterPreservesNewEmptyTarget exercises creation after validation and after a backup move.
+func TestWriterPreservesNewEmptyTarget(t *testing.T) {
+	for _, existed := range []bool{false, true} {
+		t.Run(fmt.Sprint(existed), func(t *testing.T) {
+			root := openProject(t)
+			if existed {
+				writeFixture(t, root, "generated/old", "before")
+			}
+			var created os.FileInfo
+			err := WithWriter(context.Background(), root, func(w *Writer) error {
+				rename := w.rename
+				w.rename = func(from, to string) error {
+					if from == transactionName+"/new-generated" {
+						if err := root.Mkdir("generated", 0700); err != nil {
+							t.Fatal(err)
+						}
+						var err error
+						created, err = root.Stat("generated")
+						if err != nil {
+							t.Fatal(err)
+						}
+					}
+					return rename(from, to)
+				}
+				return w.Apply(map[Target]map[string][]byte{Generated: {"new": []byte("after")}}, nil)
+			})
+			if err == nil {
+				t.Fatal("concurrent empty directory was overwritten")
+			}
+			current, statErr := root.Stat("generated")
+			if statErr != nil || !os.SameFile(created, current) {
+				t.Fatalf("lost concurrent directory: %v", statErr)
+			}
+			if existed {
+				data, err := root.ReadFile(transactionName + "/old-generated/old")
+				if err != nil || string(data) != "before" {
+					t.Fatalf("lost backup: %v", err)
+				}
+			}
+		})
+	}
+}
+
+// TestWriterCancellationDuringReplacement completes rollback before returning cancellation.
+func TestWriterCancellationDuringReplacement(t *testing.T) {
+	root := openProject(t)
+	writeFixture(t, root, "vendor/old", "vendor before")
+	writeFixture(t, root, "generated/old", "generated before")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err := WithWriter(ctx, root, func(w *Writer) error {
+		rename := w.rename
+		w.rename = func(from, to string) error {
+			err := rename(from, to)
+			if err == nil && from == transactionName+"/new-vendor" {
+				cancel()
+			}
+			return err
+		}
+		return w.Apply(map[Target]map[string][]byte{Vendor: {"new": []byte("after")}, Generated: {"new": []byte("after")}}, nil)
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("lost cancellation: %v", err)
+	}
+	for _, target := range []string{"vendor", "generated"} {
+		data, err := root.ReadFile(target + "/old")
+		if err != nil || string(data) != target+" before" {
+			t.Fatalf("did not restore %s: %v", target, err)
+		}
+		if _, err := root.Stat(target + "/new"); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("retained new output in %s: %v", target, err)
+		}
+	}
+	if err := RequireIdle(root); err != nil {
+		t.Fatal(err)
 	}
 }
