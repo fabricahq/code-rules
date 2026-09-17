@@ -52,7 +52,7 @@ func (f *authoringFlags) value(name string) string {
 func (f *authoringFlags) require(names ...string) error {
 	for _, name := range names {
 		if f.value(name) == "" {
-			value, err := f.ask(f.command.Flags().Lookup(name).Usage + " (--" + name + "):")
+			value, err := f.ask(f.command.Flags().Lookup(name).Usage + ":")
 			if err != nil {
 				return err
 			}
@@ -162,33 +162,18 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When an agent should read this rule", "impact": "Consequence level", "impact-description": "Why the rule matters", "body-file": "Existing UTF-8 Markdown body file"} {
 		rf.add(rule, name, description)
 	}
-	rf.addGroupFlags(rule, "group-")
-	var createGroup bool
-	rule.Flags().BoolVar(&createGroup, "create-group", false, "Create missing local metadata in the same operation")
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
 		if strings.HasSuffix(args[0], ".md") {
 			return fmt.Errorf("use a rule ID without the .md extension")
 		}
+		if err := rf.requireRuleGroup(args[0], false); err != nil {
+			*started = true
+			return err
+		}
 		if err := rf.require("title", "when-to-read", "impact", "impact-description"); err != nil {
 			return err
 		}
-		if err := rf.offerGroup(args[0], &createGroup, false); err != nil {
-			return err
-		}
 		ro := authoring.RuleOptions{Options: rf.options()}
-		if createGroup {
-			if err := rf.require("group-name", "group-description", "group-when-to-read"); err != nil {
-				return err
-			}
-			metadata := rf.group("group-")
-			ro.Group = &metadata
-		} else {
-			for _, name := range []string{"group-name", "group-description", "group-when-to-read"} {
-				if rf.value(name) != "" {
-					return fmt.Errorf("group metadata requires --create-group")
-				}
-			}
-		}
 		*started = true
 		if rf.value("body-file") != "" {
 			body, err := readBody(cmd.Context(), rf.file("body-file"))

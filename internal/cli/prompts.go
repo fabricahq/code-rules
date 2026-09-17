@@ -141,38 +141,31 @@ func (f *authoringFlags) collectSource(groups *[]string) error {
 	return nil
 }
 
-// offerGroup asks before creating missing metadata; publication validates it again under its writer lock.
-func (f *authoringFlags) offerGroup(id string, create *bool, library bool) error {
-	if !*create {
-		for _, name := range []string{"group-name", "group-description", "group-when-to-read"} {
-			if f.value(name) != "" {
-				return fmt.Errorf("group metadata requires --create-group")
-			}
-		}
-	}
+// requireRuleGroup refuses absent metadata before any prompts; publication rechecks under its writer lock.
+func (f *authoringFlags) requireRuleGroup(id string, library bool) error {
 	group, err := rules.GroupFromPath(id+".md", "rule")
 	if err != nil {
 		return err
 	}
-	if *create || !f.interactive() {
-		return nil
-	}
 	var exists bool
+	command := "code-rules local add group " + group
+	if config := f.value("config"); config != "" {
+		command += " --config='" + strings.ReplaceAll(config, "'", "'\"'\"'") + "'"
+	}
 	if library {
 		exists, err = authoring.HasLibraryGroup(f.command.Context(), group, f.libraryOptions())
+		command = "code-rules library add group " + group
+		if directory := f.value("directory"); directory != "" {
+			command += " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
+		}
 	} else {
 		exists, err = authoring.HasLocalRuleGroup(f.command.Context(), group, f.options())
 	}
-	if err != nil || exists {
-		return err
-	}
-	answer, err := f.ask("Create missing group " + group + "? [y/N]")
 	if err != nil {
 		return err
 	}
-	if !strings.EqualFold(answer, "y") && !strings.EqualFold(answer, "yes") {
-		return fmt.Errorf("cancelled; no rule was created")
+	if !exists {
+		return fmt.Errorf("group %s does not exist; create it first with %s, then retry adding the rule", group, command)
 	}
-	*create = true
 	return nil
 }

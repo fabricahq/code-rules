@@ -59,7 +59,7 @@ code-rules library add rule techs/javascript/prefer-for-of
 ```
 
 The command creates `prefer-for-of.md` in the existing group using the canonical template.
-If the group is missing, a terminal prompt offers to create it. Agents can pass `--create-group` and the same group metadata flags as local authoring.
+Create the group before adding a rule. If it is missing, the Go CLI returns an error with the `code-rules library add group <group-id>` command; it does not prompt to create the group.
 Fill in the required metadata and draft the obligation, conditions, and exceptions.
 Add implementation and validation sections when they provide useful guidance.
 Tags are optional.

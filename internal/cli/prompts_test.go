@@ -24,11 +24,11 @@ func TestInteractiveAuthoring(t *testing.T) {
 		created bool
 		flags   []string
 	}{
-		{"group", []terminalfixture.Step{{Prompt: "(--name):", Answer: "  Go  "}, {Prompt: "(--description):", Answer: "Go guidance."}, {Prompt: "(--when-to-read):", Answer: "When editing Go."}}, 0, true, nil},
-		{"EOF", []terminalfixture.Step{{Prompt: "(--name):", EOF: true}}, 2, false, nil},
-		{"interrupt", []terminalfixture.Step{{Prompt: "(--name):", Interrupt: true}}, 1, false, nil},
-		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "(--name):", Answer: "\x03"}}, 1, false, nil},
-		{"blank", []terminalfixture.Step{{Prompt: "(--name):", Answer: "   "}}, 2, false, nil},
+		{"group", []terminalfixture.Step{{Prompt: "Group display name:", Answer: "  Go  "}, {Prompt: "Group scope:", Answer: "Go guidance."}, {Prompt: "When an agent should read this group:", Answer: "When editing Go."}}, 0, true, nil},
+		{"EOF", []terminalfixture.Step{{Prompt: "Group display name:", EOF: true}}, 2, false, nil},
+		{"interrupt", []terminalfixture.Step{{Prompt: "Group display name:", Interrupt: true}}, 1, false, nil},
+		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group display name:", Answer: "\x03"}}, 1, false, nil},
+		{"blank", []terminalfixture.Step{{Prompt: "Group display name:", Answer: "   "}}, 2, false, nil},
 		{"unattended", nil, 2, false, []string{"--non-interactive"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -59,38 +59,19 @@ func TestInteractiveAuthoring(t *testing.T) {
 	}
 }
 
-// TestInteractiveSourceAndGroupOffer checks source choice and missing-group consent before any rule is created.
-func TestInteractiveSourceAndGroupOffer(t *testing.T) {
+// TestInteractiveSource checks repository, revision, and group selection through a real terminal.
+func TestInteractiveSource(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
 	if _, stderr, code := runCLI(t, binary, directory, "init"); code != 0 {
 		t.Fatal(stderr)
 	}
-	steps := []terminalfixture.Step{{Prompt: "(--repository):", Answer: "https://github.com/acme/rules"}, {Prompt: "Revision kind (ref or version):", Answer: "version"}, {Prompt: "(--version):", Answer: ">= 1.2.3"}, {Prompt: "Groups (comma-separated IDs, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}}
+	steps := []terminalfixture.Step{{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"}, {Prompt: "Revision kind (ref or version):", Answer: "version"}, {Prompt: "HashiCorp version constraint:", Answer: ">= 1.2.3"}, {Prompt: "Groups (comma-separated IDs, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}}
 	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"add", "source", "team"}, steps)
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)
 	}
-	// Use a separate local-only project so missing metadata does not require a remote snapshot.
-	directory = t.TempDir()
-	if _, stderr, code := runCLI(t, binary, directory, "init"); code != 0 {
-		t.Fatal(stderr)
-	}
-	args := []string{"local", "add", "rule", "techs/go/errors", "--title", "Return errors", "--impact", "HIGH", "--impact-description", "Preserve failures.", "--when-to-read", "When calling functions."}
-	result, err = terminalfixture.Run(context.Background(), binary, directory, args, []terminalfixture.Step{{Prompt: "Create missing group techs/go? [y/N]", Answer: "n"}})
-	if err != nil || result.ExitCode != 2 {
-		t.Fatal(err, result)
-	}
-	if _, err := os.Stat(filepath.Join(directory, ".code-rules/local/techs")); !os.IsNotExist(err) {
-		t.Fatal("decline wrote files", err)
-	}
-	result, err = terminalfixture.Run(context.Background(), binary, directory, args, []terminalfixture.Step{{Prompt: "Create missing group techs/go? [y/N]", Answer: "yes"}, {Prompt: "(--group-name):", Answer: "Go"}, {Prompt: "(--group-description):", Answer: "Go guidance."}, {Prompt: "(--group-when-to-read):", Answer: "When editing Go."}})
-	if err != nil || result.ExitCode != 0 {
-		t.Fatal(err, result)
-	}
-	if _, err := os.Stat(filepath.Join(directory, ".code-rules/local/techs/go/errors.md")); err != nil {
-		t.Fatal(err)
-	}
+
 }
 
 // TestLongTerminalPaste preserves text beyond the operating system's canonical line buffer.
@@ -101,7 +82,7 @@ func TestLongTerminalPaste(t *testing.T) {
 		t.Fatal(stderr)
 	}
 	description := strings.Repeat("x", 2000)
-	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"local", "add", "group", "techs/go", "--name", "Go", "--when-to-read", "When editing Go."}, []terminalfixture.Step{{Prompt: "(--description):", Answer: description}})
+	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"local", "add", "group", "techs/go", "--name", "Go", "--when-to-read", "When editing Go."}, []terminalfixture.Step{{Prompt: "Group scope:", Answer: description}})
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)
 	}

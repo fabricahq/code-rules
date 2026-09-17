@@ -6,8 +6,8 @@ Explicit flags are preserved. Both stdin and stderr must be terminals;
 to the terminal on stderr; successful JSON remains on stdout.
 
 Source creation asks for the repository, ref or HashiCorp version constraint,
-and comma-separated groups. Rule creation offers to create missing group metadata.
-Declining, blank answers, or EOF leave files unchanged and return usage status 2.
+and comma-separated groups. Rule creation requires an existing group and errors before any metadata prompts when it is missing (status 1). Create the group with `local add group` or `library add group`, then retry.
+Blank answers or EOF leave files unchanged and return usage status 2.
 Ctrl+C cancels through the existing command context and returns status 1.
 All actual writes revalidate state under the existing authoring writer lock.
 
@@ -19,5 +19,5 @@ steps wait for a particular prompt; no shell is run. The PTY dependency belongs
 to review/test code and is not part of the production CLI dependency graph.
 
 Validation includes real subprocess prompts, source selection, missing-group
-consent/refusal, blank answers, EOF, SIGINT, noninteractive mode, and unchanged
+refusal before prompts, blank answers, EOF, SIGINT, noninteractive mode, and unchanged
 files after cancellation. Run `go test -race ./...`.

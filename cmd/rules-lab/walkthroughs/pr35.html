@@ -564,13 +564,14 @@
             },
           },
           {
-            name: "Create group with rule",
+            name: "Create group, then rule",
             description:
-              "Creates missing group metadata and the new rule in one operation.",
+              "Creates the group first, then adds its rule in a separate command.",
             input: {
               files: {},
               commands: [
                 ["init", "--config", "config.json"],
+                ["local", "add", "group", "techs/go", "--config", "config.json", "--name", "Go", "--description", "Project Go guidance.", "--when-to-read", "When editing Go."],
                 [
                   "local",
                   "add",
@@ -586,13 +587,6 @@
                   "When calling fallible functions.",
                   "--config",
                   "config.json",
-                  "--create-group",
-                  "--group-name",
-                  "Go",
-                  "--group-description",
-                  "Project Go guidance.",
-                  "--group-when-to-read",
-                  "When editing Go.",
                 ],
               ],
             },
