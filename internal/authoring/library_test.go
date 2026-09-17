@@ -139,3 +139,38 @@ func TestLibraryInitializationPreservesConflicts(t *testing.T) {
 		t.Fatal("overwrote terms")
 	}
 }
+
+// TestLibraryCheckRejectsConcurrentEdits covers files that the selected catalog does not reread.
+func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
+	for _, name := range []string{"assets/guide.md", "assets/new.md", "rule-library.json", "LICENSE.md"} {
+		t.Run(name, func(t *testing.T) {
+			directory := t.TempDir()
+			ctx := context.Background()
+			_, err := InitializeLibrary(ctx, LibraryOptions{Directory: directory}, &LibraryTerms{SPDXExpression: "MIT", License: "Original terms"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Mkdir(filepath.Join(directory, "assets"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(directory, "assets/guide.md"), []byte("Original guidance"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			root, err := os.OpenRoot(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			before, _, err := libraryCheckInput(ctx, root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(directory, name), []byte("[changed](missing.md)"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if err := requireLibraryUnchanged(ctx, root, before); err == nil || !strings.Contains(err.Error(), "changed during validation") {
+				t.Fatal(err)
+			}
+		})
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"maps"
+	"os"
 	"path"
 	"slices"
 	"strings"
@@ -34,20 +35,9 @@ func CheckLibrary(ctx context.Context, options LibraryOptions) (LibraryCheckResu
 	if err = project.RequireIdle(root); err != nil {
 		return LibraryCheckResult{}, err
 	}
-	files, license, err := libraryManifest(ctx, root)
+	files, license, err := libraryCheckInput(ctx, root)
 	if err != nil {
 		return LibraryCheckResult{}, err
-	}
-	for _, directory := range []string{"techs", "practices", "assets"} {
-		tree, err := project.ReadTree(ctx, root, directory)
-		if err != nil {
-			return LibraryCheckResult{}, err
-		}
-		if tree != nil {
-			for name, data := range tree.Files {
-				files[directory+"/"+name] = data
-			}
-		}
 	}
 	if err = validateLibraryInventory(ctx, files, rules.LicensePaths(license)); err != nil {
 		return LibraryCheckResult{}, err
@@ -66,6 +56,9 @@ func CheckLibrary(ctx context.Context, options LibraryOptions) (LibraryCheckResu
 		result.Warnings = append(result.Warnings, "The license has no SPDX expression. Declare the library terms explicitly.")
 	}
 	if err = ctx.Err(); err != nil {
+		return LibraryCheckResult{}, err
+	}
+	if err = requireLibraryUnchanged(ctx, root, files); err != nil {
 		return LibraryCheckResult{}, err
 	}
 	if err = project.RequireIdle(root); err != nil {
@@ -143,6 +136,38 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 		if strings.HasPrefix(strings.ReplaceAll(string(files[name][:min(len(files[name]), 128)]), "\r\n", "\n"), "version https://git-lfs.github.com/spec/v1\n") {
 			return failure("invalid-library", path.Clean(name)+": Git LFS pointers are unsupported", nil)
 		}
+	}
+	return nil
+}
+
+// libraryCheckInput captures every manifest, term, and library-owned file considered by a complete check.
+func libraryCheckInput(ctx context.Context, root *os.Root) (map[string][]byte, *rules.LicenseDeclaration, error) {
+	files, license, err := libraryManifest(ctx, root)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, directory := range []string{"techs", "practices", "assets"} {
+		tree, err := project.ReadTree(ctx, root, directory)
+		if err != nil {
+			return nil, nil, err
+		}
+		if tree != nil {
+			for name, data := range tree.Files {
+				files[directory+"/"+name] = data
+			}
+		}
+	}
+	return files, license, nil
+}
+
+// requireLibraryUnchanged rejects ordinary editor changes as well as added or removed files before approving a check.
+func requireLibraryUnchanged(ctx context.Context, root *os.Root, before map[string][]byte) error {
+	after, _, err := libraryCheckInput(ctx, root)
+	if err != nil {
+		return failure("changed-input", "library changed during validation; retry library check", err)
+	}
+	if !maps.EqualFunc(before, after, bytes.Equal) {
+		return failure("changed-input", "library changed during validation; retry library check", nil)
 	}
 	return nil
 }
