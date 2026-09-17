@@ -168,7 +168,7 @@ func renderIndexes(resolved Resolved, maxLines, inlineMaxBytes int) (map[string]
 			output[path] = text
 		}
 	}
-	header := indexHeader()
+	header := indexHeader(resolved.Groups)
 	pages, err := IndexPages("RULES.md", header, groupEntries, "These files are generated. Edit source rules or configuration and rebuild to change them.", maxLines)
 	if err != nil {
 		return nil, err
@@ -220,18 +220,34 @@ func groupTitle(group Group) string {
 const fullReadingInstructions = "Read the full text of every applicable or plausibly applicable rule before relying on it. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
 const validationInstructions = "During validation or diagnosis, independently select relevant rules from the task, code, and surrounding contracts. Cite rule IDs and concrete evidence for findings; selection alone is not evidence of a violation."
 
-// indexHeader preserves the reference CLI's selection procedure for summary-only delivery.
-func indexHeader() string {
-	return strings.Join([]string{
+// indexHeader explains empty selections or guides agents to the resolved groups and rules.
+func indexHeader(groups []Group) string {
+	blocks := []string{
 		"# Code Rules",
 		"This project uses [Fabrica Code Rules](https://github.com/fabricahq/code-rules) to declare its adopted engineering practices.",
+	}
+	hasRules := false
+	for _, group := range groups {
+		if len(group.Rules) > 0 {
+			hasRules = true
+			break
+		}
+	}
+	if !hasRules {
+		blocks = append(blocks, "**No active rules are selected for this project.**", "There is no Code Rules guidance to load. Continue using the project’s other instructions.")
+		if len(groups) > 0 {
+			blocks = append(blocks, "## Technology and practice group indexes", "The selected groups below contain no active rules.")
+		}
+		return strings.Join(blocks, "\n\n")
+	}
+	return strings.Join(append(blocks,
 		"Before planning or writing code, use the descriptions under **Technology and practice group indexes** below to choose which indexes to open. Consider the intended behavior as well as the technology; testing guidance can apply even when no test files have changed.",
 		"Each group page includes full rules or summaries with explicit reading links. Exclusions and replacements are already applied.",
 		fullReadingInstructions,
 		validationInstructions,
 		"## Technology and practice group indexes",
 		"Open the relevant group indexes below, then select applicable rules and read their full guidance.",
-	}, "\n\n")
+	), "\n\n")
 }
 
 // groupIndexHeader combines resolved selection cues with the reading procedure for full rules or summaries.

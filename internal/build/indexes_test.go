@@ -85,6 +85,9 @@ func TestRenderIndexesLinksToEffectiveDefinitions(t *testing.T) {
 	if !strings.Contains(pages["RULES.md"], "groups/techs/go.md") || !strings.Contains(pages["groups/techs/go.md"], "../../rules/team/techs/go/errors.md") {
 		t.Fatal(pages)
 	}
+	if strings.Contains(pages["RULES.md"], "No active rules are selected") {
+		t.Fatal("active rules labeled as empty")
+	}
 	if strings.Contains(pages["groups/techs/go.md"], "Return errors to the caller.") {
 		t.Fatal("body leaked into summary")
 	}
@@ -113,6 +116,9 @@ func TestRenderEmptyGroup(t *testing.T) {
 	}
 	if !strings.Contains(pages["groups/techs/go.md"], "No active rules in this group.") {
 		t.Fatal(pages)
+	}
+	if !strings.Contains(pages["RULES.md"], "No active rules are selected for this project.") || !strings.Contains(pages["RULES.md"], "groups/techs/go.md") {
+		t.Fatal("empty selection must be explicit while preserving selected group links", pages)
 	}
 }
 
