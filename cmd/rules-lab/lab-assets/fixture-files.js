@@ -220,7 +220,9 @@ function mountFixtureFiles(input, onEdit) {
         addRoot(
           Object.hasOwn(fixture, "output")
             ? "Project before update"
-            : `Library: ${typeof fixture.source === "string" && fixture.source ? fixture.source : "library"}`,
+            : Array.isArray(fixture.commands)
+              ? "Project files"
+              : `Library: ${typeof fixture.source === "string" && fixture.source ? fixture.source : "library"}`,
           fixture.files,
         );
       if (isObject(fixture.output)) {

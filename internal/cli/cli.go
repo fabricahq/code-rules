@@ -86,6 +86,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 		}
 		root.AddCommand(cmd)
 	}
+	addProjectAuthoringCommands(root, options, &started)
 	if _, err := root.ExecuteContextC(ctx); err != nil {
 		fmt.Fprintln(streams.Err, err)
 		if !started {

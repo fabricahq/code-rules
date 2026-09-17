@@ -81,6 +81,8 @@ func invoke(data []byte) (response, error) {
 		value, err = invokeImports(req.Input)
 	case "gitRevision":
 		value, err = invokeGitRevision(req.Input)
+	case "projectAuthoring":
+		return authoringResponse(req.Input)
 	case "cliProject":
 		return cliResponse(req.Input)
 	case "syncProject":
