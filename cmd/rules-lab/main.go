@@ -77,9 +77,10 @@ func invoke(data []byte) (response, error) {
 	switch req.Operation {
 	case "prepareOutput":
 		var input struct {
-			Fixture     json.RawMessage `json:"fixture"`
-			MaxLines    int             `json:"maxLines"`
-			ToolVersion string          `json:"toolVersion"`
+			Fixture             json.RawMessage `json:"fixture"`
+			MaxLines            int             `json:"maxLines"`
+			ToolVersion         string          `json:"toolVersion"`
+			GroupInlineMaxBytes *int            `json:"groupInlineMaxBytes"`
 		}
 		fields := json.NewDecoder(bytes.NewReader(req.Input))
 		fields.DisallowUnknownFields()
@@ -90,7 +91,7 @@ func invoke(data []byte) (response, error) {
 		resolved, err = resolveBuildFixture(input.Fixture)
 		if err == nil {
 			var output build.Output
-			output, err = build.Prepare(resolved, build.Options{ToolVersion: input.ToolVersion, IndexMaxLines: input.MaxLines})
+			output, err = build.Prepare(resolved, build.Options{ToolVersion: input.ToolVersion, IndexMaxLines: input.MaxLines, GroupInlineMaxBytes: input.GroupInlineMaxBytes})
 			if err == nil {
 				files := map[string]string{}
 				for file, data := range output.Files {

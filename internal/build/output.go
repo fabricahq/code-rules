@@ -18,13 +18,15 @@ type Output struct {
 	Files map[string][]byte `json:"files"`
 }
 
-// Options provides the declared tool version and per-index Markdown line limit.
+// Options provides the declared tool version and Markdown line limit and inline byte limit.
 type Options struct {
 	ToolVersion   string
 	IndexMaxLines int
+	// GroupInlineMaxBytes defaults to 8 KiB when nil; zero forces summary-only group pages.
+	GroupInlineMaxBytes *int
 }
 
-// Prepare combines rendering and summary indexes with terms and provenance, returning no partial output.
+// Prepare combines rendering and group discovery pages with terms and provenance, returning no partial output.
 // It accepts a Resolve result and performs no filesystem or network operations.
 func Prepare(resolved Resolved, options Options) (Output, error) {
 	if err := rules.ValidateToolVersion(options.ToolVersion); err != nil {
@@ -34,7 +36,11 @@ func Prepare(resolved Resolved, options Options) (Output, error) {
 	if err != nil {
 		return Output{}, err
 	}
-	indexes, err := RenderIndexes(resolved, options.IndexMaxLines)
+	inlineMaxBytes := 8 * 1024
+	if options.GroupInlineMaxBytes != nil {
+		inlineMaxBytes = *options.GroupInlineMaxBytes
+	}
+	indexes, err := renderIndexes(resolved, options.IndexMaxLines, inlineMaxBytes)
 	if err != nil {
 		return Output{}, err
 	}
@@ -64,7 +70,7 @@ func Prepare(resolved Resolved, options Options) (Output, error) {
 		files["libraries/"+source.Name+"/README.md"] = []byte(libraryReadme(source))
 	}
 	files["rules/README.md"] = []byte("# Effective rules\n\nThese files contain the complete effective definitions after exclusions, replacements, and local additions. Start with [RULES.md](../RULES.md). See [provenance.json](../provenance.json) for origins. Edit source inputs and rebuild.\n")
-	files["groups/README.md"] = []byte("# Rule groups\n\nStart with [RULES.md](../RULES.md), then open relevant group indexes and read each applicable rule in full. These pages contain summaries, not full guidance.\n")
+	files["groups/README.md"] = []byte("# Rule groups\n\nStart with [RULES.md](../RULES.md), then open relevant group indexes and read each applicable rule in full. Each group page provides reading instructions and either complete rules or summaries with explicit links to the full definitions.\n")
 	provenance, err := renderProvenance(resolved, options.ToolVersion)
 	if err != nil {
 		return Output{}, err
