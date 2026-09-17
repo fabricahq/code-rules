@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -84,6 +85,20 @@ func validateCLIArguments(args []string) error {
 		}
 	}
 	hasConfig := false
+	helpOnly := false
+	for _, arg := range args {
+		if arg == "--" {
+			break
+		}
+		name, value, equal := strings.Cut(arg, "=")
+		if name == "--help" || name == "-h" {
+			if equal {
+				helpOnly, _ = strconv.ParseBool(value)
+			} else {
+				helpOnly = true
+			}
+		}
+	}
 	for i, arg := range args {
 		if arg == "--config" {
 			hasConfig = i+1 < len(args) && args[i+1] == "config.json"
@@ -97,7 +112,7 @@ func validateCLIArguments(args []string) error {
 			hasConfig = true
 		}
 	}
-	if len(args) > 0 && (args[0] == "sync" || args[0] == "build" || args[0] == "check") && !hasConfig {
+	if len(args) > 0 && (args[0] == "sync" || args[0] == "build" || args[0] == "check") && !hasConfig && !helpOnly {
 		return &rules.ValidationError{Location: "arguments", Problem: "operational walkthrough commands require --config config.json so only the reviewed fixture configuration is used"}
 	}
 	return nil

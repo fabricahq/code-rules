@@ -106,3 +106,16 @@ func TestCLIProcess(t *testing.T) {
 		t.Fatalf("empty-source sync: %d %s %s", code, out, diagnostic)
 	}
 }
+
+// TestHyphenConfigValue verifies unambiguous equals syntax reaches the real project command.
+func TestHyphenConfigValue(t *testing.T) {
+	binary := buildCLI(t)
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, "-project.json"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	stdout, stderr, code := runCLI(t, binary, directory, "build", "--config=-project.json")
+	if code != 0 || stderr != "" || stdout == "" {
+		t.Fatal(code, stdout, stderr)
+	}
+}
