@@ -143,31 +143,11 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 
 // libraryCheckInput captures every manifest, term, and library-owned file considered by a complete check.
 func libraryCheckInput(ctx context.Context, root *os.Root) (*project.Tree, *rules.LicenseDeclaration, error) {
-	files, license, err := libraryManifest(ctx, root)
+	inventory, err := library.ReadInventory(ctx, root)
 	if err != nil {
 		return nil, nil, err
 	}
-	snapshot := &project.Tree{Files: files, Directories: []string{}}
-	for _, directory := range []string{"techs", "practices", "assets"} {
-		tree, err := project.ReadTree(ctx, root, directory)
-		if err != nil {
-			return nil, nil, err
-		}
-		if tree != nil {
-			snapshot.Directories = append(snapshot.Directories, directory)
-			for _, name := range tree.Directories {
-				snapshot.Directories = append(snapshot.Directories, directory+"/"+name)
-			}
-			for name, data := range tree.Files {
-				files[directory+"/"+name] = data
-			}
-		}
-	}
-	slices.Sort(snapshot.Directories)
-	if err := library.ValidateInventoryLimits(ctx, snapshot.Files, snapshot.Directories); err != nil {
-		return nil, nil, err
-	}
-	return snapshot, license, nil
+	return &project.Tree{Files: inventory.Files, Directories: inventory.Directories}, inventory.License, nil
 }
 
 // requireLibraryUnchanged rejects differences observed after validating the captured snapshot.
