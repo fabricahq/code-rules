@@ -2,12 +2,13 @@
 
 PRs #17-#31 have merged into `go-migration`. PR #32 has human approval and is awaiting final review closeout. The user authorized preparing all remaining slices for review; passing CI or automated review does not authorize merging those new PRs.
 
-| PR  | Capability                   | Branch                | Review base          | Walkthrough       |
-| --- | ---------------------------- | --------------------- | -------------------- | ----------------- |
-| #32 | Complete Git library imports | codex/go-git-imports  | go-migration         | /walkthrough/pr32 |
-| #33 | Sync complete projects       | codex/go-project-sync | codex/go-git-imports | /walkthrough/pr33 |
+| PR  | Capability                   | Branch                | Review base           | Walkthrough       |
+| --- | ---------------------------- | --------------------- | --------------------- | ----------------- |
+| #32 | Complete Git library imports | codex/go-git-imports  | go-migration          | /walkthrough/pr32 |
+| #33 | Sync complete projects       | codex/go-project-sync | codex/go-git-imports  | /walkthrough/pr33 |
+| #34 | Native project CLI           | codex/go-cli          | codex/go-project-sync | /walkthrough/pr34 |
 
-Run `go run ./cmd/rules-lab -serve -port 4391` from the top branch. The root page links to available walkthroughs. Each invokes native Go and covers only its PR's capability. Filesystem writes and Git repositories use isolated disposable fixtures.
+Build `cmd/code-rules` and `cmd/rules-lab` into the same output directory, then run `dist/rules-lab -serve -port 4391` from the top branch. The root page links to available walkthroughs. Each invokes native Go and covers only its PR's capability. Filesystem writes and Git repositories use isolated disposable fixtures.
 
 Fix defects on the earliest owning branch and propagate changes through dependents. Re-run affected checks and refresh reviews. After a predecessor receives human approval and merges, retarget its successor to `go-migration` and verify the diff remains focused.
 

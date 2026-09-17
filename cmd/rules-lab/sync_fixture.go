@@ -17,6 +17,7 @@ import (
 
 // syncFixture supplies real Git libraries, authored local files, and optional post-seed edits.
 type syncFixture struct {
+	toolVersion string // Set only by the CLI adapter to match the executable used for setup output.
 	importFixture
 	LocalFiles map[string]string  `json:"localFiles,omitempty"`
 	SeedSync   bool               `json:"seedSync,omitempty"`
@@ -59,6 +60,18 @@ func invokeSync(input json.RawMessage) (any, error) {
 
 // observeSync seeds authored inputs, optionally syncs once, then captures the requested sync and its files.
 func observeSync(ctx context.Context, cancel context.CancelFunc, fixture syncFixture, git imports.Options) (any, error) {
+	return withSyncProject(ctx, cancel, fixture, git, func(root *os.Root, options project.Options, before *project.Tree) (any, error) {
+		changes, operationErr := project.Sync(ctx, options, git)
+		after, err := project.ReadTree(context.Background(), root, ".")
+		if err != nil {
+			return nil, err
+		}
+		return &offlineObservation{Changes: changes, Before: displayProjectTree(before), After: displayProjectTree(after)}, operationErr
+	})
+}
+
+// withSyncProject owns fixture setup and confines every configured source before running a reviewed operation.
+func withSyncProject(ctx context.Context, cancel context.CancelFunc, fixture syncFixture, git imports.Options, operation func(*os.Root, project.Options, *project.Tree) (any, error)) (any, error) {
 	dir, err := os.MkdirTemp("", "rules-lab-sync-*")
 	if err != nil {
 		return nil, err
@@ -81,6 +94,9 @@ func observeSync(ctx context.Context, cancel context.CancelFunc, fixture syncFix
 		}
 	}
 	options := project.Options{ConfigPath: filepath.Join(dir, "config.json"), ToolVersion: "go-migration-review"}
+	if fixture.toolVersion != "" {
+		options.ToolVersion = fixture.toolVersion
+	}
 	if fixture.SeedSync {
 		if _, err := project.Sync(ctx, options, git); err != nil {
 			return nil, err
@@ -119,10 +135,5 @@ func observeSync(ctx context.Context, cancel context.CancelFunc, fixture syncFix
 	if fixture.Scenario == "cancel" {
 		cancel()
 	}
-	changes, operationErr := project.Sync(ctx, options, git)
-	after, err := project.ReadTree(context.Background(), root, ".")
-	if err != nil {
-		return nil, err
-	}
-	return &offlineObservation{Changes: changes, Before: displayProjectTree(before), After: displayProjectTree(after)}, operationErr
+	return operation(root, options, before)
 }
