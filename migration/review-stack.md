@@ -1,36 +1,32 @@
 # Review the migration stack
 
-PRs #17-#32 have merged into `go-migration`. The user authorized preparing all remaining slices for review; passing CI or automated review does not authorize merging those new PRs.
+PRs #17-#32 are merged into `go-migration`. The remaining implementation batch is
+ready for review as a stack. Human approval of these new PRs is still required.
 
-| PR  | Capability             | Branch                | Review base           | Walkthrough       |
-| --- | ---------------------- | --------------------- | --------------------- | ----------------- |
-| #33 | Sync complete projects | codex/go-project-sync | go-migration          | /walkthrough/pr33 |
-| #34 | Native project CLI     | codex/go-cli          | codex/go-project-sync | /walkthrough/pr34 |
+| PR  | Capability                      | Branch                         | Review base                    | Walkthrough       |
+| --- | ------------------------------- | ------------------------------ | ------------------------------ | ----------------- |
+| #33 | Sync complete projects          | codex/go-project-sync          | go-migration                   | /walkthrough/pr33 |
+| #34 | Native project CLI              | codex/go-cli                   | codex/go-project-sync          | /walkthrough/pr34 |
+| #35 | Project authoring               | codex/go-project-authoring     | codex/go-cli                   | /walkthrough/pr35 |
+| #36 | Library authoring/check         | codex/go-library-authoring     | codex/go-project-authoring     | /walkthrough/pr36 |
+| #37 | Interactive prompts             | codex/go-interactive-authoring | codex/go-library-authoring     | /walkthrough/pr37 |
+| #38 | Native artifact candidates      | codex/go-native-artifacts      | codex/go-interactive-authoring | /walkthrough/pr38 |
+| #39 | Complete CLI pilot and evidence | codex/go-native-acceptance     | codex/go-native-artifacts      | /walkthrough/pr39 |
 
-| #35 | Project authoring | codex/go-project-authoring | codex/go-cli | /walkthrough/pr35 |
+Build `cmd/code-rules` and `cmd/rules-lab` into the same output directory. For PR38,
+place committed candidate artifacts in `native-artifacts` beside the lab. Run
+`rules-lab -serve -port 4391`. Every walkthrough executes native Go in isolated
+fixtures and covers its PR's new capability. CLI pages show real command output,
+errors, exit status, and project files; PR37 uses actual pseudo-terminals.
 
-| #36 | Library authoring and check | codex/go-library-authoring | codex/go-project-authoring | /walkthrough/pr36 |
+Fix defects on the earliest owning branch and propagate changes through dependents.
+Refresh affected tests and reviews. After an approved predecessor merges, retarget
+its successor to `go-migration` and verify the diff stays focused.
 
-Build `cmd/code-rules` and `cmd/rules-lab` into the same output directory, then run `dist/rules-lab -serve -port 4391` from the top branch. The root page links to available walkthroughs. Each invokes native Go and covers only its PR's capability. Filesystem writes and Git repositories use isolated disposable fixtures.
+Every PR receives the full [independent validation prompt](independent-validation.md)
+and a Devin review. CodeRabbit exhausted its included review quota after #28.
+Check live feedback and nonempty green CI before an authorized merge. A ready PR,
+completed review, or passing test is not human merge approval.
 
-Fix defects on the earliest owning branch and propagate changes through dependents. Re-run affected checks and refresh reviews. After a predecessor receives human approval and merges, retarget its successor to `go-migration` and verify the diff remains focused.
-
-Every PR receives the [independent validation prompt](independent-validation.md), plus CodeRabbit or Devin review. CodeRabbit exhausted its included review quota after #28; subsequent PRs use Devin. Inspect live GitHub checks and review threads before merging.
-
-## Remaining implementation batch
-
-1. Sync orchestration (#33).
-2. Cobra CLI commands for sync, build, and check.
-3. Project initialization, source configuration, and local authoring.
-4. Library initialization, authoring, and validation.
-5. Interactive prompts and non-interactive behavior.
-6. Native packaging and installation checks.
-7. Full migration acceptance, documentation, and capability evidence.
-
-Each PR gets a walkthrough covering only its new behavior. CLI walkthroughs will display arguments, standard output, standard error, exit status, and filesystem changes from isolated executions. Existing walkthrough URLs remain available.
-
-The TypeScript CLI remains the production entry point until the native packaging slice is approved. The broad capability inventory remains pending until full acceptance evidence is reconciled. The final integration into `main`, release publication, and removal of the TypeScript implementation require separate approval.
-
-### PR37: Interactive authoring
-
-Terminal-only missing-input collection, explicit noninteractive behavior, and cancellation before publication. The walkthrough uses real pseudo-terminals and shows answers, stdout, exit status, and resulting files. Ready for independent and Devin review; not approved to merge.
+See [native acceptance](native-acceptance.md) for evidence, approved differences,
+and remaining release decisions. The TypeScript npm entrypoint stays intact.
