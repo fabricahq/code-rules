@@ -7,7 +7,7 @@ Use the [Go conventions](../_internal/go-conventions.md) when implementing or re
 ## Branches and baseline
 
 - Integration branch: `go-migration`.
-- Current review batch: PRs #22-#26. See [the review stack](review-stack.md) for branches, scope, and individual interactive walkthroughs. PRs #17-#21 have merged into `go-migration`.
+- Current review batch: PRs #28-#32. See [the review stack](review-stack.md) for branches, scope, and individual interactive walkthroughs. PRs #17-#27 have merged into `go-migration`.
 - [Exact refs and version tags](refs.md) merged in PR #16 at `76e30d5c29881a4f74821a5b3bb23a3e1683ca96`.
 - [Repository addresses](repositories.md) merged in PR #15 at `ef88c4c6e7d7061da428a8c5783e84e7b3c6906e`.
 - [Complete rule parsing](rule-parser.md) merged in PR #14 at `39c327f103a7eab19468d815d5250acb5f7f5de7`.
@@ -28,7 +28,7 @@ The harness slice introduced no Go implementation. The merged identity slice add
 
 ## Concurrent review stack
 
-The user approved preparing PRs #22-#26 together after PRs #17-#21 merged. See [the current stack](review-stack.md). Each dependent PR targets its predecessor so the review diff contains only the new capability. Keep the branches separate, propagate predecessor fixes forward, and retarget to `go-migration` as predecessors merge. This supersedes the one-pending-PR rule for this batch; human merge approval is still required. Each walkthrough has a stable `/walkthrough/pr<number>` URL.
+The user approved preparing PRs #28-#32 together after PR #27 merged. See [the current stack](review-stack.md). Each dependent PR targets its predecessor so the review diff contains only the new capability. Keep the branches separate, propagate predecessor fixes forward, and retarget to `go-migration` as predecessors merge. This supersedes the one-pending-PR rule for this batch; human merge approval is still required. Each walkthrough has a stable `/walkthrough/pr<number>` URL.
 
 ## PR review workflow
 

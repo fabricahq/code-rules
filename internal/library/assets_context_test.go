@@ -44,7 +44,7 @@ func TestAssetLookupOperationalErrors(t *testing.T) {
 	if err := root.Close(); err != nil {
 		t.Fatal(err)
 	}
-	r := reader{ctx: context.Background(), root: root, directories: map[string][]fs.DirEntry{assetDirectory: entries}}
+	r := reader{ctx: context.Background(), input: rootFiles{ctx: context.Background(), root: root}, directories: map[string][]fs.DirEntry{assetDirectory: entries}}
 	for name, err := range map[string]error{"link": r.linkExists("assets/guide.md"), "owner": r.ownedAssets(assetDirectory, nil)} {
 		var validation *rules.ValidationError
 		if !errors.Is(err, os.ErrClosed) || errors.As(err, &validation) {

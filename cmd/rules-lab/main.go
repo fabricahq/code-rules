@@ -77,6 +77,8 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "gitImport":
+		value, err = invokeImports(req.Input)
 	case "gitRevision":
 		value, err = invokeGitRevision(req.Input)
 	case "offlineProject":
@@ -383,20 +385,26 @@ func run(logger *slog.Logger) error {
 			return fmt.Errorf("start rules lab: %v", err)
 		}
 		logger.Info("rules lab listening", "url", "http://"+listener.Addr().String())
-		server := &http.Server{
-			Handler:           handler(logger),
-			ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
-			ReadHeaderTimeout: 5 * time.Second,
-			ReadTimeout:       10 * time.Second,
-			WriteTimeout:      10 * time.Second,
-			IdleTimeout:       30 * time.Second,
-		}
+		server := labServer(logger)
 		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("serve rules lab at %s: %v", listener.Addr(), err)
 		}
 		return nil
 	}
 	return runRequests(os.Stdin, os.Stdout)
+}
+
+// labServer keeps the response deadline long enough for a bounded Git fixture and its cleanup.
+func labServer(logger *slog.Logger) *http.Server {
+	return &http.Server{
+		Handler:           handler(logger),
+		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		// Fixtures allow two minutes; leave time for cleanup and JSON serialization.
+		WriteTimeout: 150 * time.Second,
+		IdleTimeout:  30 * time.Second,
+	}
 }
 
 // runRequests processes bounded newline-delimited requests and writes native results.

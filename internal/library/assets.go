@@ -65,7 +65,7 @@ func (r *reader) ownedAssets(directory string, terms []string) error {
 		if slices.Contains(terms, owner) {
 			return bad(assetPath, "license files cannot own rule assets")
 		}
-		info, err := r.root.Lstat(owner)
+		info, err := r.input.Lstat(owner)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				return bad(assetPath, "assets directory has no adjacent owning rule: "+owner)
@@ -168,7 +168,7 @@ func (r *reader) linkExists(file string) error {
 	parts := strings.Split(file, "/")
 	for i := range parts {
 		prefix := strings.Join(parts[:i+1], "/")
-		info, err := r.root.Lstat(prefix)
+		info, err := r.input.Lstat(prefix)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				return bad(file, "missing link destination")
