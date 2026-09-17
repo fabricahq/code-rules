@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/authoring"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/spf13/cobra"
@@ -78,23 +77,16 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 			case "build":
 				changes, err = project.Build(cmd.Context(), projectOptions)
 			case "check":
-				changes, err = project.Check(cmd.Context(), projectOptions)
+				report, checkErr := checkProject(cmd.Context(), projectOptions, config.value)
+				if checkErr == nil || errors.Is(checkErr, errCheckOutOfDate) {
+					output.value = report
+				}
+				return checkErr
 			}
 			if err != nil {
 				return err
 			}
 			output.value = changes
-			if name == "check" {
-				guide, guideErr := authoring.CheckProjectGuide(cmd.Context(), authoring.Options{ConfigPath: path})
-				output.value = projectCheckResult{FileChanges: changes, Guide: guide}
-				if len(changes.Added)+len(changes.Changed)+len(changes.Removed) > 0 {
-					if guideErr != nil {
-						return errors.Join(errStaleOutput, guideErr)
-					}
-					return errStaleOutput
-				}
-				return guideErr
-			}
 			return nil
 		}
 		root.AddCommand(cmd)

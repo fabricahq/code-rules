@@ -85,7 +85,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if code != want {
 			return fmt.Errorf("%s: exit %d, expected %d: %s", label, code, want, diagnostic.String())
 		}
-		if want != 0 && strings.TrimSpace(diagnostic.String()) == "" && !(len(args) > 0 && args[0] == "check" && reportsChangedFiles(out.Bytes())) {
+		if want != 0 && strings.TrimSpace(diagnostic.String()) == "" && !(len(args) > 0 && args[0] == "check" && reportsCheckProblems(out.Bytes())) {
 			return fmt.Errorf("%s: refusal returned no diagnostic", label)
 		}
 		if original != nil {
@@ -309,12 +309,15 @@ func equalTrees(before, after *project.Tree) bool {
 	return maps.EqualFunc(before.Files, after.Files, bytes.Equal) && slices.Equal(before.Directories, after.Directories)
 }
 
-// reportsChangedFiles recognizes the check command's structured stale-output diagnostic on stdout.
-func reportsChangedFiles(data []byte) bool {
+// reportsCheckProblems recognizes a read-only check report whose problems explain the nonzero exit.
+func reportsCheckProblems(data []byte) bool {
 	var result struct {
 		OK    bool
-		Value project.FileChanges
+		Value struct {
+			Status   string
+			Problems []struct{ Kind, Path, NextStep string }
+		}
 		Error struct{ Kind string }
 	}
-	return json.Unmarshal(data, &result) == nil && !result.OK && result.Error.Kind == "stale_output" && len(result.Value.Added)+len(result.Value.Changed)+len(result.Value.Removed) > 0
+	return json.Unmarshal(data, &result) == nil && !result.OK && result.Error.Kind == "out_of_date" && result.Value.Status == "out_of_date" && len(result.Value.Problems) > 0
 }

@@ -74,7 +74,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 6. Check without changing files
 
-**PR34.** A readable confirmation and exit 0 mean generated output matches its inputs and the project README matches the installed CLI. The second invocation uses `check --json` to demonstrate structured output: `ok: true` and empty difference arrays inside `value`. Both invocations run with no tools on PATH. Each invocation verifies both without changing files.
+**PR34.** A readable confirmation and exit 0 mean generated output matches its inputs and the project README matches the installed CLI. The second invocation uses `check --json` to demonstrate structured output: `ok: true` and `value.status: "up_to_date"` with an empty `problems` list. Both invocations run with no tools on PATH. Each invocation verifies both without changing files.
 
 <Command
   id="check"
@@ -98,7 +98,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 8. Observe the expected check failure
 
-**PR34 / PR39.** Expect exit 1 and RULES.md in the changed list. The block is red intentionally: the CLI reports stale output and leaves the manual edit intact. Continue to Repair.
+**PR34 / PR39.** Expect exit 1 and RULES.md reported as having stale contents. The block is red intentionally: the CLI reports stale output and leaves the manual edit intact. Continue to Repair.
 
 <Command
   id="detect"

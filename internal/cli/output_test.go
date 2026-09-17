@@ -52,16 +52,16 @@ func TestHumanCheckAndJSONStale(t *testing.T) {
 		t.Fatal(code, diagnostic)
 	}
 	out, diagnostic, code := runCLI(t, binary, dir, "check")
-	if code != 1 || diagnostic != "" || !strings.Contains(out, "No files were changed.") || !strings.Contains(out, "Add: RULES.md") {
+	if code != 1 || diagnostic != "" || !strings.Contains(out, "No files were changed.") || !strings.Contains(out, "Missing generated file:") {
 		t.Fatal(code, out, diagnostic)
 	}
 	out, diagnostic, code = runCLI(t, binary, dir, "check", "--json")
 	var result struct {
 		OK    bool
-		Value struct{ Added []string }
+		Value projectCheckResult
 		Error struct{ Kind string }
 	}
-	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "stale_output" || len(result.Value.Added) == 0 {
+	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "out_of_date" || result.Value.Status != "out_of_date" || len(result.Value.Problems) == 0 {
 		t.Fatal(code, out, diagnostic)
 	}
 	for _, args := range [][]string{{"build", "--json", "--bad", "--json=false"}, {"--json=false", "--help"}, {"--json", "--json=false", "--help"}, {"build", "--config=--json"}, {"build", "--", "--json"}} {

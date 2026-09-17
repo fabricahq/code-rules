@@ -446,7 +446,7 @@
           {
             name: "Verify guide",
             description:
-              "Initializes and builds the project, then runs check --json. Expect empty file differences and guide.current: true. CI can use this read-only check to detect a stale or missing agent guide after upgrades.",
+              "Initializes and builds the project, then runs check --json. Expect status: up_to_date and an empty problems list. CI can use this read-only check to detect a stale or missing agent guide after upgrades.",
             input: {
               files: {},
               commands: [

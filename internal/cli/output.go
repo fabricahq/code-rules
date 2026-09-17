@@ -18,14 +18,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var errStaleOutput = errors.New("generated output is out of date; run code-rules build to update it")
-
-// projectCheckResult reports generated-file differences and agent-guide freshness together.
-type projectCheckResult struct {
-	project.FileChanges
-	Guide authoring.GuideStatus `json:"guide"`
-}
-
 // commandOutput retains one invocation's result until its exit status and output mode are known.
 type commandOutput struct {
 	json  bool
@@ -33,7 +25,7 @@ type commandOutput struct {
 	text  bytes.Buffer // Cobra help and version output, rendered only after command completion.
 }
 
-// response is the common JSON envelope; a stale check includes both differences and an error.
+// response is the common JSON envelope; a stale check includes both current problems and an error.
 type response struct {
 	OK    bool           `json:"ok"`
 	Value any            `json:"value,omitempty"`
@@ -73,7 +65,7 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error, c
 		if text.Len() > 0 {
 			_, writeErr = io.WriteString(streams.Out, text.String())
 		}
-		if err != nil && err != errStaleOutput {
+		if err != nil && err != errCheckOutOfDate {
 			fmt.Fprintln(streams.Err, err)
 			if code == 2 {
 				fmt.Fprintln(streams.Err, "Run code-rules --help for usage.")
@@ -92,8 +84,8 @@ func classifyError(err error, code int) *responseError {
 	result := &responseError{Kind: "operation", Message: err.Error()}
 	var validation *rules.ValidationError
 	switch {
-	case errors.Is(err, errStaleOutput):
-		result.Kind = "stale_output"
+	case errors.Is(err, errCheckOutOfDate):
+		result.Kind = "out_of_date"
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		result.Kind = "cancelled"
 	case code == 2:
@@ -109,11 +101,13 @@ func classifyError(err error, code int) *responseError {
 func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 	switch result := value.(type) {
 	case projectCheckResult:
-		formatHuman(out, cmd, result.FileChanges)
-		formatHuman(out, cmd, result.Guide)
-	case authoring.GuideStatus:
-		if result.Current {
-			fmt.Fprintf(out, "Project README is up to date: %s\n", result.Path)
+		if result.Status == "up_to_date" {
+			out.WriteString("Status: up to date.\nGenerated guidance and the project README are current.\nNo files were changed.\n")
+		} else {
+			out.WriteString("Status: out of date.\nNo files were changed.\nPaths are relative to the configuration directory.\n\nProblems:\n")
+			for _, problem := range result.Problems {
+				fmt.Fprintf(out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, problem.NextStep)
+			}
 		}
 	case authoring.Result:
 		if len(result.Files) == 0 {
@@ -137,20 +131,12 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 		}
 	case project.FileChanges:
 		stale := len(result.Added)+len(result.Changed)+len(result.Removed) > 0
-		if cmd.Name() == "check" {
-			if !stale {
-				out.WriteString("Generated output is up to date.\n")
-				return
-			}
-			out.WriteString("Generated output is out of date. No files were changed.\nRequired updates (paths relative to generated/):\n")
-		} else {
-			fmt.Fprintf(out, "%s complete: %d added, %d changed, %d removed.\n", strings.ToUpper(cmd.Name()[:1])+cmd.Name()[1:], len(result.Added), len(result.Changed), len(result.Removed))
-			if stale && cmd.Name() == "build" {
-				out.WriteString("Paths relative to generated/:\n")
-			}
-			if stale && cmd.Name() == "sync" {
-				out.WriteString("Paths relative to the configuration directory:\n")
-			}
+		fmt.Fprintf(out, "%s complete: %d added, %d changed, %d removed.\n", strings.ToUpper(cmd.Name()[:1])+cmd.Name()[1:], len(result.Added), len(result.Changed), len(result.Removed))
+		if stale && cmd.Name() == "build" {
+			out.WriteString("Paths relative to generated/:\n")
+		}
+		if stale && cmd.Name() == "sync" {
+			out.WriteString("Paths relative to the configuration directory:\n")
 		}
 		for _, group := range []struct {
 			label string
@@ -159,9 +145,6 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 			for _, path := range group.paths {
 				fmt.Fprintf(out, "  %s: %s\n", group.label, path)
 			}
-		}
-		if cmd.Name() == "check" {
-			out.WriteString("Run code-rules build to update generated output.\n")
 		}
 	}
 }

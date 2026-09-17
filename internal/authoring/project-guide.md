@@ -18,7 +18,7 @@ Use this README to **manage rules**. Use `generated/RULES.md` to **read and appl
 2. Run the corresponding commands below. Run them **from the folder containing this README**. Every project command explicitly selects this folder's configuration.
 3. Supply the project's intended metadata and guidance. The examples below illustrate command syntax; replace their values before using them in a real project.
 4. Build after local edits. Sync after changing a library's repository, ref, version constraint, or group selection. Inspect the resulting diff and resolve errors before reporting completion.
-5. Run check. Exit 0 confirms that generated files match their inputs; it does not verify application code against the rules.
+5. Run check. Exit 0 confirms that generated files match their inputs and this README matches the installed CLI; it does not verify application code against the rules.
 
 Human-readable output is the default. Add `--json` to any command for a structured response. JSON mode never prompts: supply all required flags. Inspect `ok`, `value`, and `error` and the process exit status. Exit 1 means operation failure or stale output; exit 2 means invalid usage. Use `--help` on a command for all options.
 

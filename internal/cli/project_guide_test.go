@@ -165,20 +165,24 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 							if err := json.Unmarshal([]byte(out), &result); err != nil {
 								t.Fatal(err, out)
 							}
-							if diagnostic != "" || result.OK != (wantCode == 0) || (result.Error != nil) != (wantCode != 0) || result.Value.Guide.Current != (guideState == "current") || (len(result.Value.Changed) > 0) != stale {
+							if diagnostic != "" || result.OK != (wantCode == 0) || (result.Error != nil) != (wantCode != 0) {
 								t.Fatal(out, diagnostic)
 							}
-							if guideState != "current" && !strings.Contains(result.Error.Message, "README.md") {
+							kinds := map[string]bool{}
+							for _, problem := range result.Value.Problems {
+								kinds[problem.Kind] = true
+							}
+							if kinds["outdated_readme"] != (guideState != "current") || kinds["stale_contents"] != stale {
 								t.Fatal(out)
 							}
 						} else {
-							if !strings.Contains(out, "Generated output is") {
+							if !strings.Contains(out, "Status:") {
 								t.Fatal(out, diagnostic)
 							}
-							if guideState == "current" && !strings.Contains(out, "Project README is up to date") {
+							if wantCode == 0 && !strings.Contains(out, "the project README are current") {
 								t.Fatal(out)
 							}
-							if guideState != "current" && !strings.Contains(diagnostic, "README.md") {
+							if guideState != "current" && !strings.Contains(out, "README.md") {
 								t.Fatal(out, diagnostic)
 							}
 						}

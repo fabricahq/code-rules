@@ -33,9 +33,9 @@ code-rules init
 code-rules check --json
 ```
 
-JSON mode prints one response on stdout and never prompts. Success returns `ok: true` with a `value`. Failure returns `ok: false` with an `error` containing `kind` and `message`, plus `location` for validation errors when available. A native project check returns file differences in `value.added`, `value.changed`, and `value.removed`, plus README freshness in `value.guide.current`. Both checks must pass for `ok: true`. Help and version return their text in `value.text`.
+JSON mode prints one response on stdout and never prompts. Success returns `ok: true` with a `value`. Failure returns `ok: false` with an `error` containing `kind` and `message`, plus `location` for validation errors when available. A native project check returns `value.status` (`up_to_date` or `out_of_date`) and a `value.problems` list. Each problem identifies its `kind`, `path`, `message`, and repair command in `nextStep`. Problem paths are relative to the configuration directory. Both generated guidance and the project README must be current for `ok: true`. Only build and sync report `added`, `changed`, and `removed` files. Help and version return their text in `value.text`.
 
-Exit status is 0 for success, 1 for operation failure or stale output, and 2 for invalid usage. In human mode, errors go to stderr. In JSON mode, errors go in the JSON response; stderr is reserved for failures writing that response.
+Exit status is 0 for success, 1 for operation failure or stale output, and 2 for invalid usage. In human mode, operational errors go to stderr; an out-of-date check prints its status, problems, and next steps on stdout. In JSON mode, errors go in the JSON response; stderr is reserved for failures writing that response.
 
 This output contract applies to the native candidate demonstrated in the review labs and runbook. The existing TypeScript entry point retains its current output until the native cutover.
 
