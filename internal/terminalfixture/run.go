@@ -99,11 +99,15 @@ func Run(ctx context.Context, binary, directory string, args []string, steps []S
 func capture(ctx context.Context, master *os.File, command *exec.Cmd, steps []Step, transcript *strings.Builder, sent, offset *int) error {
 	fd := int(master.Fd())
 	buffer := make([]byte, 4096)
+	var pending []byte
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 		ready := []unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN}}
+		if len(pending) > 0 {
+			ready[0].Events |= unix.POLLOUT
+		}
 		n, err := unix.Poll(ready, 100)
 		if err == unix.EINTR {
 			continue
@@ -112,6 +116,18 @@ func capture(ctx context.Context, master *os.File, command *exec.Cmd, steps []St
 			return err
 		}
 		if n == 0 {
+			continue
+		}
+		if ready[0].Revents&unix.POLLOUT != 0 && len(pending) > 0 {
+			written, writeErr := unix.Write(fd, pending[:min(len(pending), 256)])
+			if written > 0 {
+				pending = pending[written:]
+			}
+			if writeErr != nil && writeErr != unix.EAGAIN && writeErr != unix.EINTR {
+				return writeErr
+			}
+		}
+		if ready[0].Revents&(unix.POLLIN|unix.POLLHUP|unix.POLLERR) == 0 {
 			continue
 		}
 		n, err = unix.Read(fd, buffer)
@@ -142,9 +158,9 @@ func capture(ctx context.Context, master *os.File, command *exec.Cmd, steps []St
 		case step.Interrupt:
 			err = command.Process.Signal(os.Interrupt)
 		case step.EOF:
-			_, err = unix.Write(fd, []byte{4})
+			pending = []byte{4}
 		default:
-			_, err = unix.Write(fd, []byte(step.Answer+"\n"))
+			pending = []byte(step.Answer + "\r")
 		}
 		if err != nil {
 			return err

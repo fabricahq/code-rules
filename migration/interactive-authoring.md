@@ -11,8 +11,8 @@ Declining, blank answers, or EOF leave files unchanged and return usage status 2
 Ctrl+C cancels through the existing command context and returns status 1.
 All actual writes revalidate state under the existing authoring writer lock.
 
-The reader uses bounded canonical-terminal reads and short cancellation polling.
-It changes no terminal attributes and creates no blocked background reader.
+The reader uses Go's terminal editor, a 4096-byte input bound, and short cancellation polling.
+It restores terminal attributes on every return and creates no blocked background reader.
 
 The walkthrough runs the compiled CLI in a real pseudo-terminal. Editable answer
 steps wait for a particular prompt; no shell is run. The PTY dependency belongs

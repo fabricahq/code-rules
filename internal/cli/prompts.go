@@ -3,6 +3,8 @@
 package cli
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +13,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/authoring"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/sys/unix"
+	"golang.org/x/term"
 )
 
 // interactive requires terminal input and diagnostics, and honors explicit unattended mode.
@@ -18,56 +21,88 @@ func (f *authoringFlags) interactive() bool {
 	disabled, _ := f.command.Flags().GetBool("non-interactive")
 	in, inputFile := f.command.InOrStdin().(*os.File)
 	out, outputFile := f.command.ErrOrStderr().(*os.File)
-	return !disabled && inputFile && outputFile && terminalFile(in) && terminalFile(out)
+	return !disabled && inputFile && outputFile && term.IsTerminal(int(in.Fd())) && term.IsTerminal(int(out.Fd()))
 }
 
-// ask reads one bounded canonical terminal line, polling so cancellation needs no abandoned reader goroutine.
-func (f *authoringFlags) ask(label string) (string, error) {
+// ask uses Go's terminal editor for pasted text and restores terminal settings on every return path.
+func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if !f.interactive() {
 		return "", fmt.Errorf("%s Missing input; supply explicit flags in non-interactive mode", label)
 	}
-	if _, err := fmt.Fprint(f.command.ErrOrStderr(), label+" "); err != nil {
-		return "", err
-	}
 	input := f.command.InOrStdin().(*os.File)
 	fd := int(input.Fd())
-	var line strings.Builder
-	var one [1]byte
-	for {
-		if err := f.command.Context().Err(); err != nil {
+	state, err := term.MakeRaw(fd)
+	if err != nil {
+		return "", err
+	}
+	defer func() { err = errors.Join(err, term.Restore(fd, state)) }()
+	terminal := term.NewTerminal(&promptStream{ctx: f.command.Context(), fd: fd, output: f.command.ErrOrStderr()}, label+" ")
+	if width, height, sizeErr := term.GetSize(fd); sizeErr == nil && width > 0 && height > 0 {
+		if err := terminal.SetSize(width, height); err != nil {
 			return "", err
 		}
-		ready := []unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN}}
+	}
+	answer, err = terminal.ReadLine()
+	if err != nil {
+		return "", fmt.Errorf("terminal input ended; no files were written: %w", err)
+	}
+	return strings.TrimSpace(answer), nil
+}
+
+// promptStream preserves stderr output while polling input for cancellation without a background reader.
+type promptStream struct {
+	ctx       context.Context
+	fd        int
+	output    io.Writer
+	bytesRead int
+}
+
+// Write forwards editor output to the caller's diagnostic terminal.
+func (p *promptStream) Write(data []byte) (int, error) { return p.output.Write(data) }
+
+// Read supplies one byte at a time so terminal buffering cannot consume the next prompt's answer.
+func (p *promptStream) Read(data []byte) (int, error) {
+	if len(data) == 0 {
+		return 0, nil
+	}
+	for {
+		if err := p.ctx.Err(); err != nil {
+			return 0, err
+		}
+		ready := []unix.PollFd{{Fd: int32(p.fd), Events: unix.POLLIN}}
 		n, err := unix.Poll(ready, 100)
 		if err == unix.EINTR {
 			continue
 		}
 		if err != nil {
-			return "", fmt.Errorf("wait for terminal input: %w", err)
+			return 0, err
 		}
 		if n == 0 {
 			continue
 		}
 		if ready[0].Revents&(unix.POLLERR|unix.POLLNVAL) != 0 {
-			return "", fmt.Errorf("terminal input is unavailable")
+			return 0, fmt.Errorf("terminal input is unavailable")
 		}
-		n, err = unix.Read(fd, one[:])
+		n, err = unix.Read(p.fd, data[:1])
 		if err == unix.EINTR {
 			continue
 		}
 		if err != nil {
-			return "", fmt.Errorf("read terminal input: %w", err)
+			return 0, err
 		}
 		if n == 0 {
-			return "", fmt.Errorf("input ended; no files were written: %w", io.EOF)
+			return 0, io.EOF
 		}
-		if one[0] == '\n' {
-			return strings.TrimSpace(line.String()), nil
+		if data[0] == 3 {
+			return 0, context.Canceled
 		}
-		if line.Len() >= 65536 {
-			return "", fmt.Errorf("terminal answer exceeds 64 KiB")
+		if data[0] != '\n' && data[0] != '\r' {
+			p.bytesRead++
+			if p.bytesRead > 4096 {
+				return 0, fmt.Errorf("terminal answer exceeds 4096 input bytes")
+			}
 		}
-		line.WriteByte(one[0])
+		return n, nil
 	}
 }
 

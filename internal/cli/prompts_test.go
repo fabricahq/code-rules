@@ -25,6 +25,7 @@ func TestInteractiveAuthoring(t *testing.T) {
 		{"group", []terminalfixture.Step{{Prompt: "(--name):", Answer: "  Go  "}, {Prompt: "(--description):", Answer: "Go guidance."}, {Prompt: "(--when-to-read):", Answer: "When editing Go."}}, 0, true, nil},
 		{"EOF", []terminalfixture.Step{{Prompt: "(--name):", EOF: true}}, 2, false, nil},
 		{"interrupt", []terminalfixture.Step{{Prompt: "(--name):", Interrupt: true}}, 1, false, nil},
+		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "(--name):", Answer: "\x03"}}, 1, false, nil},
 		{"blank", []terminalfixture.Step{{Prompt: "(--name):", Answer: "   "}}, 2, false, nil},
 		{"unattended", nil, 2, false, []string{"--non-interactive"}},
 	} {
@@ -87,5 +88,23 @@ func TestInteractiveSourceAndGroupOffer(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(directory, ".code-rules/local/techs/go/errors.md")); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestLongTerminalPaste preserves text beyond the operating system's canonical line buffer.
+func TestLongTerminalPaste(t *testing.T) {
+	binary := buildCLI(t)
+	directory := t.TempDir()
+	if _, stderr, code := runCLI(t, binary, directory, "init"); code != 0 {
+		t.Fatal(stderr)
+	}
+	description := strings.Repeat("x", 2000)
+	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"local", "add", "group", "techs/go", "--name", "Go", "--when-to-read", "When editing Go."}, []terminalfixture.Step{{Prompt: "(--description):", Answer: description}})
+	if err != nil || result.ExitCode != 0 {
+		t.Fatal(err, result)
+	}
+	data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.json"))
+	if err != nil || !strings.Contains(string(data), description) {
+		t.Fatal("long paste was lost", err)
 	}
 }

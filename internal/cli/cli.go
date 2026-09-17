@@ -4,6 +4,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -94,7 +95,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	}
 	if _, err := root.ExecuteContextC(ctx); err != nil {
 		fmt.Fprintln(streams.Err, err)
-		if !started && ctx.Err() == nil {
+		if !started && ctx.Err() == nil && !errors.Is(err, context.Canceled) {
 			fmt.Fprintln(streams.Err, "Run code-rules --help for usage.")
 			return 2
 		}
