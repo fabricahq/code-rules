@@ -904,8 +904,14 @@
             ? "The command sequence stopped with status " +
               observed.exitCode +
               ". Inspect stdout, stderr, and the files below."
-            : result.error.message +
-              " The observation shows files left on disk after the call.";
+            : result.error.message;
+          if (!result.ok) {
+            byID("explanation").append(
+              document.createElement("br"),
+              document.createElement("br"),
+              "The observation shows files left on disk after the call.",
+            );
+          }
         } catch (error) {
           byID("explanation").textContent =
             "The request failed. No Go result was received.";

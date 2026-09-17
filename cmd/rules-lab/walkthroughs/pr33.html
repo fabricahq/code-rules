@@ -824,8 +824,14 @@
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
             ? "Go returned no error. Inspect the actual project files and change report."
-            : result.error.message +
-              " The observation shows files left on disk after the call.";
+            : result.error.message;
+          if (!result.ok) {
+            byID("explanation").append(
+              document.createElement("br"),
+              document.createElement("br"),
+              "The observation shows files left on disk after the call.",
+            );
+          }
         } catch (error) {
           byID("explanation").textContent =
             "The request failed. No Go result was received.";
