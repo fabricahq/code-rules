@@ -118,7 +118,7 @@ type singleString struct {
 	set   bool
 }
 
-// Set accepts a scalar value once, rejecting blank text and option tokens used as missing values.
+// Set accepts a nonblank scalar once; rejectMissingValues checks consumed option tokens before parsing.
 func (v *singleString) Set(value string) error {
 	if v.set {
 		return fmt.Errorf("option may only be specified once")
