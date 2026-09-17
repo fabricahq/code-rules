@@ -4,7 +4,7 @@ PR36 adds native `library init`, `library add group`, `library add rule`, and `l
 
 Initialization creates a manifest and orientation without overwriting valid existing files. Optional SPDX terms require publisher-supplied license text. The license and optional notice retain their exact UTF-8 bytes, including CRLF. No license text is inferred or generated.
 
-Group and rule creation reuse protected authoring publication. New groups include a README for agents alongside _group.json, including groups created with --create-group. Group READMEs are authoring documentation, excluded from rule loading and adoption; existing files are never overwritten. Missing rule bodies use the embedded canonical template plus a draft marker. `library check` rejects that marker until the author completes the draft and removes it.
+Group and rule creation reuse protected authoring publication. New groups include a README for agents alongside _group.json. Rules require an existing group; missing groups return an error instructing the caller to create the group first. Group READMEs are authoring documentation, excluded from rule loading and adoption; existing files are never overwritten. Missing rule bodies use the embedded canonical template plus a draft marker. `library check` rejects that marker until the author completes the draft and removes it.
 
 The read-only check validates the manifest, declared terms, all groups and rules, and every file under techs/, practices/, and assets/. Unreferenced assets still need valid owners and valid local links. Cross-rule links are rejected under the approved migration policy. Binary attachments are preserved. Unrelated repository files such as .git/ and docs/ are outside this scope.
 

@@ -385,8 +385,8 @@
             <p>
               Missing authoring inputs prompt only when stdin and stderr are
               terminals. Explicit flags win; --non-interactive disables prompts.
-              Every answer is collected before taking a writer lock. Accepting
-              missing group creation publishes metadata and its rule together.
+              Every answer is collected before taking a writer lock. Rule creation
+              requires an existing group and errors before prompting when it is missing.
             </p>
             <p>
               This page executes the compiled code-rules binary directly,
@@ -411,7 +411,7 @@
           This demo runs the native binary inside a real pseudo-terminal with
           editable scripted answers. It never runs a shell or fetches sources.
           JSON stays on stdout; the transcript contains stderr and terminal echo.
-          EOF and declining a group are usage failures (2); interruption is an
+          EOF is a usage failure (2); a missing group or interruption is an
           operation failure (1). Packaging follows in the next slice.
         </p>
         <a href="https://github.com/fabricahq/code-rules/pull/37"
@@ -509,8 +509,8 @@
       }
     },
     {
-      "name": "Create missing group",
-      "description": "Agree to create missing metadata with the new rule. Both are published together.",
+      "name": "Missing group",
+      "description": "Attempts to add a rule before its group exists. Expect exit 1 and a command to create the group first. No metadata prompts, group, or rule are created.",
       "input": {
         "files": {},
         "commands": [
@@ -521,74 +521,13 @@
             "local",
             "add",
             "rule",
-            "techs/go/errors",
-            "--title",
-            "Return errors",
-            "--impact",
-            "HIGH",
-            "--impact-description",
-            "Preserve failures.",
-            "--when-to-read",
-            "When calling functions."
+            "techs/go/errors"
           ]
         ],
         "terminal": true,
         "answers": [
           [],
-          [
-            {
-              "prompt": "Create missing group techs/go? [y/N]",
-              "answer": "yes"
-            },
-            {
-              "prompt": "(--group-name):",
-              "answer": "Go"
-            },
-            {
-              "prompt": "(--group-description):",
-              "answer": "Go guidance."
-            },
-            {
-              "prompt": "(--group-when-to-read):",
-              "answer": "When editing Go."
-            }
-          ]
-        ]
-      }
-    },
-    {
-      "name": "Decline group",
-      "description": "Decline missing metadata. No rule or group is created; exit 2 reports cancellation.",
-      "input": {
-        "files": {},
-        "commands": [
-          [
-            "init"
-          ],
-          [
-            "local",
-            "add",
-            "rule",
-            "techs/go/errors",
-            "--title",
-            "Return errors",
-            "--impact",
-            "HIGH",
-            "--impact-description",
-            "Preserve failures.",
-            "--when-to-read",
-            "When calling functions."
-          ]
-        ],
-        "terminal": true,
-        "answers": [
-          [],
-          [
-            {
-              "prompt": "Create missing group techs/go? [y/N]",
-              "answer": "n"
-            }
-          ]
+          []
         ]
       }
     },

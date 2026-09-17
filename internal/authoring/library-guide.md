@@ -37,7 +37,7 @@ Confirm the metadata in `techs/go/_group.json`. Read `techs/go/README.md` before
 
 #### Add a rule
 
-Create a complete Markdown body, then add its discovery metadata. This example refuses to overwrite an existing body file:
+Create the group first with `code-rules library add group`. Rule creation errors if the group is missing. Create a complete Markdown body, then add its discovery metadata. This example refuses to overwrite an existing body file:
 
 ```sh
 set -C

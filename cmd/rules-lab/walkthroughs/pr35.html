@@ -575,13 +575,14 @@
             },
           },
           {
-            name: "Create group with rule",
+            name: "Create group, then rule",
             description:
-              "Creates missing group metadata, its README.md, and the new rule in one operation.",
+              "Creates the group and its README first, then adds the rule in a separate command.",
             input: {
               files: {},
               commands: [
                 ["init"],
+                ["local", "add", "group", "techs/go", "--name", "Go", "--description", "Project Go guidance.", "--when-to-read", "When editing Go."],
                 [
                   "local",
                   "add",
@@ -595,13 +596,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--create-group",
-                  "--group-name",
-                  "Go",
-                  "--group-description",
-                  "Project Go guidance.",
-                  "--group-when-to-read",
-                  "When editing Go.",
                 ],
               ],
             },

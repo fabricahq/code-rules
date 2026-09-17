@@ -37,7 +37,7 @@ Read `local/techs/go/README.md` for group authoring instructions. Confirm that `
 
 #### Add a rule
 
-Choose a rule ID within an existing group. Supply a complete Markdown body and discovery metadata. This example creates a new body file without overwriting an existing one:
+Choose a rule ID within an existing group. If the group is missing, create it first with `code-rules local add group`; rule creation returns an error without creating the group. Supply a complete Markdown body and discovery metadata. This example creates a new body file without overwriting an existing one:
 
 ```sh
 set -C

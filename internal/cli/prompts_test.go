@@ -59,8 +59,8 @@ func TestInteractiveAuthoring(t *testing.T) {
 	}
 }
 
-// TestInteractiveSourceAndGroupOffer checks source choice and missing-group consent before any rule is created.
-func TestInteractiveSourceAndGroupOffer(t *testing.T) {
+// TestInteractiveSource checks repository, revision, and group selection through a real terminal.
+func TestInteractiveSource(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
 	if _, stderr, code := runCLI(t, binary, directory, "init"); code != 0 {
@@ -71,26 +71,7 @@ func TestInteractiveSourceAndGroupOffer(t *testing.T) {
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)
 	}
-	// Use a separate local-only project so missing metadata does not require a remote snapshot.
-	directory = t.TempDir()
-	if _, stderr, code := runCLI(t, binary, directory, "init"); code != 0 {
-		t.Fatal(stderr)
-	}
-	args := []string{"local", "add", "rule", "techs/go/errors", "--title", "Return errors", "--impact", "HIGH", "--impact-description", "Preserve failures.", "--when-to-read", "When calling functions."}
-	result, err = terminalfixture.Run(context.Background(), binary, directory, args, []terminalfixture.Step{{Prompt: "Create missing group techs/go? [y/N]", Answer: "n"}})
-	if err != nil || result.ExitCode != 2 {
-		t.Fatal(err, result)
-	}
-	if _, err := os.Stat(filepath.Join(directory, ".code-rules/local/techs")); !os.IsNotExist(err) {
-		t.Fatal("decline wrote files", err)
-	}
-	result, err = terminalfixture.Run(context.Background(), binary, directory, args, []terminalfixture.Step{{Prompt: "Create missing group techs/go? [y/N]", Answer: "yes"}, {Prompt: "(--group-name):", Answer: "Go"}, {Prompt: "(--group-description):", Answer: "Go guidance."}, {Prompt: "(--group-when-to-read):", Answer: "When editing Go."}})
-	if err != nil || result.ExitCode != 0 {
-		t.Fatal(err, result)
-	}
-	if _, err := os.Stat(filepath.Join(directory, ".code-rules/local/techs/go/errors.md")); err != nil {
-		t.Fatal(err)
-	}
+
 }
 
 // TestLongTerminalPaste preserves text beyond the operating system's canonical line buffer.

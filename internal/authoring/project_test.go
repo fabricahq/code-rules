@@ -137,8 +137,8 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 	}
 }
 
-// TestRuleAndGroupArePublishedTogether rejects collisions before creating either definition.
-func TestRuleAndGroupArePublishedTogether(t *testing.T) {
+// TestRuleRequiresGroup rejects missing metadata without changing an existing document.
+func TestRuleRequiresGroup(t *testing.T) {
 	ctx := context.Background()
 	directory := t.TempDir()
 	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
@@ -148,9 +148,8 @@ func TestRuleAndGroupArePublishedTogether(t *testing.T) {
 	os.MkdirAll(filepath.Join(directory, "local/techs/go"), 0700)
 	target := filepath.Join(directory, "local/techs/go/errors.md")
 	os.WriteFile(target, []byte("authored content"), 0600)
-	metadata := rules.GroupMetadata{Name: "Go", Description: "Go.", WhenToRead: "When editing Go."}
 	body := "Return failures."
-	_, err := AddLocalRule(ctx, "techs/go/errors", RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body, Group: &metadata})
+	_, err := AddLocalRule(ctx, "techs/go/errors", RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body})
 	if err == nil {
 		t.Fatal("accepted collision")
 	}
@@ -299,8 +298,8 @@ func TestCommittedCleanupWarning(t *testing.T) {
 	}
 }
 
-// TestRuleRechecksGroupAfterPrompt prevents stale missing-group consent from overriding newly available imported guidance.
-func TestRuleRechecksGroupAfterPrompt(t *testing.T) {
+// TestRuleUsesImportedGroup accepts imported metadata without creating a local override.
+func TestRuleUsesImportedGroup(t *testing.T) {
 	ctx := context.Background()
 	directory := t.TempDir()
 	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
@@ -335,13 +334,12 @@ func TestRuleRechecksGroupAfterPrompt(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	metadata := rules.GroupMetadata{Name: "Unintended override", Description: "Prompt answer.", WhenToRead: "When editing."}
 	body := "Return errors."
-	result, err := AddLocalRule(ctx, "techs/go/errors", RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body, Group: &metadata})
+	result, err := AddLocalRule(ctx, "techs/go/errors", RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body})
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
 	if _, err := os.Stat(filepath.Join(directory, "local/techs/go/_group.json")); !os.IsNotExist(err) {
-		t.Fatal("stale consent created local override", err)
+		t.Fatal("rule creation created local override", err)
 	}
 }
