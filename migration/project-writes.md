@@ -21,6 +21,9 @@ are never replacement targets.
   deleting anything. Apply also verifies the backup after its rename. Changed current output or backups
   remain available for manual recovery. A malformed journal is not permission to
   delete a tree.
+- Cancellation during replacement runs recovery without the canceled context before
+  returning. If later edits prevent safe rollback, the error requests manual recovery
+  and retains the affected files.
 - After the synced commit marker, cleanup is cleanup-only. Retiring the journal
   before deleting backups prevents a later retry from rolling back committed work.
 - This does not promise simultaneous visibility across two renames or durability
@@ -48,7 +51,8 @@ backup rename, reclaim its dead lock, and restore the original output. A private
 rename boundary makes that test deterministic without a production fault option.
 Synthetic interruption tests cover post-interruption edits, interrupted quarantine
 recovery, and committed cleanup. Deterministic late-edit regressions exercise both
-backup and rollback rename boundaries. The rollback holding directory extends the
+backup and rollback rename boundaries. Additional tests preserve an empty target
+created before installation and verify rollback after cancellation between replacements. The rollback holding directory extends the
 journal with version 2; legacy journals are atomically upgraded before quarantine.
 TypeScript rejects version 2 and preserves the recovery material instead of
 deleting a holding directory it cannot interpret.
