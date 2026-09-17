@@ -70,15 +70,15 @@ func readInventory(ctx context.Context, input FileSource) (Inventory, error) {
 		if depth > 64 {
 			return bad(directory, "directory depth exceeds limit")
 		}
-		if err := r.registerPath(directory); err != nil {
-			return err
-		}
 		entries, err := r.entries(directory, optional)
 		if err != nil {
 			return err
 		}
 		if _, exists := r.directories[directory]; !exists {
 			return nil
+		}
+		if err := r.registerPath(directory); err != nil {
+			return err
 		}
 		inventory.Directories = append(inventory.Directories, directory)
 		if len(r.files)+len(inventory.Directories) > maxFiles {
