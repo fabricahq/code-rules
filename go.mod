@@ -9,6 +9,7 @@ require (
 	github.com/yuin/goldmark/v2 v2.1.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	golang.org/x/net v0.34.0
+	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.21.0
 )
 
