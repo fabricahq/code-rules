@@ -4,6 +4,7 @@ package distribution
 
 import (
 	"context"
+	"debug/buildinfo"
 	"github.com/fabricahq/code-rules/internal/gitfixture"
 	"os"
 	"os/exec"
@@ -15,6 +16,8 @@ import (
 
 // TestNativeInstallUpgradeRollback runs two packaged versions with an empty PATH and keeps both installations usable.
 func TestNativeInstallUpgradeRollback(t *testing.T) {
+	t.Setenv("GOAMD64", "v3")
+	t.Setenv("GOARM64", "v8.2")
 	source, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)
@@ -43,6 +46,15 @@ func TestNativeInstallUpgradeRollback(t *testing.T) {
 			t.Fatal(err)
 		}
 		binary := filepath.Join(installed, "code-rules")
+		info, err := buildinfo.ReadFile(binary)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, setting := range info.Settings {
+			if setting.Key == "GOAMD64" && setting.Value != "v1" || setting.Key == "GOARM64" && setting.Value != "v8.0" {
+				t.Fatalf("ambient target tuning leaked: %+v", setting)
+			}
+		}
 		project := filepath.Join(parent, "project-"+version)
 		if err := os.Mkdir(project, 0700); err != nil {
 			t.Fatal(err)

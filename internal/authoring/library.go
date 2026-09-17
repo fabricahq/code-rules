@@ -294,16 +294,15 @@ func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, optio
 	}
 	return editLibrary(ctx, options.LibraryOptions, group, next, func(root *os.Root) ([]authoredFile, error) {
 		files := []authoredFile{}
-		if groupData != nil {
-			files = append(files, authoredFile{name: group + "/_group.json", data: groupData})
-		} else {
-			exists, err := hasGroupMetadata(ctx, root, group)
-			if err != nil {
-				return nil, err
-			}
-			if !exists {
+		exists, err := hasGroupMetadata(ctx, root, group)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			if groupData == nil {
 				return nil, failure("missing-group", "run library add group "+group+" first or supply --create-group and metadata", nil)
 			}
+			files = append(files, authoredFile{name: group + "/_group.json", data: groupData})
 		}
 		return append(files, authoredFile{name: id + ".md", data: data}), nil
 	})

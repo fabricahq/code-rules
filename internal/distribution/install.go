@@ -45,7 +45,7 @@ func Install(directory, target, destination string) (Manifest, error) {
 	if artifact == nil || !slices.Contains(supported, target) {
 		return Manifest{}, fmt.Errorf("no artifact for %s", target)
 	}
-	if filepath.Base(artifact.File) != artifact.File || artifact.File == "." || artifact.Bytes <= 0 || artifact.Bytes > maxArchiveBytes {
+	if filepath.Base(artifact.File) != artifact.File || artifact.File == "." || artifact.Bytes <= 0 || artifact.Bytes > maxArchiveBytes || artifact.BinaryBytes <= 0 || artifact.BinaryBytes > maxArchiveBytes {
 		return Manifest{}, fmt.Errorf("invalid artifact metadata")
 	}
 	file, err := os.Open(filepath.Join(directory, artifact.File))
@@ -104,6 +104,9 @@ func writeEntry(destination string, entry archiveEntry) error {
 
 // readArchive validates the entire bounded archive before any installation file is written.
 func readArchive(data []byte, binaryBytes int64) ([]archiveEntry, error) {
+	if binaryBytes <= 0 || binaryBytes > maxArchiveBytes {
+		return nil, fmt.Errorf("invalid executable size")
+	}
 	compressed, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
 		return nil, err

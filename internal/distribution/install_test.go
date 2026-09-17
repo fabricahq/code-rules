@@ -10,6 +10,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -25,7 +26,10 @@ func TestArchiveRejectsUnsafeMembers(t *testing.T) {
 			compressed := gzip.NewWriter(&data)
 			archive := tar.NewWriter(compressed)
 			for _, name := range []string{"code-rules", "README.txt"} {
-				if err := archive.WriteHeader(&tar.Header{Name: name, Typeflag: tar.TypeReg}); err != nil {
+				if err := archive.WriteHeader(&tar.Header{Name: name, Typeflag: tar.TypeReg, Size: 1}); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := archive.Write([]byte("x")); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -38,8 +42,8 @@ func TestArchiveRejectsUnsafeMembers(t *testing.T) {
 			if err := compressed.Close(); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := readArchive(data.Bytes(), 0); err == nil {
-				t.Fatal("accepted unsafe archive")
+			if _, err := readArchive(data.Bytes(), 1); err == nil || !strings.Contains(err.Error(), "unexpected archive member") {
+				t.Fatal("unsafe member was not rejected at member validation", err)
 			}
 		})
 	}
@@ -80,5 +84,16 @@ func TestArchiveCancellation(t *testing.T) {
 	err := writeArchive(ctx, cancelWriter{cancel}, []archiveEntry{{"code-rules", bytes.Repeat([]byte("data"), 10000), 0755}})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatal(err)
+	}
+}
+
+// TestRejectEmptyExecutable refuses a correctly encoded archive whose executable is empty.
+func TestRejectEmptyExecutable(t *testing.T) {
+	var data bytes.Buffer
+	if err := writeArchive(context.Background(), &data, []archiveEntry{{"code-rules", nil, 0755}, {"README.txt", []byte("readme"), 0644}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readArchive(data.Bytes(), 0); err == nil {
+		t.Fatal("accepted empty executable")
 	}
 }
