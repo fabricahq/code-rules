@@ -168,7 +168,7 @@ func renderIndexes(resolved Resolved, maxLines, inlineMaxBytes int) (map[string]
 			output[path] = text
 		}
 	}
-	header := indexHeader()
+	header := indexHeader(resolved.Groups)
 	pages, err := IndexPages("RULES.md", header, groupEntries, "These files are generated. Edit source rules or configuration and rebuild to change them.", maxLines)
 	if err != nil {
 		return nil, err
@@ -216,31 +216,45 @@ func groupTitle(group Group) string {
 	return strings.Join(names, " / ")
 }
 
-// Shared instructions keep complete reading and evidence requirements on every entry page.
-const fullReadingInstructions = "Read the full text of every applicable or plausibly applicable rule before relying on it. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
-const validationInstructions = "During validation or diagnosis, independently select relevant rules from the task, code, and surrounding contracts. Cite rule IDs and concrete evidence for findings; selection alone is not evidence of a violation."
-
-// indexHeader preserves the reference CLI's selection procedure for summary-only delivery.
-func indexHeader() string {
-	return strings.Join([]string{
+// indexHeader explains empty selections or guides agents to the resolved groups and rules.
+func indexHeader(groups []Group) string {
+	blocks := []string{
 		"# Code Rules",
 		"This project uses [Fabrica Code Rules](https://github.com/fabricahq/code-rules) to declare its adopted engineering practices.",
-		"Before planning or writing code, use the descriptions under **Technology and practice group indexes** below to choose which indexes to open. Consider the intended behavior as well as the technology; testing guidance can apply even when no test files have changed.",
-		"Each group page includes full rules or summaries with explicit reading links. Exclusions and replacements are already applied.",
-		fullReadingInstructions,
-		validationInstructions,
+	}
+	hasRules := false
+	for _, group := range groups {
+		if len(group.Rules) > 0 {
+			hasRules = true
+			break
+		}
+	}
+	if !hasRules {
+		blocks = append(blocks, "**No active rules are selected for this project.**", "There is no Code Rules guidance to load. Continue using the project’s other instructions.")
+		if len(groups) > 0 {
+			blocks = append(blocks, "## Technology and practice group indexes", "The selected groups below contain no active rules.")
+		}
+		return strings.Join(blocks, "\n\n")
+	}
+	return strings.Join(append(blocks,
+		"## How to use this file",
+		"Before planning, implementing, reviewing, testing, or diagnosing, complete these steps. Exclusions and replacements are already applied to the generated rules.",
+		"1. **Assess every group.** Read every entry under **Technology and practice group indexes**, including entries on every numbered page if the index is paginated. Compare each **When to read this group** cue with your task, the code’s behavior, and surrounding contracts. Use **Description** to understand the group’s subject; use **When to read this group** to decide whether to open it. Consider practices as well as technologies; testing guidance can apply even when no test files have changed. During review or diagnosis, make this selection independently of the implementer’s selection.",
+		"2. **Open every relevant or plausibly relevant group.** Follow its **Open group** link when any of its reading cues matches or could match your task. If applicability is uncertain, open the group and inspect its rules before deciding to skip it.",
+		"3. **Read every rule in each opened group completely.** Follow the group’s **How to use this group** instructions. Read full rules on the page, or follow every **Read full rule** link when the page contains summaries. Follow pagination links until you have read every rule in that group. Retrieve any truncated text before continuing. If a required file cannot be read, report the missing guidance before proceeding with work that depends on it.",
+		"4. **Apply the rules that govern your task.** Determine applicability from each rule’s reading cue, full guidance, and exceptions. Follow every applicable rule regardless of impact. For each reported violation, cite the rule ID and concrete evidence. Determine finding severity from actual consequences; selecting a group or rule does not establish a violation.",
+		"5. **Reassess when context changes.** When the task’s scope changes, repeat group selection and read any newly relevant groups. After compaction, reread this file and the rules needed for the current task before continuing.",
 		"## Technology and practice group indexes",
-		"Open the relevant group indexes below, then select applicable rules and read their full guidance.",
-	}, "\n\n")
+	), "\n\n")
 }
 
-// groupIndexHeader combines resolved selection cues with the reference CLI's numbered reading procedure.
+// groupIndexHeader combines resolved selection cues with the reading procedure for full rules or summaries.
 func groupIndexHeader(id, name, cues string, inline bool) string {
-	mode := "This file contains summaries only. Follow the reading instructions below to load the full rules."
-	read := "2. For every relevant or plausibly relevant rule, open its “Read full rule” link and read the complete file. Complete truncated reads."
+	mode := "This page contains summaries. Before planning, implementing, reviewing, testing, or diagnosing, complete these steps."
+	read := "1. **Read every rule in full.** Open every “Read full rule” link below. Read the entire rule, including its guidance and exceptions. If a read is truncated, retrieve and read the missing text before continuing."
 	if inline {
-		mode = "Full rules are included below. Read each relevant or plausibly relevant rule completely before planning, implementation, validation, or diagnosis. Separate rule files remain available for direct references."
-		read = "2. Read every relevant or plausibly relevant rule below completely, including its guidance and exceptions. Complete truncated reads."
+		mode = "Before planning, implementing, reviewing, testing, or diagnosing, complete these steps."
+		read = "1. **Read every rule below in full.** Read the entire rule, including its guidance and exceptions. If a read is truncated, retrieve and read the missing text before continuing."
 	}
 	return strings.Join([]string{
 		"# " + name,
@@ -248,12 +262,11 @@ func groupIndexHeader(id, name, cues string, inline bool) string {
 		cues,
 		"## How to use this group",
 		mode,
-		"1. Compare each “When to read” cue with your intended task or the behavior you are reviewing.",
 		read,
-		"3. Apply the full rule’s guidance and exceptions. When present, use Implementation guidance when planning or changing code, and Validation guidance when reviewing, testing, or diagnosing behavior. Use both when your task includes both activities. These sections support the rule’s guidance; they do not replace it. Selection alone is insufficient evidence for a review finding.",
-		"Use “When to read” to select rules. Read and follow every applicable rule, regardless of impact. Impact describes the consequence the rule addresses; it does not determine applicability, override exceptions, or set a review finding’s severity. Assess findings from concrete evidence and consequences.",
-		fullReadingInstructions,
-		validationInstructions,
+		"2. **Determine which rules apply.** Compare each rule’s “When to read” cue, guidance, and exceptions with your task, the code’s behavior, and surrounding contracts. If a rule plausibly applies, inspect the relevant code and context before deciding to skip it.",
+		"3. **Follow every applicable rule.** Apply its guidance and respect its exceptions, regardless of impact. When present, use Implementation guidance for planning or code changes and Validation guidance for reviews, tests, or diagnosis. Use both when the task includes both activities.",
+		"4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.",
+		"5. **Recheck after changes.** When the task’s scope changes, reassess which rules apply. After compaction, reread the rules needed for the current task before continuing.",
 		"## Rules",
 	}, "\n\n")
 }
