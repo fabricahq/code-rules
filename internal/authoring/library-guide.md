@@ -1,6 +1,6 @@
 # Rule library
 
-This folder contains a Fabrica Code Rules library: a collection of engineering rules that projects can adopt from a Git repository.
+This folder contains a [Fabrica Code Rules](https://code-rules.fabricahq.com) library: a collection of engineering rules that projects can adopt from a Git repository.
 Use this README to author and maintain the library.
 
 ## Core concepts

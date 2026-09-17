@@ -1,6 +1,6 @@
 # Code Rules
 
-This README explains how to manage this project's Fabrica Code Rules configuration and the engineering rules that guide agent work.
+This README explains how to manage this project's [Fabrica Code Rules](https://code-rules.fabricahq.com) configuration and the engineering rules that guide agent work.
 
 ## Core concepts
 
