@@ -73,12 +73,12 @@ func gitExecutable(name string, environment []string) (string, error) {
 	}
 	for _, directory := range filepath.SplitList(search) {
 		candidate := filepath.Join(directory, name)
+		if !filepath.IsAbs(candidate) {
+			continue
+		}
 		info, err := os.Stat(candidate)
 		if err != nil || info.IsDir() || info.Mode()&0111 == 0 {
 			continue
-		}
-		if !filepath.IsAbs(candidate) {
-			break
 		}
 		return candidate, nil
 	}
