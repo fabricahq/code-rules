@@ -347,7 +347,7 @@
             aria-live="polite"
           ></p>
           <details>
-            <summary>Commands in this scenario</summary>
+            <summary>Commands and terminal answers</summary>
             <pre id="command-preview"></pre>
           </details>
           <label for="input">Project fixture</label
@@ -366,7 +366,7 @@
           <p id="explanation">
             Invoke Go to inspect its returned data or error.
           </p>
-          <label for="vendor-file">Command transcript or library file</label
+          <label for="vendor-file">Terminal transcript or created file</label
           ><select id="vendor-file"></select>
           <pre id="vendor-content">Invoke Go to inspect a file.</pre>
           <details>
@@ -407,7 +407,7 @@
           EOF and declining a group are usage failures (2); interruption is an
           operation failure (1). Packaging follows in the next slice.
         </p>
-        <a href="https://github.com/fabricahq/code-rules/pull/36"
+        <a href="https://github.com/fabricahq/code-rules/pull/37"
           >Review the PR on GitHub</a
         >
       </section>
@@ -779,7 +779,7 @@
               (args) =>
                 "$ code-rules " + args.map((a) => JSON.stringify(a)).join(" "),
             )
-            .join("\n\n");
+            .join("\n\n") + "\n\nANSWERS\n" + JSON.stringify(JSON.parse(byID("input").value).answers, null, 2);
         } catch {
           byID("command-preview").textContent =
             "Edit valid request JSON to preview commands.";
