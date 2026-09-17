@@ -2,6 +2,12 @@
 
 This README explains how to manage this project's Fabrica Code Rules configuration and the engineering rules that guide agent work.
 
+## Core concepts
+
+- **Rule:** One engineering practice expressed in a Markdown file. It tells agents what to do, when it applies, and which exceptions to respect.
+- **Group:** Related rules for a technology, such as `techs/go`, or a practice, such as `practices/testing`. Its description and reading cue help agents select relevant rules.
+- **Library:** A versioned collection of groups in a Git repository. Projects import selected groups from libraries and can also define their own local groups and rules.
+
 ## Instructions for agents
 
 ### Managing rules
