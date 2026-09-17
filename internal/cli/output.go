@@ -102,7 +102,7 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 	switch result := value.(type) {
 	case projectCheckResult:
 		if result.Status == "up_to_date" {
-			out.WriteString("Status: up to date.\nGenerated guidance and the project README are current.\nNo files were changed.\n")
+			out.WriteString("Status: up to date.\nGenerated guidance and the project guide are current.\nNo files were changed.\n")
 		} else {
 			out.WriteString("Status: out of date.\nNo files were changed.\nPaths are relative to the configuration directory.\n\nProblems:\n")
 			for _, problem := range result.Problems {

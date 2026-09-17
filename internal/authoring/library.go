@@ -223,7 +223,7 @@ func AddLibraryGroup(ctx context.Context, id string, metadata rules.GroupMetadat
 		return Result{}, err
 	}
 	return editLibrary(ctx, options, id, "Add a library rule, then run library check.", func(_ *os.Root) ([]authoredFile, error) {
-		return groupFiles(id, id, data, true), nil
+		return groupFiles(id, id, data, true, ""), nil
 	})
 }
 

@@ -8,7 +8,7 @@ import (
 )
 
 // groupFiles publishes metadata and its guide together; existing files remain protected by the authoring writer.
-func groupFiles(directory, id string, metadata []byte, library bool) []authoredFile {
+func groupFiles(directory, id string, metadata []byte, library bool, projectGuideName string) []authoredFile {
 	guide := fmt.Sprintf("# Group `%s`\n\n", id) + `This folder contains the source rules for one technology or engineering practice.
 Read [_group.json](_group.json) first: its name and description define the group's scope, and whenToRead tells agents when to consider its rules.
 Keep that metadata current when the group's scope changes.
@@ -24,7 +24,7 @@ Keep that metadata current when the group's scope changes.
 	if library {
 		guide += fmt.Sprintf("## Add or edit rules\n\nRun commands from the library root, two directories above this folder.\nUse `code-rules library add rule %s/<rule-name>` to add a rule; run `code-rules library add rule --help` for metadata and body options.\nEdit existing rule files directly, then run `code-rules library check`. Resolve errors before committing or publishing the library.\n\nA consuming project selects this group in its configuration and runs sync. Its generated/RULES.md identifies the adopted rules after exclusions and replacements.\n", id)
 	} else {
-		guide += fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../README.md) for complete commands and the correct configuration path.\nUse `code-rules local add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun build and check with that configuration after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", id)
+		guide += fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for complete commands and the correct configuration path.\nUse `code-rules local add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun build and check with that configuration after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
 	}
 	guide += "\nThis README explains authoring; it is not an engineering rule and is not included in generated guidance. Keep group descriptions in _group.json.\n"
 	return []authoredFile{

@@ -17,7 +17,9 @@ code-rules local add rule practices/testing/retry-budget
 ```
 
 `init` creates `.code-rules/config.json` with no imported sources and `.code-rules/local/README.md`.
-No imported library or existing Git repository is required. Repeating `init` preserves existing valid configuration, README text, and rules.
+No imported library or existing Git repository is required. The TypeScript package preserves existing valid configuration, README text, and rules when you repeat `init`.
+
+**Native Go candidate:** `init` also creates a tool-owned agent guide at `.code-rules/README.md`. For a custom configuration outside a directory named `.code-rules`, the guide is `CODE_RULES.md` beside that configuration. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
 
 On a terminal, group creation asks for a name, description, and when-to-read cue. Rule creation asks for its title, when-to-read cue, impact, and consequence.
 If the group is missing, rule creation stops before prompting and tells you to create the group first.

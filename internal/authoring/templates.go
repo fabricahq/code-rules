@@ -41,10 +41,16 @@ Local and library definitions can contribute to the same group, such as techs/go
 
 ## Manage local guidance
 
-Follow [the project guide](../README.md) to add groups and rules. Keep rules within their group's scope and follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md).
+Follow [the project guide](../{{PROJECT_GUIDE}}) to add groups and rules. Keep rules within their group's scope and follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md).
 
 Complete drafts before building. Run build after local edits, or sync after changing a library source. Read the resulting [resolved rules](../generated/RULES.md) when working on the project.
 `
+
+// renderLocalReadme links newly initialized local guidance to the configuration's managed guide.
+func renderLocalReadme(configPath string) []byte {
+	name, _ := ProjectGuide(configPath)
+	return []byte(strings.ReplaceAll(localReadme, "{{PROJECT_GUIDE}}", name))
+}
 
 // jsonText serializes authored JSON as readable UTF-8 with one final newline.
 func jsonText(value any) ([]byte, error) {

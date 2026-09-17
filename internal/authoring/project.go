@@ -135,7 +135,7 @@ func InitializeProject(ctx context.Context, options Options) (Result, error) {
 			files = append(files, authoredFile{name: name, data: data})
 		}
 		if readme == nil {
-			files = append(files, authoredFile{name: "local/README.md", data: []byte(localReadme)})
+			files = append(files, authoredFile{name: "local/README.md", data: renderLocalReadme(filepath.Join(root.Name(), name))})
 		}
 		if guide != nil {
 			files = append(files, *guide)
@@ -193,8 +193,9 @@ func AddLocalGroup(ctx context.Context, id string, metadata rules.GroupMetadata,
 	if err != nil {
 		return Result{}, err
 	}
-	return editProject(ctx, options, "Add a rule to this group, then run build.", func(_ *os.Root, _ string, _ []byte, _ rules.Configuration) ([]authoredFile, error) {
-		return groupFiles(path.Join("local", id), id, data, false), nil
+	return editProject(ctx, options, "Add a rule to this group, then run build.", func(root *os.Root, name string, _ []byte, _ rules.Configuration) ([]authoredFile, error) {
+		guideName, _ := ProjectGuide(filepath.Join(root.Name(), name))
+		return groupFiles(path.Join("local", id), id, data, false, guideName), nil
 	})
 }
 

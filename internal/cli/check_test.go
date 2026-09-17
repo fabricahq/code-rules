@@ -22,7 +22,7 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 			t.Fatal(code, out, diagnostic)
 		}
 	}
-	for _, name := range []string{"README.md", "generated/groups/README.md"} {
+	for _, name := range []string{"CODE_RULES.md", "generated/groups/README.md"} {
 		if err := os.Remove(filepath.Join(directory, name)); err != nil {
 			t.Fatal(err)
 		}
@@ -58,7 +58,7 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 		"missing_file":    "generated/groups/README.md",
 		"stale_contents":  "generated/RULES.md",
 		"unexpected_file": "generated/unexpected.md",
-		"outdated_readme": "README.md",
+		"outdated_readme": "CODE_RULES.md",
 	}
 	if !reflect.DeepEqual(kinds, want) {
 		t.Fatal(kinds, want)

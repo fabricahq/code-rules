@@ -56,7 +56,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.RunE = func(cmd *cobra.Command, _ []string) error { return cmd.Help() }
 	for _, name := range []string{"sync", "build", "check"} {
 		config := &singleString{}
-		descriptions := map[string]string{"sync": "Fetch libraries and rebuild vendor and generated files", "build": "Rebuild generated guidance from verified local snapshots", "check": "Check generated guidance and the project README without changing files or using Git"}
+		descriptions := map[string]string{"sync": "Fetch libraries and rebuild vendor and generated files", "build": "Rebuild generated guidance from verified local snapshots", "check": "Check generated guidance and the project guide without changing files or using Git"}
 		cmd := &cobra.Command{Use: name, Short: descriptions[name], Args: cobra.NoArgs}
 		cmd.Flags().Var(config, "config", "Configuration file (default .code-rules/config.json)")
 		cmd.RunE = func(cmd *cobra.Command, _ []string) error {

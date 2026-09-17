@@ -2,7 +2,7 @@
 
 PR35 adds `internal/authoring` and native CLI commands for project-owned source files:
 
-- `init`: create missing configuration, the project agent guide in `README.md`, and local orientation. Preserve valid configuration and local definitions. Refresh older generated guides only when their ownership digest confirms no manual edits.
+- `init`: create missing configuration, the project agent guide, and local orientation. Preserve valid configuration and local definitions. Refresh older generated guides only when their ownership digest confirms no manual edits.
 - `check`: read without writing and verify generated output and fail when the project guide differs from the template embedded in this CLI. Use it in consuming-project CI after pinning the tool version.
 - `add source ALIAS`: validate and record a source without fetching it.
 - `local add group ID`: create group metadata with trimmed, singular reading guidance and a README for agents.
@@ -26,8 +26,10 @@ If publication completes but stage or writer-lock cleanup fails, the result stil
 
 ## Agent guide freshness
 
-`internal/authoring/project-guide.md` owns the generated project guide. The native binary embeds it; examples run from the directory containing the README with an explicit configuration path. `TestProjectGuideExamples` executes every shell example against the real CLI and an isolated Git library, including a configuration filename with spaces and quotes. These tests run in the existing Go CI job. Keep this guide in the same PR as command changes; executable examples detect incompatible command changes, while review checks completeness and explanation.
+The managed guide is `README.md` when the configuration directory is named `.code-rules`; otherwise it is `CODE_RULES.md` beside the configuration. Custom configurations therefore preserve the consuming project's own `README.md`. Local orientation and group guides link to the selected guide.
 
-Re-run `init` after upgrading to refresh the guide. The first-line digest distinguishes an unmodified old template from manual edits. It is an ownership marker, not an authenticity guarantee. Unknown or edited READMEs are preserved and block init with recovery instructions.
+`internal/authoring/project-guide.md` owns the generated project guide. The native binary embeds it; examples run from the directory containing the guide with an explicit configuration path. `TestProjectGuideExamples` executes every shell example against the real CLI and an isolated Git library, including configuration filenames with spaces, quotes, and template-like text. These tests run in the existing Go CI job. Keep this guide in the same PR as command changes; executable examples detect incompatible command changes, while review checks completeness and explanation.
+
+Re-run `init` after upgrading to refresh the guide. The first-line digest distinguishes an unmodified old template from manual edits. It is an ownership marker, not an authenticity guarantee. Unknown or edited managed guides are preserved and block init with recovery instructions.
 
 New local groups include README.md with agent instructions. The README points to _group.json for the current description and reading cue. It is excluded from rule loading; existing metadata or README files cause creation to fail without overwriting either file.

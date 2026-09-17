@@ -30,16 +30,10 @@ type checkProblem struct {
 
 // checkProject checks generated files and the managed README, keeping unreadable or invalid inputs as operational errors.
 func checkProject(ctx context.Context, options project.Options, configArgument string) (projectCheckResult, error) {
-	changes, err := project.Check(ctx, options)
+	guideName, guideBytes := authoring.ProjectGuide(options.ConfigPath)
+	changes, guideChanges, err := project.CheckWithFiles(ctx, options, map[string][]byte{guideName: guideBytes})
 	if err != nil {
 		return projectCheckResult{}, err
-	}
-	_, guideErr := authoring.CheckProjectGuide(ctx, authoring.Options{ConfigPath: options.ConfigPath})
-	if guideErr != nil {
-		var failure *project.Error
-		if !errors.As(guideErr, &failure) || failure.Code != "guide-outdated" {
-			return projectCheckResult{}, guideErr
-		}
 	}
 	result := projectCheckResult{Status: "up_to_date", Problems: []checkProblem{}}
 	for _, group := range []struct {
@@ -54,8 +48,8 @@ func checkProject(ctx context.Context, options project.Options, configArgument s
 			result.Problems = append(result.Problems, checkProblem{Kind: group.kind, Path: filepath.ToSlash(filepath.Join("generated", filepath.FromSlash(path))), Message: group.message, NextStep: checkRepairCommand("build", configArgument)})
 		}
 	}
-	if guideErr != nil {
-		result.Problems = append(result.Problems, checkProblem{Kind: "outdated_readme", Path: "README.md", Message: "Project README is missing or outdated; preserve any manual edits before refreshing", NextStep: checkRepairCommand("init", configArgument)})
+	if len(guideChanges.Added)+len(guideChanges.Changed) > 0 {
+		result.Problems = append(result.Problems, checkProblem{Kind: "outdated_readme", Path: guideName, Message: "Project guide is missing or outdated; preserve any manual edits before refreshing", NextStep: checkRepairCommand("init", configArgument)})
 	}
 	if len(result.Problems) > 0 {
 		result.Status = "out_of_date"

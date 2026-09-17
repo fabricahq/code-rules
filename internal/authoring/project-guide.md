@@ -1,6 +1,6 @@
 # Code Rules
 
-This README explains how to manage this project's [Fabrica Code Rules](https://code-rules.fabricahq.com) configuration and the engineering rules that guide agent work.
+This guide explains how to manage this project's [Fabrica Code Rules](https://code-rules.fabricahq.com) configuration and the engineering rules that guide agent work.
 
 ## Core concepts
 
@@ -12,13 +12,13 @@ This README explains how to manage this project's [Fabrica Code Rules](https://c
 
 ### Managing rules
 
-Use this README to **manage rules**. Use `generated/RULES.md` to **read and apply adopted rules** when working on the project.
+Use this guide to **manage rules**. Use `generated/RULES.md` to **read and apply adopted rules** when working on the project.
 
 1. Identify the requested change: add local guidance, adopt a library, change an existing definition, or verify generated output.
-2. Run the corresponding commands below. Run them **from the folder containing this README**. Every project command explicitly selects this folder's configuration.
+2. Run the corresponding commands below. Run them **from the folder containing this guide**. Every project command explicitly selects this folder's configuration.
 3. Supply the project's intended metadata and guidance. The examples below illustrate command syntax; replace their values before using them in a real project.
 4. Build after local edits. Sync after changing a library's repository, ref, version constraint, or group selection. Inspect the resulting diff and resolve errors before reporting completion.
-5. Run check. Exit 0 confirms that generated files match their inputs and this README matches the installed CLI; it does not verify application code against the rules.
+5. Run check. Exit 0 confirms that generated files match their inputs and this guide matches the installed CLI; it does not verify application code against the rules.
 
 Human-readable output is the default. Add `--json` to any command for a structured response. JSON mode never prompts: supply all required flags. Inspect `ok`, `value`, and `error` and the process exit status. Exit 1 means operation failure or stale output; exit 2 means invalid usage. Use `--help` on a command for all options.
 
@@ -86,13 +86,13 @@ Use exactly one of `--ref` or `--version`. For a version constraint, replace `--
 
 #### Keep this guide current
 
-Code Rules owns this README. After upgrading the CLI, refresh it from this folder:
+Code Rules owns this guide. After upgrading the CLI, refresh it from this folder:
 
 ```sh
 code-rules init --config {{CONFIG_ARG}}
 code-rules check --config {{CONFIG_ARG}}
 ```
 
-`init` creates missing scaffolding and refreshes an unmodified generated README. It preserves valid configuration and local definitions. If this README has manual edits or an unrecognized format, init stops and asks you to move those notes to a separate file before regenerating it.
+`init` creates missing scaffolding and refreshes an unmodified generated guide. It preserves valid configuration and local definitions. If this guide has manual edits or an unrecognized format, init stops and asks you to move those notes to a separate file before regenerating it.
 
-Include `code-rules check --config {{CONFIG_ARG}}` in CI after installing the pinned CLI version. It verifies generated guidance and this README without writing files. It fails if generated output is stale or this README is missing or differs from the guide shipped with that version. Run `code-rules build` with the same configuration to refresh generated output, or `code-rules init` to refresh this guide. Code Rules' own tests execute the command examples above against the real CLI on every release change.
+Include `code-rules check --config {{CONFIG_ARG}}` in CI after installing the pinned CLI version. It verifies generated guidance and this guide without writing files. It fails if generated output is stale or this guide is missing or differs from the guide shipped with that version. Run `code-rules build` with the same configuration to refresh generated output, or `code-rules init` to refresh this guide. Code Rules' own tests execute the command examples above against the real CLI on every release change.

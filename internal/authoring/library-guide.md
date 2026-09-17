@@ -9,7 +9,7 @@ Use this README to author and maintain the library.
 - **Group:** Related rules for a technology (`techs/go`) or practice (`practices/testing`). Each group has a description and a reading cue.
 - **Library:** The groups and rules published together in this repository. Consuming projects choose a revision and groups to import.
 
-Library groups supply shared guidance. A consuming project's local groups belong to that project and can supplement or explicitly override imported guidance.
+Library groups supply shared guidance. A consuming project's local groups belong to that project. When group IDs match, local group descriptions and reading cues take precedence. Local rules supplement imported rules; replacing or excluding an imported rule requires an explicit source-specific configuration entry.
 
 ## Instructions for agents
 

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/authoring"
 	"github.com/fabricahq/code-rules/internal/gitfixture"
 )
 
@@ -75,14 +76,18 @@ func TestProjectGuideExamples(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	for _, configName := range []string{"config.json", "project 'custom'.json"} {
+	for _, configName := range []string{"config.json", "project 'custom'.json", "{{CONFIG_NAME}}-{{CONFIG_ARG}}.json"} {
 		t.Run(configName, func(t *testing.T) {
 			directory := t.TempDir()
+			readme := "# My project\nKeep this authored README unchanged.\n"
+			if err := os.WriteFile(filepath.Join(directory, "README.md"), []byte(readme), 0600); err != nil {
+				t.Fatal(err)
+			}
 			out, diagnostic, code := runCLI(t, binary, directory, "init", "--config", configName)
 			if code != 0 {
 				t.Fatal(out, diagnostic)
 			}
-			guide, err := os.ReadFile(filepath.Join(directory, "README.md"))
+			guide, err := os.ReadFile(filepath.Join(directory, "CODE_RULES.md"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -98,6 +103,16 @@ func TestProjectGuideExamples(t *testing.T) {
 				command.Env = fixture.Environment
 				if output, err := command.CombinedOutput(); err != nil {
 					t.Fatalf("README example %d failed: %v\n%s", index+1, err, output)
+				}
+			}
+			authored, err := os.ReadFile(filepath.Join(directory, "README.md"))
+			if err != nil || string(authored) != readme {
+				t.Fatal("changed authored README", err)
+			}
+			for _, file := range []string{"local/README.md", "local/techs/go/README.md"} {
+				content, err := os.ReadFile(filepath.Join(directory, file))
+				if err != nil || !strings.Contains(string(content), "/CODE_RULES.md)") {
+					t.Fatalf("%s does not link to the managed guide: %v", file, err)
 				}
 			}
 			for _, path := range []string{"local/techs/go/return-errors.md", "vendor/team/techs/go/shared.md", "generated/RULES.md", "generated/groups/techs/go.md"} {
@@ -127,7 +142,8 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 						}
 					}
 					root := filepath.Join(directory, filepath.Dir(config))
-					guidePath := filepath.Join(root, "README.md")
+					guideName, _ := authoring.ProjectGuide(filepath.Join(directory, config))
+					guidePath := filepath.Join(root, guideName)
 					if guideState == "missing" {
 						if err := os.Remove(guidePath); err != nil {
 							t.Fatal(err)
@@ -179,10 +195,10 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 							if !strings.Contains(out, "Status:") {
 								t.Fatal(out, diagnostic)
 							}
-							if wantCode == 0 && !strings.Contains(out, "the project README are current") {
+							if wantCode == 0 && !strings.Contains(out, "the project guide are current") {
 								t.Fatal(out)
 							}
-							if guideState != "current" && !strings.Contains(out, "README.md") {
+							if guideState != "current" && !strings.Contains(out, guideName) {
 								t.Fatal(out, diagnostic)
 							}
 						}
