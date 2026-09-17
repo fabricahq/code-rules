@@ -372,6 +372,7 @@
           <p id="explanation">
             Invoke Go to inspect its returned data or error.
           </p>
+          <p>Commands run from the project root. They use <code>.code-rules/config.json</code> by default; <code>init</code> creates it, and other project commands fail if it is missing.</p>
           <label for="vendor-file">Command transcript or project file</label
           ><select id="vendor-file"></select>
           <pre id="vendor-content">Invoke Go to inspect a file.</pre>
@@ -437,12 +438,13 @@
           {
             name: "Initialize",
             description:
-              "Creates README.md with agent workflows, config.json, and local/README.md. Select README.md to inspect the management guide.",
+              "Creates .code-rules/README.md with agent workflows, .code-rules/config.json, and .code-rules/local/README.md. Select .code-rules/README.md to inspect the management guide.",
             input: {
               files: {},
-              commands: [["init", "--config", "config.json"]],
+              commands: [["init"]],
             },
           },
+          {name: "Missing configuration", description: "Runs check in an empty project. Expect a missing .code-rules/config.json error and no files created. Run code-rules init first.", input: {files: {}, commands: [["check"]]}},
           {
             name: "Verify guide",
             description:
@@ -450,9 +452,9 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
-                ["build", "--config", "config.json"],
-                ["check", "--config", "config.json", "--json"],
+                ["init"],
+                ["build"],
+                ["check", "--json"],
               ],
             },
           },
@@ -463,19 +465,19 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
-                ["init", "--config", "config.json"],
+                ["init"],
+                ["init"],
               ],
             },
           },
           {
             name: "Local group",
             description:
-              "Creates local Go group metadata and README.md with agent instructions. Select local/techs/go/README.md in the result to read it.",
+              "Creates local Go group metadata and README.md with agent instructions. Select .code-rules/local/techs/go/README.md in the result to read it.",
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -487,8 +489,6 @@
                   "Project Go guidance.",
                   "--when-to-read",
                   "When editing Go.",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -503,7 +503,7 @@
                   "# Return errors\n\nReturn failures to the caller.\n",
               },
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -515,8 +515,6 @@
                   "Project Go guidance.",
                   "--when-to-read",
                   "When editing Go.",
-                  "--config",
-                  "config.json",
                 ],
                 [
                   "local",
@@ -531,13 +529,11 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                   "--body-file",
                   "body.md",
                 ],
-                ["build", "--config", "config.json"],
-                ["check", "--config", "config.json"],
+                ["build"],
+                ["check"],
               ],
             },
           },
@@ -548,7 +544,7 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -560,8 +556,6 @@
                   "Project Go guidance.",
                   "--when-to-read",
                   "When editing Go.",
-                  "--config",
-                  "config.json",
                 ],
                 [
                   "local",
@@ -576,8 +570,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -589,7 +581,7 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -603,8 +595,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                   "--create-group",
                   "--group-name",
                   "Go",
@@ -623,7 +613,7 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "add",
                   "source",
@@ -634,8 +624,6 @@
                   ">= 1.2.3, < 2.0.0",
                   "--groups",
                   "techs/go",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -647,7 +635,7 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -659,8 +647,6 @@
                   "Project Go guidance.",
                   "--when-to-read",
                   "When editing Go.",
-                  "--config",
-                  "config.json",
                 ],
                 [
                   "local",
@@ -675,8 +661,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                 ],
                 [
                   "local",
@@ -691,8 +675,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -704,7 +686,7 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -718,8 +700,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -731,14 +711,12 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
                   "group",
                   "techs/go",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -749,9 +727,9 @@
               "Existing malformed config is reported and left unchanged by init.",
             input: {
               files: {
-                "config.json": "{ invalid",
+                ".code-rules/config.json": "{ invalid",
               },
-              commands: [["init", "--config", "config.json"]],
+              commands: [["init"]],
             },
           },
         ],

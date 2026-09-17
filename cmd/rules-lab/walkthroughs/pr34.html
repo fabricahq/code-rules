@@ -344,7 +344,7 @@
           <div class="label">Invoke the new capability</div>
           <h2>Make the input your own</h2>
           <div class="signature">
-            code-rules sync | build | check [--config config.json]
+            code-rules sync | build | check
           </div>
           <div class="presets" id="presets"></div>
           <p
@@ -368,6 +368,7 @@
           <p id="explanation">
             Invoke Go to inspect its returned data or error.
           </p>
+          <p>Commands run from the project root. They use <code>.code-rules/config.json</code> by default; <code>init</code> creates it, and other project commands fail if it is missing.</p>
           <label for="vendor-file">Command result or project file</label
           ><select id="vendor-file"></select>
           <pre id="vendor-content">Invoke Go to inspect a file.</pre>
@@ -394,7 +395,7 @@
             </p>
             <p>
               CLI arguments in this demo are confined to these commands and
-              config.json. Source addresses must match prepared local Git
+              .code-rules/config.json. Source addresses must match prepared local Git
               fixtures. The production CLI accepts ordinary configured
               repositories.
             </p>
@@ -460,7 +461,7 @@
               },
               localFiles: {},
               scenario: "sync",
-              arguments: ["sync", "--config", "config.json"],
+              arguments: ["sync"],
             },
           },
           {
@@ -472,7 +473,7 @@
               libraries: {},
               localFiles: {},
               scenario: "sync",
-              arguments: ["build", "--config", "config.json", "--json"],
+              arguments: ["build", "--json"],
             },
           },
           {
@@ -518,7 +519,7 @@
               localFiles: {},
               scenario: "sync",
               seedSync: true,
-              arguments: ["check", "--config", "config.json"],
+              arguments: ["check"],
             },
           },
           {
@@ -553,9 +554,9 @@
               scenario: "sync",
               seedSync: true,
               changes: {
-                "generated/RULES.md": "Stale output",
+                ".code-rules/generated/RULES.md": "Stale output",
               },
-              arguments: ["check", "--config", "config.json"],
+              arguments: ["check"],
             },
           },
           {
@@ -590,9 +591,9 @@
               scenario: "sync",
               seedSync: true,
               changes: {
-                "generated/RULES.md": "Stale output",
+                ".code-rules/generated/RULES.md": "Stale output",
               },
-              arguments: ["build", "--config", "config.json"],
+              arguments: ["build"],
             },
           },
           {
@@ -627,9 +628,9 @@
               scenario: "sync",
               seedSync: true,
               changes: {
-                "local/techs/go/bad.md": "No frontmatter",
+                ".code-rules/local/techs/go/bad.md": "No frontmatter",
               },
-              arguments: ["build", "--config", "config.json"],
+              arguments: ["build"],
             },
           },
           {
@@ -662,7 +663,7 @@
               },
               localFiles: {},
               scenario: "sync",
-              arguments: ["build", "--force", "--config", "config.json"],
+              arguments: ["build", "--force"],
             },
           },
           {
@@ -695,13 +696,7 @@
               },
               localFiles: {},
               scenario: "sync",
-              arguments: [
-                "build",
-                "--config",
-                "config.json",
-                "--config",
-                "config.json",
-              ],
+              arguments: ["build", "--config", ".code-rules/config.json", "--config", ".code-rules/config.json"],
             },
           },
           {
@@ -733,7 +728,7 @@
               },
               localFiles: {},
               scenario: "sync",
-              arguments: ["sync", "--help", "--config", "config.json"],
+              arguments: ["sync", "--help"],
             },
           },
           {

@@ -116,7 +116,6 @@ func validateAuthoringArguments(args []string) error {
 	if !allowed {
 		return invalid("this walkthrough supports init, add source, local add group/rule, build, and check")
 	}
-	config := false
 	for i := 0; i < len(args); i++ {
 		flag, value, hasValue := strings.Cut(args[i], "=")
 		if flag != "--config" && flag != "--body-file" {
@@ -130,16 +129,12 @@ func validateAuthoringArguments(args []string) error {
 			value = args[i]
 		}
 		if flag == "--config" {
-			if value != "config.json" {
-				return invalid("config must be config.json")
+			if value != ".code-rules/config.json" {
+				return invalid("config must be .code-rules/config.json")
 			}
-			config = true
 		} else if err := projectFixturePath(value); err != nil {
 			return invalid("body-file must be a contained fixture path")
 		}
-	}
-	if !config {
-		return invalid("commands must explicitly use --config config.json")
 	}
 	return nil
 }
