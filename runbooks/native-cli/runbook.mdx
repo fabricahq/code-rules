@@ -9,14 +9,16 @@ Use **Generated Files** to inspect snapshots after Initialize and each file-chan
 CLI results use readable text by default. Add `--json` for a structured response, including errors. Step 6 demonstrates both formats.
 The **Observe the expected check failure** block deliberately turns red. It demonstrates an error you should see, not a broken runbook.
 
-## 1. Prepare a disposable workspace
+## 1. Build the CLI and prepare a disposable workspace
 
-**PR34.** Creates a fresh workspace and prints CLI help. Re-running this step starts a new demo; previous files remain available at the printed path.
+**PR34.** Builds this checkout into a temporary directory and prints the binary’s absolute path. Copy the terminal setup from the output to experiment yourself. It creates a separate `playground/` directory and includes examples of missing-project and invalid-option errors.
+
+The binary remains available after closing the runbook. Re-run **Prepare** to rebuild changed Go code and start a fresh workspace. Earlier binaries and workspaces remain at their printed paths.
 
 <Command
   id="prepare"
   path="scripts/prepare.sh"
-  title="Prepare a disposable workspace"
+  title="Build the CLI and prepare a disposable workspace"
   usePty={false}
   failMessage="Read the diagnostic above. Complete preceding steps or start a fresh workspace."
 />

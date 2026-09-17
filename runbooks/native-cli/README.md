@@ -10,9 +10,11 @@ Install Go and [Gruntwork Runbooks](https://runbooks.gruntwork.io/intro/installa
 bash runbooks/native-cli/open.sh
 ```
 
-The launcher builds this checkout's native CLI into a temporary directory and opens Runbooks at <http://localhost:4392/>. Tested with Runbooks `beta-v0.9.0`.
+The launcher opens Runbooks at <http://localhost:4392/>. Tested with Runbooks `beta-v0.9.0`.
 
-Choose **Prepare** first, then run blocks in order. The scripts create a fresh temporary project and library; they print that path for inspection. They do not install globally or fetch repositories. Each launch builds a fresh binary; restart the launcher after changing Go code.
+Choose **Prepare** first. It builds this checkout into a fresh temporary directory and prints the binary’s absolute path. Copy the printed terminal setup to try commands in a separate `playground/` directory. The output includes missing-project and invalid-option failures with their expected exit codes.
+
+Then run the guided blocks in order. They use separate temporary project and library directories. The scripts do not install globally or fetch repositories. Re-run **Prepare** after changing Go code to build a fresh binary.
 
 The stale-output check intentionally fails. Continue to **Repair**. Initialize and each file-changing step capture files in Runbooks' file viewer, including hidden `.code-rules` files. Each script prints its working directory and labels displayed file contents. CLI output is human-readable by default; the Check step also demonstrates `--json`. Those copies are snapshots from the last successful block, not live filesystem views.
 
@@ -20,11 +22,10 @@ Re-running Prepare starts a fresh workspace. Earlier temporary workspaces remain
 
 ## Test
 
-Build a binary, then run Gruntwork's block-level test runner:
+Pass the source checkout to Gruntwork's block-level test runner. Prepare builds the binary:
 
 ```sh
-go build -o /tmp/code-rules-runbook-cli ./cmd/code-rules
-CODE_RULES_DEMO_BINARY=/tmp/code-rules-runbook-cli \
+CODE_RULES_DEMO_SOURCE_DIR="$PWD" \
   runbooks test runbooks/native-cli --no-telemetry -v
 ```
 
