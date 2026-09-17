@@ -224,3 +224,22 @@ func TestFetchDoesNotFallBackToParentPath(t *testing.T) {
 	_, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: []string{"PATH=/missing-custom-path"}})
 	requireCode(t, err, "git-unavailable")
 }
+
+// TestFetchSkipsRelativePathEntries finds trusted Git after an excluded current-directory executable.
+func TestFetchSkipsRelativePathEntries(t *testing.T) {
+	f := fixtureRepository(t)
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "git"), []byte("#!/bin/sh\nexit 42\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(bin)
+	env := append(append([]string{}, f.Environment...), "PATH=.:"+filepath.Dir(f.GitPath)+":/usr/bin:/bin")
+	revision, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: env})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer revision.Close()
+	if revision.Commit != f.FirstCommit {
+		t.Fatal("wrong fetched revision")
+	}
+}
