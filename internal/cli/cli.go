@@ -87,6 +87,10 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 		root.AddCommand(cmd)
 	}
 	addProjectAuthoringCommands(root, options, &started)
+	if err := rejectMissingValues(root, args); err != nil {
+		fmt.Fprintln(streams.Err, err)
+		return 2
+	}
 	if _, err := root.ExecuteContextC(ctx); err != nil {
 		fmt.Fprintln(streams.Err, err)
 		if !started {
@@ -120,7 +124,7 @@ func (v *singleString) Set(value string) error {
 	if v.set {
 		return fmt.Errorf("option may only be specified once")
 	}
-	if strings.TrimSpace(value) == "" || strings.HasPrefix(value, "-") {
+	if strings.TrimSpace(value) == "" {
 		return fmt.Errorf("expected a nonempty value, not another option")
 	}
 	v.value = value
@@ -139,3 +143,29 @@ type emptyInput struct{}
 
 // Read reports EOF without waiting for terminal input.
 func (emptyInput) Read([]byte) (int, error) { return 0, io.EOF }
+
+// rejectMissingValues distinguishes a consumed option token from an explicit equals-form value.
+func rejectMissingValues(root *cobra.Command, args []string) error {
+	command, _, err := root.Find(args)
+	if err != nil {
+		return nil
+	} // Cobra reports unknown command paths itself.
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			break
+		}
+		if !strings.HasPrefix(arg, "--") || strings.Contains(arg, "=") {
+			continue
+		}
+		flag := command.Flags().Lookup(strings.TrimPrefix(arg, "--"))
+		if flag == nil || flag.NoOptDefVal != "" {
+			continue
+		}
+		if i+1 < len(args) && strings.HasPrefix(args[i+1], "-") {
+			return fmt.Errorf("%s requires a value; use %s=value for a value beginning with '-'", arg, arg)
+		}
+		i++
+	}
+	return nil
+}
