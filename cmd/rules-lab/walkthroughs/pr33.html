@@ -523,7 +523,7 @@
           {
             name: "Retire source",
             description:
-              "Seeds a sync, then removes all sources from config.json. Sync removes the old vendored source and refreshes generated guidance.",
+              "Seeds a sync, then removes all sources from config.json. Sync removes the old vendored source. RULES.md explicitly says no active rules are selected and there is no Code Rules guidance to load.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -559,7 +559,7 @@
           {
             name: "Invalid local rule",
             description:
-              "Seeds a valid sync, then adds a malformed local rule. Validation fails before installation; existing vendor and generated files stay unchanged.",
+              "After a valid sync, adds local/techs/go/bad.md without required YAML frontmatter. The changed file is selected below. Validation fails; existing vendor and generated files stay unchanged.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -709,11 +709,13 @@
         ],
       };
       let vendorFiles = {};
-      // Display original persisted text or a labeled base64 representation of binary bytes.
+      // Display file contents with readable configuration JSON and labeled binary bytes.
       function showVendorFile() {
         const value = vendorFiles[byID("vendor-file").value];
-        byID("vendor-content").textContent =
-          typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        byID("vendor-content").textContent = formatFixtureFile(
+          byID("vendor-file").value,
+          value,
+        );
       }
       byID("vendor-file").addEventListener("change", showVendorFile);
       // Clear prior output when the editable input changes.
@@ -822,8 +824,14 @@
           byID("status").className = "badge " + (result.ok ? "good" : "bad");
           byID("explanation").textContent = result.ok
             ? "Go returned no error. Inspect the actual project files and change report."
-            : result.error.message +
-              " The observation shows files left on disk after the call.";
+            : result.error.message;
+          if (!result.ok) {
+            byID("explanation").append(
+              document.createElement("br"),
+              document.createElement("br"),
+              "The observation shows files left on disk after the call.",
+            );
+          }
         } catch (error) {
           byID("explanation").textContent =
             "The request failed. No Go result was received.";
