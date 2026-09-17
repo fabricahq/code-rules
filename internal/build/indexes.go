@@ -252,10 +252,10 @@ func indexHeader(groups []Group) string {
 
 // groupIndexHeader combines resolved selection cues with the reading procedure for full rules or summaries.
 func groupIndexHeader(id, name, cues string, inline bool) string {
-	mode := "This file contains summaries only. Follow the reading instructions below to load the full rules."
+	mode := "Open every “Read full rule” link below and read each rule in full before planning, implementation, validation, or diagnosis. This file contains summaries only."
 	read := "2. **Read the rule completely.** Open its “Read full rule” link and read the guidance and exceptions before relying on it. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
 	if inline {
-		mode = "Full rules are included below. Separate rule files remain available for direct references."
+		mode = "Read each rule below in full before planning, implementation, validation, or diagnosis. Use the steps below to assess and apply the rules. Separate rule files remain available for direct references."
 		read = "2. **Read the rule completely.** Read the guidance and exceptions before relying on a rule. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
 	}
 	return strings.Join([]string{
