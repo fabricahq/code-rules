@@ -1,0 +1,30 @@
+name: Native artifact candidates
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  install:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install, upgrade, and roll back native binaries
+        run: go test -race ./internal/distribution
+      - name: Build all candidate targets
+        if: runner.os == 'Linux'
+        run: go run ./cmd/package-native --candidate --output native-artifacts
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: unpublished-native-candidates
+          path: native-artifacts/
+          retention-days: 7
