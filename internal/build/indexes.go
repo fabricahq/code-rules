@@ -216,7 +216,7 @@ func groupTitle(group Group) string {
 	return strings.Join(names, " / ")
 }
 
-// Shared instructions keep complete reading and evidence requirements on every entry page.
+// Root-index instructions require complete reading and evidence when selecting groups.
 const fullReadingInstructions = "Read the full text of every applicable or plausibly applicable rule before relying on it. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
 const validationInstructions = "During validation or diagnosis, independently select relevant rules from the task, code, and surrounding contracts. Cite rule IDs and concrete evidence for findings; selection alone is not evidence of a violation."
 
@@ -234,13 +234,13 @@ func indexHeader() string {
 	}, "\n\n")
 }
 
-// groupIndexHeader combines resolved selection cues with the reference CLI's numbered reading procedure.
+// groupIndexHeader combines resolved selection cues with the reading procedure for full rules or summaries.
 func groupIndexHeader(id, name, cues string, inline bool) string {
 	mode := "This file contains summaries only. Follow the reading instructions below to load the full rules."
-	read := "2. For every relevant or plausibly relevant rule, open its “Read full rule” link and read the complete file. Complete truncated reads."
+	read := "2. **Read the rule completely.** Open its “Read full rule” link and read the guidance and exceptions before relying on it. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
 	if inline {
-		mode = "Full rules are included below. Read each relevant or plausibly relevant rule completely before planning, implementation, validation, or diagnosis. Separate rule files remain available for direct references."
-		read = "2. Read every relevant or plausibly relevant rule below completely, including its guidance and exceptions. Complete truncated reads."
+		mode = "Full rules are included below. Separate rule files remain available for direct references."
+		read = "2. **Read the rule completely.** Read the guidance and exceptions before relying on a rule. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
 	}
 	return strings.Join([]string{
 		"# " + name,
@@ -248,12 +248,11 @@ func groupIndexHeader(id, name, cues string, inline bool) string {
 		cues,
 		"## How to use this group",
 		mode,
-		"1. Compare each “When to read” cue with your intended task or the behavior you are reviewing.",
+		"1. **Select relevant rules.** Before planning, implementation, validation, or diagnosis, compare each “When to read” cue with your task, the code’s behavior, and surrounding contracts. Include plausibly relevant rules.",
 		read,
-		"3. Apply the full rule’s guidance and exceptions. When present, use Implementation guidance when planning or changing code, and Validation guidance when reviewing, testing, or diagnosing behavior. Use both when your task includes both activities. These sections support the rule’s guidance; they do not replace it. Selection alone is insufficient evidence for a review finding.",
-		"Use “When to read” to select rules. Read and follow every applicable rule, regardless of impact. Impact describes the consequence the rule addresses; it does not determine applicability, override exceptions, or set a review finding’s severity. Assess findings from concrete evidence and consequences.",
-		fullReadingInstructions,
-		validationInstructions,
+		"3. **Apply the appropriate guidance.** Use Implementation guidance when planning or changing code, and Validation guidance when reviewing, testing, or diagnosing behavior. Use both when needed; these sections supplement the rule’s main guidance.",
+		"4. **Ground findings in evidence.** During validation or diagnosis, independently select applicable rules and cite their IDs with concrete evidence. Selecting a rule does not establish a violation.",
+		"**Impact describes consequences, not applicability or finding severity.** Follow every applicable rule regardless of impact, respect its exceptions, and assess findings using the actual evidence and consequences.",
 		"## Rules",
 	}, "\n\n")
 }

@@ -153,11 +153,11 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 				if !strings.Contains(page, description+"\n\n**When to read this group:**") || (unwantedDescription != "" && strings.Contains(page, unwantedDescription)) {
 					t.Fatalf("%s lost resolved description or included overridden description", file)
 				}
-				instructions := []string{"These files are generated. Edit source rules or configuration and rebuild to change them.", "Read the full text of every applicable or plausibly applicable rule", "Cite rule IDs and concrete evidence for findings"}
+				instructions := []string{"These files are generated. Edit source rules or configuration and rebuild to change them."}
 				if strings.HasPrefix(file, "groups/") {
-					instructions = append(instructions, "## How to use this group", "1. Compare each “When to read” cue", "2. For every relevant or plausibly relevant rule", "3. Apply the full rule’s guidance and exceptions", "Use “When to read” to select rules.", "## Rules")
+					instructions = append(instructions, "## How to use this group", "1. **Select relevant rules.**", "2. **Read the rule completely.** Open its “Read full rule” link", "3. **Apply the appropriate guidance.**", "4. **Ground findings in evidence.**", "**Impact describes consequences, not applicability or finding severity.**", "## Rules")
 				} else {
-					instructions = append(instructions, "Before planning or writing code", "testing guidance can apply even when no test files have changed", "Exclusions and replacements are already applied.", "## Technology and practice group indexes")
+					instructions = append(instructions, "Read the full text of every applicable or plausibly applicable rule", "Cite rule IDs and concrete evidence for findings", "Before planning or writing code", "testing guidance can apply even when no test files have changed", "Exclusions and replacements are already applied.", "## Technology and practice group indexes")
 				}
 				for _, instruction := range instructions {
 					if !strings.Contains(page, instruction) {
