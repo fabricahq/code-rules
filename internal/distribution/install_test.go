@@ -82,3 +82,14 @@ func TestArchiveCancellation(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestRejectEmptyExecutable refuses a correctly encoded archive whose executable is empty.
+func TestRejectEmptyExecutable(t *testing.T) {
+	var data bytes.Buffer
+	if err := writeArchive(context.Background(), &data, []archiveEntry{{"code-rules", nil, 0755}, {"README.txt", []byte("readme"), 0644}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readArchive(data.Bytes(), 0); err == nil {
+		t.Fatal("accepted empty executable")
+	}
+}

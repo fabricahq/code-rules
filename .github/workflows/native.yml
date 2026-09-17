@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: false
       - name: Install, upgrade, and roll back native binaries
         run: go test -race ./internal/distribution
       - name: Build all candidate targets

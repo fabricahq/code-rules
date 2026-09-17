@@ -177,7 +177,7 @@ func buildTarget(ctx context.Context, source, directory, version, target string,
 	platform := strings.Split(target, "/")
 	command := exec.CommandContext(ctx, "go", "build", "-trimpath", "-buildvcs=false", "-ldflags", "-s -w -X main.version="+version, "-o", binary, "./cmd/code-rules")
 	command.Dir = source
-	command.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS="+platform[0], "GOARCH="+platform[1], "GOWORK=off", "GOFLAGS=")
+	command.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS="+platform[0], "GOARCH="+platform[1], "GOWORK=off", "GOFLAGS=", "GOENV=off", "GOAMD64=v1", "GOARM64=v8.0", "GOEXPERIMENT=")
 	if text, err := command.CombinedOutput(); err != nil {
 		return Artifact{}, fmt.Errorf("build %s: %w: %s", target, err, text)
 	}
@@ -194,7 +194,7 @@ func buildTarget(ctx context.Context, source, directory, version, target string,
 	if len(license) > 0 {
 		entries = append(entries, archiveEntry{"LICENSE.md", license, 0644})
 	}
-	file, err := os.OpenFile(filepath.Join(directory, name), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(filepath.Join(temporary, name), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
 	if err != nil {
 		return Artifact{}, err
 	}
@@ -207,6 +207,9 @@ func buildTarget(ctx context.Context, source, directory, version, target string,
 	}
 	if closeErr != nil {
 		return Artifact{}, closeErr
+	}
+	if err = os.Rename(filepath.Join(temporary, name), filepath.Join(directory, name)); err != nil {
+		return Artifact{}, err
 	}
 	return Artifact{Target: target, File: name, SHA256: hex.EncodeToString(digest.Sum(nil)), Bytes: counter.n, BinaryBytes: int64(len(data))}, nil
 }
