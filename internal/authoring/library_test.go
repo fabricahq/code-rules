@@ -216,3 +216,26 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 		t.Fatal("empty group without metadata accepted")
 	}
 }
+
+// TestLibraryCheckBoundsUnusedAssets rejects oversized unreferenced content without modifying it.
+func TestLibraryCheckBoundsUnusedAssets(t *testing.T) {
+	options := LibraryOptions{Directory: t.TempDir()}
+	if _, err := InitializeLibrary(context.Background(), options, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(options.Directory, "assets"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	name := filepath.Join(options.Directory, "assets/archive.bin")
+	data := make([]byte, 9*1024*1024)
+	if err := os.WriteFile(name, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CheckLibrary(context.Background(), options); err == nil || !strings.Contains(err.Error(), "limits") {
+		t.Fatal("oversized unused asset accepted", err)
+	}
+	after, err := os.ReadFile(name)
+	if err != nil || !bytes.Equal(data, after) {
+		t.Fatal("check changed asset", err)
+	}
+}
