@@ -270,6 +270,9 @@ func committedSource(ctx context.Context, source, revision string) (_ string, er
 		if nextErr != nil {
 			return "", nextErr
 		}
+		if header.Typeflag == tar.TypeXGlobalHeader {
+			continue // Git archive stores the commit ID in global PAX metadata.
+		}
 		name := strings.TrimSuffix(header.Name, "/")
 		if !fs.ValidPath(name) || name == "." || strings.ContainsAny(name, "\\\x00") {
 			return "", fmt.Errorf("unsafe committed source path")

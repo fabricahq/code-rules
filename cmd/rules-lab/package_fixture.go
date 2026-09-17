@@ -30,6 +30,15 @@ type packageObservation struct {
 
 // packageResponse verifies the trusted sibling artifact collection and runs the extracted host binary with an empty PATH.
 func packageResponse(input json.RawMessage) (response, error) {
+	executable, err := os.Executable()
+	if err != nil {
+		return response{}, err
+	}
+	return packageFromArtifacts(input, filepath.Join(filepath.Dir(executable), "native-artifacts"))
+}
+
+// packageFromArtifacts preserves collection-level completion checks before copying a host archive into the disposable lab.
+func packageFromArtifacts(input json.RawMessage, artifacts string) (response, error) {
 	var fixture packageFixture
 	decoder := json.NewDecoder(bytes.NewReader(input))
 	decoder.DisallowUnknownFields()
@@ -39,11 +48,9 @@ func packageResponse(input json.RawMessage) (response, error) {
 	if fixture.Scenario != "install" && fixture.Scenario != "corrupt" && fixture.Scenario != "existing" && fixture.Scenario != "incomplete" {
 		return adapterError("use install, corrupt, existing, or incomplete"), nil
 	}
-	executable, err := os.Executable()
-	if err != nil {
-		return response{}, err
+	if _, err := os.Lstat(filepath.Join(artifacts, "INCOMPLETE")); !os.IsNotExist(err) {
+		return response{Error: &failure{Name: "ArtifactError", Message: "artifact build is incomplete or unreadable"}}, nil
 	}
-	artifacts := filepath.Join(filepath.Dir(executable), "native-artifacts")
 	data, err := os.ReadFile(filepath.Join(artifacts, "manifest.json"))
 	if err != nil {
 		return adapterError("build native candidate artifacts into native-artifacts beside rules-lab before this walkthrough"), nil
