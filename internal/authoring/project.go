@@ -226,6 +226,7 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 }
 
 // HasLocalRuleGroup checks current metadata before prompting; writes must still recheck under the writer lock.
+// This advisory read does not require an idle writer; publication owns recovery and revalidation.
 func HasLocalRuleGroup(ctx context.Context, id string, options Options) (bool, error) {
 	if err := rules.ValidateGroupID(id, "group"); err != nil {
 		return false, err
@@ -235,9 +236,6 @@ func HasLocalRuleGroup(ctx context.Context, id string, options Options) (bool, e
 		return false, err
 	}
 	defer root.Close()
-	if err = project.RequireIdle(root); err != nil {
-		return false, err
-	}
 	_, config, err := configuration(ctx, root, name)
 	if err != nil {
 		return false, err

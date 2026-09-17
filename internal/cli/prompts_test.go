@@ -4,7 +4,9 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -106,5 +108,58 @@ func TestLongTerminalPaste(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.json"))
 	if err != nil || !strings.Contains(string(data), description) {
 		t.Fatal("long paste was lost", err)
+	}
+}
+
+// TestInteractiveRuleRecoversDeadWriter checks advisory group lookup does not block authoritative writer recovery.
+func TestInteractiveRuleRecoversDeadWriter(t *testing.T) {
+	binary := buildCLI(t)
+	for _, kind := range []string{"local", "library"} {
+		t.Run(kind, func(t *testing.T) {
+			directory := t.TempDir()
+			initArgs := []string{"init"}
+			root := filepath.Join(directory, ".code-rules")
+			if kind == "library" {
+				initArgs = []string{"library", "init"}
+				root = directory
+			}
+			if _, stderr, code := runCLI(t, binary, directory, initArgs...); code != 0 {
+				t.Fatal(stderr)
+			}
+			if _, stderr, code := runCLI(t, binary, directory, kind, "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When editing Go."); code != 0 {
+				t.Fatal(stderr)
+			}
+			process := exec.Command("/usr/bin/true")
+			if err := process.Run(); err != nil {
+				t.Fatal(err)
+			}
+			host, err := os.Hostname()
+			if err != nil {
+				t.Fatal(err)
+			}
+			lock := filepath.Join(root, ".code-rules-lock")
+			if err := os.Mkdir(lock, 0700); err != nil {
+				t.Fatal(err)
+			}
+			owner, _ := json.Marshal(map[string]any{"host": host, "pid": process.Process.Pid, "token": "finished-test-process"})
+			if err := os.WriteFile(filepath.Join(lock, "owner.json"), owner, 0600); err != nil {
+				t.Fatal(err)
+			}
+			args := []string{kind, "add", "rule", "techs/go/errors", "--title", "Return errors", "--impact", "HIGH", "--impact-description", "Preserve failures.", "--when-to-read", "When calling functions."}
+			result, err := terminalfixture.Run(context.Background(), binary, directory, args, nil)
+			if err != nil || result.ExitCode != 0 {
+				t.Fatal(err, result)
+			}
+			if _, err := os.Stat(lock); !os.IsNotExist(err) {
+				t.Fatal("lock not recovered", err)
+			}
+			ruleRoot := root
+			if kind == "local" {
+				ruleRoot = filepath.Join(root, "local")
+			}
+			if _, err := os.Stat(filepath.Join(ruleRoot, "techs/go/errors.md")); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
