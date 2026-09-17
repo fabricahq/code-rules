@@ -210,17 +210,7 @@ func parseSourceRecord(data []byte, source rules.Source) (sourceRecord, error) {
 
 // matchSnapshotSource rejects stale selectors and inconsistent resolved revisions without fetching Git.
 func matchSnapshotSource(want, got rules.Source, record sourceRecord, where string) error {
-	wantJSON, _ := json.Marshal(want.Repository)
-	gotJSON, _ := json.Marshal(got.Repository)
-	wantRepo, err := rules.ParseRepository(wantJSON, where)
-	if err != nil {
-		return err
-	}
-	gotRepo, err := rules.ParseRepository(gotJSON, where)
-	if err != nil {
-		return err
-	}
-	if wantRepo.Identity != gotRepo.Identity || want.Ref != got.Ref || want.Version != got.Version || want.Groups.Pattern != got.Groups.Pattern || !slices.Equal(want.Groups.Groups, got.Groups.Groups) {
+	if want.Repository != got.Repository || want.Ref != got.Ref || want.Version != got.Version || want.Groups.Pattern != got.Groups.Pattern || !slices.Equal(want.Groups.Groups, got.Groups.Groups) {
 		return invalidSnapshot(where, "source identity or group selection changed; run sync")
 	}
 	commit, err := rules.ParseGitRef(record.Commit, where+".resolvedCommit")
