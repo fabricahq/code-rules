@@ -252,11 +252,11 @@ func indexHeader(groups []Group) string {
 
 // groupIndexHeader combines resolved selection cues with the reading procedure for full rules or summaries.
 func groupIndexHeader(id, name, cues string, inline bool) string {
-	mode := "Open every “Read full rule” link below and read each rule in full before planning, implementation, validation, or diagnosis. This file contains summaries only."
-	read := "2. **Read the rule completely.** Open its “Read full rule” link and read the guidance and exceptions before relying on it. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
+	mode := "This page contains summaries. Before planning, implementing, reviewing, testing, or diagnosing, complete these steps."
+	read := "1. **Read every rule in full.** Open every “Read full rule” link below. Read the entire rule, including its guidance and exceptions. If a read is truncated, retrieve and read the missing text before continuing."
 	if inline {
-		mode = "Read each rule below in full before planning, implementation, validation, or diagnosis. Use the steps below to assess and apply the rules. Separate rule files remain available for direct references."
-		read = "2. **Read the rule completely.** Read the guidance and exceptions before relying on a rule. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction."
+		mode = "Before planning, implementing, reviewing, testing, or diagnosing, complete these steps."
+		read = "1. **Read every rule below in full.** Read the entire rule, including its guidance and exceptions. If a read is truncated, retrieve and read the missing text before continuing."
 	}
 	return strings.Join([]string{
 		"# " + name,
@@ -264,11 +264,11 @@ func groupIndexHeader(id, name, cues string, inline bool) string {
 		cues,
 		"## How to use this group",
 		mode,
-		"1. **Select relevant rules.** Before planning, implementation, validation, or diagnosis, compare each “When to read” cue with your task, the code’s behavior, and surrounding contracts. Include plausibly relevant rules.",
 		read,
-		"3. **Apply the appropriate guidance.** Use Implementation guidance when planning or changing code, and Validation guidance when reviewing, testing, or diagnosing behavior. Use both when needed; these sections supplement the rule’s main guidance.",
-		"4. **Ground findings in evidence.** During validation or diagnosis, independently select applicable rules and cite their IDs with concrete evidence. Selecting a rule does not establish a violation.",
-		"**Impact describes consequences, not applicability or finding severity.** Follow every applicable rule regardless of impact, respect its exceptions, and assess findings using the actual evidence and consequences.",
+		"2. **Determine which rules apply.** Compare each rule’s “When to read” cue, guidance, and exceptions with your task, the code’s behavior, and surrounding contracts. If a rule plausibly applies, inspect the relevant code and context before deciding to skip it.",
+		"3. **Follow every applicable rule.** Apply its guidance and respect its exceptions, regardless of impact. When present, use Implementation guidance for planning or code changes and Validation guidance for reviews, tests, or diagnosis. Use both when the task includes both activities.",
+		"4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.",
+		"5. **Recheck after changes.** When the task’s scope changes, reassess which rules apply. After compaction, reread the rules needed for the current task before continuing.",
 		"## Rules",
 	}, "\n\n")
 }

@@ -161,7 +161,7 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 				}
 				instructions := []string{"These files are generated. Edit source rules or configuration and rebuild to change them."}
 				if strings.HasPrefix(file, "groups/") {
-					instructions = append(instructions, "## How to use this group", "1. **Select relevant rules.**", "2. **Read the rule completely.** Open its “Read full rule” link", "3. **Apply the appropriate guidance.**", "4. **Ground findings in evidence.**", "**Impact describes consequences, not applicability or finding severity.**", "## Rules")
+					instructions = append(instructions, "## How to use this group", "1. **Read every rule in full.** Open every “Read full rule” link", "2. **Determine which rules apply.**", "3. **Follow every applicable rule.**", "4. **Support each reported violation with evidence.**", "5. **Recheck after changes.**", "do not copy the rule’s impact level", "## Rules")
 				} else {
 					instructions = append(instructions, "Read the full text of every applicable or plausibly applicable rule", "Cite rule IDs and concrete evidence for findings", "Before planning or writing code", "testing guidance can apply even when no test files have changed", "Exclusions and replacements are already applied.", "## Technology and practice group indexes")
 				}
@@ -170,7 +170,7 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 						t.Fatalf("%s omitted %q", file, instruction)
 					}
 				}
-				if !strings.Contains(page, "reload needed rules after compaction") || strings.Count(page, "\n") > build.DefaultIndexMaxLines {
+				if !strings.Contains(strings.ToLower(page), "after compaction") || strings.Count(page, "\n") > build.DefaultIndexMaxLines {
 					t.Fatalf("%s lost reading instructions or exceeded its budget", file)
 				}
 			}
