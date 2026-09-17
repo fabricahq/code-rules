@@ -681,9 +681,13 @@
           if (Object.keys(vendorFiles).length) {
             byID("vendor-file").value = "Verified revision";
             showVendorFile();
-          } else
+          } else {
+            const option = document.createElement("option");
+            option.textContent = "No revision returned";
+            byID("vendor-file").append(option);
             byID("vendor-content").textContent =
               result.error?.message || "No revision returned.";
+          }
           byID("status").textContent = result.ok
             ? "Returned value"
             : result.error.name;
