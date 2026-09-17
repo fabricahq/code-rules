@@ -324,112 +324,47 @@
     <main>
       <header>
         <strong>CODE RULES / GO MIGRATION</strong
-        ><span>Five PRs · One review collection</span>
+        ><span>Project operations review</span>
       </header>
       <h1>Your migration review collection.</h1>
       <p class="lede">
-        Review these capabilities in order. Each walkthrough invokes native Go
-        and contains only what its PR adds.
+        Each walkthrough invokes native Go and covers only what its PR adds.
       </p>
-      <div
-        class="review"
-        style="
-          grid-template-columns: repeat(
-            auto-fit,
-            minmax(min(100%, 300px), 1fr)
-          );
-          margin-top: 40px;
-        "
-      >
-        <div>
-          <div class="label">PR #22</div>
-          <h2>Library assets</h2>
-          <p>Retain owned assets and follow shared Markdown dependencies.</p>
-          <p><a href="/walkthrough/pr22">Open interactive walkthrough</a></p>
-          <p>
-            <a href="https://github.com/fabricahq/code-rules/pull/22"
-              >Review code on GitHub</a
-            >
-          </p>
-        </div>
-        <div>
-          <div class="label">PR #23</div>
-          <h2>Effective rules</h2>
-          <p>Apply exclusions, replacements, and local additions.</p>
-          <p><a href="/walkthrough/pr23">Open interactive walkthrough</a></p>
-          <p>
-            <a href="https://github.com/fabricahq/code-rules/pull/23"
-              >Review code on GitHub</a
-            >
-          </p>
-        </div>
-        <div>
-          <div class="label">PR #24</div>
-          <h2>Standalone rendering</h2>
-          <p>Inspect generated rule guidance and relocated links.</p>
-          <p><a href="/walkthrough/pr24">Open interactive walkthrough</a></p>
-          <p>
-            <a href="https://github.com/fabricahq/code-rules/pull/24"
-              >Review code on GitHub</a
-            >
-          </p>
-        </div>
-        <div>
-          <div class="label">PR #25</div>
-          <h2>Discovery indexes</h2>
-          <p>Browse complete summaries and bounded index pages.</p>
-          <p><a href="/walkthrough/pr25">Open interactive walkthrough</a></p>
-          <p>
-            <a href="https://github.com/fabricahq/code-rules/pull/25"
-              >Review code on GitHub</a
-            >
-          </p>
-        </div>
-        <div>
-          <div class="label">PR #26</div>
-          <h2>Licensed output</h2>
-          <p>Inspect exact terms and machine-readable provenance.</p>
-          <p><a href="/walkthrough/pr26">Open interactive walkthrough</a></p>
-          <p>
-            <a href="https://github.com/fabricahq/code-rules/pull/26"
-              >Review code on GitHub</a
-            >
-          </p>
-        </div>
-        <div>
-          <div class="label">PR #27</div>
-          <h2>Full-rule group delivery</h2>
-          <p>
-            Read short groups in full, with summary fallback for larger groups.
-          </p>
-          <p><a href="/walkthrough/pr27">Open interactive walkthrough</a></p>
-          <p>
-            <a href="https://github.com/fabricahq/code-rules/pull/27"
-              >Review code on GitHub</a
-            >
-          </p>
-        </div>
-      </div>
       <section class="section">
-        <h2>Review this stack in order</h2>
+        <div class="label">PR #28</div>
+        <h2>Persisted source snapshots</h2>
         <p>
-          PRs 22-26 have merged into go-migration. PR27 is open for your review.
-          Each page focuses on its own slice and invokes the native Go
-          implementation.
+          Inspect saved library bytes and detect changed, missing, or unexpected
+          files before an offline build.
         </p>
         <p>
-          The adapter writes library inputs only into disposable fixtures.
-          Generated output remains in memory. These slices do not replace the
-          production CLI or write generated files into your project.
+          <a href="/walkthrough/pr28">Open interactive walkthrough</a> ·
+          <a href="https://github.com/fabricahq/code-rules/pull/28"
+            >Review code on GitHub</a
+          >
+        </p>
+      </section>
+      <section class="section">
+        <h2>About this batch</h2>
+        <p>
+          Next: safe project writes, offline build and check, Git revisions, and
+          complete library imports. The TypeScript CLI remains the production
+          entry point.
         </p>
         <details>
-          <summary>Earlier walkthroughs</summary>
+          <summary>Earlier walkthroughs (merged)</summary>
           <p>
             <a href="/walkthrough/pr17">PR17</a> ·
             <a href="/walkthrough/pr18">PR18</a> ·
             <a href="/walkthrough/pr19">PR19</a> ·
             <a href="/walkthrough/pr20">PR20</a> ·
-            <a href="/walkthrough/pr21">PR21</a>
+            <a href="/walkthrough/pr21">PR21</a> ·
+            <a href="/walkthrough/pr22">PR22</a> ·
+            <a href="/walkthrough/pr23">PR23</a> ·
+            <a href="/walkthrough/pr24">PR24</a> ·
+            <a href="/walkthrough/pr25">PR25</a> ·
+            <a href="/walkthrough/pr26">PR26</a> ·
+            <a href="/walkthrough/pr27">PR27</a>
           </p>
         </details>
       </section>
