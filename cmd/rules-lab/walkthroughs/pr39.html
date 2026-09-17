@@ -575,7 +575,9 @@
             ? "All expected outcomes were verified. Some scenarios intentionally require a command to fail; inspect its stderr and exit status in Command transcript."
             : "The pilot could not verify its expected behavior. Inspect the failure and partial command evidence.";
         } catch (error) {
+          const attemptedRequest = byID("request").textContent;
           clearResult();
+          byID("request").textContent = attemptedRequest;
           byID("status").textContent = "Request failed";
           byID("explanation").textContent = String(error);
         } finally {
