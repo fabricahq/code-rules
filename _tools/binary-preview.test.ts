@@ -166,6 +166,9 @@ test('keeps builds read-only and limits the notification to API access', () => {
     readFileSync('.github/workflows/package-binaries.yml', 'utf8'),
   );
   expect(packaging.permissions).toEqual({ contents: 'read' });
+  expect(packaging.jobs.install.steps[0].with.ref).toBe(
+    '${{ github.event.pull_request.head.sha || github.sha }}',
+  );
   expect(workflow.on.workflow_run).toEqual({
     workflows: [packaging.name],
     types: ['completed'],

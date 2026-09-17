@@ -42,7 +42,7 @@ The existing TypeScript npm entrypoint remains intact.
 
 ## Pull request downloads
 
-`package-binaries.yml` builds and uploads the candidate bundle for seven days. After a successful pull-request run, `comment-binary-preview.yml` posts or updates one bot comment with a direct download link, the PR commit, expiry, and build results. Reviewers must sign in to GitHub to download artifacts. The manifest records the packaged source commit, which can be GitHub's PR merge commit.
+`package-binaries.yml` builds and uploads the candidate bundle for seven days. After a successful pull-request run, `comment-binary-preview.yml` posts or updates one bot comment with a direct download link, the PR commit, expiry, and build results. Reviewers must sign in to GitHub to download artifacts. Pull-request builds check out the exact PR head, so the manifest and preview comment identify the same source commit. Manual runs use the selected workflow revision.
 
 The notification uses GitHub API metadata only. It never checks out PR code, downloads artifacts, or executes their contents. Failed builds, missing or expired artifacts, closed PRs, and superseded commits do not produce a preview comment. A manual packaging run uploads artifacts without commenting on a PR.
 
