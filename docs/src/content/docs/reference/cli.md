@@ -137,7 +137,7 @@ code-rules add source team --repository https://github.com/example/rules.git --v
 
 Use `--config` to select a configuration file outside the default location.
 `init` creates an empty source configuration and `local/README.md` under `.code-rules/` by default, preserving existing files.
-Local authoring collects rule and group metadata, offering missing-group creation when interactive. No source declaration is needed for local rules.
+Create the group before adding a rule. Rule creation fails before prompting for metadata if the group does not exist. No source declaration is needed for local rules.
 `add source` validates and records a library declaration; run `sync` separately to fetch it. It preserves existing source exceptions and local files.
 
 See [Set up a project](/guides/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
@@ -157,7 +157,7 @@ code-rules library check
 
 - `library init` creates the format manifest and a README pointing to the canonical authoring guidance. Supply `--spdx expression --license-file path` and optional `--notice-file path` to copy explicit terms to `LICENSE.md` and `NOTICE.md`. Authors may defer that choice; the manifest then leaves it undeclared.
 - `library add group <group-id>` creates `_group.json` under `techs/` or `practices/`, collecting the name, description, and group-level `whenToRead` cues. A group can exist before it has rules.
-- `library add rule <rule-id>` creates a Markdown draft from the canonical template in an existing group. A missing group can be created interactively or with `--create-group` and explicit metadata. Required fields need author input; the command does not invent policy.
+- `library add rule <rule-id>` creates a Markdown draft from the canonical template in an existing group. If the group is missing, the Go CLI errors with the command to create it first. It does not offer automatic group creation. Required fields need author input; the command does not invent policy.
 - `library check` validates the manifest, all group and rule definitions, and declared license and notice assets offline without writing files. It reports file-specific errors and group and rule counts. Marked drafts fail until completed and their `code-rules:draft` marker is removed. Empty groups are valid. Undeclared licenses produce warnings; malformed declarations and missing declared files fail validation.
 
 Scaffolding commands validate paths and detect collisions before writing. They never overwrite existing files or leave partial scaffolds after a failed operation.

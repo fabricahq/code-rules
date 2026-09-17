@@ -240,8 +240,8 @@ func TestLibraryCheckBoundsUnusedAssets(t *testing.T) {
 	}
 }
 
-// TestLibraryRuleRechecksGroup preserves metadata created after the prompt's availability check.
-func TestLibraryRuleRechecksGroup(t *testing.T) {
+// TestLibraryRulePreservesGroup leaves existing metadata unchanged when adding a rule.
+func TestLibraryRulePreservesGroup(t *testing.T) {
 	ctx := context.Background()
 	options := LibraryOptions{Directory: t.TempDir()}
 	if _, err := InitializeLibrary(ctx, options, nil); err != nil {
@@ -256,10 +256,9 @@ func TestLibraryRuleRechecksGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stale := rules.GroupMetadata{Name: "Stale", Description: "Prompt guidance.", WhenToRead: "When prompting."}
 	body := "Return errors.\n"
 	metadata := RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
-	result, err := AddLibraryRule(ctx, "techs/go/errors", metadata, LibraryRuleOptions{LibraryOptions: options, Group: &stale, Body: &body})
+	result, err := AddLibraryRule(ctx, "techs/go/errors", metadata, LibraryRuleOptions{LibraryOptions: options, Body: &body})
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}

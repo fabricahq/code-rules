@@ -294,7 +294,7 @@
         },
         {
           "id": "authoring.project.02",
-          "requirement": "local add group and rule; draft/body; create-group",
+          "requirement": "local add group and rule; draft/body; require an existing group (approved Go target)",
           "status": "pending"
         },
         {

@@ -20,8 +20,8 @@ code-rules local add rule practices/testing/retry-budget
 No imported library or existing Git repository is required. Repeating `init` preserves existing valid configuration, README text, and rules.
 
 On a terminal, group creation asks for a name, description, and when-to-read cue. Rule creation asks for its title, when-to-read cue, impact, and consequence.
-If the group is missing, rule creation offers to create it and collects its metadata before writing either file.
-Declining the offer or cancelling a prompt writes nothing.
+If the group is missing, rule creation stops before prompting and tells you to create the group first.
+A missing group or cancelled prompt writes nothing.
 
 The new Markdown rule is a **draft** from the [canonical template](/reference/rule-authoring/). Complete its obligation, examples, implementation, and validation guidance before building. Remove prompts and sections that add no useful guidance.
 A successful format check does not establish that a draft is finished or that its guidance is correct.
@@ -74,9 +74,8 @@ code-rules local add rule practices/testing/retry-budget \
 Repeat group `--when-to-read` for distinct scope cues. Rule `--when-to-read` is one string.
 Optionally pass `--body-file path/to/guidance.md` to use an already authored Markdown body instead of the draft body. The command creates frontmatter from the explicit metadata flags; the body file should not contain frontmatter.
 
-To create a missing local group with a rule, supply `--create-group`, `--group-name`, `--group-description`, and one or more `--group-when-to-read` flags.
-This explicitly creates local metadata, so it also establishes the project's description when a library supplies the group. Existing local metadata is never overwritten.
-Without these flags, an existing local or verified imported group is sufficient. Sync a configured library before relying on its group metadata.
+Create a missing group first with `code-rules local add group <group-id>`, then run `code-rules local add rule`. The Go CLI errors before asking for rule metadata if the group does not exist. A selected group from a verified imported library also counts as an existing group.
+Creating a local group establishes the project's description even when a library supplies the same group. Existing local metadata is never overwritten. Sync a configured library before relying on its group metadata.
 
 ## File ownership
 

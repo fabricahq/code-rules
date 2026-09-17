@@ -111,39 +111,24 @@ func libraryGroupCommand(options Options, started *bool) *cobra.Command {
 	return cmd
 }
 
-// libraryRuleCommand creates supplied guidance or a marked canonical draft, optionally with new group metadata.
+// libraryRuleCommand creates supplied guidance or a marked canonical draft in an existing group.
 func libraryRuleCommand(options Options, started *bool) *cobra.Command {
 	cmd, f := newLibraryCommand("rule ID", "Create a complete library rule or marked draft", 1, options.Directory)
 	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When to read this rule", "impact": "Consequence level", "impact-description": "Why this rule matters", "body-file": "Existing UTF-8 Markdown body"} {
 		f.add(cmd, name, description)
 	}
-	f.addGroupFlags(cmd, "group-")
-	var createGroup bool
-	cmd.Flags().BoolVar(&createGroup, "create-group", false, "Create group metadata with this rule")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if strings.HasSuffix(args[0], ".md") {
 			return fmt.Errorf("use a rule ID without the .md extension")
 		}
+		if err := f.requireRuleGroup(args[0], true); err != nil {
+			*started = true
+			return err
+		}
 		if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
 			return err
 		}
-		if err := f.offerGroup(args[0], &createGroup, true); err != nil {
-			return err
-		}
 		ro := authoring.LibraryRuleOptions{LibraryOptions: f.libraryOptions()}
-		if createGroup {
-			if err := f.require("group-name", "group-description", "group-when-to-read"); err != nil {
-				return err
-			}
-			group := f.group("group-")
-			ro.Group = &group
-		} else {
-			for _, name := range []string{"group-name", "group-description", "group-when-to-read"} {
-				if f.value(name) != "" {
-					return fmt.Errorf("group metadata requires --create-group")
-				}
-			}
-		}
 		*started = true
 		if f.value("body-file") != "" {
 			body, err := readBody(cmd.Context(), f.file("body-file"))

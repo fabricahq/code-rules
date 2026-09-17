@@ -24,11 +24,10 @@ type LibraryTerms struct {
 	Notice         *string
 }
 
-// LibraryRuleOptions distinguishes an explicit body from a marked canonical draft and optional new metadata.
+// LibraryRuleOptions distinguishes an explicit body from a marked canonical draft in an existing group.
 type LibraryRuleOptions struct {
 	LibraryOptions
-	Body  *string
-	Group *rules.GroupMetadata
+	Body *string
 }
 
 const libraryReadme = `# Rule library
@@ -267,7 +266,7 @@ func HasLibraryGroup(ctx context.Context, id string, options LibraryOptions) (bo
 	return hasGroupMetadata(ctx, root, id)
 }
 
-// AddLibraryRule creates supplied guidance or a marked unfinished canonical draft, optionally creating its group.
+// AddLibraryRule creates supplied guidance or a marked unfinished canonical draft, in an existing group.
 func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, options LibraryRuleOptions) (Result, error) {
 	if strings.HasSuffix(id, ".md") {
 		return Result{}, failure("invalid-operation", "use a rule ID without the .md extension", nil)
@@ -285,25 +284,15 @@ func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, optio
 		data = append(data, []byte("\n<!-- code-rules:draft -->\n")...)
 		next = "Complete the draft and remove its code-rules:draft marker, then run library check."
 	}
-	var groupData []byte
-	if options.Group != nil {
-		groupData, err = renderGroup(*options.Group)
-		if err != nil {
-			return Result{}, err
-		}
-	}
+
 	return editLibrary(ctx, options.LibraryOptions, group, next, func(root *os.Root) ([]authoredFile, error) {
-		files := []authoredFile{}
 		exists, err := hasGroupMetadata(ctx, root, group)
 		if err != nil {
 			return nil, err
 		}
 		if !exists {
-			if groupData == nil {
-				return nil, failure("missing-group", "run library add group "+group+" first or supply --create-group and metadata", nil)
-			}
-			files = append(files, authoredFile{name: group + "/_group.json", data: groupData})
+			return nil, failure("missing-group", "group "+group+" does not exist; create it first with code-rules library add group "+group+", then retry adding the rule", nil)
 		}
-		return append(files, authoredFile{name: id + ".md", data: data}), nil
+		return []authoredFile{{name: id + ".md", data: data}}, nil
 	})
 }
