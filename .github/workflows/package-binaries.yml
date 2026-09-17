@@ -22,7 +22,7 @@ jobs:
         run: go test -race ./internal/distribution
       - name: Build all candidate targets
         if: runner.os == 'Linux'
-        run: go run ./cmd/package-native --candidate --output native-artifacts
+        run: go run ./cmd/package-binaries --candidate --output native-artifacts
       - uses: actions/upload-artifact@v4
         if: runner.os == 'Linux'
         with:
