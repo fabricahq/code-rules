@@ -20,8 +20,8 @@ code-rules local add rule practices/testing/retry-budget
 No imported library or existing Git repository is required. Repeating `init` preserves existing valid configuration, README text, and rules.
 
 On a terminal, group creation asks for a name, description, and when-to-read cue. Rule creation asks for its title, when-to-read cue, impact, and consequence.
-If the group is missing, rule creation offers to create it and collects its metadata before writing either file.
-Declining the offer or cancelling a prompt writes nothing.
+If the group is missing, rule creation stops before prompting and tells you to create the group first.
+A missing group or cancelled prompt writes nothing.
 
 The new Markdown rule is a **draft** from the [canonical template](/reference/rule-authoring/). Complete its obligation, examples, implementation, and validation guidance before building. Remove prompts and sections that add no useful guidance.
 A successful format check does not establish that a draft is finished or that its guidance is correct.
