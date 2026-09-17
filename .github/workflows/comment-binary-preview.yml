@@ -1,0 +1,77 @@
+# Announce downloadable candidates without executing code or reading artifact contents from the PR.
+name: Comment binary preview
+on:
+  workflow_run:
+    workflows: [Package CLI binaries]
+    types: [completed]
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+concurrency:
+  group: binary-preview-${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Link the completed binary preview on its pull request
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            if (run.path !== '.github/workflows/package-binaries.yml' ||
+                run.event !== 'pull_request' || run.conclusion !== 'success') return;
+            const {owner, repo} = context.repo;
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              owner, repo, run_id: run.id, per_page: 100,
+            });
+            const candidates = artifacts.filter(a =>
+              a.name === 'unpublished-native-candidates' && !a.expired && a.size_in_bytes > 0);
+            if (candidates.length !== 1) {
+              core.warning('No unique, unexpired binary preview found; no comment posted.');
+              return;
+            }
+            const artifact = candidates[0];
+            // Query GitHub directly: workflow_run.pull_requests can be empty for fork PRs.
+            const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+              owner, repo, commit_sha: run.head_sha, per_page: 100,
+            });
+            const marker = '<!-- code-rules-binary-preview -->';
+            const runURL = `${context.serverUrl}/${owner}/${repo}/actions/runs/${run.id}`;
+            const downloadURL = `${runURL}/artifacts/${artifact.id}`;
+            for (const candidate of pulls) {
+              if (candidate.base.repo.id !== context.payload.repository.id) continue;
+              const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number: candidate.number});
+              if (pr.state !== 'open' || pr.head.sha !== run.head_sha) continue;
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number: pr.number, per_page: 100,
+              });
+              const previous = comments.find(c =>
+                c.user?.login === 'github-actions[bot]' && c.body?.startsWith(marker));
+              // An older completion must not replace a newer run or rerun's download link.
+              const stamp = previous?.body.match(/<!-- run:(\d+) attempt:(\d+) -->/);
+              if (stamp && (Number(stamp[1]) > run.id ||
+                  (Number(stamp[1]) === run.id && Number(stamp[2]) > run.run_attempt))) continue;
+              const body = [
+                marker,
+                `<!-- run:${run.id} attempt:${run.run_attempt} -->`,
+                '## Download sample CLI binaries',
+                '',
+                `[Download the binary preview](${downloadURL}) · [Build and test results](${runURL})`,
+                '',
+                `PR commit: \`${run.head_sha}\`. The included manifest records the exact packaged source commit.`,
+                '',
+                'Includes macOS and Linux packages for Intel/AMD (amd64) and ARM (arm64), a manifest, and SHA-256 checksums. Installation, upgrade, and rollback tests passed on the Linux and macOS CI hosts; other targets were cross-compiled.',
+                '',
+                `Sign in to GitHub to download. These artifacts are retained for 7 days (expire ${artifact.expires_at}).`,
+                '',
+                'These are unpublished review builds, not a release. Download the bundle, extract the archive for your platform, then run `./code-rules --help` from that directory. No global installation is needed.',
+              ].join('\n');
+              if (previous) {
+                await github.rest.issues.updateComment({owner, repo, comment_id: previous.id, body});
+              } else {
+                await github.rest.issues.createComment({owner, repo, issue_number: pr.number, body});
+              }
+            }
