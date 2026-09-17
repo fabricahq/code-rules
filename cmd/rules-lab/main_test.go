@@ -543,3 +543,20 @@ func TestResolveFixtureRejectsExcludedRuleLinks(t *testing.T) {
 		})
 	}
 }
+
+// TestProjectFixtureSetupFailureIsHTTP500 exercises unavailable temporary storage through the HTTP endpoint.
+func TestProjectFixtureSetupFailureIsHTTP500(t *testing.T) {
+	t.Setenv("TMPDIR", t.TempDir()+"/missing")
+	var logs bytes.Buffer
+	rec := httptest.NewRecorder()
+	handler(slog.New(slog.NewJSONHandler(&logs, nil))).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/invoke", strings.NewReader(`{"operation":"projectWrite","location":"project","input":{"scenario":"apply","output":{"generated":{}}}}`)))
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+	if logs.Len() == 0 {
+		t.Fatal("operational failure was not logged")
+	}
+	if strings.Contains(rec.Body.String(), "missing") {
+		t.Fatal("filesystem path leaked to response")
+	}
+}

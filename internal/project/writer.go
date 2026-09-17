@@ -219,7 +219,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			return projectError("concurrent-change", string(entry.Name)+": output changed during staging", nil)
 		}
 	}
-	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{1, entries}); err != nil {
+	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{2, entries}); err != nil {
 		return err
 	}
 	prepared = true
@@ -228,8 +228,17 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			return err
 		}
 		if entry.Existed {
-			if err := w.rename(string(entry.Name), path.Join(transactionName, "old-"+string(entry.Name))); err != nil {
+			backupPath := path.Join(transactionName, "old-"+string(entry.Name))
+			if err := w.rename(string(entry.Name), backupPath); err != nil {
 				return err
+			}
+			// Inspect the tree actually displaced, including edits made after the earlier check.
+			backup, err := ReadTree(w.ctx, w.root, backupPath)
+			if err != nil {
+				return err
+			}
+			if treeDigest(backup) != entry.Before {
+				return projectError("concurrent-change", string(entry.Name)+": output changed before replacement; preserve its backup", nil)
 			}
 		}
 		if err := w.rename(path.Join(transactionName, "new-"+string(entry.Name)), string(entry.Name)); err != nil {
@@ -252,6 +261,11 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 
 // recoverChanges validates every restoration before mutating any target and ignores caller cancellation.
 func recoverChanges(root *os.Root) error {
+	return recoverWithRename(root, root.Rename)
+}
+
+// recoverWithRename owns recovery renames; tests use this boundary to reproduce late edits and interruptions.
+func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	ctx := context.Background()
 	garbage, err := readTree(ctx, root, cleanupName, recoveryLimits)
 	if err != nil {
@@ -301,7 +315,7 @@ func recoverChanges(root *os.Root) error {
 		}
 	}
 	var record journalRecord
-	if json.Unmarshal(data, &record) != nil || record.FormatVersion != 1 || len(record.Entries) == 0 || len(record.Entries) > 2 {
+	if json.Unmarshal(data, &record) != nil || (record.FormatVersion != 1 && record.FormatVersion != 2) || len(record.Entries) == 0 || len(record.Entries) > 2 {
 		return projectError("recovery-required", "invalid transaction journal; preserve it for manual recovery", nil)
 	}
 	seen := map[Target]bool{}
@@ -330,6 +344,13 @@ func recoverChanges(root *os.Root) error {
 		if committed {
 			continue
 		}
+		discarded, err := ReadTree(ctx, root, path.Join(transactionName, "discarded-"+string(entry.Name)))
+		if err != nil {
+			return err
+		}
+		if discarded != nil && treeDigest(discarded) != entry.After {
+			return projectError("recovery-required", string(entry.Name)+": displaced output changed; preserve transaction files", nil)
+		}
 		if backup != nil && treeDigest(backup) != entry.Before {
 			return projectError("recovery-required", string(entry.Name)+": backup changed; manual recovery required", nil)
 		}
@@ -345,21 +366,57 @@ func recoverChanges(root *os.Root) error {
 	if committed {
 		return finishCommitted(root)
 	}
+	// Older TypeScript recovery cannot understand quarantined output. Upgrade before
+	// introducing it so that either runtime refuses to discard unknown state.
+	if record.FormatVersion == 1 {
+		record.FormatVersion = 2
+		next := path.Join(transactionName, "journal-next.json")
+		if err := root.Remove(next); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		if err := durableJSON(root, next, record); err != nil {
+			return err
+		}
+		if err := root.Rename(next, path.Join(transactionName, "journal.json")); err != nil {
+			return err
+		}
+	}
 	for _, entry := range slices.Backward(record.Entries) {
 		backup := path.Join(transactionName, "old-"+string(entry.Name))
 		present, err := exists(root, backup)
 		if err != nil {
 			return err
 		}
+		if present || !entry.Existed {
+			// Move live output into our transaction before inspecting or deleting it.
+			// A path-based edit before this rename is retained on mismatch, never removed.
+			current, err := exists(root, string(entry.Name))
+			if err != nil {
+				return err
+			}
+			if current {
+				discardedPath := path.Join(transactionName, "discarded-"+string(entry.Name))
+				already, err := exists(root, discardedPath)
+				if err != nil {
+					return err
+				}
+				if already {
+					return projectError("recovery-required", "both live and displaced output exist; preserve transaction files", nil)
+				}
+				if err := rename(string(entry.Name), discardedPath); err != nil {
+					return err
+				}
+				discarded, err := ReadTree(ctx, root, discardedPath)
+				if err != nil {
+					return err
+				}
+				if treeDigest(discarded) != entry.After {
+					return projectError("recovery-required", string(entry.Name)+": output changed during recovery; preserve displaced files and backup", nil)
+				}
+			}
+		}
 		if present {
-			if err := root.RemoveAll(string(entry.Name)); err != nil {
-				return err
-			}
-			if err := root.Rename(backup, string(entry.Name)); err != nil {
-				return err
-			}
-		} else if !entry.Existed {
-			if err := root.RemoveAll(string(entry.Name)); err != nil {
+			if err := rename(backup, string(entry.Name)); err != nil {
 				return err
 			}
 		}

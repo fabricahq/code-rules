@@ -362,3 +362,79 @@ func TestRecoveryRejectsContradictoryExistence(t *testing.T) {
 		t.Fatal("lost journal")
 	}
 }
+
+// TestWriterPreservesEditAtBackupRename reproduces an edit after staging validation through the real writer.
+func TestWriterPreservesEditAtBackupRename(t *testing.T) {
+	root := openProject(t)
+	writeFixture(t, root, "generated/old", "before")
+	err := WithWriter(context.Background(), root, func(w *Writer) error {
+		w.rename = func(from, to string) error {
+			if from == "generated" {
+				writeFixture(t, root, "generated/old", "late edit")
+			}
+			return root.Rename(from, to)
+		}
+		return w.Apply(map[Target]map[string][]byte{Generated: {"new": []byte("after")}}, nil)
+	})
+	if err == nil {
+		t.Fatal("late edit was silently overwritten")
+	}
+	found := false
+	for _, name := range []string{"generated/old", transactionName + "/old-generated/old"} {
+		if data, _ := root.ReadFile(name); string(data) == "late edit" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("late edit lost")
+	}
+}
+
+// TestRecoveryPreservesEditAtRename verifies a late edit is quarantined instead of deleted by rollback.
+func TestRecoveryPreservesEditAtRename(t *testing.T) {
+	root := openProject(t)
+	stageInterruption(t, root, false)
+	err := recoverWithRename(root, func(from, to string) error {
+		if from == "generated" {
+			writeFixture(t, root, "generated/new", "late edit")
+		}
+		return root.Rename(from, to)
+	})
+	projectCode(t, err, "recovery-required")
+	for name, want := range map[string]string{transactionName + "/discarded-generated/new": "late edit", transactionName + "/old-generated/old": "before"} {
+		if data, _ := root.ReadFile(name); string(data) != want {
+			t.Fatalf("lost %s", name)
+		}
+	}
+	projectCode(t, recoverChanges(root), "recovery-required")
+	data, err := root.ReadFile(transactionName + "/journal.json")
+	var journal journalRecord
+	if err != nil || json.Unmarshal(data, &journal) != nil || journal.FormatVersion != 2 {
+		t.Fatal("quarantine must be protected from older recovery implementations")
+	}
+}
+
+// TestRecoveryResumesAfterQuarantine verifies restart after displacing output or restoring its backup.
+func TestRecoveryResumesAfterQuarantine(t *testing.T) {
+	for _, restored := range []bool{false, true} {
+		root := openProject(t)
+		stageInterruption(t, root, false)
+		if err := root.Rename("generated", transactionName+"/discarded-generated"); err != nil {
+			t.Fatal(err)
+		}
+		if restored {
+			if err := root.Rename(transactionName+"/old-generated", "generated"); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := recoverChanges(root); err != nil {
+			t.Fatal(err)
+		}
+		if data, _ := root.ReadFile("generated/old"); string(data) != "before" {
+			t.Fatal("original not restored")
+		}
+		if err := RequireIdle(root); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

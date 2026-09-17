@@ -38,13 +38,17 @@ func projectWriteResponse(input json.RawMessage) (response, error) {
 	if err == nil {
 		return response{OK: true, Value: observed}, nil
 	}
+	var validation *rules.ValidationError
+	var expected *project.Error
+	if !errors.As(err, &validation) && !errors.As(err, &expected) && !errors.Is(err, context.Canceled) {
+		return response{}, err
+	}
 	failure := &failure{Name: "Error", Message: err.Error()}
 	var projectErr *project.Error
 	if errors.As(err, &projectErr) {
 		failure.Name = "ProjectError"
 		failure.Code = projectErr.Code
 	}
-	var validation *rules.ValidationError
 	if errors.As(err, &validation) {
 		failure.Name = "ValidationError"
 		failure.Location = validation.Location
@@ -134,6 +138,10 @@ func invokeProjectWrite(input json.RawMessage) (*projectObservation, error) {
 				return nil
 			})
 		})
+	}
+	// The deliberate missing staging directory is an expected scenario failure only.
+	if fixture.Scenario == "renameFailure" && errors.Is(err, fs.ErrNotExist) {
+		err = &project.Error{Code: "injected-rename-failure", Problem: "staging tree deliberately removed before rename", Cause: err}
 	}
 	after, readErr := project.ReadTree(context.Background(), root, ".")
 	if readErr != nil {
