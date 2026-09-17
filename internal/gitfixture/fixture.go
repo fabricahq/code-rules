@@ -132,3 +132,27 @@ func (f *Fixture) Close() error {
 
 // Quote escapes a trusted local path for a generated shell helper's literal argument.
 func Quote(value string) string { return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'" }
+
+// Route installs a private dispatcher in the owner fixture for multiple known repository aliases.
+// Returned environment values are invocation-local and never alter the user's Git settings.
+func (f *Fixture) Route(fixtures map[string]*Fixture) ([]string, error) {
+	script := "#!/bin/sh\ncase \"$*\" in\n"
+	for alias, entry := range fixtures {
+		if alias == "" || strings.ContainsAny(alias, "'\"\\\n\r`$*?[]()|;&<> ") {
+			return nil, fmt.Errorf("invalid fixture alias")
+		}
+		script += "  *\"'" + alias + "'\"*) exec " + Quote(f.GitPath) + " upload-pack " + Quote(filepath.Join(entry.Directory, "repository")) + " ;;\n"
+	}
+	script += "  *) exit 1 ;;\nesac\n"
+	helper := filepath.Join(f.Directory, "ssh-router")
+	if err := os.WriteFile(helper, []byte(script), 0700); err != nil {
+		return nil, err
+	}
+	env := []string{}
+	for _, value := range f.Environment {
+		if !strings.HasPrefix(value, "GIT_SSH_COMMAND=") {
+			env = append(env, value)
+		}
+	}
+	return append(env, "GIT_SSH_COMMAND="+Quote(helper)), nil
+}

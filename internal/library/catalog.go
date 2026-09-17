@@ -1,4 +1,4 @@
-// Package library reads bounded local rule catalogs through a caller-owned filesystem root.
+// Package library reads bounded rule catalogs from local files or immutable Git objects.
 package library
 
 import (
@@ -6,14 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"maps"
 	"os"
 	"regexp"
 	"slices"
 	"strings"
-	"syscall"
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -45,7 +43,7 @@ type Group struct {
 // reader binds resource limits and cancellation to one rooted catalog read.
 type reader struct {
 	ctx         context.Context
-	root        *os.Root
+	input       FileSource
 	files       map[string][]byte
 	total       int
 	visited     int
@@ -60,11 +58,20 @@ var sourceAlias = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 // encountered in selected trees are rejected; os.Root confines concurrent path resolution.
 // Cancellation remains inspectable with errors.Is. Other input failures are ValidationError.
 func Load(ctx context.Context, root *os.Root, source string, selection rules.GroupSelection) (Catalog, error) {
+	if root == nil {
+		return Catalog{}, bad("library", "expected an open filesystem root")
+	}
+	return LoadSource(ctx, rootFiles{ctx: ctx, root: root}, source, selection)
+}
+
+// LoadSource applies the same catalog rules to bounded local or immutable Git bytes.
+// The caller owns the source and must keep its identity stable for this operation.
+func LoadSource(ctx context.Context, input FileSource, source string, selection rules.GroupSelection) (Catalog, error) {
 	if err := ctx.Err(); err != nil {
 		return Catalog{}, fmt.Errorf("load library: %w", err)
 	}
-	if root == nil {
-		return Catalog{}, bad("library", "expected an open filesystem root")
+	if input == nil {
+		return Catalog{}, bad("library", "expected a file source")
 	}
 	if source == "local" {
 		return Catalog{}, bad("source", "local is reserved for project rules; choose another source alias")
@@ -83,7 +90,7 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	if err != nil {
 		return Catalog{}, err
 	}
-	r := reader{ctx: ctx, root: root, files: make(map[string][]byte)}
+	r := reader{ctx: ctx, input: input, files: make(map[string][]byte)}
 	if _, err := r.read("rule-library.json"); err != nil {
 		return Catalog{}, err
 	}
@@ -139,12 +146,12 @@ func (r *reader) read(path string) ([]byte, error) {
 	parts := strings.Split(path, "/")
 	for i := range parts {
 		prefix := strings.Join(parts[:i+1], "/")
-		info, err := r.root.Lstat(prefix)
+		info, err := r.input.Lstat(prefix)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				return nil, bad(path, "missing required file")
 			}
-			return nil, fmt.Errorf("inspect library path %s: %v", prefix, err)
+			return nil, fmt.Errorf("inspect library path %s: %w", prefix, err)
 		}
 		if info.Mode()&os.ModeSymlink != 0 {
 			return nil, bad(prefix, "symlinks are unsupported")
@@ -156,25 +163,9 @@ func (r *reader) read(path string) ([]byte, error) {
 			return nil, bad(path, "expected an ordinary file")
 		}
 	}
-	file, err := r.root.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
+	data, err := r.input.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("open library file %s: %v", path, err)
-	}
-	defer file.Close()
-	info, err := file.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("inspect open library file %s: %v", path, err)
-	}
-	if !info.Mode().IsRegular() {
-		return nil, bad(path, "expected an ordinary file")
-	}
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok || stat.Nlink != 1 {
-		return nil, bad(path, "hard links are unsupported")
-	}
-	data, err := io.ReadAll(io.LimitReader(file, maxFileBytes+1))
-	if err != nil {
-		return nil, fmt.Errorf("read library file %s: %v", path, err)
+		return nil, fmt.Errorf("read library file %s: %w", path, err)
 	}
 	if err := r.ctx.Err(); err != nil {
 		return nil, fmt.Errorf("read library file: %w", err)
@@ -231,7 +222,7 @@ func (r *reader) entries(path string, optional bool) ([]fs.DirEntry, error) {
 	if entries, ok := r.directories[path]; ok {
 		return entries, nil
 	}
-	info, err := r.root.Lstat(path)
+	info, err := r.input.Lstat(path)
 	if optional && errors.Is(err, fs.ErrNotExist) {
 		return []fs.DirEntry{}, nil
 	}
@@ -239,19 +230,14 @@ func (r *reader) entries(path string, optional bool) ([]fs.DirEntry, error) {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, bad(path, "missing required group directory")
 		}
-		return nil, fmt.Errorf("inspect directory %s: %v", path, err)
+		return nil, fmt.Errorf("inspect directory %s: %w", path, err)
 	}
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return nil, bad(path, "expected a directory without symlinks")
 	}
-	directory, err := r.root.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK|syscall.O_NOFOLLOW, 0)
+	entries, err := r.input.ReadDir(path)
 	if err != nil {
-		return nil, fmt.Errorf("open directory %s: %v", path, err)
-	}
-	defer directory.Close()
-	entries, err := directory.ReadDir(maxFiles - r.visited + 1)
-	if err != nil && !errors.Is(err, io.EOF) {
-		return nil, fmt.Errorf("list directory %s: %v", path, err)
+		return nil, fmt.Errorf("list directory %s: %w", path, err)
 	}
 	r.visited += len(entries)
 	if r.visited > maxFiles {
