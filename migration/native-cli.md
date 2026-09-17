@@ -29,3 +29,5 @@ Git sources and config paths in the walkthrough stay confined to disposable fixt
 Process tests compile and run the real entry point. They check help/version, unknown commands and flags, duplicate config flags, missing config, stale and clean checks, offline builds, and empty-source sync with no runtime binaries available on PATH. All nine walkthrough scenarios execute the compiled CLI.
 
 Project/library authoring and interactive prompts follow in later slices. The existing TypeScript package entry point remains unchanged until native packaging is reviewed. The browser walkthrough supplies the command and filesystem evidence needed here without requiring another runbook runtime.
+
+Cobra help and version requests take precedence over surplus positional arguments and perform no project operation. Ordinary operational invocations still reject unexpected positional arguments and missing or repeated scalar flags. This intentionally follows Cobra help behavior.
