@@ -251,6 +251,7 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 }
 
 // HasLibraryGroup checks current metadata before an interactive prompt; writes recheck under the lock.
+// This advisory read does not require an idle writer; publication owns recovery and revalidation.
 func HasLibraryGroup(ctx context.Context, id string, options LibraryOptions) (bool, error) {
 	if err := rules.ValidateGroupID(id, "group"); err != nil {
 		return false, err
@@ -260,9 +261,6 @@ func HasLibraryGroup(ctx context.Context, id string, options LibraryOptions) (bo
 		return false, err
 	}
 	defer root.Close()
-	if err = project.RequireIdle(root); err != nil {
-		return false, err
-	}
 	if _, _, err = libraryManifest(ctx, root); err != nil {
 		return false, err
 	}
