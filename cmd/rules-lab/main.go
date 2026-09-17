@@ -75,6 +75,8 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "snapshots":
+		value, err = invokeSnapshots(req.Input)
 	case "prepareOutput":
 		var input struct {
 			Fixture             json.RawMessage `json:"fixture"`
