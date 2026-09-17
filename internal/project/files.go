@@ -27,7 +27,10 @@ type Tree struct {
 	Directories []string          `json:"directories"`
 }
 
-// Error describes a failed project operation; Code identifies recovery and busy conditions.
+// Error describes a failed project operation. Callers may branch on Code after errors.As.
+// Stable codes are busy, concurrent-change, recovery-required, invalid-operation,
+// invalid-target, unsafe-path, unsafe-file, and input-limit. New codes may be added;
+// callers must handle unknown codes as failures. Problem is display text, not a stable identifier.
 type Error struct {
 	Code    string
 	Problem string
