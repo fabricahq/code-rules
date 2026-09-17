@@ -150,7 +150,7 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 				if !errors.As(err, &validation) || validation.Location != "rule-library.json" {
 					t.Fatalf("lost manifest error identity: %v", err)
 				}
-				for _, detail := range []string{`import source "team"`, "missing library manifest at the repository root", "declares the library format and optional license", "No libraries were returned because all configured sources must succeed"} {
+				for _, detail := range []string{`import source "team"`, "missing library manifest at the repository root", "declares the library format and optional license", "no libraries were returned because all configured sources must succeed"} {
 					if !strings.Contains(err.Error(), detail) {
 						t.Fatalf("missing diagnostic context %q: %v", detail, err)
 					}
@@ -279,4 +279,21 @@ func TestCatalogMutationPreservesSnapshot(t *testing.T) {
 		t.Fatal("catalog mutation altered verified snapshot")
 	}
 
+}
+
+// TestImportMissingRefDiagnostic preserves typed failures without doubled sentence punctuation.
+func TestImportMissingRefDiagnostic(t *testing.T) {
+	f := newLibraryFixture(t, libraryFiles())
+	config := libraryConfig(t, f.Repository)
+	config.Sources[0].Version = ""
+	config.Sources[0].Ref = "missing"
+	result, err := ImportLibraries(context.Background(), config, Options{GitPath: f.GitPath, Environment: f.Environment})
+	requireCode(t, err, "ref-not-found")
+	if result != nil {
+		t.Fatal("failed import returned partial libraries")
+	}
+	want := `import source "team" failed (no libraries were returned because all configured sources must succeed): Requested ref is missing or refused; no other revision was selected.`
+	if err.Error() != want {
+		t.Fatalf("unexpected diagnostic: %s", err)
+	}
 }
