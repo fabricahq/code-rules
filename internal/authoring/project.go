@@ -269,16 +269,15 @@ func AddLocalRule(ctx context.Context, id string, metadata RuleMetadata, options
 	}
 	return editProject(ctx, options.Options, next, func(root *os.Root, _ string, _ []byte, config rules.Configuration) ([]authoredFile, error) {
 		files := []authoredFile{}
-		if groupData != nil {
-			files = append(files, authoredFile{name: path.Join("local", group, "_group.json"), data: groupData})
-		} else {
-			available, err := groupAvailable(ctx, root, config, group)
-			if err != nil {
-				return nil, err
-			}
-			if !available {
+		available, err := groupAvailable(ctx, root, config, group)
+		if err != nil {
+			return nil, err
+		}
+		if !available {
+			if groupData == nil {
 				return nil, failure("missing-group", "no metadata for "+group+"; run local add group or supply --create-group and its metadata", nil)
 			}
+			files = append(files, authoredFile{name: path.Join("local", group, "_group.json"), data: groupData})
 		}
 		return append(files, authoredFile{name: path.Join("local", id+".md"), data: data}), nil
 	})

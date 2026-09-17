@@ -298,3 +298,50 @@ func TestCommittedCleanupWarning(t *testing.T) {
 		})
 	}
 }
+
+// TestRuleRechecksGroupAfterPrompt prevents stale missing-group consent from overriding newly available imported guidance.
+func TestRuleRechecksGroupAfterPrompt(t *testing.T) {
+	ctx := context.Background()
+	directory := t.TempDir()
+	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
+	if _, err := InitializeProject(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+	source := json.RawMessage(`{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{},"replace":{}}`)
+	if _, err := AddSource(ctx, "team", source, options); err != nil {
+		t.Fatal(err)
+	}
+	if available, err := HasLocalRuleGroup(ctx, "techs/go", options); err != nil || available {
+		t.Fatal(available, err)
+	}
+	data, err := os.ReadFile(options.ConfigPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := rules.ParseConfiguration(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vendor, err := project.EncodeSnapshots(config, map[string]project.Snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1}`), "techs/go/_group.json": []byte(`{"name":"Go","description":"Imported guidance.","whenToRead":"When editing Go."}`)}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, data := range vendor {
+		target := filepath.Join(directory, "vendor", name)
+		if err := os.MkdirAll(filepath.Dir(target), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(target, data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	metadata := rules.GroupMetadata{Name: "Unintended override", Description: "Prompt answer.", WhenToRead: "When editing."}
+	body := "Return errors."
+	result, err := AddLocalRule(ctx, "techs/go/errors", RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body, Group: &metadata})
+	if err != nil || len(result.Files) != 1 {
+		t.Fatal(result, err)
+	}
+	if _, err := os.Stat(filepath.Join(directory, "local/techs/go/_group.json")); !os.IsNotExist(err) {
+		t.Fatal("stale consent created local override", err)
+	}
+}
