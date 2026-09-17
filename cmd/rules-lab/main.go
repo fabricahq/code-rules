@@ -51,7 +51,9 @@ type failure struct {
 }
 
 type response struct {
-	OK bool `json:"ok"`
+	// Observation is lab-captured filesystem state, separate from a function return value.
+	Observation any  `json:"observation,omitempty"`
+	OK          bool `json:"ok"`
 	// Value holds successful results. A typed nil *string represents an unknown
 	// repository web link as JSON null; a non-nil []string preserves empty selections.
 	Value any      `json:"value,omitempty"`
@@ -75,6 +77,8 @@ func invoke(data []byte) (response, error) {
 	var value any
 	var err error
 	switch req.Operation {
+	case "projectWrite":
+		return projectWriteResponse(req.Input)
 	case "snapshots":
 		value, err = invokeSnapshots(req.Input)
 	case "prepareOutput":
