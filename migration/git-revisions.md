@@ -10,10 +10,16 @@ Git 2.30 or later
 is required. Commands disable hooks, templates, recursive submodules, automatic
 maintenance, replacement objects, prompting, and unsupported transport protocols.
 Inherited repository/index/object-database state is removed while trusted caller
-credentials and routing remain available. Git stderr is counted but never exposed.
+credentials and routing remain available. Bare executable names are resolved from
+the supplied environment's PATH (or inherited PATH when no environment is supplied).
+Relative PATH entries never implicitly select Git from the current directory.
+Git stderr is counted but never exposed.
 
 Each fetch has a 120-second deadline by default. Cancellation and combined-output
-overflow kill the process group, including helpers. Deadline expiry returns
+overflow kill the process group, including helpers. Exit observation retains the
+leader's process ID until helper cleanup finishes, then disables group signalling
+before reaping. This also cleans up helpers after a successful Git exit without
+risking a signal to a reused process ID. Deadline expiry returns
 `timed-out`; explicit cancellation returns `cancelled`. Both preserve the context
 cause. Joined native cleanup failures remain visible; fixture cleanup failures use
 the lab HTTP 500 boundary. Output limits do not bound

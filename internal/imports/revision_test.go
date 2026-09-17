@@ -198,3 +198,29 @@ func TestExpiredContextCodes(t *testing.T) {
 		cancel()
 	}
 }
+
+// TestFetchUsesEnvironmentPath resolves Git from the same environment supplied to its children.
+func TestFetchUsesEnvironmentPath(t *testing.T) {
+	f := fixtureRepository(t)
+	bin := t.TempDir()
+	if err := os.Symlink(f.GitPath, filepath.Join(bin, "git")); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", "/missing-parent-path")
+	env := append(append([]string{}, f.Environment...), "PATH="+bin+":/usr/bin:/bin")
+	revision, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: env})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer revision.Close()
+	if revision.Commit != f.FirstCommit {
+		t.Fatal("wrong fetched revision")
+	}
+}
+
+// TestFetchDoesNotFallBackToParentPath rejects missing Git in an explicitly replaced environment.
+func TestFetchDoesNotFallBackToParentPath(t *testing.T) {
+	f := fixtureRepository(t)
+	_, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: []string{"PATH=/missing-custom-path"}})
+	requireCode(t, err, "git-unavailable")
+}

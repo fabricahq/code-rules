@@ -96,7 +96,11 @@ func FetchRevision(ctx context.Context, source rules.Source, options Options) (_
 	if env == nil {
 		env = os.Environ()
 	}
-	runner := gitRunner{options.GitPath, gitEnvironment(env)}
+	executable, err := gitExecutable(options.GitPath, env)
+	if err != nil {
+		return nil, err
+	}
+	runner := gitRunner{executable, gitEnvironment(env)}
 	dir, err := os.MkdirTemp("", "code-rules-git-*")
 	if err != nil {
 		return nil, fail("temporary-storage", "Cannot create temporary Git storage.", err)
