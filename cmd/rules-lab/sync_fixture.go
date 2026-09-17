@@ -98,6 +98,20 @@ func observeSync(ctx context.Context, cancel context.CancelFunc, fixture syncFix
 			return nil, err
 		}
 	}
+	// Edits may retire sources, but must not route the demo outside its prepared Git fixtures.
+	currentConfig, err := root.ReadFile("config.json")
+	if err != nil {
+		return nil, err
+	}
+	config, err := rules.ParseConfiguration(currentConfig)
+	if err != nil {
+		return nil, err
+	}
+	for _, source := range config.Sources {
+		if _, exists := fixture.Libraries[source.Name]; !exists || source.Repository != "git@fixture.invalid:"+source.Name {
+			return nil, &rules.ValidationError{Location: "configuration.sources." + source.Name, Problem: "sync walkthrough sources must use their supplied local Git fixture"}
+		}
+	}
 	before, err := project.ReadTree(ctx, root, ".")
 	if err != nil {
 		return nil, err
