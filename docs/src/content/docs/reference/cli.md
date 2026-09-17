@@ -24,6 +24,21 @@ Bare command groups such as `code-rules library` also show navigation.
 Help never prompts or writes files. Invalid commands and options exit with status 2 and point to the relevant help page.
 Authoring help distinguishes fields prompted on a terminal from optional flags; both `init` commands currently run without prompts.
 
+## Native Go candidate output
+
+The Go migration candidate uses human-readable output by default. Add `--json` to any command when a script needs structured results:
+
+```sh
+code-rules init
+code-rules check --json
+```
+
+JSON mode prints one response on stdout and never prompts. Success returns `ok: true` with a `value`. Failure returns `ok: false` with an `error` containing `kind` and `message`, plus `location` for validation errors when available. A stale check also returns the file differences in `value`. Help and version return their text in `value.text`.
+
+Exit status is 0 for success, 1 for operation failure or stale output, and 2 for invalid usage. In human mode, errors go to stderr. In JSON mode, errors go in the JSON response; stderr is reserved for failures writing that response.
+
+This output contract applies to the native candidate demonstrated in the review labs and runbook. The existing TypeScript entry point retains its current output until the native cutover.
+
 ## Sync
 
 ```sh

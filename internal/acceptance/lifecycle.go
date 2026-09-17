@@ -60,6 +60,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		var original *project.Tree
 		var err error
 		if len(args) > 0 && args[0] == "check" {
+			args = append(args, "--json")
 			original, err = readTree(ctx, dir)
 			if err != nil {
 				return err
@@ -310,6 +311,10 @@ func equalTrees(before, after *project.Tree) bool {
 
 // reportsChangedFiles recognizes the check command's structured stale-output diagnostic on stdout.
 func reportsChangedFiles(data []byte) bool {
-	var changes struct{ Added, Changed, Removed []string }
-	return json.Unmarshal(data, &changes) == nil && len(changes.Added)+len(changes.Changed)+len(changes.Removed) > 0
+	var result struct {
+		OK    bool
+		Value project.FileChanges
+		Error struct{ Kind string }
+	}
+	return json.Unmarshal(data, &result) == nil && !result.OK && result.Error.Kind == "stale_output" && len(result.Value.Added)+len(result.Value.Changed)+len(result.Value.Removed) > 0
 }

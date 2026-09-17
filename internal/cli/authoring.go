@@ -95,7 +95,7 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 }
 
 // addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.
-func addProjectAuthoringCommands(root *cobra.Command, options Options, started *bool) {
+func addProjectAuthoringCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
 	initialize, f := newAuthoringCommand("init", "Initialize project configuration and local orientation", 0, options.Directory)
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
 		*started = true
@@ -103,7 +103,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		if err != nil {
 			return err
 		}
-		return writeJSON(cmd.OutOrStdout(), result)
+		output.value = result
+		return nil
 	}
 	root.AddCommand(initialize)
 	add := &cobra.Command{Use: "add", Short: "Add project configuration"}
@@ -137,7 +138,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		if err != nil {
 			return err
 		}
-		return writeJSON(cmd.OutOrStdout(), result)
+		output.value = result
+		return nil
 	}
 	add.AddCommand(source)
 	local := &cobra.Command{Use: "local", Short: "Author local engineering rules"}
@@ -155,7 +157,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		if err != nil {
 			return err
 		}
-		return writeJSON(cmd.OutOrStdout(), result)
+		output.value = result
+		return nil
 	}
 	localAdd.AddCommand(group)
 	rule, rf := newAuthoringCommand("rule ID", "Create a local rule body or canonical unfinished draft", 1, options.Directory)
@@ -202,7 +205,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		if err != nil {
 			return err
 		}
-		return writeJSON(cmd.OutOrStdout(), result)
+		output.value = result
+		return nil
 	}
 	localAdd.AddCommand(rule)
 }

@@ -333,7 +333,12 @@
         Run compiled Go commands and inspect their actual stdout, stderr, exit
         status, and filesystem changes.
       </p>
-      <p><a href="http://localhost:4392/" target="_blank" rel="noopener">Supplementary Gruntwork runbook</a>: CLI help, offline build/check, and visible failure status. Run individual commands there; keep this lab for the full PR scenarios.</p>
+      <p>
+        <a href="http://localhost:4392/" target="_blank" rel="noopener"
+          >Supplementary Gruntwork runbook</a
+        >: CLI help, offline build/check, and visible failure status. Run
+        individual commands there; keep this lab for the full PR scenarios.
+      </p>
       <div class="workspace">
         <section class="panel">
           <div class="label">Invoke the new capability</div>
@@ -374,9 +379,11 @@
             <summary>What this PR does</summary>
             <p>
               The production Cobra entry point now exposes sync, build, check,
-              help, and version. JSON results go to stdout; operation and usage
-              errors go to stderr. Exit 0 means success, exit 1 means operation
-              failure or stale check output, and exit 2 means invalid usage.
+              help, and version. Results are human-readable by default;
+              operation and usage errors go to stderr. Add --json for one
+              structured response on stdout, including errors. JSON mode never
+              prompts. Exit 0 means success, exit 1 means operation failure or
+              stale check output, and exit 2 means invalid usage.
             </p>
             <p>
               This page executes the compiled code-rules binary directly,
@@ -426,7 +433,7 @@
           {
             name: "Sync command",
             description:
-              "Runs the compiled code-rules sync command against a real local Git fixture. Inspect stdout JSON, exit status 0, and installed files.",
+              "Runs the compiled code-rules sync command against a real local Git fixture. Inspect readable stdout, exit status 0, and installed files.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -457,9 +464,33 @@
             },
           },
           {
+            name: "JSON success",
+            description:
+              "Builds an empty project with --json. Expect ok: true and file changes in value, with no text mixed into stdout.",
+            input: {
+              configuration: { schemaVersion: 1, sources: {} },
+              libraries: {},
+              localFiles: {},
+              scenario: "sync",
+              arguments: ["build", "--config", "config.json", "--json"],
+            },
+          },
+          {
+            name: "JSON error",
+            description:
+              "Runs an unknown command with --json. Expect exit 2 and ok: false with an error kind and message on stdout.",
+            input: {
+              configuration: { schemaVersion: 1, sources: {} },
+              libraries: {},
+              localFiles: {},
+              scenario: "sync",
+              arguments: ["unknown", "--json"],
+            },
+          },
+          {
             name: "Clean check",
             description:
-              "Seeds a sync using the executable version, then runs check. Expect exit 0, empty differences on stdout, and unchanged files.",
+              "Seeds a sync using the executable version, then runs check. Expect exit 0, an up-to-date confirmation on stdout, and unchanged files.",
             input: {
               configuration: {
                 schemaVersion: 1,

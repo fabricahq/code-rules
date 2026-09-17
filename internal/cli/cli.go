@@ -3,7 +3,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,7 +22,7 @@ type Options struct {
 	Git       imports.Options
 }
 
-// Streams separates user input, machine-readable results, and diagnostics for each invocation.
+// Streams separates user input, command results, and human diagnostics for each invocation.
 type Streams struct {
 	In       io.Reader
 	Out, Err io.Writer
@@ -44,11 +43,12 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 		options.Version = "0.0.0-development"
 	}
 	started := false
-	stale := false
+	output := &commandOutput{}
 	root := &cobra.Command{Use: "code-rules", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
 	root.CompletionOptions.DisableDefaultCmd = true
 	root.SetIn(streams.In)
-	root.SetOut(streams.Out)
+	root.SetOut(&output.text)
+	root.PersistentFlags().Bool("json", false, "Return one JSON response, including errors; never prompt")
 	root.SetErr(streams.Err)
 	root.SetArgs(args)
 	root.Version = options.Version
@@ -82,37 +82,33 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 			if err != nil {
 				return err
 			}
-			stale = name == "check" && len(changes.Added)+len(changes.Changed)+len(changes.Removed) > 0
-			return writeJSON(streams.Out, changes)
+			output.value = changes
+			if name == "check" && len(changes.Added)+len(changes.Changed)+len(changes.Removed) > 0 {
+				return errStaleOutput
+			}
+			return nil
 		}
 		root.AddCommand(cmd)
 	}
-	addProjectAuthoringCommands(root, options, &started)
-	addLibraryCommands(root, options, &started)
+	addProjectAuthoringCommands(root, options, &started, output)
+	addLibraryCommands(root, options, &started, output)
+	// Discover the output mode even when Cobra stops at an earlier invalid argument.
+	output.json = requestsJSON(root, args)
 	if err := rejectMissingValues(root, args); err != nil {
-		fmt.Fprintln(streams.Err, err)
-		return 2
+		return output.finish(streams, root, err, 2)
 	}
-	if _, err := root.ExecuteContextC(ctx); err != nil {
-		fmt.Fprintln(streams.Err, err)
+	command, err := root.ExecuteContextC(ctx)
+	if command == nil {
+		command = root
+	}
+	code := 0
+	if err != nil {
+		code = 1
 		if !started && ctx.Err() == nil && !errors.Is(err, context.Canceled) {
-			fmt.Fprintln(streams.Err, "Run code-rules --help for usage.")
-			return 2
+			code = 2
 		}
-		return 1
 	}
-	if stale {
-		return 1
-	}
-	return 0
-}
-
-// writeJSON emits readable machine output without HTML-specific escapes.
-func writeJSON(out io.Writer, value any) error {
-	encoder := json.NewEncoder(out)
-	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(value)
+	return output.finish(streams, command, err, code)
 }
 
 // singleString rejects duplicate scalar flags so an accidental repeated option cannot silently replace its value.

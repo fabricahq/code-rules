@@ -2,7 +2,14 @@
 
 `cmd/code-rules` exposes `sync`, `build`, `check`, contextual `--help`, and `--version` through Cobra. `--config` defaults to `.code-rules/config.json`. Duplicate scalar flags and unexpected arguments are usage errors.
 
-Results are indented JSON on stdout. Diagnostics go to stderr. Exit statuses preserve the established command contract:
+Human-readable results are the default. Add the global `--json` flag to any command for one indented JSON response on stdout, including usage errors, operation failures, help, and version. JSON mode never prompts. The TypeScript reference remains unchanged; this is an approved native CLI output change.
+
+- Success: `{"ok":true,"value":{...}}`.
+- Failure: `{"ok":false,"error":{"kind":"usage|operation|validation|cancelled|stale_output","message":"..."}}`. Validation errors include `location` when available.
+- A stale check also includes `value` with the added, changed, and removed paths. No files were written.
+- Help and version use `value.text`. Warnings stay in `value.warnings`.
+
+Human-mode failures go to stderr. JSON-mode failures go to stdout with no duplicate diagnostic on stderr. If writing the response itself fails, stderr carries the output failure and the process exits 1. Exit statuses remain:
 
 - `0`: success or clean check.
 - `1`: operation failure, or a successful check that found stale output. A stale check prints its differences on stdout without an error on stderr.

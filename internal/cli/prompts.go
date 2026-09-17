@@ -19,9 +19,10 @@ import (
 // interactive requires terminal input and diagnostics, and honors explicit unattended mode.
 func (f *authoringFlags) interactive() bool {
 	disabled, _ := f.command.Flags().GetBool("non-interactive")
+	structured, _ := f.command.Flags().GetBool("json")
 	in, inputFile := f.command.InOrStdin().(*os.File)
 	out, outputFile := f.command.ErrOrStderr().(*os.File)
-	return !disabled && inputFile && outputFile && term.IsTerminal(int(in.Fd())) && term.IsTerminal(int(out.Fd()))
+	return !disabled && !structured && inputFile && outputFile && term.IsTerminal(int(in.Fd())) && term.IsTerminal(int(out.Fd()))
 }
 
 // ask uses Go's terminal editor for pasted text and restores terminal settings on every return path.
