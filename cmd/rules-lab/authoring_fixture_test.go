@@ -12,3 +12,12 @@ func TestAuthoringFixtureConfinement(t *testing.T) {
 		}
 	}
 }
+
+// TestLibraryFixtureConfinement refuses external library roots, input files, and unrelated commands.
+func TestLibraryFixtureConfinement(t *testing.T) {
+	for _, args := range [][]string{{"library", "init"}, {"library", "init", "--directory", "/tmp/library"}, {"library", "init", "--directory", "library", "--license-file", "../terms"}, {"library", "check", "--directory=../../"}, {"sync", "--directory", "library"}} {
+		if err := validateLibraryArguments(args); err == nil {
+			t.Fatalf("accepted %v", args)
+		}
+	}
+}

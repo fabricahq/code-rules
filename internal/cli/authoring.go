@@ -204,19 +204,24 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 
 // readBody loads a bounded regular UTF-8 input without interpreting it as a rule document.
 func readBody(ctx context.Context, name string) (string, error) {
+	return readAuthoringText(ctx, name, "rule body")
+}
+
+// readAuthoringText reads bounded UTF-8 inputs without changing their original line endings or whitespace.
+func readAuthoringText(ctx context.Context, name, label string) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	info, err := os.Stat(name)
 	if err != nil {
-		return "", fmt.Errorf("read rule body: %w", err)
+		return "", fmt.Errorf("read %s: %w", label, err)
 	}
 	if !info.Mode().IsRegular() || info.Size() > 8*1024*1024 {
-		return "", fmt.Errorf("rule body must be a regular file no larger than 8 MiB")
+		return "", fmt.Errorf("%s must be a regular file no larger than 8 MiB", label)
 	}
 	file, err := os.Open(name)
 	if err != nil {
-		return "", fmt.Errorf("open rule body: %w", err)
+		return "", fmt.Errorf("open %s: %w", label, err)
 	}
 	defer file.Close()
 	actual, err := file.Stat()
@@ -224,17 +229,17 @@ func readBody(ctx context.Context, name string) (string, error) {
 		return "", err
 	}
 	if !actual.Mode().IsRegular() {
-		return "", fmt.Errorf("rule body must be a regular file")
+		return "", fmt.Errorf("%s must be a regular file", label)
 	}
 	data, err := io.ReadAll(io.LimitReader(file, 8*1024*1024+1))
 	if err != nil {
-		return "", fmt.Errorf("read rule body: %w", err)
+		return "", fmt.Errorf("read %s: %w", label, err)
 	}
 	if len(data) > 8*1024*1024 {
-		return "", fmt.Errorf("rule body exceeds 8 MiB")
+		return "", fmt.Errorf("%s exceeds 8 MiB", label)
 	}
 	if !utf8.Valid(data) {
-		return "", fmt.Errorf("rule body must contain valid UTF-8")
+		return "", fmt.Errorf("%s must contain valid UTF-8", label)
 	}
 	if err := ctx.Err(); err != nil {
 		return "", err

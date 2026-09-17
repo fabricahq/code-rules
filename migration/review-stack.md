@@ -9,6 +9,8 @@ PRs #17-#32 have merged into `go-migration`. The user authorized preparing all r
 
 | #35 | Project authoring | codex/go-project-authoring | codex/go-cli | /walkthrough/pr35 |
 
+| #36 | Library authoring and check | codex/go-library-authoring | codex/go-project-authoring | /walkthrough/pr36 |
+
 Build `cmd/code-rules` and `cmd/rules-lab` into the same output directory, then run `dist/rules-lab -serve -port 4391` from the top branch. The root page links to available walkthroughs. Each invokes native Go and covers only its PR's capability. Filesystem writes and Git repositories use isolated disposable fixtures.
 
 Fix defects on the earliest owning branch and propagate changes through dependents. Re-run affected checks and refresh reviews. After a predecessor receives human approval and merges, retarget its successor to `go-migration` and verify the diff remains focused.
