@@ -35,7 +35,7 @@ code-rules local add group techs/go --config {{CONFIG_ARG}} \
   --when-to-read 'When writing or reviewing Go code.'
 ```
 
-Confirm that `local/techs/go/_group.json` contains the intended metadata. Local group metadata takes precedence over imported metadata for the same group.
+Read `local/techs/go/README.md` for group authoring instructions. Confirm that `local/techs/go/_group.json` contains the intended metadata. Local group metadata takes precedence over imported metadata for the same group.
 
 ## Add a rule
 

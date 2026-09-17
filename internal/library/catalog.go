@@ -362,6 +362,9 @@ func (r *reader) rulePaths(directory, metadata string, terms []string, paths *[]
 		if !entry.Type().IsRegular() {
 			return bad(path, "expected an ordinary file")
 		}
+		if rules.IsGroupReadme(path) {
+			continue
+		}
 		if _, err := rules.GroupFromPath(path, path); err != nil {
 			return err
 		}

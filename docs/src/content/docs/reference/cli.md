@@ -197,3 +197,7 @@ For non-native material, follow [Adapt a third-party rule](/guides/adapt-rules/)
 Report the affected file or rule ID and the action needed to resolve the problem.
 Examples include a missing override target, an unsupported format version, or a vendor snapshot that needs sync.
 Exit nonzero on failure and preserve the previous working output if installation fails.
+
+### Native group guides
+
+The Go candidate creates `README.md` alongside `_group.json` for each new local or library group, including `--create-group`. The guide directs agents to the current metadata and explains how to add, edit, and validate rules. Group READMEs are authoring documentation and are excluded from rule loading and generated guidance. Existing group files are preserved.

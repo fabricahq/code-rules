@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -230,7 +229,7 @@ func AddLibraryGroup(ctx context.Context, id string, metadata rules.GroupMetadat
 		return Result{}, err
 	}
 	return editLibrary(ctx, options, id, "Add a library rule, then run library check.", func(_ *os.Root) ([]authoredFile, error) {
-		return []authoredFile{{name: path.Join(id, "_group.json"), data: data}}, nil
+		return groupFiles(id, id, data, true), nil
 	})
 }
 
@@ -302,7 +301,7 @@ func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, optio
 			if groupData == nil {
 				return nil, failure("missing-group", "run library add group "+group+" first or supply --create-group and metadata", nil)
 			}
-			files = append(files, authoredFile{name: group + "/_group.json", data: groupData})
+			files = append(files, groupFiles(group, group, groupData, true)...)
 		}
 		return append(files, authoredFile{name: id + ".md", data: data}), nil
 	})

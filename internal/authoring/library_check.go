@@ -84,7 +84,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 			}
 			spellings[key] = prefix
 		}
-		if name == "rule-library.json" || slices.Contains(terms, name) {
+		if name == "rule-library.json" || slices.Contains(terms, name) || rules.IsGroupReadme(name) {
 			continue
 		}
 		asset := slices.Contains(parts, "assets")

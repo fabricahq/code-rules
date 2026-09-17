@@ -195,7 +195,7 @@ func AddLocalGroup(ctx context.Context, id string, metadata rules.GroupMetadata,
 		return Result{}, err
 	}
 	return editProject(ctx, options, "Add a rule to this group, then run build.", func(_ *os.Root, _ string, _ []byte, _ rules.Configuration) ([]authoredFile, error) {
-		return []authoredFile{{name: path.Join("local", id, "_group.json"), data: data}}, nil
+		return groupFiles(path.Join("local", id), id, data, false), nil
 	})
 }
 
@@ -284,7 +284,7 @@ func AddLocalRule(ctx context.Context, id string, metadata RuleMetadata, options
 			if groupData == nil {
 				return nil, failure("missing-group", "no metadata for "+group+"; run local add group or supply --create-group and its metadata", nil)
 			}
-			files = append(files, authoredFile{name: path.Join("local", group, "_group.json"), data: groupData})
+			files = append(files, groupFiles(path.Join("local", group), group, groupData, false)...)
 		}
 		return append(files, authoredFile{name: path.Join("local", id+".md"), data: data}), nil
 	})
