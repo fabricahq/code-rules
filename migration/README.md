@@ -7,7 +7,7 @@ Use the [Go conventions](../_internal/go-conventions.md) when implementing or re
 ## Branches and baseline
 
 - Integration branch: `go-migration`.
-- Current review batch: PRs #28-#32. See [the review stack](review-stack.md) for branches, scope, and individual interactive walkthroughs. PRs #17-#27 have merged into `go-migration`.
+- Current review batch: PRs #33-#39. See [the review stack](review-stack.md) for branches, scope, and individual interactive walkthroughs. PRs #17-#32 have merged into `go-migration`.
 - [Exact refs and version tags](refs.md) merged in PR #16 at `76e30d5c29881a4f74821a5b3bb23a3e1683ca96`.
 - [Repository addresses](repositories.md) merged in PR #15 at `ef88c4c6e7d7061da428a8c5783e84e7b3c6906e`.
 - [Complete rule parsing](rule-parser.md) merged in PR #14 at `39c327f103a7eab19468d815d5250acb5f7f5de7`.
@@ -43,7 +43,7 @@ The user approved preparing all remaining migration slices together after review
 
 [contracts.json](contracts.json) is the proposed capability inventory. IDs are stable: append new scenario IDs without renumbering existing ones.
 Dependencies express migration order. Each capability lists source owners and required happy, unhappy, and boundary cases.
-The inventory retains `not-implemented` for full capabilities until acceptance. The identity and group metadata slices record partial implementation evidence separately; every full acceptance scenario remains pending until its required evidence is available and reviewed.
+The inventory distinguishes implemented candidates from accepted capabilities. Each capability now links its implementation PRs and concrete test files. Required scenarios remain pending until their complete evidence is independently reviewed and the human accepts them. See [native acceptance](native-acceptance.md) for approved differences and release gates.
 
 The initial [executable scenarios](../tests/migration/scenarios.ts) exercise representative paths across those capabilities.
 The report lists these as `exercisedBy`; it does not count a representative case as full capability completion.
@@ -57,7 +57,7 @@ bun run build
 bun tests/migration/compare.ts \
   --reference "$PWD/dist/cli.js" \
   --candidate "$PWD/dist/cli.js" \
-  --reference-revision 7013d3d374a33a5cf65a2a48ff6870e46f9d7209 \
+  --reference-revision cfef6f83a563978d74583c5de063e1e97c2857da \
   --report /tmp/code-rules-migration-reference.json
 ```
 
@@ -97,6 +97,12 @@ The initial suite does not yet measure interactive prompts, cancellation, crash 
 Those requirements remain in the inventory and the existing TypeScript suites continue to run.
 
 ## Prevent stale evidence
+
+The reference was explicitly refreshed to `2594d298511e55fb8d893091b6b4a2a7959a0a39` for the requested tagline, “The package manager for your engineering rules.”
+This changes the TypeScript root help and package description, with a help regression assertion; runtime behavior and dependencies are unchanged.
+The Go CLI, README, and documentation use the same tagline. Earlier reports still describe their recorded reference revision.
+
+The reference was subsequently refreshed to `cfef6f83a563978d74583c5de063e1e97c2857da` for the requested Fabrica Code Rules website link. The only TypeScript input change from the previous reference is the link target in the generated `RULES.md` introduction, from GitHub to `https://code-rules.fabricahq.com`. The real-reference comparisons and independent harness assertions are rerun for this revision; earlier reports retain their original reference and are not reused as current evidence.
 
 The runner rejects changes from the reference in `src/`, runtime/package metadata, the lockfile, packaging script, and reused fixture/package tests.
 That conservative check includes staged, unstaged, committed, and untracked source changes.

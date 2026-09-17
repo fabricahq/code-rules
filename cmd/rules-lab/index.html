@@ -319,157 +319,163 @@
           flex-wrap: wrap;
         }
       }
+      .review-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin: 24px 0;
+      }
+      .review-card {
+        min-width: 0;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+      }
+      .review-card h2 {
+        font-size: 22px;
+        margin: 6px 0 10px;
+      }
+      .review-card p {
+        color: var(--muted);
+      }
+      h1 {
+        font-size: 36px;
+        margin: 24px 0 14px;
+      }
+      @media (max-width: 760px) {
+        .review-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
     </style>
   </head>
   <body>
     <main>
       <header>
         <strong>CODE RULES / GO MIGRATION</strong
-        ><span>Project operations review</span>
+        ><span>Final implementation batch · PRs 33-39</span>
       </header>
       <h1>Your migration review collection.</h1>
       <p class="lede">
         Each walkthrough invokes native Go and covers only what its PR adds.
       </p>
-      <section class="section">
-        <h2>PR #34: Run the native CLI</h2>
-        <p>
-          Run actual sync, build, and check commands. Inspect stdout, stderr,
-          exit status, and before/after files.
-        </p>
-        <a href="/walkthrough/pr34">Open interactive walkthrough</a> ·
-        <a href="https://github.com/fabricahq/code-rules/pull/34">Review PR</a>
-      </section>
-      <section class="section">
-        <h2>PR #35: Author project rules</h2>
-        <p>
-          Initialize projects, record sources, and create local groups and
-          rules. Inspect real command transcripts and before/after files.
-        </p>
-        <a href="/walkthrough/pr35">Open interactive walkthrough</a> ·
-        <a href="https://github.com/fabricahq/code-rules/pull/35"
-          >Review PR #35</a
-        >
-      </section>
-      <section class="section">
-        <h2>PR #36: Author a shared library</h2>
-        <p>
-          Create a library, preserve publisher-supplied terms, and validate its
-          complete owned content.
-        </p>
-        <a href="/walkthrough/pr36">Open interactive walkthrough</a> ·
-        <a href="https://github.com/fabricahq/code-rules/pull/36"
-          >Review PR #36</a
-        >
-      </section>
-
-      <section class="section">
-        <h2>PR #33: Sync complete projects</h2>
-        <p>
-          Fetch libraries and install validated vendor and generated files
-          together. Inspect before/after files and failure preservation.
-        </p>
-        <a href="/walkthrough/pr33">Open interactive walkthrough</a> ·
-        <a href="https://github.com/fabricahq/code-rules/pull/33">Review PR</a>
-      </section>
-      <section class="section">
-        <div class="label">PR #28</div>
-        <h2>Persisted source snapshots</h2>
-        <p>
-          Inspect saved library bytes and detect changed, missing, or unexpected
-          files before an offline build.
-        </p>
-        <p>
-          <a href="/walkthrough/pr28">Open interactive walkthrough</a> ·
-          <a href="https://github.com/fabricahq/code-rules/pull/28"
-            >Review code on GitHub</a
-          >
-        </p>
-      </section>
-      <section class="section">
-        <div class="label">PR #29</div>
-        <h2>Recoverable project writes</h2>
-        <p>
-          Inspect before/after managed files, failed writes, and preserved user
-          edits.
-        </p>
-        <p>
-          <a href="/walkthrough/pr29">Open interactive walkthrough</a> ·
-          <a href="https://github.com/fabricahq/code-rules/pull/29"
-            >Review code on GitHub</a
-          >
-        </p>
-      </section>
-      <section class="section">
-        <div class="label">PR #30</div>
-        <h2>Offline build and check</h2>
-        <p>
-          Build generated guidance or inspect output differences without network
-          access.
-        </p>
-        <p>
-          <a href="/walkthrough/pr30">Open interactive walkthrough</a> ·
-          <a href="https://github.com/fabricahq/code-rules/pull/30"
-            >Review code on GitHub</a
-          >
-        </p>
-      </section>
-      <section class="section">
-        <h2>PR #31: Fetch and verify exact Git revisions</h2>
-        <p>
-          Run real Git against isolated fixture repositories. Inspect exact
-          commits, tags, version selection, and bounded failures.
-        </p>
-        <p>
-          <a href="/walkthrough/pr31">Open interactive walkthrough</a> ·
-          <a href="https://github.com/fabricahq/code-rules/pull/31"
-            >Review code on GitHub</a
-          >
-        </p>
-      </section>
-      <section class="section">
-        <h2>PR #32: Import complete Git libraries</h2>
-        <p>
-          Validate selected rules and attachments from real Git objects,
-          preserving exact bytes and source provenance.
-        </p>
-        <p>
-          <a href="/walkthrough/pr32">Open interactive walkthrough</a> ·
-          <a href="https://github.com/fabricahq/code-rules/pull/32"
-            >Review code on GitHub</a
-          >
-        </p>
-      </section>
-      <section class="section">
-        <h2>About this batch</h2>
-        <p>
-          This batch covers snapshots, safe writes, offline build/check, Git
-          revisions, and complete library imports. The TypeScript CLI remains
-          the production entry point.
-        </p>
-        <details>
-          <summary>Earlier walkthroughs (merged)</summary>
+      <p><a href="http://localhost:4392/" target="_blank" rel="noopener">Supplementary Gruntwork runbook</a>: Project authoring, offline build/check, failure repair, and library validation. Run individual commands there; keep this lab for the full PR scenarios.</p>
+      <div class="review-grid">
+        <section class="review-card">
+          <div class="label">PR #33</div>
+          <h2>Sync complete projects</h2>
           <p>
-            <a href="/walkthrough/pr17">PR17</a> ·
-            <a href="/walkthrough/pr18">PR18</a> ·
-            <a href="/walkthrough/pr19">PR19</a> ·
-            <a href="/walkthrough/pr20">PR20</a> ·
-            <a href="/walkthrough/pr21">PR21</a> ·
-            <a href="/walkthrough/pr22">PR22</a> ·
-            <a href="/walkthrough/pr23">PR23</a> ·
-            <a href="/walkthrough/pr24">PR24</a> ·
-            <a href="/walkthrough/pr25">PR25</a> ·
-            <a href="/walkthrough/pr26">PR26</a> ·
-            <a href="/walkthrough/pr27">PR27</a>
+            Fetch libraries and install validated vendor and generated files
+            together.
           </p>
-        </details>
-      </section>
+          <a href="/walkthrough/pr33">Open walkthrough</a> ·
+          <a href="https://github.com/fabricahq/code-rules/pull/33"
+            >Review PR</a
+          >
+        </section>
+        <section class="review-card">
+          <div class="label">PR #34</div>
+          <h2>Run the native CLI</h2>
+          <p>
+            Inspect actual sync, build, and check commands, exit status, errors,
+            and file changes.
+          </p>
+          <a href="/walkthrough/pr34">Open walkthrough</a> ·
+          <a href="https://github.com/fabricahq/code-rules/pull/34"
+            >Review PR</a
+          >
+        </section>
+        <section class="review-card">
+          <div class="label">PR #35</div>
+          <h2>Author project rules</h2>
+          <p>
+            Initialize projects, record sources, and create local groups and
+            rules.
+          </p>
+          <a href="/walkthrough/pr35">Open walkthrough</a> ·
+          <a href="https://github.com/fabricahq/code-rules/pull/35"
+            >Review PR</a
+          >
+        </section>
+        <section class="review-card">
+          <div class="label">PR #36</div>
+          <h2>Author a shared library</h2>
+          <p>
+            Preserve publisher terms and validate complete library content,
+            including unused assets.
+          </p>
+          <a href="/walkthrough/pr36">Open walkthrough</a> ·
+          <a href="https://github.com/fabricahq/code-rules/pull/36"
+            >Review PR</a
+          >
+        </section>
+        <section class="review-card">
+          <div class="label">PR #37</div>
+          <h2>Interactive authoring</h2>
+          <p>
+            Try real terminal prompts, answers, cancellation, and file changes.
+          </p>
+          <a href="/walkthrough/pr37">Open walkthrough</a> ·
+          <a href="https://github.com/fabricahq/code-rules/pull/37"
+            >Review PR</a
+          >
+        </section>
+        <section class="review-card">
+          <div class="label">PR #38</div>
+          <h2>Native artifacts</h2>
+          <p>
+            Inspect archive identity and run a verified extracted binary without
+            Node or Bun.
+          </p>
+          <a href="/walkthrough/pr38">Open walkthrough</a> ·
+          <a href="https://github.com/fabricahq/code-rules/pull/38"
+            >Review PR</a
+          >
+        </section>
+        <section class="review-card">
+          <div class="label">PR #39</div>
+          <h2>Complete native CLI pilot</h2>
+          <p>
+            Author a library, sync real Git releases, build offline, and inspect
+            failure preservation.
+          </p>
+          <a href="/walkthrough/pr39">Open walkthrough</a> ·
+          <a href="https://github.com/fabricahq/code-rules/pull/39"
+            >Review PR</a
+          >
+        </section>
+      </div>
+      <p class="notice">
+        Review in order. These seven PRs finish the planned implementation
+        batch. Production activation, publication, and removal of TypeScript
+        still require separate approval.
+      </p>
+      <details>
+        <summary>Earlier walkthroughs (merged)</summary>
+        <p>
+          <a href="/walkthrough/pr17">PR17</a> ·
+          <a href="/walkthrough/pr18">PR18</a> ·
+          <a href="/walkthrough/pr19">PR19</a> ·
+          <a href="/walkthrough/pr20">PR20</a> ·
+          <a href="/walkthrough/pr21">PR21</a> ·
+          <a href="/walkthrough/pr22">PR22</a> ·
+          <a href="/walkthrough/pr23">PR23</a> ·
+          <a href="/walkthrough/pr24">PR24</a> ·
+          <a href="/walkthrough/pr25">PR25</a> ·
+          <a href="/walkthrough/pr26">PR26</a> ·
+          <a href="/walkthrough/pr27">PR27</a> ·
+          <a href="/walkthrough/pr28">PR28</a> ·
+          <a href="/walkthrough/pr29">PR29</a> ·
+          <a href="/walkthrough/pr30">PR30</a> ·
+          <a href="/walkthrough/pr31">PR31</a> ·
+          <a href="/walkthrough/pr32">PR32</a>
+        </p>
+      </details>
       <footer>
-        Existing Code Rules gallery styling · Real Go functions · No migration
-        PR merged without approval
+        Existing Code Rules gallery styling · Real Go commands · Human approval
+        before merging
       </footer>
-      <section class="card"><h2>PR #37: Interactive authoring</h2><p>Real terminal prompts, answers, cancellation, and file changes.</p><a href="/walkthrough/pr37">Open interactive walkthrough</a> · <a href="https://github.com/fabricahq/code-rules/pull/37">Review PR</a></section>
-      <section class="card"><h2>PR #38: Native artifacts</h2><p>Inspect archive identity and run a verified extracted binary without Node or Bun.</p><a href="/walkthrough/pr38">Open interactive walkthrough</a> · <a href="https://github.com/fabricahq/code-rules/pull/38">Review PR</a></section>
     </main>
   </body>
 </html>

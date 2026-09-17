@@ -32,17 +32,17 @@ func (f *authoringFlags) libraryOptions() authoring.LibraryOptions {
 }
 
 // addLibraryCommands installs a separate command tree that never reads consumer configuration.
-func addLibraryCommands(root *cobra.Command, options Options, started *bool) {
+func addLibraryCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
 	library := &cobra.Command{Use: "library", Short: "Author and validate a shared rule library"}
 	root.AddCommand(library)
-	library.AddCommand(libraryInitCommand(options, started), libraryCheckCommand(options, started))
+	library.AddCommand(libraryInitCommand(options, started, output), libraryCheckCommand(options, started, output))
 	add := &cobra.Command{Use: "add", Short: "Add a library group or rule"}
 	library.AddCommand(add)
-	add.AddCommand(libraryGroupCommand(options, started), libraryRuleCommand(options, started))
+	add.AddCommand(libraryGroupCommand(options, started, output), libraryRuleCommand(options, started, output))
 }
 
 // libraryInitCommand reads explicit publisher terms before creating library-owned files.
-func libraryInitCommand(options Options, started *bool) *cobra.Command {
+func libraryInitCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("init", "Initialize a rule library without overwriting authored files", 0, options.Directory)
 	for name, description := range map[string]string{"spdx": "Library SPDX expression", "license-file": "Existing UTF-8 license text", "notice-file": "Existing UTF-8 notice text"} {
 		f.add(cmd, name, description)
@@ -74,13 +74,14 @@ func libraryInitCommand(options Options, started *bool) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		return writeJSON(cmd.OutOrStdout(), result)
+		output.value = result
+		return nil
 	}
 	return cmd
 }
 
 // libraryCheckCommand reports counts and licensing caveats without changing library files.
-func libraryCheckCommand(options Options, started *bool) *cobra.Command {
+func libraryCheckCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("check", "Validate every library group, rule, asset, and declared term", 0, options.Directory)
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		*started = true
@@ -88,13 +89,14 @@ func libraryCheckCommand(options Options, started *bool) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		return writeJSON(cmd.OutOrStdout(), result)
+		output.value = result
+		return nil
 	}
 	return cmd
 }
 
 // libraryGroupCommand requires all group metadata before attempting exclusive publication.
-func libraryGroupCommand(options Options, started *bool) *cobra.Command {
+func libraryGroupCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("group ID", "Create library group metadata", 1, options.Directory)
 	f.addGroupFlags(cmd, "")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -106,13 +108,14 @@ func libraryGroupCommand(options Options, started *bool) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		return writeJSON(cmd.OutOrStdout(), result)
+		output.value = result
+		return nil
 	}
 	return cmd
 }
 
 // libraryRuleCommand creates supplied guidance or a marked canonical draft in an existing group.
-func libraryRuleCommand(options Options, started *bool) *cobra.Command {
+func libraryRuleCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("rule ID", "Create a complete library rule or marked draft", 1, options.Directory)
 	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When to read this rule", "impact": "Consequence level", "impact-description": "Why this rule matters", "body-file": "Existing UTF-8 Markdown body"} {
 		f.add(cmd, name, description)
@@ -142,7 +145,8 @@ func libraryRuleCommand(options Options, started *bool) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		return writeJSON(cmd.OutOrStdout(), result)
+		output.value = result
+		return nil
 	}
 	return cmd
 }

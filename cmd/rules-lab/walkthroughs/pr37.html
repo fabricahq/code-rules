@@ -366,6 +366,13 @@
           <p id="explanation">
             Invoke Go to inspect its returned data or error.
           </p>
+          <p>Commands run from the project root and use <code>.code-rules/config.json</code> by default. <code>init</code> creates it; other project commands fail if it is missing.</p>
+          <details>
+            <summary>Adding a source: prompts or explicit flags</summary>
+            <p><code>code-rules add source team</code> asks for the missing repository, ref or version constraint, and groups when run in a terminal. For scripts or agents, provide the values directly:</p>
+            <pre>code-rules add source team --repository https://github.com/acme/rules --version '&gt;= 1.2.3' --groups techs/go --groups techs/rust --non-interactive</pre>
+            <p>Without a terminal, missing required values produce an error. Adding a source only updates configuration; run <code>code-rules sync</code> to fetch it.</p>
+          </details>
           <label for="vendor-file">Terminal transcript or created file</label
           ><select id="vendor-file"></select>
           <pre id="vendor-content">Invoke Go to inspect a file.</pre>
@@ -378,8 +385,8 @@
             <p>
               Missing authoring inputs prompt only when stdin and stderr are
               terminals. Explicit flags win; --non-interactive disables prompts.
-              Every answer is collected before taking a writer lock. Rules require
-              an existing group; a missing group fails before metadata prompts.
+              Every answer is collected before taking a writer lock. Rule creation
+              requires an existing group and errors before prompting when it is missing.
             </p>
             <p>
               This page executes the compiled code-rules binary directly,
@@ -433,17 +440,13 @@
         "files": {},
         "commands": [
           [
-            "init",
-            "--config",
-            "config.json"
+            "init"
           ],
           [
             "local",
             "add",
             "group",
-            "techs/go",
-            "--config",
-            "config.json"
+            "techs/go"
           ]
         ],
         "terminal": true,
@@ -468,21 +471,17 @@
     },
     {
       "name": "Source prompts",
-      "description": "Choose HashiCorp version constraints and comma-separated groups. No Git fetch occurs.",
+      "description": "The short command starts an interactive conversation. Enter the Git repository, choose ref or version, then select groups. The terminal transcript below shows every prompt and answer. No Git fetch occurs.",
       "input": {
         "files": {},
         "commands": [
           [
-            "init",
-            "--config",
-            "config.json"
+            "init"
           ],
           [
             "add",
             "source",
-            "team",
-            "--config",
-            "config.json"
+            "team"
           ]
         ],
         "terminal": true,
@@ -516,17 +515,13 @@
         "files": {},
         "commands": [
           [
-            "init",
-            "--config",
-            "config.json"
+            "init"
           ],
           [
             "local",
             "add",
             "rule",
-            "techs/go/errors",
-            "--config",
-            "config.json"
+            "techs/go/errors"
           ]
         ],
         "terminal": true,
@@ -543,17 +538,13 @@
         "files": {},
         "commands": [
           [
-            "init",
-            "--config",
-            "config.json"
+            "init"
           ],
           [
             "local",
             "add",
             "group",
-            "techs/go",
-            "--config",
-            "config.json"
+            "techs/go"
           ]
         ],
         "terminal": true,
@@ -575,17 +566,13 @@
         "files": {},
         "commands": [
           [
-            "init",
-            "--config",
-            "config.json"
+            "init"
           ],
           [
             "local",
             "add",
             "group",
-            "techs/go",
-            "--config",
-            "config.json"
+            "techs/go"
           ]
         ],
         "terminal": true,
@@ -607,17 +594,13 @@
         "files": {},
         "commands": [
           [
-            "init",
-            "--config",
-            "config.json"
+            "init"
           ],
           [
             "local",
             "add",
             "group",
             "techs/go",
-            "--config",
-            "config.json",
             "--non-interactive"
           ]
         ],
@@ -635,17 +618,13 @@
         "files": {},
         "commands": [
           [
-            "init",
-            "--config",
-            "config.json"
+            "init"
           ],
           [
             "local",
             "add",
             "group",
-            "techs/go",
-            "--config",
-            "config.json"
+            "techs/go"
           ]
         ],
         "terminal": false,
@@ -699,11 +678,13 @@
   ]
 };
       let vendorFiles = {};
-      // Display original persisted text or a labeled base64 representation of binary bytes.
+      // Display file contents with readable configuration JSON and labeled binary bytes.
       function showVendorFile() {
         const value = vendorFiles[byID("vendor-file").value];
-        byID("vendor-content").textContent =
-          typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        byID("vendor-content").textContent = formatFixtureFile(
+          byID("vendor-file").value,
+          value,
+        );
       }
       byID("vendor-file").addEventListener("change", showVendorFile);
       // Clear prior output when the editable input changes.
@@ -837,8 +818,14 @@
             ? "The command sequence stopped with status " +
               observed.exitCode +
               ". Inspect stdout, stderr, and the files below."
-            : result.error.message +
-              " The observation shows files left on disk after the call.";
+            : result.error.message;
+          if (!result.ok) {
+            byID("explanation").append(
+              document.createElement("br"),
+              document.createElement("br"),
+              "The observation shows files left on disk after the call.",
+            );
+          }
         } catch (error) {
           byID("explanation").textContent =
             "The request failed. No Go result was received.";

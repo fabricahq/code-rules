@@ -4,9 +4,6 @@ package cli
 
 import (
 	"context"
-	"io/fs"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -31,8 +28,8 @@ func TestRuleRequiresExistingGroup(t *testing.T) {
 			before := projectFileContents(t, directory)
 			args := []string{family, "add", "rule", "techs/go/errors"}
 			want := "code-rules " + family + " add group techs/go"
-			out, diagnostic, code := runCLI(t, binary, directory, args...)
-			if code == 0 || !strings.Contains(diagnostic, want) || out != "" {
+			out, diagnostic, code := runCLI(t, binary, directory, append(args, "--json")...)
+			if code == 0 || !strings.Contains(out, want) || diagnostic != "" {
 				t.Fatal(code, out, diagnostic)
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -54,28 +51,4 @@ func TestRuleRequiresExistingGroup(t *testing.T) {
 			}
 		})
 	}
-}
-
-// projectFileContents captures file bytes to detect writes by refused commands.
-func projectFileContents(t *testing.T, root string) map[string]string {
-	t.Helper()
-	files := map[string]string{}
-	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if entry.IsDir() {
-			return nil
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		files[path] = string(data)
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return files
 }

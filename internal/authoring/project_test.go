@@ -22,7 +22,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	directory := filepath.Join(t.TempDir(), ".code-rules")
 	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
 	result, err := InitializeProject(ctx, options)
-	if err != nil || len(result.Files) != 2 {
+	if err != nil || len(result.Files) != 3 {
 		t.Fatal(result, err)
 	}
 	original, err := os.ReadFile(options.ConfigPath)
@@ -35,7 +35,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	}
 	metadata := rules.GroupMetadata{Name: " Go ", Description: " Local Go guidance. ", WhenToRead: " When editing Go. "}
 	result, err = AddLocalGroup(ctx, "techs/go", metadata, options)
-	if err != nil || len(result.Files) != 1 {
+	if err != nil || len(result.Files) != 2 {
 		t.Fatal(result, err)
 	}
 	stored, err := os.ReadFile(result.Files[0])

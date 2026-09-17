@@ -6,6 +6,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"embed"
 	"encoding/json"
 	"errors"
@@ -61,7 +62,10 @@ type response struct {
 }
 
 // invoke returns expected input failures as responses and unexpected failures as errors.
-func invoke(data []byte) (response, error) {
+func invoke(data []byte) (response, error) { return invokeContext(context.Background(), data) }
+
+// invokeContext carries caller cancellation into operations that execute a complete CLI pilot.
+func invokeContext(ctx context.Context, data []byte) (response, error) {
 	var req request
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
@@ -81,6 +85,8 @@ func invoke(data []byte) (response, error) {
 		value, err = invokeImports(req.Input)
 	case "gitRevision":
 		value, err = invokeGitRevision(req.Input)
+	case "nativeAcceptance":
+		return acceptanceResponse(ctx, req.Input)
 	case "nativePackage":
 		return packageResponse(req.Input)
 	case "interactiveAuthoring":
@@ -367,7 +373,7 @@ func handler(logger *slog.Logger) http.Handler {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
-		result, err := invoke(data)
+		result, err := invokeContext(r.Context(), data)
 		if err != nil {
 			logger.ErrorContext(r.Context(), "invoke failed", "error", err)
 			w.WriteHeader(http.StatusInternalServerError)

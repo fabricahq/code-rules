@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/authoring"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -17,7 +18,8 @@ import (
 
 // syncFixture supplies real Git libraries, authored local files, and optional post-seed edits.
 type syncFixture struct {
-	toolVersion string // Set only by the CLI adapter to match the executable used for setup output.
+	configDirectory string // Adapter-owned directory beneath the disposable project root.
+	toolVersion     string // Set only by the CLI adapter to match the executable used for setup output.
 	importFixture
 	LocalFiles map[string]string  `json:"localFiles,omitempty"`
 	SeedSync   bool               `json:"seedSync,omitempty"`
@@ -82,20 +84,25 @@ func withSyncProject(ctx context.Context, cancel context.CancelFunc, fixture syn
 		return nil, err
 	}
 	defer root.Close()
-	if err := root.WriteFile("config.json", fixture.Configuration, 0600); err != nil {
+	configPath := filepath.Join(fixture.configDirectory, "config.json")
+	if err := writeOfflineFixtureFile(root, configPath, fixture.Configuration); err != nil {
 		return nil, err
 	}
 	for file, text := range fixture.LocalFiles {
 		if err := projectFixturePath(file); err != nil {
 			return nil, err
 		}
-		if err := writeOfflineFixtureFile(root, "local/"+file, []byte(text)); err != nil {
+		if err := writeOfflineFixtureFile(root, filepath.Join(fixture.configDirectory, "local", file), []byte(text)); err != nil {
 			return nil, err
 		}
 	}
-	options := project.Options{ConfigPath: filepath.Join(dir, "config.json"), ToolVersion: "go-migration-review"}
+	options := project.Options{ConfigPath: filepath.Join(dir, configPath), ToolVersion: "go-migration-review"}
 	if fixture.toolVersion != "" {
 		options.ToolVersion = fixture.toolVersion
+		// CLI scenarios start from an initialized project, including the agent guide checked by the CLI.
+		if _, err := authoring.InitializeProject(ctx, authoring.Options{ConfigPath: options.ConfigPath}); err != nil {
+			return nil, err
+		}
 	}
 	if fixture.SeedSync {
 		if _, err := project.Sync(ctx, options, git); err != nil {
@@ -115,7 +122,7 @@ func withSyncProject(ctx context.Context, cancel context.CancelFunc, fixture syn
 		}
 	}
 	// Edits may retire sources, but must not route the demo outside its prepared Git fixtures.
-	currentConfig, err := root.ReadFile("config.json")
+	currentConfig, err := root.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}

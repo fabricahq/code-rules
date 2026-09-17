@@ -220,7 +220,7 @@ func groupTitle(group Group) string {
 func indexHeader(groups []Group) string {
 	blocks := []string{
 		"# Code Rules",
-		"This project uses [Fabrica Code Rules](https://github.com/fabricahq/code-rules) to declare its adopted engineering practices.",
+		"This project uses [Fabrica Code Rules](https://code-rules.fabricahq.com) to declare its adopted engineering practices.",
 	}
 	hasRules := false
 	for _, group := range groups {

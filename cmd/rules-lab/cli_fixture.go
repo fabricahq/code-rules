@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -56,6 +55,7 @@ func cliResponse(input json.RawMessage) (response, error) {
 	if err != nil {
 		return response{}, err
 	}
+	fixture.configDirectory = ".code-rules"
 	fixture.toolVersion = strings.TrimSpace(string(version))
 	observed, err := withImportFixture(ctx, fixture.importFixture, func(git imports.Options) (any, error) {
 		return withSyncProject(ctx, cancel, fixture.syncFixture, git, func(root *os.Root, _ project.Options, before *project.Tree) (any, error) {
@@ -84,36 +84,13 @@ func validateCLIArguments(args []string) error {
 			return &rules.ValidationError{Location: "arguments", Problem: "use sync, build, check, help, or version in this walkthrough"}
 		}
 	}
-	hasConfig := false
-	helpOnly := false
-	for _, arg := range args {
-		if arg == "--" {
-			break
-		}
-		name, value, equal := strings.Cut(arg, "=")
-		if name == "--help" || name == "-h" {
-			if equal {
-				helpOnly, _ = strconv.ParseBool(value)
-			} else {
-				helpOnly = true
-			}
-		}
-	}
 	for i, arg := range args {
-		if arg == "--config" {
-			hasConfig = i+1 < len(args) && args[i+1] == "config.json"
-			if i+1 < len(args) && args[i+1] != "config.json" {
-				return &rules.ValidationError{Location: "arguments", Problem: "the walkthrough config path must be config.json"}
-			}
-		} else if len(arg) >= 9 && arg[:9] == "--config=" && arg != "--config=config.json" {
-			return &rules.ValidationError{Location: "arguments", Problem: "the walkthrough config path must be config.json"}
+		if arg == "--config" && i+1 < len(args) && args[i+1] != ".code-rules/config.json" {
+			return &rules.ValidationError{Location: "arguments", Problem: "the walkthrough config path must be .code-rules/config.json"}
 		}
-		if arg == "--config=config.json" {
-			hasConfig = true
+		if strings.HasPrefix(arg, "--config=") && arg != "--config=.code-rules/config.json" {
+			return &rules.ValidationError{Location: "arguments", Problem: "the walkthrough config path must be .code-rules/config.json"}
 		}
-	}
-	if len(args) > 0 && (args[0] == "sync" || args[0] == "build" || args[0] == "check") && !hasConfig && !helpOnly {
-		return &rules.ValidationError{Location: "arguments", Problem: "operational walkthrough commands require --config config.json so only the reviewed fixture configuration is used"}
 	}
 	return nil
 }

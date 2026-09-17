@@ -333,6 +333,12 @@
         Run compiled Go commands and inspect their actual stdout, stderr, exit
         status, and filesystem changes.
       </p>
+      <p>
+        <a href="http://localhost:4392/" target="_blank" rel="noopener"
+          >Supplementary Gruntwork runbook</a
+        >: Initialize a project and add local groups and rules. Run individual
+        commands there; keep this lab for the full PR scenarios.
+      </p>
       <div class="workspace">
         <section class="panel">
           <div class="label">Invoke the new capability</div>
@@ -366,6 +372,7 @@
           <p id="explanation">
             Invoke Go to inspect its returned data or error.
           </p>
+          <p>Commands run from the project root. They use <code>.code-rules/config.json</code> by default; <code>init</code> creates it, and other project commands fail if it is missing.</p>
           <label for="vendor-file">Command transcript or project file</label
           ><select id="vendor-file"></select>
           <pre id="vendor-content">Invoke Go to inspect a file.</pre>
@@ -431,32 +438,46 @@
           {
             name: "Initialize",
             description:
-              "Creates config.json and local/README.md. The result names only newly authored files.",
+              "Creates .code-rules/README.md with agent workflows, .code-rules/config.json, and .code-rules/local/README.md. Select .code-rules/README.md to inspect the management guide.",
             input: {
               files: {},
-              commands: [["init", "--config", "config.json"]],
+              commands: [["init"]],
+            },
+          },
+          {name: "Missing configuration", description: "Runs check in an empty project. Expect a missing .code-rules/config.json error and no files created. Run code-rules init first.", input: {files: {}, commands: [["check"]]}},
+          {
+            name: "Verify guide",
+            description:
+              "Initializes and builds the project, then runs check --json. Expect status: up_to_date and an empty problems list. CI can use this read-only check to detect a stale or missing agent guide after upgrades.",
+            input: {
+              files: {},
+              commands: [
+                ["init"],
+                ["build"],
+                ["check", "--json"],
+              ],
             },
           },
           {
             name: "Repeat init",
             description:
-              "Runs init twice. The second command preserves existing bytes and returns no new files.",
+              "Runs init twice. Current generated guidance and authored files remain unchanged. Older unmodified guides refresh on init; manual README edits are protected.",
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
-                ["init", "--config", "config.json"],
+                ["init"],
+                ["init"],
               ],
             },
           },
           {
             name: "Local group",
             description:
-              "Creates trimmed metadata for a local Go group without generating guidance.",
+              "Creates local Go group metadata and README.md with agent instructions. Select .code-rules/local/techs/go/README.md in the result to read it.",
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -468,8 +489,6 @@
                   "Project Go guidance.",
                   "--when-to-read",
                   "When editing Go.",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -484,7 +503,7 @@
                   "# Return errors\n\nReturn failures to the caller.\n",
               },
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -496,8 +515,6 @@
                   "Project Go guidance.",
                   "--when-to-read",
                   "When editing Go.",
-                  "--config",
-                  "config.json",
                 ],
                 [
                   "local",
@@ -512,13 +529,11 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                   "--body-file",
                   "body.md",
                 ],
-                ["build", "--config", "config.json"],
-                ["check", "--config", "config.json"],
+                ["build"],
+                ["check"],
               ],
             },
           },
@@ -529,7 +544,7 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -541,8 +556,6 @@
                   "Project Go guidance.",
                   "--when-to-read",
                   "When editing Go.",
-                  "--config",
-                  "config.json",
                 ],
                 [
                   "local",
@@ -557,8 +570,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -566,12 +577,12 @@
           {
             name: "Create group, then rule",
             description:
-              "Creates the group first, then adds its rule in a separate command.",
+              "Creates the group and its README first, then adds the rule in a separate command.",
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
-                ["local", "add", "group", "techs/go", "--config", "config.json", "--name", "Go", "--description", "Project Go guidance.", "--when-to-read", "When editing Go."],
+                ["init"],
+                ["local", "add", "group", "techs/go", "--name", "Go", "--description", "Project Go guidance.", "--when-to-read", "When editing Go."],
                 [
                   "local",
                   "add",
@@ -585,8 +596,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -598,7 +607,7 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "add",
                   "source",
@@ -609,8 +618,6 @@
                   ">= 1.2.3, < 2.0.0",
                   "--groups",
                   "techs/go",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -622,7 +629,7 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -634,8 +641,6 @@
                   "Project Go guidance.",
                   "--when-to-read",
                   "When editing Go.",
-                  "--config",
-                  "config.json",
                 ],
                 [
                   "local",
@@ -650,8 +655,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                 ],
                 [
                   "local",
@@ -666,8 +669,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -679,7 +680,7 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
@@ -693,8 +694,6 @@
                   "Preserve failures.",
                   "--when-to-read",
                   "When calling fallible functions.",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -706,14 +705,12 @@
             input: {
               files: {},
               commands: [
-                ["init", "--config", "config.json"],
+                ["init"],
                 [
                   "local",
                   "add",
                   "group",
                   "techs/go",
-                  "--config",
-                  "config.json",
                 ],
               ],
             },
@@ -724,19 +721,21 @@
               "Existing malformed config is reported and left unchanged by init.",
             input: {
               files: {
-                "config.json": "{ invalid",
+                ".code-rules/config.json": "{ invalid",
               },
-              commands: [["init", "--config", "config.json"]],
+              commands: [["init"]],
             },
           },
         ],
       };
       let vendorFiles = {};
-      // Display original persisted text or a labeled base64 representation of binary bytes.
+      // Display file contents with readable configuration JSON and labeled binary bytes.
       function showVendorFile() {
         const value = vendorFiles[byID("vendor-file").value];
-        byID("vendor-content").textContent =
-          typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        byID("vendor-content").textContent = formatFixtureFile(
+          byID("vendor-file").value,
+          value,
+        );
       }
       byID("vendor-file").addEventListener("change", showVendorFile);
       // Clear prior output when the editable input changes.
@@ -870,8 +869,14 @@
             ? "The command sequence stopped with status " +
               observed.exitCode +
               ". Inspect stdout, stderr, and the files below."
-            : result.error.message +
-              " The observation shows files left on disk after the call.";
+            : result.error.message;
+          if (!result.ok) {
+            byID("explanation").append(
+              document.createElement("br"),
+              document.createElement("br"),
+              "The observation shows files left on disk after the call.",
+            );
+          }
         } catch (error) {
           byID("explanation").textContent =
             "The request failed. No Go result was received.";

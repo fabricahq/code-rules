@@ -1,6 +1,6 @@
 # Code Rules
 
-Shared engineering standards for the agents building your software.
+The package manager for your engineering rules.
 Code Rules manages which versioned engineering rules a codebase adopts, including shared libraries, local exceptions, and reviewable updates.
 It generates rule files for agents and other tools to consume. Your project chooses how to apply, validate, and enforce them through agent prompts or separate tooling. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
 

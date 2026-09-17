@@ -65,7 +65,7 @@ function groupEntry(group: Group): string {
 function indexHeader(): string {
   return [
     '# Code Rules',
-    'This project uses [Fabrica Code Rules](https://github.com/fabricahq/code-rules) to declare its adopted engineering practices.',
+    'This project uses [Fabrica Code Rules](https://code-rules.fabricahq.com) to declare its adopted engineering practices.',
     'Before planning or writing code, use the descriptions under **Technology and practice group indexes** below to choose which indexes to open. Consider the intended behavior as well as the technology; testing guidance can apply even when no test files have changed.',
     'Each group page includes full rules or summaries with explicit reading links. Exclusions and replacements are already applied.',
     'Read the full text of every applicable or plausibly applicable rule before relying on it. Complete truncated reads. Revisit selection when scope changes and reload needed rules after compaction.',

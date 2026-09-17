@@ -333,12 +333,18 @@
         Run compiled Go commands and inspect their actual stdout, stderr, exit
         status, and filesystem changes.
       </p>
+      <p>
+        <a href="http://localhost:4392/" target="_blank" rel="noopener"
+          >Supplementary Gruntwork runbook</a
+        >: CLI help, offline build/check, and visible failure status. Run
+        individual commands there; keep this lab for the full PR scenarios.
+      </p>
       <div class="workspace">
         <section class="panel">
           <div class="label">Invoke the new capability</div>
           <h2>Make the input your own</h2>
           <div class="signature">
-            code-rules sync | build | check [--config config.json]
+            code-rules sync | build | check
           </div>
           <div class="presets" id="presets"></div>
           <p
@@ -362,6 +368,7 @@
           <p id="explanation">
             Invoke Go to inspect its returned data or error.
           </p>
+          <p>Commands run from the project root. They use <code>.code-rules/config.json</code> by default; <code>init</code> creates it, and other project commands fail if it is missing.</p>
           <label for="vendor-file">Command result or project file</label
           ><select id="vendor-file"></select>
           <pre id="vendor-content">Invoke Go to inspect a file.</pre>
@@ -373,9 +380,11 @@
             <summary>What this PR does</summary>
             <p>
               The production Cobra entry point now exposes sync, build, check,
-              help, and version. JSON results go to stdout; operation and usage
-              errors go to stderr. Exit 0 means success, exit 1 means operation
-              failure or stale check output, and exit 2 means invalid usage.
+              help, and version. Results are human-readable by default;
+              operation and usage errors go to stderr. Add --json for one
+              structured response on stdout, including errors. JSON mode never
+              prompts. Exit 0 means success, exit 1 means operation failure or
+              stale check output, and exit 2 means invalid usage.
             </p>
             <p>
               This page executes the compiled code-rules binary directly,
@@ -386,7 +395,7 @@
             </p>
             <p>
               CLI arguments in this demo are confined to these commands and
-              config.json. Source addresses must match prepared local Git
+              .code-rules/config.json. Source addresses must match prepared local Git
               fixtures. The production CLI accepts ordinary configured
               repositories.
             </p>
@@ -425,7 +434,7 @@
           {
             name: "Sync command",
             description:
-              "Runs the compiled code-rules sync command against a real local Git fixture. Inspect stdout JSON, exit status 0, and installed files.",
+              "Runs the compiled code-rules sync command against a real local Git fixture. Inspect readable stdout, exit status 0, and installed files.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -452,13 +461,37 @@
               },
               localFiles: {},
               scenario: "sync",
-              arguments: ["sync", "--config", "config.json"],
+              arguments: ["sync"],
+            },
+          },
+          {
+            name: "JSON success",
+            description:
+              "Builds an empty project with --json. Expect ok: true and file changes in value, with no text mixed into stdout.",
+            input: {
+              configuration: { schemaVersion: 1, sources: {} },
+              libraries: {},
+              localFiles: {},
+              scenario: "sync",
+              arguments: ["build", "--json"],
+            },
+          },
+          {
+            name: "JSON error",
+            description:
+              "Runs an unknown command with --json. Expect exit 2 and ok: false with an error kind and message on stdout.",
+            input: {
+              configuration: { schemaVersion: 1, sources: {} },
+              libraries: {},
+              localFiles: {},
+              scenario: "sync",
+              arguments: ["unknown", "--json"],
             },
           },
           {
             name: "Clean check",
             description:
-              "Seeds a sync using the executable version, then runs check. Expect exit 0, empty differences on stdout, and unchanged files.",
+              "Seeds a sync using the executable version, then runs check. Expect exit 0, an up-to-date confirmation on stdout, and unchanged files.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -486,13 +519,13 @@
               localFiles: {},
               scenario: "sync",
               seedSync: true,
-              arguments: ["check", "--config", "config.json"],
+              arguments: ["check"],
             },
           },
           {
             name: "Stale check",
             description:
-              "Changes generated/RULES.md after setup. Check reports a difference on stdout and exits 1 without writing or printing an error to stderr.",
+              "Changes generated/RULES.md after setup. Check reports status: out of date, identifies stale contents, and suggests a build. It exits 1 without changing files.",
             input: {
               configuration: {
                 schemaVersion: 1,
@@ -521,9 +554,9 @@
               scenario: "sync",
               seedSync: true,
               changes: {
-                "generated/RULES.md": "Stale output",
+                ".code-rules/generated/RULES.md": "Stale output",
               },
-              arguments: ["check", "--config", "config.json"],
+              arguments: ["check"],
             },
           },
           {
@@ -558,9 +591,9 @@
               scenario: "sync",
               seedSync: true,
               changes: {
-                "generated/RULES.md": "Stale output",
+                ".code-rules/generated/RULES.md": "Stale output",
               },
-              arguments: ["build", "--config", "config.json"],
+              arguments: ["build"],
             },
           },
           {
@@ -595,9 +628,9 @@
               scenario: "sync",
               seedSync: true,
               changes: {
-                "local/techs/go/bad.md": "No frontmatter",
+                ".code-rules/local/techs/go/bad.md": "No frontmatter",
               },
-              arguments: ["build", "--config", "config.json"],
+              arguments: ["build"],
             },
           },
           {
@@ -630,7 +663,7 @@
               },
               localFiles: {},
               scenario: "sync",
-              arguments: ["build", "--force", "--config", "config.json"],
+              arguments: ["build", "--force"],
             },
           },
           {
@@ -663,13 +696,7 @@
               },
               localFiles: {},
               scenario: "sync",
-              arguments: [
-                "build",
-                "--config",
-                "config.json",
-                "--config",
-                "config.json",
-              ],
+              arguments: ["build", "--config", ".code-rules/config.json", "--config", ".code-rules/config.json"],
             },
           },
           {
@@ -701,7 +728,7 @@
               },
               localFiles: {},
               scenario: "sync",
-              arguments: ["sync", "--help", "--config", "config.json"],
+              arguments: ["sync", "--help"],
             },
           },
           {
@@ -740,11 +767,13 @@
         ],
       };
       let vendorFiles = {};
-      // Display original persisted text or a labeled base64 representation of binary bytes.
+      // Display file contents with readable configuration JSON and labeled binary bytes.
       function showVendorFile() {
         const value = vendorFiles[byID("vendor-file").value];
-        byID("vendor-content").textContent =
-          typeof value === "string" ? value : JSON.stringify(value, null, 2);
+        byID("vendor-content").textContent = formatFixtureFile(
+          byID("vendor-file").value,
+          value,
+        );
       }
       byID("vendor-file").addEventListener("change", showVendorFile);
       // Clear prior output when the editable input changes.
@@ -860,8 +889,14 @@
             ? "The native command exited with status " +
               observed.exitCode +
               ". Inspect stdout, stderr, and the files below."
-            : result.error.message +
-              " The observation shows files left on disk after the call.";
+            : result.error.message;
+          if (!result.ok) {
+            byID("explanation").append(
+              document.createElement("br"),
+              document.createElement("br"),
+              "The observation shows files left on disk after the call.",
+            );
+          }
         } catch (error) {
           byID("explanation").textContent =
             "The request failed. No Go result was received.";

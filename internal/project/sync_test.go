@@ -9,6 +9,7 @@ import (
 	"errors"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/gitfixture"
@@ -87,6 +88,13 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	vendor, err := ReadTree(ctx, root, "vendor")
 	if err != nil || len(vendor.Files) != 0 {
 		t.Fatal("retired files retained", err)
+	}
+	index, err := root.ReadFile("generated/RULES.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(index), "No active rules are selected for this project.") || strings.Contains(string(index), "Open the relevant group indexes below") {
+		t.Fatalf("retired source left misleading reading instructions: %s", index)
 	}
 }
 

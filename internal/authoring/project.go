@@ -100,7 +100,7 @@ func configuration(ctx context.Context, root *os.Root, name string) ([]byte, rul
 	return data, config, err
 }
 
-// InitializeProject creates only missing configuration and local orientation, preserving existing valid bytes.
+// InitializeProject creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and local files are preserved.
 func InitializeProject(ctx context.Context, options Options) (Result, error) {
 	root, name, err := openProject(ctx, options, true)
 	if err != nil {
@@ -126,12 +126,19 @@ func InitializeProject(ctx context.Context, options Options) (Result, error) {
 		if err != nil {
 			return err
 		}
+		guide, err := prepareProjectGuide(ctx, root, name)
+		if err != nil {
+			return err
+		}
 		if old == nil {
 			data, _ := jsonText(map[string]any{"schemaVersion": 1, "sources": map[string]any{}})
 			files = append(files, authoredFile{name: name, data: data})
 		}
 		if readme == nil {
-			files = append(files, authoredFile{name: "local/README.md", data: []byte(localReadme)})
+			files = append(files, authoredFile{name: "local/README.md", data: renderLocalReadme(filepath.Join(root.Name(), name))})
+		}
+		if guide != nil {
+			files = append(files, *guide)
 		}
 		err = publishAuthored(ctx, root, files)
 		committed = publicationComplete(err)
@@ -186,8 +193,9 @@ func AddLocalGroup(ctx context.Context, id string, metadata rules.GroupMetadata,
 	if err != nil {
 		return Result{}, err
 	}
-	return editProject(ctx, options, "Add a rule to this group, then run build.", func(_ *os.Root, _ string, _ []byte, _ rules.Configuration) ([]authoredFile, error) {
-		return []authoredFile{{name: path.Join("local", id, "_group.json"), data: data}}, nil
+	return editProject(ctx, options, "Add a rule to this group, then run build.", func(root *os.Root, name string, _ []byte, _ rules.Configuration) ([]authoredFile, error) {
+		guideName, _ := ProjectGuide(filepath.Join(root.Name(), name))
+		return groupFiles(path.Join("local", id), id, data, false, guideName), nil
 	})
 }
 

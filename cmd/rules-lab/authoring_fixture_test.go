@@ -6,7 +6,12 @@ import "testing"
 
 // TestAuthoringFixtureConfinement rejects escape paths before any child command can be started.
 func TestAuthoringFixtureConfinement(t *testing.T) {
-	for _, args := range [][]string{{"sync", "--config", "config.json"}, {"init"}, {"init", "--config", "/tmp/config.json"}, {"local", "add", "rule", "techs/go/errors", "--config", "config.json", "--body-file", "../secret"}, {"local", "add", "rule", "techs/go/errors", "--config=config.json", "--body-file=/tmp/secret"}} {
+	for _, args := range [][]string{{"init"}, {"check"}, {"add", "source", "team"}} {
+		if err := validateAuthoringArguments(args); err != nil {
+			t.Fatal(args, err)
+		}
+	}
+	for _, args := range [][]string{{"sync", "--config", "config.json"}, {"init", "--config", "/tmp/config.json"}, {"local", "add", "rule", "techs/go/errors", "--body-file", "../secret"}, {"local", "add", "rule", "techs/go/errors", "--body-file=/tmp/secret"}} {
 		if err := validateAuthoringArguments(args); err == nil {
 			t.Fatalf("accepted %v", args)
 		}

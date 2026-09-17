@@ -114,3 +114,9 @@ func quote(value string) string {
 	b.WriteByte('"')
 	return b.String()
 }
+
+// IsGroupReadme recognizes only the orientation file directly inside a valid group, outside rule and asset paths.
+func IsGroupReadme(file string) bool {
+	group, found := strings.CutSuffix(file, "/README.md")
+	return found && ValidateGroupID(group, file) == nil
+}

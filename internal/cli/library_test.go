@@ -4,7 +4,9 @@ package cli
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -40,5 +42,47 @@ func TestLibraryCLIProcess(t *testing.T) {
 	out, diagnostic, code = runCLI(t, binary, dir, "library", "check", "--directory", "library")
 	if code != 1 || out != "" || !strings.Contains(diagnostic, "code-rules:draft") {
 		t.Fatal(code, out, diagnostic)
+	}
+}
+
+// TestLibraryGuideExamples executes the shipped README examples and preserves publisher customization on repeat init.
+func TestLibraryGuideExamples(t *testing.T) {
+	binary := buildCLI(t)
+	directory := t.TempDir()
+	if out, diagnostic, code := runCLI(t, binary, directory, "library", "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	guidePath := filepath.Join(directory, "README.md")
+	guide, err := os.ReadFile(guidePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blocks := regexp.MustCompile("(?ms)^```sh\\n(.*?)^```$").FindAllSubmatch(guide, -1)
+	if len(blocks) == 0 {
+		t.Fatal("no command examples in library README")
+	}
+	for index, block := range blocks {
+		script := strings.ReplaceAll(string(block[1]), "code-rules ", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"' ")
+		command := exec.Command("/bin/sh", "-eu", "-c", script)
+		command.Dir = directory
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("README example %d failed: %v\n%s", index+1, err, output)
+		}
+	}
+	for _, path := range []string{"techs/go/_group.json", "techs/go/README.md", "techs/go/return-errors.md"} {
+		if _, err := os.Stat(filepath.Join(directory, path)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	customized := append(guide, []byte("\nPublisher-specific release instructions.\n")...)
+	if err := os.WriteFile(guidePath, customized, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if out, diagnostic, code := runCLI(t, binary, directory, "library", "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	after, err := os.ReadFile(guidePath)
+	if err != nil || string(after) != string(customized) {
+		t.Fatal("repeat init changed publisher README", err)
 	}
 }

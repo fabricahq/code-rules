@@ -30,6 +30,9 @@ test('top-level help supports discovery without dumping authoring options', asyn
   const result = await invoke(['--help']);
   expect(result.status).toBe(0);
   expect(result.stderr).toBe('');
+  expect(result.stdout).toContain(
+    'The package manager for your engineering rules',
+  );
   expect(result.stdout).toContain('Project commands:');
   expect(result.stdout).toContain('add source');
   expect(result.stdout).toContain('Library commands:');

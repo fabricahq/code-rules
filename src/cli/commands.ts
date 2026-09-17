@@ -347,7 +347,7 @@ export const commands: readonly Command[] = [
 
 /** Navigation-only command groups; executable children are defined in commands. */
 export const commandGroups: Readonly<Record<string, string>> = {
-  '': 'Manage versioned engineering rules for your codebase.',
+  '': 'The package manager for your engineering rules',
   add: 'Add library sources to your project.',
   local: 'Create local groups and rules.',
   'local add': 'Create a local group or rule.',

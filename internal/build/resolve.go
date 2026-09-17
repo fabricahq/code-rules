@@ -250,7 +250,7 @@ func parseLocal(files map[string][]byte, groups map[string]*Group) (map[string]r
 		if !fs.ValidPath(file) || file == "." || strings.ContainsAny(file, "\\:") || strings.ContainsFunc(file, func(r rune) bool { return r < 32 || r == 127 }) {
 			return nil, invalid(file, "expected a contained portable local path")
 		}
-		if file == "README.md" {
+		if file == "README.md" || rules.IsGroupReadme(file) {
 			continue
 		}
 		if slices.Contains(strings.Split(file, "/"), "assets") && !(strings.Count(file, "/") == 2 && path.Base(file) == "_group.json" && (strings.HasPrefix(file, "techs/") || strings.HasPrefix(file, "practices/"))) {
