@@ -178,7 +178,7 @@ code-rules library add rule techs/javascript/prefer-for-of
 code-rules library check
 ```
 
-- `library init` creates the format manifest and a README pointing to the canonical authoring guidance. Supply `--spdx expression --license-file path` and optional `--notice-file path` to copy explicit terms to `LICENSE.md` and `NOTICE.md`. Authors may defer that choice; the manifest then leaves it undeclared.
+- `library init` creates the format manifest and a README pointing to the canonical authoring guidance. The Go candidate README defines rules, groups, and libraries and gives agents executable examples for authoring and validation. Existing READMEs are preserved. Supply `--spdx expression --license-file path` and optional `--notice-file path` to copy explicit terms to `LICENSE.md` and `NOTICE.md`. Authors may defer that choice; the manifest then leaves it undeclared.
 - `library add group <group-id>` creates `_group.json` under `techs/` or `practices/`, collecting the name, description, and group-level `whenToRead` cues. A group can exist before it has rules.
 - `library add rule <rule-id>` creates a Markdown draft from the canonical template in an existing group. A missing group can be created interactively or with `--create-group` and explicit metadata. Required fields need author input; the command does not invent policy.
 - `library check` validates the manifest, all group and rule definitions, and declared license and notice assets offline without writing files. It reports file-specific errors and group and rule counts. Marked drafts fail until completed and their `code-rules:draft` marker is removed. Empty groups are valid. Undeclared licenses produce warnings; malformed declarations and missing declared files fail validation.

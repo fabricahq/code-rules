@@ -4,6 +4,7 @@ package authoring
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -30,16 +31,10 @@ type LibraryRuleOptions struct {
 	Group *rules.GroupMetadata
 }
 
-const libraryReadme = `# Rule library
-
-Describe shared engineering guidance under techs/<group>/ or practices/<group>/.
-Start with code-rules library add group, then code-rules library add rule.
-Complete drafts and run code-rules library check before committing and tagging a version.
-
-Follow the [canonical authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md).
-Declare one license for the whole library in rule-library.json and retain its actual license text and notices.
-Consumers select this Git repository and a version with code-rules add source, then run code-rules sync.
-`
+// libraryReadme introduces publisher workflows; CLI tests execute its command examples.
+//
+//go:embed library-guide.md
+var libraryReadme string
 
 // openLibrary enforces the same final-root no-link policy as project authoring.
 func openLibrary(ctx context.Context, options LibraryOptions, create bool) (*os.Root, error) {
