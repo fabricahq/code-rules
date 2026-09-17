@@ -4,6 +4,7 @@ package distribution
 
 import (
 	"context"
+	"github.com/fabricahq/code-rules/internal/gitfixture"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -94,15 +95,51 @@ func TestNativeInstallUpgradeRollback(t *testing.T) {
 
 // TestPackagingRefusesUnapprovedRelease rejects missing tool terms before creating an output directory.
 func TestPackagingRefusesUnapprovedRelease(t *testing.T) {
-	source := t.TempDir()
-	if err := os.WriteFile(filepath.Join(source, "package.json"), []byte(`{"version":"1.0.0","license":"UNLICENSED"}`), 0600); err != nil {
+	fixture, err := gitfixture.New(context.Background(), map[string][]byte{"package.json": []byte(`{"version":"1.0.0","license":"UNLICENSED"}`)})
+	if err != nil {
 		t.Fatal(err)
 	}
+	defer fixture.Close()
+	source := filepath.Join(fixture.Directory, "repository")
 	output := filepath.Join(t.TempDir(), "release")
-	if _, err := Build(context.Background(), Options{Source: source, Output: output}); err == nil {
+	if _, err := Build(context.Background(), Options{Source: source, Output: output}); err == nil || !strings.Contains(err.Error(), "approved tool license") {
 		t.Fatal("expected licensing gate")
 	}
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
 		t.Fatal("release gate wrote files", err)
+	}
+}
+
+// TestCandidateBuildExcludesUncommittedEdits verifies that a manifest's recorded commit owns the executable inputs.
+func TestCandidateBuildExcludesUncommittedEdits(t *testing.T) {
+	fixture, err := gitfixture.New(context.Background(), map[string][]byte{
+		"package.json":           []byte(`{"version":"1.0.0","license":"UNLICENSED"}`),
+		"go.mod":                 []byte("module example.invalid/fixture\n\ngo 1.27.1\n"),
+		"cmd/code-rules/main.go": []byte("package main\nimport \"fmt\"\nvar version string\nfunc main(){fmt.Println(version)}\n"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fixture.Close()
+	source := filepath.Join(fixture.Directory, "repository")
+	if err := os.WriteFile(filepath.Join(source, "cmd/code-rules/main.go"), []byte("invalid uncommitted Go source"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	artifacts := filepath.Join(t.TempDir(), "artifacts")
+	target := runtime.GOOS + "/" + runtime.GOARCH
+	manifest, err := Build(context.Background(), Options{Source: source, Output: artifacts, Candidate: true, Targets: []string{target}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !manifest.SourceDirty || manifest.SourceRevision != fixture.LatestCommit {
+		t.Fatal(manifest)
+	}
+	installed := filepath.Join(t.TempDir(), "installed")
+	if _, err := Install(artifacts, target, installed); err != nil {
+		t.Fatal(err)
+	}
+	data, err := exec.Command(filepath.Join(installed, "code-rules")).Output()
+	if err != nil || strings.TrimSpace(string(data)) != "1.0.0" {
+		t.Fatal(string(data), err)
 	}
 }
