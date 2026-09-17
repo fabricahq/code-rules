@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -172,5 +173,46 @@ func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+// TestCapturedLibraryIgnoresLaterEdits keeps catalog counts and inventory validation on exactly the same bytes.
+func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
+	ctx := context.Background()
+	options := LibraryOptions{Directory: t.TempDir()}
+	if _, err := InitializeLibrary(ctx, options, nil); err != nil {
+		t.Fatal(err)
+	}
+	root, err := os.OpenRoot(options.Directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	snapshot, _, err := libraryCheckInput(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(options.Directory, "techs/go"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(options.Directory, "techs/go/_group.json"), []byte(`{"name":"Go","description":"Go guidance","whenToRead":"When editing Go"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	catalog, err := library.LoadSource(ctx, capturedLibrary{snapshot}, "library", rules.GroupSelection{Pattern: "*"})
+	if err != nil || len(catalog.Groups) != 0 {
+		t.Fatal(catalog, err)
+	}
+	if err := requireLibraryUnchanged(ctx, root, snapshot); err == nil {
+		t.Fatal("missed new group")
+	}
+	if err := os.Remove(filepath.Join(options.Directory, "techs/go/_group.json")); err != nil {
+		t.Fatal(err)
+	}
+	empty, _, err := libraryCheckInput(ctx, root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := library.LoadSource(ctx, capturedLibrary{empty}, "library", rules.GroupSelection{Pattern: "*"}); err == nil {
+		t.Fatal("empty group without metadata accepted")
 	}
 }
