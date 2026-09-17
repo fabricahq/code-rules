@@ -28,11 +28,10 @@ type Result struct {
 	Warnings []string `json:"warnings,omitempty"`
 }
 
-// RuleOptions distinguishes a supplied body from an unfinished draft and optional new group creation.
+// RuleOptions distinguishes a supplied body from an unfinished draft in an existing group.
 type RuleOptions struct {
 	Options
-	Body  *string
-	Group *rules.GroupMetadata
+	Body *string
 }
 
 // openProject opens the final project directory without accepting a symlink and optionally creates its parents.
@@ -226,6 +225,7 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 }
 
 // HasLocalRuleGroup checks current metadata before prompting; writes must still recheck under the writer lock.
+// This advisory read does not require an idle writer; publication owns recovery and revalidation.
 func HasLocalRuleGroup(ctx context.Context, id string, options Options) (bool, error) {
 	if err := rules.ValidateGroupID(id, "group"); err != nil {
 		return false, err
@@ -235,9 +235,6 @@ func HasLocalRuleGroup(ctx context.Context, id string, options Options) (bool, e
 		return false, err
 	}
 	defer root.Close()
-	if err = project.RequireIdle(root); err != nil {
-		return false, err
-	}
 	_, config, err := configuration(ctx, root, name)
 	if err != nil {
 		return false, err
@@ -245,7 +242,7 @@ func HasLocalRuleGroup(ctx context.Context, id string, options Options) (bool, e
 	return groupAvailable(ctx, root, config, id)
 }
 
-// AddLocalRule creates a validated rule or canonical unfinished draft, optionally with new group metadata.
+// AddLocalRule creates a validated rule or canonical unfinished draft, in an existing group.
 func AddLocalRule(ctx context.Context, id string, metadata RuleMetadata, options RuleOptions) (Result, error) {
 	if strings.HasSuffix(id, ".md") {
 		return Result{}, failure("invalid-operation", "use a rule ID without the .md extension", nil)
@@ -258,31 +255,20 @@ func AddLocalRule(ctx context.Context, id string, metadata RuleMetadata, options
 	if err != nil {
 		return Result{}, err
 	}
-	var groupData []byte
-	if options.Group != nil {
-		groupData, err = renderGroup(*options.Group)
-		if err != nil {
-			return Result{}, err
-		}
-	}
+
 	next := "Review the rule, then run build."
 	if options.Body == nil {
 		next = "Complete the draft and remove unused template prompts before running build."
 	}
 	return editProject(ctx, options.Options, next, func(root *os.Root, _ string, _ []byte, config rules.Configuration) ([]authoredFile, error) {
-		files := []authoredFile{}
-		if groupData != nil {
-			files = append(files, authoredFile{name: path.Join("local", group, "_group.json"), data: groupData})
-		} else {
-			available, err := groupAvailable(ctx, root, config, group)
-			if err != nil {
-				return nil, err
-			}
-			if !available {
-				return nil, failure("missing-group", "no metadata for "+group+"; run local add group or supply --create-group and its metadata", nil)
-			}
+		available, err := groupAvailable(ctx, root, config, group)
+		if err != nil {
+			return nil, err
 		}
-		return append(files, authoredFile{name: path.Join("local", id+".md"), data: data}), nil
+		if !available {
+			return nil, failure("missing-group", "group "+group+" does not exist; create it first with code-rules local add group "+group+", then retry adding the rule", nil)
+		}
+		return []authoredFile{{name: path.Join("local", id+".md"), data: data}}, nil
 	})
 }
 

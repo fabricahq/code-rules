@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Code Rules · Author project rules</title>
+    <title>Code Rules · Author rules interactively</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -326,9 +326,9 @@
     <main>
       <header>
         <a href="/">CODE RULES / REVIEW COLLECTION</a
-        ><span>PR #35 · Author project rules</span>
+        ><span>PR #37 · Author rules interactively</span>
       </header>
-      <h1>Author project rules</h1>
+      <h1>Author rules interactively</h1>
       <p class="lede">
         Run compiled Go commands and inspect their actual stdout, stderr, exit
         status, and filesystem changes.
@@ -338,7 +338,7 @@
           <div class="label">Invoke the new capability</div>
           <h2>Make the input your own</h2>
           <div class="signature">
-            code-rules init | add source | local add group | local add rule
+            Native terminal prompts before any writer lock
           </div>
           <div class="presets" id="presets"></div>
           <p
@@ -347,7 +347,7 @@
             aria-live="polite"
           ></p>
           <details>
-            <summary>Commands in this scenario</summary>
+            <summary>Commands and terminal answers</summary>
             <pre id="command-preview"></pre>
           </details>
           <label for="input">Project fixture</label
@@ -366,7 +366,7 @@
           <p id="explanation">
             Invoke Go to inspect its returned data or error.
           </p>
-          <label for="vendor-file">Command transcript or project file</label
+          <label for="vendor-file">Terminal transcript or created file</label
           ><select id="vendor-file"></select>
           <pre id="vendor-content">Invoke Go to inspect a file.</pre>
           <details>
@@ -376,12 +376,10 @@
           <details>
             <summary>What this PR does</summary>
             <p>
-              Create project configuration, record a source without fetching it,
-              and author local groups and rules. Existing authored files are
-              preserved and accidental overwrites fail. JSON results go to
-              stdout; operation and usage errors go to stderr. Exit 0 means
-              success, exit 1 means operation failure or stale check output, and
-              exit 2 means invalid usage.
+              Missing authoring inputs prompt only when stdin and stderr are
+              terminals. Explicit flags win; --non-interactive disables prompts.
+              Every answer is collected before taking a writer lock. Rules require
+              an existing group; a missing group fails before metadata prompts.
             </p>
             <p>
               This page executes the compiled code-rules binary directly,
@@ -403,13 +401,13 @@
       <section class="section">
         <h2>Review boundaries</h2>
         <p>
-          Library authoring and interactive prompts follow in later slices. An
-          omitted body creates an unfinished canonical draft to edit before
-          building. Build both cmd/code-rules and cmd/rules-lab into the same
-          directory to run this demo. The production npm entry point is
-          unchanged until packaging approval.
+          This demo runs the native binary inside a real pseudo-terminal with
+          editable scripted answers. It never runs a shell or fetches sources.
+          JSON stays on stdout; the transcript contains stderr and terminal echo.
+          EOF is a usage failure (2); a missing group or interruption is an
+          operation failure (1). Packaging follows in the next slice.
         </p>
-        <a href="https://github.com/fabricahq/code-rules/pull/35"
+        <a href="https://github.com/fabricahq/code-rules/pull/37"
           >Review the PR on GitHub</a
         >
       </section>
@@ -424,313 +422,282 @@
       // Locate one named control in this walkthrough.
       const byID = (id) => document.getElementById(id);
       const spec = {
-        operation: "projectAuthoring",
-        mode: "json",
-        location: "authoring",
-        examples: [
-          {
-            name: "Initialize",
-            description:
-              "Creates config.json and local/README.md. The result names only newly authored files.",
-            input: {
-              files: {},
-              commands: [["init", "--config", "config.json"]],
-            },
-          },
-          {
-            name: "Repeat init",
-            description:
-              "Runs init twice. The second command preserves existing bytes and returns no new files.",
-            input: {
-              files: {},
-              commands: [
-                ["init", "--config", "config.json"],
-                ["init", "--config", "config.json"],
-              ],
-            },
-          },
-          {
-            name: "Local group",
-            description:
-              "Creates trimmed metadata for a local Go group without generating guidance.",
-            input: {
-              files: {},
-              commands: [
-                ["init", "--config", "config.json"],
-                [
-                  "local",
-                  "add",
-                  "group",
-                  "techs/go",
-                  "--name",
-                  "Go",
-                  "--description",
-                  "Project Go guidance.",
-                  "--when-to-read",
-                  "When editing Go.",
-                  "--config",
-                  "config.json",
-                ],
-              ],
-            },
-          },
-          {
-            name: "Complete rule",
-            description:
-              "Creates a group and a rule using body.md, then builds and checks entirely offline. Inspect each command and generated output.",
-            input: {
-              files: {
-                "body.md":
-                  "# Return errors\n\nReturn failures to the caller.\n",
-              },
-              commands: [
-                ["init", "--config", "config.json"],
-                [
-                  "local",
-                  "add",
-                  "group",
-                  "techs/go",
-                  "--name",
-                  "Go",
-                  "--description",
-                  "Project Go guidance.",
-                  "--when-to-read",
-                  "When editing Go.",
-                  "--config",
-                  "config.json",
-                ],
-                [
-                  "local",
-                  "add",
-                  "rule",
-                  "techs/go/errors",
-                  "--title",
-                  "Return errors",
-                  "--impact",
-                  "HIGH",
-                  "--impact-description",
-                  "Preserve failures.",
-                  "--when-to-read",
-                  "When calling fallible functions.",
-                  "--config",
-                  "config.json",
-                  "--body-file",
-                  "body.md",
-                ],
-                ["build", "--config", "config.json"],
-                ["check", "--config", "config.json"],
-              ],
-            },
-          },
-          {
-            name: "Canonical draft",
-            description:
-              "Omits body-file, so the rule contains the unfinished canonical template. The next action explains that it needs editing.",
-            input: {
-              files: {},
-              commands: [
-                ["init", "--config", "config.json"],
-                [
-                  "local",
-                  "add",
-                  "group",
-                  "techs/go",
-                  "--name",
-                  "Go",
-                  "--description",
-                  "Project Go guidance.",
-                  "--when-to-read",
-                  "When editing Go.",
-                  "--config",
-                  "config.json",
-                ],
-                [
-                  "local",
-                  "add",
-                  "rule",
-                  "techs/go/errors",
-                  "--title",
-                  "Return errors",
-                  "--impact",
-                  "HIGH",
-                  "--impact-description",
-                  "Preserve failures.",
-                  "--when-to-read",
-                  "When calling fallible functions.",
-                  "--config",
-                  "config.json",
-                ],
-              ],
-            },
-          },
-          {
-            name: "Create group, then rule",
-            description:
-              "Creates the group first, then adds its rule in a separate command.",
-            input: {
-              files: {},
-              commands: [
-                ["init", "--config", "config.json"],
-                ["local", "add", "group", "techs/go", "--config", "config.json", "--name", "Go", "--description", "Project Go guidance.", "--when-to-read", "When editing Go."],
-                [
-                  "local",
-                  "add",
-                  "rule",
-                  "techs/go/errors",
-                  "--title",
-                  "Return errors",
-                  "--impact",
-                  "HIGH",
-                  "--impact-description",
-                  "Preserve failures.",
-                  "--when-to-read",
-                  "When calling fallible functions.",
-                  "--config",
-                  "config.json",
-                ],
-              ],
-            },
-          },
-          {
-            name: "Add source",
-            description:
-              "Records a version constraint in config.json without network access or vendor output.",
-            input: {
-              files: {},
-              commands: [
-                ["init", "--config", "config.json"],
-                [
-                  "add",
-                  "source",
-                  "team",
-                  "--repository",
-                  "https://github.com/acme/rules",
-                  "--version",
-                  ">= 1.2.3, < 2.0.0",
-                  "--groups",
-                  "techs/go",
-                  "--config",
-                  "config.json",
-                ],
-              ],
-            },
-          },
-          {
-            name: "Existing rule",
-            description:
-              "Attempts to create the same rule twice. The last command fails and preserves the first document.",
-            input: {
-              files: {},
-              commands: [
-                ["init", "--config", "config.json"],
-                [
-                  "local",
-                  "add",
-                  "group",
-                  "techs/go",
-                  "--name",
-                  "Go",
-                  "--description",
-                  "Project Go guidance.",
-                  "--when-to-read",
-                  "When editing Go.",
-                  "--config",
-                  "config.json",
-                ],
-                [
-                  "local",
-                  "add",
-                  "rule",
-                  "techs/go/errors",
-                  "--title",
-                  "Return errors",
-                  "--impact",
-                  "HIGH",
-                  "--impact-description",
-                  "Preserve failures.",
-                  "--when-to-read",
-                  "When calling fallible functions.",
-                  "--config",
-                  "config.json",
-                ],
-                [
-                  "local",
-                  "add",
-                  "rule",
-                  "techs/go/errors",
-                  "--title",
-                  "Return errors",
-                  "--impact",
-                  "HIGH",
-                  "--impact-description",
-                  "Preserve failures.",
-                  "--when-to-read",
-                  "When calling fallible functions.",
-                  "--config",
-                  "config.json",
-                ],
-              ],
-            },
-          },
-          {
-            name: "Missing metadata",
-            description:
-              "Attempts a rule without group metadata. No rule is written.",
-            input: {
-              files: {},
-              commands: [
-                ["init", "--config", "config.json"],
-                [
-                  "local",
-                  "add",
-                  "rule",
-                  "techs/go/errors",
-                  "--title",
-                  "Return errors",
-                  "--impact",
-                  "HIGH",
-                  "--impact-description",
-                  "Preserve failures.",
-                  "--when-to-read",
-                  "When calling fallible functions.",
-                  "--config",
-                  "config.json",
-                ],
-              ],
-            },
-          },
-          {
-            name: "Missing input",
-            description:
-              "Omits required group flags. The CLI reports a usage error before writing the group.",
-            input: {
-              files: {},
-              commands: [
-                ["init", "--config", "config.json"],
-                [
-                  "local",
-                  "add",
-                  "group",
-                  "techs/go",
-                  "--config",
-                  "config.json",
-                ],
-              ],
-            },
-          },
-          {
-            name: "Invalid config",
-            description:
-              "Existing malformed config is reported and left unchanged by init.",
-            input: {
-              files: {
-                "config.json": "{ invalid",
-              },
-              commands: [["init", "--config", "config.json"]],
-            },
-          },
+  "operation": "interactiveAuthoring",
+  "mode": "json",
+  "location": "terminal",
+  "examples": [
+    {
+      "name": "Group prompts",
+      "description": "Supply missing metadata on a real terminal. Surrounding answer spaces are trimmed.",
+      "input": {
+        "files": {},
+        "commands": [
+          [
+            "init",
+            "--config",
+            "config.json"
+          ],
+          [
+            "local",
+            "add",
+            "group",
+            "techs/go",
+            "--config",
+            "config.json"
+          ]
         ],
-      };
+        "terminal": true,
+        "answers": [
+          [],
+          [
+            {
+              "prompt": "Group display name:",
+              "answer": "  Go  "
+            },
+            {
+              "prompt": "Group scope:",
+              "answer": "Go guidance."
+            },
+            {
+              "prompt": "When an agent should read this group:",
+              "answer": "When editing Go."
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "name": "Source prompts",
+      "description": "Choose HashiCorp version constraints and comma-separated groups. No Git fetch occurs.",
+      "input": {
+        "files": {},
+        "commands": [
+          [
+            "init",
+            "--config",
+            "config.json"
+          ],
+          [
+            "add",
+            "source",
+            "team",
+            "--config",
+            "config.json"
+          ]
+        ],
+        "terminal": true,
+        "answers": [
+          [],
+          [
+            {
+              "prompt": "Git repository URL:",
+              "answer": "https://github.com/acme/rules"
+            },
+            {
+              "prompt": "Revision kind (ref or version):",
+              "answer": "version"
+            },
+            {
+              "prompt": "HashiCorp version constraint:",
+              "answer": ">= 1.2.3"
+            },
+            {
+              "prompt": "Groups (comma-separated IDs, *, practices/*, or techs/*):",
+              "answer": "techs/go, techs/rust"
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "name": "Missing group",
+      "description": "Attempts to add a rule before its group exists. Expect exit 1 and a command to create the group first. No metadata prompts, group, or rule are created.",
+      "input": {
+        "files": {},
+        "commands": [
+          [
+            "init",
+            "--config",
+            "config.json"
+          ],
+          [
+            "local",
+            "add",
+            "rule",
+            "techs/go/errors",
+            "--config",
+            "config.json"
+          ]
+        ],
+        "terminal": true,
+        "answers": [
+          [],
+          []
+        ]
+      }
+    },
+    {
+      "name": "Ctrl+C",
+      "description": "Interrupt at the first prompt. Exit 1 reports context cancellation and no group is created.",
+      "input": {
+        "files": {},
+        "commands": [
+          [
+            "init",
+            "--config",
+            "config.json"
+          ],
+          [
+            "local",
+            "add",
+            "group",
+            "techs/go",
+            "--config",
+            "config.json"
+          ]
+        ],
+        "terminal": true,
+        "answers": [
+          [],
+          [
+            {
+              "prompt": "Group display name:",
+              "interrupt": true
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "name": "End of input",
+      "description": "Send terminal EOF at the first prompt. No partial group is created.",
+      "input": {
+        "files": {},
+        "commands": [
+          [
+            "init",
+            "--config",
+            "config.json"
+          ],
+          [
+            "local",
+            "add",
+            "group",
+            "techs/go",
+            "--config",
+            "config.json"
+          ]
+        ],
+        "terminal": true,
+        "answers": [
+          [],
+          [
+            {
+              "prompt": "Group display name:",
+              "eof": true
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "name": "Noninteractive",
+      "description": "Even with a terminal, --non-interactive refuses missing input without prompting.",
+      "input": {
+        "files": {},
+        "commands": [
+          [
+            "init",
+            "--config",
+            "config.json"
+          ],
+          [
+            "local",
+            "add",
+            "group",
+            "techs/go",
+            "--config",
+            "config.json",
+            "--non-interactive"
+          ]
+        ],
+        "terminal": true,
+        "answers": [
+          [],
+          []
+        ]
+      }
+    },
+    {
+      "name": "Piped input",
+      "description": "Without terminal streams, missing inputs fail immediately rather than waiting on a pipe.",
+      "input": {
+        "files": {},
+        "commands": [
+          [
+            "init",
+            "--config",
+            "config.json"
+          ],
+          [
+            "local",
+            "add",
+            "group",
+            "techs/go",
+            "--config",
+            "config.json"
+          ]
+        ],
+        "terminal": false,
+        "answers": [
+          [],
+          []
+        ]
+      }
+    },
+    {
+      "name": "Library prompts",
+      "description": "The library command uses the same terminal input collection.",
+      "input": {
+        "files": {},
+        "commands": [
+          [
+            "library",
+            "init",
+            "--directory",
+            "library"
+          ],
+          [
+            "library",
+            "add",
+            "group",
+            "techs/go",
+            "--directory",
+            "library"
+          ]
+        ],
+        "terminal": true,
+        "answers": [
+          [],
+          [
+            {
+              "prompt": "Group display name:",
+              "answer": "  Go  "
+            },
+            {
+              "prompt": "Group scope:",
+              "answer": "Go guidance."
+            },
+            {
+              "prompt": "When an agent should read this group:",
+              "answer": "When editing Go."
+            }
+          ]
+        ]
+      }
+    }
+  ]
+};
       let vendorFiles = {};
       // Display original persisted text or a labeled base64 representation of binary bytes.
       function showVendorFile() {
@@ -747,7 +714,7 @@
               (args) =>
                 "$ code-rules " + args.map((a) => JSON.stringify(a)).join(" "),
             )
-            .join("\n\n");
+            .join("\n\n") + "\n\nANSWERS\n" + JSON.stringify(JSON.parse(byID("input").value).answers, null, 2);
         } catch {
           byID("command-preview").textContent =
             "Edit valid request JSON to preview commands.";
@@ -840,7 +807,7 @@
                   command.exitCode +
                   "\n\nSTDOUT\n" +
                   (command.stdout || "(empty)\n") +
-                  "\nSTDERR\n" +
+                  "\nTERMINAL (stderr and input echo)\n" +
                   (command.stderr || "(empty)\n"),
               )
               .join("\n--------------------\n");

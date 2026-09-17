@@ -13,12 +13,15 @@ import (
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/terminalfixture"
 )
 
 // authoringFixture supplies initial relative text files and a bounded sequence of native authoring commands.
 type authoringFixture struct {
-	Files    map[string]string `json:"files"`
-	Commands [][]string        `json:"commands"`
+	Files    map[string]string        `json:"files"`
+	Commands [][]string               `json:"commands"`
+	Terminal bool                     `json:"terminal,omitempty"`
+	Answers  [][]terminalfixture.Step `json:"answers,omitempty"`
 }
 
 // authoringObservation retains command streams and the complete before/after project for review.
@@ -74,8 +77,18 @@ func authoringSequenceResponse(input json.RawMessage, validate func([]string) er
 		return response{}, err
 	}
 	observed := authoringObservation{Commands: []*cliObservation{}, Before: displayProjectTree(before)}
-	for _, args := range fixture.Commands {
-		value, err := executeFixtureCLI(ctx, root, imports.Options{Environment: append(os.Environ(), "PATH="+directory+"/no-runtime")}, args, before)
+	for index, args := range fixture.Commands {
+		var value any
+		var err error
+		if fixture.Terminal {
+			var steps []terminalfixture.Step
+			if index < len(fixture.Answers) {
+				steps = fixture.Answers[index]
+			}
+			value, err = executeTerminalCLI(ctx, root, args, steps, before)
+		} else {
+			value, err = executeFixtureCLI(ctx, root, imports.Options{Environment: append(os.Environ(), "PATH="+directory+"/no-runtime")}, args, before)
+		}
 		if err != nil {
 			return response{}, err
 		}

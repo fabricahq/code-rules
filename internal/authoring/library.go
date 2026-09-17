@@ -24,11 +24,10 @@ type LibraryTerms struct {
 	Notice         *string
 }
 
-// LibraryRuleOptions distinguishes an explicit body from a marked canonical draft and optional new metadata.
+// LibraryRuleOptions distinguishes an explicit body from a marked canonical draft in an existing group.
 type LibraryRuleOptions struct {
 	LibraryOptions
-	Body  *string
-	Group *rules.GroupMetadata
+	Body *string
 }
 
 const libraryReadme = `# Rule library
@@ -251,6 +250,7 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 }
 
 // HasLibraryGroup checks current metadata before an interactive prompt; writes recheck under the lock.
+// This advisory read does not require an idle writer; publication owns recovery and revalidation.
 func HasLibraryGroup(ctx context.Context, id string, options LibraryOptions) (bool, error) {
 	if err := rules.ValidateGroupID(id, "group"); err != nil {
 		return false, err
@@ -260,16 +260,13 @@ func HasLibraryGroup(ctx context.Context, id string, options LibraryOptions) (bo
 		return false, err
 	}
 	defer root.Close()
-	if err = project.RequireIdle(root); err != nil {
-		return false, err
-	}
 	if _, _, err = libraryManifest(ctx, root); err != nil {
 		return false, err
 	}
 	return hasGroupMetadata(ctx, root, id)
 }
 
-// AddLibraryRule creates supplied guidance or a marked unfinished canonical draft, optionally creating its group.
+// AddLibraryRule creates supplied guidance or a marked unfinished canonical draft, in an existing group.
 func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, options LibraryRuleOptions) (Result, error) {
 	if strings.HasSuffix(id, ".md") {
 		return Result{}, failure("invalid-operation", "use a rule ID without the .md extension", nil)
@@ -287,26 +284,15 @@ func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, optio
 		data = append(data, []byte("\n<!-- code-rules:draft -->\n")...)
 		next = "Complete the draft and remove its code-rules:draft marker, then run library check."
 	}
-	var groupData []byte
-	if options.Group != nil {
-		groupData, err = renderGroup(*options.Group)
-		if err != nil {
-			return Result{}, err
-		}
-	}
+
 	return editLibrary(ctx, options.LibraryOptions, group, next, func(root *os.Root) ([]authoredFile, error) {
-		files := []authoredFile{}
-		if groupData != nil {
-			files = append(files, authoredFile{name: group + "/_group.json", data: groupData})
-		} else {
-			exists, err := hasGroupMetadata(ctx, root, group)
-			if err != nil {
-				return nil, err
-			}
-			if !exists {
-				return nil, failure("missing-group", "run library add group "+group+" first or supply --create-group and metadata", nil)
-			}
+		exists, err := hasGroupMetadata(ctx, root, group)
+		if err != nil {
+			return nil, err
 		}
-		return append(files, authoredFile{name: id + ".md", data: data}), nil
+		if !exists {
+			return nil, failure("missing-group", "group "+group+" does not exist; create it first with code-rules library add group "+group+", then retry adding the rule", nil)
+		}
+		return []authoredFile{{name: id + ".md", data: data}}, nil
 	})
 }

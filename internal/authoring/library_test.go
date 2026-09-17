@@ -239,3 +239,34 @@ func TestLibraryCheckBoundsUnusedAssets(t *testing.T) {
 		t.Fatal("check changed asset", err)
 	}
 }
+
+// TestLibraryRulePreservesGroup leaves existing metadata unchanged when adding a rule.
+func TestLibraryRulePreservesGroup(t *testing.T) {
+	ctx := context.Background()
+	options := LibraryOptions{Directory: t.TempDir()}
+	if _, err := InitializeLibrary(ctx, options, nil); err != nil {
+		t.Fatal(err)
+	}
+	existing := rules.GroupMetadata{Name: "Go", Description: "Concurrent guidance.", WhenToRead: "When editing Go."}
+	if _, err := AddLibraryGroup(ctx, "techs/go", existing, options); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(options.Directory, "techs/go/_group.json")
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := "Return errors.\n"
+	metadata := RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
+	result, err := AddLibraryRule(ctx, "techs/go/errors", metadata, LibraryRuleOptions{LibraryOptions: options, Body: &body})
+	if err != nil || len(result.Files) != 1 {
+		t.Fatal(result, err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("existing group changed", err)
+	}
+	if _, err := CheckLibrary(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+}

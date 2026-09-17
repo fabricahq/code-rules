@@ -30,3 +30,7 @@ Every PR receives the [independent validation prompt](independent-validation.md)
 Each PR gets a walkthrough covering only its new behavior. CLI walkthroughs will display arguments, standard output, standard error, exit status, and filesystem changes from isolated executions. Existing walkthrough URLs remain available.
 
 The TypeScript CLI remains the production entry point until the native packaging slice is approved. The broad capability inventory remains pending until full acceptance evidence is reconciled. The final integration into `main`, release publication, and removal of the TypeScript implementation require separate approval.
+
+### PR37: Interactive authoring
+
+Terminal-only missing-input collection, explicit noninteractive behavior, and cancellation before publication. The walkthrough uses real pseudo-terminals and shows answers, stdout, exit status, and resulting files. Ready for independent and Devin review; not approved to merge.
