@@ -101,7 +101,7 @@ func configuration(ctx context.Context, root *os.Root, name string) ([]byte, rul
 	return data, config, err
 }
 
-// InitializeProject creates only missing configuration and local orientation, preserving existing valid bytes.
+// InitializeProject creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and local files are preserved.
 func InitializeProject(ctx context.Context, options Options) (Result, error) {
 	root, name, err := openProject(ctx, options, true)
 	if err != nil {
@@ -127,12 +127,19 @@ func InitializeProject(ctx context.Context, options Options) (Result, error) {
 		if err != nil {
 			return err
 		}
+		guide, err := prepareProjectGuide(ctx, root, name)
+		if err != nil {
+			return err
+		}
 		if old == nil {
 			data, _ := jsonText(map[string]any{"schemaVersion": 1, "sources": map[string]any{}})
 			files = append(files, authoredFile{name: name, data: data})
 		}
 		if readme == nil {
 			files = append(files, authoredFile{name: "local/README.md", data: []byte(localReadme)})
+		}
+		if guide != nil {
+			files = append(files, *guide)
 		}
 		err = publishAuthored(ctx, root, files)
 		committed = publicationComplete(err)

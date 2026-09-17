@@ -22,7 +22,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	directory := filepath.Join(t.TempDir(), ".code-rules")
 	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
 	result, err := InitializeProject(ctx, options)
-	if err != nil || len(result.Files) != 2 {
+	if err != nil || len(result.Files) != 3 {
 		t.Fatal(result, err)
 	}
 	original, err := os.ReadFile(options.ConfigPath)

@@ -6,3 +6,5 @@ printf 'Working directory: %s\n\n' "$PWD"
 env PATH= "$CODE_RULES_DEMO_BINARY" check
 printf '\nStructured response (code-rules check --json):\n'
 env PATH= "$CODE_RULES_DEMO_BINARY" check --json
+printf '\nVerify the agent guide matches this CLI:\n'
+env PATH= "$CODE_RULES_DEMO_BINARY" init --check

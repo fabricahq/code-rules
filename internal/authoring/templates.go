@@ -27,6 +27,8 @@ var ruleTemplate string
 
 const localReadme = `# Local rules
 
+Start with [the project guide](../README.md) for Code Rules commands and agent workflows.
+
 Put project rules under techs/<group>/ or practices/<group>/.
 Describe each local group in _group.json with its name, description, and whenToRead guidance.
 Local rules join your project's rule set automatically. Imported rules in the same group join them; local group metadata supplies the project's description.

@@ -23,8 +23,8 @@ The **Observe the expected check failure** block deliberately turns red. It demo
 
 ## 2. Initialize the project
 
-**PR35.** Creates `.code-rules/config.json` and `.code-rules/local/README.md` in the printed project directory. No source is fetched.
-Open **Generated Files → project → .code-rules** immediately after running this step to inspect both files. The terminal also prints the configuration under a file label.
+**PR35.** Creates `.code-rules/README.md`, `.code-rules/config.json`, and `.code-rules/local/README.md` in the printed project directory. No source is fetched.
+Open **Generated Files → project → .code-rules** immediately after running this step to inspect all three files. Start with the project README for agent workflows, adding groups and rules, and adopting libraries. The terminal also prints the configuration under a file label.
 
 <Command
   id="init"
@@ -72,7 +72,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 6. Check without changing files
 
-**PR34.** A readable confirmation and exit 0 mean generated output matches its inputs. The second invocation uses `check --json` to demonstrate structured output: `ok: true` and empty difference arrays inside `value`. Both invocations run with no tools on PATH.
+**PR34.** A readable confirmation and exit 0 mean generated output matches its inputs. The second invocation uses `check --json` to demonstrate structured output: `ok: true` and empty difference arrays inside `value`. Both invocations run with no tools on PATH. The final `init --check` verifies that the agent README matches the installed CLI without changing files.
 
 <Command
   id="check"

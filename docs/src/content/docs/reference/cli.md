@@ -39,6 +39,14 @@ Exit status is 0 for success, 1 for operation failure or stale output, and 2 for
 
 This output contract applies to the native candidate demonstrated in the review labs and runbook. The existing TypeScript entry point retains its current output until the native cutover.
 
+## Native project agent guide
+
+The native candidate's `code-rules init` creates `.code-rules/README.md` alongside configuration and local rules. This guide explains the folder layout and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results.
+
+After upgrading, run `code-rules init` again to refresh an older generated guide. It preserves valid configuration and local rules. If someone edited the README, init refuses to overwrite it and explains how to preserve those notes separately.
+
+Run `code-rules init --check` in CI to detect missing or outdated guidance without changing files. Use `--config` for a custom configuration location. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
+
 ## Sync
 
 ```sh

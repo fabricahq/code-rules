@@ -102,6 +102,10 @@ func classifyError(err error, code int) *responseError {
 // formatHuman describes changed paths, validation counts, warnings, and next actions without JSON syntax.
 func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 	switch result := value.(type) {
+	case authoring.GuideStatus:
+		if result.Current {
+			fmt.Fprintf(out, "Project README is up to date: %s\n", result.Path)
+		}
 	case authoring.Result:
 		if len(result.Files) == 0 {
 			out.WriteString("No files changed.\n")

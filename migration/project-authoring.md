@@ -2,7 +2,8 @@
 
 PR35 adds `internal/authoring` and native CLI commands for project-owned source files:
 
-- `init`: create missing configuration and local orientation; preserve existing valid bytes.
+- `init`: create missing configuration, the project agent guide in `README.md`, and local orientation. Preserve valid configuration and local definitions. Refresh older generated guides only when their ownership digest confirms no manual edits.
+- `init --check`: read without writing and fail when the project guide differs from the template embedded in this CLI. Use it in consuming-project CI after pinning the tool version.
 - `add source ALIAS`: validate and record a source without fetching it.
 - `local add group ID`: create group metadata with trimmed, singular reading guidance.
 - `local add rule ID`: create a supplied body or an unfinished canonical draft. `--create-group` publishes new metadata and the rule together.
@@ -22,3 +23,9 @@ Build both native binaries into one directory, then start rules-lab. `/walkthrou
 Validation includes the actual compiled CLI without runtime tools on PATH, idempotent initialization, source-only edits, local build/check, optional group creation, no-overwrite failures, unsafe input refusal, and stale prior-byte rejection. The shared canonical draft body is compiled into the Go binary.
 
 If publication completes but stage or writer-lock cleanup fails, the result still lists the committed paths and includes a visible `warnings` array. It does not misreport a completed source addition as an operation that should be retried. Pending cleanup stages must be inspected before another authoring operation.
+
+## Agent guide freshness
+
+`internal/authoring/project-guide.md` owns the generated project guide. The native binary embeds it; examples run from the directory containing the README with an explicit configuration path. `TestProjectGuideExamples` executes every shell example against the real CLI and an isolated Git library, including a configuration filename with spaces and quotes. These tests run in the existing Go CI job. Keep this guide in the same PR as command changes; executable examples detect incompatible command changes, while review checks completeness and explanation.
+
+Re-run `init` after upgrading to refresh the guide. The first-line digest distinguishes an unmodified old template from manual edits. It is an ownership marker, not an authenticity guarantee. Unknown or edited READMEs are preserved and block init with recovery instructions.

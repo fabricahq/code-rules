@@ -333,7 +333,12 @@
         Run compiled Go commands and inspect their actual stdout, stderr, exit
         status, and filesystem changes.
       </p>
-      <p><a href="http://localhost:4392/" target="_blank" rel="noopener">Supplementary Gruntwork runbook</a>: Initialize a project and add local groups and rules. Run individual commands there; keep this lab for the full PR scenarios.</p>
+      <p>
+        <a href="http://localhost:4392/" target="_blank" rel="noopener"
+          >Supplementary Gruntwork runbook</a
+        >: Initialize a project and add local groups and rules. Run individual
+        commands there; keep this lab for the full PR scenarios.
+      </p>
       <div class="workspace">
         <section class="panel">
           <div class="label">Invoke the new capability</div>
@@ -432,16 +437,28 @@
           {
             name: "Initialize",
             description:
-              "Creates config.json and local/README.md. The result names only newly authored files.",
+              "Creates README.md with agent workflows, config.json, and local/README.md. Select README.md to inspect the management guide.",
             input: {
               files: {},
               commands: [["init", "--config", "config.json"]],
             },
           },
           {
+            name: "Verify guide",
+            description:
+              "Initializes the project, then runs init --check --json. Expect current: true. CI can use this read-only check to detect a stale or missing agent guide after upgrades.",
+            input: {
+              files: {},
+              commands: [
+                ["init", "--config", "config.json"],
+                ["init", "--check", "--config", "config.json", "--json"],
+              ],
+            },
+          },
+          {
             name: "Repeat init",
             description:
-              "Runs init twice. The second command preserves existing bytes and returns no new files.",
+              "Runs init twice. Current generated guidance and authored files remain unchanged. Older unmodified guides refresh on init; manual README edits are protected.",
             input: {
               files: {},
               commands: [

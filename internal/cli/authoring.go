@@ -96,9 +96,16 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 
 // addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.
 func addProjectAuthoringCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
-	initialize, f := newAuthoringCommand("init", "Initialize project configuration and local orientation", 0, options.Directory)
+	initialize, f := newAuthoringCommand("init", "Initialize project files and refresh the agent guide", 0, options.Directory)
+	var checkGuide bool
+	initialize.Flags().BoolVar(&checkGuide, "check", false, "Check that the project README matches this CLI without writing files")
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
 		*started = true
+		if checkGuide {
+			status, err := authoring.CheckProjectGuide(cmd.Context(), f.options())
+			output.value = status
+			return err
+		}
 		result, err := authoring.InitializeProject(cmd.Context(), f.options())
 		if err != nil {
 			return err
