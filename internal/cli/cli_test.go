@@ -57,6 +57,9 @@ func TestCLIProcess(t *testing.T) {
 		{"unknown-flag", []string{"build", "--force"}, 2}, {"positional", []string{"check", "unexpected"}, 2},
 		{"missing-flag-value", []string{"build", "--config"}, 2}, {"duplicate", []string{"build", "--config", "one", "--config", "two"}, 2},
 		{"missing-project", []string{"build"}, 1},
+		{"flag-as-value", []string{"build", "--config", "--help"}, 2},
+		{"short-flag-as-value", []string{"build", "--config", "-h"}, 2},
+		{"blank-value", []string{"build", "--config", " \t "}, 2},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			out, diagnostic, code := runCLI(t, binary, dir, test.args...)

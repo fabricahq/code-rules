@@ -83,14 +83,22 @@ func validateCLIArguments(args []string) error {
 			return &rules.ValidationError{Location: "arguments", Problem: "use sync, build, check, help, or version in this walkthrough"}
 		}
 	}
+	hasConfig := false
 	for i, arg := range args {
 		if arg == "--config" {
+			hasConfig = i+1 < len(args) && args[i+1] == "config.json"
 			if i+1 < len(args) && args[i+1] != "config.json" {
 				return &rules.ValidationError{Location: "arguments", Problem: "the walkthrough config path must be config.json"}
 			}
 		} else if len(arg) >= 9 && arg[:9] == "--config=" && arg != "--config=config.json" {
 			return &rules.ValidationError{Location: "arguments", Problem: "the walkthrough config path must be config.json"}
 		}
+		if arg == "--config=config.json" {
+			hasConfig = true
+		}
+	}
+	if len(args) > 0 && (args[0] == "sync" || args[0] == "build" || args[0] == "check") && !hasConfig {
+		return &rules.ValidationError{Location: "arguments", Problem: "operational walkthrough commands require --config config.json so only the reviewed fixture configuration is used"}
 	}
 	return nil
 }

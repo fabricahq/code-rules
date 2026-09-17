@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/project"
@@ -113,13 +114,13 @@ type singleString struct {
 	set   bool
 }
 
-// Set accepts a scalar value once and rejects empty values.
+// Set accepts a scalar value once, rejecting blank text and option tokens used as missing values.
 func (v *singleString) Set(value string) error {
 	if v.set {
 		return fmt.Errorf("option may only be specified once")
 	}
-	if value == "" {
-		return fmt.Errorf("expected a nonempty value")
+	if strings.TrimSpace(value) == "" || strings.HasPrefix(value, "-") {
+		return fmt.Errorf("expected a nonempty value, not another option")
 	}
 	v.value = value
 	v.set = true
