@@ -94,7 +94,7 @@ func (w budgetStream) Write(data []byte) (int, error) {
 // run executes literal arguments without a shell and drains both streams before returning.
 func (r gitRunner) run(ctx context.Context, cwd string, args []string, maxBytes int, input []byte) (gitResult, error) {
 	if err := ctx.Err(); err != nil {
-		return gitResult{}, fail("cancelled", "Git operation cancelled or timed out.", err)
+		return gitResult{}, contextFailure(err)
 	}
 	commandArgs := []string{"-c", "core.hooksPath=/dev/null", "-c", "protocol.allow=never", "-c", "protocol.https.allow=always", "-c", "protocol.ssh.allow=always", "-c", "protocol.ext.allow=never"}
 	cmd := exec.CommandContext(ctx, r.executable, append(commandArgs, args...)...)
@@ -123,7 +123,7 @@ func (r gitRunner) run(ctx context.Context, cwd string, args []string, maxBytes 
 	// Descendants must not outlive this invocation, even if Git exited before its helper.
 	_ = cmd.Cancel()
 	if ctx.Err() != nil {
-		return gitResult{}, fail("cancelled", "Git operation cancelled or timed out.", ctx.Err())
+		return gitResult{}, contextFailure(ctx.Err())
 	}
 	if budget.exceeded {
 		return gitResult{}, fail("limit-exceeded", "Git output exceeds the import limit.", nil)
@@ -148,4 +148,12 @@ func (r gitRunner) command(ctx context.Context, cwd string, args []string, maxBy
 		return nil, fail("git-failed", "Git could not read the requested revision.", nil)
 	}
 	return result.output, nil
+}
+
+// contextFailure distinguishes an expired deadline from explicit cancellation while preserving its cause.
+func contextFailure(err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fail("timed-out", "Git operation exceeded its deadline.", err)
+	}
+	return fail("cancelled", "Git operation was cancelled.", err)
 }

@@ -112,7 +112,7 @@ func New(ctx context.Context, files map[string][]byte) (_ *Fixture, err error) {
 
 // Command mutates or inspects only the owned fixture repository using isolated Git configuration.
 func (f *Fixture) Command(ctx context.Context, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, f.GitPath, append([]string{"-c", "core.hooksPath=/dev/null"}, args...)...)
+	cmd := exec.CommandContext(ctx, f.GitPath, append([]string{"-c", "core.hooksPath=/dev/null", "-c", "gc.auto=0", "-c", "maintenance.auto=false"}, args...)...)
 	cmd.Dir = filepath.Join(f.Directory, "repository")
 	cmd.Env = f.Environment
 	data, err := cmd.Output()

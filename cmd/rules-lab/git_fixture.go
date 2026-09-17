@@ -51,7 +51,12 @@ func invokeGitRevision(input json.RawMessage) (_ any, err error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() { err = errors.Join(err, fixture.Close()) }()
+	defer func() {
+		if cleanupErr := fixture.Close(); cleanupErr != nil {
+			// Fixture infrastructure failure must reach the logged HTTP 500 boundary.
+			err = fmt.Errorf("clean up Git fixture: %v", errors.Join(err, cleanupErr))
+		}
+	}()
 	source := rules.Source{Name: "team", Repository: fixture.Repository, Ref: request.Ref, Version: request.Version}
 	options := imports.Options{GitPath: fixture.GitPath, Environment: fixture.Environment}
 	switch request.Scenario {
@@ -105,7 +110,7 @@ func invokeGitRevision(input json.RawMessage) (_ any, err error) {
 func gitFailure(err error) *failure {
 	var importErr *imports.Error
 	if errors.As(err, &importErr) {
-		return &failure{Name: "ImportError", Code: importErr.Code, Message: fmt.Sprint(importErr)}
+		return &failure{Name: "ImportError", Code: importErr.Code, Message: err.Error()}
 	}
 	return nil
 }

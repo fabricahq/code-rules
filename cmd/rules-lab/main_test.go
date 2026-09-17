@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -558,5 +559,15 @@ func TestProjectFixtureSetupFailureIsHTTP500(t *testing.T) {
 	}
 	if strings.Contains(rec.Body.String(), "missing") {
 		t.Fatal("filesystem path leaked to response")
+	}
+}
+
+// TestGitFailureKeepsCleanupDiagnostic exposes both the primary import failure and a joined cleanup failure.
+func TestGitFailureKeepsCleanupDiagnostic(t *testing.T) {
+	primary := &imports.Error{Code: "git-failed", Problem: "Fetch failed."}
+	cleanup := &imports.Error{Code: "cleanup-failed", Problem: "Temporary repository cleanup failed."}
+	got := gitFailure(errors.Join(primary, cleanup))
+	if got == nil || got.Code != "git-failed" || !strings.Contains(got.Message, primary.Problem) || !strings.Contains(got.Message, cleanup.Problem) {
+		t.Fatalf("lost primary or cleanup diagnostic: %+v", got)
 	}
 }

@@ -54,7 +54,7 @@ var gitVersion = regexp.MustCompile(`^git version ([0-9]+)\.([0-9]+)`)
 // The caller owns Close on success. Failure removes temporary state and returns no partial revision.
 func FetchRevision(ctx context.Context, source rules.Source, options Options) (_ *Revision, err error) {
 	if err := ctx.Err(); err != nil {
-		return nil, fail("cancelled", "Git operation cancelled or timed out.", err)
+		return nil, contextFailure(err)
 	}
 	if options.Timeout < 0 {
 		return nil, fail("invalid-options", "Git timeout must be positive or zero for the default.", nil)

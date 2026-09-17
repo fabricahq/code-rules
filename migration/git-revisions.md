@@ -5,14 +5,18 @@ highest release satisfying a HashiCorp version constraint. It owns a fresh bare
 repository. The caller must call `Revision.Close` and handle cleanup failures.
 Failure returns no revision and removes temporary state.
 
-The transport accepts the existing HTTPS/SSH repository syntax. Git 2.30 or later
+The transport accepts the existing HTTPS/SSH repository syntax. This candidate supports macOS and Linux, matching the TypeScript import boundary.
+Git 2.30 or later
 is required. Commands disable hooks, templates, recursive submodules, automatic
 maintenance, replacement objects, prompting, and unsupported transport protocols.
 Inherited repository/index/object-database state is removed while trusted caller
 credentials and routing remain available. Git stderr is counted but never exposed.
 
 Each fetch has a 120-second deadline by default. Cancellation and combined-output
-overflow kill the process group, including helpers. Output limits do not bound
+overflow kill the process group, including helpers. Deadline expiry returns
+`timed-out`; explicit cancellation returns `cancelled`. Both preserve the context
+cause. Joined native cleanup failures remain visible; fixture cleanup failures use
+the lab HTTP 500 boundary. Output limits do not bound
 fetch traffic or temporary disk usage. There is no checkout or content adoption.
 
 A version selection retains the advertised tag object and verifies it after fetch.

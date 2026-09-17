@@ -149,7 +149,7 @@ func TestProcessLimitsAndCancellation(t *testing.T) {
 	defer cancel()
 	start := time.Now()
 	_, err := (gitRunner{script, gitEnvironment(os.Environ())}).run(ctx, t.TempDir(), nil, 100, nil)
-	requireCode(t, err, "cancelled")
+	requireCode(t, err, "timed-out")
 	if !errors.Is(err, context.DeadlineExceeded) || time.Since(start) > 3*time.Second {
 		t.Fatal("deadline or child-pipe cleanup failed", err)
 	}
@@ -174,5 +174,27 @@ func TestEnvironmentIsolation(t *testing.T) {
 	defer r.Close()
 	if r.Commit != f.FirstCommit {
 		t.Fatal("inherited repository state affected fetch")
+	}
+}
+
+// TestExpiredContextCodes preserves separate timeout and cancellation categories before any Git process starts.
+func TestExpiredContextCodes(t *testing.T) {
+	for _, deadline := range []bool{false, true} {
+		ctx, cancel := context.WithCancel(context.Background())
+		want := "cancelled"
+		cause := context.Canceled
+		if deadline {
+			ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+			want = "timed-out"
+			cause = context.DeadlineExceeded
+		} else {
+			cancel()
+		}
+		_, err := FetchRevision(ctx, rules.Source{}, Options{})
+		requireCode(t, err, want)
+		if !errors.Is(err, cause) {
+			t.Fatal("lost context cause")
+		}
+		cancel()
 	}
 }
