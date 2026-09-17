@@ -57,7 +57,7 @@ bun run build
 bun tests/migration/compare.ts \
   --reference "$PWD/dist/cli.js" \
   --candidate "$PWD/dist/cli.js" \
-  --reference-revision 2594d298511e55fb8d893091b6b4a2a7959a0a39 \
+  --reference-revision cfef6f83a563978d74583c5de063e1e97c2857da \
   --report /tmp/code-rules-migration-reference.json
 ```
 
@@ -101,6 +101,8 @@ Those requirements remain in the inventory and the existing TypeScript suites co
 The reference was explicitly refreshed to `2594d298511e55fb8d893091b6b4a2a7959a0a39` for the requested tagline, “The package manager for your engineering rules.”
 This changes the TypeScript root help and package description, with a help regression assertion; runtime behavior and dependencies are unchanged.
 The Go CLI, README, and documentation use the same tagline. Earlier reports still describe their recorded reference revision.
+
+The reference was subsequently refreshed to `cfef6f83a563978d74583c5de063e1e97c2857da` for the requested Fabrica Code Rules website link. The only TypeScript input change from the previous reference is the link target in the generated `RULES.md` introduction, from GitHub to `https://code-rules.fabricahq.com`. The real-reference comparisons and independent harness assertions are rerun for this revision; earlier reports retain their original reference and are not reused as current evidence.
 
 The runner rejects changes from the reference in `src/`, runtime/package metadata, the lockfile, packaging script, and reused fixture/package tests.
 That conservative check includes staged, unstaged, committed, and untracked source changes.
