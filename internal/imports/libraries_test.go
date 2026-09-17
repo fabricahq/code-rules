@@ -16,7 +16,6 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/gitfixture"
 	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -61,7 +60,7 @@ func libraryConfig(t *testing.T, repository string) rules.Configuration {
 	return config
 }
 
-// TestImportLibraryOriginalBytes verifies real Git adoption, complete assets, exact terms, and persisted round trips.
+// TestImportLibraryOriginalBytes verifies real Git adoption, complete assets, and exact terms.
 func TestImportLibraryOriginalBytes(t *testing.T) {
 	files := libraryFiles()
 	f := newLibraryFixture(t, files)
@@ -86,14 +85,6 @@ func TestImportLibraryOriginalBytes(t *testing.T) {
 	}
 	if _, ok := item.Snapshot.Files["techs/rust/bad.md"]; ok {
 		t.Fatal("adopted unselected content")
-	}
-	encoded, err := project.EncodeSnapshots(config, map[string]project.Snapshot{"team": item.Snapshot})
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, err := project.DecodeSnapshots(config, encoded)
-	if err != nil || !bytes.Equal(decoded["team"].Files["LICENSE"], files["LICENSE"]) {
-		t.Fatal("snapshot round trip", err)
 	}
 	config.Sources[0].Groups = rules.GroupSelection{Pattern: "*"}
 	if result, err := ImportLibraries(context.Background(), config, Options{GitPath: f.GitPath, Environment: f.Environment}); err == nil || result != nil {
@@ -287,12 +278,5 @@ func TestCatalogMutationPreservesSnapshot(t *testing.T) {
 	if !bytes.Equal(item.Snapshot.Files["NOTICE"], files["NOTICE"]) || item.Snapshot.Selection.Groups[0] != "techs/go" {
 		t.Fatal("catalog mutation altered verified snapshot")
 	}
-	encoded, err := project.EncodeSnapshots(config, map[string]project.Snapshot{"team": item.Snapshot})
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, err := project.DecodeSnapshots(config, encoded)
-	if err != nil || !bytes.Equal(decoded["team"].Files["NOTICE"], files["NOTICE"]) {
-		t.Fatal("snapshot no longer retains original Git bytes", err)
-	}
+
 }

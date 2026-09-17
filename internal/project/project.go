@@ -27,7 +27,8 @@ type Options struct {
 	GroupInlineMaxBytes *int
 }
 
-// FileChanges lists sorted paths relative to generated/. Empty lists mean matching output.
+// FileChanges lists sorted changed paths. Build/Check use generated-relative paths; Sync prefixes managed tree names.
+// Empty lists mean matching output.
 type FileChanges struct {
 	Added   []string `json:"added"`
 	Changed []string `json:"changed"`
@@ -168,6 +169,11 @@ func prepareProject(ctx context.Context, root *os.Root, state projectState, opti
 		}
 		libraries[source.Name] = build.Library{Catalog: catalog, Commit: snapshot.Commit, Tag: snapshot.Tag}
 	}
+	return renderProject(ctx, state, libraries, options)
+}
+
+// renderProject resolves local definitions and renders the same output for offline builds and sync.
+func renderProject(ctx context.Context, state projectState, libraries map[string]build.Library, options Options) (build.Output, error) {
 	if err := ctx.Err(); err != nil {
 		return build.Output{}, err
 	}
