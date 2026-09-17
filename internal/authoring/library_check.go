@@ -164,6 +164,9 @@ func libraryCheckInput(ctx context.Context, root *os.Root) (*project.Tree, *rule
 		}
 	}
 	slices.Sort(snapshot.Directories)
+	if err := library.ValidateInventoryLimits(ctx, snapshot.Files, snapshot.Directories); err != nil {
+		return nil, nil, err
+	}
 	return snapshot, license, nil
 }
 
