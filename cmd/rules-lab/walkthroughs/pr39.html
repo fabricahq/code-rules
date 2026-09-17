@@ -484,8 +484,9 @@
       let views = {};
       // Display original project text or one captured evidence view without executing its content.
       function showView() {
+        const value = views[byID("vendor-file").value] ?? "No result.";
         byID("vendor-content").textContent =
-          views[byID("vendor-file").value] ?? "No result.";
+          typeof value === "string" ? value : JSON.stringify(value, null, 2);
       }
       // Clear stale evidence whenever the scenario changes.
       function clearResult() {
