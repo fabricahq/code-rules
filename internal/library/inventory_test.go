@@ -91,3 +91,45 @@ func TestInventoryStopsAtOversizedAsset(t *testing.T) {
 		t.Fatal("capture continued past limit", source.reads)
 	}
 }
+
+// TestInventoryPreservesPortablePaths rejects unsafe files and empty directories before reading their content.
+func TestInventoryPreservesPortablePaths(t *testing.T) {
+	for _, name := range []string{"bad\\name", "bad:name", "bad\nname", ".git"} {
+		for _, isDir := range []bool{true, false} {
+			t.Run(name, func(t *testing.T) {
+				directory := t.TempDir()
+				if err := os.WriteFile(filepath.Join(directory, "rule-library.json"), []byte(`{"formatVersion":1}`), 0600); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Mkdir(filepath.Join(directory, "assets"), 0700); err != nil {
+					t.Fatal(err)
+				}
+				target := filepath.Join(directory, "assets", name)
+				var err error
+				if isDir {
+					err = os.Mkdir(target, 0700)
+				} else {
+					err = os.WriteFile(target, []byte("unused"), 0600)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				root, err := os.OpenRoot(directory)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer root.Close()
+				if _, err := ReadInventory(context.Background(), root); err == nil {
+					t.Fatal("unsafe path accepted")
+				}
+			})
+		}
+	}
+}
+
+// TestInventoryRejectsInvalidUTF8 checks spelling before filesystem access, including on hosts that forbid creating such names.
+func TestInventoryRejectsInvalidUTF8(t *testing.T) {
+	if _, err := (portableInventorySource{}).Lstat(string([]byte{'b', 255})); err == nil {
+		t.Fatal("invalid UTF-8 accepted")
+	}
+}

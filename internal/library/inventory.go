@@ -5,10 +5,13 @@ package library
 import (
 	"context"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"io/fs"
 	"maps"
 	"os"
 	"path"
 	"slices"
+	"strings"
+	"unicode/utf8"
 )
 
 // ValidateInventoryLimits checks all captured files and directories, including unreferenced assets.
@@ -52,7 +55,7 @@ func ReadInventory(ctx context.Context, root *os.Root) (Inventory, error) {
 
 // readInventory shares capture logic with bounded sources so tests can verify early read termination.
 func readInventory(ctx context.Context, input FileSource) (Inventory, error) {
-	r := reader{ctx: ctx, input: input, files: map[string][]byte{}}
+	r := reader{ctx: ctx, input: portableInventorySource{input}, files: map[string][]byte{}}
 	if _, err := r.read("rule-library.json"); err != nil {
 		return Inventory{}, err
 	}
@@ -66,6 +69,9 @@ func readInventory(ctx context.Context, input FileSource) (Inventory, error) {
 	walk = func(directory string, optional bool, depth int) error {
 		if depth > 64 {
 			return bad(directory, "directory depth exceeds limit")
+		}
+		if err := r.registerPath(directory); err != nil {
+			return err
 		}
 		entries, err := r.entries(directory, optional)
 		if err != nil {
@@ -105,4 +111,18 @@ func readInventory(ctx context.Context, input FileSource) (Inventory, error) {
 		return Inventory{}, err
 	}
 	return inventory, nil
+}
+
+// portableInventorySource preserves the authoring snapshot's portable-path policy before any file access.
+type portableInventorySource struct{ FileSource }
+
+// Lstat rejects unsafe spellings before the shared reader inspects or opens files and directories.
+func (s portableInventorySource) Lstat(name string) (fs.FileInfo, error) {
+	if name == "." || !fs.ValidPath(name) || strings.ContainsAny(name, "\\:\x00") || !utf8.ValidString(name) {
+		return nil, bad(name, "expected a contained relative file path")
+	}
+	if strings.ContainsFunc(name, func(r rune) bool { return r < 32 || r == 127 }) {
+		return nil, bad(name, "control characters are unsupported in paths")
+	}
+	return s.FileSource.Lstat(name)
 }
