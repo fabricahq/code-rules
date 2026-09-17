@@ -1,18 +1,10 @@
 # Code Rules
 
-The package manager for your engineering rules.
-
-This folder declares the engineering rules adopted by this project and holds the files Code Rules generates for agents.
-
-| Path                 | Purpose                                                   | How to change it                                                        |
-| -------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `{{CONFIG_NAME}}`    | Libraries, selected groups, exclusions, and replacements. | Use the CLI or edit the configuration, then sync.                       |
-| `local/`             | Project-owned groups and rules.                           | Add or edit definitions, then build.                                    |
-| `vendor/`            | Verified copies of imported library content.              | Run sync to replace these snapshots.                                    |
-| `generated/`         | Resolved guidance and provenance.                         | Run build or sync to regenerate.                                        |
-| `generated/RULES.md` | Entry point for reading the project's adopted rules.      | Open it, select relevant groups, and follow their reading instructions. |
+This README explains how to manage this project's Fabrica Code Rules configuration and the engineering rules that guide agent work.
 
 ## Instructions for agents
+
+### Managing rules
 
 Use this README to **manage rules**. Use `generated/RULES.md` to **read and apply adopted rules** when working on the project.
 
@@ -24,7 +16,7 @@ Use this README to **manage rules**. Use `generated/RULES.md` to **read and appl
 
 Human-readable output is the default. Add `--json` to any command for a structured response. JSON mode never prompts: supply all required flags. Inspect `ok`, `value`, and `error` and the process exit status. Exit 1 means operation failure or stale output; exit 2 means invalid usage. Use `--help` on a command for all options.
 
-## Add a group
+#### Add a group
 
 Choose a technology ID such as `techs/go`, or a practice ID such as `practices/testing`. Use `description` to describe its scope and `when-to-read` to tell agents when to open it. Create a group once, before adding its rules.
 
@@ -37,7 +29,7 @@ code-rules local add group techs/go --config {{CONFIG_ARG}} \
 
 Read `local/techs/go/README.md` for group authoring instructions. Confirm that `local/techs/go/_group.json` contains the intended metadata. Local group metadata takes precedence over imported metadata for the same group.
 
-## Add a rule
+#### Add a rule
 
 Choose a rule ID within an existing group. Supply a complete Markdown body and discovery metadata. This example creates a new body file without overwriting an existing one:
 
@@ -62,7 +54,7 @@ Confirm that `local/techs/go/return-errors.md` contains the complete rule and th
 
 Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions or replacements in the configuration when overriding imported rules; adding a local rule does not automatically replace an imported rule.
 
-## Add a third-party library
+#### Add a third-party library
 
 Obtain the publisher's Git repository address, a released tag or full commit, and the group IDs you intend to adopt. Inspect the library's guidance and license terms before adopting it. Replace this illustrative repository and selection:
 
@@ -79,14 +71,14 @@ code-rules check --config {{CONFIG_ARG}}
 
 Use exactly one of `--ref` or `--version`. For a version constraint, replace `--ref v1.0.0` with `--version '>= 1.0.0, < 2.0.0'`. Repeat `--groups` for multiple groups. For a wildcard, quote it: `--groups 'techs/*'` or `--groups '*'`.
 
-## Maintain and verify the project
+#### Maintain and verify the project
 
 - After editing local rules, run `build`, then `check` with the configuration flag shown above.
 - After changing source selection, run `sync`, then `check`. Sync resolves tags again, so inspect revision changes before committing them.
 - Review configuration, local rules, vendor snapshots, and generated output together. Keep project-specific notes in a separate file.
 - Use `library --help` when authoring a separately published library. Project-local authoring and publisher authoring use different command trees.
 
-## Keep this guide current
+#### Keep this guide current
 
 Code Rules owns this README. After upgrading the CLI, refresh it from this folder:
 
