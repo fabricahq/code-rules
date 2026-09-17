@@ -20,6 +20,12 @@ import (
 
 var errStaleOutput = errors.New("generated output is out of date; run code-rules build to update it")
 
+// projectCheckResult reports generated-file differences and agent-guide freshness together.
+type projectCheckResult struct {
+	project.FileChanges
+	Guide authoring.GuideStatus `json:"guide"`
+}
+
 // commandOutput retains one invocation's result until its exit status and output mode are known.
 type commandOutput struct {
 	json  bool
@@ -67,7 +73,7 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error, c
 		if text.Len() > 0 {
 			_, writeErr = io.WriteString(streams.Out, text.String())
 		}
-		if err != nil && !errors.Is(err, errStaleOutput) {
+		if err != nil && err != errStaleOutput {
 			fmt.Fprintln(streams.Err, err)
 			if code == 2 {
 				fmt.Fprintln(streams.Err, "Run code-rules --help for usage.")
@@ -102,6 +108,9 @@ func classifyError(err error, code int) *responseError {
 // formatHuman describes changed paths, validation counts, warnings, and next actions without JSON syntax.
 func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 	switch result := value.(type) {
+	case projectCheckResult:
+		formatHuman(out, cmd, result.FileChanges)
+		formatHuman(out, cmd, result.Guide)
 	case authoring.GuideStatus:
 		if result.Current {
 			fmt.Fprintf(out, "Project README is up to date: %s\n", result.Path)

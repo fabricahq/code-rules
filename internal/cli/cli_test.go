@@ -85,11 +85,14 @@ func TestCLIProcess(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "config.json"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
+	if out, diagnostic, code := runCLI(t, binary, dir, "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
 	out, diagnostic, code := runCLI(t, binary, dir, "check", "--json")
 	var response struct {
-		Value map[string][]string `json:"value"`
+		Value projectCheckResult `json:"value"`
 	}
-	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || len(response.Value["added"]) == 0 {
+	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || len(response.Value.Added) == 0 {
 		t.Fatalf("stale check: %d %s %s", code, out, diagnostic)
 	}
 	if _, err := os.Stat(filepath.Join(root, "generated")); !os.IsNotExist(err) {
@@ -100,7 +103,7 @@ func TestCLIProcess(t *testing.T) {
 		t.Fatalf("build: %d %s %s", code, out, diagnostic)
 	}
 	out, diagnostic, code = runCLI(t, binary, dir, "check", "--json", "--config", filepath.Join(root, "config.json"))
-	if code != 0 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || len(response.Value["added"])+len(response.Value["changed"])+len(response.Value["removed"]) != 0 {
+	if code != 0 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || len(response.Value.Added)+len(response.Value.Changed)+len(response.Value.Removed) != 0 {
 		t.Fatalf("clean check: %d %s %s", code, out, diagnostic)
 	}
 	out, diagnostic, code = runCLI(t, binary, dir, "sync", "--json")

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/authoring"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/spf13/cobra"
@@ -56,7 +57,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.RunE = func(cmd *cobra.Command, _ []string) error { return cmd.Help() }
 	for _, name := range []string{"sync", "build", "check"} {
 		config := &singleString{}
-		descriptions := map[string]string{"sync": "Fetch libraries and rebuild vendor and generated files", "build": "Rebuild generated guidance from verified local snapshots", "check": "Check generated guidance without changing files or using Git"}
+		descriptions := map[string]string{"sync": "Fetch libraries and rebuild vendor and generated files", "build": "Rebuild generated guidance from verified local snapshots", "check": "Check generated guidance and the project README without changing files or using Git"}
 		cmd := &cobra.Command{Use: name, Short: descriptions[name], Args: cobra.NoArgs}
 		cmd.Flags().Var(config, "config", "Configuration file (default .code-rules/config.json)")
 		cmd.RunE = func(cmd *cobra.Command, _ []string) error {
@@ -83,8 +84,16 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 				return err
 			}
 			output.value = changes
-			if name == "check" && len(changes.Added)+len(changes.Changed)+len(changes.Removed) > 0 {
-				return errStaleOutput
+			if name == "check" {
+				guide, guideErr := authoring.CheckProjectGuide(cmd.Context(), authoring.Options{ConfigPath: path})
+				output.value = projectCheckResult{FileChanges: changes, Guide: guide}
+				if len(changes.Added)+len(changes.Changed)+len(changes.Removed) > 0 {
+					if guideErr != nil {
+						return errors.Join(errStaleOutput, guideErr)
+					}
+					return errStaleOutput
+				}
+				return guideErr
 			}
 			return nil
 		}

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/authoring"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -96,6 +97,10 @@ func withSyncProject(ctx context.Context, cancel context.CancelFunc, fixture syn
 	options := project.Options{ConfigPath: filepath.Join(dir, "config.json"), ToolVersion: "go-migration-review"}
 	if fixture.toolVersion != "" {
 		options.ToolVersion = fixture.toolVersion
+		// CLI scenarios start from an initialized project, including the agent guide checked by the CLI.
+		if _, err := authoring.InitializeProject(ctx, authoring.Options{ConfigPath: options.ConfigPath}); err != nil {
+			return nil, err
+		}
 	}
 	if fixture.SeedSync {
 		if _, err := project.Sync(ctx, options, git); err != nil {

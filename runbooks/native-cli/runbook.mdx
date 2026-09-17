@@ -74,7 +74,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 6. Check without changing files
 
-**PR34.** A readable confirmation and exit 0 mean generated output matches its inputs. The second invocation uses `check --json` to demonstrate structured output: `ok: true` and empty difference arrays inside `value`. Both invocations run with no tools on PATH. The final `init --check` verifies that the agent README matches the installed CLI without changing files.
+**PR34.** A readable confirmation and exit 0 mean generated output matches its inputs and the project README matches the installed CLI. The second invocation uses `check --json` to demonstrate structured output: `ok: true` and empty difference arrays inside `value`. Both invocations run with no tools on PATH. Each invocation verifies both without changing files.
 
 <Command
   id="check"

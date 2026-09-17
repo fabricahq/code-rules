@@ -33,7 +33,7 @@ code-rules init
 code-rules check --json
 ```
 
-JSON mode prints one response on stdout and never prompts. Success returns `ok: true` with a `value`. Failure returns `ok: false` with an `error` containing `kind` and `message`, plus `location` for validation errors when available. A stale check also returns the file differences in `value`. Help and version return their text in `value.text`.
+JSON mode prints one response on stdout and never prompts. Success returns `ok: true` with a `value`. Failure returns `ok: false` with an `error` containing `kind` and `message`, plus `location` for validation errors when available. A native project check returns file differences in `value.added`, `value.changed`, and `value.removed`, plus README freshness in `value.guide.current`. Both checks must pass for `ok: true`. Help and version return their text in `value.text`.
 
 Exit status is 0 for success, 1 for operation failure or stale output, and 2 for invalid usage. In human mode, errors go to stderr. In JSON mode, errors go in the JSON response; stderr is reserved for failures writing that response.
 
@@ -41,11 +41,11 @@ This output contract applies to the native candidate demonstrated in the review 
 
 ## Native project agent guide
 
-The native candidate's `code-rules init` creates `.code-rules/README.md` alongside configuration and local rules. This guide explains the folder layout and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results.
+The native candidate's `code-rules init` creates `.code-rules/README.md` alongside configuration and local rules. This guide defines rules, groups, and libraries and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results.
 
 After upgrading, run `code-rules init` again to refresh an older generated guide. It preserves valid configuration and local rules. If someone edited the README, init refuses to overwrite it and explains how to preserve those notes separately.
 
-Run `code-rules init --check` in CI to detect missing or outdated guidance without changing files. Use `--config` for a custom configuration location. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
+Run `code-rules check` in CI to verify both generated guidance and the project README without changing files. A missing or outdated README fails the check; run `code-rules init` to refresh it. Rebuild stale generated guidance with `code-rules build`. Use `--config` for a custom configuration location. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
 
 ## Sync
 

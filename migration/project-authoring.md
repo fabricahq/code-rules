@@ -3,12 +3,12 @@
 PR35 adds `internal/authoring` and native CLI commands for project-owned source files:
 
 - `init`: create missing configuration, the project agent guide in `README.md`, and local orientation. Preserve valid configuration and local definitions. Refresh older generated guides only when their ownership digest confirms no manual edits.
-- `init --check`: read without writing and fail when the project guide differs from the template embedded in this CLI. Use it in consuming-project CI after pinning the tool version.
+- `check`: read without writing and verify generated output and fail when the project guide differs from the template embedded in this CLI. Use it in consuming-project CI after pinning the tool version.
 - `add source ALIAS`: validate and record a source without fetching it.
 - `local add group ID`: create group metadata with trimmed, singular reading guidance and a README for agents.
 - `local add rule ID`: create a supplied body or an unfinished canonical draft. `--create-group` publishes new metadata and the rule together.
 
-All commands accept `--config` and `--non-interactive`. This slice requires explicit metadata flags. Interactive collection and library authoring follow separately. The npm entry point still uses TypeScript.
+All commands accept `--config`. Authoring commands also accept `--non-interactive`. This slice requires explicit metadata flags. Interactive collection and library authoring follow separately. The npm entry point still uses TypeScript.
 
 ## File ownership
 

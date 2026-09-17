@@ -90,9 +90,9 @@ Code Rules owns this README. After upgrading the CLI, refresh it from this folde
 
 ```sh
 code-rules init --config {{CONFIG_ARG}}
-code-rules init --check --config {{CONFIG_ARG}}
+code-rules check --config {{CONFIG_ARG}}
 ```
 
 `init` creates missing scaffolding and refreshes an unmodified generated README. It preserves valid configuration and local definitions. If this README has manual edits or an unrecognized format, init stops and asks you to move those notes to a separate file before regenerating it.
 
-Include `code-rules init --check --config {{CONFIG_ARG}}` in CI after installing the pinned CLI version. It reads without writing and fails if this README is missing or differs from the guide shipped with that version. Code Rules' own tests execute the command examples above against the real CLI on every release change.
+Include `code-rules check --config {{CONFIG_ARG}}` in CI after installing the pinned CLI version. It verifies generated guidance and this README without writing files. It fails if generated output is stale or this README is missing or differs from the guide shipped with that version. Run `code-rules build` with the same configuration to refresh generated output, or `code-rules init` to refresh this guide. Code Rules' own tests execute the command examples above against the real CLI on every release change.
