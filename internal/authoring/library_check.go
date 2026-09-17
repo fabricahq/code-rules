@@ -25,7 +25,8 @@ type LibraryCheckResult struct {
 	Warnings []string `json:"warnings"`
 }
 
-// CheckLibrary validates all library-owned trees and terms while ignoring unrelated repository files such as .git.
+// CheckLibrary validates a captured library snapshot, ignoring unrelated files such as .git.
+// A final comparison rejects observed changes; ordinary editors are not locked out.
 func CheckLibrary(ctx context.Context, options LibraryOptions) (LibraryCheckResult, error) {
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
@@ -35,14 +36,14 @@ func CheckLibrary(ctx context.Context, options LibraryOptions) (LibraryCheckResu
 	if err = project.RequireIdle(root); err != nil {
 		return LibraryCheckResult{}, err
 	}
-	files, license, err := libraryCheckInput(ctx, root)
+	snapshot, license, err := libraryCheckInput(ctx, root)
 	if err != nil {
 		return LibraryCheckResult{}, err
 	}
-	if err = validateLibraryInventory(ctx, files, rules.LicensePaths(license)); err != nil {
+	if err = validateLibraryInventory(ctx, snapshot.Files, rules.LicensePaths(license)); err != nil {
 		return LibraryCheckResult{}, err
 	}
-	catalog, err := library.Load(ctx, root, "library", rules.GroupSelection{Pattern: "*"})
+	catalog, err := library.LoadSource(ctx, capturedLibrary{snapshot}, "library", rules.GroupSelection{Pattern: "*"})
 	if err != nil {
 		return LibraryCheckResult{}, err
 	}
@@ -58,7 +59,7 @@ func CheckLibrary(ctx context.Context, options LibraryOptions) (LibraryCheckResu
 	if err = ctx.Err(); err != nil {
 		return LibraryCheckResult{}, err
 	}
-	if err = requireLibraryUnchanged(ctx, root, files); err != nil {
+	if err = requireLibraryUnchanged(ctx, root, snapshot); err != nil {
 		return LibraryCheckResult{}, err
 	}
 	if err = project.RequireIdle(root); err != nil {
@@ -141,32 +142,38 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 }
 
 // libraryCheckInput captures every manifest, term, and library-owned file considered by a complete check.
-func libraryCheckInput(ctx context.Context, root *os.Root) (map[string][]byte, *rules.LicenseDeclaration, error) {
+func libraryCheckInput(ctx context.Context, root *os.Root) (*project.Tree, *rules.LicenseDeclaration, error) {
 	files, license, err := libraryManifest(ctx, root)
 	if err != nil {
 		return nil, nil, err
 	}
+	snapshot := &project.Tree{Files: files, Directories: []string{}}
 	for _, directory := range []string{"techs", "practices", "assets"} {
 		tree, err := project.ReadTree(ctx, root, directory)
 		if err != nil {
 			return nil, nil, err
 		}
 		if tree != nil {
+			snapshot.Directories = append(snapshot.Directories, directory)
+			for _, name := range tree.Directories {
+				snapshot.Directories = append(snapshot.Directories, directory+"/"+name)
+			}
 			for name, data := range tree.Files {
 				files[directory+"/"+name] = data
 			}
 		}
 	}
-	return files, license, nil
+	slices.Sort(snapshot.Directories)
+	return snapshot, license, nil
 }
 
-// requireLibraryUnchanged rejects ordinary editor changes as well as added or removed files before approving a check.
-func requireLibraryUnchanged(ctx context.Context, root *os.Root, before map[string][]byte) error {
+// requireLibraryUnchanged rejects differences observed after validating the captured snapshot.
+func requireLibraryUnchanged(ctx context.Context, root *os.Root, before *project.Tree) error {
 	after, _, err := libraryCheckInput(ctx, root)
 	if err != nil {
 		return failure("changed-input", "library changed during validation; retry library check", err)
 	}
-	if !maps.EqualFunc(before, after, bytes.Equal) {
+	if !maps.EqualFunc(before.Files, after.Files, bytes.Equal) || !slices.Equal(before.Directories, after.Directories) {
 		return failure("changed-input", "library changed during validation; retry library check", nil)
 	}
 	return nil
