@@ -13,7 +13,7 @@ import (
 // newLibraryCommand registers library-specific location and explicit-input flags.
 func newLibraryCommand(use, description string, arity int, directory string) (*cobra.Command, *authoringFlags) {
 	cmd := &cobra.Command{Use: use, Short: description, Args: cobra.ExactArgs(arity)}
-	flags := &authoringFlags{values: map[string]*singleString{}, directory: directory}
+	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: directory}
 	flags.add(cmd, "directory", "Library directory (default current directory)")
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
 	return cmd, flags
@@ -125,6 +125,9 @@ func libraryRuleCommand(options Options, started *bool) *cobra.Command {
 			return fmt.Errorf("use a rule ID without the .md extension")
 		}
 		if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
+			return err
+		}
+		if err := f.offerGroup(args[0], &createGroup, true); err != nil {
 			return err
 		}
 		ro := authoring.LibraryRuleOptions{LibraryOptions: f.libraryOptions()}

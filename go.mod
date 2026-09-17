@@ -3,6 +3,7 @@ module github.com/fabricahq/code-rules
 go 1.27.1
 
 require (
+	github.com/creack/pty v1.1.24
 	github.com/github/go-spdx/v2 v2.7.0
 	github.com/hashicorp/go-version v1.9.0
 	github.com/nlnwa/whatwg-url v0.6.2

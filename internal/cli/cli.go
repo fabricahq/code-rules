@@ -90,7 +90,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	addLibraryCommands(root, options, &started)
 	if _, err := root.ExecuteContextC(ctx); err != nil {
 		fmt.Fprintln(streams.Err, err)
-		if !started {
+		if !started && ctx.Err() == nil {
 			fmt.Fprintln(streams.Err, "Run code-rules --help for usage.")
 			return 2
 		}

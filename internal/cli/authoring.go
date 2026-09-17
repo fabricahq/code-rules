@@ -1,4 +1,4 @@
-// Register explicit authoring commands; interactive input collection is added in its own migration slice.
+// Register authoring commands and collect missing terminal inputs before filesystem operations.
 
 package cli
 
@@ -19,6 +19,7 @@ import (
 
 // authoringFlags owns one command's scalar flags and resolves paths against the caller's directory.
 type authoringFlags struct {
+	command   *cobra.Command
 	values    map[string]*singleString
 	directory string
 }
@@ -26,7 +27,7 @@ type authoringFlags struct {
 // newAuthoringCommand registers shared configuration and noninteractive flags with strict positional arity.
 func newAuthoringCommand(use, description string, arity int, directory string) (*cobra.Command, *authoringFlags) {
 	cmd := &cobra.Command{Use: use, Short: description, Args: cobra.ExactArgs(arity)}
-	flags := &authoringFlags{values: map[string]*singleString{}, directory: directory}
+	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: directory}
 	flags.add(cmd, "config", "Configuration file (default .code-rules/config.json)")
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
 	return cmd, flags
@@ -51,7 +52,14 @@ func (f *authoringFlags) value(name string) string {
 func (f *authoringFlags) require(names ...string) error {
 	for _, name := range names {
 		if f.value(name) == "" {
-			return fmt.Errorf("provide --%s in non-interactive mode", name)
+			value, err := f.ask(f.command.Flags().Lookup(name).Usage + " (--" + name + "):")
+			if err != nil {
+				return err
+			}
+			if value == "" {
+				return fmt.Errorf("provide --%s", name)
+			}
+			f.values[name].value = value
 		}
 	}
 	return nil
@@ -107,14 +115,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	var groups []string
 	source.Flags().StringArrayVar(&groups, "groups", nil, "Group ID (repeat) or one wildcard")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
-		if err := sf.require("repository"); err != nil {
+		if err := sf.collectSource(&groups); err != nil {
 			return err
-		}
-		if (sf.value("ref") == "") == (sf.value("version") == "") {
-			return fmt.Errorf("specify exactly one of --ref or --version")
-		}
-		if len(groups) == 0 {
-			return fmt.Errorf("provide --groups")
 		}
 		var selection any = groups
 		if len(groups) == 1 && (groups[0] == "*" || groups[0] == "techs/*" || groups[0] == "practices/*") {
@@ -168,6 +170,9 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 			return fmt.Errorf("use a rule ID without the .md extension")
 		}
 		if err := rf.require("title", "when-to-read", "impact", "impact-description"); err != nil {
+			return err
+		}
+		if err := rf.offerGroup(args[0], &createGroup, false); err != nil {
 			return err
 		}
 		ro := authoring.RuleOptions{Options: rf.options()}
