@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "implementation-review",
-  "referenceRevision": "7013d3d374a33a5cf65a2a48ff6870e46f9d7209",
+  "referenceRevision": "2594d298511e55fb8d893091b6b4a2a7959a0a39",
   "rulesCorpus": {
     "repository": "https://github.com/josh-padnick/code-rules",
     "revision": "e2166f90333157fd3e14c24d3e43287ece858e4b"

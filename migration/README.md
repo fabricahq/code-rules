@@ -57,7 +57,7 @@ bun run build
 bun tests/migration/compare.ts \
   --reference "$PWD/dist/cli.js" \
   --candidate "$PWD/dist/cli.js" \
-  --reference-revision 7013d3d374a33a5cf65a2a48ff6870e46f9d7209 \
+  --reference-revision 2594d298511e55fb8d893091b6b4a2a7959a0a39 \
   --report /tmp/code-rules-migration-reference.json
 ```
 
@@ -97,6 +97,10 @@ The initial suite does not yet measure interactive prompts, cancellation, crash 
 Those requirements remain in the inventory and the existing TypeScript suites continue to run.
 
 ## Prevent stale evidence
+
+The reference was explicitly refreshed to `2594d298511e55fb8d893091b6b4a2a7959a0a39` for the requested tagline, “The package manager for your engineering rules.”
+This changes the TypeScript root help and package description, with a help regression assertion; runtime behavior and dependencies are unchanged.
+The Go CLI, README, and documentation use the same tagline. Earlier reports still describe their recorded reference revision.
 
 The runner rejects changes from the reference in `src/`, runtime/package metadata, the lockfile, packaging script, and reused fixture/package tests.
 That conservative check includes staged, unstaged, committed, and untracked source changes.
