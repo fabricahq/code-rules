@@ -22,7 +22,15 @@ func TestNativeInstallUpgradeRollback(t *testing.T) {
 	target := runtime.GOOS + "/" + runtime.GOARCH
 	for _, version := range []string{"0.1.0-review.1", "0.1.0-review.2"} {
 		output := filepath.Join(parent, "artifacts-"+version)
-		manifest, err := Build(context.Background(), Options{Source: source, Output: output, Version: version, Targets: []string{target}, Candidate: true})
+		cwd, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		relativeOutput, err := filepath.Rel(cwd, output)
+		if err != nil {
+			t.Fatal(err)
+		}
+		manifest, err := Build(context.Background(), Options{Source: source, Output: relativeOutput, Version: version, Targets: []string{target}, Candidate: true})
 		if err != nil {
 			t.Fatal(err)
 		}

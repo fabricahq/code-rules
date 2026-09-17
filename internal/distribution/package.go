@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -49,13 +50,34 @@ type Manifest struct {
 
 var supported = []string{"darwin/amd64", "darwin/arm64", "linux/amd64", "linux/arm64"}
 
-// Build compiles pinned source, packages deterministic archive entries, and writes a manifest only after every target succeeds.
+// Build compiles an isolated copy of committed HEAD (working edits are excluded), packages deterministic archive entries, and writes a manifest only after every target succeeds.
 // Output must not exist. A failed build retains an INCOMPLETE marker for inspection; retry into a new directory.
 func Build(ctx context.Context, options Options) (Manifest, error) {
 	source, err := filepath.Abs(options.Source)
 	if err != nil {
 		return Manifest{}, err
 	}
+	options.Output, err = filepath.Abs(options.Output)
+	if err != nil {
+		return Manifest{}, err
+	}
+	revision, err := output(ctx, source, "git", "rev-parse", "HEAD")
+	if err != nil {
+		return Manifest{}, err
+	}
+	dirty, err := output(ctx, source, "git", "status", "--porcelain", "--untracked-files=normal")
+	if err != nil {
+		return Manifest{}, err
+	}
+	if !options.Candidate && dirty != "" {
+		return Manifest{}, fmt.Errorf("release source must be clean")
+	}
+	captured, err := committedSource(ctx, source, revision)
+	if err != nil {
+		return Manifest{}, err
+	}
+	defer os.RemoveAll(captured)
+	source = filepath.Join(captured, "tree")
 	data, err := os.ReadFile(filepath.Join(source, "package.json"))
 	if err != nil {
 		return Manifest{}, err
@@ -87,17 +109,6 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 		if !slices.Contains(supported, target) || i > 0 && target == targets[i-1] {
 			return Manifest{}, fmt.Errorf("unsupported or duplicate target %q", target)
 		}
-	}
-	revision, err := output(ctx, source, "git", "rev-parse", "HEAD")
-	if err != nil {
-		return Manifest{}, err
-	}
-	dirty, err := output(ctx, source, "git", "status", "--porcelain", "--untracked-files=normal")
-	if err != nil {
-		return Manifest{}, err
-	}
-	if !options.Candidate && dirty != "" {
-		return Manifest{}, fmt.Errorf("release source must be clean")
 	}
 	goVersion, err := output(ctx, source, "go", "version")
 	if err != nil {
@@ -224,3 +235,76 @@ type byteCounter struct{ n int64 }
 
 // Write counts bytes forwarded to the archive file and digest.
 func (c *byteCounter) Write(data []byte) (int, error) { c.n += int64(len(data)); return len(data), nil }
+
+// committedSource extracts a fixed Git commit into an isolated build tree so edits cannot change artifact inputs.
+func committedSource(ctx context.Context, source, revision string) (_ string, err error) {
+	directory, err := os.MkdirTemp("", "code-rules-build-source-")
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if err != nil {
+			_ = os.RemoveAll(directory)
+		}
+	}()
+	archivePath := filepath.Join(directory, "source.tar")
+	if _, err = output(ctx, source, "git", "archive", "--format=tar", "--output", archivePath, revision); err != nil {
+		return "", err
+	}
+	file, err := os.Open(archivePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	root := filepath.Join(directory, "tree")
+	if err = os.Mkdir(root, 0700); err != nil {
+		return "", err
+	}
+	reader := tar.NewReader(file)
+	var total int64
+	for {
+		header, nextErr := reader.Next()
+		if nextErr == io.EOF {
+			break
+		}
+		if nextErr != nil {
+			return "", nextErr
+		}
+		name := strings.TrimSuffix(header.Name, "/")
+		if !fs.ValidPath(name) || name == "." || strings.ContainsAny(name, "\\\x00") {
+			return "", fmt.Errorf("unsafe committed source path")
+		}
+		destination := filepath.Join(root, filepath.FromSlash(name))
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err = os.MkdirAll(destination, 0700); err != nil {
+				return "", err
+			}
+		case tar.TypeReg:
+			if header.Size < 0 || header.Size > 256*1024*1024-total {
+				return "", fmt.Errorf("committed source exceeds 256 MiB")
+			}
+			total += header.Size
+			if err = os.MkdirAll(filepath.Dir(destination), 0700); err != nil {
+				return "", err
+			}
+			data, readErr := io.ReadAll(reader)
+			if readErr != nil {
+				return "", readErr
+			}
+			if err = os.WriteFile(destination, data, 0600); err != nil {
+				return "", err
+			}
+		default:
+			return "", fmt.Errorf("unsupported committed source entry %s", name)
+		}
+	}
+	if err = file.Close(); err != nil {
+		return "", err
+	}
+	if err = os.Remove(archivePath); err != nil {
+		return "", err
+	}
+	// The caller removes the container; return its tree through a dedicated cleanup boundary.
+	return directory, nil
+}

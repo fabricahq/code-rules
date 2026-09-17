@@ -6,6 +6,8 @@ Build unpublished archives for macOS and Linux, on amd64 and arm64:
 go run ./cmd/package-native --candidate --output /tmp/code-rules-artifacts
 ```
 
+The build compiles an isolated copy of committed HEAD. Commit intended source changes first; uncommitted edits are excluded even from candidates. The manifest reports whether the original checkout had uncommitted edits.
+
 The output directory must be new. It contains a manifest, SHA256SUMS, and one
 `.tar.gz` per target. Each archive contains the native executable, README.txt,
 and the tool's original LICENSE.md if present. The manifest records the version,
