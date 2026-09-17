@@ -33,7 +33,7 @@ func acceptanceResponse(parent context.Context, input json.RawMessage) (response
 	if err != nil {
 		return response{}, err
 	}
-	ctx, cancel := context.WithTimeout(parent, 90*time.Second)
+	ctx, cancel := context.WithTimeout(parent, 2*time.Minute)
 	defer cancel()
 	report, err := acceptance.Run(ctx, binary, fixture.Scenario)
 	observed := map[string]any{"steps": report.Steps, "verified": report.Verified, "files": acceptanceFiles(report.Files)}

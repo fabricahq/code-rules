@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/fabricahq/code-rules/internal/gitfixture"
 	"github.com/fabricahq/code-rules/internal/project"
@@ -54,6 +55,17 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			return report, err
 		}
 	}
+	// Keep the observed project even when a command or invariant fails, before temporary cleanup.
+	defer func() {
+		captureCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+		final, captureErr := readTree(captureCtx, consumer)
+		if captureErr != nil {
+			err = errors.Join(err, fmt.Errorf("capture acceptance project files: %w", captureErr))
+			return
+		}
+		report.Files = final.Files
+	}()
 	offline := []string{"PATH=" + filepath.Join(directory, "no-runtime")}
 	// invoke captures real exit status and fails the pilot when it differs from the stated scenario.
 	invoke := func(label, dir string, env []string, want int, args ...string) error {
@@ -283,11 +295,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			report.Verified = append(report.Verified, "New release updates retained bytes and provenance, then checks offline")
 		}
 	}
-	final, err := readTree(ctx, consumer)
-	if err == nil {
-		report.Files = final.Files
-	}
-	return report, err
+	return report, nil
 }
 
 // readTree captures file bytes and empty directories through the confined project reader.

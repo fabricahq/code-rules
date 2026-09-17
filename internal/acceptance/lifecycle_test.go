@@ -56,8 +56,12 @@ func TestPilotRejectsWritingChecks(t *testing.T) {
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 			defer cancel()
-			if _, err := Run(ctx, wrapper, "lifecycle"); err == nil || !strings.Contains(err.Error(), "read-only check changed project") {
+			report, err := Run(ctx, wrapper, "lifecycle")
+			if err == nil || !strings.Contains(err.Error(), "read-only check changed project") {
 				t.Fatal("mutation not detected", err)
+			}
+			if string(report.Files[".code-rules/generated/RULES.md"]) != "Stale output" {
+				t.Fatal("failed pilot omitted observed project files", report.Files)
 			}
 		})
 	}
@@ -78,5 +82,64 @@ func TestPilotRejectsSilentRefusal(t *testing.T) {
 	defer cancel()
 	if _, err := Run(ctx, wrapper, "changed-vendor"); err == nil || !strings.Contains(err.Error(), "refusal returned no diagnostic") {
 		t.Fatal("silent refusal passed", err)
+	}
+}
+
+// TestFailedPilotCapture preserves the command failure and observations, including after cancellation.
+func TestFailedPilotCapture(t *testing.T) {
+	binary := filepath.Join(t.TempDir(), "code-rules")
+	if data, err := exec.Command("go", "build", "-o", binary, "../../cmd/code-rules").CombinedOutput(); err != nil {
+		t.Fatal(err, string(data))
+	}
+	for _, scenario := range []string{"failure", "capture failure", "cancellation"} {
+		t.Run(scenario, func(t *testing.T) {
+			directory := t.TempDir()
+			wrapper := filepath.Join(directory, "wrapper")
+			marker := filepath.Join(directory, "ready")
+			action := "echo 'deliberate CLI failure' >&2; exit 37"
+			if scenario == "capture failure" {
+				action = "/bin/ln -s observation.txt unsafe-link; " + action
+			}
+			if scenario == "cancellation" {
+				action = fmt.Sprintf("printf ready > '%s'; exec /bin/sleep 30", marker)
+			}
+			script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = init ]; then\n printf 'observed before failure' > observation.txt\n %s\nfi\nexec '%s' \"$@\"\n", action, binary)
+			if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if scenario == "cancellation" {
+				go func() {
+					ticker := time.NewTicker(10 * time.Millisecond)
+					defer ticker.Stop()
+					for {
+						select {
+						case <-ctx.Done():
+							return
+						case <-ticker.C:
+							if _, err := os.Stat(marker); err == nil {
+								cancel()
+								return
+							}
+						}
+					}
+				}()
+			}
+			report, err := Run(ctx, wrapper, "lifecycle")
+			if err == nil {
+				t.Fatal("failed pilot reported success")
+			}
+			if scenario != "cancellation" && !strings.Contains(err.Error(), "deliberate CLI failure") {
+				t.Fatal("original command error was lost", err)
+			}
+			if scenario == "capture failure" {
+				if !strings.Contains(err.Error(), "capture acceptance project files") {
+					t.Fatal("capture failure was hidden", err)
+				}
+			} else if string(report.Files["observation.txt"]) != "observed before failure" {
+				t.Fatal("failed pilot omitted observation", err, report.Files)
+			}
+		})
 	}
 }
