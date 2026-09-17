@@ -29,3 +29,4 @@ jobs:
           name: unpublished-native-candidates
           path: native-artifacts/
           retention-days: 7
+          if-no-files-found: error

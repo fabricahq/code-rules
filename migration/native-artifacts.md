@@ -39,3 +39,11 @@ declared tool license. Non-candidate packaging checks declared terms as a prereq
 package versions, and dirty source. Publishing, an npm native loader, release
 signing, and changing the default distribution require separate owner approval.
 The existing TypeScript npm entrypoint remains intact.
+
+## Pull request downloads
+
+`package-binaries.yml` builds and uploads the candidate bundle for seven days. After a successful pull-request run, `comment-binary-preview.yml` posts or updates one bot comment with a direct download link, the PR commit, expiry, and build results. Reviewers must sign in to GitHub to download artifacts. The manifest records the packaged source commit, which can be GitHub's PR merge commit.
+
+The notification uses GitHub API metadata only. It never checks out PR code, downloads artifacts, or executes their contents. Failed builds, missing or expired artifacts, closed PRs, and superseded commits do not produce a preview comment. A manual packaging run uploads artifacts without commenting on a PR.
+
+GitHub activates `workflow_run` notifications only after the notification workflow reaches the repository's default branch (`main`). Merging this migration slice into `go-migration` alone does not activate automatic comments.
