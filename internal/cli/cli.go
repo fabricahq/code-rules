@@ -45,7 +45,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	}
 	started := false
 	stale := false
-	root := &cobra.Command{Use: "code-rules", Short: "Manage versioned engineering rules for your project", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
+	root := &cobra.Command{Use: "code-rules", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
 	root.CompletionOptions.DisableDefaultCmd = true
 	root.SetIn(streams.In)
 	root.SetOut(streams.Out)
