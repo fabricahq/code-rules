@@ -3,9 +3,11 @@
 package imports
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/fabricahq/code-rules/internal/library"
@@ -61,11 +63,14 @@ func importLibrary(ctx context.Context, source rules.Source, options Options) (_
 	}
 	catalog, err := library.LoadSource(ctx, input, source.Name, source.Groups)
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return Library{}, contextFailure(err)
+		}
 		return Library{}, err
 	}
 	files := make(map[string][]byte, len(catalog.SupportingFiles))
 	for name, data := range catalog.SupportingFiles {
-		files[name] = data
+		files[name] = bytes.Clone(data)
 	}
 	groups := make([]string, 0, len(catalog.Groups))
 	for _, group := range catalog.Groups {
@@ -74,7 +79,9 @@ func importLibrary(ctx context.Context, source rules.Source, options Options) (_
 			files[rule.Path] = []byte(rule.Document)
 		}
 	}
-	snapshot := project.Snapshot{Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: revision.Tag, ResolvedVersion: revision.Version, Commit: revision.Commit, Selection: catalog.Selection, Groups: groups, Files: files}
+	selection := catalog.Selection
+	selection.Groups = slices.Clone(selection.Groups)
+	snapshot := project.Snapshot{Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: revision.Tag, ResolvedVersion: revision.Version, Commit: revision.Commit, Selection: selection, Groups: groups, Files: files}
 	if err := ctx.Err(); err != nil {
 		return Library{}, contextFailure(err)
 	}

@@ -260,3 +260,28 @@ func TestGitBlobFraming(t *testing.T) {
 		requireCode(t, err, "git-failed")
 	}
 }
+
+// TestCatalogMutationPreservesSnapshot keeps verified bytes and selection independent from editable catalog data.
+func TestCatalogMutationPreservesSnapshot(t *testing.T) {
+	files := libraryFiles()
+	fixture := newLibraryFixture(t, files)
+	config := libraryConfig(t, fixture.Repository)
+	result, err := ImportLibraries(context.Background(), config, Options{GitPath: fixture.GitPath, Environment: fixture.Environment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	item := result["team"]
+	item.Catalog.SupportingFiles["NOTICE"][0] = 'X'
+	item.Catalog.Selection.Groups[0] = "techs/rust"
+	if !bytes.Equal(item.Snapshot.Files["NOTICE"], files["NOTICE"]) || item.Snapshot.Selection.Groups[0] != "techs/go" {
+		t.Fatal("catalog mutation altered verified snapshot")
+	}
+	encoded, err := project.EncodeSnapshots(config, map[string]project.Snapshot{"team": item.Snapshot})
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := project.DecodeSnapshots(config, encoded)
+	if err != nil || !bytes.Equal(decoded["team"].Files["NOTICE"], files["NOTICE"]) {
+		t.Fatal("snapshot no longer retains original Git bytes", err)
+	}
+}
