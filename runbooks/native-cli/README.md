@@ -14,7 +14,7 @@ The launcher builds this checkout's native CLI into a temporary directory and op
 
 Choose **Prepare** first, then run blocks in order. The scripts create a fresh temporary project and library; they print that path for inspection. They do not install globally or fetch repositories. Each launch builds a fresh binary; restart the launcher after changing Go code.
 
-The stale-output check intentionally fails. Continue to **Repair**. Build, Repair, and Validate capture files in Runbooks' file viewer. Those copies are snapshots from the last successful block, not live filesystem views.
+The stale-output check intentionally fails. Continue to **Repair**. Initialize and each file-changing step capture files in Runbooks' file viewer, including hidden `.code-rules` files. Each script prints its working directory and labels displayed file contents. CLI output is human-readable by default; the Check step also demonstrates `--json`. Those copies are snapshots from the last successful block, not live filesystem views.
 
 Re-running Prepare starts a fresh workspace. Earlier temporary workspaces remain on disk for inspection. Stop the server with Ctrl+C when finished. The launcher and runbook print the temporary paths so you can remove them when no longer needed.
 
