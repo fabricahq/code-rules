@@ -19,7 +19,7 @@ func TestSyncFixtureRejectsChangedRemote(t *testing.T) {
 	config := func(repository string) string {
 		return `{"schemaVersion":1,"sources":{"team":{"repository":"` + repository + `","ref":"v1.0.0","groups":[],"exclude":{},"replace":{}}}}`
 	}
-	changed := config(server.URL + "/rules.git")
+	changed := config(strings.Replace(server.URL, "http://", "https://", 1) + "/rules.git")
 	raw, err := json.Marshal(map[string]any{
 		"configuration": json.RawMessage(config("git@fixture.invalid:team")),
 		"libraries":     map[string]any{"team": map[string]any{"files": map[string]string{"rule-library.json": `{"formatVersion":1}`}}},
@@ -30,7 +30,7 @@ func TestSyncFixtureRejectsChangedRemote(t *testing.T) {
 	}
 	result, err := syncResponse(raw)
 	if err != nil || result.OK || result.Error == nil || !strings.Contains(result.Error.Message, "supplied local Git fixture") {
-		t.Fatalf("changed remote was not rejected: %+v %v", result, err)
+		t.Fatalf("changed remote was not rejected: %+v %v", result.Error, err)
 	}
 	if requests.Load() != 0 {
 		t.Fatal("walkthrough contacted an edited remote")
