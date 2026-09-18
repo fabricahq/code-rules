@@ -47,7 +47,10 @@
   .desktop-break { display: none; }
 }
 
-.cr-rule-path { margin-top: .5rem; color: var(--cr-muted); font: .75rem/1.6 var(--cr-font-mono); overflow-wrap: anywhere; }
+.cr-file-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--cr-line); background: var(--cr-surface); }
+.cr-rule-path { display: flex; align-items: flex-start; gap: .5rem; margin-top: .5rem; color: var(--cr-ink); font: .75rem/1.6 var(--cr-font-mono); overflow-wrap: anywhere; }
+.cr-rule-path svg { flex-shrink: 0; margin-top: .1rem; color: var(--cr-muted); }
+.cr-rule-path span { min-width: 0; }
 .cr-rule-file pre { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
 .cr-rule-file pre code { padding: 0; background: none; color: inherit; font: inherit; border: 0; }
 
@@ -61,4 +64,4 @@
   .cr-library-tree pre { font-size: .8rem; }
 }
 
-.cr-rule-file { --sample-padding: 1rem 0 0; --sample-size: .8rem; }
+.cr-rule-file { padding: 0; overflow: hidden; background: var(--cr-paper); --sample-padding: 1.25rem 1.5rem; --sample-size: .8rem; }
