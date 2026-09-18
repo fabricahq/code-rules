@@ -1,8 +1,9 @@
 ---
 /** @fileoverview Renders primary documentation, agent guidance, and GitHub navigation links. */
+import { Icon } from '@astrojs/starlight/components';
 ---
 <nav class="cr-nav" aria-label="Main navigation">
   <a href="/overview/">Docs</a>
   <a href="/for-agents/">For agents</a>
-  <a href="https://github.com/fabricahq/code-rules">GitHub <span aria-hidden="true">↗</span></a>
+  <a class="cr-icon-link" href="https://github.com/fabricahq/code-rules" aria-label="Code Rules on GitHub" title="Code Rules on GitHub"><Icon name="github" size="19px" /></a>
 </nav>

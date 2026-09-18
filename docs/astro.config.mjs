@@ -19,9 +19,10 @@ export default defineConfig({
     disable404Route: true,
     customCss: ['./src/styles/custom.css', './src/styles/home.css'],
     components: {
-      Hero: './src/components/HomeHero.astro',
+      Hero: './src/components/HomePage.astro',
       SiteTitle: './src/components/SiteTitle.astro',
       SocialIcons: './src/components/NavLinks.astro',
+      ThemeSelect: './src/components/ThemeSelect.astro',
       PageTitle: './src/components/PageTitle.astro',
       Footer: './src/components/Footer.astro',
     },

@@ -1,37 +1,124 @@
 ---
-/** @fileoverview Renders an illustrative agent conversation about applying engineering rules before writing code. */
+/** @fileoverview Shows two illustrative, controllable agent sessions using adopted rules to write and review code. */
+import AgentSession from './AgentSession.astro';
+const readRule = {
+  title: 'Read your rule', kind: 'RULE', file: 'Keep secrets out of logs',
+  note: 'First, I’ll read your logging rule.',
+  code: 'Never write secrets to logs.', lang: 'text' as const,
+};
+const write = [readRule, {
+  title: 'Apply it', kind: 'EDIT', file: 'sign-in.ts · excerpt',
+  note: 'I’m writing the logging code to follow your rule: include user IDs, never passwords.',
+  code: 'log.info({ userId }, "Signed in");', lang: 'ts' as const,
+}, {
+  title: 'Verify the result', kind: 'TEST', file: 'bun test',
+  note: 'Verified: no passwords in the logs.',
+  code: '✓ Sign-ins logged · passwords excluded', lang: 'text' as const,
+}];
+const review = [{
+  title: 'Inspect the code', kind: 'READ', file: 'sign-in.ts · excerpt',
+  note: 'This sign-in handler logs credentials.',
+  code: 'log.info({ userId, password });', lang: 'ts' as const,
+}, {
+  ...readRule, note: 'I’ll check your rule for logging secrets.',
+}, {
+  title: 'Find and fix', kind: 'PATCH', file: 'sign-in.ts · excerpt',
+  note: 'Logging the password violates this rule. I’ll remove it.',
+  code: '- log.info({ userId, password });\n+ log.info({ userId });', lang: 'diff' as const,
+}, {
+  title: 'Verify the fix', kind: 'TEST', file: 'bun test',
+  note: "Fixed. I've also added a regression test for ongoing validation.",
+  code: '✓ Password never logged · test passed', lang: 'text' as const,
+}];
 ---
-<figure id="agent-preview" class="agent-preview" aria-label="Placeholder agent conversation">
-  <div class="window-bar"><span class="window-dots" aria-hidden="true">● ● ●</span><span>Agent / library-licenses.ts</span><span class="mockup-label">Placeholder</span></div>
-  <div class="conversation">
-    <div class="user-message"><span class="speaker">YOU</span><p>Write functions that collect a library’s license and notice files.</p></div>
-    <div class="agent-message"><span class="speaker">AGENT</span><p>I found the relevant engineering rules. I’ll use them to write these functions:</p>
-      <ul class="found-rules">
-        <li><span aria-hidden="true">✓</span><div><strong>Keep functions focused</strong><span>Separate manifest parsing, path validation, and file checks.</span></div></li>
-        <li><span aria-hidden="true">✓</span><div><strong>Use names that explain intent</strong><span>Make each step readable at the call site.</span></div></li>
-        <li><span aria-hidden="true">✓</span><div><strong>Document the contract</strong><span>State what comes back and when the function throws.</span></div></li>
-      </ul>
-      <p class="agent-close">I’ll compose those helpers into <code>collectLibraryLicensePaths</code>, then check the implementation against the rules.</p>
+<figure id="agent-preview" class="agent-preview" aria-label="Illustrative agent sessions">
+  <agent-demo>
+    <div class="session-tabs" role="tablist" aria-label="Choose an agent session" hidden data-tabs>
+      <button type="button" role="tab" id="tab-write" aria-controls="session-write" aria-selected="true" tabindex="0" data-tab="write"><span aria-hidden="true">✳︎</span> Write with rules</button>
+      <button type="button" role="tab" id="tab-review" aria-controls="session-review" aria-selected="false" tabindex="-1" data-tab="review"><svg class="review-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg> Review and fix</button>
     </div>
-  </div>
-  <figcaption><span>Illustrative conversation, shown as a placeholder screenshot.</span><a href="#code-example">See the code before and after <span aria-hidden="true">↓</span></a></figcaption>
+    <div class="terminal-window" data-session-window>
+      <div class="window-bar"><span class="harness-icon" aria-hidden="true">✳︎</span><span class="harness-name">Your coding agent <span class="window-path">acme-checkout</span></span><span class="demo-badge">EXAMPLE SESSION</span></div>
+      <div class="session-body">
+        <AgentSession id="write" title="Write with rules" task="Add logging for successful sign-ins." steps={write} selected />
+        <AgentSession id="review" title="Review and fix" task="Review our sign-in logging. Fix any issues." steps={review} />
+        <div class="preview-overlay" hidden data-preview-overlay>
+          <button type="button" class="preview-play" data-start aria-label="Play example session">
+            <span class="preview-play-icon"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m8 4 12 8-12 8Z" /></svg></span>
+            <span>Play example</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="playback" hidden data-controls>
+      <div class="playback-buttons">
+        <button type="button" data-play>
+          <svg class="play-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m8 5 11 7-11 7Z" /></svg>
+          <svg class="pause-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 5v14M16 5v14" /></svg>
+          <span data-play-label>Play</span>
+        </button>
+        <button type="button" data-replay><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" /></svg>Replay</button>
+        <button type="button" data-finish><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" /></svg>Show full session</button>
+      </div>
+    </div>
+    <noscript><p>Enable JavaScript to play the demos or switch sessions. The complete writing session is shown above.</p></noscript>
+  </agent-demo>
 </figure>
+<script>
+  import './agent-demo';
+</script>
 <style>
-  .agent-preview { scroll-margin-top: 5rem; margin: 0 auto; max-width: 56rem; border: 1px solid var(--cr-line); border-radius: 16px; background: var(--cr-paper); overflow: hidden; box-shadow: 0 12px 40px #00000006; }
-  .window-bar { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; padding: 1rem 1.5rem; background: var(--cr-surface); border-bottom: 1px solid var(--cr-faint); color: var(--cr-muted); font: .75rem var(--cr-font-mono); }
-  .window-dots { letter-spacing: .15em; opacity: .5; }
-  .mockup-label { margin-left: auto; font: .7rem var(--sl-font); }
-  .conversation { padding: 2rem 2.5rem; font-size: .95rem; line-height: 1.65; color: var(--cr-ink); }
-  .speaker { font-size: .65rem; font-weight: 600; letter-spacing: .13em; color: var(--cr-muted); }
-  .conversation p { margin: .5rem 0 0; }
-  .user-message { padding: 1rem 1.25rem; background: var(--cr-surface); border-radius: 12px; margin: 0 0 1.75rem 3rem; }
-  .agent-message { padding-right: 1rem; }
-  .found-rules { list-style: none; padding: 0; margin: 1.25rem 0; display: grid; gap: 1rem; }
-  .found-rules li { display: flex; gap: .85rem; }
-  .found-rules strong { display: block; font-size: .875rem; font-weight: 550; }
-  .found-rules div > span { display: block; font-size: .825rem; color: var(--cr-muted); }
-  .agent-close code { font: .8rem var(--cr-font-mono); overflow-wrap: anywhere; }
-  figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--cr-faint); color: var(--cr-muted); font-size: .75rem; line-height: 1.6; }
-  figcaption a { color: var(--cr-ink); text-underline-offset: 4px; }
-  @media (max-width: 540px) { .conversation { padding: 1.25rem; } .user-message { margin-left: 1rem; } .agent-message { padding-right: 0; } .window-bar { padding: 1rem; gap: .5rem; } .window-dots { display: none; } }
+  .agent-preview { margin: 0 auto; max-width: 49rem; scroll-margin-top: 5rem; }
+  agent-demo {
+    display: block;
+    --demo-ink: #e1e9f5; --demo-muted: #99aac2; --demo-border: #2c3a50;
+    --demo-panel: #121c2b; --demo-tool: #172336; --demo-bar: #1b293e;
+    --demo-blue: #7fc5ff; --demo-purple: #c5a4ff; --demo-green: #80d9b2;
+    --demo-red: #ff9c9d; --demo-amber: #eac483;
+  }
+  :global([data-theme='light']) agent-demo {
+    --demo-ink: #23324a; --demo-muted: #60718b; --demo-border: #dce4ef;
+    --demo-panel: #fcfdff; --demo-tool: #f4f7fc; --demo-bar: #eef3fb;
+    --demo-blue: #216bb0; --demo-purple: #7850ae; --demo-green: #267553;
+    --demo-red: #af3c47; --demo-amber: #966022;
+  }
+  .session-tabs { display: flex; justify-content: center; gap: .4rem; margin-bottom: 1.1rem; }
+  .session-tabs button { min-height: 44px; padding: .65rem 1.25rem; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--cr-muted); font: 500 .85rem var(--sl-font); cursor: pointer; }
+  .session-tabs button span { margin-right: .45rem; }
+  .review-icon { display: inline-block; margin-right: .45rem; vertical-align: -.2em; }
+  .session-tabs [aria-selected='true'] { background: var(--demo-tool); color: var(--demo-blue); border-color: var(--demo-border); }
+  .session-tabs [data-tab='review'][aria-selected='true'] { color: var(--demo-purple); }
+  .terminal-window { position: relative; border: 1px solid var(--demo-border); border-radius: 14px; overflow: hidden; background: var(--demo-panel); box-shadow: 0 20px 65px -30px #547cba55, 0 2px 8px #162a4910; }
+  .session-body { position: relative; }
+  .preview-overlay { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(transparent 15%, var(--demo-panel) 55%); }
+  .preview-play { display: inline-flex; align-items: center; gap: .65rem; min-height: 52px; padding: .75rem 1.4rem; border: 1px solid var(--demo-border); border-radius: 999px; background: var(--demo-panel); color: var(--demo-ink); box-shadow: 0 4px 18px #162a4912, 0 1px 3px #162a4910; cursor: pointer; font: 500 .85rem var(--sl-font); }
+  .preview-play-icon { display: grid; place-items: center; color: var(--demo-blue); }
+  .preview-play-icon svg { width: 20px; height: 20px; }
+  .preview-play:hover { border-color: var(--demo-blue); background: var(--demo-tool); }
+  .preview-play:focus-visible { outline: 2px solid var(--demo-blue); outline-offset: 4px; }
+  [data-preview] .playback [data-play], [data-preview] .playback [data-replay] { display: none; }
+  .window-bar { display: flex; align-items: center; gap: 1rem; padding: .9rem 1.25rem; border-bottom: 1px solid var(--demo-border); background: var(--demo-bar); color: var(--demo-ink); font: .8rem var(--sl-font); }
+  .harness-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--demo-purple); background: color-mix(in srgb, var(--demo-purple) 12%, transparent); font-size: 1.2rem; }
+  .harness-name { font-weight: 550; }
+  .window-path { display: block; margin-top: .2rem; color: var(--demo-muted); font: .65rem var(--cr-font-mono); }
+  .demo-badge { margin-left: auto; font-size: .6rem; letter-spacing: .12em; color: var(--demo-muted); }
+  .playback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; margin-top: .85rem; }
+  .playback-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; margin-left: auto; }
+  .playback button { display: inline-flex; align-items: center; justify-content: center; gap: .3rem; min-height: 32px; padding: .25rem .5rem; background: transparent; border: 1px solid var(--demo-border); border-radius: 6px; color: var(--demo-muted); cursor: pointer; font: .65rem var(--sl-font); }
+  .playback button svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .playback [data-play] { min-width: 4rem; }
+  .pause-icon { display: none; }
+  [data-playing] .pause-icon { display: block; }
+  [data-playing] .play-icon { display: none; }
+  .playback button:disabled { color: var(--demo-muted); cursor: default; }
+  .playback button:hover:not(:disabled) { background: var(--demo-tool); border-color: var(--demo-blue); }
+  noscript p { color: var(--cr-muted); font-size: .75rem; line-height: 1.6; text-align: center; margin-top: 1rem; }
+  [hidden] { display: none !important; }
+  @media (max-width: 540px) {
+    .session-tabs button { font-size: .75rem; padding-inline: .75rem; }
+    .window-bar { padding-inline: .85rem; font-size: .65rem; }
+    .demo-badge { font-size: .5rem; }
+    .playback { gap: .5rem; }
+    .playback-buttons { width: 100%; }
+  }
 </style>

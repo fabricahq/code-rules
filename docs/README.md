@@ -39,12 +39,12 @@ Set Astro's `site` option after selecting a production URL; sitemap generation i
 
 Write pages under `src/content/docs/` and keep navigation in `astro.config.mjs` aligned with their slugs.
 Shared typography and theme tokens live in `src/styles/custom.css`.
-Homepage composition lives in `src/components/HomeHero.astro` and `src/styles/home.css`.
+Homepage composition lives in `src/components/HomePage.astro` and `src/styles/home.css`.
 
 Use the docs to explain the product experience and its contracts.
 Keep implementation tasks in the internal planning material.
-The root homepage and every documentation page identify the site as a design preview.
-Update that notice when the release state changes, and publish installation instructions only after a package exists.
+Documentation pages identify the site as a design preview; the marketing homepage intentionally omits the release notice.
+Keep release availability explicit in the project status and installation guides, and publish installation instructions only after a package exists.
 
 Before handing off visual changes, inspect desktop and narrow layouts, light and dark themes, keyboard navigation, and search in a production preview.
 Run `bun run check` to verify website/tooling formatting, lint, types, tests, the static build, and links between built pages. The Go build tests also compile the copyable rule examples through the current resolver and renderer.
