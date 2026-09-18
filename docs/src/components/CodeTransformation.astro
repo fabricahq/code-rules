@@ -9,9 +9,13 @@ const helpers = "/** @fileoverview Validates library license declarations and re
   <div class="intro"><span class="cr-index">FROM THE FIELD</span><h2 id="code-example">A wall of logic becomes a readable sequence.</h2><p>While writing Code Rules, we prototyped it in TypeScript. An agent produced the Before example. This is what changed after we checked that code with our own tool.</p></div>
   <div class="comparison">
     <article class="code-card"><div class="card-label"><h3>Before</h3><span>Parsing, validation, and collection intertwined</span></div><CodeSample code={before} lang="text" label="Original licenseFiles function" /></article>
+    <div class="after-example">
     <article class="code-card after"><div class="card-label"><h3>After</h3><span>Named steps, with an explicit contract</span></div><CodeSample code={after} lang="ts" tone="vivid" label="Refactored collectLibraryLicensePaths function" />
-      <ul class="takeaways"><li><strong>Names explain the steps.</strong> Read the main function without tracing every validation check.</li><li><strong>Helpers own the details.</strong> Parsing, declarations, and file checks each have a focused function.</li><li><strong>The contract is visible.</strong> The comment describes the result, empty case, and failures.</li></ul>
     </article>
+    <div class="commentary"><h3>What changed</h3>
+      <ul class="takeaways"><li><strong>Names explain the steps.</strong> Read the main function without tracing every validation check.</li><li><strong>Helpers own the details.</strong> Parsing, declarations, and file checks each have a focused function.</li><li><strong>The contract is visible.</strong> The comment describes the result, empty case, and failures.</li></ul>
+    </div>
+    </div>
   </div>
   <details class="helper-source"><summary>See the helper functions behind the “after”</summary><p>The validation still exists. These helpers contain it, including more precise error locations.</p><CodeSample code={helpers} lang="ts" tone="vivid" label="Library license helper source" /></details>
   <p class="source-note">Historical example from <code>src/builds/library-licenses.ts</code>. The tool has since moved to Go. Later revisions added SPDX declarations and generated license metadata. See <a href="/status/">Project status</a> for available functionality.</p>
@@ -23,13 +27,15 @@ const helpers = "/** @fileoverview Validates library license declarations and re
   .intro p { color: var(--cr-muted); line-height: 1.7; }
   .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; align-items: start; }
   .code-card { min-width: 0; border: 1px solid var(--cr-line); border-radius: 12px; overflow: hidden; background: var(--cr-surface); }
+  .after-example { min-width: 0; }
+  .commentary { margin-top: 1.5rem; padding: 0 .25rem; }
   .after { background: var(--cr-paper); }
   .card-label { padding: 1.15rem 1.25rem; border-bottom: 1px solid var(--cr-line); }
   h3 { margin: 0 0 .35rem; font-size: .95rem; font-weight: 600; }
   .card-label span { font-size: .75rem; color: var(--cr-muted); }
   .code-card, .helper-source { --sample-size: .75rem; }
-  .takeaways { list-style: none; margin: 0; padding: 0 1.25rem 1.25rem; color: var(--cr-muted); font-size: .825rem; line-height: 1.65; }
-  .takeaways li { padding: .9rem 0; border-top: 1px solid var(--cr-faint); }
+  .takeaways { list-style: none; margin: 0; padding: 0; color: var(--cr-muted); font-size: .825rem; line-height: 1.65; }
+  .takeaways li { margin-top: .7rem; }
   .takeaways strong { color: var(--cr-ink); font-weight: 550; }
   .helper-source { margin-top: 1.25rem; border: 1px solid var(--cr-line); border-radius: 12px; overflow: hidden; }
   summary { padding: 1rem 1.25rem; cursor: pointer; font-size: .875rem; }
