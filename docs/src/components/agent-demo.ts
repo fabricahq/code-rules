@@ -263,7 +263,8 @@ class AgentDemo extends HTMLElement {
           : (entries[frame.index]?.element.dataset.title ?? 'Working');
     const play = this.querySelector<HTMLButtonElement>('[data-play]');
     if (play) {
-      play.textContent = this.isPlaying ? 'Pause' : 'Play';
+      const label = play.querySelector('[data-play-label]');
+      if (label) label.textContent = this.isPlaying ? 'Pause' : 'Play';
       play.disabled = isComplete;
     }
     const finish = this.querySelector<HTMLButtonElement>('[data-finish]');

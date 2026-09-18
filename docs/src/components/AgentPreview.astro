@@ -35,9 +35,17 @@ const review = [readRule, {
       <div class="window-bar"><span class="harness-icon" aria-hidden="true">✳︎</span><span class="harness-name">Your coding agent <span class="window-path">acme-checkout</span></span><span class="demo-badge">EXAMPLE SESSION</span></div>
       <AgentSession id="write" title="Write with rules" task="Add logging for successful sign-ins." steps={write} selected />
       <AgentSession id="review" title="Review and fix" task="Review our sign-in logging. Fix any issues." steps={review} />
-      <div class="playback" hidden data-controls>
-        <span class="playback-status"><span class="status-dot" aria-hidden="true"></span><span data-status>Session complete</span></span>
-        <div class="playback-buttons"><button type="button" data-play>Pause</button><button type="button" data-replay>Replay</button><button type="button" data-finish>Show full session</button></div>
+    </div>
+    <div class="playback" hidden data-controls>
+      <span class="playback-status"><span class="status-dot" aria-hidden="true"></span><span data-status>Session complete</span></span>
+      <div class="playback-buttons">
+        <button type="button" data-play>
+          <svg class="play-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m8 5 11 7-11 7Z" /></svg>
+          <svg class="pause-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 5v14M16 5v14" /></svg>
+          <span data-play-label>Pause</span>
+        </button>
+        <button type="button" data-replay><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" /></svg>Replay</button>
+        <button type="button" data-finish><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" /></svg>Show full session</button>
       </div>
     </div>
     <noscript><p>Enable JavaScript to play the demos or switch sessions. The complete writing session is shown above.</p></noscript>
@@ -73,15 +81,20 @@ const review = [readRule, {
   .harness-name { font-weight: 550; }
   .window-path { display: block; margin-top: .2rem; color: var(--demo-muted); font: .65rem var(--cr-font-mono); }
   .demo-badge { margin-left: auto; font-size: .6rem; letter-spacing: .12em; color: var(--demo-muted); }
-  .playback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .2rem 1rem; padding: .3rem 1rem; border-top: 1px solid var(--demo-border); background: var(--demo-bar); }
+  .playback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; margin-top: .85rem; }
   .playback-status { display: flex; align-items: center; gap: .5rem; min-width: 0; color: var(--demo-muted); font: .65rem/1.5 var(--cr-font-mono); }
   .status-dot { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: var(--demo-muted); }
   [data-playing] .status-dot { background: var(--demo-green); animation: pulse 1.4s ease-in-out infinite; }
   [data-complete] .status-dot { background: var(--demo-green); }
-  .playback-buttons { display: flex; gap: .2rem; }
-  .playback button { min-height: 44px; padding: .5rem .6rem; background: none; border: none; color: var(--demo-blue); cursor: pointer; font: .7rem var(--sl-font); }
+  .playback-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; margin-left: auto; }
+  .playback button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px; padding: .5rem .75rem; background: transparent; border: 1px solid var(--demo-border); border-radius: 8px; color: var(--cr-ink); cursor: pointer; font: .75rem var(--sl-font); }
+  .playback button svg { flex-shrink: 0; }
+  .playback [data-play] { min-width: 5.5rem; }
+  .pause-icon { display: none; }
+  [data-playing] .pause-icon { display: block; }
+  [data-playing] .play-icon { display: none; }
   .playback button:disabled { color: var(--demo-muted); cursor: default; }
-  .playback button:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 4px; }
+  .playback button:hover:not(:disabled) { background: var(--demo-tool); border-color: var(--demo-blue); }
   noscript p { color: var(--cr-muted); font-size: .75rem; line-height: 1.6; text-align: center; margin-top: 1rem; }
   [hidden] { display: none !important; }
   @keyframes pulse { 50% { opacity: .35; } }
@@ -90,8 +103,9 @@ const review = [readRule, {
     .session-tabs button { font-size: .75rem; padding-inline: .75rem; }
     .window-bar { padding-inline: .85rem; font-size: .65rem; }
     .demo-badge { font-size: .5rem; }
-    .playback { padding: .5rem .6rem .15rem; }
-    .playback-status { width: 100%; min-height: 1.25rem; padding-left: .6rem; }
-    .playback-buttons { width: 100%; justify-content: space-between; }
+    .playback { gap: .5rem; }
+    .playback-status { width: 100%; min-height: 1.25rem; padding-left: 0; }
+    .playback-buttons { width: 100%; }
+    .playback button { padding-inline: .55rem; font-size: .7rem; }
   }
 </style>
