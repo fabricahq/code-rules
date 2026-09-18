@@ -78,24 +78,16 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 	}
 	defer os.RemoveAll(captured)
 	source = filepath.Join(captured, "tree")
-	data, err := os.ReadFile(filepath.Join(source, "release.json"))
-	if err != nil {
-		return Manifest{}, err
-	}
-	var metadata struct{ Version, License string }
-	if err = json.Unmarshal(data, &metadata); err != nil {
-		return Manifest{}, err
-	}
-	if options.Version == "" {
-		options.Version = metadata.Version
+	if options.Version == "" && options.Candidate {
+		options.Version = "0.0.0-dev.g" + revision[:12]
 	}
 	version, err := rules.TagVersion(options.Version, "version")
 	if err != nil || version != options.Version {
 		return Manifest{}, fmt.Errorf("expected an unprefixed complete version")
 	}
 	license, licenseErr := os.ReadFile(filepath.Join(source, "LICENSE.md"))
-	if !options.Candidate && (metadata.License == "" || metadata.License == "UNLICENSED" || licenseErr != nil || len(strings.TrimSpace(string(license))) == 0 || version != metadata.Version) {
-		return Manifest{}, fmt.Errorf("release artifacts require a declared tool license and release.json version; use --candidate for unpublished review builds")
+	if !options.Candidate && (licenseErr != nil || len(strings.TrimSpace(string(license))) == 0) {
+		return Manifest{}, fmt.Errorf("release artifacts require a nonempty LICENSE.md; use --candidate for unpublished review builds")
 	}
 	if licenseErr != nil && !os.IsNotExist(licenseErr) {
 		return Manifest{}, licenseErr
@@ -114,7 +106,11 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
-	manifest := Manifest{Version: version, Candidate: options.Candidate, License: metadata.License, SourceRevision: revision, SourceDirty: dirty != "", GoVersion: goVersion, Artifacts: []Artifact{}}
+	terms := "UNLICENSED"
+	if len(strings.TrimSpace(string(license))) > 0 {
+		terms = "SEE LICENSE.md"
+	}
+	manifest := Manifest{Version: version, Candidate: options.Candidate, License: terms, SourceRevision: revision, SourceDirty: dirty != "", GoVersion: goVersion, Artifacts: []Artifact{}}
 	if err = os.Mkdir(options.Output, 0755); err != nil {
 		return Manifest{}, fmt.Errorf("create new output directory: %w", err)
 	}

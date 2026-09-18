@@ -179,6 +179,8 @@ test('keeps builds read-only and limits the notification to API access', () => {
     'pull-requests': 'write',
   });
   expect(workflow.jobs.comment.steps).toHaveLength(1);
-  expect(workflow.jobs.comment.steps[0].uses).toBe('actions/github-script@v8');
+  expect(workflow.jobs.comment.steps[0].uses).toMatch(
+    /^actions\/github-script@[a-f0-9]{40}$/,
+  );
   expect(workflow.jobs.comment.steps[0].run).toBeUndefined();
 });

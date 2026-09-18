@@ -31,7 +31,7 @@ To build your own candidate, commit the intended source first, then run:
 go run ./cmd/package-binaries --candidate --output /tmp/code-rules-artifacts
 ```
 
-Choose a new output directory. Packaging builds committed HEAD in isolation, excluding uncommitted edits. Version and tool-license declarations come from `release.json`.
+Choose a new output directory. Packaging builds committed HEAD in isolation, excluding uncommitted edits. Candidate versions identify the source commit. Explicit release versions come from the approved release request; tool terms come from `LICENSE.md`.
 
 The directory contains target-specific `.tar.gz` archives, `manifest.json`, and `SHA256SUMS`. Compare the target archive's SHA-256 against a trusted manifest before extracting it into a new directory. On macOS, use `shasum -a 256`; on Linux, use `sha256sum`. Inspect the manifest's source commit, target, and version, then run the extracted `./code-rules --version` and `./code-rules --help`.
 

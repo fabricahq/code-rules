@@ -1,0 +1,62 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": ["gomod", "bun", "github-actions", "custom.regex"],
+  "dependencyDashboard": true,
+  "timezone": "America/Los_Angeles",
+  "schedule": ["* 0-5 * * 1"],
+  "minimumReleaseAge": "7 days",
+  "minimumReleaseAgeBehaviour": "timestamp-required",
+  "internalChecksFilter": "strict",
+  "prCreation": "not-pending",
+  "automerge": false,
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+  "prConcurrentLimit": 5,
+  "lockFileMaintenance": { "enabled": false },
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "automerge": false,
+    "schedule": [],
+    "minimumReleaseAge": null,
+    "dependencyDashboardApproval": false,
+    "groupName": null,
+    "prCreation": "immediate",
+    "labels": ["security"]
+  },
+  "packageRules": [
+    {
+      "description": "Keep Actions immutable, with readable release comments.",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    },
+    {
+      "description": "Include indirect Go requirements in reviewed updates.",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "enabled": true
+    },
+    {
+      "description": "CI uses the Go directive as its exact toolchain version.",
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "Astro check and typescript-eslint need the TypeScript 6 compiler API.",
+      "matchDatasources": ["npm"],
+      "matchDepNames": ["typescript"],
+      "allowedVersions": "<6.1.0"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/\\.github/workflows/[^/]+\\.ya?ml$/", "/(^|/)README\\.md$/"],
+      "matchStrings": ["go run (?<depName>[^\\s]+?)/cmd/[^@\\s]+@(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "datasourceTemplate": "go",
+      "versioningTemplate": "go"
+    }
+  ]
+}
