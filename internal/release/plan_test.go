@@ -156,3 +156,30 @@ func TestPlanIgnoresMalformedVersionTags(t *testing.T) {
 		t.Fatalf("malformed tag affected plan: %+v, %v", plan, err)
 	}
 }
+
+func TestPendingRequestCannotBeSkipped(t *testing.T) {
+	f, source := fixture(t)
+	command(t, f, "tag", "v0.1.0")
+	write(t, source, "releases/v0.2.0.md", "Pending release")
+	command(t, f, "add", ".")
+	command(t, f, "-c", "commit.gpgsign=false", "commit", "-m", "Pending request")
+	base := command(t, f, "rev-parse", "HEAD")
+	write(t, source, "releases/v0.3.0.md", "Later release")
+	command(t, f, "add", ".")
+	command(t, f, "-c", "commit.gpgsign=false", "commit", "-m", "Later request")
+	if _, err := Read(context.Background(), source, base, "HEAD"); err == nil || !strings.Contains(err.Error(), "untagged release request") {
+		t.Fatalf("skipped pending release: %v", err)
+	}
+	command(t, f, "tag", "v0.2.0", base)
+	plan, err := Read(context.Background(), source, base, "HEAD")
+	if err != nil || plan.Tag != "v0.3.0" || plan.Previous != "v0.2.0" {
+		t.Fatalf("tagged predecessor blocked: %+v, %v", plan, err)
+	}
+	command(t, f, "tag", "-d", "v0.2.0")
+	command(t, f, "rm", "releases/v0.2.0.md")
+	command(t, f, "-c", "commit.gpgsign=false", "commit", "-m", "Withdraw pending request")
+	plan, err = Read(context.Background(), source, base, "HEAD")
+	if err != nil || plan.Tag != "v0.3.0" || plan.Previous != "v0.1.0" {
+		t.Fatalf("withdrawn request blocked: %+v, %v", plan, err)
+	}
+}

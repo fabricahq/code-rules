@@ -112,6 +112,19 @@ func Read(ctx context.Context, source, base, head string) (Plan, error) {
 	if err != nil {
 		return Plan{}, err
 	}
+	// A new diff must not strand an earlier request that never reached tagging.
+	notesFiles, err := git("ls-tree", "-r", "--name-only", "-z", head, "--", "releases/")
+	if err != nil {
+		return Plan{}, err
+	}
+	for _, name := range strings.Split(strings.TrimSuffix(notesFiles, "\x00"), "\x00") {
+		if name == file || path.Dir(name) != "releases" || !strings.HasPrefix(path.Base(name), "v") || !strings.HasSuffix(name, ".md") {
+			continue
+		}
+		if pending := strings.TrimSuffix(path.Base(name), ".md"); !slices.Contains(strings.Fields(tags), pending) {
+			return Plan{}, fmt.Errorf("resolve untagged release request %s before requesting %s", name, tag)
+		}
+	}
 	observed := []string{}
 	var previous string
 	var latest *version.Version
