@@ -2,9 +2,9 @@
 /** @fileoverview Shows two illustrative, controllable agent sessions using adopted rules to write and review code. */
 import AgentSession from './AgentSession.astro';
 const readRule = {
-  title: 'Read your rule', kind: 'RULE', file: 'Protect passwords',
+  title: 'Read your rule', kind: 'RULE', file: 'Keep secrets out of logs',
   note: 'First, I’ll read your logging rule.',
-  code: 'Never write passwords to logs.', lang: 'text' as const,
+  code: 'Never write secrets to logs.', lang: 'text' as const,
 };
 const write = [readRule, {
   title: 'Apply it', kind: 'EDIT', file: 'sign-in.ts · excerpt',
