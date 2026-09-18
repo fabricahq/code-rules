@@ -41,6 +41,8 @@ bun run docs:dev
 
 `bun run check` validates website/tooling formatting, lint, types, tests, the Astro build, and rendered links. It does not replace Go validation. See [docs/README.md](docs/README.md) for site development.
 
+TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser require its compiler API. [TypeScript 7 does not yet provide that API](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0); revisit this pin when both tools support it.
+
 ## Explore the CLI
 
 The [Gruntwork runbook](runbooks/native-cli/README.md) builds a temporary executable and demonstrates project and library authoring, read-only checks, and repair. The initial-development labs have been retired.

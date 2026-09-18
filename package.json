@@ -22,10 +22,10 @@
     "@typescript-eslint/parser": "^8.70.0",
     "astro-eslint-parser": "^3.1.0",
     "eslint": "^10.10.0",
-    "eslint-plugin-jsdoc": "^64.3.9",
-    "prettier": "^3.9.6",
+    "eslint-plugin-jsdoc": "^64.5.3",
+    "prettier": "^3.9.8",
     "typescript": "6.0.3",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   },
   "private": true
 }
