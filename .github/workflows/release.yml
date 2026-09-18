@@ -1,20 +1,28 @@
-# Adding release notes to main approves publication. Assets are built with read-only credentials.
+# Turn approved release notes into a tested, complete GitHub release.
+# Go tools own validation and publication; this workflow orders the jobs and limits their credentials.
 name: Release
+# Validate notes while they are in a PR. A notes change on main approves publication,
+# so ordinary code changes do not create releases automatically.
 on:
   push:
     branches: [main]
     paths: ['releases/v*.md']
   pull_request:
     paths: ['releases/v*.md']
+  # Retry a failed release at its original approved commit, even if main has advanced.
   workflow_dispatch:
     inputs:
       commit:
         description: 'Exact main commit that added the release notes (retry a failed release)'
         required: true
         type: string
+# Planning, tests, and compilation only need read access. Grant write access separately
+# to the final job so build tools and dependencies cannot modify GitHub releases.
 permissions:
   contents: read
 jobs:
+  # Resolve the notes change into one version, source commit, and approved release body.
+  # Sharing this plan keeps later jobs tied to the same request instead of rereading main.
   plan:
     if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -25,6 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # Version ordering and retry validation require the full commit history and tags.
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -48,11 +57,16 @@ jobs:
           fi
           go run ./cmd/release-plan --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/release-plan.json"
           jq -r '"tag=\(.tag)\nversion=\(.version)\ncommit=\(.commit)"' "$RUNNER_TEMP/release-plan.json" >> "$GITHUB_OUTPUT"
+      # Job outputs carry the build identifiers; this artifact also preserves the notes
+      # and tag snapshot that the publisher must verify before making the release public.
       - uses: actions/upload-artifact@v4
         with:
           name: release-plan
           path: ${{ runner.temp }}/release-plan.json
           if-no-files-found: error
+  # Test the exact planned commit on both operating systems and prepare the release assets.
+  # PR events stop at planning in this workflow; only approved requests reach this job.
+  # Both matrix runs must succeed before the publication job can start.
   build:
     needs: plan
     if: needs.plan.outputs.tag != '' && github.event_name != 'pull_request'
@@ -75,6 +89,8 @@ jobs:
           go vet ./...
           go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
           go test -race ./...
+      # Compile the publisher here so the job with write access can run a prepared executable
+      # without checking out source or downloading and compiling Go dependencies.
       - name: Compile the publication tool without write credentials
         if: runner.os == 'Linux'
         run: go build -o "$RUNNER_TEMP/publish-release" ./cmd/publish-release
@@ -84,11 +100,15 @@ jobs:
           name: release-publisher
           path: ${{ runner.temp }}/publish-release
           if-no-files-found: error
+      # One Linux runner cross-compiles all four OS/architecture combinations to produce
+      # a single bundle. The matrix tests exercise native behavior on Linux and macOS.
       - name: Build the four release archives
         if: runner.os == 'Linux'
         env:
           VERSION: ${{ needs.plan.outputs.version }}
         run: go run ./cmd/package-binaries --version "$VERSION" --output "$RUNNER_TEMP/release-assets"
+      # Carry the approved plan alongside the archives, manifest, and checksums so the
+      # publisher can check that the entire bundle describes the same version and commit.
       - uses: actions/download-artifact@v4
         if: runner.os == 'Linux'
         with:
@@ -100,11 +120,16 @@ jobs:
           name: release-assets
           path: ${{ runner.temp }}/release-assets/
           if-no-files-found: error
+  # Give write access only to the job that uploads and publishes the finished bundle.
+  # The Go publisher verifies local assets, stages them on a draft, checks GitHub's stored
+  # checksums, and makes the release public only when the complete asset set is verified.
   publish:
     needs: [plan, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # Serialize publication across all versions to prevent competing releases from racing.
+    # Let an active publication finish rather than interrupting it during uploads.
     concurrency:
       group: release-publication
       cancel-in-progress: false
@@ -118,6 +143,7 @@ jobs:
           name: release-assets
           path: ${{ runner.temp }}/release-assets
       - name: Attach verified assets to a draft, then publish
+        # Pass authentication explicitly at the step that writes release data to GitHub.
         env:
           GITHUB_TOKEN: ${{ github.token }}
           RELEASE_REPOSITORY: ${{ github.repository }}
