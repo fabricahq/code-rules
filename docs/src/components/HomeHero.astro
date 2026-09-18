@@ -4,7 +4,7 @@ import AgentPreview from './AgentPreview.astro';
 import CodeTransformation from './CodeTransformation.astro';
 import CodeSample from './CodeSample.astro';
 import RuleApplication from './RuleApplication.astro';
-import exampleRule from '../examples/verify-retry-limits.md?raw';
+import exampleRule from '../examples/make-errors-actionable.md?raw';
 ---
 <section class="cr-hero" aria-labelledby="_top">
   <p class="cr-eyebrow">FABRICA / CODE RULES</p>
@@ -27,7 +27,7 @@ import exampleRule from '../examples/verify-retry-limits.md?raw';
     <div class="cr-panel cr-rule-file">
       <header class="cr-file-header">
         <span class="cr-index">EXAMPLE RULE</span>
-        <div class="cr-rule-path"><svg aria-hidden="true" width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg><span>practices/testing/verify-retry-limits.md</span></div>
+        <div class="cr-rule-path"><svg aria-hidden="true" width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg><span>practices/error-handling/make-errors-actionable.md</span></div>
       </header>
       <CodeSample code={exampleRule.trimEnd()} lang="md" tone="vivid" label="Example rule with YAML frontmatter and Markdown guidance" />
     </div>
@@ -60,7 +60,7 @@ import exampleRule from '../examples/verify-retry-limits.md?raw';
 <span class="cr-tree-branch" aria-hidden="true">    └── </span><span class="cr-tree-folder">error-handling/</span>
 <span class="cr-tree-branch" aria-hidden="true">        ├── </span><span class="cr-tree-meta">_group.json</span>
 <span class="cr-tree-branch" aria-hidden="true">        ├── </span><span class="cr-tree-file">preserve-error-context.md</span>
-<span class="cr-tree-branch" aria-hidden="true">        └── </span><span class="cr-tree-file">bound-retries.md</span></code></pre>
+<span class="cr-tree-branch" aria-hidden="true">        └── </span><span class="cr-tree-file">make-errors-actionable.md</span></code></pre>
     </div>
   </article>
   <article class="cr-feature">
