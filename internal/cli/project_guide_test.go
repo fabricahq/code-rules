@@ -14,7 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/authoring"
 	"github.com/fabricahq/code-rules/internal/gitfixture"
 )
 
@@ -142,7 +141,10 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 						}
 					}
 					root := filepath.Join(directory, filepath.Dir(config))
-					guideName, _ := authoring.ProjectGuide(filepath.Join(directory, config))
+					guideName := "CODE_RULES.md"
+					if filepath.Base(filepath.Dir(config)) == ".code-rules" {
+						guideName = "README.md"
+					}
 					guidePath := filepath.Join(root, guideName)
 					if guideState == "missing" {
 						if err := os.Remove(guidePath); err != nil {

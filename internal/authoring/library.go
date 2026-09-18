@@ -1,18 +1,27 @@
-// Author library manifests, group metadata, and rule documents using protected publication.
-
+// Package authoring owns library scaffolding, definitions, and complete library checks.
+// Consuming-project operations belong to project; shared publication belongs to filetxn.
 package authoring
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
+
+// Result lists published library files, next actions, and any post-commit cleanup warnings.
+type Result struct {
+	Files    []string `json:"files"`
+	Next     string   `json:"next"`
+	Warnings []string `json:"warnings,omitempty"`
+}
 
 // LibraryOptions locates the library itself, independently of any consumer project.
 type LibraryOptions struct{ Directory string }
@@ -41,8 +50,10 @@ func openLibrary(ctx context.Context, options LibraryOptions, create bool) (*os.
 	if directory == "" {
 		directory = "."
 	}
-	root, _, err := openProject(ctx, Options{ConfigPath: filepath.Join(directory, "rule-library.json")}, create)
-	return root, err
+	if create {
+		return filetxn.Create(ctx, directory)
+	}
+	return filetxn.Open(ctx, directory)
 }
 
 // declaredTerms validates the declaration before reading contained term paths, using planned bytes during initialization.
@@ -76,7 +87,7 @@ func declaredTerms(ctx context.Context, root *os.Root, manifest []byte, planned 
 			if err = checkParents(root, name); err != nil {
 				return nil, nil, err
 			}
-			data, err = optionalFile(ctx, root, name)
+			data, err = filetxn.ReadOptional(ctx, root, name)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -107,7 +118,7 @@ func checkParents(root *os.Root, name string) error {
 
 // libraryManifest requires an initialized manifest and valid declared terms.
 func libraryManifest(ctx context.Context, root *os.Root) (map[string][]byte, *rules.LicenseDeclaration, error) {
-	data, err := optionalFile(ctx, root, "rule-library.json")
+	data, err := filetxn.ReadOptional(ctx, root, "rule-library.json")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -124,16 +135,15 @@ func InitializeLibrary(ctx context.Context, options LibraryOptions, terms *Libra
 		return Result{}, err
 	}
 	defer root.Close()
-	var files []authoredFile
-	committed := false
 	var license *rules.LicenseDeclaration
-	err = project.WithWriter(ctx, root, func(_ *project.Writer) error {
-		existing, err := optionalFile(ctx, root, "rule-library.json")
+	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
+		var files []filetxn.File
+		existing, err := filetxn.ReadOptional(ctx, root, "rule-library.json")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if existing != nil && terms != nil {
-			return failure("already-initialized", "library manifest exists; edit its license declaration explicitly", nil)
+			return nil, failure("already-initialized", "library manifest exists; edit its license declaration explicitly", nil)
 		}
 		manifest := existing
 		planned := map[string][]byte{}
@@ -148,69 +158,64 @@ func InitializeLibrary(ctx context.Context, options LibraryOptions, terms *Libra
 			}
 			manifest, err = jsonText(value)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			files = append(files, authoredFile{name: "rule-library.json", data: manifest})
+			files = append(files, filetxn.File{Path: "rule-library.json", Content: manifest})
 		}
 		if terms != nil {
 			planned["LICENSE.md"] = []byte(terms.License)
-			files = append(files, authoredFile{name: "LICENSE.md", data: planned["LICENSE.md"]})
+			files = append(files, filetxn.File{Path: "LICENSE.md", Content: planned["LICENSE.md"]})
 			if terms.Notice != nil {
 				planned["NOTICE.md"] = []byte(*terms.Notice)
-				files = append(files, authoredFile{name: "NOTICE.md", data: planned["NOTICE.md"]})
+				files = append(files, filetxn.File{Path: "NOTICE.md", Content: planned["NOTICE.md"]})
 			}
 		}
 		_, license, err = declaredTerms(ctx, root, manifest, planned)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		readme, err := optionalFile(ctx, root, "README.md")
+		readme, err := filetxn.ReadOptional(ctx, root, "README.md")
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if readme == nil {
-			files = append(files, authoredFile{name: "README.md", data: []byte(libraryReadme)})
+			files = append(files, filetxn.File{Path: "README.md", Content: []byte(libraryReadme)})
 		}
-		err = publishAuthored(ctx, root, files)
-		committed = publicationComplete(err)
-		return err
+		return files, nil
 	})
-	if err != nil && !committed {
+	if err != nil {
 		return Result{}, err
 	}
 	next := "Add a group and rule, then run library check."
 	if license == nil {
 		next = "License is undeclared. Decide terms before sharing. " + next
 	}
-	return finishAuthoring(root, files, next, committed, err)
+	return authoringResult(changes, next, err)
 }
 
 // editLibrary revalidates manifest and the target category under exclusive ownership before publication.
-func editLibrary(ctx context.Context, options LibraryOptions, group, next string, prepare func(*os.Root) ([]authoredFile, error)) (Result, error) {
+func editLibrary(ctx context.Context, options LibraryOptions, group, next string, prepare func(*os.Root) ([]filetxn.File, error)) (Result, error) {
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
 		return Result{}, err
 	}
 	defer root.Close()
-	var files []authoredFile
-	committed := false
-	err = project.WithWriter(ctx, root, func(_ *project.Writer) error {
+	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
+		var files []filetxn.File
 		if _, _, err := libraryManifest(ctx, root); err != nil {
-			return err
+			return nil, err
 		}
-		if _, err := project.ReadTree(ctx, root, strings.Split(group, "/")[0]); err != nil {
-			return err
+		if _, err := filetxn.ReadTree(ctx, root, strings.Split(group, "/")[0]); err != nil {
+			return nil, err
 		}
 		var err error
 		files, err = prepare(root)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		err = publishAuthored(ctx, root, files)
-		committed = publicationComplete(err)
-		return err
+		return files, nil
 	})
-	return finishAuthoring(root, files, next, committed, err)
+	return authoringResult(changes, next, err)
 }
 
 // AddLibraryGroup creates complete metadata without changing existing library content.
@@ -218,12 +223,12 @@ func AddLibraryGroup(ctx context.Context, id string, metadata rules.GroupMetadat
 	if err := rules.ValidateGroupID(id, "group"); err != nil {
 		return Result{}, err
 	}
-	data, err := renderGroup(metadata)
+	data, err := rules.RenderGroup(metadata)
 	if err != nil {
 		return Result{}, err
 	}
-	return editLibrary(ctx, options, id, "Add a library rule, then run library check.", func(_ *os.Root) ([]authoredFile, error) {
-		return groupFiles(id, id, data, true, ""), nil
+	return editLibrary(ctx, options, id, "Add a library rule, then run library check.", func(_ *os.Root) ([]filetxn.File, error) {
+		return groupFiles(id, id, data), nil
 	})
 }
 
@@ -235,7 +240,7 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 		}
 		return false, err
 	}
-	data, err := optionalFile(ctx, root, id+"/_group.json")
+	data, err := filetxn.ReadOptional(ctx, root, id+"/_group.json")
 	if err != nil || data == nil {
 		return false, err
 	}
@@ -261,7 +266,7 @@ func HasLibraryGroup(ctx context.Context, id string, options LibraryOptions) (bo
 }
 
 // AddLibraryRule creates supplied guidance or a marked unfinished canonical draft, in an existing group.
-func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, options LibraryRuleOptions) (Result, error) {
+func AddLibraryRule(ctx context.Context, id string, metadata rules.RuleMetadata, options LibraryRuleOptions) (Result, error) {
 	if strings.HasSuffix(id, ".md") {
 		return Result{}, failure("invalid-operation", "use a rule ID without the .md extension", nil)
 	}
@@ -269,7 +274,7 @@ func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, optio
 	if err != nil {
 		return Result{}, err
 	}
-	data, err := renderRule(id, metadata, options.Body)
+	data, err := rules.RenderRule(id, metadata, options.Body)
 	if err != nil {
 		return Result{}, err
 	}
@@ -279,7 +284,7 @@ func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, optio
 		next = "Complete the draft and remove its code-rules:draft marker, then run library check."
 	}
 
-	return editLibrary(ctx, options.LibraryOptions, group, next, func(root *os.Root) ([]authoredFile, error) {
+	return editLibrary(ctx, options.LibraryOptions, group, next, func(root *os.Root) ([]filetxn.File, error) {
 		exists, err := hasGroupMetadata(ctx, root, group)
 		if err != nil {
 			return nil, err
@@ -287,6 +292,32 @@ func AddLibraryRule(ctx context.Context, id string, metadata RuleMetadata, optio
 		if !exists {
 			return nil, failure("missing-group", "group "+group+" does not exist; create it first with code-rules library add group "+group+", then retry adding the rule", nil)
 		}
-		return []authoredFile{{name: id + ".md", data: data}}, nil
+		return []filetxn.File{{Path: id + ".md", Content: data}}, nil
 	})
+}
+
+// authoringResult adds the domain's next action to the completed publication report.
+func authoringResult(changes filetxn.Changes, next string, err error) (Result, error) {
+	if err != nil {
+		return Result{}, err
+	}
+	return Result{Files: changes.Files, Next: next, Warnings: changes.Warnings}, nil
+}
+
+func jsonText(value any) ([]byte, error) {
+	var out bytes.Buffer
+	e := json.NewEncoder(&out)
+	e.SetEscapeHTML(false)
+	e.SetIndent("", "  ")
+	err := e.Encode(value)
+	return out.Bytes(), err
+}
+
+func failure(code, problem string, cause error) error {
+	return &filetxn.Error{Code: code, Problem: problem, Cause: cause}
+}
+
+func groupFiles(directory, id string, metadata []byte) []filetxn.File {
+	instructions := fmt.Sprintf("## Add or edit rules\n\nRun commands from the library root, two directories above this folder.\nUse `code-rules library add rule %s/<rule-name>` to add a rule; run `code-rules library add rule --help` for metadata and body options.\nEdit existing rule files directly, then run `code-rules library check`. Resolve errors before committing or publishing the library.\n\nA consuming project selects this group in its configuration and runs sync. Its generated/RULES.md identifies the adopted rules after exclusions and replacements.\n", id)
+	return []filetxn.File{{Path: path.Join(directory, "_group.json"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

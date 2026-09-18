@@ -5,10 +5,8 @@ package cli
 import (
 	"context"
 	"errors"
-	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/authoring"
 	"github.com/fabricahq/code-rules/internal/project"
 )
 
@@ -30,28 +28,30 @@ type checkProblem struct {
 
 // checkProject checks generated files and the managed README, keeping unreadable or invalid inputs as operational errors.
 func checkProject(ctx context.Context, options project.Options, configArgument string) (projectCheckResult, error) {
-	guideName, guideBytes := authoring.ProjectGuide(options.ConfigPath)
-	changes, guideChanges, err := project.CheckWithFiles(ctx, options, map[string][]byte{guideName: guideBytes})
+	report, err := project.Check(ctx, options)
 	if err != nil {
 		return projectCheckResult{}, err
 	}
 	result := projectCheckResult{Status: "up_to_date", Problems: []checkProblem{}}
-	for _, group := range []struct {
-		kind, message string
-		paths         []string
-	}{
-		{"missing_file", "Missing generated file", changes.Added},
-		{"stale_contents", "Stale generated contents", changes.Changed},
-		{"unexpected_file", "Unexpected generated file", changes.Removed},
-	} {
-		for _, path := range group.paths {
-			result.Problems = append(result.Problems, checkProblem{Kind: group.kind, Path: filepath.ToSlash(filepath.Join("generated", filepath.FromSlash(path))), Message: group.message, NextStep: checkRepairCommand("build", configArgument)})
+	for _, problem := range report.Problems {
+		message := ""
+		switch problem.Kind {
+		case project.MissingFile:
+			message = "Missing generated file"
+		case project.StaleContents:
+			message = "Stale generated contents"
+		case project.UnexpectedFile:
+			message = "Unexpected generated file"
+		case project.OutdatedGuide:
+			message = "Project guide is missing or outdated; preserve any manual edits before refreshing"
 		}
+		command := "build"
+		if problem.Repair == project.RefreshGuide {
+			command = "init"
+		}
+		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextStep: checkRepairCommand(command, configArgument)})
 	}
-	if len(guideChanges.Added)+len(guideChanges.Changed) > 0 {
-		result.Problems = append(result.Problems, checkProblem{Kind: "outdated_readme", Path: guideName, Message: "Project guide is missing or outdated; preserve any manual edits before refreshing", NextStep: checkRepairCommand("init", configArgument)})
-	}
-	if len(result.Problems) > 0 {
+	if !report.Current() {
 		result.Status = "out_of_date"
 		return result, errCheckOutOfDate
 	}

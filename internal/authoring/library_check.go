@@ -12,8 +12,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/text/unicode/norm"
 )
@@ -33,7 +33,7 @@ func CheckLibrary(ctx context.Context, options LibraryOptions) (LibraryCheckResu
 		return LibraryCheckResult{}, err
 	}
 	defer root.Close()
-	if err = project.RequireIdle(root); err != nil {
+	if err = filetxn.RequireIdle(root); err != nil {
 		return LibraryCheckResult{}, err
 	}
 	snapshot, license, err := libraryCheckInput(ctx, root)
@@ -62,7 +62,7 @@ func CheckLibrary(ctx context.Context, options LibraryOptions) (LibraryCheckResu
 	if err = requireLibraryUnchanged(ctx, root, snapshot); err != nil {
 		return LibraryCheckResult{}, err
 	}
-	if err = project.RequireIdle(root); err != nil {
+	if err = filetxn.RequireIdle(root); err != nil {
 		return LibraryCheckResult{}, err
 	}
 	return result, nil
@@ -142,16 +142,16 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 }
 
 // libraryCheckInput captures every manifest, term, and library-owned file considered by a complete check.
-func libraryCheckInput(ctx context.Context, root *os.Root) (*project.Tree, *rules.LicenseDeclaration, error) {
+func libraryCheckInput(ctx context.Context, root *os.Root) (*filetxn.Tree, *rules.LicenseDeclaration, error) {
 	inventory, err := library.ReadInventory(ctx, root)
 	if err != nil {
 		return nil, nil, err
 	}
-	return &project.Tree{Files: inventory.Files, Directories: inventory.Directories}, inventory.License, nil
+	return &filetxn.Tree{Files: inventory.Files, Directories: inventory.Directories}, inventory.License, nil
 }
 
 // requireLibraryUnchanged rejects differences observed after validating the captured snapshot.
-func requireLibraryUnchanged(ctx context.Context, root *os.Root, before *project.Tree) error {
+func requireLibraryUnchanged(ctx context.Context, root *os.Root, before *filetxn.Tree) error {
 	after, _, err := libraryCheckInput(ctx, root)
 	if err != nil {
 		return failure("changed-input", "library changed during validation; retry library check", err)

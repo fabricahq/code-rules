@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -42,7 +42,7 @@ func TestLibraryLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := "# Return failures\n\nReturn failures to the caller.\n"
-	rule := RuleMetadata{Title: "Return failures", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling fallible functions."}
+	rule := rules.RuleMetadata{Title: "Return failures", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling fallible functions."}
 	if _, err = AddLibraryRule(ctx, "techs/go/errors", rule, LibraryRuleOptions{LibraryOptions: options, Body: &body}); err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestLibraryLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	before, err := project.ReadTree(ctx, root, ".")
+	before, err := filetxn.ReadTree(ctx, root, ".")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestLibraryLifecycle(t *testing.T) {
 	if err != nil || check.Groups != 1 || check.Rules != 1 || len(check.Warnings) != 0 {
 		t.Fatal(check, err)
 	}
-	after, _ := project.ReadTree(ctx, root, ".")
+	after, _ := filetxn.ReadTree(ctx, root, ".")
 	a, _ := json.Marshal(before)
 	b, _ := json.Marshal(after)
 	if !bytes.Equal(a, b) {
@@ -257,7 +257,7 @@ func TestLibraryRulePreservesGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := "Return errors.\n"
-	metadata := RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
+	metadata := rules.RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
 	result, err := AddLibraryRule(ctx, "techs/go/errors", metadata, LibraryRuleOptions{LibraryOptions: options, Body: &body})
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)

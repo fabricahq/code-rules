@@ -1,6 +1,6 @@
 // Exercise exclusive authoring publication, rollback, and preservation of concurrent user edits.
 
-package authoring
+package filetxn
 
 import (
 	"bytes"
@@ -9,8 +9,6 @@ import (
 	"errors"
 	"os"
 	"testing"
-
-	"github.com/fabricahq/code-rules/internal/project"
 )
 
 // TestPublishAuthoredChecksPriorBytes prevents stale source edits from replacing newer user changes.
@@ -21,10 +19,10 @@ func TestPublishAuthoredChecksPriorBytes(t *testing.T) {
 	}
 	defer root.Close()
 	root.WriteFile("config.json", []byte("newer"), 0600)
-	err = project.WithWriter(context.Background(), root, func(_ *project.Writer) error {
-		return publishAuthored(context.Background(), root, []authoredFile{{name: "config.json", data: []byte("replacement"), before: []byte("old")}})
+	err = WithWriter(context.Background(), root, func(_ *Writer) error {
+		return publishAuthored(context.Background(), root, []File{{Path: "config.json", Content: []byte("replacement"), Previous: []byte("old")}})
 	})
-	var failure *project.Error
+	var failure *Error
 	if !errors.As(err, &failure) || failure.Code != "concurrent-change" {
 		t.Fatal(err)
 	}
@@ -57,7 +55,7 @@ func TestPublicationRollbackPreservesEdits(t *testing.T) {
 				}
 				return root.Link(from, to)
 			}
-			err = operation.run([]authoredFile{{name: "first", data: []byte("created")}, {name: "second", data: []byte("second")}})
+			err = operation.run([]File{{Path: "first", Content: []byte("created")}, {Path: "second", Content: []byte("second")}})
 			if !errors.Is(err, injected) {
 				t.Fatal(err)
 			}
@@ -92,8 +90,8 @@ func TestReplacementCollisionRetainsRecovery(t *testing.T) {
 		}
 		return root.Link(from, to)
 	}
-	err = operation.run([]authoredFile{{name: "config.json", data: []byte("proposed"), before: []byte("original")}})
-	var failure *project.Error
+	err = operation.run([]File{{Path: "config.json", Content: []byte("proposed"), Previous: []byte("original")}})
+	var failure *Error
 	if !errors.As(err, &failure) || failure.Code != "recovery-required" {
 		t.Fatal(err)
 	}
@@ -117,24 +115,24 @@ func TestCommittedCleanupWarning(t *testing.T) {
 			if err = root.Mkdir(stage, 0700); err != nil {
 				t.Fatal(err)
 			}
-			file := authoredFile{name: "config.json", data: []byte("new")}
+			file := File{Path: "config.json", Content: []byte("new")}
 			if replace {
-				file.before = []byte("old")
-				if err = root.WriteFile(file.name, file.before, 0600); err != nil {
+				file.Previous = []byte("old")
+				if err = root.WriteFile(file.Path, file.Previous, 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
 			cleanupErr := errors.New("injected stage cleanup failure")
 			operation := &publication{ctx: context.Background(), root: root, stage: stage, link: root.Link, removeStage: func(string) error { return cleanupErr }}
-			err = operation.run([]authoredFile{file})
+			err = operation.run([]File{file})
 			if !errors.Is(err, cleanupErr) || !publicationComplete(err) {
 				t.Fatal("lost committed status", err)
 			}
-			result, err := finishAuthoring(root, []authoredFile{file}, "Review committed files.", publicationComplete(err), err)
+			result, err := finishPublication(root, []File{file}, publicationComplete(err), err)
 			if err != nil || len(result.Files) != 1 || len(result.Warnings) != 1 {
 				t.Fatal(result, err)
 			}
-			data, _ := root.ReadFile(file.name)
+			data, _ := root.ReadFile(file.Path)
 			if string(data) != "new" {
 				t.Fatal("lost committed bytes")
 			}
@@ -142,7 +140,7 @@ func TestCommittedCleanupWarning(t *testing.T) {
 			if !bytes.Contains(encoded, []byte(`"warnings"`)) {
 				t.Fatal("cleanup hidden from JSON", string(encoded))
 			}
-			if err = validatePublication(root, []authoredFile{file}); err == nil {
+			if err = validatePublication(root, []File{file}); err == nil {
 				t.Fatal("ignored pending cleanup stage")
 			}
 		})

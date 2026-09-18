@@ -109,21 +109,10 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 				fmt.Fprintf(out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, problem.NextStep)
 			}
 		}
+	case project.AuthoringResult:
+		formatAuthored(out, result.Files, result.Warnings, result.Next)
 	case authoring.Result:
-		if len(result.Files) == 0 {
-			out.WriteString("No files changed.\n")
-		} else {
-			out.WriteString("Updated files:\n")
-			for _, path := range result.Files {
-				fmt.Fprintf(out, "  %s\n", path)
-			}
-		}
-		for _, warning := range result.Warnings {
-			fmt.Fprintf(out, "Warning: %s\n", warning)
-		}
-		if result.Next != "" {
-			fmt.Fprintf(out, "\nNext: %s\n", result.Next)
-		}
+		formatAuthored(out, result.Files, result.Warnings, result.Next)
 	case authoring.LibraryCheckResult:
 		fmt.Fprintf(out, "Library is valid: %d group(s), %d rule(s).\n", result.Groups, result.Rules)
 		for _, warning := range result.Warnings {
@@ -183,4 +172,22 @@ func requestsJSON(root *cobra.Command, args []string) bool {
 		}
 	}
 	return enabled
+}
+
+// formatAuthored presents completed file changes consistently for project and library operations.
+func formatAuthored(out *strings.Builder, files, warnings []string, next string) {
+	if len(files) == 0 {
+		out.WriteString("No files changed.\n")
+	} else {
+		out.WriteString("Updated files:\n")
+		for _, path := range files {
+			fmt.Fprintf(out, "  %s\n", path)
+		}
+	}
+	for _, warning := range warnings {
+		fmt.Fprintf(out, "Warning: %s\n", warning)
+	}
+	if next != "" {
+		fmt.Fprintf(out, "\nNext: %s\n", next)
+	}
 }

@@ -14,13 +14,13 @@ import (
 )
 
 // snapshotFixture supplies one empty group with original binary and CRLF files.
-func snapshotFixture(t *testing.T) (rules.Configuration, map[string]Snapshot) {
+func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
 	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{},"replace":{}}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	return config, map[string]Snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{
+	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{
 		"rule-library.json":    []byte(`{"formatVersion":1}`),
 		"techs/go/_group.json": []byte(`{"name":"Go","description":"Go rules","whenToRead":"When editing Go."}`),
 		"assets/image.bin":     {0, 255, 10, 128}, "LICENSE": []byte("Terms\r\nPreserved\r\n"), "empty.txt": {},
@@ -30,15 +30,15 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]Snapshot) {
 // TestSnapshotsRoundTripOwnsExactBytes verifies deterministic records and independent ownership.
 func TestSnapshotsRoundTripOwnsExactBytes(t *testing.T) {
 	config, input := snapshotFixture(t)
-	encoded, err := EncodeSnapshots(config, input)
+	encoded, err := encodeSnapshots(config, input)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := EncodeSnapshots(config, input)
+	again, err := encodeSnapshots(config, input)
 	if err != nil || !reflect.DeepEqual(encoded, again) {
 		t.Fatalf("unstable encoding: %v", err)
 	}
-	got, err := DecodeSnapshots(config, encoded)
+	got, err := decodeSnapshots(config, encoded)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,12 +60,12 @@ func TestSnapshotRepositoryAddressChangeRequiresSync(t *testing.T) {
 	for _, address := range []string{"git@github.com:acme/rules.git", "https://github.com/acme/rules.git", "https://github.com/ACME/rules"} {
 		t.Run(address, func(t *testing.T) {
 			config, snapshots := snapshotFixture(t)
-			vendor, err := EncodeSnapshots(config, snapshots)
+			vendor, err := encodeSnapshots(config, snapshots)
 			if err != nil {
 				t.Fatal(err)
 			}
 			config.Sources[0].Repository = address
-			got, err := DecodeSnapshots(config, vendor)
+			got, err := decodeSnapshots(config, vendor)
 			var validation *rules.ValidationError
 			if got != nil || !errors.As(err, &validation) {
 				t.Fatalf("accepted stale repository address: %v, %v", got, err)
@@ -95,12 +95,12 @@ func TestSnapshotCorruptionReturnsNoPartialResult(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			c, s := snapshotFixture(t)
-			v, e := EncodeSnapshots(c, s)
+			v, e := encodeSnapshots(c, s)
 			if e != nil {
 				t.Fatal(e)
 			}
 			tc.alter(v)
-			got, e := DecodeSnapshots(c, v)
+			got, e := decodeSnapshots(c, v)
 			var validation *rules.ValidationError
 			if got != nil || !errors.As(e, &validation) {
 				t.Fatalf("got %v, %v", got, e)
@@ -134,7 +134,7 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			c, s := snapshotFixture(t)
-			v, e := EncodeSnapshots(c, s)
+			v, e := encodeSnapshots(c, s)
 			if e != nil {
 				t.Fatal(e)
 			}
@@ -147,7 +147,7 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
-			got, e := DecodeSnapshots(c, v)
+			got, e := decodeSnapshots(c, v)
 			if got != nil || e == nil {
 				t.Fatalf("accepted corrupt record: %v", got)
 			}
@@ -158,7 +158,7 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 // TestSnapshotLegacySelectionAndEmptySources preserves version-1 omission and local-only behavior.
 func TestSnapshotLegacySelectionAndEmptySources(t *testing.T) {
 	c, s := snapshotFixture(t)
-	v, e := EncodeSnapshots(c, s)
+	v, e := encodeSnapshots(c, s)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -171,23 +171,23 @@ func TestSnapshotLegacySelectionAndEmptySources(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e := DecodeSnapshots(c, v); e != nil {
+	if _, e := decodeSnapshots(c, v); e != nil {
 		t.Fatal(e)
 	}
 	c.Sources[0].Groups = rules.GroupSelection{Pattern: "*"}
-	if _, e := DecodeSnapshots(c, v); e == nil {
+	if _, e := decodeSnapshots(c, v); e == nil {
 		t.Fatal("legacy explicit groups satisfied a wildcard")
 	}
 	empty := rules.Configuration{Sources: []rules.Source{}}
-	encoded, e := EncodeSnapshots(empty, nil)
+	encoded, e := encodeSnapshots(empty, nil)
 	if e != nil || len(encoded) != 0 {
 		t.Fatalf("empty encode: %v", e)
 	}
-	decoded, e := DecodeSnapshots(empty, encoded)
+	decoded, e := decodeSnapshots(empty, encoded)
 	if e != nil || len(decoded) != 0 {
 		t.Fatalf("empty decode: %v", e)
 	}
-	if got, e := DecodeSnapshots(empty, v); e == nil || got != nil {
+	if got, e := decodeSnapshots(empty, v); e == nil || got != nil {
 		t.Fatal("accepted retired source")
 	}
 }
@@ -204,25 +204,25 @@ func TestSnapshotVersionIdentity(t *testing.T) {
 	item.Tag = "v1.2.3"
 	item.ResolvedVersion = "1.2.3"
 	s["team"] = item
-	v, e := EncodeSnapshots(c, s)
+	v, e := encodeSnapshots(c, s)
 	if e != nil {
 		t.Fatal(e)
 	}
 	if !bytes.Contains(v["team/_source.json"], []byte(`>= 1.0.0, < 2.0.0`)) {
 		t.Fatal("constraint escaped")
 	}
-	if _, e := DecodeSnapshots(c, v); e != nil {
+	if _, e := decodeSnapshots(c, v); e != nil {
 		t.Fatal(e)
 	}
 	item.ResolvedVersion = "1.2.4"
 	s["team"] = item
-	if got, e := EncodeSnapshots(c, s); e == nil || got != nil {
+	if got, e := encodeSnapshots(c, s); e == nil || got != nil {
 		t.Fatal("accepted different release")
 	}
 	item.ResolvedVersion = "2.0.0"
 	item.Tag = "v2.0.0"
 	s["team"] = item
-	if got, e := EncodeSnapshots(c, s); e == nil || got != nil {
+	if got, e := encodeSnapshots(c, s); e == nil || got != nil {
 		t.Fatal("accepted release outside constraint")
 	}
 }
@@ -233,7 +233,7 @@ func TestSnapshotPortablePaths(t *testing.T) {
 		t.Run(path, func(t *testing.T) {
 			c, s := snapshotFixture(t)
 			s["team"].Files[path] = []byte("x")
-			if got, e := EncodeSnapshots(c, s); e == nil || got != nil {
+			if got, e := encodeSnapshots(c, s); e == nil || got != nil {
 				t.Fatalf("accepted %s", path)
 			}
 		})
@@ -247,18 +247,18 @@ func TestSnapshotsDoNotReturnEarlierSourcesOnFailure(t *testing.T) {
 	source.Name = "second"
 	config.Sources = append(config.Sources, source)
 	snapshots["second"] = snapshots["team"]
-	vendor, err := EncodeSnapshots(config, snapshots)
+	vendor, err := encodeSnapshots(config, snapshots)
 	if err != nil {
 		t.Fatal(err)
 	}
 	delete(vendor, "second/LICENSE")
-	if got, err := DecodeSnapshots(config, vendor); got != nil || err == nil {
+	if got, err := decodeSnapshots(config, vendor); got != nil || err == nil {
 		t.Fatalf("partial result: %v, %v", got, err)
 	}
 	second := snapshots["second"]
 	second.Commit = "invalid"
 	snapshots["second"] = second
-	if got, err := EncodeSnapshots(config, snapshots); got != nil || err == nil {
+	if got, err := encodeSnapshots(config, snapshots); got != nil || err == nil {
 		t.Fatalf("partial encoding: %v, %v", got, err)
 	}
 }
@@ -270,7 +270,7 @@ func TestSnapshotWildcardAndCommitIdentity(t *testing.T) {
 	item := snapshots["team"]
 	item.Selection = config.Sources[0].Groups
 	snapshots["team"] = item
-	if got, err := EncodeSnapshots(config, snapshots); got != nil || err == nil {
+	if got, err := encodeSnapshots(config, snapshots); got != nil || err == nil {
 		t.Fatal("accepted technology group for practices wildcard")
 	}
 	config, snapshots = snapshotFixture(t)
@@ -283,7 +283,7 @@ func TestSnapshotWildcardAndCommitIdentity(t *testing.T) {
 	item = snapshots["team"]
 	item.Ref = config.Sources[0].Ref
 	snapshots["team"] = item
-	if got, err := EncodeSnapshots(config, snapshots); got != nil || err == nil {
+	if got, err := encodeSnapshots(config, snapshots); got != nil || err == nil {
 		t.Fatal("accepted mismatched commit")
 	}
 }

@@ -1,6 +1,6 @@
 // Exercise project initialization, local authoring, and imported group selection.
 
-package authoring
+package project
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -20,7 +19,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	ctx := context.Background()
 	directory := filepath.Join(t.TempDir(), ".code-rules")
 	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
-	result, err := InitializeProject(ctx, options)
+	result, err := Initialize(ctx, options)
 	if err != nil || len(result.Files) != 3 {
 		t.Fatal(result, err)
 	}
@@ -28,7 +27,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err = InitializeProject(ctx, options)
+	result, err = Initialize(ctx, options)
 	if err != nil || len(result.Files) != 0 {
 		t.Fatal(result, err)
 	}
@@ -42,12 +41,12 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 		t.Fatal(string(stored), err)
 	}
 	body := "# Return errors\n\nReturn failures to the caller.\n"
-	ruleMeta := RuleMetadata{Title: "Return errors: always", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling fallible functions."}
+	ruleMeta := rules.RuleMetadata{Title: "Return errors: always", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling fallible functions."}
 	result, err = AddLocalRule(ctx, "techs/go/errors", ruleMeta, RuleOptions{Options: options, Body: &body})
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
-	if _, err = project.Build(ctx, project.Options{ConfigPath: options.ConfigPath}); err != nil {
+	if _, err = Build(ctx, Options{ConfigPath: options.ConfigPath}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = AddLocalRule(ctx, "techs/go/errors", ruleMeta, RuleOptions{Options: options, Body: &body}); err == nil {
@@ -96,7 +95,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 			ctx := context.Background()
 			directory := t.TempDir()
 			options := Options{ConfigPath: filepath.Join(directory, "config.json")}
-			if _, err := InitializeProject(ctx, options); err != nil {
+			if _, err := Initialize(ctx, options); err != nil {
 				t.Fatal(err)
 			}
 			switch scenario {
@@ -141,14 +140,14 @@ func TestRuleRequiresGroup(t *testing.T) {
 	ctx := context.Background()
 	directory := t.TempDir()
 	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
-	if _, err := InitializeProject(ctx, options); err != nil {
+	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
 	os.MkdirAll(filepath.Join(directory, "local/techs/go"), 0700)
 	target := filepath.Join(directory, "local/techs/go/errors.md")
 	os.WriteFile(target, []byte("authored content"), 0600)
 	body := "Return failures."
-	_, err := AddLocalRule(ctx, "techs/go/errors", RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body})
+	_, err := AddLocalRule(ctx, "techs/go/errors", rules.RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body})
 	if err == nil {
 		t.Fatal("accepted collision")
 	}
@@ -166,7 +165,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	ctx := context.Background()
 	directory := t.TempDir()
 	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
-	if _, err := InitializeProject(ctx, options); err != nil {
+	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
 	source := json.RawMessage(`{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{},"replace":{}}`)
@@ -184,7 +183,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	vendor, err := project.EncodeSnapshots(config, map[string]project.Snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1}`), "techs/go/_group.json": []byte(`{"name":"Go","description":"Imported guidance.","whenToRead":"When editing Go."}`)}}})
+	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1}`), "techs/go/_group.json": []byte(`{"name":"Go","description":"Imported guidance.","whenToRead":"When editing Go."}`)}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +197,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 		}
 	}
 	body := "Return errors."
-	result, err := AddLocalRule(ctx, "techs/go/errors", RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body})
+	result, err := AddLocalRule(ctx, "techs/go/errors", rules.RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body})
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}

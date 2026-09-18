@@ -1,6 +1,6 @@
 // Exercise real managed-directory replacement, interruption recovery, and confined filesystem reads.
 
-package project
+package filetxn
 
 import (
 	"context"

@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/gitfixture"
-	"github.com/fabricahq/code-rules/internal/project"
 )
 
 // Step records an actual command or a deliberate fixture edit and its observable outcome.
@@ -69,7 +69,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	offline := []string{"PATH=" + filepath.Join(directory, "no-runtime")}
 	// invoke captures real exit status and fails the pilot when it differs from the stated scenario.
 	invoke := func(label, dir string, env []string, want int, args ...string) error {
-		var original *project.Tree
+		var original *filetxn.Tree
 		var err error
 		if len(args) > 0 && args[0] == "check" {
 			args = append(args, "--json")
@@ -299,13 +299,13 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 }
 
 // readTree captures file bytes and empty directories through the confined project reader.
-func readTree(ctx context.Context, directory string) (*project.Tree, error) {
+func readTree(ctx context.Context, directory string) (*filetxn.Tree, error) {
 	root, err := os.OpenRoot(directory)
 	if err != nil {
 		return nil, err
 	}
 	defer root.Close()
-	tree, err := project.ReadTree(ctx, root, ".")
+	tree, err := filetxn.ReadTree(ctx, root, ".")
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +313,7 @@ func readTree(ctx context.Context, directory string) (*project.Tree, error) {
 }
 
 // equalTrees compares original bytes and directory inventory, including empty directories.
-func equalTrees(before, after *project.Tree) bool {
+func equalTrees(before, after *filetxn.Tree) bool {
 	return maps.EqualFunc(before.Files, after.Files, bytes.Equal) && slices.Equal(before.Directories, after.Directories)
 }
 

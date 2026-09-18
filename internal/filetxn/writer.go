@@ -1,6 +1,6 @@
 // Serialize project writers and recover interrupted managed-directory replacements.
 
-package project
+package filetxn
 
 import (
 	"context"
@@ -14,6 +14,8 @@ import (
 	"path"
 	"slices"
 	"syscall"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 const transactionName = ".code-rules-transaction"
@@ -66,7 +68,7 @@ func RequireIdle(root *os.Root) error {
 			return err
 		}
 		if present {
-			return projectError("busy", "a project writer or pending recovery exists; retry build or sync after the writer exits", nil)
+			return failure("busy", "a project writer or pending recovery exists; retry build or sync after the writer exits", nil)
 		}
 	}
 	return nil
@@ -79,7 +81,7 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 		return err
 	}
 	if root == nil || operation == nil {
-		return projectError("invalid-operation", "expected an open project root and writer operation", nil)
+		return failure("invalid-operation", "expected an open project root and writer operation", nil)
 	}
 	if err := acquireLock(ctx, root); err != nil {
 		return err
@@ -123,26 +125,26 @@ func acquireLock(ctx context.Context, root *os.Root) error {
 		}
 		var owner lockOwner
 		if tree == nil || json.Unmarshal(tree.Files["owner.json"], &owner) != nil || owner.Host != host || owner.PID <= 0 || owner.Token == "" {
-			return projectError("busy", "project lock ownership is incomplete or belongs to another host; verify the owner before removing the lock", nil)
+			return failure("busy", "project lock ownership is incomplete or belongs to another host; verify the owner before removing the lock", nil)
 		}
 		// ESRCH is the only evidence that permits reclamation; EPERM and all uncertainty fail closed.
 		if err := syscall.Kill(owner.PID, 0); !errors.Is(err, syscall.ESRCH) {
-			return projectError("busy", "another writer is using this project or ownership cannot be verified", err)
+			return failure("busy", "another writer is using this project or ownership cannot be verified", err)
 		}
 		claim := path.Join(lockName, "recovery-claim")
 		if err := root.Mkdir(claim, 0700); err != nil {
-			return projectError("busy", "another process is recovering the project lock", err)
+			return failure("busy", "another process is recovering the project lock", err)
 		}
-		data, err := readFile(ctx, root, path.Join(lockName, "owner.json"))
+		data, err := ReadFile(ctx, root, path.Join(lockName, "owner.json"))
 		var current lockOwner
 		if err != nil || json.Unmarshal(data, &current) != nil || current != owner {
-			return projectError("busy", "lock ownership changed during recovery; preserve its recovery claim", err)
+			return failure("busy", "lock ownership changed during recovery; preserve its recovery claim", err)
 		}
 		if err := root.RemoveAll(lockName); err != nil {
 			return err
 		}
 	}
-	return projectError("busy", "project lock contention; retry later", nil)
+	return failure("busy", "project lock contention; retry later", nil)
 }
 
 // Apply stages complete target trees and rechecks caller inputs before replacing live output.
@@ -150,7 +152,7 @@ func acquireLock(ctx context.Context, root *os.Root) error {
 // This promises recoverability, not simultaneous visibility of two renames or power-loss durability.
 func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func() error) (err error) {
 	if w == nil || !w.active {
-		return projectError("invalid-operation", "writer is outside its ownership callback", nil)
+		return failure("invalid-operation", "writer is outside its ownership callback", nil)
 	}
 	if err := w.ctx.Err(); err != nil {
 		return err
@@ -160,9 +162,9 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 	}
 	for target, files := range output {
 		if target != Vendor && target != Generated {
-			return projectError("invalid-target", fmt.Sprintf("%q: only vendor and generated may be replaced", target), nil)
+			return failure("invalid-target", fmt.Sprintf("%q: only vendor and generated may be replaced", target), nil)
 		}
-		if err := validateFilePaths(files); err != nil {
+		if err := rules.ValidatePaths(files, nil); err != nil {
 			return err
 		}
 	}
@@ -181,7 +183,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			recoveryErr = w.root.RemoveAll(transactionName)
 		}
 		if recoveryErr != nil {
-			err = projectError("recovery-required", "update failed and rollback could not finish; preserve .code-rules-transaction for recovery", errors.Join(err, recoveryErr))
+			err = failure("recovery-required", "update failed and rollback could not finish; preserve .code-rules-transaction for recovery", errors.Join(err, recoveryErr))
 		}
 	}()
 	entries := []journalEntry{}
@@ -216,7 +218,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			return err
 		}
 		if treeDigest(current) != entry.Before {
-			return projectError("concurrent-change", string(entry.Name)+": output changed during staging", nil)
+			return failure("concurrent-change", string(entry.Name)+": output changed during staging", nil)
 		}
 	}
 	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{2, entries}); err != nil {
@@ -238,7 +240,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 				return err
 			}
 			if treeDigest(backup) != entry.Before {
-				return projectError("concurrent-change", string(entry.Name)+": output changed before replacement; preserve its backup", nil)
+				return failure("concurrent-change", string(entry.Name)+": output changed before replacement; preserve its backup", nil)
 			}
 		}
 		if err := w.rename(path.Join(transactionName, "new-"+string(entry.Name)), string(entry.Name)); err != nil {
@@ -287,16 +289,16 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	if !hasJournal {
 		for _, dir := range tree.Directories {
 			if dir == "old-vendor" || dir == "old-generated" {
-				return projectError("recovery-required", "missing journal with retained output; preserve transaction files for manual recovery", nil)
+				return failure("recovery-required", "missing journal with retained output; preserve transaction files for manual recovery", nil)
 			}
 		}
 		for _, name := range []string{"old-vendor", "old-generated"} {
 			if _, ok := tree.Files[name]; ok {
-				return projectError("recovery-required", "missing journal with retained backup; preserve transaction files", nil)
+				return failure("recovery-required", "missing journal with retained backup; preserve transaction files", nil)
 			}
 		}
 		if _, ok := tree.Files["committed.json"]; ok {
-			return projectError("recovery-required", "missing journal with commit marker; preserve transaction files", nil)
+			return failure("recovery-required", "missing journal with commit marker; preserve transaction files", nil)
 		}
 		return root.RemoveAll(transactionName)
 	}
@@ -304,30 +306,30 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		Entries []map[string]json.RawMessage `json:"entries"`
 	}
 	if json.Unmarshal(data, &raw) != nil {
-		return projectError("recovery-required", "invalid transaction journal", nil)
+		return failure("recovery-required", "invalid transaction journal", nil)
 	}
 	for _, entry := range raw.Entries {
 		for _, key := range []string{"name", "before", "after", "existed"} {
 			value, ok := entry[key]
 			if !ok || string(value) == "null" {
-				return projectError("recovery-required", "incomplete transaction entry; preserve journal", nil)
+				return failure("recovery-required", "incomplete transaction entry; preserve journal", nil)
 			}
 		}
 	}
 	var record journalRecord
 	if json.Unmarshal(data, &record) != nil || (record.FormatVersion != 1 && record.FormatVersion != 2) || len(record.Entries) == 0 || len(record.Entries) > 2 {
-		return projectError("recovery-required", "invalid transaction journal; preserve it for manual recovery", nil)
+		return failure("recovery-required", "invalid transaction journal; preserve it for manual recovery", nil)
 	}
 	seen := map[Target]bool{}
 	for _, entry := range record.Entries {
 		if (entry.Name != Vendor && entry.Name != Generated) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || entry.After == treeDigest(nil) {
-			return projectError("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
+			return failure("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
 		}
 		seen[entry.Name] = true
 	}
 	marker, committed := tree.Files["committed.json"]
 	if committed && string(marker) != "true\n" {
-		return projectError("recovery-required", "invalid commit marker; preserve transaction files", nil)
+		return failure("recovery-required", "invalid commit marker; preserve transaction files", nil)
 	}
 	for _, entry := range record.Entries {
 		current, err := ReadTree(ctx, root, string(entry.Name))
@@ -339,7 +341,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 			return err
 		}
 		if backup != nil && !entry.Existed {
-			return projectError("recovery-required", "unexpected backup for an originally absent target; preserve transaction files", nil)
+			return failure("recovery-required", "unexpected backup for an originally absent target; preserve transaction files", nil)
 		}
 		if committed {
 			continue
@@ -349,10 +351,10 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 			return err
 		}
 		if discarded != nil && treeDigest(discarded) != entry.After {
-			return projectError("recovery-required", string(entry.Name)+": displaced output changed; preserve transaction files", nil)
+			return failure("recovery-required", string(entry.Name)+": displaced output changed; preserve transaction files", nil)
 		}
 		if backup != nil && treeDigest(backup) != entry.Before {
-			return projectError("recovery-required", string(entry.Name)+": backup changed; manual recovery required", nil)
+			return failure("recovery-required", string(entry.Name)+": backup changed; manual recovery required", nil)
 		}
 		currentHash := treeDigest(current)
 		safe := currentHash == entry.Before || (!entry.Existed && currentHash == entry.After)
@@ -360,7 +362,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 			safe = current == nil || currentHash == entry.After
 		}
 		if !safe {
-			return projectError("recovery-required", string(entry.Name)+": changed after interruption; preserve current files and transaction backups", nil)
+			return failure("recovery-required", string(entry.Name)+": changed after interruption; preserve current files and transaction backups", nil)
 		}
 	}
 	if committed {
@@ -401,7 +403,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 					return err
 				}
 				if already {
-					return projectError("recovery-required", "both live and displaced output exist; preserve transaction files", nil)
+					return failure("recovery-required", "both live and displaced output exist; preserve transaction files", nil)
 				}
 				if err := rename(string(entry.Name), discardedPath); err != nil {
 					return err
@@ -411,7 +413,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 					return err
 				}
 				if treeDigest(discarded) != entry.After {
-					return projectError("recovery-required", string(entry.Name)+": output changed during recovery; preserve displaced files and backup", nil)
+					return failure("recovery-required", string(entry.Name)+": output changed during recovery; preserve displaced files and backup", nil)
 				}
 			}
 		}
@@ -449,7 +451,7 @@ func durableJSON(root *os.Root, name string, value any) error {
 // exists distinguishes absence from permission failures and includes symlinks as present.
 func exists(root *os.Root, name string) (bool, error) {
 	if root == nil {
-		return false, projectError("unsafe-path", "expected an open project root", nil)
+		return false, failure("unsafe-path", "expected an open project root", nil)
 	}
 	_, err := root.Lstat(name)
 	if errors.Is(err, fs.ErrNotExist) {

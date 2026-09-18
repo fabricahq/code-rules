@@ -35,17 +35,17 @@ func TestWorkflowRetryPreservesApprovedRange(t *testing.T) {
 			script = step.Run
 		}
 	}
-	if !strings.Contains(script, "go run ./cmd/release-plan") {
+	if !strings.Contains(script, "go run ./cmd/plan-release") {
 		t.Fatal("missing production planning command")
 	}
-	binary := filepath.Join(t.TempDir(), "release-plan")
-	build := exec.Command("go", "build", "-o", binary, "./cmd/release-plan")
+	binary := filepath.Join(t.TempDir(), "plan-release")
+	build := exec.Command("go", "build", "-o", binary, "./cmd/plan-release")
 	build.Dir = root
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build planner: %v\n%s", err, output)
 	}
 	// Only substitute the executable location: the workflow shell and CLI remain real.
-	script = strings.Replace(script, "go run ./cmd/release-plan", `"$PLANNER"`, 1)
+	script = strings.Replace(script, "go run ./cmd/plan-release", `"$PLANNER"`, 1)
 	f, source := fixture(t)
 	base := command(t, f, "rev-parse", "HEAD")
 	for _, change := range []struct{ path, body string }{

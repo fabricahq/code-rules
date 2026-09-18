@@ -1,10 +1,11 @@
-// Package authoring creates project and library source files without changing generated output.
-package authoring
+// Package filetxn protects authored files and managed trees with bounded reads and recoverable writes.
+package filetxn
 
 import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,23 +17,19 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/fabricahq/code-rules/internal/project"
 	"golang.org/x/text/unicode/norm"
 )
 
-// authoredFile carries exact prior bytes for a replacement; nil means exclusive creation.
-type authoredFile struct {
-	name         string
-	data, before []byte
+// File describes a contained relative path and its intended bytes. Previous == nil means
+// exclusive creation; non-nil Previous must match the existing bytes before replacement.
+// An edit may replace at most one existing file and create any number of new files.
+type File struct {
+	Path              string
+	Content, Previous []byte
 }
 
-// failure categorizes an authoring failure for callers without hiding its underlying cause.
-func failure(code, problem string, cause error) error {
-	return &project.Error{Code: code, Problem: problem, Cause: cause}
-}
-
-// optionalFile reads one bounded regular, unlinked file; only absence returns nil.
-func optionalFile(ctx context.Context, root *os.Root, name string) ([]byte, error) {
+// ReadOptional reads one bounded regular, unlinked file; only absence returns nil.
+func ReadOptional(ctx context.Context, root *os.Root, name string) ([]byte, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -124,16 +121,16 @@ func ensureParents(root *os.Root, name string, created *[]string) error {
 }
 
 // verifyTarget refuses existing new files and replacements whose original bytes changed.
-func verifyTarget(ctx context.Context, root *os.Root, file authoredFile) error {
-	if err := rejectAlias(root, file.name); err != nil {
+func verifyTarget(ctx context.Context, root *os.Root, file File) error {
+	if err := rejectAlias(root, file.Path); err != nil {
 		return err
 	}
-	data, err := optionalFile(ctx, root, file.name)
+	data, err := ReadOptional(ctx, root, file.Path)
 	if err != nil {
 		return err
 	}
-	if (file.before == nil && data != nil) || (file.before != nil && (data == nil || !bytes.Equal(data, file.before))) {
-		return failure("concurrent-change", file.name+": already exists or changed; no overwrite was performed", nil)
+	if (file.Previous == nil && data != nil) || (file.Previous != nil && (data == nil || !bytes.Equal(data, file.Previous))) {
+		return failure("concurrent-change", file.Path+": already exists or changed; no overwrite was performed", nil)
 	}
 	return nil
 }
@@ -154,7 +151,7 @@ type publication struct {
 	// retain leaves uncertain user bytes available for manual recovery.
 	retain    bool
 	created   []string
-	published []authoredFile
+	published []File
 	// link is the exclusive installation boundary; tests can fail a specific publication.
 	link func(string, string) error
 	// removeStage is the post-publication cleanup boundary.
@@ -162,7 +159,7 @@ type publication struct {
 }
 
 // publishAuthored validates targets, prepares a private stage, and publishes under the caller's writer lock.
-func publishAuthored(ctx context.Context, root *os.Root, files []authoredFile) (err error) {
+func publishAuthored(ctx context.Context, root *os.Root, files []File) (err error) {
 	if err = ctx.Err(); err != nil {
 		return err
 	}
@@ -181,18 +178,18 @@ func publishAuthored(ctx context.Context, root *os.Root, files []authoredFile) (
 }
 
 // validatePublication rejects unsafe targets, multiple replacements, and interrupted prior stages.
-func validatePublication(root *os.Root, files []authoredFile) error {
+func validatePublication(root *os.Root, files []File) error {
 	seen := map[string]bool{}
 	replacements := 0
 	for _, f := range files {
-		if !fs.ValidPath(f.name) || strings.Contains(f.name, "\\") {
+		if !fs.ValidPath(f.Path) || strings.Contains(f.Path, "\\") {
 			return failure("unsafe-path", "invalid authoring path", nil)
 		}
-		if seen[f.name] {
+		if seen[f.Path] {
 			return failure("invalid-operation", "duplicate authoring target", nil)
 		}
-		seen[f.name] = true
-		if f.before != nil {
+		seen[f.Path] = true
+		if f.Previous != nil {
 			replacements++
 		}
 	}
@@ -217,7 +214,7 @@ func validatePublication(root *os.Root, files []authoredFile) error {
 }
 
 // run prepares all targets, publishes creations before the optional replacement, and rolls back failures.
-func (p *publication) run(files []authoredFile) (err error) {
+func (p *publication) run(files []File) (err error) {
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, p.rollback(), p.cleanup())
@@ -233,11 +230,11 @@ func (p *publication) run(files []authoredFile) (err error) {
 		}
 	}
 	ordered := slices.Clone(files)
-	slices.SortStableFunc(ordered, func(a, b authoredFile) int {
-		if a.before == nil && b.before != nil {
+	slices.SortStableFunc(ordered, func(a, b File) int {
+		if a.Previous == nil && b.Previous != nil {
 			return -1
 		}
-		if a.before != nil && b.before == nil {
+		if a.Previous != nil && b.Previous == nil {
 			return 1
 		}
 		return 0
@@ -251,18 +248,18 @@ func (p *publication) run(files []authoredFile) (err error) {
 }
 
 // prepare creates contained parent directories and verifies a target before any file is installed.
-func (p *publication) prepare(file authoredFile) error {
+func (p *publication) prepare(file File) error {
 	if err := p.ctx.Err(); err != nil {
 		return err
 	}
-	if err := ensureParents(p.root, path.Dir(file.name), &p.created); err != nil {
+	if err := ensureParents(p.root, path.Dir(file.Path), &p.created); err != nil {
 		return err
 	}
 	return verifyTarget(p.ctx, p.root, file)
 }
 
 // publish stages bytes and installs one file exclusively, retaining a rollback record for creations.
-func (p *publication) publish(index int, file authoredFile) error {
+func (p *publication) publish(index int, file File) error {
 	if err := p.ctx.Err(); err != nil {
 		return err
 	}
@@ -271,17 +268,17 @@ func (p *publication) publish(index int, file authoredFile) error {
 	if err != nil {
 		return err
 	}
-	_, writeErr := out.Write(file.data)
+	_, writeErr := out.Write(file.Content)
 	if err = errors.Join(writeErr, out.Close()); err != nil {
 		return err
 	}
 	if err = verifyTarget(p.ctx, p.root, file); err != nil {
 		return err
 	}
-	if file.before != nil {
+	if file.Previous != nil {
 		return p.replace(index, file, staged)
 	}
-	if err = p.link(staged, file.name); err != nil {
+	if err = p.link(staged, file.Path); err != nil {
 		return err
 	}
 	p.published = append(p.published, file)
@@ -292,9 +289,9 @@ func (p *publication) publish(index int, file authoredFile) error {
 }
 
 // replace claims old bytes before comparison and never overwrites a concurrently recreated target.
-func (p *publication) replace(index int, file authoredFile, staged string) error {
+func (p *publication) replace(index int, file File, staged string) error {
 	claim := path.Join(p.stage, fmt.Sprintf("previous-%d", index))
-	record, err := jsonText(map[string]string{"target": file.name, "previous": claim})
+	record, err := jsonText(map[string]string{"target": file.Path, "previous": claim})
 	if err != nil {
 		return err
 	}
@@ -304,21 +301,21 @@ func (p *publication) replace(index int, file authoredFile, staged string) error
 	if err = p.ctx.Err(); err != nil {
 		return err
 	}
-	if err = p.root.Rename(file.name, claim); err != nil {
+	if err = p.root.Rename(file.Path, claim); err != nil {
 		return err
 	}
-	actual, err := optionalFile(p.ctx, p.root, claim)
-	if err == nil && !bytes.Equal(actual, file.before) {
-		err = failure("concurrent-change", file.name+": changed during publication; preserving editor bytes", nil)
+	actual, err := ReadOptional(p.ctx, p.root, claim)
+	if err == nil && !bytes.Equal(actual, file.Previous) {
+		err = failure("concurrent-change", file.Path+": changed during publication; preserving editor bytes", nil)
 	}
 	if err == nil {
 		err = p.ctx.Err()
 	}
 	if err == nil {
-		err = p.link(staged, file.name)
+		err = p.link(staged, file.Path)
 	}
 	if err != nil {
-		if restoreErr := restoreClaim(p.root, claim, file.name); restoreErr != nil {
+		if restoreErr := restoreClaim(p.root, claim, file.Path); restoreErr != nil {
 			p.retain = true
 			return failure("recovery-required", "target occupied; prior bytes retained at "+filepath.Join(p.root.Name(), claim), errors.Join(err, restoreErr))
 		}
@@ -332,17 +329,17 @@ func (p *publication) replace(index int, file authoredFile, staged string) error
 func (p *publication) rollback() (err error) {
 	for i, file := range slices.Backward(p.published) {
 		claim := path.Join(p.stage, fmt.Sprintf("rollback-%d", i))
-		if e := p.root.Rename(file.name, claim); e != nil {
+		if e := p.root.Rename(file.Path, claim); e != nil {
 			if errors.Is(e, fs.ErrNotExist) {
 				continue
 			}
 			p.retain = true
-			err = errors.Join(err, failure("recovery-required", "could not claim "+file.name+"; inspect "+p.stage, e))
+			err = errors.Join(err, failure("recovery-required", "could not claim "+file.Path+"; inspect "+p.stage, e))
 			continue
 		}
-		data, e := optionalFile(context.Background(), p.root, claim)
-		if e == nil && !bytes.Equal(data, file.data) {
-			e = restoreClaim(p.root, claim, file.name)
+		data, e := ReadOptional(context.Background(), p.root, claim)
+		if e == nil && !bytes.Equal(data, file.Content) {
+			e = restoreClaim(p.root, claim, file.Path)
 		}
 		if e != nil {
 			p.retain = true
@@ -385,4 +382,56 @@ func (e *committedCleanupError) Unwrap() error { return e.Cause }
 func publicationComplete(err error) bool {
 	var cleanup *committedCleanupError
 	return err == nil || errors.As(err, &cleanup)
+}
+
+// Changes reports absolute paths in publication order and cleanup warnings after a committed edit.
+// An error returns no changes; a warning means every requested file was committed.
+type Changes struct {
+	Files    []string `json:"files"`
+	Warnings []string `json:"warnings,omitempty"`
+}
+
+// Edit acquires writer ownership, prepares files against current state, and publishes them safely.
+// Preparation must not write; the owned callback revalidates input before file creation or replacement.
+func Edit(ctx context.Context, root *os.Root, prepare func() ([]File, error)) (Changes, error) {
+	if prepare == nil {
+		return Changes{}, failure("invalid-operation", "expected an edit preparation operation", nil)
+	}
+	var files []File
+	committed := false
+	err := WithWriter(ctx, root, func(_ *Writer) error {
+		var err error
+		files, err = prepare()
+		if err != nil {
+			return err
+		}
+		err = publishAuthored(ctx, root, files)
+		committed = publicationComplete(err)
+		return err
+	})
+	return finishPublication(root, files, committed, err)
+}
+
+func finishPublication(root *os.Root, files []File, committed bool, err error) (Changes, error) {
+	if err != nil && !committed {
+		return Changes{}, err
+	}
+	paths := make([]string, 0, len(files))
+	for _, file := range files {
+		paths = append(paths, filepath.Join(root.Name(), filepath.FromSlash(file.Path)))
+	}
+	result := Changes{Files: paths}
+	if err != nil {
+		result.Warnings = []string{"All requested files were committed. Cleanup needs attention before another authoring operation: " + err.Error()}
+	}
+	return result, nil
+}
+
+func jsonText(value any) ([]byte, error) {
+	var out bytes.Buffer
+	e := json.NewEncoder(&out)
+	e.SetEscapeHTML(false)
+	e.SetIndent("", "  ")
+	err := e.Encode(value)
+	return out.Bytes(), err
 }

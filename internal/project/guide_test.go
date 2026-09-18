@@ -1,6 +1,6 @@
 // Verify guide upgrades preserve authored files and refuse ambiguous ownership.
 
-package authoring
+package project
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/code-rules/internal/filetxn"
 )
 
 // TestProjectGuideRefresh updates an older generated guide while preserving configuration and local guidance byte for byte.
@@ -18,7 +18,7 @@ func TestProjectGuideRefresh(t *testing.T) {
 	ctx := context.Background()
 	directory := t.TempDir()
 	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
-	if _, err := InitializeProject(ctx, options); err != nil {
+	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
 	old := stampProjectGuide([]byte("# Earlier release guide\n"))
@@ -29,7 +29,7 @@ func TestProjectGuideRefresh(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	result, err := InitializeProject(ctx, options)
+	result, err := Initialize(ctx, options)
 	if err != nil || len(result.Files) != 1 || result.Files[0] != filepath.Join(directory, "CODE_RULES.md") {
 		t.Fatal(result, err)
 	}
@@ -39,7 +39,7 @@ func TestProjectGuideRefresh(t *testing.T) {
 			t.Fatal(name, err)
 		}
 	}
-	if result, err := InitializeProject(ctx, options); err != nil || len(result.Files) != 0 {
+	if result, err := Initialize(ctx, options); err != nil || len(result.Files) != 0 {
 		t.Fatal(result, err)
 	}
 }
@@ -65,7 +65,7 @@ func TestProjectGuideRefusesUnmanagedFilesAndLinks(t *testing.T) {
 			} else if err := os.WriteFile(guide, content, 0600); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := InitializeProject(context.Background(), Options{ConfigPath: filepath.Join(directory, "config.json")}); err == nil {
+			if _, err := Initialize(context.Background(), Options{ConfigPath: filepath.Join(directory, "config.json")}); err == nil {
 				t.Fatal("expected refusal")
 			}
 			got, err := os.ReadFile(guide)
@@ -85,8 +85,8 @@ func TestProjectGuideConfigCollision(t *testing.T) {
 	for _, config := range []string{"CODE_RULES.md", ".code-rules/README.md"} {
 		t.Run(config, func(t *testing.T) {
 			directory := t.TempDir()
-			_, err := InitializeProject(context.Background(), Options{ConfigPath: filepath.Join(directory, config)})
-			var problem *project.Error
+			_, err := Initialize(context.Background(), Options{ConfigPath: filepath.Join(directory, config)})
+			var problem *filetxn.Error
 			if !errors.As(err, &problem) || problem.Code != "path-collision" {
 				t.Fatal(err)
 			}
@@ -99,7 +99,7 @@ func TestProjectGuideConfigCollision(t *testing.T) {
 
 // TestProjectGuideDefault agrees with the project operations' omitted configuration path.
 func TestProjectGuideDefault(t *testing.T) {
-	name, content := ProjectGuide("")
+	name, content := projectGuide("")
 	if name != "README.md" || !bytes.Equal(content, renderProjectGuide("config.json")) {
 		t.Fatal("default guide must match .code-rules/config.json", name)
 	}

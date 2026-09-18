@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -21,7 +22,10 @@ const projectMetadata = `{"name":"Go","description":"Go guidance.","whenToRead":
 // localProject supplies a custom config path and local-only authored Go guidance.
 func localProject(t *testing.T) (*os.Root, Options) {
 	t.Helper()
-	root := openProject(t)
+	root := openTestProject(t)
+	if _, err := Initialize(context.Background(), Options{ConfigPath: filepath.Join(root.Name(), "custom.json")}); err != nil {
+		t.Fatal(err)
+	}
 	writeFixture(t, root, "custom.json", `{"schemaVersion":1,"sources":{}}`)
 	writeFixture(t, root, "local/techs/go/_group.json", projectMetadata)
 	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
@@ -41,13 +45,13 @@ func importedProject(t *testing.T) (*os.Root, Options) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot := Snapshot{Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1}`), "techs/go/_group.json": []byte(projectMetadata), "techs/go/errors.md": []byte(projectRule)}}
-	vendor, err := EncodeSnapshots(config, map[string]Snapshot{"team": snapshot})
+	imported := snapshot{Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1}`), "techs/go/_group.json": []byte(projectMetadata), "techs/go/errors.md": []byte(projectRule)}}
+	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": imported})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := writeTree(context.Background(), root, "vendor", vendor); err != nil {
-		t.Fatal(err)
+	for name, data := range vendor {
+		writeFixture(t, root, filepath.Join("vendor", name), string(data))
 	}
 	return root, options
 }
@@ -65,15 +69,15 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 			}
 			// An empty PATH proves no runtime dependency on Git, Node, Bun, or shell utilities.
 			t.Setenv("PATH", t.TempDir())
-			before, err := ReadTree(context.Background(), root, ".")
+			before, err := filetxn.ReadTree(context.Background(), root, ".")
 			if err != nil {
 				t.Fatal(err)
 			}
 			stale, err := Check(context.Background(), options)
-			if err != nil || len(stale.Added) == 0 {
+			if err != nil || stale.Current() {
 				t.Fatalf("stale check: %+v %v", stale, err)
 			}
-			after, err := ReadTree(context.Background(), root, ".")
+			after, err := filetxn.ReadTree(context.Background(), root, ".")
 			if err != nil || before.Digest() != after.Digest() {
 				t.Fatal("check wrote files")
 			}
@@ -81,10 +85,15 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(changes, stale) {
+			if len(changes.Added) != len(stale.Problems) {
 				t.Fatalf("build/check differ: %+v %+v", changes, stale)
 			}
-			tree, err := ReadTree(context.Background(), root, "generated")
+			for i, problem := range stale.Problems {
+				if problem.Kind != MissingFile || problem.Path != "generated/"+changes.Added[i] || problem.Repair != Rebuild {
+					t.Fatalf("unexpected initial problem: %+v", problem)
+				}
+			}
+			tree, err := filetxn.ReadTree(context.Background(), root, "generated")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -96,7 +105,7 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 				t.Fatalf("not idempotent: %+v %v", again, err)
 			}
 			clean, err := Check(context.Background(), options)
-			if err != nil || !reflect.DeepEqual(clean, again) {
+			if err != nil || !clean.Current() {
 				t.Fatalf("clean check: %+v %v", clean, err)
 			}
 			writeFixture(t, root, "generated/RULES.md", "stale")
@@ -104,7 +113,7 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 			if err := root.Remove("generated/groups/techs/go.md"); err != nil {
 				t.Fatal(err)
 			}
-			before, err = ReadTree(context.Background(), root, ".")
+			before, err = filetxn.ReadTree(context.Background(), root, ".")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -112,10 +121,10 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(differences.Added, []string{"groups/techs/go.md"}) || !reflect.DeepEqual(differences.Changed, []string{"RULES.md"}) || !reflect.DeepEqual(differences.Removed, []string{"extra.md"}) {
+			if !reflect.DeepEqual(differences.Problems, []Problem{{MissingFile, "generated/groups/techs/go.md", Rebuild}, {StaleContents, "generated/RULES.md", Rebuild}, {UnexpectedFile, "generated/extra.md", Rebuild}}) {
 				t.Fatalf("diffs: %+v", differences)
 			}
-			after, err = ReadTree(context.Background(), root, ".")
+			after, err = filetxn.ReadTree(context.Background(), root, ".")
 			if err != nil || before.Digest() != after.Digest() {
 				t.Fatal("stale check changed tree")
 			}
@@ -137,18 +146,18 @@ func TestOfflineFailuresPreserveOutput(t *testing.T) {
 			case "vendor":
 				writeFixture(t, root, "vendor/team/techs/go/errors.md", "modified imported rule")
 			case "recovery":
-				writeFixture(t, root, transactionName+"/journal.json", `{"formatVersion":99}`)
+				writeFixture(t, root, ".code-rules-transaction"+"/journal.json", `{"formatVersion":99}`)
 			case "cancel":
 				cancel()
 			}
-			before, err := ReadTree(context.Background(), root, ".")
+			before, err := filetxn.ReadTree(context.Background(), root, ".")
 			if err != nil {
 				t.Fatal(err)
 			}
 			if _, err := Check(ctx, options); err == nil {
 				t.Fatal("check accepted invalid project")
 			}
-			after, err := ReadTree(context.Background(), root, ".")
+			after, err := filetxn.ReadTree(context.Background(), root, ".")
 			if err != nil || before.Digest() != after.Digest() {
 				t.Fatal("failed check wrote files")
 			}

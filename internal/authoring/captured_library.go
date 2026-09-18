@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/code-rules/internal/filetxn"
 )
 
 // capturedLibrary lends immutable captured files and directories to the catalog reader.
-type capturedLibrary struct{ tree *project.Tree }
+type capturedLibrary struct{ tree *filetxn.Tree }
 
 // Lstat reports only paths that exist in the captured snapshot, including empty directories.
 func (s capturedLibrary) Lstat(name string) (fs.FileInfo, error) {

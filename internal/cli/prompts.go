@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/authoring"
+	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
@@ -157,7 +158,7 @@ func (f *authoringFlags) requireRuleGroup(id string, library bool) error {
 			command += " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
 		}
 	} else {
-		exists, err = authoring.HasLocalRuleGroup(f.command.Context(), group, f.options())
+		exists, err = project.HasLocalRuleGroup(f.command.Context(), group, f.options())
 	}
 	if err != nil {
 		return err
