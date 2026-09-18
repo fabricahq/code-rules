@@ -13,7 +13,7 @@ import (
 )
 
 func TestSharedExpectations(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/identities/cases.json")
+	data, err := os.ReadFile("testdata/identities/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}

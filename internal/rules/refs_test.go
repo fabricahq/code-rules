@@ -13,7 +13,7 @@ import (
 
 // TestRefsSharedExpectations checks values and typed errors through the public Go API.
 func TestRefsSharedExpectations(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/refs/cases.json")
+	data, err := os.ReadFile("testdata/refs/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}

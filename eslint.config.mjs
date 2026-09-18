@@ -5,8 +5,6 @@ import * as astroParser from 'astro-eslint-parser';
 import jsdoc from 'eslint-plugin-jsdoc';
 
 const sourceFiles = [
-  'src/**/*.ts',
-  'tests/**/*.ts',
   '_tools/**/*.ts',
   'docs/_tools/**/*.ts',
   'docs/src/**/*.{ts,astro,mjs}',

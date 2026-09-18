@@ -14,7 +14,7 @@ import (
 
 // TestVersionSelectionFixtures checks deterministic highest-version and alias behavior.
 func TestVersionSelectionFixtures(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/version-selection/cases.json")
+	data, err := os.ReadFile("testdata/version-selection/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}

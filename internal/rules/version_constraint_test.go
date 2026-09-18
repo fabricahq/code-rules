@@ -13,7 +13,7 @@ import (
 
 // TestVersionConstraintsSharedExpectations checks our parser boundary and representative dependency integration.
 func TestVersionConstraintsSharedExpectations(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/version-constraints/cases.json")
+	data, err := os.ReadFile("testdata/version-constraints/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}

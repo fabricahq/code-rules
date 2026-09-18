@@ -42,7 +42,7 @@ test.each([
   'should report a missing $name when linting TypeScript',
   async ({ code, rule }) => {
     const results = await eslint.lintText(code, {
-      filePath: 'src/comment-policy-example.ts',
+      filePath: 'docs/src/comment-policy-example.ts',
     });
     expect(
       results.flatMap((result) =>
@@ -61,7 +61,7 @@ function defaultValue(value: number | undefined) { return value ?? 0; }
 /** Return twice the supplied value, or zero when absent. */
 export function calculate(value: number | undefined) { return double(defaultValue(value)); }
 `,
-    { filePath: 'src/comment-policy-example.ts' },
+    { filePath: 'docs/src/comment-policy-example.ts' },
   );
   expect(results.flatMap((result) => result.messages)).toEqual([]);
 });

@@ -15,6 +15,16 @@ func TestMarkdownTargets(t *testing.T) {
 		document string
 		want     []string
 	}{
+		{"plain", []string{}},
+		{"[one](a.md) [two](a.md#part)", []string{"techs/go/a.md"}},
+		{"![image](assets/r/a.png)", []string{"techs/go/assets/r/a.png"}},
+		{"[link][ref]\n\n[ref]: /assets/a%20b.md \"Title\"", []string{"assets/a b.md"}},
+		{"[unused]: /assets/a.md", []string{"assets/a.md"}},
+		{"`[code](none)`\n\n```\n[code](none)\n```", []string{}},
+		{"[external](https://example.com) [fragment](#part)", []string{"techs/go/r.md"}},
+		{"[nested](assets/r/a(b).png)", []string{"techs/go/assets/r/a(b).png"}},
+		{"[entity](assets/r/a&amp;b.png)", []string{"techs/go/assets/r/a&b.png"}},
+		{"---\nfield: \"[skip](secret)\"\n---\n[body](a.md)", []string{"techs/go/a.md"}},
 		{"[self]()", []string{"techs/go/r.md"}},
 		{"---\n[x](a.md)", []string{"techs/go/a.md"}},
 		{"\ufeff---\nfield: '[skip](secret)'\n---\n[x](a.md)", []string{"techs/go/a.md"}},

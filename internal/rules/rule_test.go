@@ -16,7 +16,7 @@ import (
 
 // TestParseSharedExpectations checks exact rule values and typed, zero-result failures against shared fixtures.
 func TestParseSharedExpectations(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/rules/cases.json")
+	data, err := os.ReadFile("testdata/rules/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}
