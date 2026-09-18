@@ -9,11 +9,11 @@ const helpers = "/** @fileoverview Validates library license declarations and re
   <div class="intro"><span class="cr-index">FROM THE FIELD</span><h2 id="code-example">A wall of logic becomes a readable sequence.</h2><p>While writing Code Rules, we prototyped it in TypeScript. An agent produced the Before example. This is what changed after we checked that code with our own tool.</p></div>
   <div class="comparison">
     <article class="code-card"><div class="card-label"><h3>Before</h3><span>Parsing, validation, and collection intertwined</span></div><CodeSample code={before} lang="text" label="Original licenseFiles function" /></article>
-    <article class="code-card after"><div class="card-label"><h3>After</h3><span>Named steps, with an explicit contract</span></div><CodeSample code={after} lang="ts" label="Refactored collectLibraryLicensePaths function" />
+    <article class="code-card after"><div class="card-label"><h3>After</h3><span>Named steps, with an explicit contract</span></div><CodeSample code={after} lang="ts" tone="vivid" label="Refactored collectLibraryLicensePaths function" />
       <ul class="takeaways"><li><strong>Names explain the steps.</strong> Read the main function without tracing every validation check.</li><li><strong>Helpers own the details.</strong> Parsing, declarations, and file checks each have a focused function.</li><li><strong>The contract is visible.</strong> The comment describes the result, empty case, and failures.</li></ul>
     </article>
   </div>
-  <details class="helper-source"><summary>See the helper functions behind the “after”</summary><p>The validation still exists. These helpers contain it, including more precise error locations.</p><CodeSample code={helpers} lang="ts" label="Library license helper source" /></details>
+  <details class="helper-source"><summary>See the helper functions behind the “after”</summary><p>The validation still exists. These helpers contain it, including more precise error locations.</p><CodeSample code={helpers} lang="ts" tone="vivid" label="Library license helper source" /></details>
   <p class="source-note">Historical example from <code>src/builds/library-licenses.ts</code>. The tool has since moved to Go. Later revisions added SPDX declarations and generated license metadata. See <a href="/status/">Project status</a> for available functionality.</p>
 </section>
 <style>
