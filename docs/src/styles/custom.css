@@ -118,7 +118,7 @@ h1[data-page-title] { color: var(--cr-ink); font-weight: 500; letter-spacing: -.
 .sl-markdown-content .starlight-aside a, .starlight-aside__title { color: var(--cr-ink); }
 .cr-footer { display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-top: 1px solid var(--cr-line); padding-top: 1.4rem; margin-top: 3rem; color: var(--cr-muted); font-size: var(--cr-text-sm); }
 .cr-footer-identity { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; min-width: 0; }
-.cr-footer-license { display: inline-flex; align-items: center; padding: .2rem .6rem; border: 1px solid var(--cr-line); border-radius: 999px; background: var(--cr-surface); font-size: .7rem; line-height: 1.5; white-space: nowrap; }
+.cr-footer-license { display: inline-flex; align-items: center; padding: .2rem .6rem; border: 1px solid var(--cr-line); border-radius: var(--cr-radius-sm); background: var(--cr-surface); font-size: .7rem; line-height: 1.5; white-space: nowrap; }
 .cr-footer-sentiment { margin: 0; font-size: var(--cr-text-sm); line-height: 1.6; text-align: right; }
 .cr-footer a { color: inherit; text-decoration: none; }
 .cr-footer a:hover { color: var(--cr-ink); text-decoration: underline; text-underline-offset: 3px; }
