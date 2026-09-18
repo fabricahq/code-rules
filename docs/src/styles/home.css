@@ -10,9 +10,12 @@
 .cr-hero h1 { color: var(--cr-ink); font-size: clamp(2.25rem, 4.6vw, 4rem); font-weight: 400; letter-spacing: -.06em; line-height: 1.08; margin: 1.5rem 0; }
 .cr-lead { color: var(--cr-muted); font-size: 1.125rem; line-height: 1.7; max-width: 42rem; margin: 0 auto; }
 .cr-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin-top: 2rem; }
-.cr-button { display: inline-flex; gap: 2rem; align-items: center; justify-content: center; min-height: 48px; padding: .75rem 1.5rem; border: 1px solid var(--cr-muted); border-radius: 999px; font-size: .875rem; font-weight: 500; text-decoration: none; color: var(--cr-ink); }
+.cr-button { display: inline-flex; gap: 2rem; align-items: center; justify-content: center; min-height: 48px; padding: .75rem 1.5rem; border: 1px solid var(--cr-muted); border-radius: 999px; font-size: .875rem; font-weight: 500; text-decoration: none; color: var(--cr-ink); background: transparent; transition: background-color 160ms ease, border-color 160ms ease; }
 .cr-button.primary { background: var(--cr-button); color: var(--cr-button-text); border-color: var(--cr-button); }
-.cr-button:hover { opacity: .8; }
+.cr-button:is(:hover, :focus-visible) { background: var(--cr-surface); border-color: var(--cr-ink); }
+.cr-button.primary:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--cr-button) 85%, var(--cr-paper)); border-color: var(--cr-button); }
+.cr-button:focus-visible { outline: 2px solid var(--cr-ink); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .cr-button { transition: none; } }
 .cr-example { background: var(--cr-surface); border: 1px solid var(--cr-line); border-radius: 20px; overflow: hidden; }
 .cr-example-label { padding: 1rem 1.5rem; border-bottom: 1px solid var(--cr-line); display: flex; flex-wrap: wrap; gap: .5rem; justify-content: space-between; color: var(--cr-muted); font-size: .75rem; }
 .cr-example-body { padding: 2rem; display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 3rem; }
