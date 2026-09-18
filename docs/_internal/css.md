@@ -1,9 +1,60 @@
-# Design tokens
+# CSS and Tailwind guidelines
+
+This internal guide owns styling conventions for the documentation site and homepage.
+Keep contributor guidance here; public documentation lives in `src/content/docs/`.
+Paths below are relative to `docs/`.
+
+## Use Tailwind for component styling
+
+Use Tailwind utilities for layout, spacing, typography, and interaction states on markup we own.
+The site uses Tailwind v4 through its Vite plugin and Starlight’s Tailwind integration.
+
+- Prefer Tailwind’s spacing and type scales. Use arbitrary values for specific illustration details when the scale does not fit.
+- Use semantic colors such as `text-ink`, `text-muted`, and `bg-surface`. They follow Starlight’s saved theme and automatic system preference.
+- Keep complete utility names in source so Tailwind can find them. Select between complete strings instead of constructing partial class names.
+- Include keyboard focus styles alongside hover styles. Respect reduced-motion preferences for transitions and animations.
+- Keep one-off treatments in the component. Extract a shared class only for an established, repeated visual treatment, such as our buttons or asides.
+- Use component CSS for generated markup and state-dependent illustration behavior that utilities cannot express clearly.
+
+## Style ownership and cascade
+
+| Location | Responsibility |
+| --- | --- |
+| [tailwind.css](../src/styles/tailwind.css) | CSS layer order, utility scanning, shared breakpoints, token aliases, and shared button, section-label, and aside styles |
+| [custom.css](../src/styles/custom.css) | Light/dark theme values and overrides for generated Starlight navigation and Markdown content |
+| [home.css](../src/styles/home.css) | Generated Starlight homepage shell and rule-example code markup |
+| Component styles | Private illustration palettes, playback visibility, and generated syntax highlighting |
+
+Starlight owns the reset. Do not add Tailwind Preflight alongside it.
+The layer order is `base, starlight, theme, components, utilities`.
+Put shared utility-based treatments in the `components` layer so utilities can override them.
+Unlayered CSS takes precedence over normal layered declarations; keep framework overrides targeted rather than adding broad global selectors.
+
+## Responsive layouts
+
+Use the shared responsive variants instead of inline viewport queries.
+Our names use Starlight’s cutoffs, not Tailwind’s default breakpoint values:
+
+| Variant | Minimum width | Starlight alignment |
+| --- | --- | --- |
+| `sm:` | 30rem (480px) | Smaller file-tree cutoff |
+| `md:` | 50rem (800px) | Desktop navigation and sidebar |
+| `lg:` | 72rem (1152px) | Wide layout and right sidebar |
+
+The definitions live together in `src/styles/tailwind.css`; pixel equivalents assume the default browser font size.
+Start with the narrow layout, then add variants for wider screens.
+Use `max-sm:` and `max-md:` for smaller layouts, or stack variants such as `sm:max-md:` for a range.
+Tailwind’s default breakpoint scale is disabled to avoid mixing conventions.
+
+Starlight hardcodes its own media queries.
+When upgrading it, check our definitions against the installed `style/util.css` and `user-components/FileTree.astro`.
+
+## Design tokens
 
 A token represents a design decision that should change consistently across its consumers.
 Choose it by purpose, not by its current hex value. Equal values alone do not justify sharing a token.
 
-## Shared site tokens
+### Shared site tokens
 
 `src/styles/custom.css` owns light/dark values. `src/styles/tailwind.css` exposes reusable roles as utilities.
 
@@ -28,9 +79,8 @@ The global fallback focus ring (`--cr-focus-ring`) and current-page marker (`--c
 Starlight's `--sl-*` names are a framework API: retain those names at the integration boundary.
 Use Tailwind's spacing and type scale for new component layout; avoid introducing a parallel global scale for one-off values.
 The retained `--cr-text-sm`, `--cr-text-body`, and `--cr-line-height-body` values style generated documentation markup. `--cr-font-mono` styles examples; Starlight's inline-code font remains separate deliberately.
-Responsive tokens and their Starlight alignment are documented in [the styling guide](README.md#styling).
 
-## Component-private tokens
+### Component-private tokens
 
 These variables are implementation details of their owning components. They are not exported in the global Tailwind color theme.
 
@@ -38,7 +88,7 @@ These variables are implementation details of their owning components. They are 
 - **AgentSetup:** `--setup-agent` identifies the agent and `--setup-rule-path` emphasizes the path in its instructions. Its palette is intentionally independent of the interactive session.
 - **CodeSample:** `--sample-token-*` names follow Shiki's syntax roles. Each tone owns its complete palette, so the terminal tone works without an AgentPreview parent. Syntax colors must not borrow command-success, error, or button colors. Callers may set `--sample-font-size` and `--sample-padding` on their wrapper; syntax variables stay inside the renderer.
 
-## Adding or reusing a token
+### Adding or reusing a token
 
 1. Reuse an existing token when both consumers represent the same role and should change together in both themes.
 2. Keep a component-specific decision local. Use a component prefix and a role name, such as `--setup-rule-path`, rather than a hue such as `--setup-blue`.
@@ -47,3 +97,16 @@ These variables are implementation details of their owning components. They are 
 5. Remove unused tokens rather than leaving speculative APIs. Do not add a global token for every literal spacing, color mix, or illustration detail.
 6. Verify changes in both themes and at the shared breakpoints. A naming-only refactor should preserve computed styles and layout.
 
+
+## Validate styling changes
+
+Run `bun run check` from the repository root for formatting, lint, types, tests, the static build, and rendered links.
+See [site development](../README.md#run-locally) for the production preview commands.
+
+For visual changes:
+
+- Inspect the homepage and affected documentation pages in light and dark themes.
+- Check narrow screens and widths immediately below and at each affected breakpoint.
+- Verify keyboard navigation, visible focus, search, and any changed interactive states.
+- Check for unintended text wrapping, horizontal overflow, and nested scroll areas.
+- Capture before/after screenshots at matching widths and states. For token renames, also compare computed styles to confirm appearance is unchanged.

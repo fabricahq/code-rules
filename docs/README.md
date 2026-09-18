@@ -42,31 +42,9 @@ Homepage composition lives in `src/components/HomePage.astro` and its illustrati
 
 ### Styling
 
-Use Tailwind utilities for component layout, spacing, typography, and interaction states.
-The site uses Tailwind v4 through its Vite plugin and [Starlight’s Tailwind integration](https://starlight.astro.build/guides/css-and-tailwind/).
-Starlight owns the reset; do not add Tailwind Preflight alongside it.
+Follow the [CSS and Tailwind guidelines](_internal/css.md) for styling ownership, responsive breakpoints, design tokens, and reuse.
 
-- `src/styles/tailwind.css` defines CSS layer order, scans `src/` for utilities, and exposes the existing palette as Tailwind tokens.
-  It also owns the shared button, section-label, and aside styles.
-- `src/styles/custom.css` owns the light/dark theme values and overrides for generated Starlight navigation and Markdown content.
-- `src/styles/home.css` handles the generated Starlight homepage shell and rule-example code markup.
-- Component styles remain for illustration palette values, playback visibility, and generated syntax highlighting that cannot take utility classes directly.
-
-Prefer semantic colors such as `text-ink`, `text-muted`, and `bg-surface`.
-They follow Starlight’s saved theme and automatic system preference.
-See [Design tokens](design-tokens.md) for token roles, component scope, and rules for adding or reusing them.
-Use the shared responsive variants instead of inline viewport queries:
-
-- `sm:` starts at 30rem (480px), matching Starlight's smaller file-tree cutoff.
-- `md:` starts at 50rem (800px), matching Starlight's desktop navigation and sidebar.
-- `lg:` starts at 72rem (1152px), matching Starlight's wide layout and right sidebar.
-
-These are defined together in `src/styles/tailwind.css`; pixel equivalents assume the default browser font size.
-Use `max-sm:` and `max-md:` for smaller layouts, or stack variants such as `sm:max-md:` for a range.
-Starlight hardcodes its own media queries, so keep our definitions aligned with its installed `style/util.css` and `user-components/FileTree.astro` when upgrading.
-Tailwind's default breakpoint scale is disabled to avoid mixing two conventions.
-Keep complete utility names in source so Tailwind can find them.
-Do not construct partial class names dynamically.
+### Product documentation
 
 Use the docs to explain the product experience and its contracts.
 Keep implementation tasks in the internal planning material.
