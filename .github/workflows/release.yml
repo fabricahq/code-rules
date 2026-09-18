@@ -1,0 +1,124 @@
+# Adding release notes to main approves publication. Assets are built with read-only credentials.
+name: Release
+on:
+  push:
+    branches: [main]
+    paths: ['releases/v*.md']
+  pull_request:
+    paths: ['releases/v*.md']
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'Exact main commit that added the release notes (retry a failed release)'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  plan:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
+      commit: ${{ steps.plan.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Validate the committed release request
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          RETRY: ${{ inputs.commit }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            [[ "$RETRY" =~ ^[0-9a-f]{40}$ ]] || { echo 'Retry requires a full commit SHA'; exit 1; }
+            git merge-base --is-ancestor "$RETRY" origin/main
+            HEAD="$RETRY"
+            BASE=$(git rev-parse "$HEAD^")
+          fi
+          go run ./cmd/release-plan --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/release-plan.json"
+          jq -r '"tag=\(.tag)\nversion=\(.version)\ncommit=\(.commit)"' "$RUNNER_TEMP/release-plan.json" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-plan
+          path: ${{ runner.temp }}/release-plan.json
+          if-no-files-found: error
+  build:
+    needs: plan
+    if: needs.plan.outputs.tag != '' && github.event_name != 'pull_request'
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate the exact release source
+        run: |
+          test -z "$(git ls-files -z '*.go' | xargs -0 gofmt -l)"
+          go vet ./...
+          go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+          go test -race ./...
+          node --test .github/scripts/*.test.cjs
+      - name: Build the four release archives
+        if: runner.os == 'Linux'
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: go run ./cmd/package-binaries --version "$VERSION" --output "$RUNNER_TEMP/release-assets"
+      - uses: actions/download-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: release-plan
+          path: ${{ runner.temp }}/release-assets
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/release-assets/
+          if-no-files-found: error
+  publish:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release-publication
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/release-assets
+      - name: Attach verified assets to a draft, then publish
+        uses: actions/github-script@v8
+        env:
+          RELEASE_COMMIT: ${{ needs.plan.outputs.commit }}
+          RELEASE_ASSETS: ${{ runner.temp }}/release-assets
+        with:
+          script: |
+            const {publish} = require('./.github/scripts/publish-release.cjs');
+            await publish({github, context, core,
+              directory: process.env.RELEASE_ASSETS, commit: process.env.RELEASE_COMMIT});

@@ -107,14 +107,14 @@ func TestNativeInstallUpgradeRollback(t *testing.T) {
 
 // TestPackagingRefusesUnapprovedRelease rejects missing tool terms before creating an output directory.
 func TestPackagingRefusesUnapprovedRelease(t *testing.T) {
-	fixture, err := gitfixture.New(context.Background(), map[string][]byte{"release.json": []byte(`{"version":"1.0.0","license":"UNLICENSED"}`)})
+	fixture, err := gitfixture.New(context.Background(), map[string][]byte{"README.md": []byte("Fixture")})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer fixture.Close()
 	source := filepath.Join(fixture.Directory, "repository")
 	output := filepath.Join(t.TempDir(), "release")
-	if _, err := Build(context.Background(), Options{Source: source, Output: output}); err == nil || !strings.Contains(err.Error(), "declared tool license") {
+	if _, err := Build(context.Background(), Options{Source: source, Output: output, Version: "0.1.0"}); err == nil || !strings.Contains(err.Error(), "LICENSE.md") {
 		t.Fatal("expected licensing gate")
 	}
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
@@ -125,7 +125,6 @@ func TestPackagingRefusesUnapprovedRelease(t *testing.T) {
 // TestCandidateBuildExcludesUncommittedEdits verifies that a manifest's recorded commit owns the executable inputs.
 func TestCandidateBuildExcludesUncommittedEdits(t *testing.T) {
 	fixture, err := gitfixture.New(context.Background(), map[string][]byte{
-		"release.json":           []byte(`{"version":"1.0.0","license":"UNLICENSED"}`),
 		"go.mod":                 []byte("module example.invalid/fixture\n\ngo 1.27.1\n"),
 		"cmd/code-rules/main.go": []byte("package main\nimport \"fmt\"\nvar version string\nfunc main(){fmt.Println(version)}\n"),
 	})
@@ -151,7 +150,38 @@ func TestCandidateBuildExcludesUncommittedEdits(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, err := exec.Command(filepath.Join(installed, "code-rules")).Output()
-	if err != nil || strings.TrimSpace(string(data)) != "1.0.0" {
+	if err != nil || strings.TrimSpace(string(data)) != "0.0.0-dev.g"+fixture.LatestCommit[:12] {
+		t.Fatal(string(data), err)
+	}
+}
+
+// TestLicensedRelease packages an explicit version without any package metadata file.
+func TestLicensedRelease(t *testing.T) {
+	fixture, err := gitfixture.New(context.Background(), map[string][]byte{
+		"LICENSE.md":             []byte("MIT fixture terms\n"),
+		"go.mod":                 []byte("module example.invalid/fixture\n\ngo 1.27.1\n"),
+		"cmd/code-rules/main.go": []byte("package main\nimport \"fmt\"\nvar version string\nfunc main(){fmt.Println(version)}\n"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fixture.Close()
+	source := filepath.Join(fixture.Directory, "repository")
+	target := runtime.GOOS + "/" + runtime.GOARCH
+	output := filepath.Join(t.TempDir(), "release")
+	manifest, err := Build(context.Background(), Options{Source: source, Output: output, Version: "0.1.0", Targets: []string{target}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Version != "0.1.0" || manifest.Candidate || manifest.SourceDirty || manifest.License != "SEE LICENSE.md" {
+		t.Fatal(manifest)
+	}
+	installed := filepath.Join(t.TempDir(), "installed")
+	if _, err := Install(output, target, installed); err != nil {
+		t.Fatal(err)
+	}
+	data, err := exec.Command(filepath.Join(installed, "code-rules")).Output()
+	if err != nil || strings.TrimSpace(string(data)) != "0.1.0" {
 		t.Fatal(string(data), err)
 	}
 }

@@ -24,7 +24,8 @@ gofmt -w cmd internal
 go vet ./...
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go test -race ./...
-go build ./cmd/code-rules ./cmd/package-binaries
+go build ./cmd/code-rules ./cmd/package-binaries ./cmd/release-plan
+node --test .github/scripts/*.test.cjs
 ```
 
 Tests exercise parsers, filesystem safety, Git imports, real CLI processes, generated agent instructions, and installation/upgrade/rollback. Parser regression fixtures live beside their Go tests. [Go conventions](_internal/go-conventions.md) cover error ownership and comments.
@@ -47,7 +48,7 @@ The [Gruntwork runbook](runbooks/native-cli/README.md) builds a temporary execut
 
 ## Package binaries
 
-[Release instructions](_internal/releasing.md) explain candidate archives and PR download links. Packaging reads version and license metadata from [release.json](release.json), builds committed source, and never publishes. Public release approval and tool licensing remain explicit decisions.
+[Release instructions](_internal/releasing.md) explain candidate archives and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. A release PR supplies editable notes and the version in `releases/v<version>.md`; merging it starts testing, packaging, and publication. Assets are verified on a draft before publication. The first release is `v0.1.0`; the tool uses the [MIT license](LICENSE.md).
 
 ## Implementation map
 
