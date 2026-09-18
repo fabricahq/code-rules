@@ -1,66 +1,49 @@
 ---
-/** @fileoverview Renders the docs landing page with product benefits, rule examples, and design-preview status. */
+/** @fileoverview Renders the docs landing page with product benefits and rule examples. */
 import AgentPreview from './AgentPreview.astro';
 import CodeTransformation from './CodeTransformation.astro';
+import CodeSample from './CodeSample.astro';
+import AgentSetup from './AgentSetup.astro';
+import exampleRule from '../examples/make-errors-actionable.md?raw';
 ---
 <section class="cr-hero" aria-labelledby="_top">
   <p class="cr-eyebrow">FABRICA / CODE RULES</p>
   <h1 id="_top" data-page-title>The package manager<br class="desktop-break" /> for your engineering rules</h1>
-  <p class="cr-lead">Version your best practices. Import them across projects.<br />Write good code, then validate it.</p>
+  <p class="cr-lead">Version your best practices. Import them across projects.<br />Show your agents how to write good code, then validate it.</p>
   <div class="cr-actions">
-    <a class="cr-button primary" href="/guides/use-rules/">Set up your repo <span aria-hidden="true">→</span></a>
+    <a class="cr-button primary" href="/guides/use-rules/">Set up Code Rules <span aria-hidden="true">→</span></a>
     <a class="cr-button" href="/overview/">Read the docs <span aria-hidden="true">→</span></a>
   </div>
-  <p class="cr-preview"><a href="/status/">Design preview</a> · The CLI is not released yet.</p>
 </section>
 <AgentPreview />
 <section aria-label="How Code Rules works">
   <article class="cr-feature">
     <div>
       <span class="cr-index">01 / CODIFY</span>
-      <h2>Define a best practice rule in markdown.</h2>
-      <p>A rule can cover a technology like Go, React, Next.js, or Postgres. It can also cover a practice like testing, error handling, or logging.</p>
+      <h2>Define the practices your agents should follow.</h2>
+      <p>Write rules in Markdown to tell agents how to write and validate code. Cover technologies like Go or React, and practices like testing, error handling, or logging.</p>
       <a href="/guides/write-rules/">Learn how to write rules →</a>
     </div>
     <div class="cr-panel cr-rule-file">
-      <span class="cr-index">EXAMPLE RULE</span>
-      <div class="cr-rule-path">practices/testing/verify-retry-limits.md</div>
-      <pre><code>---
-title: Verify retry limits
-impact: HIGH
-impactDescription: prevents unbounded requests
-tags: testing, retries
-whenToRead: When planning, implementing, reviewing, or diagnosing bounded retry behavior.
----
-
-## Verify retry limits
-
-When adding or changing bounded retries,
-test that requests stop at the limit.
-
-### Example
-
-For a limit of three attempts:
-- Make every attempt fail.
-- Assert exactly three calls.
-- Assert the documented failure is returned.
-
-### Validation
-
-Remove the stop condition temporarily.
-The test should fail.</code></pre>
+      <header class="cr-artifact-header">
+        <span class="cr-index">EXAMPLE RULE</span>
+        <div class="cr-artifact-path"><svg aria-hidden="true" width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg><span>practices/error-handling/make-errors-actionable.md</span></div>
+      </header>
+      <CodeSample code={exampleRule.trimEnd()} lang="md" tone="vivid" label="Example rule with YAML frontmatter and Markdown guidance" />
     </div>
   </article>
   <article class="cr-feature">
     <div>
       <span class="cr-index">02 / SHARE</span>
       <h2>Declare rules for a single repo, or an entire organization.</h2>
-      <p>Each repo keeps its rules in <code>.code-rules</code>. Publish shared defaults from an organization <code>.code-rules</code> repository and import them. Mix org rules and project rules as needed.</p>
+      <p>Each repo keeps its rules in <code>.code-rules</code>. Publish shared defaults from an organization <code>.code-rules</code> repository and import them. Combine shared and project-specific rules so agents have the right guidance in each repo.</p>
       <a href="/concepts/libraries/">See how rule libraries work →</a>
     </div>
     <div class="cr-panel cr-library-tree">
-      <span class="cr-index">EXAMPLE RULE LIBRARY</span>
-      <div class="cr-tree-root">acme/.code-rules/</div>
+      <header class="cr-artifact-header">
+        <span class="cr-index">EXAMPLE RULE LIBRARY</span>
+        <div class="cr-artifact-path"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" /></svg><span>acme/.code-rules/</span></div>
+      </header>
       <pre aria-label="Example library with 8 Markdown rules organized into four technology and practice groups"><code><span class="cr-tree-branch" aria-hidden="true">├── </span><span class="cr-tree-meta">rule-library.json</span>
 <span class="cr-tree-branch" aria-hidden="true">├── </span><span class="cr-tree-folder">techs/</span>
 <span class="cr-tree-branch" aria-hidden="true">│   ├── </span><span class="cr-tree-folder">typescript/</span>
@@ -79,23 +62,18 @@ The test should fail.</code></pre>
 <span class="cr-tree-branch" aria-hidden="true">    └── </span><span class="cr-tree-folder">error-handling/</span>
 <span class="cr-tree-branch" aria-hidden="true">        ├── </span><span class="cr-tree-meta">_group.json</span>
 <span class="cr-tree-branch" aria-hidden="true">        ├── </span><span class="cr-tree-file">preserve-error-context.md</span>
-<span class="cr-tree-branch" aria-hidden="true">        └── </span><span class="cr-tree-file">bound-retries.md</span></code></pre>
+<span class="cr-tree-branch" aria-hidden="true">        └── </span><span class="cr-tree-file">make-errors-actionable.md</span></code></pre>
     </div>
   </article>
   <article class="cr-feature">
     <div>
       <span class="cr-index">03 / APPLY</span>
-      <h2>Write code and review it against the same rules.</h2>
-      <p>Agents write new code with the rules and validate existing code against them. Code Rules assembles the rules; it does not prescribe how you apply or enforce them. Use any agent harness, skill, custom workflow, or other tool.</p>
+      <h2>Make your rules part of your agent’s workflow.</h2>
+      <p>Add instructions to your project’s AGENTS.md, or your agent’s equivalent, telling it where to find your rules and when to read them. Your agent uses those rules when writing and reviewing code.</p>
       <a href="/for-agents/">See how agents use rules →</a>
     </div>
-    <div class="cr-panel">
-      <span class="cr-index">THE SAME RULE, FROM BUILD TO REVIEW</span>
-      <div class="cr-rule"><small>RULE</small><p>Test that requests stop at the retry limit.</p></div>
-      <div class="cr-rule"><small>DURING IMPLEMENTATION</small><p>The agent adds a test that fails every attempt and checks that requests stop at the configured limit.</p></div>
-      <div class="cr-rule"><small>DURING VALIDATION</small><p>A reviewing agent checks that the test covers the limit and would catch an extra retry.</p></div>
-    </div>
+    <AgentSetup />
   </article>
 </section>
 <CodeTransformation />
-<section class="cr-start" aria-labelledby="start-title"><span class="cr-index">START WITH ONE PROJECT</span><h2 id="start-title">Formalize your best practices today</h2><p>Walk through a library, a project configuration, and the files your agents would read.</p><a class="cr-button" href="/guides/use-rules/">Walk through the setup <span aria-hidden="true">→</span></a></section>
+<section class="cr-start" aria-labelledby="start-title"><span class="cr-index">START WITH ONE PROJECT</span><h2 id="start-title">Give your agents rules for good code</h2><p>Choose your project’s rules, then set up your agents to use them when writing and validating code.</p><a class="cr-button" href="/guides/use-rules/">Walk through the setup <span aria-hidden="true">→</span></a></section>

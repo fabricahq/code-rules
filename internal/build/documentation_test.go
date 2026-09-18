@@ -14,18 +14,21 @@ import (
 
 // TestDocumentationRules rejects documentation drift that would make copied examples fail a real build.
 func TestDocumentationRules(t *testing.T) {
-	for _, tc := range []struct{ file, pattern string }{
-		{"../../docs/src/components/HomeHero.astro", `(?s)<pre><code>(---.*?)</code></pre>`},
-		{"../../docs/src/content/docs/guides/write-rules.md", "(?s)```md\\n(---.*?)\\n```"},
+	for _, tc := range []struct{ file, pattern, title string }{
+		{"../../docs/src/examples/make-errors-actionable.md", "", "Make error messages actionable"},
+		{"../../docs/src/content/docs/guides/write-rules.md", "(?s)```md\\n(---.*?)\\n```", "Verify retry limits"},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			data, err := os.ReadFile(tc.file)
 			if err != nil {
 				t.Fatal(err)
 			}
-			match := regexp.MustCompile(tc.pattern).FindSubmatch(data)
-			if len(match) != 2 {
-				t.Fatal("missing copyable rule example")
+			if tc.pattern != "" {
+				match := regexp.MustCompile(tc.pattern).FindSubmatch(data)
+				if len(match) != 2 {
+					t.Fatal("missing copyable rule example")
+				}
+				data = match[1]
 			}
 			config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":1,"sources":{}}`))
 			if err != nil {
@@ -33,7 +36,7 @@ func TestDocumentationRules(t *testing.T) {
 			}
 			resolved, err := build.Resolve(config, nil, map[string][]byte{
 				"practices/testing/_group.json": []byte(`{"name":"Testing","description":"Verify behavior.","whenToRead":"Changing behavior."}`),
-				"practices/testing/example.md":  match[1],
+				"practices/testing/example.md":  data,
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -42,7 +45,7 @@ func TestDocumentationRules(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !strings.Contains(string(output.Files["rules/local/practices/testing/example.md"]), "Verify retry limits") {
+			if !strings.Contains(string(output.Files["rules/local/practices/testing/example.md"]), tc.title) {
 				t.Fatal("missing rendered rule")
 			}
 		})
