@@ -6,10 +6,10 @@ import CodeSample from './CodeSample.astro';
 import AgentSetup from './AgentSetup.astro';
 import exampleRule from '../examples/make-errors-actionable.md?raw';
 ---
-<section class="text-center pt-20 pb-14 [@media(max-width:799px)]:pt-12 [@media(max-width:799px)]:pb-10" aria-labelledby="_top">
+<section class="text-center pt-20 pb-14 max-md:pt-12 max-md:pb-10" aria-labelledby="_top">
   <p class="cr-index">FABRICA / CODE RULES</p>
-  <h1 class="my-6 text-ink text-[clamp(2.25rem,4.6vw,4rem)] font-normal tracking-[-.06em] leading-[1.08]" id="_top" data-page-title>The package manager<br class="[@media(max-width:799px)]:hidden" /> for your engineering rules</h1>
-  <p class="text-muted text-lg leading-[1.7] max-w-[42rem] mx-auto my-0 [@media(max-width:799px)]:text-base">Version your best practices. Import them across projects. <br class="hidden md:block" />Show your agents how to write good code, then validate it.</p>
+  <h1 class="my-6 text-ink text-[clamp(2.25rem,4.6vw,4rem)] font-normal tracking-[-.06em] leading-[1.08]" id="_top" data-page-title>The package manager<br class="max-md:hidden" /> for your engineering rules</h1>
+  <p class="text-muted text-lg leading-[1.7] max-w-[42rem] mx-auto my-0 max-md:text-base">Version your best practices. Import them across projects. <br class="hidden md:block" />Show your agents how to write good code, then validate it.</p>
   <div class="flex flex-wrap justify-center gap-4 mt-8">
     <a class="cr-button primary" href="/guides/use-rules/">Set up Code Rules <span aria-hidden="true">→</span></a>
     <a class="cr-button" href="/overview/">Read the docs <span aria-hidden="true">→</span></a>
@@ -17,7 +17,7 @@ import exampleRule from '../examples/make-errors-actionable.md?raw';
 </section>
 <AgentPreview />
 <section aria-label="How Code Rules works">
-  <article class="grid grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] gap-16 items-center py-16 border-b border-faint [@media(max-width:799px)]:grid-cols-1 [@media(max-width:799px)]:gap-6 [@media(max-width:799px)]:py-12">
+  <article class="grid grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] gap-16 items-center py-16 border-b border-faint max-md:grid-cols-1 max-md:gap-6 max-md:py-12">
     <div>
       <span class="cr-index">01 / CODIFY</span>
       <h2 class="my-4 text-ink text-[2rem] font-medium tracking-[-.045em] leading-[1.18]">Define the practices your agents should follow.</h2>
@@ -32,7 +32,7 @@ import exampleRule from '../examples/make-errors-actionable.md?raw';
       <CodeSample code={exampleRule.trimEnd()} lang="md" tone="vivid" label="Example rule with YAML frontmatter and Markdown guidance" />
     </div>
   </article>
-  <article class="grid grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] gap-16 items-center py-16 border-b border-faint [@media(max-width:799px)]:grid-cols-1 [@media(max-width:799px)]:gap-6 [@media(max-width:799px)]:py-12">
+  <article class="grid grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] gap-16 items-center py-16 border-b border-faint max-md:grid-cols-1 max-md:gap-6 max-md:py-12">
     <div>
       <span class="cr-index">02 / SHARE</span>
       <h2 class="my-4 text-ink text-[2rem] font-medium tracking-[-.045em] leading-[1.18]">Declare rules for a single repo, or an entire organization.</h2>
@@ -44,7 +44,7 @@ import exampleRule from '../examples/make-errors-actionable.md?raw';
         <span class="cr-index">EXAMPLE RULE LIBRARY</span>
         <div class="flex items-start gap-2 mt-2 text-ink font-mono text-xs leading-[1.6] [overflow-wrap:anywhere] [&_svg]:shrink-0 [&_svg]:mt-[.1rem] [&_svg]:text-muted [&_span]:min-w-0"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" /></svg><span>acme/.code-rules/</span></div>
       </header>
-      <pre class="m-0 px-6 py-5 overflow-auto font-mono text-ink text-[clamp(.65rem,1.1vw,.78rem)] leading-[1.7] [tab-size:4] min-[540px]:[@media(max-width:799px)]:text-[.8rem]" aria-label="Example library with 8 Markdown rules organized into four technology and practice groups"><code class="p-0 border-0 bg-transparent text-inherit [font:inherit]"><span class="text-muted" aria-hidden="true">├── </span><span class="text-muted">rule-library.json</span>
+      <pre class="m-0 px-6 py-5 overflow-auto font-mono text-ink text-[clamp(.65rem,1.1vw,.78rem)] leading-[1.7] [tab-size:4] sm:max-md:text-[.8rem]" aria-label="Example library with 8 Markdown rules organized into four technology and practice groups"><code class="p-0 border-0 bg-transparent text-inherit [font:inherit]"><span class="text-muted" aria-hidden="true">├── </span><span class="text-muted">rule-library.json</span>
 <span class="text-muted" aria-hidden="true">├── </span><span class="text-ink font-semibold">techs/</span>
 <span class="text-muted" aria-hidden="true">│   ├── </span><span class="text-ink font-semibold">typescript/</span>
 <span class="text-muted" aria-hidden="true">│   │   ├── </span><span class="text-muted">_group.json</span>
@@ -65,7 +65,7 @@ import exampleRule from '../examples/make-errors-actionable.md?raw';
 <span class="text-muted" aria-hidden="true">        └── </span><span class="text-ink">make-errors-actionable.md</span></code></pre>
     </div>
   </article>
-  <article class="grid grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] gap-16 items-center py-16 border-b border-faint [@media(max-width:799px)]:grid-cols-1 [@media(max-width:799px)]:gap-6 [@media(max-width:799px)]:py-12">
+  <article class="grid grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] gap-16 items-center py-16 border-b border-faint max-md:grid-cols-1 max-md:gap-6 max-md:py-12">
     <div>
       <span class="cr-index">03 / APPLY</span>
       <h2 class="my-4 text-ink text-[2rem] font-medium tracking-[-.045em] leading-[1.18]">Make your rules part of your agent’s workflow.</h2>

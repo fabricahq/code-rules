@@ -54,7 +54,16 @@ Starlight owns the reset; do not add Tailwind Preflight alongside it.
 
 Prefer semantic colors such as `text-ink`, `text-muted`, and `bg-surface`.
 They follow Starlight’s saved theme and automatic system preference.
-Keep responsive breakpoints aligned with the existing design; custom media variants retain inclusive maximum widths.
+Use the shared responsive variants instead of inline viewport queries:
+
+- `sm:` starts at 30rem (480px), matching Starlight's smaller file-tree cutoff.
+- `md:` starts at 50rem (800px), matching Starlight's desktop navigation and sidebar.
+- `lg:` starts at 72rem (1152px), matching Starlight's wide layout and right sidebar.
+
+These are defined together in `src/styles/tailwind.css`; pixel equivalents assume the default browser font size.
+Use `max-sm:` and `max-md:` for smaller layouts, or stack variants such as `sm:max-md:` for a range.
+Starlight hardcodes its own media queries, so keep our definitions aligned with its installed `style/util.css` and `user-components/FileTree.astro` when upgrading.
+Tailwind's default breakpoint scale is disabled to avoid mixing two conventions.
 Keep complete utility names in source so Tailwind can find them.
 Do not construct partial class names dynamically.
 
