@@ -2,27 +2,27 @@
 /** @fileoverview Shows two illustrative, controllable agent sessions using adopted rules to write and review code. */
 import AgentSession from './AgentSession.astro';
 const readRule = {
-  title: 'Read your rule', kind: 'RULE', file: 'Verify retry limits',
-  note: 'First, I’ll read your retry rule.',
-  code: 'Stop at the limit. Test the exact call count.', lang: 'text' as const,
+  title: 'Read your rule', kind: 'RULE', file: 'Protect passwords',
+  note: 'First, I’ll read your logging rule.',
+  code: 'Never write passwords to logs.', lang: 'text' as const,
 };
 const write = [readRule, {
-  title: 'Apply it', kind: 'EDIT', file: 'retry.test.ts · excerpt',
-  note: 'I’ll bound retries and add a regression test.',
-  code: 'expect(request).toHaveBeenCalledTimes(3);', lang: 'ts' as const,
+  title: 'Apply it', kind: 'EDIT', file: 'sign-in.ts · excerpt',
+  note: 'I’ll log the sign-in without the password.',
+  code: 'log.info({ userId }, "Signed in");', lang: 'ts' as const,
 }, {
   title: 'Verify the result', kind: 'TEST', file: 'bun test',
-  note: 'The implementation follows your rule.',
-  code: '✓ 3 attempts · final error preserved', lang: 'text' as const,
+  note: 'Verified: passwords never reach the logs.',
+  code: '✓ Sign-ins logged · passwords excluded', lang: 'text' as const,
 }];
 const review = [readRule, {
-  title: 'Find and fix', kind: 'PATCH', file: 'retry.ts · loop initializer',
-  note: 'Found 4 attempts instead of 3. Fixing it.',
-  code: '- let attempt = 0\n+ let attempt = 1', lang: 'diff' as const,
+  title: 'Find and fix', kind: 'PATCH', file: 'sign-in.ts · excerpt',
+  note: 'This logs the password. I’ll remove it.',
+  code: '- log.info({ userId, password });\n+ log.info({ userId });', lang: 'diff' as const,
 }, {
   title: 'Verify the fix', kind: 'TEST', file: 'bun test',
-  note: 'Fixed and verified against your rule.',
-  code: '✓ 3 attempts · regression test passed', lang: 'text' as const,
+  note: 'Fixed. A regression test protects this.',
+  code: '✓ Password never logged · test passed', lang: 'text' as const,
 }];
 ---
 <figure id="agent-preview" class="agent-preview" aria-label="Illustrative agent sessions">
@@ -33,8 +33,8 @@ const review = [readRule, {
     </div>
     <div class="terminal-window">
       <div class="window-bar"><span class="harness-icon" aria-hidden="true">✳︎</span><span class="harness-name">Your coding agent <span class="window-path">acme-checkout</span></span><span class="demo-badge">EXAMPLE SESSION</span></div>
-      <AgentSession id="write" title="Write with rules" task="Add retries. Follow our Code Rules." steps={write} selected />
-      <AgentSession id="review" title="Review and fix" task="Review these retries against our Code Rules." steps={review} />
+      <AgentSession id="write" title="Write with rules" task="Add logging for successful sign-ins." steps={write} selected />
+      <AgentSession id="review" title="Review and fix" task="Review our sign-in logging. Fix any issues." steps={review} />
       <div class="playback" hidden data-controls>
         <span class="playback-status"><span class="status-dot" aria-hidden="true"></span><span data-status>Session complete</span></span>
         <div class="playback-buttons"><button type="button" data-play>Pause</button><button type="button" data-replay>Replay</button><button type="button" data-finish>Show full session</button></div>
