@@ -10,7 +10,12 @@ type Entry = {
   lines: HTMLElement[];
 };
 
-/** Owns one visible session and its playback clock. It never runs the illustrated commands. */
+/**
+ * Connects transcript playback to the visible session, browser clock, and controls.
+ * Initial views are static. Play/Replay explicitly opt into animation, even with
+ * reduced motion; preference changes and Show full session stop playback.
+ * It never runs the illustrated commands.
+ */
 class AgentDemo extends HTMLElement {
   private entries = new Map<HTMLElement, Entry[]>();
   private panel: HTMLElement | undefined;
@@ -200,8 +205,6 @@ class AgentDemo extends HTMLElement {
     );
     if (sessionWindow)
       sessionWindow.style.minHeight = `${sessionWindow.getBoundingClientRect().height}px`;
-    // Play/Replay explicitly opt into animation, even with reduced motion.
-    // Initial views stay static; preference changes and Show full session stop playback.
     this.playback?.restart();
     this.render();
     this.schedule();
