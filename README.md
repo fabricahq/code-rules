@@ -46,10 +46,6 @@ bun run docs:dev
 
 TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser require its compiler API. [TypeScript 7 does not yet provide that API](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0); revisit this pin when both tools support it.
 
-## Explore the CLI
-
-The [Gruntwork runbook](runbooks/native-cli/README.md) builds a temporary executable and demonstrates project and library authoring, read-only checks, and repair. The initial-development labs have been retired.
-
 ## Package binaries
 
 [Release instructions](_internal/releasing.md) explain candidate archives and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. A release PR supplies editable notes and the version in `releases/v<version>.md`; merging it starts testing, packaging, and publication. Assets are verified on a draft before publication. The first release is `v0.1.0`; the tool uses the [MIT license](LICENSE.md).
