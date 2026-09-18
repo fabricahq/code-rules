@@ -1,13 +1,12 @@
 ---
-/** @fileoverview Renders the Starlight footer followed by Fabrica branding and project links. */
+/** @fileoverview Renders the Starlight footer followed by Fabrica branding and a short sentiment. */
 
 import DefaultFooter from '@astrojs/starlight/components/Footer.astro';
 ---
 <DefaultFooter />
 <div class="cr-footer">
-  <span><a href="https://fabricahq.com">Fabrica</a> <span aria-hidden="true">/</span> Code Rules</span>
-  <nav class="cr-footer-links" aria-label="Project information">
-    <a href="/status/">Project status</a>
-    <a href="https://github.com/fabricahq/code-rules">GitHub <span aria-hidden="true">↗</span></a>
-  </nav>
+  <div class="cr-footer-identity">
+    <span><a href="https://fabricahq.com">Fabrica</a> <span aria-hidden="true">/</span> Code Rules</span>
+    <p class="cr-footer-sentiment">Built with care. And opinions about code.</p>
+  </div>
 </div>
