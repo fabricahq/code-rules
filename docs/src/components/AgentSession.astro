@@ -15,7 +15,7 @@ interface Props { title: string; id: string; task: string; steps: Step[]; select
 const { title, id, task, steps, selected = false } = Astro.props;
 ---
 <section id={`session-${id}`} role="tabpanel" aria-labelledby={`tab-${id}`} hidden={!selected}>
-  <div class="transcript" tabindex="0" role="region" aria-label={`${title} transcript`} data-transcript>
+  <div class="transcript" role="region" aria-label={`${title} transcript`} data-transcript>
     <div class="prompt"><span class="prompt-symbol" aria-hidden="true">❯</span><div><p>{task}</p></div></div>
     {steps.map(step => <div class="event" data-event data-title={step.title}>
       <div class="agent-message"><span class="agent-symbol" aria-hidden="true">✳︎</span><div><p data-note>{step.note}</p></div></div>
@@ -28,7 +28,7 @@ const { title, id, task, steps, selected = false } = Astro.props;
 </section>
 <style>
   [hidden] { display: none !important; }
-  .transcript { height: 27rem; overflow: auto; overscroll-behavior: contain; scrollbar-color: var(--demo-border) transparent; padding: 1rem 1.4rem; scroll-behavior: auto; outline-offset: -4px; }
+  .transcript { min-height: 27rem; padding: 1rem 1.4rem; }
   .prompt, .agent-message { display: grid; grid-template-columns: 1.25rem minmax(0, 1fr); gap: .6rem; }
   .prompt { padding-bottom: .75rem; margin-bottom: .85rem; border-bottom: 1px solid var(--demo-border); }
   .prompt-symbol { color: var(--demo-blue); font-weight: 700; }
@@ -55,13 +55,13 @@ const { title, id, task, steps, selected = false } = Astro.props;
   .tool-call[data-kind='FAIL'] :global(pre.astro-code) { color: var(--demo-red) !important; }
   .tool-call[data-kind='TEST'] :global(pre.astro-code) { color: var(--demo-green) !important; }
   @media (max-width: 540px) {
-    .transcript { height: 29rem; padding: 1.1rem .85rem; }
+    .transcript { min-height: 29rem; padding: 1.1rem .85rem; }
     .tool-call { margin-left: 0; --sample-size: .7rem; --sample-padding: .5rem .7rem; }
     p { font-size: .85rem; }
     .tool-heading { padding: .35rem .7rem; gap: .4rem; font-size: .6rem; }
     .tool-state { display: none; }
   }
   @media (max-width: 360px) {
-    .transcript { height: 34rem; }
+    .transcript { min-height: 34rem; }
   }
 </style>

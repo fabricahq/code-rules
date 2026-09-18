@@ -51,7 +51,7 @@ class AgentDemo extends HTMLElement {
       },
       { signal },
     );
-    // Reader-initiated scrolling stops both streaming and automatic scroll following.
+    // Pause streaming when the reader scrolls past the illustration.
     this.addEventListener('wheel', () => this.pause(), {
       signal,
       passive: true,
@@ -195,9 +195,6 @@ class AgentDemo extends HTMLElement {
     this.elapsed = 0;
     this.isPlaying = true;
     this.render();
-    const transcript =
-      this.panel?.querySelector<HTMLElement>('[data-transcript]');
-    if (transcript) transcript.scrollTop = 0;
     this.schedule();
   }
 
@@ -275,9 +272,6 @@ class AgentDemo extends HTMLElement {
     this.timer = setTimeout(() => {
       this.elapsed += performance.now() - this.lastTick;
       this.render();
-      const transcript =
-        this.panel?.querySelector<HTMLElement>('[data-transcript]');
-      if (transcript) transcript.scrollTop = transcript.scrollHeight;
       this.schedule();
     }, 32);
   }
