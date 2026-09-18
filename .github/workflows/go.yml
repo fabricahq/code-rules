@@ -1,0 +1,36 @@
+name: Go migration
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: go version
+      - run: bun install --frozen-lockfile
+      - name: Check Go formatting
+        run: |
+          unformatted=$(git ls-files -z '*.go' | xargs -0 gofmt -l)
+          if [ -n "$unformatted" ]; then
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
+      - run: go vet ./...
+      - run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+      - run: go test -race ./...
+      - run: go build -o dist/rules-lab ./cmd/rules-lab
+      - run: bun tests/migration/compare-rules.ts dist/rules-lab
+      - run: bun tests/migration/compare-version-selection.ts dist/rules-lab
+      - run: bun tests/migration/compare-links.ts dist/rules-lab

@@ -92,7 +92,7 @@ A later sync can pick up a moved tag; review resolved-commit changes along with 
 
 Group pages separate **How to use this group** from **Rules**, with each rule nested under **Rules**.
 Review the generated group pages. Read applicable rules in full where included; otherwise follow each **Read full rule** link.
-Full definitions put **Guidance** first, followed by **Source and attribution**, including the rule source, declared library license links, and preserved source metadata. If no library license is declared, the footer omits the license entry; provenance records an empty `licenses` array.
+Full definitions put **Guidance** first, followed by **Source and attribution**, including the rule source, declared library license links, and preserved source metadata. If no library license is declared, the footer omits the license entry; the current TypeScript provenance records an empty `licenses` array. The Go migration uses a singular `license` field containing one declaration or `null`.
 Inspect `.code-rules/generated/libraries/<source-name>/README.md` for each library’s identity, revision, and links to declared terms.
 License and notice copies live under that library’s `licenses/` directory; provenance records their original and generated paths.
 Confirm that replacements contain the intended obligations and that excluded rules are absent from active output.

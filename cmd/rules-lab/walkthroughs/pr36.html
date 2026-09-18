@@ -1,0 +1,850 @@
+<!doctype html>
+<!-- @fileoverview Interactive offline-project scenarios with editable input files and native Go results. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Code Rules · Author a shared library</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: #fff;
+        --surface: #f6f6f6;
+        --ink: #1c1c1c;
+        --muted: #626262;
+        --line: #d5d5d5;
+        --accent: #245acf;
+        --good: #176546;
+        --bad: #ae2929;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #151515;
+          --surface: #202020;
+          --ink: #f2f2f2;
+          --muted: #b8b8b8;
+          --line: #444;
+          --accent: #94b6ff;
+          --good: #7ed4a7;
+          --bad: #ffa3a3;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          16px/1.6 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1200px;
+        margin: auto;
+        padding: 32px 32px 80px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 20px;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+      a {
+        color: var(--accent);
+      }
+      h1 {
+        font-size: clamp(36px, 5vw, 58px);
+        line-height: 1.08;
+        letter-spacing: -0.045em;
+        margin: 40px 0 20px;
+        max-width: 780px;
+      }
+      h2 {
+        font-size: 25px;
+        letter-spacing: -0.025em;
+        line-height: 1.3;
+        margin: 0 0 15px;
+      }
+      h3 {
+        font-size: 17px;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0 0 16px;
+      }
+      .lede {
+        max-width: 780px;
+        font-size: 19px;
+        color: var(--muted);
+      }
+      .label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--muted);
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-block: 1px solid var(--line);
+        margin: 30px 0 36px;
+      }
+      .flow > div {
+        padding: 20px 24px 20px 0;
+      }
+      .flow span {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .panel {
+        min-width: 0;
+        padding: 28px;
+      }
+      .result {
+        background: var(--surface);
+        border-left: 1px solid var(--line);
+      }
+      button,
+      select,
+      input,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--paper);
+        padding: 9px 13px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--ink);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      button.primary {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+        padding: 11px 22px;
+        font-weight: 600;
+      }
+      select,
+      input,
+      textarea {
+        width: 100%;
+        min-width: 0;
+        background: var(--paper);
+      }
+      input,
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 11px 12px;
+      }
+      textarea {
+        font:
+          14px/1.6 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        resize: vertical;
+        min-height: 145px;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin: 18px 0 6px;
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .presets {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin: 12px 0 20px;
+      }
+      .presets button {
+        font-size: 12px;
+        padding: 5px 9px;
+        border-radius: 20px;
+      }
+      .hint {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .signature {
+        font:
+          13px/1.6 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        overflow-wrap: anywhere;
+        padding: 15px 0;
+        color: var(--muted);
+      }
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .badge {
+        font-size: 12px;
+        padding: 4px 10px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+      }
+      .badge.good {
+        color: var(--good);
+      }
+      .badge.bad {
+        color: var(--bad);
+      }
+      pre {
+        font:
+          13px/1.65 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 0;
+        padding: 18px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        max-height: 420px;
+        overflow: auto;
+      }
+      .result h3 {
+        margin-top: 24px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .section {
+        margin-top: 48px;
+      }
+      .review {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 30px;
+      }
+      .review > div {
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+      }
+      .review p {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.88em;
+        overflow-wrap: anywhere;
+      }
+      details {
+        margin-top: 24px;
+        border-top: 1px solid var(--line);
+        padding-top: 15px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      details p,
+      details pre {
+        margin-top: 14px;
+      }
+      .notice {
+        border-left: 3px solid var(--line);
+        padding-left: 16px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 45px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        color: var(--muted);
+      }
+      @media (max-width: 760px) {
+        main {
+          padding: 20px 18px 45px;
+        }
+        .workspace,
+        .review {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .result {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+        .panel {
+          padding: 20px;
+        }
+        .flow {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .flow > div {
+          padding: 12px 0;
+        }
+        header {
+          flex-wrap: wrap;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="/lab-assets/fixture-files.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <a href="/">CODE RULES / REVIEW COLLECTION</a
+        ><span>PR #36 · Author a shared library</span>
+      </header>
+      <h1>Author a shared library</h1>
+      <p class="lede">
+        Run compiled Go commands and inspect their actual stdout, stderr, exit
+        status, and filesystem changes.
+      </p>
+      <p>
+        <a href="http://localhost:4392/" target="_blank" rel="noopener"
+          >Supplementary Gruntwork runbook</a
+        >: Initialize, author, and validate a shared library. Run individual
+        commands there; keep this lab for the full PR scenarios.
+      </p>
+      <div class="workspace">
+        <section class="panel">
+          <div class="label">Invoke the new capability</div>
+          <h2>Make the input your own</h2>
+          <div class="signature">
+            code-rules library init | add group | add rule | check
+          </div>
+          <div class="presets" id="presets"></div>
+          <p
+            class="hint scenario-description"
+            id="scenario-description"
+            aria-live="polite"
+          ></p>
+          <details>
+            <summary>Commands in this scenario</summary>
+            <pre id="command-preview"></pre>
+          </details>
+          <label for="input">Project fixture</label
+          ><textarea id="input" rows="18" spellcheck="false"></textarea>
+          <p class="hint">The request goes to the native Go implementation.</p>
+          <div class="actions">
+            <button class="primary" id="invoke">Run command sequence</button
+            ><span class="hint" id="timing"></span>
+          </div>
+        </section>
+        <section class="panel result">
+          <div class="result-head">
+            <h2>Result</h2>
+            <span class="badge" id="status">Ready</span>
+          </div>
+          <p id="explanation">
+            Invoke Go to inspect its returned data or error.
+          </p>
+          <label for="vendor-file">Command transcript or library file</label
+          ><select id="vendor-file"></select>
+          <pre id="vendor-content">Invoke Go to inspect a file.</pre>
+          <details>
+            <summary>Full function result and observations</summary>
+            <pre id="output">No invocation yet.</pre>
+          </details>
+          <details>
+            <summary>What this PR does</summary>
+            <p>
+              Initialize a library, preserve supplied license and notice bytes,
+              and author groups and rules. Library check validates all library
+              content, including unused attachments and unfinished drafts.
+              Existing authored files are preserved; accidental overwrites fail.
+              JSON results go to stdout and failures go to stderr.
+            </p>
+            <p>
+              This page executes the compiled code-rules binary directly,
+              without a shell. The lab envelope reports whether it captured the
+              process successfully; the command's own exitCode determines
+              success. Before/after files come from an isolated disposable
+              project.
+            </p>
+            <p>
+              Each scenario runs a short sequence of real native commands and
+              stops on the first nonzero exit. File paths stay inside a
+              disposable project. No source is fetched by this walkthrough.
+            </p>
+          </details>
+          <h3>What crossed the boundary</h3>
+          <pre id="request">No request sent.</pre>
+        </section>
+      </div>
+      <section class="section">
+        <h2>Review boundaries</h2>
+        <p>
+          Interactive prompts follow in the next slice. An omitted body creates
+          an unfinished canonical draft to edit before building. Build both
+          cmd/code-rules and cmd/rules-lab into the same directory to run this
+          demo. The production npm entry point is unchanged until packaging
+          approval.
+        </p>
+        <a href="https://github.com/fabricahq/code-rules/pull/36"
+          >Review the PR on GitHub</a
+        >
+      </section>
+      <footer>
+        Existing Code Rules gallery styling · Native Go · Only this PR's
+        capability
+      </footer>
+    </main>
+    <script src="/lab-assets/fixture-files.js"></script>
+    <script>
+      /** @fileoverview Explain editable scenarios and display native Go results for this PR. */
+      // Locate one named control in this walkthrough.
+      const byID = (id) => document.getElementById(id);
+      const spec = {
+        operation: "libraryAuthoring",
+        mode: "json",
+        location: "library",
+        examples: [
+          {
+            name: "Initialize",
+            description:
+              "Creates a manifest and README in library/. Select library/README.md to read concepts, agent instructions, and commands for adding groups and rules. No license is inferred. Check reports an explicit licensing caveat.",
+            input: {
+              files: {},
+              commands: [
+                ["library", "init", "--directory", "library"],
+                ["library", "check", "--directory", "library"],
+              ],
+            },
+          },
+          {
+            name: "Preserve terms",
+            description:
+              "Copies the supplied license and notice bytes exactly, including CRLF. Records one SPDX declaration.",
+            input: {
+              files: {
+                "terms.txt":
+                  "Original publisher terms\r\nPreserve these bytes.\r\n",
+                "notice.txt": "Original notice\r\n",
+              },
+              commands: [
+                [
+                  "library",
+                  "init",
+                  "--directory",
+                  "library",
+                  "--spdx",
+                  "MIT",
+                  "--license-file",
+                  "terms.txt",
+                  "--notice-file",
+                  "notice.txt",
+                ],
+                ["library", "check", "--directory", "library"],
+              ],
+            },
+          },
+          {
+            name: "Complete library",
+            description:
+              "Authors group metadata, a group README.md for agents, and a complete rule. Library check validates one rule; the README is documentation.",
+            input: {
+              files: {
+                "body.md": "# Return errors\n\nReturn failures to callers.\n",
+              },
+              commands: [
+                ["library", "init", "--directory", "library"],
+                [
+                  "library",
+                  "add",
+                  "group",
+                  "techs/go",
+                  "--name",
+                  "Go",
+                  "--description",
+                  "Shared Go guidance.",
+                  "--when-to-read",
+                  "When editing Go.",
+                  "--directory",
+                  "library",
+                ],
+                [
+                  "library",
+                  "add",
+                  "rule",
+                  "techs/go/errors",
+                  "--title",
+                  "Return errors",
+                  "--impact",
+                  "HIGH",
+                  "--impact-description",
+                  "Preserve failures.",
+                  "--when-to-read",
+                  "When calling fallible functions.",
+                  "--directory",
+                  "library",
+                  "--body-file",
+                  "body.md",
+                ],
+                ["library", "check", "--directory", "library"],
+              ],
+            },
+          },
+          {
+            name: "Marked draft",
+            description:
+              "An omitted body produces the canonical unfinished template with a draft marker. Check refuses it.",
+            input: {
+              files: {},
+              commands: [
+                ["library", "init", "--directory", "library"],
+                [
+                  "library",
+                  "add",
+                  "group",
+                  "techs/go",
+                  "--name",
+                  "Go",
+                  "--description",
+                  "Shared Go guidance.",
+                  "--when-to-read",
+                  "When editing Go.",
+                  "--directory",
+                  "library",
+                ],
+                [
+                  "library",
+                  "add",
+                  "rule",
+                  "techs/go/errors",
+                  "--title",
+                  "Return errors",
+                  "--impact",
+                  "HIGH",
+                  "--impact-description",
+                  "Preserve failures.",
+                  "--when-to-read",
+                  "When calling fallible functions.",
+                  "--directory",
+                  "library",
+                ],
+                ["library", "check", "--directory", "library"],
+              ],
+            },
+          },
+          {
+            name: "Repeat init",
+            description:
+              "Initializes twice. Existing valid files and their original formatting are preserved.",
+            input: {
+              files: {},
+              commands: [
+                ["library", "init", "--directory", "library"],
+                ["library", "init", "--directory", "library"],
+              ],
+            },
+          },
+          {
+            name: "Missing group",
+            description:
+              "Attempts a rule before creating its group. No partial rule is written.",
+            input: {
+              files: {},
+              commands: [
+                ["library", "init", "--directory", "library"],
+                [
+                  "library",
+                  "add",
+                  "rule",
+                  "techs/go/errors",
+                  "--title",
+                  "Return errors",
+                  "--impact",
+                  "HIGH",
+                  "--impact-description",
+                  "Preserve failures.",
+                  "--when-to-read",
+                  "When calling fallible functions.",
+                  "--directory",
+                  "library",
+                ],
+              ],
+            },
+          },
+          {
+            name: "Terms collision",
+            description:
+              "An existing LICENSE.md prevents initialization with new terms. No manifest is published.",
+            input: {
+              files: {
+                "terms.txt": "New text",
+                "library/LICENSE.md": "Existing authored terms",
+              },
+              commands: [
+                [
+                  "library",
+                  "init",
+                  "--directory",
+                  "library",
+                  "--spdx",
+                  "MIT",
+                  "--license-file",
+                  "terms.txt",
+                ],
+              ],
+            },
+          },
+          {
+            name: "Orphan asset",
+            description:
+              "Checks an asset whose owner rule does not exist. Unreferenced files are still checked.",
+            input: {
+              files: {
+                "library/techs/go/assets/missing/diagram.txt": "Orphan asset",
+              },
+              commands: [
+                ["library", "init", "--directory", "library"],
+                ["library", "check", "--directory", "library"],
+              ],
+            },
+          },
+          {
+            name: "Unused missing link",
+            description:
+              "An unreferenced shared Markdown asset links to a missing file. Check reports the source and destination.",
+            input: {
+              files: {
+                "library/assets/guide.md": "[missing](missing.md)",
+              },
+              commands: [
+                ["library", "init", "--directory", "library"],
+                ["library", "check", "--directory", "library"],
+              ],
+            },
+          },
+          {
+            name: "Cross-rule link",
+            description:
+              "A shared asset tries to link to a rule document. The agreed cross-rule restriction is enforced.",
+            input: {
+              files: {
+                "library/assets/guide.md": "[rule](/techs/go/errors.md)",
+              },
+              commands: [
+                ["library", "init", "--directory", "library"],
+                ["library", "check", "--directory", "library"],
+              ],
+            },
+          },
+          {
+            name: "Unrelated repository files",
+            description:
+              "Unrelated docs and .git content are outside library validation scope.",
+            input: {
+              files: {
+                "library/.git/example": "Unrelated repository data",
+                "library/docs/note.md": "[not library content](missing.md)",
+              },
+              commands: [
+                ["library", "init", "--directory", "library"],
+                ["library", "check", "--directory", "library"],
+              ],
+            },
+          },
+        ],
+      };
+      let vendorFiles = {};
+      // Display file contents with readable configuration JSON and labeled binary bytes.
+      function showVendorFile() {
+        const value = vendorFiles[byID("vendor-file").value];
+        byID("vendor-content").textContent = formatFixtureFile(
+          byID("vendor-file").value,
+          value,
+        );
+      }
+      byID("vendor-file").addEventListener("change", showVendorFile);
+      // Clear prior output when the editable input changes.
+      function clearResult() {
+        try {
+          byID("command-preview").textContent = JSON.parse(byID("input").value)
+            .commands.map(
+              (args) =>
+                "$ code-rules " + args.map((a) => JSON.stringify(a)).join(" "),
+            )
+            .join("\n\n");
+        } catch {
+          byID("command-preview").textContent =
+            "Edit valid request JSON to preview commands.";
+        }
+        byID("output").textContent = "No invocation for this input.";
+        byID("vendor-file").replaceChildren();
+        byID("vendor-content").textContent = "Invoke Go to inspect a file.";
+        byID("status").textContent = "Ready";
+        byID("status").className = "badge";
+        byID("request").textContent = "No request sent.";
+        byID("explanation").textContent =
+          "Input changed. Invoke Go to see its result.";
+        byID("timing").textContent = "";
+      }
+      // Explain and select a preset without invoking Go; its description remains a preset reference after edits.
+      function loadExample(example) {
+        byID("input").value =
+          typeof example.input === "string"
+            ? example.input
+            : JSON.stringify(example.input, null, 2);
+        byID("input").dispatchEvent(new Event("input"));
+        byID("scenario-description").textContent =
+          `Preset: ${example.name}. ${example.description}`;
+        for (const button of byID("presets").querySelectorAll("button")) {
+          button.setAttribute(
+            "aria-pressed",
+            String(button.textContent === example.name),
+          );
+        }
+      }
+      for (const example of spec.examples) {
+        const button = document.createElement("button");
+        button.textContent = example.name;
+        // Load the chosen editable example.
+        button.addEventListener("click", () => loadExample(example));
+        byID("presets").append(button);
+      }
+      byID("input").addEventListener("input", clearResult);
+      loadExample(spec.examples[0]);
+      mountFixtureFiles(byID("input"), clearResult);
+      // Invoke native Go and keep invalid adapter JSON distinct from a domain validation error.
+      byID("invoke").addEventListener("click", async () => {
+        let input = byID("input").value;
+        if (spec.mode === "json") {
+          try {
+            input = JSON.parse(input);
+          } catch {
+            byID("status").textContent = "Invalid request JSON";
+            byID("status").className = "badge bad";
+            byID("output").textContent =
+              "The request must be JSON. Go has not been called.";
+            return;
+          }
+        }
+        const body = JSON.stringify({
+          operation: spec.operation,
+          input,
+          location: spec.location,
+        });
+        byID("request").textContent = body;
+        // Freeze controls for the request whose result is being displayed.
+        document
+          .querySelectorAll("button,textarea,select")
+          .forEach((element) => (element.disabled = true));
+        const started = performance.now();
+        try {
+          const response = await fetch("/invoke", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+          if (!response.ok)
+            throw new Error(
+              "HTTP " + response.status + ": " + (await response.text()),
+            );
+          const result = await response.json();
+          byID("output").textContent = JSON.stringify(result, null, 2);
+          byID("vendor-file").replaceChildren();
+          const observed = result.value || result.observation;
+          vendorFiles = {};
+          if (observed) {
+            vendorFiles["Command result"] = observed.commands
+              .map(
+                (command, index) =>
+                  "STEP " +
+                  (index + 1) +
+                  "\n$ code-rules " +
+                  command.arguments.map((a) => JSON.stringify(a)).join(" ") +
+                  "\nExit status: " +
+                  command.exitCode +
+                  "\n\nSTDOUT\n" +
+                  (command.stdout || "(empty)\n") +
+                  "\nSTDERR\n" +
+                  (command.stderr || "(empty)\n"),
+              )
+              .join("\n--------------------\n");
+            observed.exitCode = observed.commands.at(-1).exitCode;
+            for (const phase of ["before", "after"]) {
+              for (const [name, contents] of Object.entries(observed[phase]))
+                vendorFiles[phase + " / " + name] = contents;
+            }
+          }
+          for (const path of Object.keys(vendorFiles).sort()) {
+            const option = document.createElement("option");
+            option.value = option.textContent = path;
+            byID("vendor-file").append(option);
+          }
+          if (Object.keys(vendorFiles).length) {
+            byID("vendor-file").value = "Command result";
+            showVendorFile();
+          } else
+            byID("vendor-content").textContent =
+              result.error?.message || "No observation.";
+          byID("status").textContent = result.ok
+            ? "Exit " + observed.exitCode
+            : result.error.name;
+          byID("status").className =
+            "badge " + (result.ok && observed.exitCode === 0 ? "good" : "bad");
+          byID("explanation").textContent = result.ok
+            ? "The command sequence stopped with status " +
+              observed.exitCode +
+              ". Inspect stdout, stderr, and the files below."
+            : result.error.message;
+          if (!result.ok) {
+            byID("explanation").append(
+              document.createElement("br"),
+              document.createElement("br"),
+              "The observation shows files left on disk after the call.",
+            );
+          }
+        } catch (error) {
+          byID("explanation").textContent =
+            "The request failed. No Go result was received.";
+          byID("status").textContent = "Request failed";
+          byID("status").className = "badge bad";
+          byID("output").textContent = String(error);
+        } finally {
+          byID("timing").textContent =
+            Math.round(performance.now() - started) + " ms";
+          // Restore controls after either result.
+          document
+            .querySelectorAll("button,textarea,select")
+            .forEach((element) => (element.disabled = false));
+        }
+      });
+    </script>
+  </body>
+</html>

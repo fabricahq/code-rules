@@ -14,7 +14,7 @@ export default defineConfig({
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
   integrations: [starlight({
     title: 'Code Rules',
-    description: 'Shared engineering standards for the agents building your software.',
+    description: 'The package manager for your engineering rules',
     favicon: '/favicon.svg',
     disable404Route: true,
     customCss: ['./src/styles/custom.css', './src/styles/home.css'],
@@ -28,6 +28,7 @@ export default defineConfig({
     sidebar: [
       { label: 'Start here', items: [
         { label: 'What is Code Rules?', slug: 'overview' },
+        { label: 'Install Code Rules', slug: 'guides/install' },
         { label: 'Set up a project', slug: 'guides/set-up-project' },
         { label: 'Use rules in a project', slug: 'guides/use-rules' },
         { label: 'Project status', slug: 'status' },

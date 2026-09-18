@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Code Rules · Parse project configuration</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: #fff;
+        --surface: #f6f6f6;
+        --ink: #1c1c1c;
+        --muted: #626262;
+        --line: #d5d5d5;
+        --accent: #245acf;
+        --good: #176546;
+        --bad: #ae2929;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #151515;
+          --surface: #202020;
+          --ink: #f2f2f2;
+          --muted: #b8b8b8;
+          --line: #444;
+          --accent: #94b6ff;
+          --good: #7ed4a7;
+          --bad: #ffa3a3;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          16px/1.6 Inter,
+          ui-sans-serif,
+          system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1200px;
+        margin: auto;
+        padding: 32px 32px 80px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 20px;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+      a {
+        color: var(--accent);
+      }
+      h1 {
+        font-size: clamp(36px, 5vw, 58px);
+        line-height: 1.08;
+        letter-spacing: -0.045em;
+        margin: 40px 0 20px;
+        max-width: 780px;
+      }
+      h2 {
+        font-size: 25px;
+        letter-spacing: -0.025em;
+        line-height: 1.3;
+        margin: 0 0 15px;
+      }
+      h3 {
+        font-size: 17px;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0 0 16px;
+      }
+      .lede {
+        max-width: 780px;
+        font-size: 19px;
+        color: var(--muted);
+      }
+      .label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--muted);
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-block: 1px solid var(--line);
+        margin: 30px 0 36px;
+      }
+      .flow > div {
+        padding: 20px 24px 20px 0;
+      }
+      .flow span {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .panel {
+        min-width: 0;
+        padding: 28px;
+      }
+      .result {
+        background: var(--surface);
+        border-left: 1px solid var(--line);
+      }
+      button,
+      select,
+      input,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--paper);
+        padding: 9px 13px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--ink);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      button.primary {
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+        padding: 11px 22px;
+        font-weight: 600;
+      }
+      select,
+      input,
+      textarea {
+        width: 100%;
+        min-width: 0;
+        background: var(--paper);
+      }
+      input,
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 11px 12px;
+      }
+      textarea {
+        font:
+          14px/1.6 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        resize: vertical;
+        min-height: 145px;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin: 18px 0 6px;
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .presets {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin: 12px 0 20px;
+      }
+      .presets button {
+        font-size: 12px;
+        padding: 5px 9px;
+        border-radius: 20px;
+      }
+      .hint {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .signature {
+        font:
+          13px/1.6 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        overflow-wrap: anywhere;
+        padding: 15px 0;
+        color: var(--muted);
+      }
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .badge {
+        font-size: 12px;
+        padding: 4px 10px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+      }
+      .badge.good {
+        color: var(--good);
+      }
+      .badge.bad {
+        color: var(--bad);
+      }
+      pre {
+        font:
+          13px/1.65 ui-monospace,
+          SFMono-Regular,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 0;
+        padding: 18px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        max-height: 420px;
+        overflow: auto;
+      }
+      .result h3 {
+        margin-top: 24px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .section {
+        margin-top: 48px;
+      }
+      .review {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 30px;
+      }
+      .review > div {
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+      }
+      .review p {
+        font-size: 14px;
+        color: var(--muted);
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, monospace;
+        font-size: 0.88em;
+        overflow-wrap: anywhere;
+      }
+      details {
+        margin-top: 24px;
+        border-top: 1px solid var(--line);
+        padding-top: 15px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      details p,
+      details pre {
+        margin-top: 14px;
+      }
+      .notice {
+        border-left: 3px solid var(--line);
+        padding-left: 16px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 45px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        color: var(--muted);
+      }
+      @media (max-width: 760px) {
+        main {
+          padding: 20px 18px 45px;
+        }
+        .workspace,
+        .review {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .result {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+        .panel {
+          padding: 20px;
+        }
+        .flow {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .flow > div {
+          padding: 12px 0;
+        }
+        header {
+          flex-wrap: wrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <a href="/">CODE RULES / REVIEW COLLECTION</a
+        ><span>PR #18 · Parse project configuration</span>
+      </header>
+      <h1>Parse project configuration</h1>
+      <p class="lede">
+        Validate a complete project document, including source revisions, group
+        selections, and exception policies.
+      </p>
+      <div class="workspace">
+        <section class="panel">
+          <div class="label">Invoke the new capability</div>
+          <h2>Make the input your own</h2>
+          <div class="signature">
+            ParseConfiguration(input json.RawMessage) (Configuration, error)
+          </div>
+          <p class="hint">
+            Schema version 1. Sources are sorted by alias; selections retain
+            patterns or sorted IDs.
+          </p>
+          <div class="presets" id="presets"></div>
+          <label for="input">Configuration JSON</label
+          ><textarea id="input" rows="18" spellcheck="false"></textarea>
+          <p class="hint">The request goes to the native Go implementation.</p>
+          <div class="actions">
+            <button class="primary" id="invoke">Invoke Go function</button
+            ><span class="hint" id="timing"></span>
+          </div>
+        </section>
+        <section class="panel result">
+          <div class="result-head">
+            <h2>Result</h2>
+            <span class="badge" id="status">Ready</span>
+          </div>
+          <p id="explanation">
+            Invoke Go to inspect its returned data or error.
+          </p>
+          <pre id="output" aria-live="polite">No invocation yet.</pre>
+          <details open>
+            <summary>What this PR does</summary>
+            <p>
+              Unknown fields, duplicate repositories, conflicting ref/version
+              choices, and contradictory exclude/replace decisions are rejected.
+              Replacement files must be contained beneath local/. Version
+              constraints use HashiCorp syntax.
+            </p>
+            <p>
+              <code>ok: true</code> means Go returned no error.
+              <code>value</code> contains its result.
+              <code>ok: false</code> includes the returned error and its
+              location. Input text is never inserted as HTML.
+            </p>
+          </details>
+          <h3>What crossed the boundary</h3>
+          <pre id="request">No request sent.</pre>
+        </section>
+      </div>
+      <section class="section">
+        <h2>Review boundaries</h2>
+        <p>
+          This is an offline syntax check. It does not discover local groups,
+          open replacement files, fetch sources, or establish whether a group or
+          revision exists. The current schema contains source declarations only;
+          it has no output settings.
+        </p>
+        <p>
+          <a href="https://github.com/fabricahq/code-rules/pull/18"
+            >Review the PR on GitHub</a
+          >
+        </p>
+      </section>
+      <footer>
+        Existing Code Rules gallery styling · Native Go · Only this PR's
+        capability
+      </footer>
+    </main>
+    <script>
+      // Locate one named control in this walkthrough.
+      const byID = (id) => document.getElementById(id);
+      const spec = {
+        pr: 18,
+        title: "Parse project configuration",
+        description:
+          "Validate a complete project document, including source revisions, group selections, and exception policies.",
+        signature:
+          "ParseConfiguration(input json.RawMessage) (Configuration, error)",
+        inputhelp:
+          "Schema version 1. Sources are sorted by alias; selections retain patterns or sorted IDs.",
+        inputlabel: "Configuration JSON",
+        details:
+          "Unknown fields, duplicate repositories, conflicting ref/version choices, and contradictory exclude/replace decisions are rejected. Replacement files must be contained beneath local/. Version constraints use HashiCorp syntax.",
+        boundaries:
+          "This is an offline syntax check. It does not discover local groups, open replacement files, fetch sources, or establish whether a group or revision exists. The current schema contains source declarations only; it has no output settings.",
+        operation: "configuration",
+        mode: "text",
+        location: "configuration",
+        examples: [
+          {
+            name: "Empty",
+            input: '{\n  "schemaVersion": 1,\n  "sources": {}\n}',
+          },
+          {
+            name: "Tag",
+            input:
+              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    }\n  }\n}',
+          },
+          {
+            name: "Constraint",
+            input:
+              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {},\n      "version": ">= 1.2.0"\n    }\n  }\n}',
+          },
+          {
+            name: "Exceptions",
+            input:
+              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {\n        "techs/go/a": " unused "\n      },\n      "replace": {\n        "techs/go/b": {\n          "file": "local/go/b.md",\n          "reason": "team policy"\n        }\n      }\n    }\n  }\n}',
+          },
+          {
+            name: "Sorted sources",
+            input:
+              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    },\n    "alpha": {\n      "repository": "git@example.com:team/rules",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    }\n  }\n}',
+          },
+          { name: "Malformed", input: "{" },
+          {
+            name: "Unknown",
+            input:
+              '{\n  "schemaVersion": 1,\n  "sources": {},\n  "future": true\n}',
+          },
+          {
+            name: "Both revisions",
+            input:
+              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {},\n      "version": "1.2.3"\n    }\n  }\n}',
+          },
+          {
+            name: "Traversal",
+            input:
+              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {\n        "techs/go/a": {\n          "file": "local/../a.md",\n          "reason": "x"\n        }\n      }\n    }\n  }\n}',
+          },
+          {
+            name: "Conflict",
+            input:
+              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {\n        "techs/go/a": "x"\n      },\n      "replace": {\n        "techs/go/a": {\n          "file": "local/a.md",\n          "reason": "x"\n        }\n      }\n    }\n  }\n}',
+          },
+          {
+            name: "Duplicate repository",
+            input:
+              '{\n  "schemaVersion": 1,\n  "sources": {\n    "team": {\n      "repository": "https://github.com/fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    },\n    "z": {\n      "repository": "git@github.com:fixture/team.git",\n      "ref": "v1.2.3",\n      "groups": [\n        "techs/go"\n      ],\n      "exclude": {},\n      "replace": {}\n    }\n  }\n}',
+          },
+        ],
+      };
+      // Clear prior output when the editable input changes.
+      function clearResult() {
+        byID("output").textContent = "No invocation for this input.";
+        byID("status").textContent = "Ready";
+        byID("status").className = "badge";
+        byID("request").textContent = "No request sent.";
+        byID("explanation").textContent =
+          "Input changed. Invoke Go to see its result.";
+        byID("timing").textContent = "";
+      }
+      // Fill an example without sending a request.
+      function loadExample(example) {
+        byID("input").value =
+          typeof example.input === "string"
+            ? example.input
+            : JSON.stringify(example.input, null, 2);
+        clearResult();
+      }
+      for (const example of spec.examples) {
+        const button = document.createElement("button");
+        button.textContent = example.name;
+        // Load the chosen editable example.
+        button.addEventListener("click", () => loadExample(example));
+        byID("presets").append(button);
+      }
+      byID("input").addEventListener("input", clearResult);
+      loadExample(spec.examples[0]);
+      // Invoke native Go and keep invalid adapter JSON distinct from a domain validation error.
+      byID("invoke").addEventListener("click", async () => {
+        let input = byID("input").value;
+        if (spec.mode === "json") {
+          try {
+            input = JSON.parse(input);
+          } catch {
+            byID("status").textContent = "Invalid request JSON";
+            byID("status").className = "badge bad";
+            byID("output").textContent =
+              "The request must be JSON. Go has not been called.";
+            return;
+          }
+        }
+        const body = JSON.stringify({
+          operation: spec.operation,
+          input,
+          location: spec.location,
+        });
+        byID("request").textContent = body;
+        // Freeze controls for the request whose result is being displayed.
+        document
+          .querySelectorAll("button,textarea")
+          .forEach((element) => (element.disabled = true));
+        const started = performance.now();
+        try {
+          const response = await fetch("/invoke", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+          if (!response.ok)
+            throw new Error(
+              "HTTP " + response.status + ": " + (await response.text()),
+            );
+          const result = await response.json();
+          byID("output").textContent = JSON.stringify(result, null, 2);
+          byID("status").textContent = result.ok
+            ? "Returned value"
+            : result.error.name;
+          byID("status").className = "badge " + (result.ok ? "good" : "bad");
+          byID("explanation").textContent = result.ok
+            ? "Go returned successfully. Inspect the data below."
+            : "Go returned an error. No partial result is returned.";
+        } catch (error) {
+          byID("explanation").textContent =
+            "The request failed. No Go result was received.";
+          byID("status").textContent = "Request failed";
+          byID("status").className = "badge bad";
+          byID("output").textContent = String(error);
+        } finally {
+          byID("timing").textContent =
+            Math.round(performance.now() - started) + " ms";
+          // Restore controls after either result.
+          document
+            .querySelectorAll("button,textarea")
+            .forEach((element) => (element.disabled = false));
+        }
+      });
+    </script>
+  </body>
+</html>

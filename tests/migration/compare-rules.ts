@@ -1,0 +1,290 @@
+/** @fileoverview Compares native rules functions with pinned TypeScript behavior and independent shared expectations. */
+import { deepStrictEqual } from 'node:assert';
+import { resolve } from 'node:path';
+import { configuration } from '../../src/configuration';
+import { rule } from '../../src/builds/rule-document';
+import {
+  groupId,
+  groupMetadata,
+  ruleGroup,
+  ValidationError,
+} from '../../src/formats/validation';
+import identityCases from './identities/cases.json';
+import metadataCases from './group-metadata/cases.json';
+import documentCases from './rule-documents/cases.json';
+import ruleCases from './rules/cases.json';
+import repositoryCases from './repositories/cases.json';
+import refCases from './refs/cases.json';
+import { tagVersion, versionConstraint } from '../../src/versions';
+import { satisfies } from 'semver';
+import { readLibraryLicenses } from '../../src/formats/manifest';
+import licenseCases from './licenses/cases.json';
+import configurationCases from './configuration/cases.json';
+import constraintCases from './version-constraints/cases.json';
+import { repositoryAddress, repositoryFileUrl } from '../../src/repository';
+import contracts from '../../migration/contracts.json';
+import approvedDifferences from '../../migration/approved-differences.json';
+
+const cases = [
+  ...identityCases,
+  ...metadataCases,
+  ...documentCases,
+  ...ruleCases,
+  ...repositoryCases,
+  ...refCases,
+  ...constraintCases,
+  ...configurationCases,
+  ...licenseCases,
+];
+deepStrictEqual(
+  new Set(cases.map(({ id }) => id)).size,
+  cases.length,
+  'Shared fixture IDs must be unique',
+);
+const referenceRevision = contracts.referenceRevision;
+deepStrictEqual(
+  approvedDifferences,
+  [],
+  'Global comparison policies must remain unchanged for this function slice',
+);
+
+/** Call existing reference functions; configuration exposes its private selector parser. */
+function reference(test: (typeof cases)[number]): unknown {
+  try {
+    let value: unknown;
+    if (test.operation === 'licenses') {
+      const input = test.input;
+      if (
+        typeof input !== 'object' ||
+        input === null ||
+        !('manifest' in input) ||
+        !('paths' in input)
+      )
+        throw new Error('Expected manifest and paths');
+      value = readLibraryLicenses(
+        new Map([['rule-library.json', input.manifest]]),
+        test.location,
+        new Set(input.paths),
+      );
+    } else if (test.operation === 'configuration') {
+      if (typeof test.input !== 'string')
+        throw new Error('Expected configuration text');
+      let input: unknown;
+      try {
+        input = JSON.parse(test.input);
+      } catch {
+        throw new ValidationError('configuration: invalid JSON');
+      }
+      const parsed = configuration(input);
+      value = {
+        sources: parsed.sources.map(
+          // Convert maps to JSON objects; omit the redundant version ref projection.
+          (source) => {
+            const { parsedRef, exclude, replace, ...fields } = source;
+            return {
+              ...fields,
+              ...(parsedRef.kind === 'version' ? {} : { parsedRef }),
+              exclude: Object.fromEntries(exclude),
+              replace: Object.fromEntries(replace),
+            };
+          },
+        ),
+      };
+    } else if (test.operation === 'versionConstraint') {
+      value = versionConstraint(test.input, test.location);
+    } else if (test.operation === 'versionMatch') {
+      const input = test.input;
+      if (
+        typeof input !== 'object' ||
+        input === null ||
+        !('constraint' in input) ||
+        !('version' in input)
+      )
+        throw new Error('Expected constraint and version');
+      const constraint = versionConstraint(
+        input.constraint,
+        test.location + '.constraint',
+      );
+      value = satisfies(input.version, constraint);
+    } else if (test.operation === 'gitRef') {
+      const config = configuration({
+        schemaVersion: 1,
+        sources: {
+          team: {
+            repository: 'https://github.com/fixture/team.git',
+            ref: test.input,
+            groups: [],
+            exclude: {},
+            replace: {},
+          },
+        },
+      });
+      const source = config.sources[0];
+      if (!source)
+        throw new Error('Reference configuration returned no source');
+      value = source.parsedRef;
+    } else if (test.operation === 'tagVersion') {
+      if (typeof test.input !== 'string') throw new Error('Expected tag text');
+      value = tagVersion(test.input);
+    } else if (test.operation === 'repository') {
+      value = repositoryAddress(test.input, test.location);
+    } else if (test.operation === 'repositoryFile') {
+      const input = test.input;
+      if (
+        typeof input !== 'object' ||
+        input === null ||
+        !('repository' in input) ||
+        !('commit' in input) ||
+        !('path' in input) ||
+        !('image' in input)
+      )
+        throw new Error('Expected repository file input');
+      value = repositoryFileUrl(
+        input.repository,
+        input.commit,
+        input.path,
+        input.image,
+      );
+    } else if (test.operation === 'rule') {
+      const input = test.input;
+      if (
+        typeof input !== 'object' ||
+        input === null ||
+        !('text' in input) ||
+        !('path' in input) ||
+        !('source' in input)
+      )
+        throw new Error('Expected rule input');
+      value = rule(input.text, input.path, input.source);
+    } else if (test.operation === 'selection') {
+      const config = configuration({
+        schemaVersion: 1,
+        sources: {
+          team: {
+            repository: 'https://github.com/fixture/team.git',
+            ref: 'v1.0.0',
+            ...(Object.hasOwn(test, 'input') ? { groups: test.input } : {}),
+            exclude: {},
+            replace: {},
+          },
+        },
+      });
+      const source = config.sources[0];
+      if (!source)
+        throw new Error('Reference configuration returned no source');
+      value = source.groups;
+    } else {
+      if (typeof test.input !== 'string')
+        throw new Error('Expected text fixture');
+      if (test.operation === 'groupMetadata')
+        value = groupMetadata(test.input, test.location);
+      else if (test.operation === 'groupID')
+        value = groupId(test.input, test.location);
+      else if (test.operation === 'ruleGroup')
+        value = ruleGroup(test.input, test.location);
+      else if (test.operation === 'document') {
+        // Valid envelopes in this suite contain complete rule metadata. Compare
+        // the original captured text returned by the pinned full rule parser.
+        const parsed = rule(test.input, 'techs/go/example.md', 'lab');
+        value = { frontmatter: parsed.metadata, body: parsed.body };
+      } else throw new Error(`Unknown fixture operation: ${test.operation}`);
+    }
+    return { ok: true, value };
+  } catch (error) {
+    if (!(error instanceof ValidationError)) throw error;
+    return {
+      ok: false,
+      error: {
+        name: error.name,
+        message: error.message,
+        location: referenceLocation(error.message, test.operation),
+      },
+    };
+  }
+}
+
+/** Recover the field location from the reference's unstructured diagnostic without changing its message. */
+function referenceLocation(message: string, operation: string): string {
+  let end = message.indexOf(': ');
+  // Manifest diagnostics separate the file and nested field with an additional colon.
+  if (
+    operation === 'licenses' &&
+    /^(formatVersion|license(?:[.[]|:))/.test(message.slice(end + 2))
+  )
+    end = message.indexOf(': ', end + 2);
+  return message.slice(0, end);
+}
+
+const candidate = process.argv[2];
+if (!candidate)
+  throw new Error('Usage: bun tests/migration/compare-rules.ts <Go adapter>');
+const owners = ['src', 'package.json', 'bun.lock'];
+const drift = Bun.spawnSync([
+  'git',
+  'diff',
+  '--exit-code',
+  referenceRevision,
+  '--',
+  ...owners,
+]);
+const untracked = Bun.spawnSync([
+  'git',
+  'ls-files',
+  '--others',
+  '--exclude-standard',
+  '--',
+  ...owners,
+]);
+if (
+  drift.exitCode !== 0 ||
+  untracked.exitCode !== 0 ||
+  untracked.stdout.length !== 0
+) {
+  throw new Error('TypeScript reference differs from the pinned revision');
+}
+const requests =
+  cases
+    // Serialize one adapter request per fixture.
+    .map(({ operation, input, location }) =>
+      JSON.stringify({ operation, input, location }),
+    )
+    .join('\n') + '\n';
+const processResult = Bun.spawnSync([resolve(candidate)], {
+  stdin: Buffer.from(requests),
+  timeout: 30_000,
+  maxBuffer: 4 * 1024 * 1024,
+  // The native adapter must run without finding Node, Bun, or any other executable.
+  env: { PATH: '/nonexistent', LANG: 'C', TZ: 'UTC' },
+});
+if (processResult.exitCode !== 0 || processResult.stderr.length !== 0) {
+  throw new Error(`Native adapter failed: ${processResult.stderr.toString()}`);
+}
+const lines = processResult.stdout.toString().trimEnd().split('\n');
+deepStrictEqual(lines.length, cases.length, 'one native result per request');
+for (const [index, test] of cases.entries()) {
+  const line = lines[index];
+  if (line === undefined)
+    throw new Error(`Missing native response: ${test.id}`);
+  const native: unknown = JSON.parse(line);
+  const expected = test.expected;
+  // User-approved differences retain separate exact reference and Go expectations.
+  // Those cases retain explicit old and new expectations; no output is normalized.
+  deepStrictEqual(
+    reference(test),
+    ('referenceExpected' in test ? test.referenceExpected : undefined) ??
+      expected,
+    `${test.id}: TypeScript vs expectation`,
+  );
+  deepStrictEqual(native, expected, `${test.id}: Go vs expectation`);
+}
+console.log(
+  `PASS: ${cases.length} shared rules cases; TypeScript + Go match independent expectations`,
+);
+// Count fixtures that explicitly retain a different reference expectation.
+console.log(
+  `Approved behavior differences: ${cases.filter((test) => 'referenceExpected' in test && test.referenceExpected !== undefined).length} cases`,
+);
+console.log(`TypeScript reference: ${referenceRevision}`);
+console.log(
+  `Go adapter SHA-256: ${new Bun.CryptoHasher('sha256').update(await Bun.file(resolve(candidate)).arrayBuffer()).digest('hex')}`,
+);

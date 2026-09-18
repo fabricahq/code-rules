@@ -1,6 +1,5 @@
 {
-  "name": "code-rules",
-  "private": true,
+  "name": "@fabricahq/code-rules",
   "type": "module",
   "workspaces": [
     "docs"
@@ -17,7 +16,10 @@
     "builds:example": "bun tests/manual/builds.ts",
     "format:check": "prettier --single-quote --check src _tools/*.ts docs/_tools/*.ts tests/**/*.ts eslint.config.mjs",
     "lint": "eslint .",
-    "imports:example": "bun tests/manual/imports.ts"
+    "imports:example": "bun tests/manual/imports.ts",
+    "build": "bun _tools/package.ts",
+    "prepack": "bun run build",
+    "test:package": "bun test tests/package/installed.test.ts"
   },
   "packageManager": "bun@1.4.2",
   "dependencies": {
@@ -38,5 +40,34 @@
     "eslint-plugin-jsdoc": "^64.3.9",
     "prettier": "^3.9.6",
     "typescript": "6.0.3"
+  },
+  "version": "0.1.0-rc.1",
+  "description": "The package manager for your engineering rules",
+  "license": "UNLICENSED",
+  "bin": {
+    "code-rules": "dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fabricahq/code-rules.git"
+  },
+  "homepage": "https://github.com/fabricahq/code-rules",
+  "bugs": {
+    "url": "https://github.com/fabricahq/code-rules/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

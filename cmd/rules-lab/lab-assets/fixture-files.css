@@ -1,0 +1,310 @@
+/* Shared filesystem input editor, using the walkthrough's existing theme. */
+.workspace.has-fixture-browser {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+.has-fixture-browser .result {
+  border-left: 1px solid var(--line);
+  border-top: 0;
+}
+.fixture-browser {
+  display: grid;
+  grid-template-columns: minmax(150px, 30%) minmax(0, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+.fixture-browser > * {
+  min-width: 0;
+}
+.fixture-heading {
+  grid-column: 1 / -1;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.fixture-heading h3 {
+  margin: 0 0 6px;
+}
+.fixture-heading .hint {
+  margin: 0;
+}
+.fixture-tree {
+  background: var(--surface);
+  padding: 10px 6px;
+  max-height: clamp(200px, calc(100dvh - 450px), 520px);
+  overflow: auto;
+}
+.fixture-root + .fixture-root {
+  margin-top: 10px;
+}
+.fixture-root-name {
+  margin: 0 6px 6px;
+  font-weight: 650;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.fixture-tree ul {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 0;
+}
+.fixture-tree .fixture-root > ul {
+  padding-left: 0;
+}
+.fixture-folder {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fixture-folder summary {
+  padding: 4px 5px;
+  font:
+    13px ui-monospace,
+    monospace;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.fixture-tree .fixture-file {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px;
+  font:
+    13px ui-monospace,
+    monospace;
+  background: transparent;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.fixture-tree .fixture-file[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--paper);
+  color: var(--accent);
+}
+.fixture-file:focus-visible,
+.fixture-folder summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.fixture-pane {
+  padding: 10px;
+  border-left: 1px solid var(--line);
+}
+.fixture-pane .fixture-filename {
+  display: block;
+  margin: 0 0 8px;
+  font:
+    13px ui-monospace,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.fixture-pane .fixture-content {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 180px;
+  height: clamp(180px, calc(100dvh - 480px), 500px);
+  resize: vertical;
+  padding: 10px;
+  line-height: 1.45;
+  font-size: 13px;
+  tab-size: 2;
+}
+.fixture-info {
+  margin-bottom: 0;
+}
+.fixture-advanced {
+  margin: 10px 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 700px) {
+  .fixture-browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fixture-tree {
+    max-height: 260px;
+  }
+  .fixture-pane {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 14px;
+  }
+}
+
+/* Keep the edit/invoke/result loop visible together on desktop screens. */
+body:has(.has-fixture-browser) main {
+  max-width: 1800px;
+  padding: 16px 20px 40px;
+}
+body:has(.has-fixture-browser) header {
+  padding-bottom: 10px;
+  font-size: 12px;
+}
+body:has(.has-fixture-browser) h1 {
+  font-size: 28px;
+  margin: 14px 0 8px;
+  max-width: none;
+}
+body:has(.has-fixture-browser) .lede {
+  font-size: 14px;
+  margin-bottom: 14px;
+  max-width: none;
+}
+.has-fixture-browser .panel {
+  padding: 14px;
+}
+.has-fixture-browser .panel > .label,
+.has-fixture-browser .panel:not(.result) > h2 {
+  display: none;
+}
+.has-fixture-browser h2 {
+  font-size: 19px;
+  margin-bottom: 6px;
+}
+.has-fixture-browser .signature {
+  padding: 0 0 6px;
+  font-size: 12px;
+}
+.has-fixture-browser .hint {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.has-fixture-browser .presets {
+  gap: 5px;
+  margin: 8px 0 10px;
+}
+.has-fixture-browser .presets button {
+  padding: 3px 8px;
+}
+.has-fixture-browser .primary {
+  padding: 7px 13px;
+  font-size: 13px;
+}
+.has-fixture-browser .actions {
+  gap: 10px;
+}
+.has-fixture-browser .actions .hint {
+  margin: 0;
+}
+.has-fixture-browser .fixture-heading h3 {
+  font-size: 14px;
+  margin: 0;
+}
+.has-fixture-browser .fixture-heading .hint {
+  margin: 2px 0 0;
+}
+.has-fixture-browser .fixture-info {
+  font-size: 11px;
+  margin: 6px 0 0;
+}
+.has-fixture-browser .result-head {
+  margin-bottom: 8px;
+}
+.has-fixture-browser #explanation {
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.has-fixture-browser pre {
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.has-fixture-browser #output {
+  max-height: max(220px, calc(100dvh - 260px));
+}
+.has-fixture-browser #generated-text {
+  max-height: max(200px, calc(100dvh - 355px));
+}
+.has-fixture-browser #generated-files label {
+  margin-top: 0;
+}
+.has-fixture-browser #generated-path {
+  font-size: 12px;
+  padding: 6px;
+}
+.has-fixture-browser .result > details {
+  margin-top: 12px;
+  padding-top: 10px;
+}
+.has-fixture-browser .result h3 {
+  margin-top: 14px;
+  font-size: 14px;
+}
+body:has(.has-fixture-browser) .section {
+  margin-top: 24px;
+}
+@media (max-width: 900px) {
+  .workspace.has-fixture-browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .has-fixture-browser .result {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (min-width: 901px) {
+  .has-fixture-browser .fixture-heading .hint {
+    display: none;
+  }
+}
+
+/* Show one editable input representation at a time without discarding its state. */
+.fixture-browser[hidden],
+.fixture-advanced[hidden],
+.fixture-configuration[hidden],
+.fixture-views button[hidden] {
+  display: none;
+}
+.fixture-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+}
+.fixture-views {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fixture-views button {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.fixture-views button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface);
+}
+.fixture-advanced textarea {
+  height: clamp(220px, calc(100dvh - 440px), 560px);
+}
+
+/* Explain the selected preset within the compact input panel. */
+.has-fixture-browser .scenario-description {
+  min-height: 2lh;
+  line-height: 1.45;
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+.has-fixture-browser .presets button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Keep formatted configuration within the same compact input viewport. */
+.fixture-configuration {
+  margin-top: 10px;
+}
+.fixture-configuration h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.fixture-configuration pre {
+  max-height: clamp(220px, calc(100dvh - 440px), 560px);
+  overflow: auto;
+}
