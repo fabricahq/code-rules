@@ -1,4 +1,4 @@
-// Package acceptance runs disposable, real-CLI migration pilots for tests and human walkthroughs.
+// Package acceptance exercises complete CLI lifecycles in disposable projects.
 package acceptance
 
 import (
