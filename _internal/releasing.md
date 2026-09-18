@@ -1,6 +1,8 @@
 # Releases
 
-Say **“let's release”** to an agent working in this repository. The agent prepares a release PR with editable Markdown notes. You edit and save those notes in GitHub, then **merge the PR to approve publication**. Saving an intermediate edit does not publish anything.
+Say **“let's release”** to an agent working in this repository. The agent prepares a release PR containing `releases/v<version>.md`. Edit that Markdown file in the PR, save your changes, then **merge the PR to approve publication**.
+
+**The merged Markdown file becomes the GitHub release description verbatim, including your manual edits.** The PR description and review comments are separate review context. Saving an intermediate edit does not publish anything; after merge, the workflow publishes your approved notes once the assets pass verification.
 
 GitHub does not trigger Actions on draft-release saves. A release PR gives notes version history and makes approval explicit. The workflow builds assets first, attaches them to a draft, verifies GitHub's stored SHA-256 digests, and publishes last. [GitHub's release events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#release) and [release management guidance](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) explain these constraints.
 
