@@ -51,22 +51,6 @@ class AgentDemo extends HTMLElement {
       },
       { signal },
     );
-    // Pause streaming when the reader scrolls past the illustration.
-    this.addEventListener('wheel', () => this.pause(), {
-      signal,
-      passive: true,
-    });
-    this.addEventListener(
-      'touchstart',
-      (event) => {
-        if (
-          event.target instanceof Element &&
-          event.target.closest('[data-transcript]')
-        )
-          this.pause();
-      },
-      { signal, passive: true },
-    );
     document.addEventListener('visibilitychange', () => this.schedule(), {
       signal,
     });
