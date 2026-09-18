@@ -1,5 +1,5 @@
 ---
-/** @fileoverview Renders the docs landing page with product benefits, rule examples, and design-preview status. */
+/** @fileoverview Renders the docs landing page with product benefits and rule examples. */
 import AgentPreview from './AgentPreview.astro';
 import CodeTransformation from './CodeTransformation.astro';
 import CodeSample from './CodeSample.astro';
@@ -14,7 +14,6 @@ import exampleRule from '../examples/verify-retry-limits.md?raw';
     <a class="cr-button primary" href="/guides/use-rules/">Set up your repo <span aria-hidden="true">→</span></a>
     <a class="cr-button" href="/overview/">Read the docs <span aria-hidden="true">→</span></a>
   </div>
-  <p class="cr-preview"><a href="/status/">Design preview</a> · The CLI is not released yet.</p>
 </section>
 <AgentPreview />
 <section aria-label="How Code Rules works">

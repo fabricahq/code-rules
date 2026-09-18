@@ -13,8 +13,6 @@
 .cr-button { display: inline-flex; gap: 2rem; align-items: center; justify-content: center; min-height: 48px; padding: .75rem 1.5rem; border: 1px solid var(--cr-muted); border-radius: 999px; font-size: .875rem; font-weight: 500; text-decoration: none; color: var(--cr-ink); }
 .cr-button.primary { background: var(--cr-button); color: var(--cr-button-text); border-color: var(--cr-button); }
 .cr-button:hover { opacity: .8; }
-.cr-preview { font-size: .8rem; color: var(--cr-muted); margin: 1.25rem 0 0; }
-.cr-preview a { color: inherit; text-underline-offset: 3px; }
 .cr-example { background: var(--cr-surface); border: 1px solid var(--cr-line); border-radius: 20px; overflow: hidden; }
 .cr-example-label { padding: 1rem 1.5rem; border-bottom: 1px solid var(--cr-line); display: flex; flex-wrap: wrap; gap: .5rem; justify-content: space-between; color: var(--cr-muted); font-size: .75rem; }
 .cr-example-body { padding: 2rem; display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 3rem; }
