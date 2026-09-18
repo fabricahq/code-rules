@@ -5,7 +5,7 @@ description: "Fields in .code-rules/config.json."
 
 `.code-rules/config.json` records the project's sources, selected groups, and exceptions.
 A project can import rules directly from multiple canonical libraries, pinning each one independently.
-Sync, build, and check validate the fields below. The format remains unreleased.
+Sync, build, and check validate the fields below.
 
 ## Complete example
 
@@ -67,7 +67,7 @@ Replacement paths resolve relative to the configuration directory and must stay 
 
 Each source specifies exactly one of `ref` or `version` and owns its groups and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.
-The schema version remains `1` because no configuration format has shipped.
+The schema version is `1`.
 
 ## Import every group
 
@@ -98,7 +98,7 @@ Choose one of three supported selectors:
 
 Each selector includes all groups in its scope at the selected revision, including empty groups with valid metadata.
 Rule exclusions and replacements still apply. Agents still select relevant rules for each task.
-When you adopt a newer revision, newly added groups join the selection; the planned update report must identify those additions.
+When you adopt a newer revision, newly added groups join the selection. Review those additions in the changed source records and generated provenance.
 Offline builds do not discover changes on the remote repository.
 
 Keep `groups` required. Use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
@@ -283,7 +283,7 @@ The caller-supplied `toolVersion` identifies the tool that generated the output.
 
 Each source's `ref` or `version` selects the requested revision.
 Vendored provenance records the resolved commit used by offline commands; it is importer-owned output, not a second user-selected version.
-Direct imports from multiple sources are part of the first-release design.
-Libraries that themselves inherit and republish other libraries remain later work.
+A project imports multiple sources directly.
+Libraries that themselves inherit and republish other libraries are not supported.
 
 See [Files and formats](/reference/files/) for library metadata and [Adapt rules](/guides/select-rules/#adapt-the-import-to-your-project) for examples of exceptions.

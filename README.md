@@ -2,7 +2,7 @@
 
 [Fabrica Code Rules](https://code-rules.fabricahq.com) is the package manager for your engineering rules. Author project rules, adopt versioned Git libraries, and generate Markdown that agents can read before they work.
 
-The Go CLI is implemented. Public release publication and the installable authoring skill remain separate work; see [project status](docs/src/content/docs/status.md).
+The Go CLI is available. The installable authoring skill remains separate work; see [project status](docs/src/content/docs/status.md).
 
 ## Build the CLI
 

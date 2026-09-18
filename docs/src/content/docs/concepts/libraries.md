@@ -50,7 +50,7 @@ See [License rules](/guides/license-rules/) for what library terms should cover 
 
 ## Import multiple canonical sources
 
-The first-release design supports multiple libraries imported directly by a project.
+A project can import multiple libraries directly.
 For example, a project can import `fabricahq/.code-rules-example` as `fabrica` and `acme/.code-rules` as `acme`.
 Each source owns its rules, and the project selects each source's exact ref or version constraint independently.
 Sync records each resolved commit so offline work uses the exact imported snapshot.
@@ -67,8 +67,8 @@ It identifies the repository, requested revision, resolved commit, and declared 
 Declared license and notice copies live in that folder’s `licenses/` directory; libraries without declarations omit that directory.
 The full resolved rules live separately in `generated/rules/`.
 
-## Leave room for another level
+## Nested library inheritance
 
-The longer-term model allows an organization to inherit a shared library, adapt it, and publish rules for its projects.
-That publishing mechanism will need to preserve rule identities and provenance across levels.
-It is outside the first release.
+Code Rules does not import a library that itself inherits and republishes other libraries.
+A project imports each canonical library directly.
+Any later publishing mechanism needs to preserve rule identities and provenance across levels.

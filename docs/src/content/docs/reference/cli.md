@@ -3,7 +3,7 @@ title: "CLI commands"
 description: "Project and library commands, output, and error behavior."
 ---
 
-The Go CLI implements project setup, local and library authoring, source addition, sync, build, and check. [Build or install a candidate executable](/guides/install/) to use it. Public release publication remains separate work. The conflict-review prompt and tool-update commands are not implemented.
+The Go CLI implements project setup, local and library authoring, source addition, sync, build, and check. [Install the CLI](/guides/install/) to use it. The conflict-review prompt and tool-update commands are not implemented.
 See [Sync and recovery](/reference/sync/) for filesystem behavior.
 
 ## Choose a scope
@@ -120,7 +120,7 @@ It does not mean application code follows those rules.
 
 ## Conflict review prompt
 
-`code-rules conflicts --prompt` is proposed and is not accepted by the current CLI. Use the manual [conflict-review prompt](/guides/conflicting-guidance/) with an agent today. The agent reviews guidance; the CLI does not assess application compliance or resolve contradictory policies.
+`code-rules conflicts --prompt` is proposed and is not accepted by the current CLI. Use the manual [conflict-review prompt](/guides/conflicting-guidance/) with an agent. The agent reviews guidance; the CLI does not assess application compliance or resolve contradictory policies.
 
 ## Update the tool
 

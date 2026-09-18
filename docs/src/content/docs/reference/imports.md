@@ -42,7 +42,7 @@ Preserve source-labeled group metadata and rule provenance; source order does no
 Each local rule appears once, including when referenced by a replacement.
 Generated guidance uses the local ID, title, metadata, body, attribution, and asset references.
 Replacement targets and reasons remain in configuration and provenance, outside the rule guidance.
-Replacements stay within their target group in the first release.
+Replacements stay within their target group.
 
 Record the requested ref or version constraint and resolved commit for every snapshot. Version selections also record the chosen tag and normalized version.
 Use resolved commits for remote source links so a moved tag does not change what a link points to.
@@ -63,7 +63,7 @@ Detect concurrent writes and interrupted installations so mixed output cannot pa
 
 ## Keep sources reviewable
 
-Sync reports changed files, including group metadata and source records. A semantic report identifying added and removed groups remains planned.
+Sync reports changed files, including group metadata and source records. A semantic report identifying added and removed groups is not available.
 
 Copy selected upstream group source files into `vendor/<source-name>/`, including rules hidden by project exceptions.
 That retained text lets an update report expose upstream changes that a replacement would otherwise hide.

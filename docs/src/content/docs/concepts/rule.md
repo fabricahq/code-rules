@@ -28,7 +28,7 @@ Required metadata records the title, `whenToRead`, impact, and the consequence t
 Optional tags supply search terms; they do not select rules.
 
 The [rubric and template](/reference/rule-authoring/) define the authoring standard.
-The planned [Code Rules skill](/guides/write-rules/) helps agents draft, revise, and review rules against that standard.
+Agents can follow them directly. An installable [Code Rules skill](/guides/write-rules/) is planned.
 
 ## Where a rule lives
 
