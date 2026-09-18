@@ -15,12 +15,12 @@ interface Props { title: string; id: string; task: string; steps: Step[]; select
 const { title, id, task, steps, selected = false } = Astro.props;
 ---
 <section id={`session-${id}`} role="tabpanel" aria-labelledby={`tab-${id}`} hidden={!selected}>
-  <div class="transcript" role="region" aria-label={`${title} transcript`} data-transcript>
-    <div class="prompt"><span class="prompt-symbol" aria-hidden="true">❯</span><div><p>{task}</p></div></div>
-    {steps.map(step => <div class="event" data-event data-title={step.title}>
-      <div class="agent-message"><span class="agent-symbol" aria-hidden="true">✳︎</span><div><p data-note>{step.note}</p></div></div>
-      <div class="tool-call" data-tool data-kind={step.kind}>
-        <div class="tool-heading"><span class="tool-icon" aria-hidden="true">{step.kind === 'FAIL' ? '!' : step.kind === 'TEST' ? '✓' : '↳'}</span><span class="tool-kind">{step.kind === 'RULE' ? 'Read rule' : step.kind === 'FAIL' || step.kind === 'TEST' ? 'Run' : step.kind === 'PATCH' ? 'Apply patch' : step.kind === 'EDIT' ? 'Edit' : 'Read'}:</span><span class="tool-file">{step.file}</span><span class="tool-state" data-tool-state>done</span></div>
+  <div class="min-h-[27rem] py-4 px-[1.4rem] [@media(360px<width<=540px)]:min-h-[29rem] [@media(max-width:540px)]:py-[1.1rem] [@media(max-width:540px)]:px-[.85rem] [@media(max-width:360px)]:min-h-[34rem]" role="region" aria-label={`${title} transcript`} data-transcript>
+    <div class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-[.6rem] pb-3 mb-[.85rem] border-b border-demo-border"><span class="text-demo-blue font-bold" aria-hidden="true">❯</span><div><p class="m-0 font-sans text-[.9rem] leading-[1.7] text-demo-ink [overflow-wrap:anywhere] [@media(max-width:540px)]:text-[.85rem]">{task}</p></div></div>
+    {steps.map(step => <div class="mb-[.65rem] last:mb-0" data-event data-title={step.title}>
+      <div class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-[.6rem]"><span class="text-demo-purple text-[1.15rem] leading-[1.2]" aria-hidden="true">✳︎</span><div><p class="m-0 font-sans text-[.9rem] leading-[1.7] text-demo-ink [overflow-wrap:anywhere] [@media(max-width:540px)]:text-[.85rem]" data-note>{step.note}</p></div></div>
+      <div class="tool-call mt-[.4rem] ml-[1.85rem] bg-transparent border border-demo-border rounded-lg overflow-hidden [--sample-size:.76rem] [--sample-padding:.5rem_.85rem] [@media(max-width:540px)]:ml-0 [@media(max-width:540px)]:[--sample-size:.7rem] [@media(max-width:540px)]:[--sample-padding:.5rem_.7rem]" data-tool data-kind={step.kind}>
+        <div class="flex items-baseline gap-[.6rem] py-[.35rem] px-[.85rem] border-b border-demo-border font-mono text-[.67rem] leading-[1.6] [@media(max-width:540px)]:px-[.7rem] [@media(max-width:540px)]:gap-[.4rem] [@media(max-width:540px)]:text-[.6rem]"><span class="text-demo-muted shrink-0" aria-hidden="true">{step.kind === 'FAIL' ? '!' : step.kind === 'TEST' ? '✓' : '↳'}</span><span class="text-demo-muted shrink-0">{step.kind === 'RULE' ? 'Read rule' : step.kind === 'FAIL' || step.kind === 'TEST' ? 'Run' : step.kind === 'PATCH' ? 'Apply patch' : step.kind === 'EDIT' ? 'Edit' : 'Read'}:</span><span class="text-demo-muted [overflow-wrap:anywhere] min-w-0">{step.file}</span><span class="tool-state ml-auto text-demo-muted text-[.6rem] [@media(max-width:540px)]:hidden" data-tool-state>done</span></div>
         <CodeSample code={step.code} lang={step.lang} label={step.file} tone="terminal" />
       </div>
     </div>)}
@@ -28,19 +28,6 @@ const { title, id, task, steps, selected = false } = Astro.props;
 </section>
 <style>
   [hidden] { display: none !important; }
-  .transcript { min-height: 27rem; padding: 1rem 1.4rem; }
-  .prompt, .agent-message { display: grid; grid-template-columns: 1.25rem minmax(0, 1fr); gap: .6rem; }
-  .prompt { padding-bottom: .75rem; margin-bottom: .85rem; border-bottom: 1px solid var(--demo-border); }
-  .prompt-symbol { color: var(--demo-blue); font-weight: 700; }
-  .agent-symbol { color: var(--demo-purple); font-size: 1.15rem; line-height: 1.2; }
-  p { margin: 0; font: .9rem/1.7 var(--sl-font); color: var(--demo-ink); overflow-wrap: anywhere; }
-  .event { margin-bottom: .65rem; }
-  .event:last-child { margin-bottom: 0; }
-  .tool-call { margin: .4rem 0 0 1.85rem; background: transparent; border: 1px solid var(--demo-border); border-radius: 8px; overflow: hidden; --sample-size: .76rem; --sample-padding: .5rem .85rem; }
-  .tool-heading { display: flex; align-items: baseline; gap: .6rem; padding: .35rem .85rem; border-bottom: 1px solid var(--demo-border); font: .67rem/1.6 var(--cr-font-mono); }
-  .tool-icon, .tool-kind { color: var(--demo-muted); flex-shrink: 0; }
-  .tool-file { color: var(--demo-muted); overflow-wrap: anywhere; min-width: 0; }
-  .tool-state { margin-left: auto; color: var(--demo-muted); font-size: .6rem; }
   .tool-state[data-running]::after { content: '…'; }
   [data-kind='FAIL'] .tool-state { color: var(--demo-red); }
   [data-typing]::after { content: ''; display: inline-block; width: .45rem; height: .9em; margin-left: .2rem; background: var(--demo-purple); vertical-align: -.08em; }
@@ -51,14 +38,5 @@ const { title, id, task, steps, selected = false } = Astro.props;
   .tool-call :global(.line.removed) { color: var(--demo-red); background: color-mix(in srgb, var(--demo-red) 8%, transparent); }
   .tool-call[data-kind='FAIL'] :global(pre.astro-code) { color: var(--demo-red) !important; }
   .tool-call[data-kind='TEST'] :global(pre.astro-code) { color: var(--demo-green) !important; }
-  @media (max-width: 540px) {
-    .transcript { min-height: 29rem; padding: 1.1rem .85rem; }
-    .tool-call { margin-left: 0; --sample-size: .7rem; --sample-padding: .5rem .7rem; }
-    p { font-size: .85rem; }
-    .tool-heading { padding: .35rem .7rem; gap: .4rem; font-size: .6rem; }
-    .tool-state { display: none; }
-  }
-  @media (max-width: 360px) {
-    .transcript { min-height: 34rem; }
-  }
+
 </style>

@@ -1,0 +1,43 @@
+/* Starlight owns the reset; utilities follow its theme and component layers. */
+@layer base, starlight, theme, components, utilities;
+@import '@astrojs/starlight-tailwind';
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source('../');
+
+/* Alias the existing light/dark palette rather than maintaining two themes. */
+@theme inline {
+  --color-paper: var(--cr-paper);
+  --color-surface: var(--cr-surface);
+  --color-ink: var(--cr-ink);
+  --color-muted: var(--cr-muted);
+  --color-line: var(--cr-line);
+  --color-faint: var(--cr-faint);
+  --color-button: var(--cr-button);
+  --color-button-text: var(--cr-button-text);
+  --color-demo-ink: var(--demo-ink);
+  --color-demo-muted: var(--demo-muted);
+  --color-demo-border: var(--demo-border);
+  --color-demo-panel: var(--demo-panel);
+  --color-demo-tool: var(--demo-tool);
+  --color-demo-bar: var(--demo-bar);
+  --color-demo-blue: var(--demo-blue);
+  --color-demo-purple: var(--demo-purple);
+  --color-demo-green: var(--demo-green);
+  --color-demo-red: var(--demo-red);
+  --font-sans: var(--sl-font);
+  --font-mono: var(--cr-font-mono);
+  --text-xs--line-height: 1.75;
+  --text-sm--line-height: 1.75;
+  --radius-badge: var(--cr-radius-sm);
+  --radius-card: var(--cr-radius-md);
+  --radius-panel: var(--cr-radius-lg);
+}
+
+/* Repeated editorial treatments shared by homepage illustrations. */
+@layer components {
+  .cr-index { @apply text-muted text-xs tracking-[.12em] font-medium; }
+  .cr-button { @apply inline-flex gap-8 items-center justify-center min-h-12 px-6 py-3 border border-muted rounded-full text-sm font-medium no-underline text-ink bg-transparent transition-[background-color,border-color] duration-160 ease-[ease] hover:bg-surface hover:border-ink focus-visible:bg-surface focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-4 motion-reduce:transition-none; }
+  .cr-button.primary { @apply bg-button text-button-text border-button hover:bg-[color-mix(in_srgb,var(--cr-button)_85%,var(--cr-paper))] hover:border-button focus-visible:bg-[color-mix(in_srgb,var(--cr-button)_85%,var(--cr-paper))] focus-visible:border-button; }
+  .cr-aside { @apply mt-6 mb-0 ml-0 mr-0 pl-4 border-l-2 border-line text-muted text-[.8rem] italic leading-[1.65] max-w-3xl; }
+  .cr-aside a { @apply text-ink underline-offset-3; }
+}
