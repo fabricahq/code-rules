@@ -15,9 +15,15 @@ const write = [readRule, {
   note: 'Verified: no passwords in the logs.',
   code: '✓ Sign-ins logged · passwords excluded', lang: 'text' as const,
 }];
-const review = [readRule, {
+const review = [{
+  title: 'Inspect the code', kind: 'READ', file: 'sign-in.ts · excerpt',
+  note: 'This sign-in handler logs credentials.',
+  code: 'log.info({ userId, password });', lang: 'ts' as const,
+}, {
+  ...readRule, note: 'I’ll check your rule for logging secrets.',
+}, {
   title: 'Find and fix', kind: 'PATCH', file: 'sign-in.ts · excerpt',
-  note: 'This logs the password. I’ll remove it.',
+  note: 'Logging the password violates this rule. I’ll remove it.',
   code: '- log.info({ userId, password });\n+ log.info({ userId });', lang: 'diff' as const,
 }, {
   title: 'Verify the fix', kind: 'TEST', file: 'bun test',
