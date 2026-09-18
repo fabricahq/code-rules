@@ -1,10 +1,15 @@
-/** @fileoverview Rejects mutable external action references before workflow changes merge. */
+/**
+ * @fileoverview Scans every YAML file in .github/workflows for action and reusable-workflow references.
+ * Requires external references to use fixed commits or image digests so upstream tag changes cannot silently change CI code.
+ * Checks reference format only; it does not verify who published the code or whether it is safe.
+ */
 
 import { expect, test } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
-// Check both step actions and job-level reusable workflows, while permitting local code.
+// Local actions use the checked-out source. External actions require a full commit SHA,
+// and Docker images require a SHA-256 digest; tags such as @v3 or :latest fail.
 function expectImmutableReference(reference: string) {
   if (reference.startsWith('./')) return;
   if (reference.startsWith('docker://')) {
@@ -14,6 +19,7 @@ function expectImmutableReference(reference: string) {
   expect(reference).toMatch(/^[\w.-]+\/[\w./-]+@[a-f0-9]{40}$/);
 }
 
+// Discover workflows automatically so newly added files inherit the same policy.
 for (const file of readdirSync('.github/workflows').filter((name) =>
   /\.ya?ml$/.test(name),
 )) {
