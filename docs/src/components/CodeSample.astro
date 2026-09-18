@@ -59,18 +59,31 @@ const theme = createCssVariablesTheme({ variablePrefix: '--sample-', fontStyle: 
     --sample-token-punctuation: #24292e;
     --sample-token-link: #0366d6;
   }
+  /* This tone is self-contained; syntax colors do not inherit session status colors. */
   .code-sample.terminal {
-    --sample-foreground: var(--demo-ink);
-    --sample-token-constant: var(--demo-amber);
-    --sample-token-string: var(--demo-green);
-    --sample-token-comment: var(--demo-muted);
-    --sample-token-keyword: var(--demo-purple);
-    --sample-token-parameter: var(--demo-ink);
-    --sample-token-function: var(--demo-blue);
-    --sample-token-string-expression: var(--demo-green);
-    --sample-token-punctuation: var(--demo-muted);
-    --sample-token-link: var(--demo-blue);
+    --sample-foreground: #e1e9f5;
+    --sample-token-constant: #eac483;
+    --sample-token-string: #80d9b2;
+    --sample-token-comment: #99aac2;
+    --sample-token-keyword: #c5a4ff;
+    --sample-token-parameter: #e1e9f5;
+    --sample-token-function: #7fc5ff;
+    --sample-token-string-expression: #80d9b2;
+    --sample-token-punctuation: #99aac2;
+    --sample-token-link: #7fc5ff;
   }
-  .code-sample :global(pre.astro-code) { margin: 0; padding: var(--sample-padding, 1.25rem); border: 0; background: transparent; font: var(--sample-size, .78rem)/1.8 var(--cr-font-mono); white-space: pre-wrap; overflow: auto; overflow-wrap: anywhere; tab-size: 2; }
+  :global([data-theme='light']) .code-sample.terminal {
+    --sample-foreground: #23324a;
+    --sample-token-constant: #966022;
+    --sample-token-string: #267553;
+    --sample-token-comment: #60718b;
+    --sample-token-keyword: #7850ae;
+    --sample-token-parameter: #23324a;
+    --sample-token-function: #216bb0;
+    --sample-token-string-expression: #267553;
+    --sample-token-punctuation: #60718b;
+    --sample-token-link: #216bb0;
+  }
+  .code-sample :global(pre.astro-code) { margin: 0; padding: var(--sample-padding, 1.25rem); border: 0; background: transparent; font: var(--sample-font-size, .78rem)/1.8 var(--cr-font-mono); white-space: pre-wrap; overflow: auto; overflow-wrap: anywhere; tab-size: 2; }
   .code-sample :global(pre code) { font: inherit; color: inherit; background: none; padding: 0; border: 0; }
 </style>

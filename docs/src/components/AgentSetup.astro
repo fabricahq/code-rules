@@ -1,26 +1,26 @@
 ---
 /** @fileoverview Illustrates connecting a coding agent to the project's rules through an AGENTS.md instruction card and a static task prompt. */
 ---
-<figure class="application min-w-0 m-0 border border-line rounded-2xl overflow-hidden bg-paper text-ink" aria-label="Example agent setup with project instructions">
-  <div class="flex flex-wrap items-center gap-[.65rem] py-4 px-5 border-b border-line bg-surface text-[.8rem] font-medium max-sm:p-4"><span class="text-[1.15rem] text-(--setup-purple)" aria-hidden="true">✳︎</span><span>Your coding agent</span><span class="ml-auto text-muted text-[.55rem] tracking-[.12em]">PROJECT SETUP</span></div>
+<figure class="application min-w-0 m-0 border border-border rounded-2xl overflow-hidden bg-paper text-ink" aria-label="Example agent setup with project instructions">
+  <div class="flex flex-wrap items-center gap-[.65rem] py-4 px-5 border-b border-border bg-surface text-[.8rem] font-medium max-sm:p-4"><span class="text-[1.15rem] text-(--setup-agent)" aria-hidden="true">✳︎</span><span>Your coding agent</span><span class="ml-auto text-muted text-[.55rem] tracking-[.12em]">PROJECT SETUP</span></div>
   <div class="p-[1.4rem] max-sm:p-4">
     <p class="mt-0 mx-0 mb-[.8rem] text-muted text-[.6rem] leading-[1.7] tracking-[.1em]">GIVE YOUR AGENT PROJECT INSTRUCTIONS</p>
-    <div class="border border-line rounded-[9px] overflow-hidden">
-      <div class="flex items-center gap-2 py-[.65rem] px-[.9rem] border-b border-line bg-surface text-ink font-mono text-xs leading-[1.6] [&_svg]:shrink-0 [&_svg]:text-muted"><svg aria-hidden="true" width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg><span>AGENTS.md</span></div>
-      <div class="p-4 max-sm:p-[.85rem] [&_p]:mt-0 [&_p]:mx-0 [&_p]:mb-3 [&_p:last-child]:mb-0 [&_p]:text-ink [&_p]:text-[.85rem] [&_p]:leading-[1.65] [&_strong]:font-semibold [&_code]:p-0 [&_code]:border-0 [&_code]:bg-transparent [&_code]:text-(--setup-blue) [&_code]:font-mono [&_code]:text-xs [&_code]:leading-[1.6] [&_code]:[overflow-wrap:anywhere]">
+    <div class="border border-border rounded-[9px] overflow-hidden">
+      <div class="flex items-center gap-2 py-[.65rem] px-[.9rem] border-b border-border bg-surface text-ink font-mono text-xs leading-[1.6] [&_svg]:shrink-0 [&_svg]:text-muted"><svg aria-hidden="true" width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg><span>AGENTS.md</span></div>
+      <div class="p-4 max-sm:p-[.85rem] [&_p]:mt-0 [&_p]:mx-0 [&_p]:mb-3 [&_p:last-child]:mb-0 [&_p]:text-ink [&_p]:text-[.85rem] [&_p]:leading-[1.65] [&_strong]:font-semibold [&_code]:p-0 [&_code]:border-0 [&_code]:bg-transparent [&_code]:text-(--setup-rule-path) [&_code]:font-mono [&_code]:text-xs [&_code]:leading-[1.6] [&_code]:[overflow-wrap:anywhere]">
         <p><strong>Use this project’s engineering rules.</strong></p>
         <p>Before writing or reviewing code, read<br /><code>.code-rules/generated/RULES.md</code></p>
         <p>Follow its instructions to select and read the rules that apply to your task.</p>
       </div>
     </div>
     <div class="grid place-items-center h-8 text-muted" aria-hidden="true">↓</div>
-    <div class="flex items-center justify-between gap-4 border border-line rounded-lg p-[.9rem] text-muted text-[.8rem] leading-[1.5] [&_svg]:shrink-0"><span>What would you like to build?</span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></div>
+    <div class="flex items-center justify-between gap-4 border border-border rounded-lg p-[.9rem] text-muted text-[.8rem] leading-[1.5] [&_svg]:shrink-0"><span>What would you like to build?</span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></div>
   </div>
   <figcaption class="pt-0 px-[1.4rem] pb-[1.2rem] text-muted text-[.65rem] leading-[1.6] max-sm:px-4">Example setup. Use your coding agent’s project instruction file.</figcaption>
 </figure>
 <style>
 
-.application { --setup-purple: #c4a1e8; --setup-blue: #8bbbe7; }
-:global([data-theme='light']) .application { --setup-purple: #7850ae; --setup-blue: #216bb0; }
+.application { --setup-agent: #c4a1e8; --setup-rule-path: #8bbbe7; }
+:global([data-theme='light']) .application { --setup-agent: #7850ae; --setup-rule-path: #216bb0; }
 
 </style>

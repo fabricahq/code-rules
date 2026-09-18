@@ -54,6 +54,7 @@ Starlight owns the reset; do not add Tailwind Preflight alongside it.
 
 Prefer semantic colors such as `text-ink`, `text-muted`, and `bg-surface`.
 They follow Starlight’s saved theme and automatic system preference.
+See [Design tokens](design-tokens.md) for token roles, component scope, and rules for adding or reusing them.
 Use the shared responsive variants instead of inline viewport queries:
 
 - `sm:` starts at 30rem (480px), matching Starlight's smaller file-tree cutoff.

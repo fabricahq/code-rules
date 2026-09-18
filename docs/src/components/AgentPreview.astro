@@ -34,17 +34,17 @@ const review = [{
 <figure id="agent-preview" class="mx-auto my-0 max-w-[49rem] scroll-mt-20" aria-label="Illustrative agent sessions">
   <agent-demo class="block">
     <div class="flex justify-center gap-[.4rem] mb-[1.1rem]" role="tablist" aria-label="Choose an agent session" hidden data-tabs>
-      <button class="min-h-11 py-[.65rem] px-5 border border-transparent rounded-lg bg-transparent text-muted font-sans text-[.85rem] leading-[normal] font-medium cursor-pointer aria-selected:bg-demo-tool aria-selected:text-demo-blue aria-selected:border-demo-border data-[tab=review]:aria-selected:text-demo-purple max-sm:text-xs max-sm:px-3 [&_span]:mr-[.45rem]" type="button" role="tab" id="tab-write" aria-controls="session-write" aria-selected="true" tabindex="0" data-tab="write"><span aria-hidden="true">✳︎</span> Write with rules</button>
-      <button class="min-h-11 py-[.65rem] px-5 border border-transparent rounded-lg bg-transparent text-muted font-sans text-[.85rem] leading-[normal] font-medium cursor-pointer aria-selected:bg-demo-tool aria-selected:text-demo-blue aria-selected:border-demo-border data-[tab=review]:aria-selected:text-demo-purple max-sm:text-xs max-sm:px-3 [&_span]:mr-[.45rem]" type="button" role="tab" id="tab-review" aria-controls="session-review" aria-selected="false" tabindex="-1" data-tab="review"><svg class="inline-block mr-[.45rem] align-[-.2em]" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg> Review and fix</button>
+      <button class="min-h-11 py-[.65rem] px-5 border border-transparent rounded-lg bg-transparent text-muted font-sans text-[.85rem] leading-[normal] font-medium cursor-pointer aria-selected:bg-(--session-surface-subtle) aria-selected:text-(--session-action) aria-selected:border-(--session-border) data-[tab=review]:aria-selected:text-(--session-agent) max-sm:text-xs max-sm:px-3 [&_span]:mr-[.45rem]" type="button" role="tab" id="tab-write" aria-controls="session-write" aria-selected="true" tabindex="0" data-tab="write"><span aria-hidden="true">✳︎</span> Write with rules</button>
+      <button class="min-h-11 py-[.65rem] px-5 border border-transparent rounded-lg bg-transparent text-muted font-sans text-[.85rem] leading-[normal] font-medium cursor-pointer aria-selected:bg-(--session-surface-subtle) aria-selected:text-(--session-action) aria-selected:border-(--session-border) data-[tab=review]:aria-selected:text-(--session-agent) max-sm:text-xs max-sm:px-3 [&_span]:mr-[.45rem]" type="button" role="tab" id="tab-review" aria-controls="session-review" aria-selected="false" tabindex="-1" data-tab="review"><svg class="inline-block mr-[.45rem] align-[-.2em]" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg> Review and fix</button>
     </div>
-    <div class="relative border border-demo-border rounded-[14px] overflow-hidden bg-demo-panel shadow-[0_20px_65px_-30px_#547cba55,0_2px_8px_#162a4910]" data-session-window>
-      <div class="flex items-center gap-4 py-[.9rem] px-5 border-b border-demo-border bg-demo-bar text-demo-ink font-sans text-[.8rem] leading-[normal] max-sm:px-[.85rem] max-sm:text-[.65rem]"><span class="grid place-items-center size-[30px] rounded-lg text-demo-purple bg-[color-mix(in_srgb,var(--demo-purple)_12%,transparent)] text-[1.2rem]" aria-hidden="true">✳︎</span><span class="font-[550]">Your coding agent <span class="block mt-[.2rem] text-demo-muted font-normal font-mono text-[.65rem] leading-[normal]">acme-checkout</span></span><span class="ml-auto text-[.6rem] tracking-[.12em] text-demo-muted max-sm:text-[.5rem]">EXAMPLE SESSION</span></div>
+    <div class="relative border border-(--session-border) rounded-[14px] overflow-hidden bg-(--session-surface) shadow-[0_20px_65px_-30px_#547cba55,0_2px_8px_#162a4910]" data-session-window>
+      <div class="flex items-center gap-4 py-[.9rem] px-5 border-b border-(--session-border) bg-(--session-surface-header) text-(--session-text) font-sans text-[.8rem] leading-[normal] max-sm:px-[.85rem] max-sm:text-[.65rem]"><span class="grid place-items-center size-[30px] rounded-lg text-(--session-agent) bg-[color-mix(in_srgb,var(--session-agent)_12%,transparent)] text-[1.2rem]" aria-hidden="true">✳︎</span><span class="font-[550]">Your coding agent <span class="block mt-[.2rem] text-(--session-text-muted) font-normal font-mono text-[.65rem] leading-[normal]">acme-checkout</span></span><span class="ml-auto text-[.6rem] tracking-[.12em] text-(--session-text-muted) max-sm:text-[.5rem]">EXAMPLE SESSION</span></div>
       <div class="relative">
         <AgentSession id="write" title="Write with rules" task="Add logging for successful sign-ins." steps={write} selected />
         <AgentSession id="review" title="Review and fix" task="Review our sign-in logging. Fix any issues." steps={review} />
-        <div class="absolute inset-0 grid place-items-center bg-[linear-gradient(transparent_15%,var(--demo-panel)_55%)]" hidden data-preview-overlay>
-          <button type="button" class="inline-flex items-center gap-[.65rem] min-h-[52px] py-3 px-[1.4rem] border border-demo-border rounded-full bg-demo-panel text-demo-ink shadow-[0_4px_18px_#162a4912,0_1px_3px_#162a4910] cursor-pointer font-sans text-[.85rem] font-medium leading-[normal] hover:border-demo-blue hover:bg-demo-tool focus-visible:outline-2 focus-visible:outline-demo-blue focus-visible:outline-offset-4" data-start aria-label="Play example session">
-            <span class="grid place-items-center text-demo-blue [&_svg]:size-5"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m8 4 12 8-12 8Z" /></svg></span>
+        <div class="absolute inset-0 grid place-items-center bg-[linear-gradient(transparent_15%,var(--session-surface)_55%)]" hidden data-preview-overlay>
+          <button type="button" class="inline-flex items-center gap-[.65rem] min-h-[52px] py-3 px-[1.4rem] border border-(--session-border) rounded-full bg-(--session-surface) text-(--session-text) shadow-[0_4px_18px_#162a4912,0_1px_3px_#162a4910] cursor-pointer font-sans text-[.85rem] font-medium leading-[normal] hover:border-(--session-action) hover:bg-(--session-surface-subtle) focus-visible:outline-2 focus-visible:outline-(--session-action) focus-visible:outline-offset-4" data-start aria-label="Play example session">
+            <span class="grid place-items-center text-(--session-action) [&_svg]:size-5"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m8 4 12 8-12 8Z" /></svg></span>
             <span>Play example</span>
           </button>
         </div>
@@ -52,13 +52,13 @@ const review = [{
     </div>
     <div class="playback flex flex-wrap items-center justify-between gap-x-4 gap-y-[.6rem] mt-[.85rem] max-sm:gap-2" hidden data-controls>
       <div class="flex flex-wrap justify-end gap-2 ml-auto max-sm:w-full">
-        <button type="button" class="inline-flex items-center justify-center gap-[.3rem] min-h-8 py-1 px-2 bg-transparent border border-demo-border rounded-badge text-demo-muted cursor-pointer font-sans text-[.65rem] leading-[normal] disabled:cursor-default hover:not-disabled:bg-demo-tool hover:not-disabled:border-demo-blue [&_svg]:size-[13px] [&_svg]:shrink-0 min-w-16" data-play>
+        <button type="button" class="inline-flex items-center justify-center gap-[.3rem] min-h-8 py-1 px-2 bg-transparent border border-(--session-border) rounded-small text-(--session-text-muted) cursor-pointer font-sans text-[.65rem] leading-[normal] disabled:cursor-default hover:not-disabled:bg-(--session-surface-subtle) hover:not-disabled:border-(--session-action) [&_svg]:size-[13px] [&_svg]:shrink-0 min-w-16" data-play>
           <svg class="play-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m8 5 11 7-11 7Z" /></svg>
           <svg class="pause-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 5v14M16 5v14" /></svg>
           <span data-play-label>Play</span>
         </button>
-        <button type="button" class="inline-flex items-center justify-center gap-[.3rem] min-h-8 py-1 px-2 bg-transparent border border-demo-border rounded-badge text-demo-muted cursor-pointer font-sans text-[.65rem] leading-[normal] disabled:cursor-default hover:not-disabled:bg-demo-tool hover:not-disabled:border-demo-blue [&_svg]:size-[13px] [&_svg]:shrink-0" data-replay><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" /></svg>Replay</button>
-        <button type="button" class="inline-flex items-center justify-center gap-[.3rem] min-h-8 py-1 px-2 bg-transparent border border-demo-border rounded-badge text-demo-muted cursor-pointer font-sans text-[.65rem] leading-[normal] disabled:cursor-default hover:not-disabled:bg-demo-tool hover:not-disabled:border-demo-blue [&_svg]:size-[13px] [&_svg]:shrink-0" data-finish><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" /></svg>Show full session</button>
+        <button type="button" class="inline-flex items-center justify-center gap-[.3rem] min-h-8 py-1 px-2 bg-transparent border border-(--session-border) rounded-small text-(--session-text-muted) cursor-pointer font-sans text-[.65rem] leading-[normal] disabled:cursor-default hover:not-disabled:bg-(--session-surface-subtle) hover:not-disabled:border-(--session-action) [&_svg]:size-[13px] [&_svg]:shrink-0" data-replay><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" /></svg>Replay</button>
+        <button type="button" class="inline-flex items-center justify-center gap-[.3rem] min-h-8 py-1 px-2 bg-transparent border border-(--session-border) rounded-small text-(--session-text-muted) cursor-pointer font-sans text-[.65rem] leading-[normal] disabled:cursor-default hover:not-disabled:bg-(--session-surface-subtle) hover:not-disabled:border-(--session-action) [&_svg]:size-[13px] [&_svg]:shrink-0" data-finish><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" /></svg>Show full session</button>
       </div>
     </div>
     <noscript><p class="text-muted text-xs leading-[1.6] text-center mt-4">Enable JavaScript to play the demos or switch sessions. The complete writing session is shown above.</p></noscript>
@@ -68,17 +68,18 @@ const review = [{
   import './agent-demo';
 </script>
 <style>
+  /* Private to this session and its AgentSession children. Equal colors can serve independent roles. */
   agent-demo {
-    --demo-ink: #e1e9f5; --demo-muted: #99aac2; --demo-border: #2c3a50;
-    --demo-panel: #121c2b; --demo-tool: #172336; --demo-bar: #1b293e;
-    --demo-blue: #7fc5ff; --demo-purple: #c5a4ff; --demo-green: #80d9b2;
-    --demo-red: #ff9c9d; --demo-amber: #eac483;
+    --session-text: #e1e9f5; --session-text-muted: #99aac2; --session-border: #2c3a50;
+    --session-surface: #121c2b; --session-surface-subtle: #172336; --session-surface-header: #1b293e;
+    --session-action: #7fc5ff; --session-user: #7fc5ff; --session-agent: #c5a4ff; --session-success: #80d9b2;
+    --session-error: #ff9c9d; --session-diff-added: #80d9b2; --session-diff-removed: #ff9c9d;
   }
   :global([data-theme='light']) agent-demo {
-    --demo-ink: #23324a; --demo-muted: #60718b; --demo-border: #dce4ef;
-    --demo-panel: #fcfdff; --demo-tool: #f4f7fc; --demo-bar: #eef3fb;
-    --demo-blue: #216bb0; --demo-purple: #7850ae; --demo-green: #267553;
-    --demo-red: #af3c47; --demo-amber: #966022;
+    --session-text: #23324a; --session-text-muted: #60718b; --session-border: #dce4ef;
+    --session-surface: #fcfdff; --session-surface-subtle: #f4f7fc; --session-surface-header: #eef3fb;
+    --session-action: #216bb0; --session-user: #216bb0; --session-agent: #7850ae; --session-success: #267553;
+    --session-error: #af3c47; --session-diff-added: #267553; --session-diff-removed: #af3c47;
   }
 
   /* Playback state changes which controls are visible, not their layout. */

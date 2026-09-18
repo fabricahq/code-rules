@@ -16,11 +16,11 @@ const { title, id, task, steps, selected = false } = Astro.props;
 ---
 <section id={`session-${id}`} role="tabpanel" aria-labelledby={`tab-${id}`} hidden={!selected}>
   <div class="min-h-[27rem] py-4 px-[1.4rem] max-sm:min-h-[29rem] max-sm:py-[1.1rem] max-sm:px-[.85rem]" role="region" aria-label={`${title} transcript`} data-transcript>
-    <div class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-[.6rem] pb-3 mb-[.85rem] border-b border-demo-border"><span class="text-demo-blue font-bold" aria-hidden="true">❯</span><div><p class="m-0 font-sans text-[.9rem] leading-[1.7] text-demo-ink [overflow-wrap:anywhere] max-sm:text-[.85rem]">{task}</p></div></div>
+    <div class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-[.6rem] pb-3 mb-[.85rem] border-b border-(--session-border)"><span class="text-(--session-user) font-bold" aria-hidden="true">❯</span><div><p class="m-0 font-sans text-[.9rem] leading-[1.7] text-(--session-text) [overflow-wrap:anywhere] max-sm:text-[.85rem]">{task}</p></div></div>
     {steps.map(step => <div class="mb-[.65rem] last:mb-0" data-event data-title={step.title}>
-      <div class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-[.6rem]"><span class="text-demo-purple text-[1.15rem] leading-[1.2]" aria-hidden="true">✳︎</span><div><p class="m-0 font-sans text-[.9rem] leading-[1.7] text-demo-ink [overflow-wrap:anywhere] max-sm:text-[.85rem]" data-note>{step.note}</p></div></div>
-      <div class="tool-call mt-[.4rem] ml-[1.85rem] bg-transparent border border-demo-border rounded-lg overflow-hidden [--sample-size:.76rem] [--sample-padding:.5rem_.85rem] max-sm:ml-0 max-sm:[--sample-size:.7rem] max-sm:[--sample-padding:.5rem_.7rem]" data-tool data-kind={step.kind}>
-        <div class="flex items-baseline gap-[.6rem] py-[.35rem] px-[.85rem] border-b border-demo-border font-mono text-[.67rem] leading-[1.6] max-sm:px-[.7rem] max-sm:gap-[.4rem] max-sm:text-[.6rem]"><span class="text-demo-muted shrink-0" aria-hidden="true">{step.kind === 'FAIL' ? '!' : step.kind === 'TEST' ? '✓' : '↳'}</span><span class="text-demo-muted shrink-0">{step.kind === 'RULE' ? 'Read rule' : step.kind === 'FAIL' || step.kind === 'TEST' ? 'Run' : step.kind === 'PATCH' ? 'Apply patch' : step.kind === 'EDIT' ? 'Edit' : 'Read'}:</span><span class="text-demo-muted [overflow-wrap:anywhere] min-w-0">{step.file}</span><span class="tool-state ml-auto text-demo-muted text-[.6rem] max-sm:hidden" data-tool-state>done</span></div>
+      <div class="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-[.6rem]"><span class="text-(--session-agent) text-[1.15rem] leading-[1.2]" aria-hidden="true">✳︎</span><div><p class="m-0 font-sans text-[.9rem] leading-[1.7] text-(--session-text) [overflow-wrap:anywhere] max-sm:text-[.85rem]" data-note>{step.note}</p></div></div>
+      <div class="tool-call mt-[.4rem] ml-[1.85rem] bg-transparent border border-(--session-border) rounded-lg overflow-hidden [--sample-font-size:.76rem] [--sample-padding:.5rem_.85rem] max-sm:ml-0 max-sm:[--sample-font-size:.7rem] max-sm:[--sample-padding:.5rem_.7rem]" data-tool data-kind={step.kind}>
+        <div class="flex items-baseline gap-[.6rem] py-[.35rem] px-[.85rem] border-b border-(--session-border) font-mono text-[.67rem] leading-[1.6] max-sm:px-[.7rem] max-sm:gap-[.4rem] max-sm:text-[.6rem]"><span class="text-(--session-text-muted) shrink-0" aria-hidden="true">{step.kind === 'FAIL' ? '!' : step.kind === 'TEST' ? '✓' : '↳'}</span><span class="text-(--session-text-muted) shrink-0">{step.kind === 'RULE' ? 'Read rule' : step.kind === 'FAIL' || step.kind === 'TEST' ? 'Run' : step.kind === 'PATCH' ? 'Apply patch' : step.kind === 'EDIT' ? 'Edit' : 'Read'}:</span><span class="text-(--session-text-muted) [overflow-wrap:anywhere] min-w-0">{step.file}</span><span class="tool-state ml-auto text-(--session-text-muted) text-[.6rem] max-sm:hidden" data-tool-state>done</span></div>
         <CodeSample code={step.code} lang={step.lang} label={step.file} tone="terminal" />
       </div>
     </div>)}
@@ -29,14 +29,14 @@ const { title, id, task, steps, selected = false } = Astro.props;
 <style>
   [hidden] { display: none !important; }
   .tool-state[data-running]::after { content: '…'; }
-  [data-kind='FAIL'] .tool-state { color: var(--demo-red); }
-  [data-typing]::after { content: ''; display: inline-block; width: .45rem; height: .9em; margin-left: .2rem; background: var(--demo-purple); vertical-align: -.08em; }
-  .tool-call :global(.code-sample) { background: var(--demo-tool); }
+  [data-kind='FAIL'] .tool-state { color: var(--session-error); }
+  [data-typing]::after { content: ''; display: inline-block; width: .45rem; height: .9em; margin-left: .2rem; background: var(--session-agent); vertical-align: -.08em; }
+  .tool-call :global(.code-sample) { background: var(--session-surface-subtle); }
   .tool-call :global(code) { display: grid; }
   .tool-call :global(.line[hidden]) { display: none; }
-  .tool-call :global(.line.added) { color: var(--demo-green); background: color-mix(in srgb, var(--demo-green) 10%, transparent); }
-  .tool-call :global(.line.removed) { color: var(--demo-red); background: color-mix(in srgb, var(--demo-red) 8%, transparent); }
-  .tool-call[data-kind='FAIL'] :global(pre.astro-code) { color: var(--demo-red) !important; }
-  .tool-call[data-kind='TEST'] :global(pre.astro-code) { color: var(--demo-green) !important; }
+  .tool-call :global(.line.added) { color: var(--session-diff-added); background: color-mix(in srgb, var(--session-diff-added) 10%, transparent); }
+  .tool-call :global(.line.removed) { color: var(--session-diff-removed); background: color-mix(in srgb, var(--session-diff-removed) 8%, transparent); }
+  .tool-call[data-kind='FAIL'] :global(pre.astro-code) { color: var(--session-error) !important; }
+  .tool-call[data-kind='TEST'] :global(pre.astro-code) { color: var(--session-success) !important; }
 
 </style>
