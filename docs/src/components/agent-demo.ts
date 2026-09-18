@@ -14,8 +14,8 @@ type Entry = {
 class AgentDemo extends HTMLElement {
   private entries = new Map<HTMLElement, Entry[]>();
   private panel: HTMLElement | undefined;
-  private elapsed = 0;
-  private isPlaying = true;
+  private elapsed = Infinity;
+  private isPlaying = false;
   private isVisible = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private lastTick = 0;
@@ -81,7 +81,7 @@ class AgentDemo extends HTMLElement {
       { threshold: 0.15 },
     );
     this.observer.observe(this);
-    this.restart();
+    this.showComplete();
   }
 
   disconnectedCallback() {
@@ -140,6 +140,10 @@ class AgentDemo extends HTMLElement {
     else if (button.hasAttribute('data-replay')) this.restart();
     else if (button.hasAttribute('data-finish')) this.showComplete();
     else if (button.hasAttribute('data-play')) {
+      if (this.hasAttribute('data-complete')) {
+        this.restart();
+        return;
+      }
       this.isPlaying = !this.isPlaying;
       this.render();
       this.schedule();
@@ -183,12 +187,13 @@ class AgentDemo extends HTMLElement {
       panel.hidden = panel.id !== selected.getAttribute('aria-controls');
       if (!panel.hidden) this.panel = panel;
     }
-    this.restart();
+    this.showComplete();
   }
 
   private restart() {
-    this.elapsed = this.motion.matches ? Infinity : 0;
-    this.isPlaying = !this.motion.matches;
+    // Animation starts only after an explicit Play or Replay request.
+    this.elapsed = 0;
+    this.isPlaying = true;
     this.render();
     const transcript =
       this.panel?.querySelector<HTMLElement>('[data-transcript]');
@@ -265,7 +270,6 @@ class AgentDemo extends HTMLElement {
     if (play) {
       const label = play.querySelector('[data-play-label]');
       if (label) label.textContent = this.isPlaying ? 'Pause' : 'Play';
-      play.disabled = isComplete;
     }
     const finish = this.querySelector<HTMLButtonElement>('[data-finish]');
     if (finish) finish.disabled = isComplete;

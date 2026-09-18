@@ -8,11 +8,11 @@ const readRule = {
 };
 const write = [readRule, {
   title: 'Apply it', kind: 'EDIT', file: 'sign-in.ts · excerpt',
-  note: 'I’ll log the sign-in without the password.',
+  note: 'Following your rule: log user IDs, never passwords.',
   code: 'log.info({ userId }, "Signed in");', lang: 'ts' as const,
 }, {
   title: 'Verify the result', kind: 'TEST', file: 'bun test',
-  note: 'Verified: passwords never reach the logs.',
+  note: 'Verified: no passwords in the logs.',
   code: '✓ Sign-ins logged · passwords excluded', lang: 'text' as const,
 }];
 const review = [readRule, {
@@ -42,7 +42,7 @@ const review = [readRule, {
         <button type="button" data-play>
           <svg class="play-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m8 5 11 7-11 7Z" /></svg>
           <svg class="pause-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 5v14M16 5v14" /></svg>
-          <span data-play-label>Pause</span>
+          <span data-play-label>Play</span>
         </button>
         <button type="button" data-replay><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" /></svg>Replay</button>
         <button type="button" data-finish><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" /></svg>Show full session</button>
