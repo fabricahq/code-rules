@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/authoring"
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
@@ -111,9 +111,9 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 		}
 	case project.AuthoringResult:
 		formatAuthored(out, result.Files, result.Warnings, result.Next)
-	case authoring.Result:
+	case library.AuthoringResult:
 		formatAuthored(out, result.Files, result.Warnings, result.Next)
-	case authoring.LibraryCheckResult:
+	case library.CheckResult:
 		fmt.Fprintf(out, "Library is valid: %d group(s), %d rule(s).\n", result.Groups, result.Rules)
 		for _, warning := range result.Warnings {
 			fmt.Fprintf(out, "Warning: %s\n", warning)

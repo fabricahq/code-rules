@@ -2,7 +2,9 @@
 
 `internal/cli` collects explicit options or terminal input before invoking authoring. Prompts precede writer ownership. Rule creation requires an existing group before asking for rule metadata.
 
-`internal/project` owns project initialization, the managed guide, local rules and groups, and source declarations. `internal/authoring` owns library initialization, library definitions, and complete library checks. Project operations use the selected configuration directory; library operations use an independent library root. Neither owner calls into the other.
+`internal/project` owns project initialization, the managed guide, local rules and groups, and source declarations. `internal/library` owns library initialization, library definitions, complete library checks, and catalog loading. Project operations use the selected configuration directory; library operations use an independent library root. Project operations load adopted catalogs through `library`; library operations are independent of consuming projects.
+
+`library.Initialize`, `AddGroup`, `AddRule`, and `Check` operate on the library root. `Load` and `LoadSource` validate selected catalogs for consumers; full-library checks also validate unused content. Inventory capture and its filesystem adapter remain private.
 
 Both use `internal/filetxn` for contained reads and protected publication. Its `Edit` operation acquires ownership, prepares changes against current input, publishes them, and reports post-commit cleanup warnings. Shared rule templates and format validation live in `internal/rules`.
 

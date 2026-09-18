@@ -1,6 +1,6 @@
-// Package authoring owns library scaffolding, definitions, and complete library checks.
-// Consuming-project operations belong to project; shared publication belongs to filetxn.
-package authoring
+// Initialize library repositories and publish authored definitions without replacing existing content.
+
+package library
 
 import (
 	"bytes"
@@ -16,26 +16,26 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// Result lists published library files, next actions, and any post-commit cleanup warnings.
-type Result struct {
+// AuthoringResult lists published library files, next actions, and any post-commit cleanup warnings.
+type AuthoringResult struct {
 	Files    []string `json:"files"`
 	Next     string   `json:"next"`
 	Warnings []string `json:"warnings,omitempty"`
 }
 
-// LibraryOptions locates the library itself, independently of any consumer project.
-type LibraryOptions struct{ Directory string }
+// Options locates the library itself, independently of any consumer project.
+type Options struct{ Directory string }
 
-// LibraryTerms contains publisher-supplied text; nil Notice omits a notice while an empty value preserves an empty file.
-type LibraryTerms struct {
+// Terms contains publisher-supplied text; nil Notice omits a notice while an empty value preserves an empty file.
+type Terms struct {
 	SPDXExpression string
 	License        string
 	Notice         *string
 }
 
-// LibraryRuleOptions distinguishes an explicit body from a marked canonical draft in an existing group.
-type LibraryRuleOptions struct {
-	LibraryOptions
+// RuleOptions distinguishes an explicit body from a marked canonical draft in an existing group.
+type RuleOptions struct {
+	Options
 	Body *string
 }
 
@@ -45,7 +45,7 @@ type LibraryRuleOptions struct {
 var libraryReadme string
 
 // openLibrary enforces the same final-root no-link policy as project authoring.
-func openLibrary(ctx context.Context, options LibraryOptions, create bool) (*os.Root, error) {
+func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, error) {
 	directory := options.Directory
 	if directory == "" {
 		directory = "."
@@ -128,11 +128,11 @@ func libraryManifest(ctx context.Context, root *os.Root) (map[string][]byte, *ru
 	return declaredTerms(ctx, root, data, nil)
 }
 
-// InitializeLibrary creates missing scaffolding and explicit terms without overwriting an existing manifest or terms.
-func InitializeLibrary(ctx context.Context, options LibraryOptions, terms *LibraryTerms) (Result, error) {
+// Initialize creates missing scaffolding and explicit terms without overwriting an existing manifest or terms.
+func Initialize(ctx context.Context, options Options, terms *Terms) (AuthoringResult, error) {
 	root, err := openLibrary(ctx, options, true)
 	if err != nil {
-		return Result{}, err
+		return AuthoringResult{}, err
 	}
 	defer root.Close()
 	var license *rules.LicenseDeclaration
@@ -184,7 +184,7 @@ func InitializeLibrary(ctx context.Context, options LibraryOptions, terms *Libra
 		return files, nil
 	})
 	if err != nil {
-		return Result{}, err
+		return AuthoringResult{}, err
 	}
 	next := "Add a group and rule, then run library check."
 	if license == nil {
@@ -194,10 +194,10 @@ func InitializeLibrary(ctx context.Context, options LibraryOptions, terms *Libra
 }
 
 // editLibrary revalidates manifest and the target category under exclusive ownership before publication.
-func editLibrary(ctx context.Context, options LibraryOptions, group, next string, prepare func(*os.Root) ([]filetxn.File, error)) (Result, error) {
+func editLibrary(ctx context.Context, options Options, group, next string, prepare func(*os.Root) ([]filetxn.File, error)) (AuthoringResult, error) {
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
-		return Result{}, err
+		return AuthoringResult{}, err
 	}
 	defer root.Close()
 	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
@@ -218,14 +218,14 @@ func editLibrary(ctx context.Context, options LibraryOptions, group, next string
 	return authoringResult(changes, next, err)
 }
 
-// AddLibraryGroup creates complete metadata without changing existing library content.
-func AddLibraryGroup(ctx context.Context, id string, metadata rules.GroupMetadata, options LibraryOptions) (Result, error) {
+// AddGroup creates complete metadata without changing existing library content.
+func AddGroup(ctx context.Context, id string, metadata rules.GroupMetadata, options Options) (AuthoringResult, error) {
 	if err := rules.ValidateGroupID(id, "group"); err != nil {
-		return Result{}, err
+		return AuthoringResult{}, err
 	}
 	data, err := rules.RenderGroup(metadata)
 	if err != nil {
-		return Result{}, err
+		return AuthoringResult{}, err
 	}
 	return editLibrary(ctx, options, id, "Add a library rule, then run library check.", func(_ *os.Root) ([]filetxn.File, error) {
 		return groupFiles(id, id, data), nil
@@ -248,9 +248,9 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 	return err == nil, err
 }
 
-// HasLibraryGroup checks current metadata before an interactive prompt; writes recheck under the lock.
+// HasGroup checks current metadata before an interactive prompt; writes recheck under the lock.
 // This advisory read does not require an idle writer; publication owns recovery and revalidation.
-func HasLibraryGroup(ctx context.Context, id string, options LibraryOptions) (bool, error) {
+func HasGroup(ctx context.Context, id string, options Options) (bool, error) {
 	if err := rules.ValidateGroupID(id, "group"); err != nil {
 		return false, err
 	}
@@ -265,18 +265,18 @@ func HasLibraryGroup(ctx context.Context, id string, options LibraryOptions) (bo
 	return hasGroupMetadata(ctx, root, id)
 }
 
-// AddLibraryRule creates supplied guidance or a marked unfinished canonical draft, in an existing group.
-func AddLibraryRule(ctx context.Context, id string, metadata rules.RuleMetadata, options LibraryRuleOptions) (Result, error) {
+// AddRule creates supplied guidance or a marked unfinished canonical draft, in an existing group.
+func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
 	if strings.HasSuffix(id, ".md") {
-		return Result{}, failure("invalid-operation", "use a rule ID without the .md extension", nil)
+		return AuthoringResult{}, failure("invalid-operation", "use a rule ID without the .md extension", nil)
 	}
 	group, err := rules.GroupFromPath(id+".md", "rule")
 	if err != nil {
-		return Result{}, err
+		return AuthoringResult{}, err
 	}
 	data, err := rules.RenderRule(id, metadata, options.Body)
 	if err != nil {
-		return Result{}, err
+		return AuthoringResult{}, err
 	}
 	next := "Review the rule and run library check."
 	if options.Body == nil {
@@ -284,7 +284,7 @@ func AddLibraryRule(ctx context.Context, id string, metadata rules.RuleMetadata,
 		next = "Complete the draft and remove its code-rules:draft marker, then run library check."
 	}
 
-	return editLibrary(ctx, options.LibraryOptions, group, next, func(root *os.Root) ([]filetxn.File, error) {
+	return editLibrary(ctx, options.Options, group, next, func(root *os.Root) ([]filetxn.File, error) {
 		exists, err := hasGroupMetadata(ctx, root, group)
 		if err != nil {
 			return nil, err
@@ -297,11 +297,11 @@ func AddLibraryRule(ctx context.Context, id string, metadata rules.RuleMetadata,
 }
 
 // authoringResult adds the domain's next action to the completed publication report.
-func authoringResult(changes filetxn.Changes, next string, err error) (Result, error) {
+func authoringResult(changes filetxn.Changes, next string, err error) (AuthoringResult, error) {
 	if err != nil {
-		return Result{}, err
+		return AuthoringResult{}, err
 	}
-	return Result{Files: changes.Files, Next: next, Warnings: changes.Warnings}, nil
+	return AuthoringResult{Files: changes.Files, Next: next, Warnings: changes.Warnings}, nil
 }
 
 func jsonText(value any) ([]byte, error) {

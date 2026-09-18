@@ -1,6 +1,6 @@
 // Validate all authored library content, including unreferenced assets, without generating or modifying files.
 
-package authoring
+package library
 
 import (
 	"bytes"
@@ -13,41 +13,40 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/text/unicode/norm"
 )
 
-// LibraryCheckResult reports complete adoption counts and explicit licensing caveats.
-type LibraryCheckResult struct {
+// CheckResult reports complete adoption counts and explicit licensing caveats.
+type CheckResult struct {
 	Groups   int      `json:"groups"`
 	Rules    int      `json:"rules"`
 	Warnings []string `json:"warnings"`
 }
 
-// CheckLibrary validates a captured library snapshot, ignoring unrelated files such as .git.
+// Check validates a captured library snapshot, ignoring unrelated files such as .git.
 // A final comparison rejects observed changes; ordinary editors are not locked out.
-func CheckLibrary(ctx context.Context, options LibraryOptions) (LibraryCheckResult, error) {
+func Check(ctx context.Context, options Options) (CheckResult, error) {
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
-		return LibraryCheckResult{}, err
+		return CheckResult{}, err
 	}
 	defer root.Close()
 	if err = filetxn.RequireIdle(root); err != nil {
-		return LibraryCheckResult{}, err
+		return CheckResult{}, err
 	}
 	snapshot, license, err := libraryCheckInput(ctx, root)
 	if err != nil {
-		return LibraryCheckResult{}, err
+		return CheckResult{}, err
 	}
 	if err = validateLibraryInventory(ctx, snapshot.Files, rules.LicensePaths(license)); err != nil {
-		return LibraryCheckResult{}, err
+		return CheckResult{}, err
 	}
-	catalog, err := library.LoadSource(ctx, capturedLibrary{snapshot}, "library", rules.GroupSelection{Pattern: "*"})
+	catalog, err := LoadSource(ctx, capturedLibrary{snapshot}, "library", rules.GroupSelection{Pattern: "*"})
 	if err != nil {
-		return LibraryCheckResult{}, err
+		return CheckResult{}, err
 	}
-	result := LibraryCheckResult{Groups: len(catalog.Groups), Warnings: []string{}}
+	result := CheckResult{Groups: len(catalog.Groups), Warnings: []string{}}
 	for _, group := range catalog.Groups {
 		result.Rules += len(group.Rules)
 	}
@@ -57,13 +56,13 @@ func CheckLibrary(ctx context.Context, options LibraryOptions) (LibraryCheckResu
 		result.Warnings = append(result.Warnings, "The license has no SPDX expression. Declare the library terms explicitly.")
 	}
 	if err = ctx.Err(); err != nil {
-		return LibraryCheckResult{}, err
+		return CheckResult{}, err
 	}
 	if err = requireLibraryUnchanged(ctx, root, snapshot); err != nil {
-		return LibraryCheckResult{}, err
+		return CheckResult{}, err
 	}
 	if err = filetxn.RequireIdle(root); err != nil {
-		return LibraryCheckResult{}, err
+		return CheckResult{}, err
 	}
 	return result, nil
 }
@@ -143,7 +142,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 
 // libraryCheckInput captures every manifest, term, and library-owned file considered by a complete check.
 func libraryCheckInput(ctx context.Context, root *os.Root) (*filetxn.Tree, *rules.LicenseDeclaration, error) {
-	inventory, err := library.ReadInventory(ctx, root)
+	inventory, err := readLocalInventory(ctx, root)
 	if err != nil {
 		return nil, nil, err
 	}

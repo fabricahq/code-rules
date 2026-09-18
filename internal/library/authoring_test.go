@@ -1,6 +1,6 @@
 // Verify complete library authoring, original terms, read-only checks, and unused content validation.
 
-package authoring
+package library
 
 import (
 	"bytes"
@@ -12,17 +12,16 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // TestLibraryLifecycle authors a licensed library, validates counts without writes, and rejects marked drafts.
 func TestLibraryLifecycle(t *testing.T) {
 	ctx := context.Background()
-	options := LibraryOptions{Directory: t.TempDir()}
+	options := Options{Directory: t.TempDir()}
 	notice := "Notice\r\n"
-	terms := &LibraryTerms{SPDXExpression: "MIT", License: "Original terms\r\n", Notice: &notice}
-	result, err := InitializeLibrary(ctx, options, terms)
+	terms := &Terms{SPDXExpression: "MIT", License: "Original terms\r\n", Notice: &notice}
+	result, err := Initialize(ctx, options, terms)
 	if err != nil || len(result.Files) != 4 {
 		t.Fatal(result, err)
 	}
@@ -30,20 +29,20 @@ func TestLibraryLifecycle(t *testing.T) {
 	if string(data) != terms.License {
 		t.Fatal("changed terms")
 	}
-	result, err = InitializeLibrary(ctx, options, nil)
+	result, err = Initialize(ctx, options, nil)
 	if err != nil || len(result.Files) != 0 {
 		t.Fatal(result, err)
 	}
-	if _, err = InitializeLibrary(ctx, options, terms); err == nil {
+	if _, err = Initialize(ctx, options, terms); err == nil {
 		t.Fatal("overwrote terms")
 	}
 	metadata := rules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
-	if _, err = AddLibraryGroup(ctx, "techs/go", metadata, options); err != nil {
+	if _, err = AddGroup(ctx, "techs/go", metadata, options); err != nil {
 		t.Fatal(err)
 	}
 	body := "# Return failures\n\nReturn failures to the caller.\n"
 	rule := rules.RuleMetadata{Title: "Return failures", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling fallible functions."}
-	if _, err = AddLibraryRule(ctx, "techs/go/errors", rule, LibraryRuleOptions{LibraryOptions: options, Body: &body}); err != nil {
+	if _, err = AddRule(ctx, "techs/go/errors", rule, RuleOptions{Options: options, Body: &body}); err != nil {
 		t.Fatal(err)
 	}
 	root, err := os.OpenRoot(options.Directory)
@@ -55,7 +54,7 @@ func TestLibraryLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	check, err := CheckLibrary(ctx, options)
+	check, err := Check(ctx, options)
 	if err != nil || check.Groups != 1 || check.Rules != 1 || len(check.Warnings) != 0 {
 		t.Fatal(check, err)
 	}
@@ -65,10 +64,10 @@ func TestLibraryLifecycle(t *testing.T) {
 	if !bytes.Equal(a, b) {
 		t.Fatal("check modified library")
 	}
-	if _, err = AddLibraryRule(ctx, "techs/go/draft", rule, LibraryRuleOptions{LibraryOptions: options}); err != nil {
+	if _, err = AddRule(ctx, "techs/go/draft", rule, RuleOptions{Options: options}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = CheckLibrary(ctx, options); err == nil || !strings.Contains(err.Error(), "draft") {
+	if _, err = Check(ctx, options); err == nil || !strings.Contains(err.Error(), "draft") {
 		t.Fatal("draft accepted", err)
 	}
 }
@@ -78,8 +77,8 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 	for _, scenario := range []string{"empty", "orphan", "missing-link", "unrelated", "cross-rule", "malformed-rule", "symlink", "binary"} {
 		t.Run(scenario, func(t *testing.T) {
 			ctx := context.Background()
-			options := LibraryOptions{Directory: t.TempDir()}
-			if _, err := InitializeLibrary(ctx, options, nil); err != nil {
+			options := Options{Directory: t.TempDir()}
+			if _, err := Initialize(ctx, options, nil); err != nil {
 				t.Fatal(err)
 			}
 			write := func(name, content string) {
@@ -111,7 +110,7 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 			case "binary":
 				write("assets/image.bin", string([]byte{0, 255, 254, 42}))
 			}
-			result, err := CheckLibrary(ctx, options)
+			result, err := Check(ctx, options)
 			valid := scenario == "empty" || scenario == "unrelated" || scenario == "binary"
 			if valid {
 				if err != nil || result.Groups != 0 || result.Rules != 0 || len(result.Warnings) != 1 {
@@ -128,7 +127,7 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 func TestLibraryInitializationPreservesConflicts(t *testing.T) {
 	directory := t.TempDir()
 	os.WriteFile(filepath.Join(directory, "LICENSE.md"), []byte("existing terms"), 0600)
-	_, err := InitializeLibrary(context.Background(), LibraryOptions{Directory: directory}, &LibraryTerms{SPDXExpression: "MIT", License: "different"})
+	_, err := Initialize(context.Background(), Options{Directory: directory}, &Terms{SPDXExpression: "MIT", License: "different"})
 	if err == nil {
 		t.Fatal("accepted terms collision")
 	}
@@ -147,7 +146,7 @@ func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			directory := t.TempDir()
 			ctx := context.Background()
-			_, err := InitializeLibrary(ctx, LibraryOptions{Directory: directory}, &LibraryTerms{SPDXExpression: "MIT", License: "Original terms"})
+			_, err := Initialize(ctx, Options{Directory: directory}, &Terms{SPDXExpression: "MIT", License: "Original terms"})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -179,8 +178,8 @@ func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
 // TestCapturedLibraryIgnoresLaterEdits keeps catalog counts and inventory validation on exactly the same bytes.
 func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	ctx := context.Background()
-	options := LibraryOptions{Directory: t.TempDir()}
-	if _, err := InitializeLibrary(ctx, options, nil); err != nil {
+	options := Options{Directory: t.TempDir()}
+	if _, err := Initialize(ctx, options, nil); err != nil {
 		t.Fatal(err)
 	}
 	root, err := os.OpenRoot(options.Directory)
@@ -198,7 +197,7 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(options.Directory, "techs/go/_group.json"), []byte(`{"name":"Go","description":"Go guidance","whenToRead":"When editing Go"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	catalog, err := library.LoadSource(ctx, capturedLibrary{snapshot}, "library", rules.GroupSelection{Pattern: "*"})
+	catalog, err := LoadSource(ctx, capturedLibrary{snapshot}, "library", rules.GroupSelection{Pattern: "*"})
 	if err != nil || len(catalog.Groups) != 0 {
 		t.Fatal(catalog, err)
 	}
@@ -212,15 +211,15 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := library.LoadSource(ctx, capturedLibrary{empty}, "library", rules.GroupSelection{Pattern: "*"}); err == nil {
+	if _, err := LoadSource(ctx, capturedLibrary{empty}, "library", rules.GroupSelection{Pattern: "*"}); err == nil {
 		t.Fatal("empty group without metadata accepted")
 	}
 }
 
 // TestLibraryCheckBoundsUnusedAssets rejects oversized unreferenced content without modifying it.
 func TestLibraryCheckBoundsUnusedAssets(t *testing.T) {
-	options := LibraryOptions{Directory: t.TempDir()}
-	if _, err := InitializeLibrary(context.Background(), options, nil); err != nil {
+	options := Options{Directory: t.TempDir()}
+	if _, err := Initialize(context.Background(), options, nil); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Mkdir(filepath.Join(options.Directory, "assets"), 0700); err != nil {
@@ -231,7 +230,7 @@ func TestLibraryCheckBoundsUnusedAssets(t *testing.T) {
 	if err := os.WriteFile(name, data, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := CheckLibrary(context.Background(), options); err == nil || !strings.Contains(err.Error(), "limits") {
+	if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "limits") {
 		t.Fatal("oversized unused asset accepted", err)
 	}
 	after, err := os.ReadFile(name)
@@ -243,12 +242,12 @@ func TestLibraryCheckBoundsUnusedAssets(t *testing.T) {
 // TestLibraryRulePreservesGroup leaves existing metadata unchanged when adding a rule.
 func TestLibraryRulePreservesGroup(t *testing.T) {
 	ctx := context.Background()
-	options := LibraryOptions{Directory: t.TempDir()}
-	if _, err := InitializeLibrary(ctx, options, nil); err != nil {
+	options := Options{Directory: t.TempDir()}
+	if _, err := Initialize(ctx, options, nil); err != nil {
 		t.Fatal(err)
 	}
 	existing := rules.GroupMetadata{Name: "Go", Description: "Concurrent guidance.", WhenToRead: "When editing Go."}
-	if _, err := AddLibraryGroup(ctx, "techs/go", existing, options); err != nil {
+	if _, err := AddGroup(ctx, "techs/go", existing, options); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(options.Directory, "techs/go/_group.json")
@@ -258,7 +257,7 @@ func TestLibraryRulePreservesGroup(t *testing.T) {
 	}
 	body := "Return errors.\n"
 	metadata := rules.RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
-	result, err := AddLibraryRule(ctx, "techs/go/errors", metadata, LibraryRuleOptions{LibraryOptions: options, Body: &body})
+	result, err := AddRule(ctx, "techs/go/errors", metadata, RuleOptions{Options: options, Body: &body})
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
@@ -266,7 +265,7 @@ func TestLibraryRulePreservesGroup(t *testing.T) {
 	if err != nil || !bytes.Equal(before, after) {
 		t.Fatal("existing group changed", err)
 	}
-	if _, err := CheckLibrary(ctx, options); err != nil {
+	if _, err := Check(ctx, options); err != nil {
 		t.Fatal(err)
 	}
 }

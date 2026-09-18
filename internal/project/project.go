@@ -214,19 +214,11 @@ func renderProject(ctx context.Context, state projectState, libraries map[string
 	if err := ctx.Err(); err != nil {
 		return build.Output{}, err
 	}
-	resolved, err := build.Resolve(state.config, libraries, treeFiles(state.local))
-	if err != nil {
-		return build.Output{}, err
-	}
 	version := options.ToolVersion
 	if version == "" {
 		version = "0.0.0-development"
 	}
-	maxLines := options.IndexMaxLines
-	if maxLines == 0 {
-		maxLines = 750
-	}
-	output, err := build.Prepare(resolved, build.Options{ToolVersion: version, IndexMaxLines: maxLines, GroupInlineMaxBytes: options.GroupInlineMaxBytes})
+	output, err := build.Generate(state.config, libraries, treeFiles(state.local), build.Options{ToolVersion: version, IndexMaxLines: options.IndexMaxLines, GroupInlineMaxBytes: options.GroupInlineMaxBytes})
 	if err != nil {
 		return build.Output{}, err
 	}

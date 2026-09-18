@@ -1,6 +1,6 @@
 // Adapt a bounded, already inspected filesystem snapshot to catalog validation without live rereads.
 
-package authoring
+package library
 
 import (
 	"io/fs"

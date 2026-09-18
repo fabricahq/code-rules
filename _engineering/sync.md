@@ -8,6 +8,8 @@
 - `Build` verifies persisted source identity and original-byte digests, then regenerates offline.
 - `Check` compares generated output and the managed project guide in one optimistic snapshot, without writes or Git access. It returns typed problems with config-relative paths and repair actions. Staleness is a report; invalid input or concurrent edits are errors. The CLI formats messages and repair commands and selects the exit status.
 
+`Sync` requests complete imports through `imports.ImportLibraries`; Git revisions and temporary repository ownership stay private to `imports`. Both `Build` and `Sync` request complete output through `build.Generate`.
+
 Snapshot encoding, guide rendering, file inventories, and the combined check machinery are private implementation details. Ordinary callers request complete project operations.
 
 `internal/filetxn` owns the shared storage protocol. Its `WithWriter` and `Writer.Apply` operations hide lock ownership, interrupted-operation recovery, staging, installation, and rollback. Preserve these deep operations rather than spreading their protocol across callers. Authored-file publication uses its separate `Edit` operation because exclusive creation and one guarded replacement differ from replacing whole managed trees. Both operations share writer ownership. Concurrent changes cause refusal before installation; once replacement begins, it completes or rolls back.

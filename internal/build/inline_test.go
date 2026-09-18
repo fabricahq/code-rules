@@ -1,6 +1,6 @@
 // Verify whole-group delivery boundaries and link isolation through the complete output API.
 
-package build_test
+package build
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/yuin/goldmark/v2/ast"
 	"github.com/yuin/goldmark/v2/parser"
@@ -17,13 +16,13 @@ import (
 // TestPrepareInlineBoundaries includes whole UTF-8 groups only when the inline byte limit and index line limit allow them.
 func TestPrepareInlineBoundaries(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	resolved.Groups[0].Rules[0].Rule.Document += "\nUnicode: 日本語\n"
-	options := build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines}
-	whole, err := build.Prepare(resolved, options)
+	options := Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines}
+	whole, err := prepare(resolved, options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +43,7 @@ func TestPrepareInlineBoundaries(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			options.IndexMaxLines, options.GroupInlineMaxBytes = test.index, &test.inline
-			got, err := build.Prepare(resolved, options)
+			got, err := prepare(resolved, options)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -67,7 +66,7 @@ func TestPrepareInlineBoundaries(t *testing.T) {
 	}
 	negative := -1
 	options.GroupInlineMaxBytes = &negative
-	if got, err := build.Prepare(resolved, options); err == nil || got.Files != nil {
+	if got, err := prepare(resolved, options); err == nil || got.Files != nil {
 		t.Fatal("accepted negative budget or returned partial output")
 	}
 }
@@ -97,12 +96,12 @@ func TestPrepareInlineLinks(t *testing.T) {
 				lib.Catalog.SupportingFiles[fmt.Sprintf("assets/%d.txt", i)] = []byte("attachment")
 			}
 			libraries["team"] = lib
-			resolved, err := build.Resolve(config, libraries, nil)
+			resolved, err := resolve(config, libraries, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			before, _ := build.RenderRules(resolved)
-			got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: 16000})
+			before, _ := renderRules(resolved)
+			got, err := prepare(resolved, Options{ToolVersion: "test", IndexMaxLines: 16000})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -140,7 +139,7 @@ func TestPrepareInlineLinks(t *testing.T) {
 			if strings.Count(string(page), "`[asset]`") != 2 {
 				t.Fatal("rewrote code")
 			}
-			after, _ := build.RenderRules(resolved)
+			after, _ := renderRules(resolved)
 			if !reflect.DeepEqual(before, after) {
 				t.Fatal("mutated source rules")
 			}
@@ -151,7 +150,7 @@ func TestPrepareInlineLinks(t *testing.T) {
 // TestPrepareInlineFallbackNeverHidesInvalidRules validates later rules even after an earlier body exceeds the inline budget.
 func TestPrepareInlineFallbackNeverHidesInvalidRules(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +159,7 @@ func TestPrepareInlineFallbackNeverHidesInvalidRules(t *testing.T) {
 	second.Rule.ID = "team:techs/go/later"
 	second.Rule.Document = document + "\n[missing](/assets/missing.txt)"
 	resolved.Groups[0].Rules = append(resolved.Groups[0].Rules, second)
-	if got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines}); err == nil || got.Files != nil {
+	if got, err := prepare(resolved, Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines}); err == nil || got.Files != nil {
 		t.Fatal("inline fallback concealed invalid later rule")
 	}
 }
@@ -169,12 +168,12 @@ func TestPrepareInlineFallbackNeverHidesInvalidRules(t *testing.T) {
 func TestInlineMultilineHeadingReference(t *testing.T) {
 	for _, heading := range []string{"[full][multi\nline]\n======", "> [full][multi\n> line]\n> ======", "![full][multi\nline]\n======", "> ![full][multi\n> line]\n> ======"} {
 		config, libraries := fixture(t, `{}`, `{}`)
-		resolved, err := build.Resolve(config, libraries, nil)
+		resolved, err := resolve(config, libraries, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		resolved.Groups[0].Rules[0].Rule.Document += "\n" + heading + "\n\n[multi line]: https://example.com\n"
-		got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
+		got, err := prepare(resolved, Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines})
 		if err != nil {
 			t.Fatal(err)
 		}
