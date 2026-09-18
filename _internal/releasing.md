@@ -1,12 +1,10 @@
 # Releases
 
+This document owns release policy and the agent procedure. Read the linked implementation for workflow mechanics and command options.
+
 Say **“let's release”** to an agent working in this repository. The agent prepares a release PR containing `releases/v<version>.md`. Edit that Markdown file in the PR, save your changes, then **merge the PR to approve publication**.
 
 **The merged Markdown file becomes the GitHub release description verbatim, including your manual edits.** The PR description and review comments are separate review context. Saving an intermediate edit does not publish anything; after merge, the workflow publishes your approved notes once the assets pass verification.
-
-GitHub does not trigger Actions on draft-release saves. A release PR gives notes version history and makes approval explicit. The workflow builds assets first, attaches them to a draft, verifies GitHub's stored SHA-256 digests, and publishes last. [GitHub's release events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#release) and [release management guidance](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) explain these constraints.
-
-The first release is **v0.1.0**. No release is requested by adding the automation itself. The tool uses the [MIT license](../LICENSE.md), as selected by the owner. Release packaging includes these terms and refuses a missing or empty license file.
 
 ## Agent procedure
 
@@ -40,7 +38,7 @@ End subsequent releases with one **Full Changelog** link using the actual previo
 
 ## Version policy
 
-Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The CLI reports the same version without `v`. Prereleases use a suffix such as `v0.2.0-rc.1` and are marked as prereleases on GitHub. Build metadata is omitted from release tags because `manifest.json` records the exact source commit.
+Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The CLI must report the same version without `v`. Use a suffix such as `v0.2.0-rc.1` for prereleases and mark them as prereleases on GitHub. Omit build metadata from release tags.
 
 - Start at `v0.1.0`.
 - Before `1.0.0`, increment patch for compatible fixes and minor for features or breaking changes. Always document breaking changes; `0.x` is not permission to hide them.
@@ -48,28 +46,22 @@ Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The 
 - Each requested version must be newer than existing version tags. Publish one release before requesting the next.
 - Published versions and tagged request files are immutable. Correct later behavior in a new release. If only published prose needs correction, edit the GitHub release description deliberately; do not rerun publication to overwrite it.
 
-## What approval runs
+## Publication policy
 
-A `main` push adding `releases/v<version>.md` starts [Release](../.github/workflows/release.yml). Release PRs validate the request but do not publish. The merge/push commit owns both the notes and the source; advancing `main` during a build cannot change the selected source.
+- Publish only the source and notes approved by merging the release PR. Do not substitute a newer `main` commit during publication or a retry.
+- Keep the GitHub release as a draft until validation passes and all release assets are attached and verified. Never publish an incomplete release.
+- Include the approved [MIT license](../LICENSE.md) in release packages.
+- Follow [security practices](security-practices.md) for credentials, dependency updates, and review protections. Resolve repository permission restrictions before releasing; do not work around them with a personal token.
 
-CI validates the version, checks formatting, runs vet, Staticcheck and race-enabled Go tests on Linux and macOS, and builds macOS/Linux archives for amd64/arm64. The distribution tests run extracted host binaries, exercise project commands, install two versions, and verify upgrade/rollback and corrupted-archive refusal. Cross-compilation does not establish execution compatibility on every architecture.
-
-Publication is serialized across all versions. A changed tag inventory invalidates an older plan before it can publish out of order. Build jobs have read-only repository credentials. The read-only Linux build job compiles `cmd/publish-release`. Only the final publication job has `contents: write`; it downloads that executable and the verified bundle, then supplies `GITHUB_TOKEN` to the publication command. That job does not check out source or compile dependencies. After all builds/tests pass, that job:
-
-1. Verifies the approved commit, version, license presence, four archives, manifest, sizes, and checksums.
-2. Verifies the predecessor is published and creates an unmoved version tag at the exact tested commit.
-3. Rechecks that the version tags still match the validated plan, then creates a draft release with the approved notes and uploads the four archives, `manifest.json`, and `SHA256SUMS`.
-4. Checks the complete remote asset set and GitHub's stored digests, rechecks the tag and notes, then publishes.
-
-A failed build or upload cannot publish an incomplete release. If upload already started, the draft and tag may remain. The workflow neither signs nor notarizes binaries. Repository rules may restrict tag creation or `GITHUB_TOKEN` writes; resolve those policies before the first release rather than adding a personal token. Keep `main` protected against unreviewed release requests and workflow changes.
+For execution details, read the [release workflow](../.github/workflows/release.yml), [release planner and publisher](../internal/release/), and [packager](../internal/distribution/).
 
 ## Retry a failed release
 
 Use **Actions → Release → Run workflow**, select `main`, and supply the full commit SHA that added the notes. This retries the original approved source, not the latest `main`. You can also rerun the original failed workflow.
 
-Retries accept an existing tag only at the same commit. A matching draft resumes missing uploads; matching published releases require no writes. Changed notes, unexpected assets, bad digests, tag conflicts, or a newer version cause refusal. Inspect the failed run before taking corrective action. If an interrupted upload left an invalid asset, a maintainer can remove that asset from the unpublished draft and retry. Never delete or replace published assets/tags as a retry strategy.
+Inspect the failed run and any existing draft, tag, or published release before taking corrective action. If an interrupted upload left an invalid asset, a maintainer can remove that asset from the unpublished draft and retry. Never delete or replace published assets/tags as a retry strategy.
 
-If a build failed before creating a tag, correct the source or terms in a separate PR, then edit the untagged notes file in a new release PR. Merging those corrected notes approves the new commit. You can also withdraw an untagged request by deleting its notes file. Wait for the earlier run to finish before approving a replacement. If a tag/draft already exists, inspect and explicitly resolve that unpublished attempt first; the automation will not move its tag.
+If a build failed before creating a tag, correct the source or terms in a separate PR, then edit the untagged notes file in a new release PR. Merging those corrected notes approves the new commit. You can also withdraw an untagged request by deleting its notes file. Wait for the earlier run to finish before approving a replacement. If a tag/draft already exists, inspect and explicitly resolve that unpublished attempt first; do not move its tag.
 
 ## Candidate archives
 
@@ -79,8 +71,6 @@ For unpublished review builds, commit intended source changes first:
 go run ./cmd/package-binaries --candidate --output /tmp/code-rules-artifacts
 ```
 
-Packaging uses an isolated copy of committed HEAD; uncommitted edits are excluded. Candidates default to `0.0.0-dev.g<commit>` and accept an explicit `--version`. Release packaging requires an explicit unprefixed `--version`, clean source, and nonempty `LICENSE.md`. The packager itself never publishes.
+Use a new output directory for each attempt. Verify archive checksums against a trusted manifest before extraction. Describe these builds as unpublished review candidates, and claim platform compatibility only where testing supports it.
 
-The output directory must be new. A failed build retains an `INCOMPLETE` marker; retry into a new directory. Verify archive SHA-256 values against a trusted manifest before extraction. Checksums detect corruption, not substitution of both an archive and its manifest.
-
-The [PR packaging workflow](../.github/workflows/package-binaries.yml) uploads candidate bundles for seven days. Its separate notification workflow posts a download link for the exact PR commit. It does not execute PR code or read artifact contents. GitHub sign-in is required for candidate downloads.
+Read the [packaging command](../cmd/package-binaries/) for options and the [PR packaging workflow](../.github/workflows/package-binaries.yml) for downloadable CI builds.
