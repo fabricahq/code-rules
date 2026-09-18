@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/gitfixture"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // syncProject initializes a custom config and a tagged library with exact binary and license content.

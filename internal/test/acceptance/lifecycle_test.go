@@ -16,7 +16,7 @@ import (
 // TestNativeLifecycle proves authoring, sync, offline operation, and failure preservation through actual processes.
 func TestNativeLifecycle(t *testing.T) {
 	binary := filepath.Join(t.TempDir(), "code-rules")
-	command := exec.Command("go", "build", "-o", binary, "../../cmd/code-rules")
+	command := exec.Command("go", "build", "-o", binary, "../../../cmd/code-rules")
 	if data, err := command.CombinedOutput(); err != nil {
 		t.Fatal(err, string(data))
 	}
@@ -44,7 +44,7 @@ func TestNativeLifecycle(t *testing.T) {
 // TestPilotRejectsWritingChecks proves that extra files and empty directories cannot falsely pass read-only checks.
 func TestPilotRejectsWritingChecks(t *testing.T) {
 	binary := filepath.Join(t.TempDir(), "code-rules")
-	if data, err := exec.Command("go", "build", "-o", binary, "../../cmd/code-rules").CombinedOutput(); err != nil {
+	if data, err := exec.Command("go", "build", "-o", binary, "../../../cmd/code-rules").CombinedOutput(); err != nil {
 		t.Fatal(err, string(data))
 	}
 	for _, change := range []string{"printf unexpected > unrelated-user-file.txt", "/bin/mkdir unexpected-empty-directory"} {
@@ -70,7 +70,7 @@ func TestPilotRejectsWritingChecks(t *testing.T) {
 // TestPilotRejectsSilentRefusal ensures a failed command cannot pass without a consumer-visible diagnostic.
 func TestPilotRejectsSilentRefusal(t *testing.T) {
 	binary := filepath.Join(t.TempDir(), "code-rules")
-	if data, err := exec.Command("go", "build", "-o", binary, "../../cmd/code-rules").CombinedOutput(); err != nil {
+	if data, err := exec.Command("go", "build", "-o", binary, "../../../cmd/code-rules").CombinedOutput(); err != nil {
 		t.Fatal(err, string(data))
 	}
 	wrapper := filepath.Join(t.TempDir(), "wrapper")
@@ -88,7 +88,7 @@ func TestPilotRejectsSilentRefusal(t *testing.T) {
 // TestFailedPilotCapture preserves the command failure and observations, including after cancellation.
 func TestFailedPilotCapture(t *testing.T) {
 	binary := filepath.Join(t.TempDir(), "code-rules")
-	if data, err := exec.Command("go", "build", "-o", binary, "../../cmd/code-rules").CombinedOutput(); err != nil {
+	if data, err := exec.Command("go", "build", "-o", binary, "../../../cmd/code-rules").CombinedOutput(); err != nil {
 		t.Fatal(err, string(data))
 	}
 	for _, scenario := range []string{"failure", "capture failure", "cancellation"} {

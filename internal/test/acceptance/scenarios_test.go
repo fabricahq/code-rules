@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/gitfixture"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // Step records an actual command or a deliberate fixture edit and its observable outcome.

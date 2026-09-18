@@ -14,9 +14,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/gitfixture"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // libraryFiles supplies original rules, complete owned assets, shared dependencies, and exact license bytes.

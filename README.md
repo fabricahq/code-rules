@@ -61,5 +61,10 @@ TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser re
 - `internal/cli`: collect inputs and present operation results.
 - `internal/distribution`: package and verify executable archives.
 - `internal/release`: validate release requests and publish verified assets through the GitHub API.
+- `internal/test/acceptance`: exercise complete CLI workflows through real processes.
+- `internal/test/gitfixture`: supply disposable Git repositories for tests.
+- `internal/test/terminalfixture`: exercise interactive CLI prompts in isolated terminals.
+
+`internal/test/` groups these three independent packages; it contains no Go package of its own. Unit tests remain beside the code they test.
 
 Engineering policies belong to independently owned libraries. This repository supplies the formats, tools, and public authoring guidance.
