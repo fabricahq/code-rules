@@ -18,12 +18,13 @@ description: "Implemented Go CLI capabilities and work remaining before a public
 - Full rules inline when the group fits; summaries and line-bounded pagination for larger groups.
 - Offline build and read-only check, including verification of the managed project README.
 - Candidate binary packaging, extracted-executable tests, and upgrade/rollback checks for macOS and Linux.
+- Release automation that tests assets, attaches them to a draft, and publishes after a maintainer merges a release-notes PR.
 
 Start with [project setup](/guides/set-up-project/), [library authoring](/guides/create-library/), or the [CLI reference](/reference/cli/). The shared [rule rubric and template](/reference/rule-authoring/) are available to humans and agents.
 
 ## What remains
 
-- Public release publication, approved tool licensing, and any signing/distribution activation.
+- First public release publication and any signing/notarization activation.
 - An installable Code Rules authoring skill.
 - [`code-rules update`](/reference/cli/#update-the-tool) and [`code-rules conflicts --prompt`](/reference/cli/#conflict-review-prompt), which are proposed and not implemented.
 - Semantic group-level update reports, assisted group selection, and libraries that inherit from and republish other libraries.
