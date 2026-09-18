@@ -62,7 +62,7 @@ Before adapting material from a book, article, or another library, establish the
 Imports copies license and declared notice files from the same resolved commit as the rules.
 The offline builder accepts preassembled snapshots and checks that declared files are present.
 It returns unchanged license and notice copies at generated paths, but does not fetch source files or write them to disk.
-The consuming workspace will retain them alongside the imported rules:
+The consuming workspace retains them alongside the imported rules:
 
 ```text
 .code-rules/
@@ -85,7 +85,7 @@ The consuming workspace will retain them alongside the imported rules:
 Preserve copyright notices and per-rule attribution in both the vendored source and the generated rule file.
 Keep the library license and declared notices with the snapshot and preserve their links after relocation.
 Project build and check verify snapshot digests to detect changed files. The offline builder checks declared file presence without computing digests.
-The planned update report should include license changes alongside rule changes.
+Sync reports changed license files. A semantic update report that highlights license changes is not available yet.
 
 Each individual resolved rule identifies its source and applicable preserved license.
 For example, `generated/rules/fabrica/practices/testing/verify-retry-limits.md` includes this source footer after its guidance.

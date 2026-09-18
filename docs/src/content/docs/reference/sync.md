@@ -25,7 +25,7 @@ Human-readable output is the default. Use `--json` for one structured response. 
 
 Check reports `status` and `problems`, including each problem's path and repair command. It verifies generated files and the managed project README without writing either. Refresh an outdated README with `code-rules init`; repair generated output with `code-rules build`. Check exits 1 for differences or invalid inputs, 0 when current; usage errors exit 2.
 
-Structured group-level update summaries remain future work. Review the changed source records and generated provenance for revision changes.
+Structured group-level update summaries are not available. Review the changed source records and generated provenance for revision changes.
 
 ## Stored snapshots
 

@@ -7,7 +7,6 @@ Import the technology and practice groups your project needs from one or more li
 Add local rules and declare exceptions as part of that import configuration.
 Code Rules combines those choices into a root group index, group pages, and individual full rule files. Small group pages include complete rules; larger ones contain applicability summaries with explicit reading links.
 
-These commands are implemented in the Go CLI.
 For a complete setup walkthrough, see [Use rules in a project](/guides/use-rules/).
 
 ## Choose groups for your project
@@ -23,7 +22,7 @@ For a TypeScript service that makes requests to other services, useful groups mi
 - `practices/error-handling` for how failures reach callers.
 
 Import rules that cover the project's work, including practices that do not correspond to a package or filename.
-Agents will choose which installed groups apply to each task using the [rule-loading process](/for-agents/).
+Agents choose which installed groups apply to each task using the [rule-loading process](/for-agents/).
 
 ## Select groups from each source
 

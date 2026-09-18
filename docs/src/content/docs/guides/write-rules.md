@@ -4,7 +4,7 @@ description: "Author a focused engineering obligation with applicability, exampl
 ---
 
 Write each rule in Markdown with a rubric that helps agents make it clear, scoped, and verifiable.
-Use the shared template and rubric with any agent or editor. The planned Code Rules skill will guide that process.
+Use the shared template and rubric with any agent or editor.
 To set up a shared library and create groups before adding rules, follow [Create a rule library](/guides/create-library/).
 
 ## Rubric, template, and skill
@@ -18,8 +18,8 @@ The skill references it rather than maintaining a separate copy of the authoring
 You can also use the rubric and template without a skill, with any agent or editor.
 
 :::note[Skill availability]
-The installable authoring skill is planned and has not shipped.
-The rubric and template are available here as part of the design preview.
+The installable authoring skill is not available yet.
+Use the rubric and template with any agent or editor.
 The workflow below describes how the skill is intended to work.
 :::
 
@@ -90,7 +90,7 @@ The test should fail.
 
 A rule's library ID is its relative path without `.md`.
 Consuming projects qualify it with their configured source name, such as `fabrica:practices/testing/verify-retry-limits`.
-Renaming or moving the file changes its ID in the first release.
+Renaming or moving the file changes its ID.
 Consumers must update exclusions and replacements that referenced the old path.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.

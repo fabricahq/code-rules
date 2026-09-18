@@ -6,7 +6,7 @@ description: "Package external guidance in a compatible library with one library
 **Every imported rule must live in a group inside a compatible Code Rules library.**
 That includes every adapted third-party rule, even when the library contains only that one rule.
 The `importLibraries` API imports the library, rather than a standalone Markdown rule.
-Fetching, offline generation, safe file updates, and library authoring are implemented in the Go CLI. Publishing a library remains the author’s Git workflow. See [Project status](/status/).
+Fetching, offline generation, safe file updates, and library authoring are part of the CLI. Publishing a library remains the author’s Git workflow.
 The library owns `rule-library.json`, group metadata, and any declared license and notice files.
 
 For guidance from another source, first create that compatible adaptation.

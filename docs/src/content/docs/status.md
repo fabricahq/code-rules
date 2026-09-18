@@ -1,11 +1,11 @@
 ---
 title: "Project status"
-description: "Implemented Go CLI capabilities and work remaining before a public release."
+description: "Implemented Go CLI capabilities and remaining work."
 ---
 
-**The Go CLI is implemented. Public release publication remains separate work.** Build it from source or inspect an unpublished binary candidate using the [installation guide](/guides/install/).
+**The Go CLI is available.** [Install a published release](/guides/install/) or build it from source.
 
-## What works in this checkout
+## What works
 
 - Project initialization, managed agent instructions, local groups and rules, and source configuration.
 - Independent library initialization, groups, rules, declared terms, and read-only library validation.
@@ -17,19 +17,19 @@ description: "Implemented Go CLI capabilities and work remaining before a public
 - Generated root/group indexes, complete rule files, declared license and notice copies, and deterministic provenance.
 - Full rules inline when the group fits; summaries and line-bounded pagination for larger groups.
 - Offline build and read-only check, including verification of the managed project README.
-- Candidate binary packaging, extracted-executable tests, and upgrade/rollback checks for macOS and Linux.
+- Binary packaging, extracted-executable tests, and upgrade/rollback checks for macOS and Linux.
 - Release automation that tests assets, attaches them to a draft, and publishes after a maintainer merges a release-notes PR.
 
 Start with [project setup](/guides/set-up-project/), [library authoring](/guides/create-library/), or the [CLI reference](/reference/cli/). The shared [rule rubric and template](/reference/rule-authoring/) are available to humans and agents.
 
 ## What remains
 
-- First public release publication and any signing/notarization activation.
+- Signing and notarization for published binaries.
 - An installable Code Rules authoring skill.
-- [`code-rules update`](/reference/cli/#update-the-tool) and [`code-rules conflicts --prompt`](/reference/cli/#conflict-review-prompt), which are proposed and not implemented.
+- [`code-rules update`](/reference/cli/#update-the-tool) and [`code-rules conflicts --prompt`](/reference/cli/#conflict-review-prompt), which are not implemented.
 - Semantic group-level update reports, assisted group selection, and libraries that inherit from and republish other libraries.
 
-The configuration and file formats are implemented but unreleased and may still change. Package builds and passing tests do not establish publication approval.
+The configuration and file formats may still change.
 
 ## Outside the product scope
 

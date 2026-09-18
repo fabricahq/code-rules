@@ -48,8 +48,7 @@ Follow the [CSS and Tailwind guidelines](_internal/css.md) for styling ownership
 
 Use the docs to explain the product experience and its contracts.
 Keep implementation tasks in the internal planning material.
-Documentation pages identify the site as a design preview; the marketing homepage intentionally omits the release notice.
-Keep release availability explicit in the project status and installation guides, and publish installation instructions only after a package exists.
+Keep release availability accurate in the project status and installation guides.
 
 Before handing off visual changes, inspect desktop and narrow layouts, light and dark themes, keyboard navigation, and search in a production preview.
 Run `bun run check` to verify website/tooling formatting, lint, types, tests, the static build, and links between built pages. The Go build tests also compile the copyable rule examples through the current resolver and renderer.

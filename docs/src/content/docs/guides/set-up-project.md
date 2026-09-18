@@ -4,9 +4,7 @@ description: "Start with local rules, then add shared libraries without moving y
 ---
 
 Run these commands from the repository where you want to use rules.
-The examples assume `code-rules` is installed and available on your PATH. See [CLI commands](/reference/cli/) for availability and development setup.
-
-For an executable you can run outside the checkout, [install the packed release candidate](/guides/install/).
+The examples assume `code-rules` is installed and available on your PATH. See [Install Code Rules](/guides/install/) if you need the executable.
 
 ## Start with local rules
 
@@ -19,7 +17,7 @@ code-rules local add rule practices/testing/retry-budget
 `init` creates `.code-rules/config.json` with no imported sources and `.code-rules/local/README.md`.
 No imported library or existing Git repository is required. Repeating `init` preserves valid configuration and local rules and refreshes the managed project README. It refuses to overwrite manually edited guides; keep project notes in a separate file.
 
-**Native Go candidate:** `init` also creates a tool-owned agent guide at `.code-rules/README.md`. For a custom configuration outside a directory named `.code-rules`, the guide is `CODE_RULES.md` beside that configuration. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
+`init` also creates a tool-owned agent guide at `.code-rules/README.md`. For a custom configuration outside a directory named `.code-rules`, the guide is `CODE_RULES.md` beside that configuration. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
 
 On a terminal, group creation asks for a name, description, and when-to-read cue. Rule creation asks for its title, when-to-read cue, impact, and consequence.
 If the group is missing, rule creation stops before prompting and tells you to create the group first.

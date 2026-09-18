@@ -25,8 +25,8 @@ Repeated guidance may be redundant without being contradictory.
 
 ## Generate a review prompt
 
-`code-rules conflicts --prompt` is planned and is not implemented in the Go CLI.
-For now, run `code-rules check` and resolve any reported problems before reviewing the adopted rules.
+`code-rules conflicts --prompt` is not implemented.
+Run `code-rules check` and resolve any reported problems before reviewing the adopted rules.
 Then give a repository-aware agent this prompt:
 
 ```text
@@ -55,7 +55,7 @@ unresolved engineering policy on the project's behalf.
 ```
 
 For a different configuration location, adjust the prompt to use paths relative to that configuration rather than assuming `.code-rules/`.
-See the [CLI reference](/reference/cli/#conflict-review-prompt) for the planned command.
+See the [CLI reference](/reference/cli/#conflict-review-prompt) for the proposed command.
 
 ## Resolve the intended policy
 

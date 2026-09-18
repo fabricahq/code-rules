@@ -115,7 +115,7 @@ Apply the portable guidance; identify app-specific assumptions and explain any a
 For comments, use [the local comment rule](_internal/rules/comment-role-result-and-constraints.md), which supersedes the linked app comment policy.
 For website JavaScript and TypeScript, use `@fileoverview` headers; an Astro component's frontmatter overview also describes its rendered result because its export is implicit.
 
-The Go CLI is implemented; public release publication and the installable authoring skill remain separate work.
+The Go CLI is released. The installable authoring skill remains separate work.
 Describe proposed behavior honestly, and consult [project status](docs/src/content/docs/status.md) before claiming availability.
 
 When a product decision changes, update the owning concept, guide, or reference and its examples together.

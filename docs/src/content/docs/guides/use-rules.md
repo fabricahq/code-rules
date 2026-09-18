@@ -3,9 +3,9 @@ title: "Use rules in a project"
 description: "Walk through the import workflow, from choosing libraries to directing agents."
 ---
 
-[Build or install the Go CLI](/guides/install/) before following these commands.
+[Install the CLI](/guides/install/) before following these commands.
 
-## Try the working builder
+## Start locally
 
 Start with [project setup](/guides/set-up-project/) to create a local group and rule, then run `code-rules build`. Open `.code-rules/generated/RULES.md` to inspect the output. This local-only workflow fetches no libraries. The repository also includes an executable [Gruntwork runbook](https://github.com/fabricahq/code-rules/tree/main/runbooks/native-cli).
 

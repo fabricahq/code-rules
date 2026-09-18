@@ -3,7 +3,7 @@ title: "What is Code Rules?"
 description: "Share engineering standards across projects and give agents clear, consistent expectations."
 ---
 
-**Code Rules manages the engineering rules a codebase adopts.**
+**Code Rules manages your engineering rules and practices so that your agents code the way you want them to.**
 A project selects versioned rule libraries, records local additions and exceptions, and commits its resolved rules alongside the code.
 Teams can review and adopt rule updates over time, then use those rules during planning, implementation, and review.
 
@@ -30,7 +30,7 @@ A practice rule can use a TypeScript example without becoming a TypeScript-only 
 
 Each rule is a Markdown file.
 A shared [rubric and template](/reference/rule-authoring/) help authors make the obligation clear, scoped, and verifiable.
-The planned [Code Rules authoring skill](/guides/write-rules/) uses those references to help agents draft, revise, and review rules.
+Use those references with any agent or editor. An installable [Code Rules authoring skill](/guides/write-rules/) is planned.
 
 ## How research shaped rule delivery
 

@@ -73,8 +73,7 @@ Keep the pinned ruleset during ordinary work; adopting upstream changes is a sep
 ## Write or review rules themselves
 
 When the task changes a rule, use the [authoring rubric and template](/reference/rule-authoring/).
-The planned [Code Rules authoring skill](/guides/write-rules/#write-with-the-skill) guides this workflow.
-Until the skill ships, follow those documents directly.
+Follow those documents directly. The [Code Rules authoring skill](/guides/write-rules/#write-with-the-skill) is planned and is not available yet.
 
 Read the target library's conventions and evaluate each rule against every rubric criterion.
 Report unmet criteria with the relevant passage and a concrete revision.

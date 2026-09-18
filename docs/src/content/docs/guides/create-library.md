@@ -7,7 +7,7 @@ A rule library lets several projects adopt and update the same engineering guida
 Create one in a new or existing Git repository, then add groups and rules using the shared authoring template.
 For a rule used by only one project, you can instead [author it locally](/guides/write-rules/).
 
-The library commands work through the development CLI or the [locally installed release candidate](/guides/install/).
+The library commands work with an [installed CLI](/guides/install/).
 Use `--directory path` to author or check a library elsewhere; these commands do not accept `--config`.
 
 ## 1. Initialize the library
