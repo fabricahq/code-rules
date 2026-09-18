@@ -38,6 +38,6 @@ const theme = createCssVariablesTheme({ variablePrefix: '--sample-', fontStyle: 
     --sample-token-string-expression: #526956;
     --sample-token-link: #4a6575;
   }
-  .code-sample :global(pre.astro-code) { margin: 0; padding: var(--sample-padding, 1.25rem); border: 0; background: transparent; font: var(--sample-size, .78rem)/1.8 var(--cr-font-mono); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; }
+  .code-sample :global(pre.astro-code) { margin: 0; padding: var(--sample-padding, 1.25rem); border: 0; background: transparent; font: var(--sample-size, .78rem)/1.8 var(--cr-font-mono); white-space: pre-wrap; overflow: auto; overflow-wrap: anywhere; tab-size: 2; }
   .code-sample :global(pre code) { font: inherit; color: inherit; background: none; padding: 0; border: 0; }
 </style>
