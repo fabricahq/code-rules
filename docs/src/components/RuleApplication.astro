@@ -1,40 +1,42 @@
 ---
-/** @fileoverview Shows an illustrative coding-agent handoff linking applied rules to concrete changes and test evidence. */
-const changes = [
-  { rule: 'Verify retry limits', change: 'Stopped requests after the third attempt.', file: 'retry.ts' },
-  { rule: 'Preserve error context', change: 'Kept the original failure for the caller.', file: 'retry.ts' },
-  { rule: 'Test failure paths', change: 'Added coverage for exhausted retries.', file: 'retry.test.ts' },
-];
+/** @fileoverview Illustrates connecting a coding agent to the project's rules through an AGENTS.md instruction card and a static task prompt. */
 ---
-<div class="application" aria-label="Illustrative agent handoff">
-  <div class="report-heading"><span class="agent-icon" aria-hidden="true">✳︎</span><span>Agent handoff</span><span class="ready">Ready for review</span></div>
-  <div class="report-body">
-    <h3>Retries now follow your project’s rules.</h3>
-    <p class="summary">I updated the implementation and verified the failure cases.</p>
-    <ul>
-      {changes.map(({ rule, change, file }) => <li><span class="check" aria-hidden="true">✓</span><div><strong>{rule}</strong><p>{change}</p><code>{file}</code></div></li>)}
-    </ul>
-    <div class="evidence"><span><strong>2</strong> files changed</span><span><strong>3</strong> rules applied</span><span class="tests"><span aria-hidden="true">✓</span> Tests passing</span></div>
+<figure class="application" aria-label="Example agent setup with project instructions">
+  <div class="setup-heading"><span class="agent-icon" aria-hidden="true">✳︎</span><span>Your coding agent</span><span class="setup-label">PROJECT SETUP</span></div>
+  <div class="setup-body">
+    <p class="instructions-label">GIVE YOUR AGENT PROJECT INSTRUCTIONS</p>
+    <div class="instruction-file">
+      <div class="file-heading"><svg aria-hidden="true" width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg><span>AGENTS.md</span></div>
+      <div class="instructions">
+        <p><strong>Use this project’s engineering rules.</strong></p>
+        <p>Before writing or reviewing code, read<br /><code>.code-rules/generated/RULES.md</code></p>
+        <p>Follow its instructions to select and read the rules that apply to your task.</p>
+      </div>
+    </div>
+    <div class="connector" aria-hidden="true">↓</div>
+    <div class="task-prompt"><span>What would you like to build?</span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></div>
   </div>
-  <div class="report-caption">Example report from your coding agent.</div>
-</div>
+  <figcaption>Example setup. Use your coding agent’s project instruction file.</figcaption>
+</figure>
 <style>
-  .application { min-width: 0; border: 1px solid var(--cr-line); border-radius: 16px; overflow: hidden; background: var(--cr-paper); --report-green: #80c6a4; }
-  :global([data-theme='light']) .application { --report-green: #287253; }
-  .report-heading { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--cr-faint); background: var(--cr-surface); font-size: .8rem; font-weight: 500; }
-  .agent-icon { font-size: 1.15rem; color: var(--report-green); }
-  .ready { margin-left: auto; padding: .3rem .55rem; border-radius: 5px; background: color-mix(in srgb, var(--report-green) 10%, transparent); color: var(--report-green); font-size: .65rem; }
-  .report-body { padding: 1.4rem; }
-  h3 { margin: 0; color: var(--cr-ink); font-size: 1.1rem; font-weight: 550; letter-spacing: -.025em; }
-  .summary { margin: .6rem 0 1.25rem; color: var(--cr-muted); font-size: .85rem; line-height: 1.65; }
-  ul { list-style: none; padding: 0; margin: 0; }
-  li { display: flex; gap: .8rem; padding: .95rem 0; border-top: 1px solid var(--cr-faint); }
-  .check { color: var(--report-green); }
-  li strong { font-size: .85rem; font-weight: 550; }
-  li p { margin: .3rem 0 .5rem; color: var(--cr-muted); font-size: .8rem; line-height: 1.6; }
-  code { padding: .2rem .4rem; border: 0; border-radius: 4px; background: var(--cr-surface); color: var(--cr-muted); font: .65rem var(--cr-font-mono); }
-  .evidence { display: flex; flex-wrap: wrap; gap: .65rem 1.15rem; margin-top: .75rem; padding-top: 1.1rem; border-top: 1px solid var(--cr-faint); font-size: .7rem; color: var(--cr-muted); }
-  .evidence strong { color: var(--cr-ink); font-weight: 550; }
-  .tests { color: var(--report-green); }
-  .report-caption { padding: .85rem 1.4rem; border-top: 1px solid var(--cr-faint); color: var(--cr-muted); font-size: .65rem; }
+  .application { min-width: 0; margin: 0; border: 1px solid var(--cr-line); border-radius: 16px; overflow: hidden; background: var(--cr-paper); color: var(--cr-ink); --setup-purple: #c4a1e8; --setup-blue: #8bbbe7; }
+  :global([data-theme='light']) .application { --setup-purple: #7850ae; --setup-blue: #216bb0; }
+  .setup-heading { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--cr-line); background: var(--cr-surface); font-size: .8rem; font-weight: 500; }
+  .agent-icon { font-size: 1.15rem; color: var(--setup-purple); }
+  .setup-label { margin-left: auto; color: var(--cr-muted); font-size: .55rem; letter-spacing: .12em; }
+  .setup-body { padding: 1.4rem; }
+  .instructions-label { margin: 0 0 .8rem; color: var(--cr-muted); font-size: .6rem; line-height: 1.6; letter-spacing: .1em; }
+  .instruction-file { border: 1px solid var(--cr-line); border-radius: 9px; overflow: hidden; }
+  .file-heading { display: flex; align-items: center; gap: .5rem; padding: .65rem .9rem; border-bottom: 1px solid var(--cr-line); background: var(--cr-surface); color: var(--cr-ink); font: .75rem/1.6 var(--cr-font-mono); }
+  .file-heading svg { flex-shrink: 0; color: var(--cr-muted); }
+  .instructions { padding: 1rem; }
+  .instructions p { margin: 0 0 .75rem; color: var(--cr-ink); font-size: .85rem; line-height: 1.65; }
+  .instructions p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; }
+  code { padding: 0; border: 0; background: none; color: var(--setup-blue); font: .75rem/1.6 var(--cr-font-mono); overflow-wrap: anywhere; }
+  .connector { display: grid; place-items: center; height: 2rem; color: var(--cr-muted); }
+  .task-prompt { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid var(--cr-line); border-radius: 8px; padding: .9rem; color: var(--cr-muted); font-size: .8rem; line-height: 1.5; }
+  .task-prompt svg { flex-shrink: 0; }
+  figcaption { padding: 0 1.4rem 1.2rem; color: var(--cr-muted); font-size: .65rem; line-height: 1.6; }
+  @media (max-width: 440px) { .setup-heading { padding: 1rem; } .setup-body { padding: 1rem; } .instructions { padding: .85rem; } figcaption { padding-inline: 1rem; } }
 </style>
