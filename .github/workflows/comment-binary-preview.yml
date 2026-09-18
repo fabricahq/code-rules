@@ -41,6 +41,10 @@ jobs:
             const marker = '<!-- code-rules-binary-preview -->';
             const runURL = `${context.serverUrl}/${owner}/${repo}/actions/runs/${run.id}`;
             const downloadURL = `${runURL}/artifacts/${artifact.id}`;
+            const commitURL = `${context.serverUrl}/${owner}/${repo}/commit/${run.head_sha}`;
+            const expires = new Date(artifact.expires_at).toLocaleString('en-US', {
+              timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short',
+            });
             for (const candidate of pulls) {
               if (candidate.base.repo.id !== context.payload.repository.id) continue;
               const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number: candidate.number});
@@ -57,17 +61,17 @@ jobs:
               const body = [
                 marker,
                 `<!-- run:${run.id} attempt:${run.run_attempt} -->`,
-                '## Download sample CLI binaries',
+                '### CLI preview ready',
                 '',
-                `[Download the binary preview](${downloadURL}) · [Build and test results](${runURL})`,
+                `A test build for [\`${run.head_sha.slice(0, 7)}\`](${commitURL}) is ready. Packaging and installation checks passed.`,
                 '',
-                `PR commit: \`${run.head_sha}\`. The included manifest records the exact packaged source commit.`,
+                `[Download for macOS or Linux](${downloadURL}) · [Build and test results](${runURL})`,
                 '',
-                'Includes macOS and Linux packages for Intel/AMD (amd64) and ARM (arm64), a manifest, and SHA-256 checksums. Installation, upgrade, and rollback tests passed on the Linux and macOS CI hosts; other targets were cross-compiled.',
+                '**Manual testing is optional.** To try this PR, unzip the download, extract the archive for your computer, and run `./code-rules --help` from the extracted folder. No installation needed.',
                 '',
-                `Sign in to GitHub to download. These artifacts are retained for 7 days (expire ${artifact.expires_at}).`,
+                `Includes Intel/AMD and ARM builds. GitHub sign-in required. Download expires ${expires} UTC.`,
                 '',
-                'These are unpublished review builds, not a release. Download the bundle, extract the archive for your platform, then run `./code-rules --help` from that directory. No global installation is needed.',
+                'This preview is for testing this PR and has not been released.',
               ].join('\n');
               if (previous) {
                 await github.rest.issues.updateComment({owner, repo, comment_id: previous.id, body});

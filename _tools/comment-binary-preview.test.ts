@@ -92,8 +92,19 @@ test('posts downloadable candidates for an open fork PR even without event PR me
   expect(writes[0]!.body).toContain(
     'https://github.com/fabricahq/code-rules/actions/runs/500/artifacts/70',
   );
-  expect(writes[0]!.body).toContain('expire 2026-09-24T12:00:00Z');
-  expect(writes[0]!.body).toContain('unpublished review builds');
+  expect(writes[0]!.body).toContain('### CLI preview ready');
+  expect(writes[0]!.body).toContain(
+    'Packaging and installation checks passed.',
+  );
+  expect(writes[0]!.body).toContain('**Manual testing is optional.**');
+  expect(writes[0]!.body).toContain('`./code-rules --help`');
+  expect(writes[0]!.body).toContain(
+    `[\`aaaaaaa\`](https://github.com/fabricahq/code-rules/commit/${'a'.repeat(40)})`,
+  );
+  expect(writes[0]!.body).toMatch(
+    /Download expires Sep 24, 2026(?:,| at) 12:00\sPM UTC\./,
+  );
+  expect(writes[0]!.body).toContain('has not been released');
 });
 
 test('updates its existing bot comment instead of posting another', async () => {
