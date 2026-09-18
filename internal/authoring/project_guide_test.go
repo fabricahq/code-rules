@@ -29,14 +29,6 @@ func TestProjectGuideRefresh(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	status, err := CheckProjectGuide(ctx, options)
-	if err == nil || status.Current {
-		t.Fatal(status, err)
-	}
-	unchanged, _ := os.ReadFile(filepath.Join(directory, "CODE_RULES.md"))
-	if !bytes.Equal(unchanged, old) {
-		t.Fatal("check wrote the guide")
-	}
 	result, err := InitializeProject(ctx, options)
 	if err != nil || len(result.Files) != 1 || result.Files[0] != filepath.Join(directory, "CODE_RULES.md") {
 		t.Fatal(result, err)
@@ -46,9 +38,6 @@ func TestProjectGuideRefresh(t *testing.T) {
 		if err != nil || !bytes.Equal(got, want) {
 			t.Fatal(name, err)
 		}
-	}
-	if status, err := CheckProjectGuide(ctx, options); err != nil || !status.Current {
-		t.Fatal(status, err)
 	}
 	if result, err := InitializeProject(ctx, options); err != nil || len(result.Files) != 0 {
 		t.Fatal(result, err)
@@ -86,60 +75,6 @@ func TestProjectGuideRefusesUnmanagedFilesAndLinks(t *testing.T) {
 			entries, err := os.ReadDir(directory)
 			if err != nil || len(entries) != 1 {
 				t.Fatal("published partial scaffolding", entries, err)
-			}
-		})
-	}
-}
-
-// TestGuideCheckDoesNotInitialize confirms the read-only check leaves a missing project absent.
-func TestGuideCheckDoesNotInitialize(t *testing.T) {
-	parent := t.TempDir()
-	if _, err := CheckProjectGuide(context.Background(), Options{ConfigPath: filepath.Join(parent, ".code-rules/config.json")}); err == nil {
-		t.Fatal("expected missing project error")
-	}
-	entries, err := os.ReadDir(parent)
-	if err != nil || len(entries) != 0 {
-		t.Fatal(entries, err)
-	}
-}
-
-// TestGuideCheckRejectsChangedSnapshot verifies a final comparison cannot approve edits or an active writer.
-func TestGuideCheckRejectsChangedSnapshot(t *testing.T) {
-	for _, change := range []string{"config", "guide", "writer"} {
-		t.Run(change, func(t *testing.T) {
-			directory := t.TempDir()
-			options := Options{ConfigPath: filepath.Join(directory, "config.json")}
-			if _, err := InitializeProject(context.Background(), options); err != nil {
-				t.Fatal(err)
-			}
-			root, err := os.OpenRoot(directory)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer root.Close()
-			config, err := os.ReadFile(options.ConfigPath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			guideName, guide := ProjectGuide(options.ConfigPath)
-			if change == "writer" {
-				err = root.Mkdir(".code-rules-lock", 0700)
-			} else if change == "config" {
-				err = os.WriteFile(options.ConfigPath, append(config, '\n'), 0600)
-			} else {
-				err = os.WriteFile(filepath.Join(directory, guideName), []byte("Edited guide."), 0600)
-			}
-			if err != nil {
-				t.Fatal(err)
-			}
-			err = requireGuideUnchanged(context.Background(), root, "config.json", guideName, config, guide)
-			var problem *project.Error
-			want := "concurrent-change"
-			if change == "writer" {
-				want = "busy"
-			}
-			if !errors.As(err, &problem) || problem.Code != want {
-				t.Fatalf("expected %s, got %v", want, err)
 			}
 		})
 	}

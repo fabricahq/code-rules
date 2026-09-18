@@ -238,3 +238,16 @@ func projectFileContents(t *testing.T, root string) map[string]string {
 	}
 	return files
 }
+
+// TestCheckDoesNotInitialize leaves a missing project absent when the actual command fails.
+func TestCheckDoesNotInitialize(t *testing.T) {
+	directory := t.TempDir()
+	out, diagnostic, code := runCLI(t, buildCLI(t), directory, "check")
+	if code != 1 {
+		t.Fatal(code, out, diagnostic)
+	}
+	entries, err := os.ReadDir(directory)
+	if err != nil || len(entries) != 0 {
+		t.Fatal(entries, err)
+	}
+}
