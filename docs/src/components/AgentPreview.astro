@@ -1,57 +1,97 @@
 ---
 /** @fileoverview Shows two illustrative, controllable agent sessions using adopted rules to write and review code. */
 import AgentSession from './AgentSession.astro';
-const rule = 'local:practices/testing/verify-retry-limits';
-const reading = {
-  title: 'Read the adopted rules', kind: 'READ', file: '.code-rules/generated/RULES.md',
-  note: 'This task changes retry behavior. Open the testing group, then read the complete retry-limit rule.',
-  code: 'practices/testing\n  Verify retry limits\n  When to read: bounded retry behavior', lang: 'text' as const,
+const readRule = {
+  title: 'Read your rule', kind: 'RULE', file: 'Verify retry limits',
+  note: 'First, I’ll read your retry rule.',
+  code: 'Stop at the limit. Test the exact call count.', lang: 'text' as const,
 };
-const write = [reading, {
-  title: 'Turn guidance into a plan', kind: 'RULE', file: rule,
-  note: 'The rule requires a failing-request test. I’ll bound the loop and verify both the call count and the final error.',
-  code: 'For a limit of three attempts:\n- Make every attempt fail.\n- Assert exactly three calls.\n- Assert the documented failure is returned.', lang: 'md' as const,
+const write = [readRule, {
+  title: 'Apply it', kind: 'EDIT', file: 'retry.test.ts · excerpt',
+  note: 'I’ll bound retries and add a regression test.',
+  code: 'expect(request).toHaveBeenCalledTimes(3);', lang: 'ts' as const,
 }, {
-  title: 'Write the implementation', kind: 'EDIT', file: 'src/retry.ts · excerpt',
-  note: 'Count attempts from one. Return on success; preserve the final failure at the limit.',
-  code: 'for (let attempt = 1; attempt <= limit; attempt++) {\n  try {\n    return await request();\n  } catch (error) {\n    if (attempt === limit) throw error;\n  }\n}', lang: 'ts' as const,
-}, {
-  title: 'Add the required regression test', kind: 'EDIT', file: 'src/retry.test.ts · excerpt',
-  note: 'Make every request fail, then assert the exact limit and the returned error.',
-  code: "const request = mock(() => Promise.reject(offline));\n\nawait expect(retry(request, 3)).rejects.toBe(offline);\nexpect(request).toHaveBeenCalledTimes(3);", lang: 'ts' as const,
-}, {
-  title: 'Verify the implementation', kind: 'TEST', file: '$ bun test src/retry.test.ts',
-  note: 'The helper and its tests are ready. The rule informed the implementation before review.',
-  code: '✓ stops after three failed attempts\n✓ returns the final request error\n\n2 passed · 0 failed', lang: 'text' as const,
+  title: 'Verify the result', kind: 'TEST', file: 'bun test',
+  note: 'The implementation follows your rule.',
+  code: '✓ 3 attempts · final error preserved', lang: 'text' as const,
 }];
-const review = [reading, {
-  title: 'Inspect the implementation', kind: 'READ', file: 'src/retry.ts · excerpt',
-  note: 'I’ve read the full retry-limit rule. This loop starts at zero and includes the limit, which permits an extra request.',
-  code: 'for (let attempt = 0; attempt <= limit; attempt++) {\n  try {\n    return await request();\n  } catch (error) {\n    if (attempt === limit) throw error;\n  }\n}', lang: 'ts' as const,
+const review = [readRule, {
+  title: 'Find and fix', kind: 'PATCH', file: 'retry.ts · loop initializer',
+  note: 'Found 4 attempts instead of 3. Fixing it.',
+  code: '- let attempt = 0\n+ let attempt = 1', lang: 'diff' as const,
 }, {
-  title: 'Reproduce the finding', kind: 'FAIL', file: '$ bun test src/retry.test.ts',
-  note: 'Evidence for the retry-limit finding: with a limit of three and every request failing, the helper makes four calls.',
-  code: '✕ stops after three failed attempts\n\nExpected call count: 3\nReceived call count: 4', lang: 'text' as const,
-}, {
-  title: 'Fix the off-by-one error', kind: 'PATCH', file: 'src/retry.ts',
-  note: 'Start at one, preserving the existing final-error check. Keep the failing test as a regression test.',
-  code: '- for (let attempt = 0; attempt <= limit; attempt++) {\n+ for (let attempt = 1; attempt <= limit; attempt++) {', lang: 'diff' as const,
-}, {
-  title: 'Verify the fix', kind: 'TEST', file: '$ bun test src/retry.test.ts',
-  note: 'Fixed the extra request and verified the final error is still returned. Finding resolved with test evidence.',
-  code: '✓ stops after three failed attempts\n✓ returns the final request error\n\n2 passed · 0 failed', lang: 'text' as const,
+  title: 'Verify the fix', kind: 'TEST', file: 'bun test',
+  note: 'Fixed and verified against your rule.',
+  code: '✓ 3 attempts · regression test passed', lang: 'text' as const,
 }];
 ---
-<figure id="agent-preview" aria-label="Illustrative agent sessions" class="agent-preview">
-  <div class="sessions">
-    <AgentSession title="Write with rules" number="01" task="Add a retry helper. Stop after three attempts." steps={write} />
-    <AgentSession title="Review and fix" number="02" task="Review the retry helper against our rules. Fix any issues." steps={review} />
-  </div>
-  <figcaption>Illustrative agent sessions. Code Rules supplies the rules; your agent reads them, edits code, and runs tests.</figcaption>
+<figure id="agent-preview" class="agent-preview" aria-label="Illustrative agent sessions">
+  <agent-demo>
+    <div class="session-tabs" role="tablist" aria-label="Choose an agent session" hidden data-tabs>
+      <button type="button" role="tab" id="tab-write" aria-controls="session-write" aria-selected="true" tabindex="0" data-tab="write"><span aria-hidden="true">✳︎</span> Write with rules</button>
+      <button type="button" role="tab" id="tab-review" aria-controls="session-review" aria-selected="false" tabindex="-1" data-tab="review"><span aria-hidden="true">⌕</span> Review and fix</button>
+    </div>
+    <div class="terminal-window">
+      <div class="window-bar"><span class="harness-icon" aria-hidden="true">✳︎</span><span class="harness-name">Your coding agent <span class="window-path">acme-checkout</span></span><span class="demo-badge">EXAMPLE SESSION</span></div>
+      <AgentSession id="write" title="Write with rules" task="Add retries. Follow our Code Rules." steps={write} selected />
+      <AgentSession id="review" title="Review and fix" task="Review these retries against our Code Rules." steps={review} />
+      <div class="playback" hidden data-controls>
+        <span class="playback-status"><span class="status-dot" aria-hidden="true"></span><span data-status>Session complete</span></span>
+        <div class="playback-buttons"><button type="button" data-play>Pause</button><button type="button" data-replay>Replay</button><button type="button" data-finish>Show full session</button></div>
+      </div>
+    </div>
+    <noscript><p>Enable JavaScript to play the demos or switch sessions. The complete writing session is shown above.</p></noscript>
+  </agent-demo>
+  <figcaption>Your rules. Your coding agent. A shared standard for writing and review.</figcaption>
 </figure>
+<script>
+  import './agent-demo';
+</script>
 <style>
-  .agent-preview { margin: 0; scroll-margin-top: 5rem; }
-  .sessions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
-  figcaption { color: var(--cr-muted); font-size: .75rem; line-height: 1.6; text-align: center; margin-top: 1rem; }
-  @media (max-width: 799px) { .sessions { grid-template-columns: minmax(0, 1fr); } }
+  .agent-preview { margin: 0 auto; max-width: 49rem; scroll-margin-top: 5rem; }
+  agent-demo {
+    display: block;
+    --demo-ink: #e1e9f5; --demo-muted: #99aac2; --demo-border: #2c3a50;
+    --demo-panel: #121c2b; --demo-tool: #172336; --demo-bar: #1b293e;
+    --demo-blue: #7fc5ff; --demo-purple: #c5a4ff; --demo-green: #80d9b2;
+    --demo-red: #ff9c9d; --demo-amber: #eac483;
+  }
+  :global([data-theme='light']) agent-demo {
+    --demo-ink: #23324a; --demo-muted: #60718b; --demo-border: #dce4ef;
+    --demo-panel: #fcfdff; --demo-tool: #f4f7fc; --demo-bar: #eef3fb;
+    --demo-blue: #216bb0; --demo-purple: #7850ae; --demo-green: #267553;
+    --demo-red: #af3c47; --demo-amber: #966022;
+  }
+  .session-tabs { display: flex; justify-content: center; gap: .4rem; margin-bottom: 1.1rem; }
+  .session-tabs button { min-height: 44px; padding: .65rem 1.25rem; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--cr-muted); font: 500 .85rem var(--sl-font); cursor: pointer; }
+  .session-tabs button span { margin-right: .45rem; }
+  .session-tabs [aria-selected='true'] { background: var(--demo-tool); color: var(--demo-blue); border-color: var(--demo-border); }
+  .session-tabs [data-tab='review'][aria-selected='true'] { color: var(--demo-purple); }
+  .terminal-window { border: 1px solid var(--demo-border); border-radius: 14px; overflow: hidden; background: var(--demo-panel); box-shadow: 0 20px 65px -30px #547cba55, 0 2px 8px #162a4910; }
+  .window-bar { display: flex; align-items: center; gap: 1rem; padding: .9rem 1.25rem; border-bottom: 1px solid var(--demo-border); background: var(--demo-bar); color: var(--demo-ink); font: .8rem var(--sl-font); }
+  .harness-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--demo-purple); background: color-mix(in srgb, var(--demo-purple) 12%, transparent); font-size: 1.2rem; }
+  .harness-name { font-weight: 550; }
+  .window-path { display: block; margin-top: .2rem; color: var(--demo-muted); font: .65rem var(--cr-font-mono); }
+  .demo-badge { margin-left: auto; font-size: .6rem; letter-spacing: .12em; color: var(--demo-muted); }
+  .playback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .2rem 1rem; padding: .3rem 1rem; border-top: 1px solid var(--demo-border); background: var(--demo-bar); }
+  .playback-status { display: flex; align-items: center; gap: .5rem; min-width: 0; color: var(--demo-muted); font: .65rem/1.5 var(--cr-font-mono); }
+  .status-dot { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: var(--demo-muted); }
+  [data-playing] .status-dot { background: var(--demo-green); animation: pulse 1.4s ease-in-out infinite; }
+  [data-complete] .status-dot { background: var(--demo-green); }
+  .playback-buttons { display: flex; gap: .2rem; }
+  .playback button { min-height: 44px; padding: .5rem .6rem; background: none; border: none; color: var(--demo-blue); cursor: pointer; font: .7rem var(--sl-font); }
+  .playback button:disabled { color: var(--demo-muted); cursor: default; }
+  .playback button:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 4px; }
+  figcaption, noscript p { color: var(--cr-muted); font-size: .75rem; line-height: 1.6; text-align: center; margin-top: 1rem; }
+  [hidden] { display: none !important; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .status-dot { animation: none !important; } }
+  @media (max-width: 540px) {
+    .session-tabs button { font-size: .75rem; padding-inline: .75rem; }
+    .window-bar { padding-inline: .85rem; font-size: .65rem; }
+    .demo-badge { font-size: .5rem; }
+    .playback { padding: .5rem .6rem .15rem; }
+    .playback-status { width: 100%; min-height: 1.25rem; padding-left: .6rem; }
+    .playback-buttons { width: 100%; justify-content: space-between; }
+  }
 </style>
