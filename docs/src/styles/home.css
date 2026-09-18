@@ -47,15 +47,15 @@
   .desktop-break { display: none; }
 }
 
-.cr-file-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--cr-line); background: var(--cr-surface); }
-.cr-rule-path { display: flex; align-items: flex-start; gap: .5rem; margin-top: .5rem; color: var(--cr-ink); font: .75rem/1.6 var(--cr-font-mono); overflow-wrap: anywhere; }
-.cr-rule-path svg { flex-shrink: 0; margin-top: .1rem; color: var(--cr-muted); }
-.cr-rule-path span { min-width: 0; }
+.cr-artifact-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--cr-line); background: var(--cr-surface); }
+.cr-artifact-path { display: flex; align-items: flex-start; gap: .5rem; margin-top: .5rem; color: var(--cr-ink); font: .75rem/1.6 var(--cr-font-mono); overflow-wrap: anywhere; }
+.cr-artifact-path svg { flex-shrink: 0; margin-top: .1rem; color: var(--cr-muted); }
+.cr-artifact-path span { min-width: 0; }
 .cr-rule-file pre { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
 .cr-rule-file pre code { padding: 0; background: none; color: inherit; font: inherit; border: 0; }
 
-.cr-tree-root { margin-top: .75rem; color: var(--cr-ink); font: 600 .85rem/1.6 var(--cr-font-mono); }
-.cr-library-tree pre { margin-top: .5rem; font-size: clamp(.65rem, 1.1vw, .78rem); line-height: 1.7; tab-size: 4; }
+.cr-library-tree { padding: 0; overflow: hidden; background: var(--cr-paper); }
+.cr-library-tree pre { margin: 0; padding: 1.25rem 1.5rem; font-size: clamp(.65rem, 1.1vw, .78rem); line-height: 1.7; tab-size: 4; }
 .cr-library-tree pre code { padding: 0; border: 0; background: none; color: inherit; font: inherit; }
 .cr-tree-folder { color: var(--cr-ink); font-weight: 600; }
 .cr-tree-branch, .cr-tree-meta { color: var(--cr-muted); }
