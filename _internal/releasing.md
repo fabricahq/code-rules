@@ -17,6 +17,8 @@ The first release is **v0.1.0**. No release is requested by adding the automatio
 5. **Validate and present.** Confirm approved tool terms exist. Run `go run ./cmd/release-plan --base origin/main --head HEAD` after committing the notes. Open a PR titled `Release v<version>` and link directly to the Markdown file's GitHub editor. State that saving edits updates the draft and merging authorizes automated publication. Leave the PR for the maintainer; the release request author does not merge it on the maintainer's behalf.
 6. **Preserve edits and refresh the range.** When asked to revise the draft, fetch its branch and retain manual edits. If `main` advanced, account for the new commits, update the inventory and notes, and bring the release branch up to date before approval. Keep feature development outside the release PR. Finish only when every change through the reviewed source is accounted for and CI is green.
 
+**After the agent finishes, the maintainer merges the release PR to approve publication.** Automation takes over: it validates the merged commit, builds and verifies the release assets, and publishes the GitHub release with the approved notes verbatim. No separate publish action is needed. If a check or upload fails, the release stays unpublished; follow [Retry a failed release](#retry-a-failed-release).
+
 For a second agent reviewing the draft, provide the previous tag, analyzed SHA, release-note file, and inventory. Ask it to identify omitted user-visible changes, unsupported claims, missing migration instructions, and an incorrect version increment. It should report evidence and propose edits without replacing the maintainer's wording or publishing.
 
 ## Editorial format
