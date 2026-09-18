@@ -1,6 +1,6 @@
 # Native CLI runbook
 
-Supplementary, executable CLI review for PRs 34, 35, 36, and 39. The function and scenario labs remain on port 4391.
+Executable introduction to project and library authoring, read-only checks, and repair.
 
 ## Open
 
@@ -31,4 +31,4 @@ CODE_RULES_DEMO_SOURCE_DIR="$PWD" \
 
 Expect one test with all 12 steps passing, including `command:detect: fail` as an expected outcome. Check the summary: Runbooks beta-v0.9.0 can return exit 0 even when configuration loading runs zero tests.
 
-The test uses the same scripts as the browser. Production CLI behavior is covered separately by Go tests and the PR39 integration pilots.
+The test uses the same scripts as the browser. Production CLI behavior is covered separately by Go tests and the real Git lifecycle tests.

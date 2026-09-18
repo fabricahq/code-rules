@@ -1,27 +1,44 @@
-# Release the CLI
+# Packaging and releases
 
-The package is `@fabricahq/code-rules`; its executable is `code-rules`. Node.js 22.18+ and macOS/Linux are supported. CI tests the packed executable with Node 22.18 and 24 on both platforms.
+Build unpublished archives for macOS and Linux, on amd64 and arm64:
 
-## Prepare publication once
+```sh
+go run ./cmd/package-binaries --candidate --output /tmp/code-rules-artifacts
+```
 
-1. Confirm the npm organization/package is owned by Fabrica. Do not publish under an unrelated existing name.
-2. Approve the tool's distribution license, add `LICENSE.md`, and set `package.json.license`. The release guard rejects `UNLICENSED` or missing license text.
-3. Bootstrap the first npm package under the owner account if required, then configure its trusted publisher for GitHub repository `fabricahq/code-rules`, workflow `publish.yml`, environment `npm`. Permit direct publishing. Keep credentials out of the repository.
-4. Configure the GitHub `npm` environment with your release approval policy. A branch push runs tests only; publication starts on a published GitHub release.
+The build compiles an isolated copy of committed HEAD. Commit intended source changes first; uncommitted edits are excluded even from candidates. The manifest reports whether the original checkout had uncommitted edits.
 
-See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) for account setup and first-publication constraints. The workflow uses npm 11 and OIDC, not a stored npm token.
+The output directory must be new. It contains a manifest, SHA256SUMS, and one
+`.tar.gz` per target. Each archive contains the native executable, README.txt,
+and the tool's original LICENSE.md if present. The manifest records the version,
+source commit, dirty state, Go toolchain, target, exact sizes, and SHA-256 hashes.
+A failed build retains an INCOMPLETE marker; retry into a new directory.
 
-## Prepare each version
+For a trusted archive, verify its SHA-256 against the trusted manifest before
+extracting into a new versioned directory. Run `./code-rules --version` and
+`./code-rules --help`. Offline commands need neither Node nor Bun. Sync needs Git.
+Keep the previous directory until the new version passes your project checks;
+rollback selects the previous executable. Existing installs are never replaced
+by the internal verification helper. Checksums detect corruption, not substitution
+of both the archive and manifest.
 
-1. Set a complete semantic version in `package.json` and refresh `bun.lock`. Keep prerelease versions on npm's `next` tag.
-2. Run `bun run check` and `bun run test:package`. The package test installs into a fresh prefix, uses Node through the executable's shebang, and runs from temporary projects.
-3. Inspect `npm pack --dry-run`. Only the executable, sourcemap, template, README, package metadata, and approved license belong in the tarball. Runtime dependencies remain normal npm dependencies.
-4. Install that tarball into a real pilot repository, add local rules, import a compatible library, and inspect licensing/provenance. Commit the result. Record the pilot evidence before declaring the first release ready.
-5. For later releases, test upgrading a committed project from the previous published version, then regenerate and check. The first-release suite proves reinstall preservation; it cannot prove migration from a release that does not exist yet.
-6. Merge the release changes. Create tag `v<version>` on the reviewed commit and publish a matching GitHub release. Mark prereleases as prereleases.
+The packaging tests execute extracted host binaries with an empty PATH, exercise
+local authoring/build/check, install two versions, and verify rollback and corrupt
+archive refusal. CI runs these tests on Linux and macOS and cross-compiles all
+four targets. Cross-compilation alone does not establish runtime compatibility
+on an architecture that CI did not execute.
 
-`publish.yml` checks the tag, channel, and license; runs repository checks; packs once; tests that exact tarball; uploads it as a workflow artifact; and publishes it with provenance. No PR creates tags or publishes automatically.
+## Publication is separate
 
-## Local walkthrough
+Version and license metadata come from committed `release.json`.
+These are review candidates. The current metadata declares UNLICENSED and has no
+declared tool license. Non-candidate packaging checks declared terms as a prerequisite; it cannot establish owner approval and never publishes. It refuses missing terms, mismatched
+release versions, and dirty source. Publishing and release signing require separate owner approval. Packaging never publishes or replaces an installed binary.
 
-Use the locally packed artifact for review before npm publication. The walkthrough must invoke the installed executable, expose one command per step, and show the actual project files. Fixture transport routing, when needed to keep the example local, must be disclosed and confined to the walkthrough process.
+## Pull request downloads
+
+`package-binaries.yml` builds and uploads the candidate bundle for seven days. After a successful pull-request run, `comment-binary-preview.yml` posts or updates one bot comment with a direct download link, the PR commit, expiry, and build results. Reviewers must sign in to GitHub to download artifacts. Pull-request builds check out the exact PR head, so the manifest and preview comment identify the same source commit. Manual runs use the selected workflow revision.
+
+The notification uses GitHub API metadata only. It never checks out PR code, downloads artifacts, or executes their contents. Failed builds, missing or expired artifacts, closed PRs, and superseded commits do not produce a preview comment. A manual packaging run uploads artifacts without commenting on a PR.
+
+GitHub activates `workflow_run` notifications only after the notification workflow reaches the repository's default branch (`main`). Feature-branch-only workflow changes do not activate automatic comments.

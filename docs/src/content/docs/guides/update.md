@@ -9,7 +9,7 @@ Sync works through the [development entry point](/reference/sync/) or an [instal
 
 ## Update a library
 
-1. Choose an exact tag or commit, or an npm version constraint such as `^1.2.0`.
+1. Choose an exact tag or commit, or a HashiCorp version constraint such as `>= 1.2.0, < 2.0.0`.
 2. Set `sources.<name>.ref` for an exact revision, or `sources.<name>.version` for a constraint. Specify exactly one.
 3. From the project root, run:
 

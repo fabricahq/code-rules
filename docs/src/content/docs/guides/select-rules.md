@@ -7,7 +7,7 @@ Import the technology and practice groups your project needs from one or more li
 Add local rules and declare exceptions as part of that import configuration.
 Code Rules combines those choices into a root group index, group pages, and individual full rule files. Small group pages include complete rules; larger ones contain applicability summaries with explicit reading links.
 
-These commands describe the proposed release.
+These commands are implemented in the Go CLI.
 For a complete setup walkthrough, see [Use rules in a project](/guides/use-rules/).
 
 ## Choose groups for your project
@@ -118,7 +118,7 @@ Include the intended scope and exceptions in that definition.
 
 ## Generate and review
 
-When sources, revision selections, or selected groups change, run the proposed `code-rules sync` command.
+When sources, revision selections, or selected groups change, run `code-rules sync`.
 For changes limited to local rules or exceptions, run `code-rules build` against the existing vendor snapshots.
 Review and commit the updated generated files with their inputs.
 

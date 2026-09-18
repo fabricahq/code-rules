@@ -43,7 +43,7 @@ The command does not create a remote repository, commit files, or publish conten
 code-rules library add group techs/javascript
 ```
 
-Provide the group's name, description, and `whenToRead` cues.
+Provide the group's name, description, and one `whenToRead` string. The command also creates a group README explaining authoring and validation.
 The command creates `techs/javascript/_group.json`.
 You can create a group before adding any rules.
 
@@ -79,6 +79,7 @@ LICENSE.md
 techs/
   javascript/
     _group.json
+    README.md
     prefer-for-of.md
 ```
 

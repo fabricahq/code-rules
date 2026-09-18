@@ -1,13 +1,12 @@
 ---
 title: "CLI commands"
-description: "The proposed rule import, validation, conflict-review prompt, and tool update commands."
+description: "Project and library commands, output, and error behavior."
 ---
 
-**Project setup, local and library authoring, source addition, sync, build, and check work through the development entry point `bun src/cli.ts`.**
-You can also [install a packed release candidate](/guides/install/) and run `code-rules` directly. No public npm release is published. The conflict-review prompt and tool-update commands remain proposed.
-See [Sync and recovery](/reference/sync/) for development commands and filesystem behavior.
+The Go CLI implements project setup, local and library authoring, source addition, sync, build, and check. [Build or install a candidate executable](/guides/install/) to use it. Public release publication remains separate work. The conflict-review prompt and tool-update commands are not implemented.
+See [Sync and recovery](/reference/sync/) for filesystem behavior.
 
-For `sync`, `build`, `check`, and `conflicts --prompt`, run from the consuming project's root by default.
+For `sync`, `build`, and `check`, run from the consuming project's root by default.
 Use `--config` to identify a configuration file elsewhere.
 
 Use `code-rules --version` to print the installed version.
@@ -24,9 +23,9 @@ Bare command groups such as `code-rules library` also show navigation.
 Help never prompts or writes files. Invalid commands and options exit with status 2 and point to the relevant help page.
 Authoring help distinguishes fields prompted on a terminal from optional flags; both `init` commands currently run without prompts.
 
-## Native Go candidate output
+## Command output
 
-The Go migration candidate uses human-readable output by default. Add `--json` to any command when a script needs structured results:
+The CLI uses human-readable output by default. Add `--json` to any command when a script needs structured results:
 
 ```sh
 code-rules init
@@ -37,11 +36,11 @@ JSON mode prints one response on stdout and never prompts. Success returns `ok: 
 
 Exit status is 0 for success, 1 for operation failure or stale output, and 2 for invalid usage. In human mode, operational errors go to stderr; an out-of-date check prints its status, problems, and next steps on stdout. In JSON mode, errors go in the JSON response; stderr is reserved for failures writing that response.
 
-This output contract applies to the native candidate demonstrated in the review labs and runbook. The existing TypeScript entry point retains its current output until the native cutover.
+The executable and the CLI runbook use this same output contract.
 
-## Native project agent guide
+## Project agent guide
 
-The native candidate's `code-rules init` creates `.code-rules/README.md` alongside configuration and local rules. This guide defines rules, groups, and libraries and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results. If a custom configuration lives outside a directory named `.code-rules`, init creates `CODE_RULES.md` beside that configuration and preserves the project's `README.md`.
+`code-rules init` creates `.code-rules/README.md` alongside configuration and local rules. This guide defines rules, groups, and libraries and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results. If a custom configuration lives outside a directory named `.code-rules`, init creates `CODE_RULES.md` beside that configuration and preserves the project's `README.md`.
 
 After upgrading, run `code-rules init` again to refresh an older generated guide. It preserves valid configuration and local rules. If someone edited the managed guide, init refuses to overwrite it and explains how to preserve those notes separately.
 
@@ -69,7 +68,7 @@ If any source fails, preserve the previous complete output.
 code-rules build
 ```
 
-Generate resolved rules from committed vendor content, local rules, and configuration.
+Generate resolved rules from verified vendor content, local rules, and configuration.
 Build works offline and does not change imported revisions.
 
 If any source repository, requested revision selection, or imported groups differ from the vendor snapshot, sync before building.
@@ -90,53 +89,11 @@ It does not mean application code follows those rules.
 
 ## Conflict review prompt
 
-```sh
-code-rules conflicts --prompt
-```
-
-`--prompt` is required.
-Running `code-rules conflicts` without it exits with a usage error that shows the required flag.
-
-Print a Markdown prompt for an agent to review the project's active rules for contradictory guidance.
-The prompt includes the effective root index, group index, and rule file paths, source refs and resolved commits, and a digest identifying the reviewed inputs and output.
-Generate it from the configured project paths so the agent can read the exact snapshot.
-The prompt is for an agent with access to those repository files; it does not embed the complete rule corpus.
-
-Validate the inputs and generated output using the same consistency checks as `check` before emitting a prompt.
-If validation fails, exit nonzero and explain the required rebuild or sync on stderr; do not emit a review prompt.
-Send the successful Markdown prompt to stdout and operational diagnostics to stderr.
-Generation works offline and leaves repository files unchanged.
-
-The prompt instructs the agent to compare all effective groups and cite source-qualified IDs, conflicting passages, overlapping applicability, and proposed resolutions.
-It includes local additions and replacements, while treating excluded rules and replaced upstream definitions as inactive context.
-It asks the agent to distinguish contradictions from ambiguous scope and redundant guidance, and to report incomplete coverage.
-
-The CLI generates the review instructions; an agent performs the semantic review.
-A zero exit status confirms prompt generation, not the absence of contradictions.
-The command does not choose policies, apply exceptions, or launch an agent.
-
-See [Conflicting guidance](/guides/conflicting-guidance/) for a prompt you can use today and examples of resolving findings.
+`code-rules conflicts --prompt` is proposed and is not accepted by the current CLI. Use the manual [conflict-review prompt](/guides/conflicting-guidance/) with an agent today. The agent reviews guidance; the CLI does not assess application compliance or resolve contradictory policies.
 
 ## Update the tool
 
-```sh
-code-rules update
-```
-
-Upgrade the Code Rules CLI to the latest stable release.
-The command reports the current version and the installed version, or confirms that the tool is already up to date.
-
-Use the existing installation method when applying the upgrade.
-For installations managed by a package manager, preserve that manager's ownership of the installation.
-If an installation cannot be updated automatically, provide the specific command needed to upgrade it.
-A failed upgrade must preserve a working installation.
-
-This command updates the tool itself.
-Library refs, vendored rules, and generated rule files remain unchanged.
-Use `code-rules sync` to download rule libraries and rebuild their indexes and resolved definitions.
-
-After upgrading, run `code-rules check` in a consuming project to check its generated files against the new tool version.
-If regeneration is needed, run `code-rules build` and review the output before committing it.
+`code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/guides/install/#upgrade-or-roll-back), then refresh the managed project guide with `code-rules init`, regenerate with `code-rules build`, and run `code-rules check`. Use `sync` separately to select library revisions again.
 
 ## Explicit configuration
 
@@ -155,7 +112,7 @@ Run these commands from your consuming project with `code-rules` installed:
 code-rules init
 code-rules local add group practices/testing
 code-rules local add rule practices/testing/retry-budget
-code-rules add source team --repository https://github.com/example/rules.git --version '^1.2.0' --groups '*'
+code-rules add source team --repository https://github.com/example/rules.git --version '>= 1.2.0, < 2.0.0' --groups '*'
 ```
 
 Use `--config` to select a configuration file outside the default location.
@@ -164,7 +121,7 @@ Create the group before adding a rule. Rule creation fails before prompting for 
 `add source` validates and records a library declaration; run `sync` separately to fetch it. It preserves existing source exceptions and local files.
 
 See [Set up a project](/guides/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
-All commands accept `--non-interactive`. Missing inputs fail without prompting when no terminal is available.
+Authoring commands accept `--non-interactive`. Missing inputs fail without prompting when no terminal is available.
 
 ## Author a library
 
@@ -178,7 +135,7 @@ code-rules library add rule techs/javascript/prefer-for-of
 code-rules library check
 ```
 
-- `library init` creates the format manifest and a README pointing to the canonical authoring guidance. The Go candidate README defines rules, groups, and libraries and gives agents executable examples for authoring and validation. Existing READMEs are preserved. Supply `--spdx expression --license-file path` and optional `--notice-file path` to copy explicit terms to `LICENSE.md` and `NOTICE.md`. Authors may defer that choice; the manifest then leaves it undeclared.
+- `library init` creates the format manifest and a README pointing to the canonical authoring guidance. The README defines rules, groups, and libraries and gives agents executable examples for authoring and validation. Existing READMEs are preserved. Supply `--spdx expression --license-file path` and optional `--notice-file path` to copy explicit terms to `LICENSE.md` and `NOTICE.md`. Authors may defer that choice; the manifest then leaves it undeclared.
 - `library add group <group-id>` creates `_group.json` under `techs/` or `practices/`, collecting the name, description, and group-level `whenToRead` cues. A group can exist before it has rules.
 - `library add rule <rule-id>` creates a Markdown draft from the canonical template in an existing group. If the group is missing, the Go CLI errors with the command to create it first. It does not offer automatic group creation. Required fields need author input; the command does not invent policy.
 - `library check` validates the manifest, all group and rule definitions, and declared license and notice assets offline without writing files. It reports file-specific errors and group and rule counts. Marked drafts fail until completed and their `code-rules:draft` marker is removed. Empty groups are valid. Undeclared licenses produce warnings; malformed declarations and missing declared files fail validation.
@@ -198,6 +155,6 @@ Report the affected file or rule ID and the action needed to resolve the problem
 Examples include a missing override target, an unsupported format version, or a vendor snapshot that needs sync.
 Exit nonzero on failure and preserve the previous working output if installation fails.
 
-### Native group guides
+### Group guides
 
-The Go candidate creates `README.md` alongside `_group.json` for each new local or library group. The guide directs agents to the current metadata and explains how to add, edit, and validate rules. Group READMEs are authoring documentation and are excluded from rule loading and generated guidance. Existing group files are preserved.
+The CLI creates `README.md` alongside `_group.json` for each new local or library group. The guide directs agents to the current metadata and explains how to add, edit, and validate rules. Group READMEs are authoring documentation and are excluded from rule loading and generated guidance. Existing group files are preserved.

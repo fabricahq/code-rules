@@ -17,7 +17,7 @@ code-rules local add rule practices/testing/retry-budget
 ```
 
 `init` creates `.code-rules/config.json` with no imported sources and `.code-rules/local/README.md`.
-No imported library or existing Git repository is required. The TypeScript package preserves existing valid configuration, README text, and rules when you repeat `init`.
+No imported library or existing Git repository is required. Repeating `init` preserves valid configuration and local rules and refreshes the managed project README. It refuses to overwrite manually edited guides; keep project notes in a separate file.
 
 **Native Go candidate:** `init` also creates a tool-owned agent guide at `.code-rules/README.md`. For a custom configuration outside a directory named `.code-rules`, the guide is `CODE_RULES.md` beside that configuration. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
 
@@ -41,13 +41,13 @@ Use the [agent integration instructions](/for-agents/) to connect the rules to y
 ```sh
 code-rules add source team \
   --repository https://github.com/example/rules.git \
-  --version '^1.2.0' --groups '*'
+  --version '>= 1.2.0, < 2.0.0' --groups '*'
 code-rules sync
 ```
 
 Replace the example repository and version with a library you can access.
 `add source` validates and records the declaration. It does not fetch, verify remote existence, or change generated files. `sync` performs those steps explicitly.
-Use exactly one of `--ref` (an exact tag or full commit) or `--version` (an npm version constraint).
+Use exactly one of `--ref` (an exact tag or full commit) or `--version` (a HashiCorp version constraint).
 
 Use `--groups '*'`, `--groups 'practices/*'`, `--groups 'techs/*'`, or repeat `--groups` for explicit IDs. Quote wildcard values in your shell. Wildcards cannot be combined with other selectors.
 Existing sources, exclusions, replacements, and local rule files are preserved. An existing source alias is an error; edit its configuration explicitly to change it.
@@ -73,7 +73,7 @@ code-rules local add rule practices/testing/retry-budget \
   --non-interactive
 ```
 
-Repeat group `--when-to-read` for distinct scope cues. Rule `--when-to-read` is one string.
+Pass `--when-to-read` once for either a group or a rule. Combine distinct scope cues into that one string.
 Optionally pass `--body-file path/to/guidance.md` to use an already authored Markdown body instead of the draft body. The command creates frontmatter from the explicit metadata flags; the body file should not contain frontmatter.
 
 Create a missing group first with `code-rules local add group <group-id>`, then run `code-rules local add rule`. The Go CLI errors before asking for rule metadata if the group does not exist. A selected group from a verified imported library also counts as an existing group.

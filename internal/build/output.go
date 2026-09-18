@@ -69,7 +69,7 @@ func Prepare(resolved Resolved, options Options) (Output, error) {
 		}
 		files["libraries/"+source.Name+"/README.md"] = []byte(libraryReadme(source))
 	}
-	files["rules/README.md"] = []byte("# Effective rules\n\nThese files contain the complete effective definitions after exclusions, replacements, and local additions. Start with [RULES.md](../RULES.md). See [provenance.json](../provenance.json) for origins. Edit source inputs and rebuild.\n")
+	files["rules/README.md"] = []byte("# Resolved rules\n\nThese files contain the complete resolved definitions after exclusions, replacements, and local additions. Start with [RULES.md](../RULES.md). See [provenance.json](../provenance.json) for origins. Edit source inputs and rebuild.\n")
 	files["groups/README.md"] = []byte("# Rule groups\n\nStart with [RULES.md](../RULES.md), then open relevant group indexes and read each applicable rule in full. Each group page provides reading instructions and either complete rules or summaries with explicit links to the full definitions.\n")
 	provenance, err := renderProvenance(resolved, options.ToolVersion)
 	if err != nil {
@@ -104,7 +104,7 @@ func libraryReadme(source Source) string {
 			sections = append(sections, "- ["+escapeText(path.Base(mapping.Generated))+"]("+relativeURL(file, mapping.Generated)+")")
 		}
 	}
-	sections = append(sections, "[provenance.json](../../provenance.json) records source revisions, origins, and original and generated term paths.", "Use [RULES.md](../../RULES.md) to find effective rules. These files are generated; edit source inputs and rebuild.")
+	sections = append(sections, "[provenance.json](../../provenance.json) records source revisions, origins, and original and generated term paths.", "Use [RULES.md](../../RULES.md) to find resolved rules. These files are generated; edit source inputs and rebuild.")
 	return strings.Join(sections, "\n\n") + "\n"
 }
 

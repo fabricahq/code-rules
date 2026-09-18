@@ -1,168 +1,61 @@
 # Code Rules
 
-The package manager for your engineering rules.
-Code Rules manages which versioned engineering rules a codebase adopts, including shared libraries, local exceptions, and reviewable updates.
-It generates rule files for agents and other tools to consume. Your project chooses how to apply, validate, and enforce them through agent prompts or separate tooling. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
+[Fabrica Code Rules](https://code-rules.fabricahq.com) is the package manager for your engineering rules. Author project rules, adopt versioned Git libraries, and generate Markdown that agents can read before they work.
 
-The project is in early implementation.
-Imports, offline Builds, sync, project setup, library authoring, and the development CLI are available from this checkout. The Node.js CLI can be packed and installed locally; no package release is published.
-See [Install Code Rules](docs/src/content/docs/guides/install.md) to try the release candidate.
+The Go CLI is implemented. Public release publication and the installable authoring skill remain separate work; see [project status](docs/src/content/docs/status.md).
 
-## Documentation
+## Build the CLI
 
-The [documentation site](docs/README.md) uses Astro and Starlight.
-Start with [What is Code Rules?](docs/src/content/docs/overview.md) or [Project status](docs/src/content/docs/status.md).
+Install the Go version declared in [go.mod](go.mod). Git is required to sync remote libraries.
+
+```sh
+go build -o ./dist/code-rules ./cmd/code-rules
+./dist/code-rules --help
+```
+
+The executable runs without Node.js or Bun. From a consuming project's root, run `code-rules init`, create a local group and rule, then `code-rules build`. To adopt a library, use `code-rules add source` with its repository, revision, and groups, then run `code-rules sync`.
+
+Read [project setup](docs/src/content/docs/guides/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `check` reports status and problems without writing files.
+
+## Validate changes
+
+```sh
+gofmt -w cmd internal
+go vet ./...
+go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+go test -race ./...
+go build ./cmd/code-rules ./cmd/package-binaries
+```
+
+Tests exercise parsers, filesystem safety, Git imports, real CLI processes, generated agent instructions, and installation/upgrade/rollback. Parser regression fixtures live beside their Go tests. [Go conventions](_internal/go-conventions.md) cover error ownership and comments.
+
+## Documentation website
+
+The Astro website and its JavaScript tooling are independent of the Go executable. Install the Bun version declared in [package.json](package.json), then run:
 
 ```sh
 bun install --frozen-lockfile
+bun run check
 bun run docs:dev
 ```
 
-To validate the implementation and documentation:
+`bun run check` validates website/tooling formatting, lint, types, tests, the Astro build, and rendered links. It does not replace Go validation. See [docs/README.md](docs/README.md) for site development.
 
-```sh
-bun run check
-```
+## Explore the CLI
 
-The check includes comment-presence linting for authored TypeScript, JavaScript, and Astro files.
-Use `@fileoverview` headers separated from declarations by a blank line; export TSDoc belongs immediately above its declaration.
-For Astro components, the frontmatter overview describes the component's role and rendered result.
-Private-helper documentation stays optional, and review checks comment accuracy and usefulness.
+The [Gruntwork runbook](runbooks/native-cli/README.md) builds a temporary executable and demonstrates project and library authoring, read-only checks, and repair. The initial-development labs have been retired.
 
-The Go migration follows the [Go conventions](_internal/go-conventions.md) for error handling, logging, comments, and validation.
-See the [migration guide](migration/README.md) for the candidate's scope and checks.
+## Package binaries
 
-The public tool is independent of any particular rule library.
-All examples in these docs are illustrative; this repository does not contain Fabrica's private rule corpus.
+[Release instructions](_internal/releasing.md) explain candidate archives and PR download links. Packaging reads version and license metadata from [release.json](release.json), builds committed source, and never publishes. Public release approval and tool licensing remain explicit decisions.
 
-## Builds
+## Implementation map
 
-[`buildRules`](src/builds/index.ts) accepts configuration, in-memory library snapshots, local rule files, and a tool version.
-It returns the complete generated file set without fetching libraries or writing project files.
-The [Builds scope note](_internal/builds.md) explains the interface, subsystem responsibilities, and verification.
+- `internal/rules`: validated configuration, identities, documents, links, and versions.
+- `internal/library` and `internal/imports`: local catalogs and verified Git imports.
+- `internal/build`: resolve adopted rules and render output.
+- `internal/project`: persisted snapshots, read-only checks, and coordinated file updates.
+- `internal/authoring` and `internal/cli`: create definitions and expose commands.
+- `internal/distribution`: package and verify executable archives.
 
-Run the [manual Builds scenario](tests/manual/builds.ts) to create a temporary workspace with group and rule indexes, individual resolved definitions, local rules, and provenance:
-
-```sh
-bun run builds:example
-```
-
-The script creates files for inspection and makes no automated assertions.
-After running it:
-
-1. Open the printed `generated/RULES.md` path and follow its testing-group link.
-2. Confirm the group page includes exactly two complete active rules: the project retry budget and stopping retries after success.
-3. Open `generated/groups/techs/typescript.md` to see the larger group as an index with explicit **Read full rule** links. Follow the testing rule links and confirm the retry-budget replacement retains its local rule ID and links to its local definition.
-4. Use the printed `scenarios.md` to inspect pre-implementation selection and a review with no test-file edits. The TypeScript scenario should lead to testing and code-design rules, while Go is unrelated.
-5. Open `generated/libraries/example/README.md` for the source identity and revision. This unlicensed fixture has no generated license directory.
-6. Inspect `generated/provenance.json`: the replacement should have a local origin and an imported upstream origin; the additional local rule should have no upstream origin.
-
-Source repository names and commits are illustrative, so upstream GitHub links do not point to a real fixture library.
-The temporary workspace remains available after the script exits.
-Automated behavior checks live beside the implementation in `src/builds/build*.test.ts`, grouped by core behavior, selection, input validation, indexes, group delivery, Markdown, and licensing. Each suite tests through the public `buildRules` interface; shared fixture factories live in `build-test-fixtures.ts`.
-
-## Imports
-
-[`importLibraries`](src/imports/index.ts) accepts raw project configuration and optional cancellation.
-It fetches exact Git commits, exact tags, or the highest tag matching an npm version constraint and returns each library's original bytes plus a text snapshot for Builds.
-The operation never installs files in a consuming project.
-The `sync` function coordinates Imports and Builds and safely applies their combined result.
-
-Imports requires macOS or Linux and Git 2.30 or later.
-Private libraries use your configured Git credentials; imports disable terminal prompts and do not print Git stderr.
-
-```ts
-import { importLibraries } from './src/imports';
-import { buildRules } from './src/builds';
-
-const libraries = await importLibraries(configuration);
-const snapshots = Object.fromEntries(
-  Object.entries(libraries).map(([name, library]) => [name, library.snapshot]),
-);
-const generated = buildRules({
-  configuration,
-  snapshots,
-  localFiles: {},
-  toolVersion: 'development',
-});
-```
-
-Run the [manual Imports scenario](tests/manual/imports.ts):
-
-```sh
-bun run imports:example
-```
-
-The scenario creates two temporary Git libraries, imports them, and writes a temporary workspace for inspection.
-Both libraries contain a rule with the same path; the generated testing group identifies each source separately.
-Check image links against `vendor/` and license links against `generated/libraries/<source>/licenses/`, then inspect `generated/provenance.json` for resolved commits.
-The scenario uses illustrative GitHub and nested GitLab addresses, routed to local repositories only in the test process.
-Generated remote source links therefore do not resolve to those local fixture libraries.
-The script removes its Git fixtures and leaves the printed workspace for inspection.
-This manual API example does not use Sync's persisted records or safe file updates.
-
-### Import limits and failures
-
-Each library has a 120-second deadline, at most 10,000 tree entries, and an 8 MiB tree-listing limit.
-Retained files may occupy up to 64 MiB in total, with an 8 MiB limit per file.
-A shallow fetch may still download a large tree; retained-file limits do not bound network traffic or Git's temporary disk use.
-Imports rejects symlinks, submodules, Git LFS pointers, reserved paths, and case-insensitive NFC-normalized path collisions in retained files.
-Required text, declared licenses and notices, and Markdown inspected for dependencies must be UTF-8.
-
-`ImportError.code` distinguishes invalid configuration or libraries, unavailable Git, inaccessible repositories, missing or refused refs, unmatched or ambiguous version constraints, tags changing during fetch, unsupported content, resource limits, cancellation, timeouts, Git failures, and I/O failures.
-Failures return no partial library mapping.
-The [import reference](docs/src/content/docs/reference/imports.md) describes file selection and preservation behavior.
-
-Imported rule assets follow [two conventional locations](docs/src/content/docs/reference/files.mdx#supporting-assets): an adjacent `assets/<rule-name>/` directory and a shared library-root `assets/` directory.
-Imports preserves complete owned directories and adds the shared directory when referenced. Supporting links outside these locations fail validation; declared library licenses keep their manifest-based paths.
-
-Use an exact `ref` or an npm `version` constraint such as `^1.2.0`, never both. Version imports choose the highest matching complete SemVer tag and record its tag, normalized version, and commit.
-Offline builds use the existing snapshot. See [version constraints](docs/src/content/docs/reference/configuration.md#semantic-version-constraints) for prerelease, alias, and repeatability behavior.
-
-## Set up a project
-
-From the consuming repository, with `code-rules` installed:
-
-```sh
-code-rules init
-code-rules local add group practices/testing
-code-rules local add rule practices/testing/retry-budget
-```
-
-The terminal prompts for author input. Agents and scripts can supply equivalent flags; run `--help` for syntax.
-Complete the rule draft, then run `build` and `check`. Add libraries with `add source`, then fetch them with `sync`.
-See [Set up a project](docs/src/content/docs/guides/set-up-project.md) for the complete local-first workflow and noninteractive examples.
-
-## Sync a project
-
-Create `.code-rules/config.json` in a consuming project using the [configuration reference](docs/src/content/docs/reference/configuration.md).
-Run the development CLI from this checkout, passing the configuration path:
-
-```sh
-bun src/cli.ts sync --config /path/to/project/.code-rules/config.json
-bun src/cli.ts build --config /path/to/project/.code-rules/config.json
-bun src/cli.ts check --config /path/to/project/.code-rules/config.json
-```
-
-Sync imports libraries, generates resolved rules, and applies changes safely. Build regenerates offline; check compares without writing.
-Each prints added, changed, and removed file paths. Check exits 1 for stale output or invalid input; usage errors exit 2.
-The API equivalents are `sync` in `src/sync.ts` and `buildProject` / `checkProject` in `src/project.ts`.
-See [sync and recovery](docs/src/content/docs/reference/sync.md) for ownership, snapshot records, locking, and interruption behavior.
-
-## Author a library
-
-Use `library init`, `library add group`, `library add rule`, and `library check` from a library's root.
-Group and rule commands share the local authoring flags and canonical template. License terms must be supplied explicitly; initialization without license flags leaves them undeclared.
-See [Create a rule library](docs/src/content/docs/guides/create-library.md) for license setup, draft completion, validation, and publishing through Git.
-
-## Package and release
-
-Run `npm pack` to build the Node.js executable and package its authoring template.
-Run `bun run test:package` to install the tarball into a temporary prefix and exercise the executable from fresh projects.
-The installed CLI supports Node.js 22.18+ on macOS/Linux; imports also need Git 2.30+.
-See [release preparation](_internal/releasing.md) for npm ownership, licensing, trusted publishing, and pilot gates.
-
-## Go migration
-
-The [migration inventory and comparison harness](migration/README.md) track the Go candidate while the TypeScript CLI remains available.
-Migration PRs target `go-migration`; a separate human review will decide when that branch is ready for `main`.
+Engineering policies belong to independently owned libraries. This repository supplies the formats, tools, and public authoring guidance.

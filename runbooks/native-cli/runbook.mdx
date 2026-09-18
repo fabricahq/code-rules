@@ -1,6 +1,6 @@
 # Code Rules: native CLI, one command at a time
 
-This supplementary runbook covers PRs 34, 35, 36, and 39. Keep the [4391 review collection](http://127.0.0.1:4391/) open for each PR's other scenarios.
+Build a temporary CLI and explore project and library authoring, checks, and repair.
 
 Run each block in order and wait for it to finish. Expand its script to see the exact commands, then inspect live stdout and exit status.
 All commands write inside a fresh temporary workspace. The workspace stays on disk for inspection. Restart **Prepare** for a fresh run; do not rerun the add commands against existing files.
@@ -11,7 +11,7 @@ The **Observe the expected check failure** block deliberately turns red. It demo
 
 ## 1. Build the CLI and prepare a disposable workspace
 
-**PR34.** Builds this checkout into a temporary directory and prints the binary’s absolute path. Copy the terminal setup from the output to experiment yourself. It creates a separate `playground/` directory and includes examples of missing-project and invalid-option errors.
+Builds this checkout into a temporary directory and prints the binary’s absolute path. Copy the terminal setup from the output to experiment yourself. It creates a separate `playground/` directory and includes examples of missing-project and invalid-option errors.
 
 The binary remains available after closing the runbook. Re-run **Prepare** to rebuild changed Go code and start a fresh workspace. Earlier binaries and workspaces remain at their printed paths.
 
@@ -25,7 +25,7 @@ The binary remains available after closing the runbook. Re-run **Prepare** to re
 
 ## 2. Initialize the project
 
-**PR35.** Creates `.code-rules/README.md`, `.code-rules/config.json`, and `.code-rules/local/README.md` in the printed project directory. No source is fetched.
+Creates `.code-rules/README.md`, `.code-rules/config.json`, and `.code-rules/local/README.md` in the printed project directory. No source is fetched.
 Open **Generated Files → project → .code-rules** immediately after running this step to inspect all three files. Start with the project README for agent workflows, adding groups and rules, and adopting libraries. The terminal also prints the configuration under a file label.
 
 <Command
@@ -38,7 +38,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 3. Add local Go guidance
 
-**PR35.** Creates techs/go group metadata and a README for agents. Open `project/.code-rules/local/techs/go/README.md` in Generated Files for authoring instructions. `_group.json` owns the description and reading cue.
+Creates techs/go group metadata and a README for agents. Open `project/.code-rules/local/techs/go/README.md` in Generated Files for authoring instructions. `_group.json` owns the description and reading cue.
 
 <Command
   id="group"
@@ -50,7 +50,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 4. Add a complete rule
 
-**PR35.** Writes an original Markdown body and creates a validated rule. Explicit flags make this step reproducible; the PR37 lab separately demonstrates terminal prompts.
+Writes an original Markdown body and creates a validated rule. Explicit flags make this step reproducible. Run the command in a terminal without metadata flags to try interactive prompts.
 
 <Command
   id="rule"
@@ -62,7 +62,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 5. Build and read the generated Markdown
 
-**PR34 / PR39.** Build creates agent-facing Markdown and provenance from the local rule. Inspect RULES.md and the Go group page in Generated Files after this step.
+Build creates agent-facing Markdown and provenance from the local rule. Inspect RULES.md and the Go group page in Generated Files after this step.
 
 <Command
   id="build"
@@ -74,7 +74,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 6. Check without changing files
 
-**PR34.** A readable confirmation and exit 0 mean generated output matches its inputs and the project README matches the installed CLI. The second invocation uses `check --json` to demonstrate structured output: `ok: true` and `value.status: "up_to_date"` with an empty `problems` list. Both invocations run with no tools on PATH. Each invocation verifies both without changing files.
+A readable confirmation and exit 0 mean generated output matches its inputs and the project README matches the installed CLI. The second invocation uses `check --json` to demonstrate structured output: `ok: true` and `value.status: "up_to_date"` with an empty `problems` list. Both invocations run with no tools on PATH. Each invocation verifies both without changing files.
 
 <Command
   id="check"
@@ -86,7 +86,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 7. Deliberately edit generated output
 
-**PR39.** Appends a demo-only line to the disposable RULES.md. This simulates a manual edit that the next check must report.
+Appends a demo-only line to the disposable RULES.md. This simulates a manual edit that the next check must report.
 
 <Command
   id="drift"
@@ -98,7 +98,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 8. Observe the expected check failure
 
-**PR34 / PR39.** Expect exit 1 and RULES.md reported as having stale contents. The block is red intentionally: the CLI reports stale output and leaves the manual edit intact. Continue to Repair.
+Expect exit 1 and RULES.md reported as having stale contents. The block is red intentionally: the CLI reports stale output and leaves the manual edit intact. Continue to Repair.
 
 <Command
   id="detect"
@@ -110,7 +110,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 9. Repair and check again
 
-**PR34 / PR39.** Build replaces the edited generated file from its source. Check then returns exit 0. The file browser now shows the repaired project.
+Build replaces the edited generated file from its source. Check then returns exit 0. The file browser now shows the repaired project.
 
 <Command
   id="repair"
@@ -122,7 +122,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 10. Initialize a separate library
 
-**PR36.** Creates a manifest and README in a separate disposable directory. Read `library/README.md` in Generated Files for concepts, authoring commands, and validation instructions. This demo declares no license; it does not publish or fetch anything.
+Creates a manifest and README in a separate disposable directory. Read `library/README.md` in Generated Files for concepts, authoring commands, and validation instructions. This demo declares no license; it does not publish or fetch anything.
 
 <Command
   id="library"
@@ -134,7 +134,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 11. Author the library group and rule
 
-**PR36.** Creates a group with an agent README and a complete original rule in the library. These files could later be committed to a publisher repository.
+Creates a group with an agent README and a complete original rule in the library. These files could later be committed to a publisher repository.
 
 <Command
   id="library-rule"
@@ -146,7 +146,7 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## 12. Validate the whole library
 
-**PR36.** Checks every library group, rule, and relevant attachment. Expect one group and one rule. An unlicensed-library warning is expected in this demo.
+Checks every library group, rule, and relevant attachment. Expect one group and one rule. An unlicensed-library warning is expected in this demo.
 
 <Command
   id="library-check"
@@ -158,6 +158,6 @@ Open **Generated Files → project → .code-rules** immediately after running t
 
 ## Continue your review
 
-Return to [4391](http://127.0.0.1:4391/) for [sync](http://127.0.0.1:4391/walkthrough/pr33), [interactive prompts](http://127.0.0.1:4391/walkthrough/pr37), [packaged binaries](http://127.0.0.1:4391/walkthrough/pr38), and [real Git lifecycle pilots](http://127.0.0.1:4391/walkthrough/pr39).
+Use `code-rules --help` to explore more commands. Go acceptance tests cover sync and real Git lifecycle failures.
 
 This runbook demonstrates local authoring and offline builds. It does not install globally or change the production CLI.
