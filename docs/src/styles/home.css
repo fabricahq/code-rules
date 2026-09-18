@@ -68,3 +68,6 @@
 }
 
 .cr-rule-file { padding: 0; overflow: hidden; background: var(--cr-paper); --sample-padding: 1.25rem 1.5rem; --sample-size: .8rem; }
+
+.cr-aside { margin: 1.5rem 0 0; padding-left: 1rem; border-left: 2px solid var(--cr-line); color: var(--cr-muted); font-size: .8rem; font-style: italic; line-height: 1.65; max-width: 48rem; }
+.cr-aside a { color: var(--cr-ink); text-underline-offset: 3px; }

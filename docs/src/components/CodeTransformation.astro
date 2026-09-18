@@ -7,7 +7,7 @@ const helpers = "/** @fileoverview Validates library license declarations and re
 ---
 <section class="transformation" aria-labelledby="code-example" >
   <div class="intro"><span class="cr-index">FROM THE FIELD</span><h2 id="code-example">A wall of logic becomes a readable sequence.</h2><p>While writing Code Rules, we prototyped it in TypeScript. An agent produced the Before example. This is what changed after we asked the agent to review it against our own rules.</p>
-  <aside class="comparison-aside"><em>Understanding exactly what these functions do is not important. Rather, notice how the structure changes and code becomes easier to read, more testable, and more maintainable.</em></aside>
+  <aside class="cr-aside"><em>Understanding exactly what these functions do is not important. Rather, notice how the structure changes and code becomes easier to read, more testable, and more maintainable.</em></aside>
   </div>
   <div class="comparison">
     <article class="code-card"><div class="card-label"><h3>Before</h3><span>Parsing, validation, and collection intertwined</span></div><CodeSample code={before} lang="text" label="Original licenseFiles function" /></article>
@@ -16,7 +16,7 @@ const helpers = "/** @fileoverview Validates library license declarations and re
     </article>
     <div class="commentary"><h3>What changed</h3>
       <ul class="takeaways"><li><strong>The contract is visible.</strong> The comment describes the result, empty case, and failures.</li><li><strong>Names explain the steps.</strong> Understand the main steps without reading all the validation code.</li><li><strong>Helpers own the details.</strong> Parsing, declarations, and file checks each have a focused function.</li></ul>
-      <p class="your-rules"><em>If this example doesn’t follow your team’s best practices, <a href="/guides/write-rules/">write a code rule</a> for your preferred approach and have your agent apply it.</em></p>
+      <aside class="cr-aside"><em>If this example doesn’t follow your team’s best practices, <a href="/guides/write-rules/">write a code rule</a> for your preferred approach and have your agent apply it.</em></aside>
     </div>
     </div>
   </div>
@@ -39,10 +39,7 @@ const helpers = "/** @fileoverview Validates library license declarations and re
   .code-card, .helper-source { --sample-size: .75rem; }
   .takeaways { list-style: disc; margin: 0; padding-left: 1.25rem; color: var(--cr-muted); font-size: .825rem; line-height: 1.65; }
   .takeaways li { margin-top: .7rem; }
-  .your-rules { margin: 1.25rem 0 0; color: var(--cr-muted); font-size: .825rem; line-height: 1.65; }
-  .your-rules a { color: var(--cr-ink); text-underline-offset: 3px; }
   .takeaways strong { color: var(--cr-ink); font-weight: 550; }
-  .comparison-aside { margin-top: 1.5rem; padding-left: 1rem; border-left: 2px solid var(--cr-line); color: var(--cr-muted); font-size: .8rem; line-height: 1.65; max-width: 48rem; }
   .helper-source { margin-top: 1.25rem; border: 1px solid var(--cr-line); border-radius: 12px; overflow: hidden; }
   summary { padding: 1rem 1.25rem; cursor: pointer; font-size: .875rem; }
   .helper-source p { margin: 0; padding: 0 1.25rem 1rem; font-size: .825rem; color: var(--cr-muted); }
