@@ -1,6 +1,9 @@
 /** @fileoverview Verifies the demo reveals complete messages and tool results in order, including skipped time and static playback. */
 import { describe, expect, test } from 'bun:test';
-import { transcriptFrame } from '../src/components/transcript-playback';
+import {
+  TranscriptPlayback,
+  transcriptFrame,
+} from '../src/components/transcript-playback';
 import type { TranscriptFrame } from '../src/components/transcript-playback';
 
 const entries = [
@@ -67,15 +70,113 @@ describe('agent transcript playback', () => {
     expect(transcriptFrame(entries, Infinity)).toEqual(complete);
     expect(transcriptFrame([], 0).phase).toBe('complete');
   });
+});
 
-  test('restarting begins at the first character without carrying over the previous session', () => {
-    transcriptFrame(entries, Infinity);
-    expect(transcriptFrame(entries, 0)).toEqual({
-      index: 0,
-      characters: 0,
-      lines: 0,
-      phase: 'typing',
+const sessions = new Map([
+  ['write', entries],
+  ['review', [{ characters: 10, lines: 1 }]],
+]);
+
+describe('tabbed session controls', () => {
+  test('each tab keeps its own initial preview until explicitly played or revealed', () => {
+    const playback = new TranscriptPlayback(sessions, 'write');
+    expect(playback.view).toMatchObject({
+      isPreview: true,
+      isPlaying: false,
+      isComplete: true,
     });
-    expect(transcriptFrame([{ characters: 10, lines: 1 }], 0).index).toBe(0);
+    playback.restart();
+    playback.advance(800);
+    expect(playback.view).toMatchObject({
+      isPreview: false,
+      isPlaying: true,
+      frame: { characters: 50 },
+    });
+    playback.select('review');
+    expect(playback.view).toMatchObject({
+      isPreview: true,
+      isPlaying: false,
+      isComplete: true,
+    });
+    playback.select('write');
+    expect(playback.view).toMatchObject({
+      isPreview: false,
+      isPlaying: false,
+      isComplete: true,
+    });
+    playback.select('review');
+    playback.restart();
+    expect(playback.view).toMatchObject({
+      isPreview: false,
+      isPlaying: true,
+      frame: { index: 0, characters: 0 },
+    });
+  });
+
+  test('pause preserves progress, resume continues, and replay starts over', () => {
+    const playback = new TranscriptPlayback(sessions, 'write');
+    playback.toggle();
+    playback.advance(800);
+    playback.toggle();
+    playback.advance(10_000);
+    expect(playback.view).toMatchObject({
+      isPlaying: false,
+      frame: { characters: 50 },
+    });
+    playback.toggle();
+    playback.advance(160);
+    expect(playback.view.frame.characters).toBe(60);
+    playback.pause();
+    playback.advance(10_000);
+    expect(playback.view.frame.characters).toBe(60);
+    playback.restart();
+    expect(playback.view).toMatchObject({
+      isPlaying: true,
+      frame: { index: 0, characters: 0 },
+    });
+    playback.advance(100_000);
+    expect(playback.view).toMatchObject({ isPlaying: false, isComplete: true });
+    playback.toggle();
+    expect(playback.view).toMatchObject({
+      isPlaying: true,
+      frame: { index: 0, characters: 0 },
+    });
+  });
+
+  test('full-session requests reveal only the selected tab; lifecycle completion keeps previews', () => {
+    const playback = new TranscriptPlayback(sessions, 'write');
+    playback.complete();
+    expect(playback.view.isPreview).toBe(true);
+    playback.complete(true);
+    expect(playback.view).toMatchObject({
+      isPreview: false,
+      isComplete: true,
+      isPlaying: false,
+    });
+    playback.select('review');
+    expect(playback.view.isPreview).toBe(true);
+    playback.restart();
+    playback.advance(80);
+    playback.select('review');
+    expect(playback.view).toMatchObject({
+      isPlaying: true,
+      frame: { characters: 5 },
+    });
+    playback.complete();
+    expect(playback.view).toMatchObject({
+      isPlaying: false,
+      isComplete: true,
+      isPreview: false,
+    });
+  });
+
+  test('an empty session finishes immediately and cannot leave a timer running', () => {
+    const playback = new TranscriptPlayback(new Map([['empty', []]]), 'empty');
+    playback.restart();
+    expect(playback.view).toMatchObject({
+      isPlaying: false,
+      isComplete: true,
+      isPreview: false,
+    });
   });
 });
