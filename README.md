@@ -24,10 +24,13 @@ gofmt -w cmd internal
 go vet ./...
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go test -race ./...
+go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -test ./...
 go build ./cmd/code-rules ./cmd/package-binaries ./cmd/release-plan ./cmd/publish-release
 ```
 
 Tests exercise parsers, filesystem safety, Git imports, real CLI processes, generated agent instructions, and installation/upgrade/rollback. Parser regression fixtures live beside their Go tests. [Go conventions](_internal/go-conventions.md) cover error ownership and comments.
+
+[Security practices](_internal/security-practices.md) define dependency pins, Renovate updates, vulnerability scans, and review requirements.
 
 ## Documentation website
 
