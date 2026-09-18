@@ -7,7 +7,7 @@ A rule library lets several projects adopt and update the same engineering guida
 Create one in a new or existing Git repository, then add groups and rules using the shared authoring template.
 For a rule used by only one project, you can instead [author it locally](/guides/write-rules/).
 
-The library commands work through the development CLI. An installable release is prepared separately.
+The library commands work through the development CLI or the [locally installed release candidate](/guides/install/).
 Use `--directory path` to author or check a library elsewhere; these commands do not accept `--config`.
 
 ## 1. Initialize the library
@@ -43,7 +43,7 @@ The command does not create a remote repository, commit files, or publish conten
 code-rules library add group techs/javascript
 ```
 
-Provide the group's name, description, and `whenToRead` cues.
+Provide the group's name, description, and one `whenToRead` string. The command also creates a group README explaining authoring and validation.
 The command creates `techs/javascript/_group.json`.
 You can create a group before adding any rules.
 
@@ -59,7 +59,7 @@ code-rules library add rule techs/javascript/prefer-for-of
 ```
 
 The command creates `prefer-for-of.md` in the existing group using the canonical template.
-If the group is missing, a terminal prompt offers to create it. Agents can pass `--create-group` and the same group metadata flags as local authoring.
+Create the group before adding a rule. If it is missing, the Go CLI returns an error with the `code-rules library add group <group-id>` command; it does not prompt to create the group.
 Fill in the required metadata and draft the obligation, conditions, and exceptions.
 Add implementation and validation sections when they provide useful guidance.
 Tags are optional.
@@ -79,6 +79,7 @@ LICENSE.md
 techs/
   javascript/
     _group.json
+    README.md
     prefer-for-of.md
 ```
 

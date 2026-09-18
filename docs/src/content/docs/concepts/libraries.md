@@ -13,11 +13,11 @@ A library owns its engineering opinions and their provenance.
 A consuming project owns the versions and exceptions it adopts.
 
 The importer works with compatible libraries independently of who publishes them.
-The planned fetching workflow uses the caller's Git credentials to access private libraries.
+Sync uses the caller's Git credentials to access private libraries.
 
 ## Create or adapt a library
 
-The planned [library authoring commands](/guides/create-library/) initialize a library, add groups and rules explicitly, and validate the input format.
+The [library authoring commands](/guides/create-library/) initialize a library, add groups and rules explicitly, and validate the input format.
 Use them in a new or existing repository; a dedicated repository name is not required.
 
 Code Rules imports libraries that follow its format.

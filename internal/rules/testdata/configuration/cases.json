@@ -1,0 +1,536 @@
+[
+  {
+    "id": "configuration-empty",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": []
+      }
+    }
+  },
+  {
+    "id": "configuration-tag",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "ref": "v1.2.3",
+            "groups": [
+              "techs/go"
+            ],
+            "exclude": {},
+            "replace": {},
+            "parsedRef": {
+              "kind": "tag",
+              "name": "refs/tags/v1.2.3"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "configuration-all",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": \"*\", \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "ref": "v1.2.3",
+            "groups": "*",
+            "exclude": {},
+            "replace": {},
+            "parsedRef": {
+              "kind": "tag",
+              "name": "refs/tags/v1.2.3"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "configuration-practice",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": \"practices/*\", \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "ref": "v1.2.3",
+            "groups": "practices/*",
+            "exclude": {},
+            "replace": {},
+            "parsedRef": {
+              "kind": "tag",
+              "name": "refs/tags/v1.2.3"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "configuration-empty-groups",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "ref": "v1.2.3",
+            "groups": [],
+            "exclude": {},
+            "replace": {},
+            "parsedRef": {
+              "kind": "tag",
+              "name": "refs/tags/v1.2.3"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "configuration-sorted-groups",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/zsh\", \"practices/testing\", \"techs/go\"], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "ref": "v1.2.3",
+            "groups": [
+              "practices/testing",
+              "techs/go",
+              "techs/zsh"
+            ],
+            "exclude": {},
+            "replace": {},
+            "parsedRef": {
+              "kind": "tag",
+              "name": "refs/tags/v1.2.3"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "configuration-constraint",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}, \"version\": \">= 1.2.0\"}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "groups": [
+              "techs/go"
+            ],
+            "exclude": {},
+            "replace": {},
+            "version": ">= 1.2.0"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "configuration-commit",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"ABCDEF0123456789ABCDEF0123456789ABCDEF01\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "ref": "ABCDEF0123456789ABCDEF0123456789ABCDEF01",
+            "groups": [
+              "techs/go"
+            ],
+            "exclude": {},
+            "replace": {},
+            "parsedRef": {
+              "kind": "commit",
+              "sha": "abcdef0123456789abcdef0123456789abcdef01"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "configuration-exceptions",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {\"techs/go/a\": \" unused \"}, \"replace\": {\"techs/go/b\": {\"file\": \"local/go/b.md\", \"reason\": \"team policy\"}}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "ref": "v1.2.3",
+            "groups": [
+              "techs/go"
+            ],
+            "exclude": {
+              "techs/go/a": " unused "
+            },
+            "replace": {
+              "techs/go/b": {
+                "file": "local/go/b.md",
+                "reason": "team policy"
+              }
+            },
+            "parsedRef": {
+              "kind": "tag",
+              "name": "refs/tags/v1.2.3"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "configuration-sorted-sources",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}, \"alpha\": {\"repository\": \"git@example.com:team/rules\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": true,
+      "value": {
+        "sources": [
+          {
+            "name": "alpha",
+            "repository": "git@example.com:team/rules",
+            "ref": "v1.2.3",
+            "groups": [
+              "techs/go"
+            ],
+            "exclude": {},
+            "replace": {},
+            "parsedRef": {
+              "kind": "tag",
+              "name": "refs/tags/v1.2.3"
+            }
+          },
+          {
+            "name": "team",
+            "repository": "https://github.com/fixture/team.git",
+            "ref": "v1.2.3",
+            "groups": [
+              "techs/go"
+            ],
+            "exclude": {},
+            "replace": {},
+            "parsedRef": {
+              "kind": "tag",
+              "name": "refs/tags/v1.2.3"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "configuration-malformed",
+    "operation": "configuration",
+    "input": "{",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "configuration: invalid JSON",
+        "location": "configuration"
+      }
+    }
+  },
+  {
+    "id": "configuration-null",
+    "operation": "configuration",
+    "input": "null",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "configuration: expected an object",
+        "location": "configuration"
+      }
+    }
+  },
+  {
+    "id": "configuration-schema",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 2, \"sources\": {}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "schemaVersion: only version 1 is supported",
+        "location": "schemaVersion"
+      }
+    }
+  },
+  {
+    "id": "configuration-missing-sources",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources: expected an object",
+        "location": "sources"
+      }
+    }
+  },
+  {
+    "id": "configuration-unknown",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {}, \"future\": true}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "configuration: unknown field future",
+        "location": "configuration"
+      }
+    }
+  },
+  {
+    "id": "configuration-local-groups",
+    "operation": "configuration",
+    "input": "{\"localGroups\": []}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "localGroups: remove localGroups; local groups are discovered from local/<group>/_group.json",
+        "location": "localGroups"
+      }
+    }
+  },
+  {
+    "id": "configuration-both-revisions",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}, \"version\": \"1.2.3\"}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team: specify exactly one of ref or version",
+        "location": "sources.team"
+      }
+    }
+  },
+  {
+    "id": "configuration-null-ref",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": null, \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected nonempty text",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
+    "id": "configuration-unknown-source",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}, \"typo\": 1}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team: unknown field typo",
+        "location": "sources.team"
+      }
+    }
+  },
+  {
+    "id": "configuration-missing-excludes",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": null, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.exclude: expected an object",
+        "location": "sources.team.exclude"
+      }
+    }
+  },
+  {
+    "id": "configuration-blank-reason",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {\"techs/go/a\": \" \"}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.exclude.techs/go/a: expected nonempty text",
+        "location": "sources.team.exclude.techs/go/a"
+      }
+    }
+  },
+  {
+    "id": "configuration-outside-local",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {\"techs/go/a\": {\"file\": \"elsewhere/a.md\", \"reason\": \"x\"}}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.replace.techs/go/a.file: replacement files must be under local/",
+        "location": "sources.team.replace.techs/go/a.file"
+      }
+    }
+  },
+  {
+    "id": "configuration-traversal",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {\"techs/go/a\": {\"file\": \"local/../a.md\", \"reason\": \"x\"}}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.replace.techs/go/a.file: expected a contained relative path, got \"local/../a.md\"",
+        "location": "sources.team.replace.techs/go/a.file"
+      }
+    }
+  },
+  {
+    "id": "configuration-unknown-replacement",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {\"techs/go/a\": {\"file\": \"local/a.md\", \"reason\": \"x\", \"future\": true}}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.replace.techs/go/a: unknown field future",
+        "location": "sources.team.replace.techs/go/a"
+      }
+    }
+  },
+  {
+    "id": "configuration-conflict",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {\"techs/go/a\": \"x\"}, \"replace\": {\"techs/go/a\": {\"file\": \"local/a.md\", \"reason\": \"x\"}}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team:techs/go/a: rule is both excluded and replaced",
+        "location": "sources.team:techs/go/a"
+      }
+    }
+  },
+  {
+    "id": "configuration-alias-local",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"local\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.local: invalid or reserved source name",
+        "location": "sources.local"
+      }
+    }
+  },
+  {
+    "id": "configuration-alias-Team",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"Team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.Team: invalid or reserved source name",
+        "location": "sources.Team"
+      }
+    }
+  },
+  {
+    "id": "configuration-alias-2team",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"2team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.2team: invalid or reserved source name",
+        "location": "sources.2team"
+      }
+    }
+  },
+  {
+    "id": "configuration-duplicate-repository",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}, \"z\": {\"repository\": \"git@github.com:fixture/team.git\", \"ref\": \"v1.2.3\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.z: repository git@github.com:fixture/team.git is declared more than once",
+        "location": "sources.z"
+      }
+    }
+  }
+]

@@ -3,13 +3,12 @@ title: "Sync and recovery"
 description: "Import libraries, generate resolved rules, and apply changes safely."
 ---
 
-Sync is an orchestration function. Imports retrieves snapshots; Builds generates resolved rules; shared file-handling helpers apply the complete result.
-The development CLI runs from the repository checkout. A published executable remains future work.
+Sync fetches and validates library snapshots, resolves project rules, and installs the complete vendor and generated output. [Build or install the Go CLI](/guides/install/), then run from your project root:
 
 ```sh
-bun src/cli.ts sync --config /path/to/project/.code-rules/config.json
-bun src/cli.ts build --config /path/to/project/.code-rules/config.json
-bun src/cli.ts check --config /path/to/project/.code-rules/config.json
+code-rules sync
+code-rules build
+code-rules check
 ```
 
 Without `--config`, commands use `.code-rules/config.json` relative to the working directory.
@@ -22,12 +21,9 @@ Keep authored files in `local/` and configuration, which Sync preserves. Files p
 Build replaces only `generated/` and never contacts a repository. Check reads and compares without changing any files.
 
 
-`sync(options)`, `buildProject(options)`, and `checkProject(options)` accept `configPath`, `signal`, `toolVersion`, `indexMaxBytes`, and `groupInlineMaxBytes`.
-API callers should provide a stable tool version. The development CLI uses `0.0.0-development`.
+Human-readable output is the default. Use `--json` for one structured response. Sync and build report sorted `added`, `changed`, and `removed` paths for completed changes. Sync paths start with `vendor/` or `generated/`; build paths are relative to `generated/`.
 
-They return sorted `added`, `changed`, and `removed` file paths. Sync paths start with `vendor/` or `generated/`; build and check paths are relative to `generated/`.
-
-The CLI prints that report as JSON. Check exits 1 for differences or invalid inputs, 0 when current; usage errors exit 2.
+Check reports `status` and `problems`, including each problem's path and repair command. It verifies generated files and the managed project README without writing either. Refresh an outdated README with `code-rules init`; repair generated output with `code-rules build`. Check exits 1 for differences or invalid inputs, 0 when current; usage errors exit 2.
 
 Structured group-level update summaries remain future work. Review the changed source records and generated provenance for revision changes.
 

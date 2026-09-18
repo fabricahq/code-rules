@@ -1,11 +1,11 @@
 ---
 title: "Configuration"
-description: "Fields in the proposed .code-rules/config.json format."
+description: "Fields in .code-rules/config.json."
 ---
 
 `.code-rules/config.json` records the project's sources, selected groups, and exceptions.
 A project can import rules directly from multiple canonical libraries, pinning each one independently.
-The offline builder validates the fields below. The format remains unreleased, and CLI fetching and installation are separate work.
+Sync, build, and check validate the fields below. The format remains unreleased.
 
 ## Complete example
 
@@ -54,7 +54,7 @@ Replace them with libraries and rules your project can access.
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
 | `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. Mutually exclusive with `version`. |
-| `sources.<name>.version` | npm semantic version constraint, such as `^1.2.0`. Mutually exclusive with `ref`. |
+| `sources.<name>.version` | HashiCorp version constraint, such as `>= 1.2.0, < 2.0.0`. Mutually exclusive with `ref`. |
 | `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
 | `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
 | `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
@@ -66,7 +66,7 @@ Each source includes its own `exclude` and `replace` objects, empty when unused.
 Replacement paths resolve relative to the configuration directory and must stay under its `local/` directory.
 
 Each source specifies exactly one of `ref` or `version` and owns its groups and exceptions.
-The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are no longer part of the proposed format.
+The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.
 The schema version remains `1` because no configuration format has shipped.
 
 ## Import every group
@@ -198,27 +198,27 @@ Use `version` instead of `ref` to select the highest matching semantic version t
 ```json
 {
   "repository": "https://github.com/example/rules.git",
-  "version": "^1.2.0",
+  "version": ">= 1.2.0, < 2.0.0",
   "groups": "*",
   "exclude": {},
   "replace": {}
 }
 ```
 
-Ranges use [npm semver syntax](https://github.com/npm/node-semver#ranges), not HashiCorp's constraint grammar.
-For stable releases:
+Constraints use [HashiCorp go-version syntax](https://github.com/hashicorp/go-version). Surrounding whitespace is trimmed; comma-separated comparisons must all match.
 
-| Constraint | Eligible versions |
+| Constraint | Eligible stable versions |
 | --- | --- |
-| `^1.2.3` | At least 1.2.3, below 2.0.0 |
-| `~1.2.3` | At least 1.2.3, below 1.3.0 |
-| `>=1.2.3 <2.0.0` | Explicit lower and upper bounds |
-| `1.2.x` | Any patch release within 1.2 |
-| `1.2.3` | Exactly that semantic version |
+| `1.2.3` or `= 1.2.3` | Exactly 1.2.3 |
+| `!= 1.2.3` | Any version except 1.2.3 |
+| `>= 1.2.3, < 2.0.0` | Explicit lower and upper bounds |
+| `~> 1.2.3` | At least 1.2.3, below 1.3.0 |
+| `~> 1.2` | At least 1.2.0, below 2.0.0 |
 
-Prereleases follow npm's default rules: a range must explicitly admit a prerelease for the same major/minor/patch tuple.
-For example, `>=2.0.0-beta.1 <2.0.0` admits later betas of 2.0.0; `^1.2.0` does not admit 2.0.0 betas.
-Caret ranges below 1.0 have narrower compatibility bounds; `^0.2.0` stays below 0.3.0.
+Partial constraint versions are accepted by go-version; for example, `1.2` means an exact 1.2.0 constraint. Release tags still require complete versions.
+Caret ranges (`^`), npm tilde ranges (`~`), wildcard versions (`1.2.x`), OR (`||`), and space-separated comparator chains are not supported. Use commas for AND.
+
+Prerelease matching follows go-version. A prerelease must be explicitly admitted by the comparisons; an ordinary stable bound does not admit prereleases. Use exact prerelease constraints when selecting one particular prerelease, and check the combined comparisons when defining a prerelease range.
 
 Only complete version tags such as `1.2.3` or `v1.2.3` participate. The optional prefix is lowercase `v`.
 Partial tags such as `v1`, names such as `release-1.2.3`, and branches are ignored during version selection.
@@ -234,7 +234,7 @@ No matching tag is an error; Imports does not fall back to a branch or unrelated
 Snapshots and generated provenance record the requested `version`, `resolvedTag`, `resolvedVersion`, and `resolvedCommit`.
 The normalized version retains any SemVer build metadata and omits the leading `v`.
 A new explicit import resolves the constraint again. Offline Builds checks the recorded tag and version against the constraint, then uses the stored commit without querying Git.
-The development `sync` command combines re-importing and safe file updates. See [Sync and recovery](/reference/sync/).
+The `sync` command combines re-importing and safe file updates. See [Sync and recovery](/reference/sync/).
 
 ## Source-scoped exceptions
 
@@ -261,7 +261,7 @@ If local metadata exists for an imported group, its complete description and rea
 Otherwise, descriptions from every contributing library remain source-labeled.
 Provenance retains all group metadata and identifies the sources supplying the effective discovery guidance.
 Local rules without either local or imported group metadata are errors, with the missing `_group.json` path in the diagnostic.
-The root `local/README.md` is directory documentation, not a rule; other misplaced Markdown files are still validated.
+The root `local/README.md` and each group-root `README.md` are authoring documentation, not rules; other misplaced Markdown files are still validated.
 
 The generated index shows group names, applicability guidance, and explicit **Open group** links. Without local metadata, guidance from multiple libraries remains labeled by source.
 Local metadata supplies the complete project description when present.

@@ -1,0 +1,206 @@
+[
+  {
+    "id": "highest-unsorted",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.9.0\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.0\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/v1.10.0\n",
+    "expected": {
+      "value": {
+        "tag": "v1.10.0",
+        "version": "1.10.0",
+        "object": "cccccccccccccccccccccccccccccccccccccccc"
+      }
+    }
+  },
+  {
+    "id": "single",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3\n",
+    "expected": {
+      "value": {
+        "tag": "v1.2.3",
+        "version": "1.2.3",
+        "object": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "id": "empty",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "",
+    "expected": {
+      "code": "version-not-found"
+    }
+  },
+  {
+    "id": "no-match",
+    "constraint": "< 2.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v2.0.0\n",
+    "expected": {
+      "code": "version-not-found"
+    }
+  },
+  {
+    "id": "ordinary-tags",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/main\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/1.2\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/v1.2.3\n",
+    "expected": {
+      "value": {
+        "tag": "v1.2.3",
+        "version": "1.2.3",
+        "object": "cccccccccccccccccccccccccccccccccccccccc"
+      }
+    }
+  },
+  {
+    "id": "safe-aliases",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/1.2.3\n",
+    "expected": {
+      "value": {
+        "tag": "1.2.3",
+        "version": "1.2.3",
+        "object": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "id": "ambiguous",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/1.2.3\n",
+    "expected": {
+      "code": "ambiguous-version"
+    }
+  },
+  {
+    "id": "annotated-safe",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3^{}\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/1.2.3\n",
+    "expected": {
+      "value": {
+        "tag": "1.2.3",
+        "version": "1.2.3",
+        "object": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "id": "annotated-retains-object",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3^{}\n",
+    "expected": {
+      "value": {
+        "tag": "v1.2.3",
+        "version": "1.2.3",
+        "object": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  },
+  {
+    "id": "annotated-conflict",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3^{}\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/1.2.3\n",
+    "expected": {
+      "code": "ambiguous-version"
+    }
+  },
+  {
+    "id": "build-metadata-aliases",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3+z\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3+a\n",
+    "expected": {
+      "value": {
+        "tag": "v1.2.3+a",
+        "version": "1.2.3+a",
+        "object": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "id": "build-metadata-conflict",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3+z\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3+a\n",
+    "expected": {
+      "code": "ambiguous-version"
+    }
+  },
+  {
+    "id": "prerelease-excluded",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v2.0.0-beta.1\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.9.0\n",
+    "expected": {
+      "value": {
+        "tag": "v1.9.0",
+        "version": "1.9.0",
+        "object": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "id": "prerelease-selected",
+    "constraint": ">= 1.2.3-beta.1",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3-beta.1\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.2.3-beta.2\n",
+    "expected": {
+      "value": {
+        "tag": "v1.2.3-beta.2",
+        "version": "1.2.3-beta.2",
+        "object": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  },
+  {
+    "id": "pessimistic",
+    "constraint": "~> 1.2.3",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.9\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/v1.3.0\n",
+    "expected": {
+      "value": {
+        "tag": "v1.2.9",
+        "version": "1.2.9",
+        "object": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "id": "lower-ambiguity-irrelevant",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/v1.2.3\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\trefs/tags/1.2.3\ncccccccccccccccccccccccccccccccccccccccc\trefs/tags/v1.3.0\n",
+    "expected": {
+      "value": {
+        "tag": "v1.3.0",
+        "version": "1.3.0",
+        "object": "cccccccccccccccccccccccccccccccccccccccc"
+      }
+    }
+  },
+  {
+    "id": "short-object",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "abcd\trefs/tags/v1.2.3\n",
+    "expected": {
+      "code": "git-failed"
+    }
+  },
+  {
+    "id": "bad-prefix",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/heads/main\n",
+    "expected": {
+      "code": "git-failed"
+    }
+  },
+  {
+    "id": "missing-tab",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa refs/tags/v1.2.3\n",
+    "expected": {
+      "code": "git-failed"
+    }
+  },
+  {
+    "id": "empty-tag",
+    "constraint": ">= 1.0.0",
+    "availableGitTags": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\trefs/tags/\n",
+    "expected": {
+      "code": "git-failed"
+    }
+  }
+]

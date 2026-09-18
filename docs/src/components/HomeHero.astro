@@ -5,8 +5,8 @@ import CodeTransformation from './CodeTransformation.astro';
 ---
 <section class="cr-hero" aria-labelledby="_top">
   <p class="cr-eyebrow">FABRICA / CODE RULES</p>
-  <h1 id="_top" data-page-title>Your engineering standards.<br class="desktop-break" /> In every agent's work.</h1>
-  <p class="cr-lead">Share rules across projects. Adapt them where you need to. Give writing and reviewing agents the same expectations.</p>
+  <h1 id="_top" data-page-title>The package manager<br class="desktop-break" /> for your engineering rules</h1>
+  <p class="cr-lead">Version your best practices. Import them across projects.<br />Write good code, then validate it.</p>
   <div class="cr-actions">
     <a class="cr-button primary" href="/guides/use-rules/">Set up your repo <span aria-hidden="true">→</span></a>
     <a class="cr-button" href="/overview/">Read the docs <span aria-hidden="true">→</span></a>
@@ -19,8 +19,7 @@ import CodeTransformation from './CodeTransformation.astro';
     <div>
       <span class="cr-index">01 / CODIFY</span>
       <h2>Define a best practice rule in markdown.</h2>
-      <p>Turn a best practice into a Markdown rule that tells agents what to do and when to read it.
-      The planned Code Rules skill will help you draft it from a template and check it against a rubric for clarity, scope, and validation.</p>
+      <p>A rule can cover a technology like Go, React, Next.js, or Postgres. It can also cover a practice like testing, error handling, or logging.</p>
       <a href="/guides/write-rules/">Learn how to write rules →</a>
     </div>
     <div class="cr-panel cr-rule-file">
@@ -55,9 +54,8 @@ The test should fail.</code></pre>
   <article class="cr-feature">
     <div>
       <span class="cr-index">02 / SHARE</span>
-      <h2>Declare rules for an organization, or just a single project.</h2>
-      <p>Keep a rule in one project, or declare it in your organization's library as a shared default.
-      Each project imports the shared rules it needs and can add its own rules or override them for local requirements.</p>
+      <h2>Declare rules for a single repo, or an entire organization.</h2>
+      <p>Each repo keeps its rules in <code>.code-rules</code>. Publish shared defaults from an organization <code>.code-rules</code> repository and import them. Mix org rules and project rules as needed.</p>
       <a href="/concepts/libraries/">See how rule libraries work →</a>
     </div>
     <div class="cr-panel cr-library-tree">
@@ -87,9 +85,8 @@ The test should fail.</code></pre>
   <article class="cr-feature">
     <div>
       <span class="cr-index">03 / APPLY</span>
-      <h2>Choose how your agents apply and check your rules.</h2>
-      <p>Code Rules manages the versioned rules associated with your codebase.
-      Use agent prompts or separate tooling to apply them during implementation and check compliance during review. You choose the validation and enforcement workflow.</p>
+      <h2>Write code and review it against the same rules.</h2>
+      <p>Agents write new code with the rules and validate existing code against them. Code Rules assembles the rules; it does not prescribe how you apply or enforce them. Use any agent harness, skill, custom workflow, or other tool.</p>
       <a href="/for-agents/">See how agents use rules →</a>
     </div>
     <div class="cr-panel">
@@ -101,4 +98,4 @@ The test should fail.</code></pre>
   </article>
 </section>
 <CodeTransformation />
-<section class="cr-start" aria-labelledby="start-title"><span class="cr-index">START WITH ONE PROJECT</span><h2 id="start-title">Adopt versioned rules for your project</h2><p>Walk through a library, a project configuration, and the files your agents would read.</p><a class="cr-button" href="/guides/use-rules/">Walk through the setup <span aria-hidden="true">→</span></a></section>
+<section class="cr-start" aria-labelledby="start-title"><span class="cr-index">START WITH ONE PROJECT</span><h2 id="start-title">Formalize your best practices today</h2><p>Walk through a library, a project configuration, and the files your agents would read.</p><a class="cr-button" href="/guides/use-rules/">Walk through the setup <span aria-hidden="true">→</span></a></section>

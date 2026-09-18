@@ -1,0 +1,156 @@
+[
+  {
+    "id": "constraint-exact",
+    "operation": "versionConstraint",
+    "input": "1.2.3",
+    "location": "sources.team.version",
+    "expected": {
+      "ok": true,
+      "value": "1.2.3"
+    }
+  },
+  {
+    "id": "constraint-and",
+    "operation": "versionConstraint",
+    "input": ">= 1.2.0, < 2.0.0",
+    "location": "sources.team.version",
+    "expected": {
+      "ok": true,
+      "value": ">= 1.2.0, < 2.0.0"
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.version: expected an npm semantic version range, such as ^1.2.0 or >=1.2.0 <2.0.0",
+        "location": "sources.team.version"
+      }
+    },
+    "difference": "User-approved adoption of HashiCorp go-version constraint syntax and matching semantics instead of npm. The original reference result is retained without normalization."
+  },
+  {
+    "id": "constraint-spaces",
+    "operation": "versionConstraint",
+    "input": "  >= 1.2.0,   < 2.0.0  ",
+    "location": "sources.team.version",
+    "expected": {
+      "ok": true,
+      "value": ">= 1.2.0,   < 2.0.0"
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.version: expected an npm semantic version range, such as ^1.2.0 or >=1.2.0 <2.0.0",
+        "location": "sources.team.version"
+      }
+    },
+    "difference": "User-approved adoption of HashiCorp go-version constraint syntax and matching semantics instead of npm. The original reference result is retained without normalization."
+  },
+  {
+    "id": "constraint-max-length",
+    "operation": "versionConstraint",
+    "input": "=                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          1.2.3",
+    "location": "sources.team.version",
+    "expected": {
+      "ok": true,
+      "value": "=                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          1.2.3"
+    }
+  },
+  {
+    "id": "constraint-empty",
+    "operation": "versionConstraint",
+    "input": "",
+    "location": "sources.team.version",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.version: expected nonempty text",
+        "location": "sources.team.version"
+      }
+    }
+  },
+  {
+    "id": "constraint-blank",
+    "operation": "versionConstraint",
+    "input": " \t\n",
+    "location": "sources.team.version",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.version: expected nonempty text",
+        "location": "sources.team.version"
+      }
+    }
+  },
+  {
+    "id": "constraint-caret",
+    "operation": "versionConstraint",
+    "input": "^1.2.3",
+    "location": "sources.team.version",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.version: expected a version constraint using =, !=, >, >=, <, <=, or ~>; separate multiple constraints with commas, such as >= 1.2.0, < 2.0.0",
+        "location": "sources.team.version"
+      }
+    },
+    "referenceExpected": {
+      "ok": true,
+      "value": "^1.2.3"
+    },
+    "difference": "User-approved adoption of HashiCorp go-version constraint syntax and matching semantics instead of npm. The original reference result is retained without normalization."
+  },
+  {
+    "id": "constraint-too-long",
+    "operation": "versionConstraint",
+    "input": "=                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           1.2.3",
+    "location": "sources.team.version",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.version: version constraint must be at most 1024 characters",
+        "location": "sources.team.version"
+      }
+    },
+    "referenceExpected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.version: expected an npm semantic version range, such as ^1.2.0 or >=1.2.0 <2.0.0",
+        "location": "sources.team.version"
+      }
+    },
+    "difference": "User-approved adoption of HashiCorp go-version constraint syntax and matching semantics instead of npm. The original reference result is retained without normalization."
+  },
+  {
+    "id": "match-bare-exact-equal",
+    "operation": "versionMatch",
+    "input": {
+      "constraint": "1.2.3",
+      "version": "1.2.3"
+    },
+    "location": "match",
+    "expected": {
+      "ok": true,
+      "value": true
+    }
+  },
+  {
+    "id": "match-bare-exact-different",
+    "operation": "versionMatch",
+    "input": {
+      "constraint": "1.2.3",
+      "version": "1.2.4"
+    },
+    "location": "match",
+    "expected": {
+      "ok": true,
+      "value": false
+    }
+  }
+]

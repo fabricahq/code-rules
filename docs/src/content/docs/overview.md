@@ -61,7 +61,7 @@ Your project decides how to get agents to apply those rules and how to validate 
 You can prompt an agent directly, add instructions to the project's `AGENTS.md`, or build or integrate separate tooling such as review agents, linters, tests, and CI gates.
 The [agent instructions](/for-agents/) are a suggested integration you can adapt to your workflow.
 
-The offline builder validates rule inputs and generates their effective output. The development `check` command checks that generated rules match their inputs; it does not check whether application code follows those rules.
+The offline builder validates rule inputs and generates their effective output. The `check` command checks that generated rules match their inputs; it does not check whether application code follows those rules.
 Product vision, architecture facts, and domain context remain in your project documentation.
 See [Project status](/status/) for which rule-management capabilities are implemented and which are still planned.
 

@@ -1,29 +1,19 @@
 ---
 title: "Use rules in a project"
-description: "Walk through the proposed import workflow, from choosing libraries to directing agents."
+description: "Walk through the import workflow, from choosing libraries to directing agents."
 ---
 
-This walkthrough uses the intended published command names. Sync, build, and check work through the [development entry point](/reference/sync/); the executable is not published yet.
-You can generate and inspect examples with the working builder. Use the development entry point for the commands below; package installation requires the future CLI release.
+[Build or install the Go CLI](/guides/install/) before following these commands.
 
 ## Try the working builder
 
-From the Code Rules development checkout:
-
-```sh
-bun install --frozen-lockfile
-bun run builds:example
-```
-
-The script prints a temporary directory containing configuration, source snapshots, local rules, and generated output.
-It uses illustrative local data and fetches no libraries. Open the printed `generated/RULES.md` to begin.
-The [offline API reference](/reference/files/#offline-builder-api) describes inputs, outputs, and errors.
+Start with [project setup](/guides/set-up-project/) to create a local group and rule, then run `code-rules build`. Open `.code-rules/generated/RULES.md` to inspect the output. This local-only workflow fetches no libraries. The repository also includes an executable [Gruntwork runbook](https://github.com/fabricahq/code-rules/tree/main/runbooks/native-cli).
 
 ## 1. Choose libraries and revisions
 
 Choose one or more canonical libraries whose rules your project is authorized to use.
 For example, combine a shared community library with your organization's rules.
-Give each source a stable name. Select an exact commit or tag with `ref`, or an npm semantic version constraint with `version`. Specify exactly one.
+Give each source a stable name. Select an exact commit or tag with `ref`, or a HashiCorp version constraint with `version`. Specify exactly one.
 An upstream edit should arrive through an explicit update.
 
 ## 2. Select technologies and practices
@@ -72,7 +62,7 @@ The complete configuration contract is in [Configuration](/reference/configurati
 
 ## 3. Import the rules
 
-The proposed command is:
+Run:
 
 ```sh
 code-rules sync
@@ -92,7 +82,7 @@ A later sync can pick up a moved tag; review resolved-commit changes along with 
 
 Group pages separate **How to use this group** from **Rules**, with each rule nested under **Rules**.
 Review the generated group pages. Read applicable rules in full where included; otherwise follow each **Read full rule** link.
-Full definitions put **Guidance** first, followed by **Source and attribution**, including the rule source, declared library license links, and preserved source metadata. If no library license is declared, the footer omits the license entry; provenance records an empty `licenses` array.
+Full definitions put **Guidance** first, followed by **Source and attribution**, including the rule source, declared library license links, and preserved source metadata. If no library license is declared, the footer omits the license entry. Provenance uses a singular `license` field containing one declaration or `null`.
 Inspect `.code-rules/generated/libraries/<source-name>/README.md` for each library’s identity, revision, and links to declared terms.
 License and notice copies live under that library’s `licenses/` directory; provenance records their original and generated paths.
 Confirm that replacements contain the intended obligations and that excluded rules are absent from active output.

@@ -1,33 +1,11 @@
-# Sync implementation
+# Project operations
 
-`sync()` coordinates importing libraries, generating resolved rules, and applying changes safely.
-Imports and Builds retain their existing in-memory interfaces. Sync is an orchestration function, not a third subsystem.
+`internal/project` coordinates persisted snapshots and generated output:
 
-## Scope and ownership
+- `Sync` imports all configured Git sources, validates and renders the full result, then installs vendor and generated files together.
+- `Build` verifies persisted source identity and original-byte digests, then regenerates offline.
+- `Check` compares expected generated content without writing. The CLI also supplies its managed project guide to `CheckWithFiles` so both checks share one optimistic snapshot.
 
-- `src/sync.ts`: load a project, import every source, generate resolved rules, and apply the complete result.
-- `src/project-files/`: focused helpers for contained filesystem reads, persisted snapshot records, comparison, locking, staging, and recovery.
-- `src/project.ts`: offline generation and read-only consistency checks using those same helpers.
-- `src/cli.ts`: thin `sync`, `build`, and `check` commands with `--config`; publishing and authoring commands remain separate work.
+`WithWriter` and `Writer.Apply` hide lock ownership, interrupted-operation recovery, staging, installation, and rollback. Preserve these deep operations rather than spreading their protocol across callers. Concurrent changes cause refusal before installation; once replacement begins, it completes or rolls back.
 
-The configuration directory owns `config.json` and optional `local/`. Only `vendor/` and `generated/` are replaced.
-Persist one versioned `_source.json` record per library, including selection identity and SHA-256 digests of original bytes.
-Do not trust recorded digests as proof of remote authenticity. They detect local changes relative to the committed record.
-Reject symlinks and special files, verify containment, and detect input or managed-output changes before applying replacements.
-Coordinate writers with a project lock. Stage complete output before moving existing directories.
-Keep a recovery journal and previous directories until the transaction commits; recover interrupted applications before the next write.
-Read-only checks report pending recovery rather than changing files. Offline generation never imports or changes vendor revisions.
-
-## Verification
-
-Use real temporary Git libraries and project directories. Cover initial sync, repeated sync, local edits, removed sources/rules/assets,
-license bytes, version constraints, failed imports/generation, modified vendor content, symlinks, concurrent changes, and cancellation.
-Verify rollback and interrupted-transaction recovery, including first-time creation.
-Run CLI smoke tests and the complete `bun run check` gate. Document limits of multi-directory visibility and filesystem guarantees.
-
-## Delivery
-
-The terminology and plan are in Imports; sync is implemented in a dependent PR.
-Keep the recap outside both PRs and update it to demonstrate the real project workflow when available.
-
-The executable API and recovery limitations are documented in [Sync and recovery](../docs/src/content/docs/reference/sync.md).
+The [sync and recovery reference](../docs/src/content/docs/reference/sync.md) owns the filesystem contract and limitations. Tests include concurrent changes, malformed journals, cancellation, byte-exact retention, and failed multi-source sync. Run the [Go validation commands](../README.md#validate-changes).

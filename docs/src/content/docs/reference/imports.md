@@ -3,8 +3,8 @@ title: "How imports work"
 description: "From pinned library snapshots to one resolved ruleset per group."
 ---
 
-The Imports module implements fetching and file preservation.
-The `sync` function coordinates Imports and Builds; a development CLI is available. See [Sync and recovery](/reference/sync/).
+The Go importer fetches library revisions and retains their original files.
+The `sync` command coordinates import, resolution, generation, and installation. See [Sync and recovery](/reference/sync/).
 
 An import resolves each configured exact ref or version constraint and combines the resulting upstream snapshots with explicit project decisions.
 It produces ordinary files that agents can read without running the importer.
@@ -14,7 +14,7 @@ This checkout implements fetching, offline generation, digest checks, and safe f
 
 `vendor/<source>/` is a selected copy of original files from one resolved Git commit, not a clone.
 It contains selected groups, their assets, the manifest, and declared license and notice files. It contains no Git history or `.git` directory.
-Imports reads these files through temporary Git storage, then removes that storage. The API returns bytes and a text snapshot; the manual example writes them into `vendor/`.
+Imports reads these files through temporary Git storage, then removes that storage. The importer returns parsed catalogs and original retained bytes; sync persists those bytes into `vendor/`.
 
 With unchanged configuration and the same resolved commit, Imports returns the same paths and bytes.
 With unchanged snapshots, local files, tool version, and rendering options, Builds returns the same generated content.
@@ -73,8 +73,7 @@ Library authors must declare the applicable license and notice files in the libr
 Sync includes those files in snapshot digests and reports changed files during updates.
 Generated rules link to copies under `generated/libraries/<source-name>/licenses/`; see [License rules](/guides/license-rules/).
 Keep attribution links valid after relocation.
-For recognized hosts, references to unselected rules point to the resolved commit.
-For other hosts, author explicit URLs for unselected rules. Supporting assets must be retained at their conventional paths on every host; generation rejects missing assets.
+Code Rules rejects filesystem links to other rule documents, whether selected, excluded, or unselected. Rules must remain independently selectable. Supporting assets must be retained at their conventional paths on every host; generation rejects missing assets.
 
 ## Fetch through Git, independently of the host
 
@@ -117,7 +116,7 @@ Those file limits apply after fetching and do not cap network traffic or Git's t
 Imports preserves supporting material only from [the two asset locations](/reference/files/#supporting-assets): each selected rule's adjacent `assets/<rule-name>/` directory and the library-root `assets/` directory.
 Owned directories are copied completely. Shared assets are copied completely only when a selected rule or a retained Markdown asset references them.
 Imports validates standard Markdown links, images, and reference definitions against these boundaries; it does not follow arbitrary repository documents.
-Missing destinations and links into another rule's private assets fail import. Rule references do not adopt additional groups, and external URLs are not fetched.
+Missing destinations and links into another rule's private assets fail import. Links from rules or Markdown attachments to other rule documents fail import. External URLs are not fetched.
 
 Markdown assets and declared license and notice files must be UTF-8. Binary assets retain their original bytes, but binary license and notice files are unsupported.
 Within a selected group, Markdown outside asset directories defines rules, including nested rule files. Declared license and notice files are exempt.

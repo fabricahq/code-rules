@@ -5,11 +5,11 @@ description: "Adopt upstream changes deliberately while preserving local decisio
 
 To adopt newer rules, select an exact revision or version constraint and run `code-rules sync`.
 Sync downloads the selected rules from your source libraries and rebuilds the indexes and resolved rule files that agents read.
-Sync works through the [development entry point](/reference/sync/). The published `code-rules` executable has not shipped yet.
+Sync works through the [development entry point](/reference/sync/) or an [installed release candidate](/guides/install/).
 
 ## Update a library
 
-1. Choose an exact tag or commit, or an npm version constraint such as `^1.2.0`.
+1. Choose an exact tag or commit, or a HashiCorp version constraint such as `>= 1.2.0, < 2.0.0`.
 2. Set `sources.<name>.ref` for an exact revision, or `sources.<name>.version` for a constraint. Specify exactly one.
 3. From the project root, run:
 
@@ -41,8 +41,8 @@ You do not need to run `build` separately after sync.
 
 Other configured refs remain unchanged.
 Sync resolves every configured tag and version constraint again, so also review changes to other sources' resolved commits if their tags have moved.
-The report identifies requested refs or version constraints, selected tags, old and new resolved commits, and added, removed, and changed rules by source-qualified ID.
-It also shows upstream changes hidden by exclusions or replacements, plus changes to preserved licenses and notices.
+The command reports added, changed, and removed file paths. Inspect the Git diff of configuration, vendor source records, and generated provenance to compare requested revisions, selected tags, and resolved commits.
+Inspect the vendor diff for upstream changes hidden by exclusions or replacements, and changes to retained licenses and notices.
 When a replacement target changes, compare its old and new text before deciding whether the local exception still makes sense.
 
 When updated rules introduce competing obligations, use the [conflict-review prompt](/guides/conflicting-guidance/#generate-a-review-prompt) to inspect the combined guidance.
@@ -54,13 +54,13 @@ Update the affected exclusion or replacement deliberately.
 
 Edit the relevant `sources.<name>.groups` and sync again when the imported selection changes.
 The vendor snapshot must match that selection before an offline build can use it.
-Regeneration removes a group index only when no source or declared local-only group still supplies it.
+Regeneration removes a group index only when no source or discovered local group still supplies it.
 Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.json` exists.
 If it already exists, keep the local files unchanged. Otherwise author group metadata, or move or remove the local rules.
 
 ## Recover from a failed update
 
-The intended importer validates and renders before installing output.
+Sync validates and renders before installing output.
 A failed import preserves the previous working ruleset.
 Interrupted installations must be detected and recovered before another operation can claim success.
 

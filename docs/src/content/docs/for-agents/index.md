@@ -1,6 +1,6 @@
 ---
 title: "Plan, write, and review"
-description: "A suggested workflow for agents using the project\u2019s effective engineering rules."
+description: "A suggested workflow for agents using the project\u2019s resolved engineering rules."
 ---
 
 This page suggests an agent workflow for using the project's committed resolved rules during planning, implementation, and review.
@@ -13,10 +13,10 @@ To use this workflow, add the following section to the project's existing `AGENT
 
 ```markdown
 Before planning, implementing, or reviewing a change, read `.code-rules/generated/RULES.md`.
-Select technology and practice groups using the task, affected behavior, and code.
-Inspect the selected group pages, including every part of a split index, and use each rule's whenToRead guidance to select rules.
-Read full definitions where included, or follow each applicable rule's Read full rule link.
-Read every relevant or plausibly relevant definition completely before relying on it.
+Compare each group's When to read this group cue with your task, the affected behavior, and the code. Use its Description to understand the scope.
+Open every relevant or plausibly relevant group.
+Read every rule in each opened group completely, including every page of a split index. Read full definitions inline or follow every Read full rule link.
+Then use each rule's When to read cue, guidance, and exceptions to determine whether it applies.
 Complete truncated reads. Revisit rule selection when scope changes and reload needed rules after compaction.
 Follow every applicable rule regardless of impact, including its exceptions.
 After reading the complete rule, use Implementation guidance when planning or changing code and Validation guidance when reviewing, testing, or diagnosing behavior, when those sections are present.
@@ -32,8 +32,8 @@ Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules
 
 1. Read the task and the generated index.
 2. Identify affected technologies and engineering practices.
-3. Inspect matching group pages, including all parts of any summary index.
-4. Use `whenToRead` to select relevant or plausibly relevant rules. Read their complete definitions inline or through explicit **Read full rule** links.
+3. Compare each group's **When to read this group** cue with the work. Use its **Description** to understand scope. Open every relevant or plausibly relevant group.
+4. Read every rule in each opened group completely, including all pages and linked full definitions. Then assess applicability using each rule's **When to read** cue, guidance, and exceptions.
 5. Account for applicable obligations in the plan and implementation.
 6. Revisit selection if the work expands.
 
@@ -43,7 +43,7 @@ For retries in a TypeScript service, consider `techs/typescript`, `practices/tes
 Inspect the intended behavior, dependencies, imports, surrounding code, and changed files.
 Practice groups can apply even when no test files or logging packages change.
 
-Inspect a group index when its guidance matches the work, then read the relevant full rules and apply their conditions and exceptions.
+Open each relevant or plausibly relevant group, read every rule in it completely, then apply the rules whose conditions match the work. Respect their exceptions.
 A group match alone is not evidence of a violation.
 
 A behavior change can require testing rules before anyone edits a test file.
@@ -61,7 +61,7 @@ Impact describes the consequence a rule helps prevent; it does not determine app
 Read **Why it matters** for context and assess the actual consequence of each finding.
 
 Separate confirmed failures from hypotheses that need verification.
-The planned `code-rules check` command will establish file consistency, not application compliance.
+`code-rules check` establishes file consistency, not application compliance.
 
 ## Handle gaps and conflicts
 

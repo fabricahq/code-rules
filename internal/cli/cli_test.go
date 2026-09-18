@@ -1,0 +1,126 @@
+// Test native CLI exit statuses, streams, and filesystem behavior through an actual executable.
+
+package cli
+
+import (
+	"bytes"
+	"encoding/json"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"testing"
+)
+
+// buildCLI compiles the real entry point so tests cover process exit and standard streams.
+func buildCLI(t *testing.T) string {
+	t.Helper()
+	binary := filepath.Join(t.TempDir(), "code-rules")
+	command := exec.Command("go", "build", "-o", binary, "../../cmd/code-rules")
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("build: %v %s", err, output)
+	}
+	return binary
+}
+
+// runCLI runs the compiled command in an isolated project without any runtime binaries on PATH.
+func runCLI(t *testing.T, binary, dir string, args ...string) (string, string, int) {
+	t.Helper()
+	command := exec.Command(binary, args...)
+	command.Dir = dir
+	command.Env = append(os.Environ(), "PATH="+filepath.Join(dir, "empty-path"))
+	var out, diagnostic bytes.Buffer
+	command.Stdout = &out
+	command.Stderr = &diagnostic
+	err := command.Run()
+	code := 0
+	if err != nil {
+		if exit, ok := err.(*exec.ExitError); ok {
+			code = exit.ExitCode()
+		} else {
+			t.Fatal(err)
+		}
+	}
+	return out.String(), diagnostic.String(), code
+}
+
+// TestCLIProcess covers help/usage without side effects and a complete offline build/check lifecycle.
+func TestCLIProcess(t *testing.T) {
+	binary := buildCLI(t)
+	dir := t.TempDir()
+	for _, test := range []struct {
+		name string
+		args []string
+		code int
+	}{
+		{"root-help", nil, 0}, {"help", []string{"build", "--help"}, 0}, {"version", []string{"--version"}, 0},
+		{"short-version", []string{"-v"}, 0}, {"unknown", []string{"no-such-command"}, 2},
+		{"unknown-flag", []string{"build", "--force"}, 2}, {"positional", []string{"check", "unexpected"}, 2},
+		{"missing-flag-value", []string{"build", "--config"}, 2}, {"duplicate", []string{"build", "--config", "one", "--config", "two"}, 2},
+		{"missing-project", []string{"build"}, 1},
+		{"flag-as-value", []string{"build", "--config", "--help"}, 2},
+		{"short-flag-as-value", []string{"build", "--config", "-h"}, 2},
+		{"blank-value", []string{"build", "--config", " \t "}, 2},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			out, diagnostic, code := runCLI(t, binary, dir, test.args...)
+			if code != test.code {
+				t.Fatalf("exit %d, want %d: stdout=%s stderr=%s", code, test.code, out, diagnostic)
+			}
+			if code == 0 && (out == "" || diagnostic != "") {
+				t.Fatalf("help/version streams: %q %q", out, diagnostic)
+			}
+			if code != 0 && (out != "" || diagnostic == "") {
+				t.Fatalf("error streams: %q %q", out, diagnostic)
+			}
+			entries, err := os.ReadDir(dir)
+			if err != nil || len(entries) != 0 {
+				t.Fatal("help/error modified project", entries, err)
+			}
+		})
+	}
+	root := filepath.Join(dir, ".code-rules")
+	if err := os.Mkdir(root, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "config.json"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if out, diagnostic, code := runCLI(t, binary, dir, "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	out, diagnostic, code := runCLI(t, binary, dir, "check", "--json")
+	var response struct {
+		Value projectCheckResult `json:"value"`
+	}
+	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || response.Value.Status != "out_of_date" || len(response.Value.Problems) == 0 {
+		t.Fatalf("stale check: %d %s %s", code, out, diagnostic)
+	}
+	if _, err := os.Stat(filepath.Join(root, "generated")); !os.IsNotExist(err) {
+		t.Fatal("check created output", err)
+	}
+	out, diagnostic, code = runCLI(t, binary, dir, "build", "--json")
+	if code != 0 || diagnostic != "" || !json.Valid([]byte(out)) {
+		t.Fatalf("build: %d %s %s", code, out, diagnostic)
+	}
+	out, diagnostic, code = runCLI(t, binary, dir, "check", "--json", "--config", filepath.Join(root, "config.json"))
+	if code != 0 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || response.Value.Status != "up_to_date" || len(response.Value.Problems) != 0 {
+		t.Fatalf("clean check: %d %s %s", code, out, diagnostic)
+	}
+	out, diagnostic, code = runCLI(t, binary, dir, "sync", "--json")
+	if code != 0 || diagnostic != "" || !json.Valid([]byte(out)) {
+		t.Fatalf("empty-source sync: %d %s %s", code, out, diagnostic)
+	}
+}
+
+// TestHyphenConfigValue verifies unambiguous equals syntax reaches the real project command.
+func TestHyphenConfigValue(t *testing.T) {
+	binary := buildCLI(t)
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, "-project.json"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	stdout, stderr, code := runCLI(t, binary, directory, "build", "--config=-project.json")
+	if code != 0 || stderr != "" || stdout == "" {
+		t.Fatal(code, stdout, stderr)
+	}
+}

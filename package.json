@@ -1,6 +1,5 @@
 {
-  "name": "code-rules",
-  "private": true,
+  "name": "code-rules-website-tools",
   "type": "module",
   "workspaces": [
     "docs"
@@ -10,33 +9,23 @@
     "docs:check": "bun run --cwd docs check",
     "docs:build": "bun run --cwd docs build",
     "docs:preview": "bun run --cwd docs preview",
-    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run docs:check && bun run docs:build && bun run docs:links",
     "docs:links": "bun run --cwd docs links",
-    "test": "bun test src _tools/*.test.ts docs/_tools/*.test.ts",
-    "typecheck": "tsc --project tsconfig.json",
-    "builds:example": "bun tests/manual/builds.ts",
-    "format:check": "prettier --single-quote --check src _tools/*.ts docs/_tools/*.ts tests/**/*.ts eslint.config.mjs",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run docs:check && bun run docs:build && bun run docs:links",
+    "format:check": "prettier --single-quote --check _tools/*.ts docs/_tools/*.ts eslint.config.mjs",
     "lint": "eslint .",
-    "imports:example": "bun tests/manual/imports.ts"
+    "typecheck": "tsc --project tsconfig.json",
+    "test": "bun test _tools/*.test.ts docs/_tools/*.test.ts"
   },
   "packageManager": "bun@1.4.2",
-  "dependencies": {
-    "mdast-util-from-markdown": "^2.0.3",
-    "mdast-util-to-markdown": "^2.1.2",
-    "semver": "^7.8.5",
-    "spdx-expression-parse": "^5.0.0",
-    "yaml": "^2.9.0"
-  },
   "devDependencies": {
     "@types/bun": "^1.4.2",
-    "@types/mdast": "^4.0.4",
-    "@types/semver": "^7.8.0",
-    "@types/spdx-expression-parse": "^4.0.0",
     "@typescript-eslint/parser": "^8.70.0",
     "astro-eslint-parser": "^3.1.0",
     "eslint": "^10.10.0",
     "eslint-plugin-jsdoc": "^64.3.9",
     "prettier": "^3.9.6",
-    "typescript": "6.0.3"
-  }
+    "typescript": "6.0.3",
+    "yaml": "^2.9.0"
+  },
+  "private": true
 }

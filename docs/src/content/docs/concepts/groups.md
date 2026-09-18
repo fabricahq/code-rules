@@ -43,8 +43,7 @@ practices/observability
 ```
 
 Do not repeat a group's type in metadata.
-A rule has one canonical home; related groups can reference it without copying its text.
-References do not automatically install another group in the first release.
+A rule has one canonical home. Filesystem links between rule documents are rejected because either rule can be excluded independently. Put shared supporting explanations in `assets/`; keep every rule independently understandable.
 When multiple sources supply the same group ID, their rules share one group page. Small groups include full rules; larger groups provide applicability summaries with explicit links to individual resolved rule files.
 Each rule keeps its source-qualified ID and each source retains its selection guidance.
 
@@ -66,7 +65,7 @@ A project defines a local group by creating `.code-rules/local/<group-id>/_group
 A group can exist before it contains any rules. Local rules join any group whose metadata is supplied locally or by a selected library.
 
 When both define the same group, the complete local metadata record takes precedence. Metadata fields are not merged.
-The discovery index shows the selected name and when-to-read cues. The `description` field remains in source metadata and provenance; it is intentionally omitted from the index to keep selection focused.
+Both the root index and group page show the selected name, description, and when-to-read cue. Use the cue to decide relevance and the description to understand scope.
 Imported and local rules remain independently active; group metadata does not exclude or replace rules.
 Without local metadata, the index shows each library's name and reading cues with source labels. Provenance retains all contributed group metadata and the sources of effective discovery guidance.
 
