@@ -200,6 +200,8 @@ class AgentDemo extends HTMLElement {
     );
     if (sessionWindow)
       sessionWindow.style.minHeight = `${sessionWindow.getBoundingClientRect().height}px`;
+    // Play/Replay explicitly opt into animation, even with reduced motion.
+    // Initial views stay static; preference changes and Show full session stop playback.
     this.playback?.restart();
     this.render();
     this.schedule();

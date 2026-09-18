@@ -43,8 +43,8 @@ Homepage composition lives in `src/components/HomePage.astro` and `src/styles/ho
 
 Use the docs to explain the product experience and its contracts.
 Keep implementation tasks in the internal planning material.
-The root homepage and every documentation page identify the site as a design preview.
-Update that notice when the release state changes, and publish installation instructions only after a package exists.
+Documentation pages identify the site as a design preview; the marketing homepage intentionally omits the release notice.
+Keep release availability explicit in the project status and installation guides, and publish installation instructions only after a package exists.
 
 Before handing off visual changes, inspect desktop and narrow layouts, light and dark themes, keyboard navigation, and search in a production preview.
 Run `bun run check` to verify website/tooling formatting, lint, types, tests, the static build, and links between built pages. The Go build tests also compile the copyable rule examples through the current resolver and renderer.
