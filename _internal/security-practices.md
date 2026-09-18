@@ -1,8 +1,39 @@
 # Security practices
 
-We pin dependencies, review updates through Renovate PRs, and scan Go code for known vulnerabilities. Maintainers approve merges; the bot never merges updates automatically.
+Users install Code Rules to download rule libraries into their repositories. Those files become instructions for their coding agents.
+**Assume any agent may read imported rules on every invocation.** An unauthorized change could repeatedly influence generated code, tool use, and access to the user's repository.
+Security is therefore a core product requirement.
 
-## Dependency pins
+## What we must protect
+
+1. **Rule-file integrity.** Preserve the selected library revision's original rule bytes. Detect unauthorized changes to retained files and agent-readable output.
+   Generated output may intentionally transform Markdown or apply explicit project overrides; those changes must remain attributable to the selected rules and the user's configuration.
+2. **Library-source authenticity.** Fetch the repository and revision the user selected. Never silently substitute another library or revision, or present an unverified origin as authenticated.
+   Users must be able to understand which source and commit supplied their rules.
+3. **Our repository and release integrity.** Protect our source, repository access, dependencies, workflows, and published executables against unauthorized changes.
+   A compromised importer or release could undermine both rule integrity and source verification across many consuming repositories.
+
+These are requirements to verify, not a claim that an audit has established every guarantee.
+A checksum proves consistency with its reference record, not authenticity if an attacker can replace both the content and the record.
+Even authentic, unchanged rules can contain harmful instructions. Users must deliberately choose which publishers and rule changes they trust.
+
+## Security audits
+
+Track evidence, confirmed findings, and remaining limitations in these focused audits:
+
+- [CR-3: Rule-file integrity](https://linear.app/ohmygoshjosh/issue/CR-3/audit-rule-file-integrity-from-import-through-agent-readable-output), from imported bytes through the output agents read.
+- [CR-4: Library-source authenticity](https://linear.app/ohmygoshjosh/issue/CR-4/audit-rule-library-source-authenticity-and-revision-resolution), including repository identity, Git routing, revision selection, and provenance.
+- [CR-5: Repository and release security](https://linear.app/ohmygoshjosh/issue/CR-5/audit-repository-and-release-pipeline-against-supply-chain-compromise), including live access controls and source-to-artifact verification.
+
+The audits must exercise the real CLI or workflow boundaries in controlled fixtures and record the exact commit reviewed.
+Dependency scans alone do not establish rule integrity or library authenticity. Treat open audits as unverified work, not completed protection.
+
+## Protecting this repository
+
+We pin dependencies, review updates through Renovate PRs, and scan Go code for known vulnerabilities. Maintainers approve merges; the bot never merges updates automatically.
+The controls below reduce the risk of compromising Code Rules itself. Live GitHub settings must enforce the access and review policies alongside the repository configuration.
+
+### Dependency pins
 
 - Pin every external GitHub Action and reusable workflow to its full commit SHA. Keep the release version in a trailing comment for readability.
 - Resolve each SHA from the upstream repository, including the commit behind an annotated tag. A version tag alone can move.
@@ -12,7 +43,7 @@ We pin dependencies, review updates through Renovate PRs, and scan Go code for k
 
 Pins prevent unexpected changes to selected dependencies. Checksums verify downloaded content. Neither proves that the selected code is safe.
 
-## Renovate update policy
+### Renovate update policy
 
 [renovate.json](../renovate.json) owns the executable policy.
 
@@ -35,7 +66,7 @@ Review transitive changes in each lockfile diff: the cooldown does not establish
 We constrain TypeScript below 6.1 because Astro check and typescript-eslint require the TypeScript 6 compiler API.
 Revisit that constraint when both tools support a newer API. If the constraint blocks a security fix, resolve compatibility as part of the security PR.
 
-## Vulnerability detection
+### Vulnerability detection
 
 [Dependency security](../.github/workflows/security.yml) runs `govulncheck` on pushes, pull requests, daily at 14:23 UTC, and manual dispatch.
 The scan includes tests on Linux and macOS and uses the current Go vulnerability database. Findings and scan errors fail the job.
@@ -49,7 +80,7 @@ Renovate consumes GitHub vulnerability alerts and enables OSV alerts for direct 
 The experimental OSV integration supplements transitive dependency alerts and govulncheck.
 Website dependencies rely on those advisory feeds; govulncheck only analyzes Go code.
 
-## Review and release access
+### Review and release access
 
 Before merging an update, review its source, release notes, changed permissions or install scripts, and manifest and lockfile diffs.
 Confirm all applicable CI checks passed on the current commit. A patch version is not evidence that an update is safe.
@@ -62,20 +93,19 @@ SHA pins and minimal permissions protect against compromised actions as well as 
 
 Dependency updates do not publish releases. A maintainer approves a release by merging its release-note PR, as described in [the release procedure](releasing.md).
 
-## GitHub setup and activation
+### GitHub setup and activation
 
 Repository configuration does not install the Renovate GitHub App or enforce branch protection.
 
-1. Install the [Mend Renovate GitHub App](https://github.com/apps/renovate) for `fabricahq`, selecting only `code-rules`.
+1. Grant the [Mend Renovate GitHub App](https://github.com/apps/renovate) access to `fabricahq/code-rules`. Limit its installation to repositories the organization intends it to manage.
 2. Keep the dependency graph and GitHub's **Dependabot alerts** enabled. Renovate reads these alerts; Dependabot does not need to create PRs.
 3. Leave **Dependabot security updates** disabled and do not add a Dependabot version-update configuration. Renovate owns update PRs.
 4. Give Renovate read access to vulnerability alerts and complete its onboarding after this configuration reaches `main`.
 5. Verify the Dependency Dashboard lists Go modules, Bun dependencies, actions, runtimes, and all three Go tools. Investigate extraction errors before relying on automation.
 6. Use main-branch protection or a ruleset to require PRs and the applicable CI checks. Grant Renovate no merge bypass. Review protection separately from the bot's `automerge: false` policy.
 
-During setup on 2026-09-18, GitHub alerts were enabled and Dependabot security updates were disabled.
-Renovate was not installed for the organization, and `main` had no branch protection or repository ruleset.
-Those observations are a setup snapshot, not a guarantee of the live settings. Verify activation in GitHub before claiming that updates are running.
+Verify live installation permissions, alert settings, and branch protections in GitHub before claiming they are active.
+Record dated evidence in the repository security audit instead of relying on a setup snapshot in this document.
 
 ## Policy references
 
