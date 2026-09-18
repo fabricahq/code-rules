@@ -21,7 +21,7 @@ const review = [readRule, {
   code: '- log.info({ userId, password });\n+ log.info({ userId });', lang: 'diff' as const,
 }, {
   title: 'Verify the fix', kind: 'TEST', file: 'bun test',
-  note: 'Fixed. A regression test protects this.',
+  note: "Fixed. I've also added a regression test for ongoing validation.",
   code: '✓ Password never logged · test passed', lang: 'text' as const,
 }];
 ---
