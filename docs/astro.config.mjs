@@ -22,6 +22,7 @@ export default defineConfig({
       Hero: './src/components/HomeHero.astro',
       SiteTitle: './src/components/SiteTitle.astro',
       SocialIcons: './src/components/NavLinks.astro',
+      ThemeSelect: './src/components/ThemeSelect.astro',
       PageTitle: './src/components/PageTitle.astro',
       Footer: './src/components/Footer.astro',
     },

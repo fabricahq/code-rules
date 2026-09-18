@@ -88,7 +88,9 @@ header.header { border-bottom: 1px solid var(--cr-line); }
 .cr-nav a { display: inline-flex; color: var(--cr-ink); text-decoration: none; }
 .cr-nav a:hover { text-decoration: underline; text-underline-offset: 5px; }
 .social-icons::after { display: none; }
-starlight-theme-select { font-size: var(--cr-text-sm); }
+.cr-nav .cr-icon-link { width: 44px; height: 44px; justify-content: center; border-radius: 50%; color: var(--cr-muted); transition: background-color 160ms ease, color 160ms ease; }
+.cr-nav .cr-icon-link:hover { background: var(--cr-surface); color: var(--cr-ink); text-decoration: none; }
+.cr-nav .cr-icon-link:focus-visible { outline: 2px solid var(--cr-ink); outline-offset: 2px; }
 .sl-menu-button { background: var(--cr-surface); color: var(--cr-ink); border: 1px solid var(--cr-line); box-shadow: none; }
 .sidebar-content { padding-top: 1.8rem; }
 .sidebar-content .top-level > li { margin-bottom: 1.25rem; }
