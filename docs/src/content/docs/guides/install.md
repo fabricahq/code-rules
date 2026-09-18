@@ -1,61 +1,54 @@
 ---
 title: "Install Code Rules"
-description: "Install the packaged CLI, try a release candidate, and upgrade without changing project rules."
+description: "Build the Go CLI or try a binary candidate, then upgrade or roll back deliberately."
 ---
 
-Code Rules packages a `code-rules` executable for **Node.js 22.18 or later on macOS and Linux**. Imports also require Git 2.30 or later and your normal Git credentials.
-Bun is needed to develop and package this repository; users of the installed CLI need Node.js and Git.
-Windows is not supported in the first release.
+Code Rules is a standalone Go executable for macOS and Linux on amd64 and arm64. Running it requires neither Node.js nor Bun. Sync also needs Git and your existing repository credentials. Windows is not supported.
+
+Public release publication remains separate work. The checkout supports source builds and unpublished candidate archives.
+
+## Build from source
+
+Install the Go version declared in the repository's `go.mod`, then run from the Code Rules checkout:
+
+```sh
+go build -o ./dist/code-rules ./cmd/code-rules
+./dist/code-rules --version
+./dist/code-rules --help
+```
+
+Use the executable's absolute path, or add its directory to your `PATH`. A source build reports a development version unless built with an explicit version. Installing the executable does not initialize projects or fetch libraries.
+
+Follow [Set up a project](/guides/set-up-project/) or [Create a rule library](/guides/create-library/).
 
 ## Try an unpublished release candidate
 
-No public npm release has shipped yet. From the Code Rules checkout:
+The repository's packaging workflow builds candidate archives for review. Its PR comment links to downloadable GitHub Actions artifacts after a successful build. GitHub sign-in is required; artifacts expire after seven days.
+
+To build your own candidate, commit the intended source first, then run:
 
 ```sh
-bun install --frozen-lockfile
-npm pack
+go run ./cmd/package-binaries --candidate --output /tmp/code-rules-artifacts
 ```
 
-`npm pack` builds the executable and includes the canonical authoring template.
-Install the resulting tarball into an isolated prefix:
+Choose a new output directory. Packaging builds committed HEAD in isolation, excluding uncommitted edits. Version and tool-license declarations come from `release.json`.
+
+The directory contains target-specific `.tar.gz` archives, `manifest.json`, and `SHA256SUMS`. Compare the target archive's SHA-256 against a trusted manifest before extracting it into a new directory. On macOS, use `shasum -a 256`; on Linux, use `sha256sum`. Inspect the manifest's source commit, target, and version, then run the extracted `./code-rules --version` and `./code-rules --help`.
+
+Checksums detect changed bytes; replacing both an archive and its manifest defeats that comparison. Candidate packaging does not publish a release or grant a tool license.
+
+## Upgrade or roll back
+
+Keep executables in separate versioned directories. Test the new executable against a copy of your project before selecting it on `PATH`; retain the old directory for rollback.
+
+After selecting a new version, run from your project:
 
 ```sh
-npm install --global --prefix /tmp/code-rules-cli ./fabricahq-code-rules-0.1.0-rc.1.tgz
-/tmp/code-rules-cli/bin/code-rules --version
-/tmp/code-rules-cli/bin/code-rules --help
-```
-
-Add `/tmp/code-rules-cli/bin` to your terminal's `PATH` to use `code-rules` directly.
-The prefix only contains the tool. Project configuration and rule files live in the consuming repository's `.code-rules/` directory.
-Follow [Set up a project](/guides/set-up-project/) or [Create a rule library](/guides/create-library/).
-
-## Install a published release
-
-Once a release is available, install the scoped package. The executable name remains `code-rules`:
-
-```sh
-npm install --global @fabricahq/code-rules
-code-rules --version
-```
-
-Use an explicit package version to pin the tool for your team or CI.
-Prereleases use the `next` npm tag; stable releases use `latest`.
-Installing the package does not create project files, download rule libraries, or edit agent instructions.
-
-## Upgrade the tool
-
-Once stable releases are available:
-
-```sh
-npm install --global @fabricahq/code-rules@latest
-code-rules --version
+code-rules init
 code-rules build
 code-rules check
 ```
 
-The package manager replaces the executable and its dependencies. It leaves authored rules and committed project files alone.
-Build regenerates with the installed version, including that version in provenance. Review and commit those changes.
-Run `sync` separately when you also want to resolve library versions again.
-To return to an earlier tool version, install that exact npm version and regenerate with it.
+Init refreshes the managed project README while preserving valid configuration and local rules. It refuses to overwrite manual edits to the guide. Build regenerates guidance and provenance; review those changes before committing. Use `sync` separately when you want to resolve remote library revisions again.
 
-The separate `code-rules update` command remains a follow-up. Use the package manager that owns your installation.
+To roll back, select the previous executable and review regeneration with that version. The `code-rules update` command is not implemented.

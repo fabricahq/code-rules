@@ -107,7 +107,7 @@ func TestNativeInstallUpgradeRollback(t *testing.T) {
 
 // TestPackagingRefusesUnapprovedRelease rejects missing tool terms before creating an output directory.
 func TestPackagingRefusesUnapprovedRelease(t *testing.T) {
-	fixture, err := gitfixture.New(context.Background(), map[string][]byte{"package.json": []byte(`{"version":"1.0.0","license":"UNLICENSED"}`)})
+	fixture, err := gitfixture.New(context.Background(), map[string][]byte{"release.json": []byte(`{"version":"1.0.0","license":"UNLICENSED"}`)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestPackagingRefusesUnapprovedRelease(t *testing.T) {
 // TestCandidateBuildExcludesUncommittedEdits verifies that a manifest's recorded commit owns the executable inputs.
 func TestCandidateBuildExcludesUncommittedEdits(t *testing.T) {
 	fixture, err := gitfixture.New(context.Background(), map[string][]byte{
-		"package.json":           []byte(`{"version":"1.0.0","license":"UNLICENSED"}`),
+		"release.json":           []byte(`{"version":"1.0.0","license":"UNLICENSED"}`),
 		"go.mod":                 []byte("module example.invalid/fixture\n\ngo 1.27.1\n"),
 		"cmd/code-rules/main.go": []byte("package main\nimport \"fmt\"\nvar version string\nfunc main(){fmt.Println(version)}\n"),
 	})

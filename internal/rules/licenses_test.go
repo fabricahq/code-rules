@@ -14,7 +14,7 @@ import (
 
 // TestLicenseFixtures checks complete manifest declarations against independent expectations.
 func TestLicenseFixtures(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/licenses/cases.json")
+	data, err := os.ReadFile("testdata/licenses/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}

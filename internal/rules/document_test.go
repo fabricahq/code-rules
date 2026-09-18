@@ -12,7 +12,7 @@ import (
 )
 
 func TestSplitDocumentSharedExpectations(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/rule-documents/cases.json")
+	data, err := os.ReadFile("testdata/rule-documents/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}

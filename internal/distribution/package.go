@@ -78,7 +78,7 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 	}
 	defer os.RemoveAll(captured)
 	source = filepath.Join(captured, "tree")
-	data, err := os.ReadFile(filepath.Join(source, "package.json"))
+	data, err := os.ReadFile(filepath.Join(source, "release.json"))
 	if err != nil {
 		return Manifest{}, err
 	}
@@ -95,7 +95,7 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 	}
 	license, licenseErr := os.ReadFile(filepath.Join(source, "LICENSE.md"))
 	if !options.Candidate && (metadata.License == "" || metadata.License == "UNLICENSED" || licenseErr != nil || len(strings.TrimSpace(string(license))) == 0 || version != metadata.Version) {
-		return Manifest{}, fmt.Errorf("release artifacts require a declared tool license and package.json version; use --candidate for unpublished review builds")
+		return Manifest{}, fmt.Errorf("release artifacts require a declared tool license and release.json version; use --candidate for unpublished review builds")
 	}
 	if licenseErr != nil && !os.IsNotExist(licenseErr) {
 		return Manifest{}, licenseErr

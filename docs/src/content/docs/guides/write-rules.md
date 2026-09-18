@@ -44,7 +44,7 @@ For a new group, add [group metadata](/reference/files/#group-metadata) that hel
 
 ## Example rule
 
-This original example illustrates the proposed format:
+This original example uses the rule format:
 
 ````md
 ---
@@ -95,7 +95,7 @@ Consumers must update exclusions and replacements that referenced the old path.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.
 Builds carries that attribution into the individual generated rule file; no separate attribution file is required.
-Extra frontmatter, such as `source:`, is preserved as authored metadata. It does not set override targets or replace generated provenance.
+Unknown frontmatter fields, including `source:`, are rejected. Use `attribution` to record adaptation sources, and configuration to declare replacements. Generated provenance records the resolved origin.
 When publishing or adapting rules, follow [License rules](/guides/license-rules/) to make permissions and attribution explicit.
 
 

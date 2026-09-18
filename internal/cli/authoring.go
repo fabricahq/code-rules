@@ -167,26 +167,11 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		rf.add(rule, name, description)
 	}
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
-		if strings.HasSuffix(args[0], ".md") {
-			return fmt.Errorf("use a rule ID without the .md extension")
-		}
-		if err := rf.requireRuleGroup(args[0], false); err != nil {
-			*started = true
+		metadata, body, err := rf.collectRule(cmd.Context(), args[0], false, started)
+		if err != nil {
 			return err
 		}
-		if err := rf.require("title", "when-to-read", "impact", "impact-description"); err != nil {
-			return err
-		}
-		ro := authoring.RuleOptions{Options: rf.options()}
-		*started = true
-		if rf.value("body-file") != "" {
-			body, err := readBody(cmd.Context(), rf.file("body-file"))
-			if err != nil {
-				return err
-			}
-			ro.Body = &body
-		}
-		metadata := authoring.RuleMetadata{Title: rf.value("title"), WhenToRead: rf.value("when-to-read"), Impact: rf.value("impact"), ImpactDescription: rf.value("impact-description")}
+		ro := authoring.RuleOptions{Options: rf.options(), Body: body}
 		result, err := authoring.AddLocalRule(cmd.Context(), args[0], metadata, ro)
 		if err != nil {
 			return err
@@ -195,6 +180,31 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		return nil
 	}
 	localAdd.AddCommand(rule)
+}
+
+// collectRule validates the existing group before prompting and collects all input before writer ownership.
+// started preserves the CLI distinction between usage failures and failed authoring operations.
+func (f *authoringFlags) collectRule(ctx context.Context, id string, library bool, started *bool) (authoring.RuleMetadata, *string, error) {
+	if strings.HasSuffix(id, ".md") {
+		return authoring.RuleMetadata{}, nil, fmt.Errorf("use a rule ID without the .md extension")
+	}
+	if err := f.requireRuleGroup(id, library); err != nil {
+		*started = true
+		return authoring.RuleMetadata{}, nil, err
+	}
+	if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
+		return authoring.RuleMetadata{}, nil, err
+	}
+	*started = true
+	var body *string
+	if f.value("body-file") != "" {
+		text, err := readBody(ctx, f.file("body-file"))
+		if err != nil {
+			return authoring.RuleMetadata{}, nil, err
+		}
+		body = &text
+	}
+	return authoring.RuleMetadata{Title: f.value("title"), WhenToRead: f.value("when-to-read"), Impact: f.value("impact"), ImpactDescription: f.value("impact-description")}, body, nil
 }
 
 // readBody loads a bounded regular UTF-8 input without interpreting it as a rule document.

@@ -16,9 +16,7 @@
     "noUnusedParameters": true
   },
   "include": [
-    "src/**/*.ts",
     "_tools/*.ts",
-    "docs/_tools/*.ts",
-    "tests/**/*.ts"
+    "docs/_tools/*.ts"
   ]
 }

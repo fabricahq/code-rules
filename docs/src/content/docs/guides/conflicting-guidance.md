@@ -25,28 +25,12 @@ Repeated guidance may be redundant without being contradictory.
 
 ## Generate a review prompt
 
-The proposed command is:
-
-```sh
-code-rules conflicts --prompt
-```
-
-The `--prompt` flag is required; `code-rules conflicts` alone reports a usage error.
-It prints a Markdown prompt for an agent working in your project.
-The prompt identifies the generated index, every group index, and each resolved rule file.
-For each source, it includes the requested ref or version constraint, selected tag when applicable, and resolved commit.
-It asks the agent to compare active rules within and across groups, including local additions and replacements.
-
-The command checks that generated output matches its inputs before producing the prompt.
-If files are stale or invalid, rebuild or sync as instructed and try again.
-It works offline from the existing snapshots and does not run an agent or modify the rules.
-Successful prompt generation means the review can begin; it is not a finding that the rules are consistent.
-
-**The CLI has not shipped yet.**
-Until it does, give a repository-aware agent this prompt:
+`code-rules conflicts --prompt` is planned and is not implemented in the Go CLI.
+For now, run `code-rules check` and resolve any reported problems before reviewing the adopted rules.
+Then give a repository-aware agent this prompt:
 
 ```text
-Review this project's effective Code Rules for conflicting guidance.
+Review this project's resolved Code Rules for conflicting guidance.
 
 Read .code-rules/generated/RULES.md, every part of each group index, and all linked resolved rules to assess conflicts across the complete adopted set.
 Use .code-rules/generated/provenance.json to identify the reviewed snapshot.
@@ -70,8 +54,8 @@ Present proposed changes for review. Do not modify rules or choose an
 unresolved engineering policy on the project's behalf.
 ```
 
-For a different configuration location, the generated prompt should use paths relative to that configuration rather than assuming `.code-rules/`.
-The [CLI reference](/reference/cli/#conflict-review-prompt) defines the command's output and validation behavior.
+For a different configuration location, adjust the prompt to use paths relative to that configuration rather than assuming `.code-rules/`.
+See the [CLI reference](/reference/cli/#conflict-review-prompt) for the planned command.
 
 ## Resolve the intended policy
 
@@ -108,7 +92,7 @@ Do not edit `vendor/` or `generated/` directly.
 
 Run `code-rules build` after changing local rules or exceptions.
 Run `code-rules sync` instead if you also change sources, revision selections, or imported groups.
-Inspect the regenerated indexes and resolved definitions, then generate a fresh conflict-review prompt for that snapshot.
+Inspect the regenerated indexes and resolved definitions, then repeat the review against that snapshot.
 
 Commit the configuration, local rules, and generated output together; include vendor changes when sync refreshed them.
 A clean `code-rules check` confirms file consistency, while the agent review assesses whether the guidance can be followed together.

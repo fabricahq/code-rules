@@ -22,7 +22,7 @@ func main() { os.Exit(run()) }
 func run() int {
 	source := flag.String("source", ".", "Source checkout")
 	output := flag.String("output", "", "New output directory (must not exist)")
-	version := flag.String("version", "", "Version (defaults to package.json)")
+	version := flag.String("version", "", "Version (defaults to release.json)")
 	targets := flag.String("targets", "", "Comma-separated OS/architecture targets (defaults to four supported targets)")
 	candidate := flag.Bool("candidate", false, "Build unpublished review artifacts without claiming release readiness")
 	flag.Parse()

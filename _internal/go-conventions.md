@@ -1,106 +1,25 @@
 # Go conventions
 
-These conventions govern the Go implementation and its development commands.
-The first examples live in [rules](../internal/rules/groups.go), [logging](../internal/logging/logging.go), and the [rules lab](../cmd/rules-lab/main.go).
+Read these conventions before changing Go code. The [README](../README.md#validate-changes) owns validation commands.
 
-## Error handling
+## Errors and output
 
-Return ordinary Go values and an `error`. Check the error before using a result.
-Domain packages return errors and do not log, print, or exit.
+Return values and an `error`; check the error before using a result. Domain code returns errors without printing or exiting. The CLI owns human diagnostics, structured JSON, and exit-status mapping. Only `main` exits the process.
 
-Use a typed error or sentinel when a caller needs to select behavior.
-`*rules.ValidationError` identifies invalid input and carries a diagnostic field location.
-Use `errors.As` to inspect that type and `errors.Is` for sentinel errors.
-Do not branch on message text. Add finer error identities when a concrete caller needs them.
+Use typed errors and sentinels when callers need to select behavior. Use `errors.As` for `*rules.ValidationError` and `errors.Is` for sentinels. Branch on error identities rather than message text. Add context where the operation and relevant safe identifiers are known, preserving deliberate contract errors with `%w`.
 
-Keep diagnostic context at the layer that knows it:
+The caller supplies diagnostic field paths such as `sources.team.groups`; parsers add precise element or file context. Display the outer error so this context survives. Keep secrets and file contents out of operational diagnostics.
 
-- The caller supplies the field path, such as `sources.team.groups`.
-- The selection parser adds the original element index before sorting.
-- The path parser adds the full rule path when group validation fails.
+Human command output is the default. `--json` produces one stdout response, including failures, and never prompts. Keep these contracts tested through `internal/cli.Run` and real subprocesses. Expected validation failures are command results, not duplicated log events.
 
-Preserve a deliberate contract error with `%w`:
+## Ownership and effects
 
-```go
-if err := ValidateGroupID(group, location); err != nil {
-    return "", fmt.Errorf("rule path %s: %w", quote(path), err)
-}
-```
+Keep parsing and rendering independent of filesystem and network effects. Keep filesystem snapshots, resource limits, cancellation, and write ownership explicit at the effectful operation. Preserve original retained bytes where the format promises preservation.
 
-Inspect the wrapped error with `errors.As`, but display the outer `err.Error()` so the operation context survives.
-For an implementation failure that callers can only report or abort, add useful context with `%v`.
-Translate implementation errors into domain identities only where the meaning is known.
-Do not expose a dependency's concrete error type accidentally.
-
-Error context should name the operation and relevant safe identifiers.
-Do not include file contents, credentials, or raw request bodies in operational errors.
-Validation diagnostics may quote the rejected value for the caller; do not copy those diagnostics into logs.
-
-The lab keeps expected input failures in its JSON response, allowing subsequent requests to run.
-Unexpected HTTP failures return a generic 500 response and are logged by the handler.
-Unexpected stream or startup failures return to `main`, which logs once and exits 1.
-Oversized HTTP bodies receive 413; other body-read failures receive 400 without internal details.
-The lab's response envelope and exit codes do not define the future Cobra CLI contract.
-
-Keep exact diagnostic expectations in migration tests, even when callers branch on types.
-An intentional text change must retain separate reference and candidate expectations.
-
-## Logging
-
-Use the standard library's [`log/slog`](https://pkg.go.dev/log/slog).
-`internal/logging.New` owns handler configuration and returns a `*slog.Logger` without changing global state.
-Each command parses its environment at startup, passes stderr and typed settings to `New`, and injects the logger into code that owns effects.
-`New` accepts `slog.Level` and `logging.Format`, with `FormatText` and `FormatJSON` constants.
-It rejects other formats at runtime because Go permits constructing values outside the declared constants.
-Environment defaults and case normalization belong to command startup, not the logger constructor.
-
-```go
-logger, err := logging.New(os.Stderr, slog.LevelInfo, logging.FormatJSON)
-```
-
-Pure domain code needs no logger or logging interface.
-
-| Setting | Default | Accepted values |
-| --- | --- | --- |
-| `CODE_RULES_LOG_LEVEL` | `info` | Slog levels: `debug`, `info`, `warn`, `error`, including standard numeric offsets such as `INFO+2`; case-insensitive |
-| `CODE_RULES_LOG_FORMAT` | `text` | `text` or `json`; case-insensitive |
-
-Empty settings select defaults. Invalid settings fail startup with one diagnostic using the default text logger.
-Configuration errors name the setting without echoing its value.
-
-```sh
-CODE_RULES_LOG_LEVEL=debug CODE_RULES_LOG_FORMAT=json go run ./cmd/rules-lab -serve
-```
-
-Logs go to stderr. Stdout is reserved for command results, including the lab's JSON-lines protocol.
-Help and usage text are user-facing command output, not operational logs.
-The server emits its loopback URL at INFO; a higher threshold suppresses that startup record.
-The JSON-lines adapter is quiet on stderr unless an unexpected failure stops it.
-
-Use stable event messages with separate attributes:
-
-```go
-logger.Info("rules lab listening", "url", "http://"+listener.Addr().String())
-logger.Error("rules lab failed", "error", err)
-```
-
-- **DEBUG:** optional investigation details. The lab logs invocation success/failure without inputs or diagnostic text.
-- **INFO:** normal lifecycle events, such as the listening address.
-- **WARN:** a recoverable operational failure. An undeliverable HTTP response does not stop the server.
-- **ERROR:** an unexpected failed operation or process failure that needs attention.
-
-The boundary that finishes handling an error owns its log. Return it or log it, not both.
-Expected invalid input belongs in the response and is not an ERROR log.
-Do not log request bodies, rule contents, user-supplied diagnostic locations, or secrets, even at DEBUG.
-Pass request context to HTTP log calls. The standard HTTP server uses the same handler through `slog.NewLogLogger`.
-Only `main` exits the process. Libraries and logging helpers never do.
+Collect interactive inputs before acquiring writer ownership. Validate all inputs before installation. Exercise refusal and interrupted/concurrent-write behavior through the production operation, rather than testing only isolated helpers.
 
 ## Comments and validation
 
-Use a `Package ...` comment for package documentation. Separate file headers from `package` with a blank line.
-Add a short header to each authored Go file and document field ownership, nil semantics, and other non-obvious constraints.
+Use a `Package ...` comment for package documentation. Separate other file headers from `package` with a blank line. Explain result ownership, nil semantics, and non-obvious constraints. Follow the [local comment rule](rules/comment-role-result-and-constraints.md).
 
-The [Go workflow](../.github/workflows/go.yml) checks formatting, `go vet`, pinned Staticcheck defaults, race-enabled tests, and native/reference comparisons.
-Staticcheck is a development tool; it adds no dependency to the runtime module.
-Run the [slice validation commands](../migration/identities.md#validation) before updating its PR.
-Review remains responsible for error ownership, useful context, logging privacy, and comment accuracy.
+The [Go workflow](../.github/workflows/go.yml) checks formatting, vet, pinned Staticcheck, race-enabled tests, and command builds. Parser regression data lives under `internal/rules/testdata`; it does not require a legacy runtime. Review error ownership, actionable context, byte preservation, and cancellation when changing effects.

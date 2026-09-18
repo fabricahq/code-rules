@@ -54,7 +54,7 @@ func TestCheckWithFiles(t *testing.T) {
 
 // TestCheckSnapshotRejectsEdits covers both sides of the combined freshness decision, including missing guides.
 func TestCheckSnapshotRejectsEdits(t *testing.T) {
-	for _, change := range []string{"guide-created", "guide-edited", "guide-removed", "local-edited", "writer-started"} {
+	for _, change := range []string{"guide-created", "guide-edited", "guide-removed", "local-edited", "config-edited", "writer-started"} {
 		t.Run(change, func(t *testing.T) {
 			root, options := localProject(t)
 			ctx := context.Background()
@@ -79,6 +79,8 @@ func TestCheckSnapshotRejectsEdits(t *testing.T) {
 				}
 			case "local-edited":
 				writeFixture(t, root, "local/techs/go/errors.md", projectRule+"New guidance\n")
+			case "config-edited":
+				writeFixture(t, root, filepath.Base(options.ConfigPath), "{\n\"schemaVersion\":1,\"sources\":{}}\n")
 			case "writer-started":
 				if err := root.Mkdir(lockName, 0700); err != nil {
 					t.Fatal(err)

@@ -13,7 +13,7 @@ import (
 )
 
 func TestGroupMetadataSharedExpectations(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/group-metadata/cases.json")
+	data, err := os.ReadFile("testdata/group-metadata/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}

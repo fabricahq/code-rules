@@ -16,7 +16,7 @@ import (
 
 // TestRepositorySharedExpectations checks exact outputs and typed, zero-result failures.
 func TestRepositorySharedExpectations(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/repositories/cases.json")
+	data, err := os.ReadFile("testdata/repositories/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}

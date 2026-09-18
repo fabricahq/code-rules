@@ -13,7 +13,7 @@ import (
 
 // TestConfigurationFixtures checks successful projections and precise error locations.
 func TestConfigurationFixtures(t *testing.T) {
-	data, err := os.ReadFile("../../tests/migration/configuration/cases.json")
+	data, err := os.ReadFile("testdata/configuration/cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}

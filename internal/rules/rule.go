@@ -13,7 +13,7 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// Impact is the rule's declared severity. Parse accepts only the six constants.
+// Impact is the rule's declared consequence level. Parse accepts only the six constants.
 type Impact string
 
 const (

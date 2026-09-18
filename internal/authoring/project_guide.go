@@ -11,20 +11,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/fabricahq/code-rules/internal/project"
 )
 
 // projectGuideTemplate ships with the binary; its shell examples are exercised by CLI integration tests.
 //
 //go:embed project-guide.md
 var projectGuideTemplate string
-
-// GuideStatus identifies the checked guide and whether its exact bytes match this executable's template.
-type GuideStatus struct {
-	Path    string `json:"path"`
-	Current bool   `json:"current"`
-}
 
 // renderProjectGuide anchors commands to the guide directory and quotes custom config names for POSIX shells.
 func renderProjectGuide(configName string) []byte {
@@ -77,50 +69,4 @@ func prepareProjectGuide(ctx context.Context, root *os.Root, configName string) 
 		return nil, failure("guide-edited", name+": unrecognized or manually edited project guide; preserve your notes in a separate file, move this guide aside, then run init again", nil)
 	}
 	return &authoredFile{name: name, data: wanted, before: current}, nil
-}
-
-// CheckProjectGuide compares the saved guide with the installed template without creating files or acquiring a writer lock.
-func CheckProjectGuide(ctx context.Context, options Options) (GuideStatus, error) {
-	root, name, err := openProject(ctx, options, false)
-	if err != nil {
-		return GuideStatus{}, err
-	}
-	defer root.Close()
-	guideName, wanted := ProjectGuide(filepath.Join(root.Name(), name))
-	status := GuideStatus{Path: filepath.Join(root.Name(), guideName)}
-	if err = project.RequireIdle(root); err != nil {
-		return status, err
-	}
-	config, _, err := configuration(ctx, root, name)
-	if err != nil {
-		return status, err
-	}
-	current, err := optionalFile(ctx, root, guideName)
-	if err != nil {
-		return status, err
-	}
-	if err := requireGuideUnchanged(ctx, root, name, guideName, config, current); err != nil {
-		return status, err
-	}
-	status.Current = bytes.Equal(current, wanted)
-	if !status.Current {
-		return status, failure("guide-outdated", guideName+": missing or out of date for this CLI; run code-rules init with the same --config to refresh the project guide", nil)
-	}
-	return status, nil
-}
-
-// requireGuideUnchanged rejects overlapping edits and active writers before reporting guide freshness.
-func requireGuideUnchanged(ctx context.Context, root *os.Root, configName, guideName string, config, guide []byte) error {
-	currentConfig, err := optionalFile(ctx, root, configName)
-	if err != nil {
-		return err
-	}
-	currentGuide, err := optionalFile(ctx, root, guideName)
-	if err != nil {
-		return err
-	}
-	if !bytes.Equal(config, currentConfig) || !bytes.Equal(guide, currentGuide) {
-		return failure("concurrent-change", "configuration or project guide changed during the check; retry after edits finish", nil)
-	}
-	return project.RequireIdle(root)
 }

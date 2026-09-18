@@ -4,7 +4,6 @@ package cli
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/authoring"
 	"github.com/spf13/cobra"
@@ -121,26 +120,11 @@ func libraryRuleCommand(options Options, started *bool, output *commandOutput) *
 		f.add(cmd, name, description)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		if strings.HasSuffix(args[0], ".md") {
-			return fmt.Errorf("use a rule ID without the .md extension")
-		}
-		if err := f.requireRuleGroup(args[0], true); err != nil {
-			*started = true
+		metadata, body, err := f.collectRule(cmd.Context(), args[0], true, started)
+		if err != nil {
 			return err
 		}
-		if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
-			return err
-		}
-		ro := authoring.LibraryRuleOptions{LibraryOptions: f.libraryOptions()}
-		*started = true
-		if f.value("body-file") != "" {
-			body, err := readBody(cmd.Context(), f.file("body-file"))
-			if err != nil {
-				return err
-			}
-			ro.Body = &body
-		}
-		metadata := authoring.RuleMetadata{Title: f.value("title"), WhenToRead: f.value("when-to-read"), Impact: f.value("impact"), ImpactDescription: f.value("impact-description")}
+		ro := authoring.LibraryRuleOptions{LibraryOptions: f.libraryOptions(), Body: body}
 		result, err := authoring.AddLibraryRule(cmd.Context(), args[0], metadata, ro)
 		if err != nil {
 			return err
