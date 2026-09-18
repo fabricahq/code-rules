@@ -9,11 +9,15 @@ on:
     paths: ['releases/v*.md']
   pull_request:
     paths: ['releases/v*.md']
-  # Retry a failed release at its original approved commit, even if main has advanced.
+  # Preserve both endpoints of the approved push: a rebase merge can contain several commits.
   workflow_dispatch:
     inputs:
       commit:
-        description: 'Exact main commit that added the release notes (retry a failed release)'
+        description: 'Approved head SHA from the original failed run summary'
+        required: true
+        type: string
+      base:
+        description: 'Base SHA from the original failed run summary (before the approved push)'
         required: true
         type: string
 # Planning, tests, and compilation only need read access. Grant write access separately
@@ -48,14 +52,20 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
           RETRY: ${{ inputs.commit }}
+          RETRY_BASE: ${{ inputs.base }}
         run: |
           if [ "$EVENT" = workflow_dispatch ]; then
-            [[ "$RETRY" =~ ^[0-9a-f]{40}$ ]] || { echo 'Retry requires a full commit SHA'; exit 1; }
+            [[ "$RETRY" =~ ^[0-9a-f]{40}$ && "$RETRY_BASE" =~ ^[0-9a-f]{40}$ ]] || { echo 'Retry requires full base and approved head SHAs'; exit 1; }
             git merge-base --is-ancestor "$RETRY" origin/main
             HEAD="$RETRY"
-            BASE=$(git rev-parse "$HEAD^")
+            BASE="$RETRY_BASE"
           fi
+          # Keep retry inputs available even when planning or a later build fails.
+          printf 'Release request range\n\nBase SHA: `%s`\n\nApproved head SHA: `%s`\n' "$BASE" "$HEAD" >> "$GITHUB_STEP_SUMMARY"
           go run ./cmd/release-plan --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/release-plan.json"
+          if [ "$EVENT" = workflow_dispatch ]; then
+            jq -e '.tag != ""' "$RUNNER_TEMP/release-plan.json" > /dev/null || { echo 'Retry range contains no release request'; exit 1; }
+          fi
           jq -r '"tag=\(.tag)\nversion=\(.version)\ncommit=\(.commit)"' "$RUNNER_TEMP/release-plan.json" >> "$GITHUB_OUTPUT"
       # Job outputs carry the build identifiers; this artifact also preserves the notes
       # and tag snapshot that the publisher must verify before making the release public.

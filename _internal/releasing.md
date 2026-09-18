@@ -57,7 +57,8 @@ For execution details, read the [release workflow](../.github/workflows/release.
 
 ## Retry a failed release
 
-Use **Actions → Release → Run workflow**, select `main`, and supply the full commit SHA that added the notes. This retries the original approved source, not the latest `main`. You can also rerun the original failed workflow.
+Prefer **Re-run all jobs** on the original failed Release run. To start a manual retry, use **Actions → Release → Run workflow**, select `main`, and copy both **Base SHA** and **Approved head SHA** from the original run summary into the corresponding inputs.
+Preserve the full approved range. A rebase merge can contain several commits; the commit that first added the notes may omit later approved edits or source changes. Never substitute the latest `main` or guess the base from the head's parent.
 
 Inspect the failed run and any existing draft, tag, or published release before taking corrective action. If an interrupted upload left an invalid asset, a maintainer can remove that asset from the unpublished draft and retry. Never delete or replace published assets/tags as a retry strategy.
 

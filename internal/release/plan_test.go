@@ -144,3 +144,15 @@ func TestCorrectOrWithdrawUntaggedRequest(t *testing.T) {
 		t.Fatal(plan, err)
 	}
 }
+
+func TestPlanIgnoresMalformedVersionTags(t *testing.T) {
+	f, source := fixture(t)
+	command(t, f, "tag", "v-preview")
+	write(t, source, "releases/v0.1.0.md", "Approved notes")
+	command(t, f, "add", ".")
+	command(t, f, "-c", "commit.gpgsign=false", "commit", "-m", "Release")
+	plan, err := Read(context.Background(), source, f.LatestCommit, "HEAD")
+	if err != nil || len(plan.Tags) != 0 {
+		t.Fatalf("malformed tag affected plan: %+v, %v", plan, err)
+	}
+}

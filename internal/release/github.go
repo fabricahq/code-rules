@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/google/go-github/v92/github"
 )
 
@@ -23,6 +24,10 @@ func (p publisher) verifyTags(ctx context.Context, plan Plan) error {
 	names := []string{}
 	for _, ref := range refs {
 		name := strings.TrimPrefix(ref.GetRef(), "refs/tags/")
+		// Match planning's version inventory; unrelated v-prefixed tags are not releases.
+		if _, err := rules.TagVersion(name, "tag"); err != nil {
+			continue
+		}
 		if name != plan.Tag {
 			names = append(names, name)
 		}

@@ -33,6 +33,17 @@ func TestPublishAndRepeat(t *testing.T) {
 	}
 }
 
+func TestPublishIgnoresMalformedVersionTags(t *testing.T) {
+	f := newPublishFixture(t)
+	f.tags = []string{"v-preview"}
+	if _, err := Publish(context.Background(), f.client, f.options()); err != nil {
+		t.Fatal(err)
+	}
+	if f.release.Draft {
+		t.Fatal("unrelated malformed tag blocked publication")
+	}
+}
+
 func TestResumeInterruptedUpload(t *testing.T) {
 	f := newPublishFixture(t)
 	f.failUpload = true

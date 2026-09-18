@@ -113,12 +113,6 @@ func Read(ctx context.Context, source, base, head string) (Plan, error) {
 		return Plan{}, err
 	}
 	observed := []string{}
-	for _, existing := range strings.Fields(tags) {
-		if existing != tag {
-			observed = append(observed, existing)
-		}
-	}
-	slices.Sort(observed)
 	var previous string
 	var latest *version.Version
 	for _, existing := range strings.Fields(tags) {
@@ -140,6 +134,7 @@ func Read(ctx context.Context, source, base, head string) (Plan, error) {
 			}
 			continue
 		}
+		observed = append(observed, existing)
 		if !current.GreaterThan(other) {
 			return Plan{}, fmt.Errorf("%s must be newer than existing tag %s", tag, existing)
 		}
@@ -147,6 +142,7 @@ func Read(ctx context.Context, source, base, head string) (Plan, error) {
 			previous, latest = existing, other
 		}
 	}
+	slices.Sort(observed)
 	if previous == "" && tag != "v0.1.0" {
 		return Plan{}, fmt.Errorf("the first release must be v0.1.0")
 	}
