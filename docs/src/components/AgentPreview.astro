@@ -82,9 +82,9 @@ const review = [readRule, {
   .demo-badge { margin-left: auto; font-size: .6rem; letter-spacing: .12em; color: var(--demo-muted); }
   .playback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; margin-top: .85rem; }
   .playback-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; margin-left: auto; }
-  .playback button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px; padding: .5rem .75rem; background: transparent; border: 1px solid var(--demo-border); border-radius: 8px; color: var(--cr-ink); cursor: pointer; font: .75rem var(--sl-font); }
-  .playback button svg { flex-shrink: 0; }
-  .playback [data-play] { min-width: 5.5rem; }
+  .playback button { display: inline-flex; align-items: center; justify-content: center; gap: .3rem; min-height: 32px; padding: .25rem .5rem; background: transparent; border: 1px solid var(--demo-border); border-radius: 6px; color: var(--demo-muted); cursor: pointer; font: .65rem var(--sl-font); }
+  .playback button svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .playback [data-play] { min-width: 4rem; }
   .pause-icon { display: none; }
   [data-playing] .pause-icon { display: block; }
   [data-playing] .play-icon { display: none; }
@@ -98,6 +98,5 @@ const review = [readRule, {
     .demo-badge { font-size: .5rem; }
     .playback { gap: .5rem; }
     .playback-buttons { width: 100%; }
-    .playback button { padding-inline: .55rem; font-size: .7rem; }
   }
 </style>
