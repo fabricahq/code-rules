@@ -259,13 +259,6 @@ class AgentDemo extends HTMLElement {
     });
     this.toggleAttribute('data-playing', this.isPlaying);
     this.toggleAttribute('data-complete', isComplete);
-    const status = this.querySelector<HTMLElement>('[data-status]');
-    if (status)
-      status.textContent = isComplete
-        ? 'Session complete'
-        : !this.isPlaying
-          ? 'Paused · scroll to read'
-          : (entries[frame.index]?.element.dataset.title ?? 'Working');
     const play = this.querySelector<HTMLButtonElement>('[data-play]');
     if (play) {
       const label = play.querySelector('[data-play-label]');
