@@ -29,7 +29,7 @@ const review = [readRule, {
   <agent-demo>
     <div class="session-tabs" role="tablist" aria-label="Choose an agent session" hidden data-tabs>
       <button type="button" role="tab" id="tab-write" aria-controls="session-write" aria-selected="true" tabindex="0" data-tab="write"><span aria-hidden="true">✳︎</span> Write with rules</button>
-      <button type="button" role="tab" id="tab-review" aria-controls="session-review" aria-selected="false" tabindex="-1" data-tab="review"><span aria-hidden="true">⌕</span> Review and fix</button>
+      <button type="button" role="tab" id="tab-review" aria-controls="session-review" aria-selected="false" tabindex="-1" data-tab="review"><svg class="review-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg> Review and fix</button>
     </div>
     <div class="terminal-window">
       <div class="window-bar"><span class="harness-icon" aria-hidden="true">✳︎</span><span class="harness-name">Your coding agent <span class="window-path">acme-checkout</span></span><span class="demo-badge">EXAMPLE SESSION</span></div>
@@ -65,6 +65,7 @@ const review = [readRule, {
   .session-tabs { display: flex; justify-content: center; gap: .4rem; margin-bottom: 1.1rem; }
   .session-tabs button { min-height: 44px; padding: .65rem 1.25rem; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--cr-muted); font: 500 .85rem var(--sl-font); cursor: pointer; }
   .session-tabs button span { margin-right: .45rem; }
+  .review-icon { display: inline-block; margin-right: .45rem; vertical-align: -.2em; }
   .session-tabs [aria-selected='true'] { background: var(--demo-tool); color: var(--demo-blue); border-color: var(--demo-border); }
   .session-tabs [data-tab='review'][aria-selected='true'] { color: var(--demo-purple); }
   .terminal-window { border: 1px solid var(--demo-border); border-radius: 14px; overflow: hidden; background: var(--demo-panel); box-shadow: 0 20px 65px -30px #547cba55, 0 2px 8px #162a4910; }
