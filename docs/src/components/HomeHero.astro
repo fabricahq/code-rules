@@ -9,9 +9,9 @@ import exampleRule from '../examples/verify-retry-limits.md?raw';
 <section class="cr-hero" aria-labelledby="_top">
   <p class="cr-eyebrow">FABRICA / CODE RULES</p>
   <h1 id="_top" data-page-title>The package manager<br class="desktop-break" /> for your engineering rules</h1>
-  <p class="cr-lead">Version your best practices. Import them across projects.<br />Write good code, then validate it.</p>
+  <p class="cr-lead">Version your best practices. Import them across projects.<br />Set up your agents to write good code, then validate it.</p>
   <div class="cr-actions">
-    <a class="cr-button primary" href="/guides/use-rules/">Set up your repo <span aria-hidden="true">→</span></a>
+    <a class="cr-button primary" href="/guides/use-rules/">Set up your agents <span aria-hidden="true">→</span></a>
     <a class="cr-button" href="/overview/">Read the docs <span aria-hidden="true">→</span></a>
   </div>
 </section>
@@ -20,8 +20,8 @@ import exampleRule from '../examples/verify-retry-limits.md?raw';
   <article class="cr-feature">
     <div>
       <span class="cr-index">01 / CODIFY</span>
-      <h2>Define a best practice rule in markdown.</h2>
-      <p>A rule can cover a technology like Go, React, Next.js, or Postgres. It can also cover a practice like testing, error handling, or logging.</p>
+      <h2>Define the practices you want your agents to follow.</h2>
+      <p>Write rules in Markdown to tell agents how to write and validate code. Cover technologies like Go or React, and practices like testing, error handling, or logging.</p>
       <a href="/guides/write-rules/">Learn how to write rules →</a>
     </div>
     <div class="cr-panel cr-rule-file">
@@ -34,7 +34,7 @@ import exampleRule from '../examples/verify-retry-limits.md?raw';
     <div>
       <span class="cr-index">02 / SHARE</span>
       <h2>Declare rules for a single repo, or an entire organization.</h2>
-      <p>Each repo keeps its rules in <code>.code-rules</code>. Publish shared defaults from an organization <code>.code-rules</code> repository and import them. Mix org rules and project rules as needed.</p>
+      <p>Each repo keeps its rules in <code>.code-rules</code>. Publish shared defaults from an organization <code>.code-rules</code> repository and import them. Combine shared and project-specific rules so agents have the right guidance in each repo.</p>
       <a href="/concepts/libraries/">See how rule libraries work →</a>
     </div>
     <div class="cr-panel cr-library-tree">
@@ -64,12 +64,12 @@ import exampleRule from '../examples/verify-retry-limits.md?raw';
   <article class="cr-feature">
     <div>
       <span class="cr-index">03 / APPLY</span>
-      <h2>Write code and review it against the same rules.</h2>
-      <p>Agents write new code with the rules and validate existing code against them. Code Rules assembles the rules; it does not prescribe how you apply or enforce them. Use any agent harness, skill, custom workflow, or other tool.</p>
+      <h2>Set up agents to write and review against the same rules.</h2>
+      <p>Instruct your agents to read the rules before writing code and use them again during review. Code Rules assembles the rules your project adopts. Your agents apply them through the tools and workflows you choose.</p>
       <a href="/for-agents/">See how agents use rules →</a>
     </div>
     <RuleApplication />
   </article>
 </section>
 <CodeTransformation />
-<section class="cr-start" aria-labelledby="start-title"><span class="cr-index">START WITH ONE PROJECT</span><h2 id="start-title">Formalize your best practices today</h2><p>Walk through a library, a project configuration, and the files your agents would read.</p><a class="cr-button" href="/guides/use-rules/">Walk through the setup <span aria-hidden="true">→</span></a></section>
+<section class="cr-start" aria-labelledby="start-title"><span class="cr-index">START WITH ONE PROJECT</span><h2 id="start-title">Give your agents the rules for good code</h2><p>Choose your project’s rules, then set up your agents to use them when writing and validating code.</p><a class="cr-button" href="/guides/use-rules/">Walk through the setup <span aria-hidden="true">→</span></a></section>
