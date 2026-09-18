@@ -50,7 +50,7 @@ A `main` push adding `releases/v<version>.md` starts [Release](../.github/workfl
 
 CI validates the version, checks formatting, runs vet, Staticcheck and race-enabled Go tests on Linux and macOS, and builds macOS/Linux archives for amd64/arm64. The distribution tests run extracted host binaries, exercise project commands, install two versions, and verify upgrade/rollback and corrupted-archive refusal. Cross-compilation does not establish execution compatibility on every architecture.
 
-Publication is serialized across all versions. A changed tag inventory invalidates an older plan before it can publish out of order. Build jobs have read-only repository credentials. Only the final publication job has `contents: write`, and checkout does not persist its token. After all builds/tests pass, that job:
+Publication is serialized across all versions. A changed tag inventory invalidates an older plan before it can publish out of order. Build jobs have read-only repository credentials. The read-only Linux build job compiles `cmd/publish-release`. Only the final publication job has `contents: write`; it downloads that executable and the verified bundle, then supplies `GITHUB_TOKEN` to the publication command. That job does not check out source or compile dependencies. After all builds/tests pass, that job:
 
 1. Verifies the approved commit, version, license presence, four archives, manifest, sizes, and checksums.
 2. Verifies the predecessor is published and creates an unmoved version tag at the exact tested commit.

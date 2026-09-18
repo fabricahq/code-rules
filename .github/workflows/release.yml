@@ -69,16 +69,21 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
       - name: Validate the exact release source
         run: |
           test -z "$(git ls-files -z '*.go' | xargs -0 gofmt -l)"
           go vet ./...
           go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
           go test -race ./...
-          node --test .github/scripts/*.test.cjs
+      - name: Compile the publication tool without write credentials
+        if: runner.os == 'Linux'
+        run: go build -o "$RUNNER_TEMP/publish-release" ./cmd/publish-release
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: release-publisher
+          path: ${{ runner.temp }}/publish-release
+          if-no-files-found: error
       - name: Build the four release archives
         if: runner.os == 'Linux'
         env:
@@ -104,21 +109,23 @@ jobs:
       group: release-publication
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
-          ref: ${{ needs.plan.outputs.commit }}
-          persist-credentials: false
+          name: release-publisher
+          path: ${{ runner.temp }}/release-publisher
       - uses: actions/download-artifact@v4
         with:
           name: release-assets
           path: ${{ runner.temp }}/release-assets
       - name: Attach verified assets to a draft, then publish
-        uses: actions/github-script@v8
         env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
           RELEASE_COMMIT: ${{ needs.plan.outputs.commit }}
           RELEASE_ASSETS: ${{ runner.temp }}/release-assets
-        with:
-          script: |
-            const {publish} = require('./.github/scripts/publish-release.cjs');
-            await publish({github, context, core,
-              directory: process.env.RELEASE_ASSETS, commit: process.env.RELEASE_COMMIT});
+        run: |
+          chmod +x "$RUNNER_TEMP/release-publisher/publish-release"
+          "$RUNNER_TEMP/release-publisher/publish-release" \
+            --repository "$RELEASE_REPOSITORY" \
+            --directory "$RELEASE_ASSETS" \
+            --commit "$RELEASE_COMMIT"

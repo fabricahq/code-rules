@@ -5,6 +5,7 @@ go 1.27.1
 require (
 	github.com/creack/pty v1.1.24
 	github.com/github/go-spdx/v2 v2.7.0
+	github.com/google/go-github/v92 v92.0.0
 	github.com/hashicorp/go-version v1.9.0
 	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/spf13/cobra v1.10.2
@@ -18,6 +19,7 @@ require (
 
 require (
 	github.com/bits-and-blooms/bitset v1.20.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 )
