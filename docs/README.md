@@ -39,7 +39,7 @@ Set Astro's `site` option after selecting a production URL; sitemap generation i
 
 Write pages under `src/content/docs/` and keep navigation in `astro.config.mjs` aligned with their slugs.
 Shared typography and theme tokens live in `src/styles/custom.css`.
-Homepage composition lives in `src/components/HomeHero.astro` and `src/styles/home.css`.
+Homepage composition lives in `src/components/HomePage.astro` and `src/styles/home.css`.
 
 Use the docs to explain the product experience and its contracts.
 Keep implementation tasks in the internal planning material.

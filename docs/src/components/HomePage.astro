@@ -3,7 +3,7 @@
 import AgentPreview from './AgentPreview.astro';
 import CodeTransformation from './CodeTransformation.astro';
 import CodeSample from './CodeSample.astro';
-import RuleApplication from './RuleApplication.astro';
+import AgentSetup from './AgentSetup.astro';
 import exampleRule from '../examples/make-errors-actionable.md?raw';
 ---
 <section class="cr-hero" aria-labelledby="_top">
@@ -72,7 +72,7 @@ import exampleRule from '../examples/make-errors-actionable.md?raw';
       <p>Add instructions to your project’s AGENTS.md, or your agent’s equivalent, telling it where to find your rules and when to read them. Your agent uses those rules when writing and reviewing code.</p>
       <a href="/for-agents/">See how agents use rules →</a>
     </div>
-    <RuleApplication />
+    <AgentSetup />
   </article>
 </section>
 <CodeTransformation />
