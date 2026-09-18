@@ -1,0 +1,145 @@
+---
+/** @fileoverview Renders an agent transcript that plays once on entry, with manual steps and a static reduced-motion fallback. */
+import CodeSample from './CodeSample.astro';
+/** One illustrative tool call and the agent's explanation of its result. */
+interface Step {
+  title: string;
+  kind: string;
+  file: string;
+  note: string;
+  code: string;
+  lang: 'ts' | 'md' | 'diff' | 'text';
+}
+/** A complete, labelled session; its last step is readable without JavaScript. */
+interface Props { title: string; number: string; task: string; steps: Step[] }
+const { title, number, task, steps } = Astro.props;
+---
+<agent-session aria-label={title}>
+  <div class="session-heading"><span class="session-number">{number}</span><h2>{title}</h2><span class="session-label">AGENT SESSION</span></div>
+  <div class="task"><span>YOU</span><p>{task}</p></div>
+  <div class="stage">
+    {steps.map((step, index) => <section data-step hidden={index !== steps.length - 1} aria-label={step.title}>
+      <div class="step-heading"><span class="agent-mark" aria-hidden="true">✳︎</span><h3>{step.title}</h3><span class="step-count">{index + 1} / {steps.length}</span></div>
+      <p class="agent-note">{step.note}</p>
+      <div class="tool-call">
+        <div class="tool-heading"><span class:list={['tool-kind', { failure: step.kind === 'FAIL' }]}>{step.kind}</span><span>{step.file}</span></div>
+        <CodeSample code={step.code} lang={step.lang} label={step.file} />
+      </div>
+    </section>)}
+  </div>
+  <div class="controls" hidden>
+    <div class="step-buttons" aria-label="Session steps">{steps.map((step, index) => <button type="button" data-select={index} aria-label={`Show step ${index + 1}: ${step.title}`} aria-current={index === steps.length - 1 ? 'step' : undefined}><span aria-hidden="true"></span></button>)}</div>
+    <button type="button" data-play>Replay</button>
+  </div>
+</agent-session>
+<script>
+  /** Owns playback only; all transcript content is rendered at build time and remains readable without scripts. */
+  class AgentSession extends HTMLElement {
+    private index = 0;
+    private playing = true;
+    private visible = false;
+    private timer: ReturnType<typeof setTimeout> | undefined;
+    private observer: IntersectionObserver | undefined;
+    private events: AbortController | undefined;
+    private motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    private get steps() { return this.querySelectorAll<HTMLElement>('[data-step]'); }
+    connectedCallback() {
+      if (this.events) return;
+      this.events = new AbortController();
+      const { signal } = this.events;
+      this.index = this.motion.matches ? this.steps.length - 1 : 0;
+      this.playing = !this.motion.matches;
+      const controls = this.querySelector<HTMLElement>('.controls');
+      if (controls) controls.hidden = false;
+      this.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element)) return;
+        const button = event.target.closest('button');
+        if (!button) return;
+        if (button.dataset.select !== undefined) {
+          this.index = Number(button.dataset.select);
+          this.playing = false;
+        } else if (button.hasAttribute('data-play')) {
+          if (this.index === this.steps.length - 1) { this.index = 0; this.playing = true; }
+          else this.playing = !this.playing;
+        }
+        this.render();
+      }, { signal });
+      // Stop automatic updates before a reader focuses a code pane or step control.
+      this.addEventListener('focusin', (event) => {
+        if (event.target instanceof Element && event.target.closest('[data-play]')) return;
+        this.playing = false;
+        this.render();
+      }, { signal });
+      document.addEventListener('visibilitychange', () => this.schedule(), { signal });
+      this.motion.addEventListener('change', () => {
+        this.playing = false;
+        this.render();
+      }, { signal });
+      this.observer = new IntersectionObserver(([entry]) => {
+        this.visible = entry?.isIntersecting ?? false;
+        this.schedule();
+      }, { threshold: .25 });
+      this.observer.observe(this);
+      this.render();
+    }
+    disconnectedCallback() {
+      clearTimeout(this.timer);
+      this.observer?.disconnect();
+      this.events?.abort();
+      this.events = undefined;
+    }
+    private render() {
+      this.steps.forEach((step, index) => { step.hidden = index !== this.index; });
+      this.querySelectorAll<HTMLButtonElement>('[data-select]').forEach((button, index) => {
+        if (index === this.index) button.setAttribute('aria-current', 'step');
+        else button.removeAttribute('aria-current');
+      });
+      const play = this.querySelector<HTMLButtonElement>('[data-play]');
+      if (play) play.textContent = this.index === this.steps.length - 1 ? 'Replay' : this.playing ? 'Pause' : 'Play';
+      this.schedule();
+    }
+    private schedule() {
+      clearTimeout(this.timer);
+      if (!this.playing || !this.visible || document.hidden || this.index >= this.steps.length - 1) return;
+      this.timer = setTimeout(() => { this.index++; this.render(); }, 5500);
+    }
+  }
+  if (!customElements.get('agent-session')) customElements.define('agent-session', AgentSession);
+</script>
+<style>
+  agent-session { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--cr-line); border-radius: 16px; background: var(--cr-paper); overflow: hidden; }
+  .session-heading { display: flex; align-items: center; gap: .75rem; padding: 1rem 1.25rem; background: var(--cr-surface); border-bottom: 1px solid var(--cr-faint); }
+  .session-heading h2 { margin: 0; font-size: .95rem; font-weight: 550; letter-spacing: -.02em; }
+  .session-number, .session-label { color: var(--cr-muted); font: .65rem var(--cr-font-mono); }
+  .session-label { margin-left: auto; letter-spacing: .08em; }
+  .task { margin: 1.25rem 1.25rem 0; padding: .85rem 1rem; background: var(--cr-surface); border-radius: 8px; min-height: 6.2rem; }
+  .task span { font: .6rem var(--cr-font-mono); color: var(--cr-muted); letter-spacing: .08em; }
+  .task p { margin: .35rem 0 0; font-size: .85rem; line-height: 1.55; }
+  .stage { display: grid; flex: 1; align-items: start; padding: 1.5rem 1.25rem; }
+  [data-step] { grid-area: 1 / 1; min-width: 0; }
+  /* Reserve the tallest step without exposing inactive content to readers or focus. */
+  [data-step][hidden] { display: block !important; visibility: hidden; }
+  [data-step]:not([hidden]) { animation: appear .22s ease-out; }
+  .step-heading { display: flex; align-items: center; gap: .6rem; }
+  .agent-mark { font-size: 1.1rem; }
+  h3 { margin: 0; font-size: .85rem; font-weight: 550; }
+  .step-count { margin-left: auto; white-space: nowrap; color: var(--cr-muted); font: .65rem var(--cr-font-mono); }
+  .agent-note { font-size: .82rem; line-height: 1.65; margin: .75rem 0 1rem; color: var(--cr-muted); }
+  .tool-call { border: 1px solid var(--cr-faint); border-radius: 8px; overflow: hidden; --sample-size: .75rem; --sample-padding: 1rem; }
+  .tool-heading { display: flex; align-items: baseline; gap: .65rem; padding: .7rem 1rem; border-bottom: 1px solid var(--cr-faint); color: var(--cr-muted); font: .65rem/1.6 var(--cr-font-mono); overflow-wrap: anywhere; }
+  .tool-kind { font-size: .6rem; color: var(--cr-ink); flex-shrink: 0; }
+  .failure { color: #cf9a8c; }
+  :global([data-theme='light']) .failure { color: #955447; }
+  .controls { display: flex; align-items: center; justify-content: space-between; padding: .35rem 1rem; border-top: 1px solid var(--cr-faint); }
+  [hidden] { display: none !important; }
+  button { border: 0; background: none; color: var(--cr-muted); cursor: pointer; min-height: 44px; min-width: 44px; font: .75rem var(--sl-font); }
+  button:hover { color: var(--cr-ink); }
+  .step-buttons { display: flex; }
+  [data-select] { display: grid; place-items: center; padding: 0; }
+  [data-select] span { width: 23px; height: 3px; border-radius: 2px; background: var(--cr-line); }
+  [aria-current='step'] span { background: var(--cr-ink); }
+  [data-play] { padding-inline: .7rem; }
+  @keyframes appear { from { opacity: .4; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { [data-step]:not([hidden]) { animation: none; } }
+  @media (max-width: 420px) { .stage { padding: 1.25rem 1rem; } .controls { padding-inline: .15rem; } [data-play] { padding-inline: 0; } .session-label { display: none; } .task { margin-inline: 1rem; } }
+</style>

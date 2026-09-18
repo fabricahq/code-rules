@@ -62,3 +62,5 @@
 @media (min-width: 540px) and (max-width: 799px) {
   .cr-library-tree pre { font-size: .8rem; }
 }
+
+.cr-rule-file { --sample-padding: 1rem 0 0; --sample-size: .8rem; }

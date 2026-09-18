@@ -1,0 +1,42 @@
+---
+/** @fileoverview Connects a realistic regression test, its failing evidence, and the corresponding agent fix to one rule. */
+import CodeSample from './CodeSample.astro';
+const test = `it('stops after three failed attempts', async () => {
+  const offline = new Error('offline');
+  const request = mock(() => Promise.reject(offline));
+
+  await expect(retry(request, 3)).rejects.toBe(offline);
+  expect(request).toHaveBeenCalledTimes(3);
+});`;
+const fix = `- for (let attempt = 0; attempt <= limit; attempt++) {
++ for (let attempt = 1; attempt <= limit; attempt++) {`;
+---
+<div class="application">
+  <div class="file-heading"><span>retry.test.ts</span><span>TEST EXCERPT · BUN</span></div>
+  <CodeSample code={test} lang="ts" label="Regression test for the retry limit" />
+  <div class="finding">
+    <div class="finding-label">REVIEW FINDING <span>retry.ts:4</span></div>
+    <strong>The loop makes one extra request.</strong>
+    <p>A limit of three produces four calls. Start at one to preserve the final-error check and stop at the limit.</p>
+    <div class="evidence"><span>Expected: 3 calls</span><span>Received: 4 calls</span></div>
+    <p class="rule-reference">Rule: <code>local:practices/testing/verify-retry-limits</code></p>
+  </div>
+  <div class="patch"><div class="patch-label">APPLIED FIX · retry.ts</div><CodeSample code={fix} lang="diff" label="Fix starting attempt from zero to one" /></div>
+  <div class="test-result"><span aria-hidden="true">✓</span> Verified after fix <span>2 tests passed</span></div>
+</div>
+<style>
+  .application { min-width: 0; border: 1px solid var(--cr-line); border-radius: 16px; overflow: hidden; background: var(--cr-paper); --sample-size: .72rem; }
+  .file-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--cr-faint); background: var(--cr-surface); font: .75rem var(--cr-font-mono); }
+  .file-heading span + span { color: var(--cr-muted); font-size: .6rem; align-self: center; }
+  .finding { padding: 1.25rem; border-block: 1px solid var(--cr-faint); background: var(--cr-surface); }
+  .finding-label, .patch-label { color: var(--cr-muted); font: .65rem var(--cr-font-mono); letter-spacing: .04em; }
+  .finding-label { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: .65rem; }
+  strong { font-size: .9rem; font-weight: 550; }
+  p { margin: .5rem 0 0; font-size: .8rem; line-height: 1.65; color: var(--cr-muted); }
+  .evidence { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin: .85rem 0; font: .7rem var(--cr-font-mono); }
+  .rule-reference { font-size: .7rem; }
+  .rule-reference code { font: .65rem/1.6 var(--cr-font-mono); overflow-wrap: anywhere; background: none; border: 0; padding: 0; color: inherit; }
+  .patch-label { padding: 1rem 1.25rem 0; }
+  .test-result { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: 1rem 1.25rem; border-top: 1px solid var(--cr-faint); font-size: .75rem; }
+  .test-result span:last-child { color: var(--cr-muted); margin-left: auto; font: .65rem var(--cr-font-mono); }
+</style>

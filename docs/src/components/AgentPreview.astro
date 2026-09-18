@@ -1,37 +1,57 @@
 ---
-/** @fileoverview Renders an illustrative agent conversation about applying engineering rules before writing code. */
+/** @fileoverview Shows two illustrative, controllable agent sessions using adopted rules to write and review code. */
+import AgentSession from './AgentSession.astro';
+const rule = 'local:practices/testing/verify-retry-limits';
+const reading = {
+  title: 'Read the adopted rules', kind: 'READ', file: '.code-rules/generated/RULES.md',
+  note: 'This task changes retry behavior. Open the testing group, then read the complete retry-limit rule.',
+  code: 'practices/testing\n  Verify retry limits\n  When to read: bounded retry behavior', lang: 'text' as const,
+};
+const write = [reading, {
+  title: 'Turn guidance into a plan', kind: 'RULE', file: rule,
+  note: 'The rule requires a failing-request test. I’ll bound the loop and verify both the call count and the final error.',
+  code: 'For a limit of three attempts:\n- Make every attempt fail.\n- Assert exactly three calls.\n- Assert the documented failure is returned.', lang: 'md' as const,
+}, {
+  title: 'Write the implementation', kind: 'EDIT', file: 'src/retry.ts · excerpt',
+  note: 'Count attempts from one. Return on success; preserve the final failure at the limit.',
+  code: 'for (let attempt = 1; attempt <= limit; attempt++) {\n  try {\n    return await request();\n  } catch (error) {\n    if (attempt === limit) throw error;\n  }\n}', lang: 'ts' as const,
+}, {
+  title: 'Add the required regression test', kind: 'EDIT', file: 'src/retry.test.ts · excerpt',
+  note: 'Make every request fail, then assert the exact limit and the returned error.',
+  code: "const request = mock(() => Promise.reject(offline));\n\nawait expect(retry(request, 3)).rejects.toBe(offline);\nexpect(request).toHaveBeenCalledTimes(3);", lang: 'ts' as const,
+}, {
+  title: 'Verify the implementation', kind: 'TEST', file: '$ bun test src/retry.test.ts',
+  note: 'The helper and its tests are ready. The rule informed the implementation before review.',
+  code: '✓ stops after three failed attempts\n✓ returns the final request error\n\n2 passed · 0 failed', lang: 'text' as const,
+}];
+const review = [reading, {
+  title: 'Inspect the implementation', kind: 'READ', file: 'src/retry.ts · excerpt',
+  note: 'I’ve read the full retry-limit rule. This loop starts at zero and includes the limit, which permits an extra request.',
+  code: 'for (let attempt = 0; attempt <= limit; attempt++) {\n  try {\n    return await request();\n  } catch (error) {\n    if (attempt === limit) throw error;\n  }\n}', lang: 'ts' as const,
+}, {
+  title: 'Reproduce the finding', kind: 'FAIL', file: '$ bun test src/retry.test.ts',
+  note: 'Evidence for the retry-limit finding: with a limit of three and every request failing, the helper makes four calls.',
+  code: '✕ stops after three failed attempts\n\nExpected call count: 3\nReceived call count: 4', lang: 'text' as const,
+}, {
+  title: 'Fix the off-by-one error', kind: 'PATCH', file: 'src/retry.ts',
+  note: 'Start at one, preserving the existing final-error check. Keep the failing test as a regression test.',
+  code: '- for (let attempt = 0; attempt <= limit; attempt++) {\n+ for (let attempt = 1; attempt <= limit; attempt++) {', lang: 'diff' as const,
+}, {
+  title: 'Verify the fix', kind: 'TEST', file: '$ bun test src/retry.test.ts',
+  note: 'Fixed the extra request and verified the final error is still returned. Finding resolved with test evidence.',
+  code: '✓ stops after three failed attempts\n✓ returns the final request error\n\n2 passed · 0 failed', lang: 'text' as const,
+}];
 ---
-<figure id="agent-preview" class="agent-preview" aria-label="Placeholder agent conversation">
-  <div class="window-bar"><span class="window-dots" aria-hidden="true">● ● ●</span><span>Agent / library-licenses.ts</span><span class="mockup-label">Placeholder</span></div>
-  <div class="conversation">
-    <div class="user-message"><span class="speaker">YOU</span><p>Write functions that collect a library’s license and notice files.</p></div>
-    <div class="agent-message"><span class="speaker">AGENT</span><p>I found the relevant engineering rules. I’ll use them to write these functions:</p>
-      <ul class="found-rules">
-        <li><span aria-hidden="true">✓</span><div><strong>Keep functions focused</strong><span>Separate manifest parsing, path validation, and file checks.</span></div></li>
-        <li><span aria-hidden="true">✓</span><div><strong>Use names that explain intent</strong><span>Make each step readable at the call site.</span></div></li>
-        <li><span aria-hidden="true">✓</span><div><strong>Document the contract</strong><span>State what comes back and when the function throws.</span></div></li>
-      </ul>
-      <p class="agent-close">I’ll compose those helpers into <code>collectLibraryLicensePaths</code>, then check the implementation against the rules.</p>
-    </div>
+<figure id="agent-preview" aria-label="Illustrative agent sessions" class="agent-preview">
+  <div class="sessions">
+    <AgentSession title="Write with rules" number="01" task="Add a retry helper. Stop after three attempts." steps={write} />
+    <AgentSession title="Review and fix" number="02" task="Review the retry helper against our rules. Fix any issues." steps={review} />
   </div>
-  <figcaption><span>Illustrative conversation, shown as a placeholder screenshot.</span><a href="#code-example">See the code before and after <span aria-hidden="true">↓</span></a></figcaption>
+  <figcaption>Illustrative agent sessions. Code Rules supplies the rules; your agent reads them, edits code, and runs tests.</figcaption>
 </figure>
 <style>
-  .agent-preview { scroll-margin-top: 5rem; margin: 0 auto; max-width: 56rem; border: 1px solid var(--cr-line); border-radius: 16px; background: var(--cr-paper); overflow: hidden; box-shadow: 0 12px 40px #00000006; }
-  .window-bar { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; padding: 1rem 1.5rem; background: var(--cr-surface); border-bottom: 1px solid var(--cr-faint); color: var(--cr-muted); font: .75rem var(--cr-font-mono); }
-  .window-dots { letter-spacing: .15em; opacity: .5; }
-  .mockup-label { margin-left: auto; font: .7rem var(--sl-font); }
-  .conversation { padding: 2rem 2.5rem; font-size: .95rem; line-height: 1.65; color: var(--cr-ink); }
-  .speaker { font-size: .65rem; font-weight: 600; letter-spacing: .13em; color: var(--cr-muted); }
-  .conversation p { margin: .5rem 0 0; }
-  .user-message { padding: 1rem 1.25rem; background: var(--cr-surface); border-radius: 12px; margin: 0 0 1.75rem 3rem; }
-  .agent-message { padding-right: 1rem; }
-  .found-rules { list-style: none; padding: 0; margin: 1.25rem 0; display: grid; gap: 1rem; }
-  .found-rules li { display: flex; gap: .85rem; }
-  .found-rules strong { display: block; font-size: .875rem; font-weight: 550; }
-  .found-rules div > span { display: block; font-size: .825rem; color: var(--cr-muted); }
-  .agent-close code { font: .8rem var(--cr-font-mono); overflow-wrap: anywhere; }
-  figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--cr-faint); color: var(--cr-muted); font-size: .75rem; line-height: 1.6; }
-  figcaption a { color: var(--cr-ink); text-underline-offset: 4px; }
-  @media (max-width: 540px) { .conversation { padding: 1.25rem; } .user-message { margin-left: 1rem; } .agent-message { padding-right: 0; } .window-bar { padding: 1rem; gap: .5rem; } .window-dots { display: none; } }
+  .agent-preview { margin: 0; scroll-margin-top: 5rem; }
+  .sessions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+  figcaption { color: var(--cr-muted); font-size: .75rem; line-height: 1.6; text-align: center; margin-top: 1rem; }
+  @media (max-width: 799px) { .sessions { grid-template-columns: minmax(0, 1fr); } }
 </style>

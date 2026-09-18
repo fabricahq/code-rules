@@ -1,0 +1,43 @@
+---
+/** @fileoverview Renders escaped, build-time syntax highlighting with restrained colors that follow the site theme. */
+import { Code } from 'astro:components';
+import { createCssVariablesTheme } from 'shiki';
+
+/** Source text, its grammar, and an accessible description; plain samples retain the same readable typography. */
+interface Props {
+  code: string;
+  lang: 'ts' | 'md' | 'diff' | 'text';
+  label: string;
+}
+const { code, lang, label } = Astro.props;
+const theme = createCssVariablesTheme({ variablePrefix: '--sample-', fontStyle: false });
+---
+<div class="code-sample">
+  <Code code={code} lang={lang} embeddedLangs={lang === 'md' ? ['yaml'] : []} theme={theme} wrap={true} aria-label={label} tabindex="0" />
+</div>
+<style>
+  .code-sample {
+    min-width: 0;
+    --sample-foreground: var(--cr-ink);
+    --sample-background: transparent;
+    --sample-token-constant: #c4af97;
+    --sample-token-string: #a6baa4;
+    --sample-token-comment: var(--cr-muted);
+    --sample-token-keyword: #b7a4bd;
+    --sample-token-parameter: var(--cr-ink);
+    --sample-token-function: #9aafbc;
+    --sample-token-string-expression: #a6baa4;
+    --sample-token-punctuation: var(--cr-muted);
+    --sample-token-link: #9aafbc;
+  }
+  :global([data-theme='light']) .code-sample {
+    --sample-token-constant: #865b47;
+    --sample-token-string: #526956;
+    --sample-token-keyword: #735977;
+    --sample-token-function: #4a6575;
+    --sample-token-string-expression: #526956;
+    --sample-token-link: #4a6575;
+  }
+  .code-sample :global(pre.astro-code) { margin: 0; padding: var(--sample-padding, 1.25rem); border: 0; background: transparent; font: var(--sample-size, .78rem)/1.8 var(--cr-font-mono); white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 2; }
+  .code-sample :global(pre code) { font: inherit; color: inherit; background: none; padding: 0; border: 0; }
+</style>

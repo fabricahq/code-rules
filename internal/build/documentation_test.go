@@ -15,7 +15,7 @@ import (
 // TestDocumentationRules rejects documentation drift that would make copied examples fail a real build.
 func TestDocumentationRules(t *testing.T) {
 	for _, tc := range []struct{ file, pattern string }{
-		{"../../docs/src/components/HomeHero.astro", `(?s)<pre><code>(---.*?)</code></pre>`},
+		{"../../docs/src/examples/verify-retry-limits.md", ""},
 		{"../../docs/src/content/docs/guides/write-rules.md", "(?s)```md\\n(---.*?)\\n```"},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
@@ -23,9 +23,12 @@ func TestDocumentationRules(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			match := regexp.MustCompile(tc.pattern).FindSubmatch(data)
-			if len(match) != 2 {
-				t.Fatal("missing copyable rule example")
+			if tc.pattern != "" {
+				match := regexp.MustCompile(tc.pattern).FindSubmatch(data)
+				if len(match) != 2 {
+					t.Fatal("missing copyable rule example")
+				}
+				data = match[1]
 			}
 			config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":1,"sources":{}}`))
 			if err != nil {
@@ -33,7 +36,7 @@ func TestDocumentationRules(t *testing.T) {
 			}
 			resolved, err := build.Resolve(config, nil, map[string][]byte{
 				"practices/testing/_group.json": []byte(`{"name":"Testing","description":"Verify behavior.","whenToRead":"Changing behavior."}`),
-				"practices/testing/example.md":  match[1],
+				"practices/testing/example.md":  data,
 			})
 			if err != nil {
 				t.Fatal(err)

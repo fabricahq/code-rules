@@ -2,6 +2,9 @@
 /** @fileoverview Renders the docs landing page with product benefits, rule examples, and design-preview status. */
 import AgentPreview from './AgentPreview.astro';
 import CodeTransformation from './CodeTransformation.astro';
+import CodeSample from './CodeSample.astro';
+import RuleApplication from './RuleApplication.astro';
+import exampleRule from '../examples/verify-retry-limits.md?raw';
 ---
 <section class="cr-hero" aria-labelledby="_top">
   <p class="cr-eyebrow">FABRICA / CODE RULES</p>
@@ -25,30 +28,7 @@ import CodeTransformation from './CodeTransformation.astro';
     <div class="cr-panel cr-rule-file">
       <span class="cr-index">EXAMPLE RULE</span>
       <div class="cr-rule-path">practices/testing/verify-retry-limits.md</div>
-      <pre><code>---
-title: Verify retry limits
-impact: HIGH
-impactDescription: prevents unbounded requests
-tags: testing, retries
-whenToRead: When planning, implementing, reviewing, or diagnosing bounded retry behavior.
----
-
-## Verify retry limits
-
-When adding or changing bounded retries,
-test that requests stop at the limit.
-
-### Example
-
-For a limit of three attempts:
-- Make every attempt fail.
-- Assert exactly three calls.
-- Assert the documented failure is returned.
-
-### Validation
-
-Remove the stop condition temporarily.
-The test should fail.</code></pre>
+      <CodeSample code={exampleRule.trimEnd()} lang="md" label="Example rule with YAML frontmatter and Markdown guidance" />
     </div>
   </article>
   <article class="cr-feature">
@@ -89,12 +69,7 @@ The test should fail.</code></pre>
       <p>Agents write new code with the rules and validate existing code against them. Code Rules assembles the rules; it does not prescribe how you apply or enforce them. Use any agent harness, skill, custom workflow, or other tool.</p>
       <a href="/for-agents/">See how agents use rules →</a>
     </div>
-    <div class="cr-panel">
-      <span class="cr-index">THE SAME RULE, FROM BUILD TO REVIEW</span>
-      <div class="cr-rule"><small>RULE</small><p>Test that requests stop at the retry limit.</p></div>
-      <div class="cr-rule"><small>DURING IMPLEMENTATION</small><p>The agent adds a test that fails every attempt and checks that requests stop at the configured limit.</p></div>
-      <div class="cr-rule"><small>DURING VALIDATION</small><p>A reviewing agent checks that the test covers the limit and would catch an extra retry.</p></div>
-    </div>
+    <RuleApplication />
   </article>
 </section>
 <CodeTransformation />
