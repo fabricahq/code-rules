@@ -1,4 +1,5 @@
 // Verify copyable website examples through the same resolver and renderer used by the CLI.
+
 package build_test
 
 import (
