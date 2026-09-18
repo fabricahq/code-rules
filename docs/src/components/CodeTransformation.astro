@@ -15,8 +15,8 @@ const helpers = "/** @fileoverview Validates library license declarations and re
     <article class="code-card after"><div class="card-label"><h3>After</h3><span>Named steps, with an explicit contract</span></div><CodeSample code={after} lang="ts" tone="vivid" label="Refactored collectLibraryLicensePaths function" />
     </article>
     <div class="commentary"><h3>What changed</h3>
-      <ul class="takeaways"><li><strong>Names explain the steps.</strong> Read the main function without tracing every validation check.</li><li><strong>Helpers own the details.</strong> Parsing, declarations, and file checks each have a focused function.</li><li><strong>The contract is visible.</strong> The comment describes the result, empty case, and failures.</li></ul>
-      <p class="your-rules">If this example doesn’t follow your team’s best practices, <a href="/guides/write-rules/">write a code rule</a> for your preferred approach and have your agent apply it.</p>
+      <ul class="takeaways"><li><strong>The contract is visible.</strong> The comment describes the result, empty case, and failures.</li><li><strong>Names explain the steps.</strong> Read the main function without tracing every validation check.</li><li><strong>Helpers own the details.</strong> Parsing, declarations, and file checks each have a focused function.</li></ul>
+      <p class="your-rules"><em>If this example doesn’t follow your team’s best practices, <a href="/guides/write-rules/">write a code rule</a> for your preferred approach and have your agent apply it.</em></p>
     </div>
     </div>
   </div>
@@ -37,7 +37,7 @@ const helpers = "/** @fileoverview Validates library license declarations and re
   h3 { margin: 0 0 .35rem; font-size: .95rem; font-weight: 600; }
   .card-label span { font-size: .75rem; color: var(--cr-muted); }
   .code-card, .helper-source { --sample-size: .75rem; }
-  .takeaways { list-style: none; margin: 0; padding: 0; color: var(--cr-muted); font-size: .825rem; line-height: 1.65; }
+  .takeaways { list-style: disc; margin: 0; padding-left: 1.25rem; color: var(--cr-muted); font-size: .825rem; line-height: 1.65; }
   .takeaways li { margin-top: .7rem; }
   .your-rules { margin: 1.25rem 0 0; color: var(--cr-muted); font-size: .825rem; line-height: 1.65; }
   .your-rules a { color: var(--cr-ink); text-underline-offset: 3px; }
