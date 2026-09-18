@@ -20,7 +20,7 @@ const { title, id, task, steps, selected = false } = Astro.props;
     {steps.map(step => <div class="event" data-event data-title={step.title}>
       <div class="agent-message"><span class="agent-symbol" aria-hidden="true">✳︎</span><div><p data-note>{step.note}</p></div></div>
       <div class="tool-call" data-tool data-kind={step.kind}>
-        <div class="tool-heading"><span class="tool-icon" aria-hidden="true">{step.kind === 'FAIL' ? '!' : step.kind === 'TEST' ? '✓' : '↳'}</span><span class="tool-kind">{step.kind === 'RULE' ? 'Read rule' : step.kind === 'FAIL' || step.kind === 'TEST' ? 'Run' : step.kind === 'PATCH' ? 'Apply patch' : step.kind === 'EDIT' ? 'Edit' : 'Read'}</span><span class="tool-file">{step.file}</span><span class="tool-state" data-tool-state>done</span></div>
+        <div class="tool-heading"><span class="tool-icon" aria-hidden="true">{step.kind === 'FAIL' ? '!' : step.kind === 'TEST' ? '✓' : '↳'}</span><span class="tool-kind">{step.kind === 'RULE' ? 'Read rule' : step.kind === 'FAIL' || step.kind === 'TEST' ? 'Run' : step.kind === 'PATCH' ? 'Apply patch' : step.kind === 'EDIT' ? 'Edit' : 'Read'}:</span><span class="tool-file">{step.file}</span><span class="tool-state" data-tool-state>done</span></div>
         <CodeSample code={step.code} lang={step.lang} label={step.file} tone="terminal" />
       </div>
     </div>)}
@@ -36,18 +36,15 @@ const { title, id, task, steps, selected = false } = Astro.props;
   p { margin: 0; font: .9rem/1.7 var(--sl-font); color: var(--demo-ink); overflow-wrap: anywhere; }
   .event { margin-bottom: .65rem; }
   .event:last-child { margin-bottom: 0; }
-  .tool-call { margin: .4rem 0 0 1.85rem; background: var(--demo-tool); border: 1px solid var(--demo-border); border-radius: 8px; overflow: hidden; --sample-size: .76rem; --sample-padding: .5rem .85rem; }
+  .tool-call { margin: .4rem 0 0 1.85rem; background: transparent; border: 1px solid var(--demo-border); border-radius: 8px; overflow: hidden; --sample-size: .76rem; --sample-padding: .5rem .85rem; }
   .tool-heading { display: flex; align-items: baseline; gap: .6rem; padding: .35rem .85rem; border-bottom: 1px solid var(--demo-border); font: .67rem/1.6 var(--cr-font-mono); }
-  .tool-icon, .tool-kind { color: var(--demo-blue); flex-shrink: 0; }
-  [data-kind='RULE'] .tool-kind { color: var(--demo-purple); }
-  [data-kind='TEST'] .tool-kind, [data-kind='TEST'] .tool-icon { color: var(--demo-green); }
-  [data-kind='FAIL'] .tool-kind, [data-kind='FAIL'] .tool-icon { color: var(--demo-red); }
+  .tool-icon, .tool-kind { color: var(--demo-muted); flex-shrink: 0; }
   .tool-file { color: var(--demo-muted); overflow-wrap: anywhere; min-width: 0; }
-  .tool-state { margin-left: auto; color: var(--demo-green); font-size: .6rem; }
-  .tool-state[data-running] { color: var(--demo-amber); }
+  .tool-state { margin-left: auto; color: var(--demo-muted); font-size: .6rem; }
   .tool-state[data-running]::after { content: '…'; }
   [data-kind='FAIL'] .tool-state { color: var(--demo-red); }
   [data-typing]::after { content: ''; display: inline-block; width: .45rem; height: .9em; margin-left: .2rem; background: var(--demo-purple); vertical-align: -.08em; }
+  .tool-call :global(.code-sample) { background: var(--demo-tool); }
   .tool-call :global(code) { display: grid; }
   .tool-call :global(.line[hidden]) { display: none; }
   .tool-call :global(.line.added) { color: var(--demo-green); background: color-mix(in srgb, var(--demo-green) 10%, transparent); }

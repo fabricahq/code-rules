@@ -16,6 +16,11 @@ class AgentDemo extends HTMLElement {
   private panel: HTMLElement | undefined;
   private elapsed = Infinity;
   private isPlaying = false;
+  private revealedPanels = new Set<HTMLElement>();
+
+  private get isPreview() {
+    return !!this.panel && !this.revealedPanels.has(this.panel);
+  }
   private isVisible = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private lastTick = 0;
@@ -121,9 +126,16 @@ class AgentDemo extends HTMLElement {
     const button = event.target.closest<HTMLButtonElement>('button');
     if (!button) return;
     if (button.hasAttribute('data-tab')) this.selectTab(button);
-    else if (button.hasAttribute('data-replay')) this.restart();
-    else if (button.hasAttribute('data-finish')) this.showComplete();
-    else if (button.hasAttribute('data-play')) {
+    else if (button.hasAttribute('data-start')) {
+      this.restart();
+      this.querySelector<HTMLButtonElement>('[data-play]')?.focus({
+        preventScroll: true,
+      });
+    } else if (button.hasAttribute('data-replay')) this.restart();
+    else if (button.hasAttribute('data-finish')) {
+      if (this.panel) this.revealedPanels.add(this.panel);
+      this.showComplete();
+    } else if (button.hasAttribute('data-play')) {
       if (this.hasAttribute('data-complete')) {
         this.restart();
         return;
@@ -175,6 +187,12 @@ class AgentDemo extends HTMLElement {
   }
 
   private restart() {
+    // Reserve the full window before hiding content for playback.
+    const sessionWindow = this.querySelector<HTMLElement>('[data-session-window]');
+    if (sessionWindow)
+      sessionWindow.style.minHeight = `${sessionWindow.getBoundingClientRect().height}px`;
+    // Dismiss only this session’s initial preview for this page visit.
+    if (this.panel) this.revealedPanels.add(this.panel);
     // Animation starts only after an explicit Play or Replay request.
     this.elapsed = 0;
     this.isPlaying = true;
@@ -207,7 +225,11 @@ class AgentDemo extends HTMLElement {
       this.elapsed,
     );
     const isComplete = frame.phase === 'complete';
-    if (isComplete) this.isPlaying = false;
+    if (isComplete) {
+      this.isPlaying = false;
+      const sessionWindow = this.querySelector<HTMLElement>('[data-session-window]');
+      if (sessionWindow) sessionWindow.style.minHeight = '';
+    }
     entries.forEach((entry, index) => {
       const isPast = index < frame.index || isComplete;
       entry.element.hidden = index > frame.index;
@@ -238,6 +260,11 @@ class AgentDemo extends HTMLElement {
             : 'done';
       }
     });
+    this.toggleAttribute('data-preview', this.isPreview);
+    const overlay = this.querySelector<HTMLElement>('[data-preview-overlay]');
+    if (overlay) overlay.hidden = !this.isPreview;
+    // Covered preview content must not contain unreachable keyboard targets.
+    for (const panel of this.entries.keys()) panel.inert = this.isPreview;
     this.toggleAttribute('data-playing', this.isPlaying);
     this.toggleAttribute('data-complete', isComplete);
     const play = this.querySelector<HTMLButtonElement>('[data-play]');
@@ -246,7 +273,7 @@ class AgentDemo extends HTMLElement {
       if (label) label.textContent = this.isPlaying ? 'Pause' : 'Play';
     }
     const finish = this.querySelector<HTMLButtonElement>('[data-finish]');
-    if (finish) finish.disabled = isComplete;
+    if (finish) finish.disabled = isComplete && !this.isPreview;
   }
 
   private schedule() {

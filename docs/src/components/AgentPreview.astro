@@ -8,7 +8,7 @@ const readRule = {
 };
 const write = [readRule, {
   title: 'Apply it', kind: 'EDIT', file: 'sign-in.ts · excerpt',
-  note: 'Following your rule: log user IDs, never passwords.',
+  note: 'I’m writing the logging code to follow your rule: include user IDs, never passwords.',
   code: 'log.info({ userId }, "Signed in");', lang: 'ts' as const,
 }, {
   title: 'Verify the result', kind: 'TEST', file: 'bun test',
@@ -37,10 +37,16 @@ const review = [{
       <button type="button" role="tab" id="tab-write" aria-controls="session-write" aria-selected="true" tabindex="0" data-tab="write"><span aria-hidden="true">✳︎</span> Write with rules</button>
       <button type="button" role="tab" id="tab-review" aria-controls="session-review" aria-selected="false" tabindex="-1" data-tab="review"><svg class="review-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg> Review and fix</button>
     </div>
-    <div class="terminal-window">
+    <div class="terminal-window" data-session-window>
       <div class="window-bar"><span class="harness-icon" aria-hidden="true">✳︎</span><span class="harness-name">Your coding agent <span class="window-path">acme-checkout</span></span><span class="demo-badge">EXAMPLE SESSION</span></div>
       <AgentSession id="write" title="Write with rules" task="Add logging for successful sign-ins." steps={write} selected />
       <AgentSession id="review" title="Review and fix" task="Review our sign-in logging. Fix any issues." steps={review} />
+      <div class="preview-overlay" hidden data-preview-overlay>
+        <button type="button" class="preview-play" data-start aria-label="Play example session">
+          <span class="preview-play-icon"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m8 4 12 8-12 8Z" /></svg></span>
+          <span>Play example</span>
+        </button>
+      </div>
     </div>
     <div class="playback" hidden data-controls>
       <div class="playback-buttons">
@@ -80,7 +86,14 @@ const review = [{
   .review-icon { display: inline-block; margin-right: .45rem; vertical-align: -.2em; }
   .session-tabs [aria-selected='true'] { background: var(--demo-tool); color: var(--demo-blue); border-color: var(--demo-border); }
   .session-tabs [data-tab='review'][aria-selected='true'] { color: var(--demo-purple); }
-  .terminal-window { border: 1px solid var(--demo-border); border-radius: 14px; overflow: hidden; background: var(--demo-panel); box-shadow: 0 20px 65px -30px #547cba55, 0 2px 8px #162a4910; }
+  .terminal-window { position: relative; border: 1px solid var(--demo-border); border-radius: 14px; overflow: hidden; background: var(--demo-panel); box-shadow: 0 20px 65px -30px #547cba55, 0 2px 8px #162a4910; }
+  .preview-overlay { position: absolute; inset: 8rem 0 0; display: grid; place-items: center; background: linear-gradient(transparent, var(--demo-panel) 45%); }
+  .preview-play { display: inline-flex; align-items: center; gap: .65rem; min-height: 52px; padding: .75rem 1.4rem; border: 1px solid var(--demo-border); border-radius: 999px; background: var(--demo-panel); color: var(--demo-ink); box-shadow: 0 4px 18px #162a4912, 0 1px 3px #162a4910; cursor: pointer; font: 500 .85rem var(--sl-font); }
+  .preview-play-icon { display: grid; place-items: center; color: var(--demo-blue); }
+  .preview-play-icon svg { width: 20px; height: 20px; }
+  .preview-play:hover { border-color: var(--demo-blue); background: var(--demo-tool); }
+  .preview-play:focus-visible { outline: 2px solid var(--demo-blue); outline-offset: 4px; }
+  [data-preview] .playback [data-play], [data-preview] .playback [data-replay] { display: none; }
   .window-bar { display: flex; align-items: center; gap: 1rem; padding: .9rem 1.25rem; border-bottom: 1px solid var(--demo-border); background: var(--demo-bar); color: var(--demo-ink); font: .8rem var(--sl-font); }
   .harness-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--demo-purple); background: color-mix(in srgb, var(--demo-purple) 12%, transparent); font-size: 1.2rem; }
   .harness-name { font-weight: 550; }
