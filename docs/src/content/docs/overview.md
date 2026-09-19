@@ -3,42 +3,39 @@ title: "What is Code Rules?"
 description: "The package manager for engineering rules that agents follow when they write and review code."
 ---
 
-**Code Rules is the package manager for your engineering rules.**
+Code Rules is the package manager for your engineering rules.
 
-You write the rules you want agents to follow, or you import them from a library. Each project adopts the ones it needs, and ultimately every agent reads the same guidance.
+You write the rules you want agents to follow, or you adopt them from a library. Each project picks the rules it needs, and every agent working on that project reads the same guidance.
 
 ## What traditional package managers do
 
-When you write TypeScript or JavaScript, you install packages from `npm`. For Go, you use `go mod`. For Rust, you use Cargo and `crates.io`. Almost every language has a tool like this.
+Almost every codebase depends on some code it did not write. Before "code-native" package managers, teams would manually copy third-party code into each project. The different copies inevitably drifted apart, nobody knew which version of the imported code they had, and "upstream" fixes were painful to adopt.
 
-A package manager *pulls in third-party code in an organized way.* You name the library and the version you want. The package manager makes that code available to you and to everyone else on the project.
+Traditional package managers like `npm` and `go mod` solve this. Shared code lives in one place, typically a git repo. Each project names the library or module to import, and pins the version it wants. When the library improves, projects import updates on their own schedule.
 
 ## Agents need the same thing for guidance
 
-AI-native software engineering adds a new layer to the stack. We humans tell the agent what to build, and (ideally) how to build it. Agents write the actual code.
+With AI-led coding, we depend heavily on _prompts_ we did not write, or do not want to write every time.
 
-But how can we build confidence that agents are writing code the way we want? Will they write deep modules over shallow modules? Hide complexity behind simple interfaces? Pull complexity down instead of onto callers?
+Today that guidance lives in an AGENTS.md file. Portions of it get copied from repo to repo and edited a little each time. Over time, every project has its own collection of best practices..
 
-And what about language-specific practices? If we're writing Go code, will it faithfully follow our team's preferences?
+In short, today's tools for assembling context give us limited control to construct exactly the prompt we want.
 
-Ultimately, we want agents to be equipped with the context of all our team's best practices when writing or validating code.
+## Introducing Code Rules!
 
-What fragments of context we give it, on which projects, and in which scenarios is what Code Rules is meant to solve. Better yet, if someone else has already written good code rules, we should be able to take advantage of them instead of reinventing the wheel!
+Code Rules is the package manager for your engineering rules.
 
-## What a rule is
+### Rules
 
-A [rule](/concepts/rule/) is one of those practices, written as a Markdown file.
-It tells an agent what to do, when the instruction applies, and what evidence would show the work follows it.
+You write a single best practice as a [rule](/concepts/rule/), written as a Markdown file. A rule tells an agent what to do and when it applies, and gives both examples and counter-examples.
 
-Your team already has practices like these in reviews, prompts, and docs. Some cover a language or framework. Others cover testing, errors, or how you design systems.
+### Groups
 
-For example, a team might write:
+You organize rules into [groups](/concepts/groups/), where a group represents either a _technology_ like Go, Tailwind, Next.js, Typescript, or Playwright, or a _practice_ like testing, logging, or error handling.
 
-> When adding or changing bounded retries, test that requests stop at the configured limit.
+You write your "local" rules in a `/.code-rules` folder in your repo, using the `code-rules` CLI for scaffolding and guidance. If you wish, you can stop there.
 
-An implementing agent gets a concrete test to write.
-A reviewing agent can check that the test would catch an extra retry.
-The rule applies to retry behavior. The rule does not require every operation to add retries.
+Or you can import existing rules from
 
 ## Adopt the rules a project needs
 
