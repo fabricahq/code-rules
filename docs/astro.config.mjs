@@ -55,12 +55,18 @@ export default defineConfig({
         { label: 'License rules', slug: 'guides/license-rules' },
       ] },
       { label: 'Reference', items: [
-        { label: 'Configuration', slug: 'reference/configuration' },
-        { label: 'Files and formats', slug: 'reference/files' },
-        { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
+        { label: 'Projects', items: [
+          { label: 'Project files', slug: 'reference/files' },
+          { label: 'Configuration', slug: 'reference/configuration' },
+          { label: 'How imports work', slug: 'reference/imports' },
+          { label: 'Sync and recovery', slug: 'reference/sync' },
+          { label: 'Provenance', slug: 'reference/provenance' },
+        ] },
+        { label: 'Rules and libraries', items: [
+          { label: 'Rule and library format', slug: 'reference/rule-library-format' },
+          { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
+        ] },
         { label: 'CLI commands', slug: 'reference/cli' },
-        { label: 'How imports work', slug: 'reference/imports' },
-        { label: 'Sync and recovery', slug: 'reference/sync' },
       ] },
       { label: 'For agents', items: [{ label: 'Plan, write, and review', slug: 'for-agents' }] },
     ],

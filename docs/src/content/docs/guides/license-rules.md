@@ -46,12 +46,12 @@ The library metadata identifies the terms for the whole library and any accompan
 Paths resolve from the library root and identify source files only. Code Rules copies the contents unchanged to `generated/libraries/<source-name>/licenses/LICENSE.md` and `generated/libraries/<source-name>/licenses/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
 For example, list `NOTICE.md` in `notices` when the library supplies a notice that must accompany imported content.
 No extra notice file is required when the license and rule files already contain the necessary notices.
-The [file reference](/reference/files/#library-license-metadata) defines these fields.
+The [file reference](/reference/rule-library-format/#library-license-metadata) defines these fields.
 
 Use an SPDX expression for standard terms and a distinct `LicenseRef-…` for custom or modified terms. The [SPDX expression specification](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) defines identifiers and compound expressions. The identifier supplements the retained text. Code Rules validates the `license.spdxExpression` syntax and identifiers and preserves your declaration. It does not verify that the declaration matches the retained terms or grants the permissions you need.
 
 A library has one license declaration covering all its rules and groups. Per-rule and per-group overrides are unsupported.
-Keep attribution with each rule, in its body or [structured attribution](/reference/files/#rule-attribution). List required notices in the library manifest.
+Keep attribution with each rule, in its body or [structured attribution](/reference/rule-library-format/#rule-attribution). List required notices in the library manifest.
 If material requires a different declaration, maintain it in a separate compatible library. Do not relabel third-party material merely to fit a library's license.
 
 A source citation is not a license grant.

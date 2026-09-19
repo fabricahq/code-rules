@@ -3,12 +3,11 @@ title: "How imports work"
 description: "From pinned library snapshots to one resolved ruleset per group."
 ---
 
-The Go importer fetches library revisions and retains their original files.
-The `sync` command coordinates import, resolution, generation, and installation. See [Sync and recovery](/reference/sync/).
+An **import** copies selected rules from a library into your project. Code Rules records the library's exact Git commit so you can trace where those rules came from.
 
-An import resolves each configured exact ref or version constraint and combines the resulting upstream snapshots with explicit project decisions.
-It produces ordinary files that agents can read without running the importer.
-This checkout implements fetching, offline generation, digest checks, and safe file updates.
+The `code-rules sync` command imports your selected libraries, applies your local rules and configured exceptions, and generates the guidance your agents read. Keeping the imported files in your project lets your team rebuild and use that guidance offline.
+
+This page explains what Code Rules imports, how it decides which rules are active, and how it validates changes before writing files. For setup instructions, see [Import rules](/guides/select-rules/).
 
 ## What a vendored library contains
 
@@ -113,7 +112,7 @@ Each library has a 120-second deadline and may contain at most 10,000 tree entri
 The tree listing may occupy up to 8 MiB; retained files may occupy up to 8 MiB each and 64 MiB in total.
 Those file limits apply after fetching and do not cap network traffic or Git's temporary disk use.
 
-Imports preserves supporting material only from [the two asset locations](/reference/files/#supporting-assets): each selected rule's adjacent `assets/<rule-name>/` directory and the library-root `assets/` directory.
+Imports preserves supporting material only from [the two asset locations](/reference/rule-library-format/#supporting-assets): each selected rule's adjacent `assets/<rule-name>/` directory and the library-root `assets/` directory.
 Owned directories are copied completely. Shared assets are copied completely only when a selected rule or a retained Markdown asset references them.
 Imports validates standard Markdown links, images, and reference definitions against these boundaries; it does not follow arbitrary repository documents.
 Missing destinations and links into another rule's private assets fail import. Links from rules or Markdown attachments to other rule documents fail import. External URLs are not fetched.
