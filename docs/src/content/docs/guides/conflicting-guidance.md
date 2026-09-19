@@ -55,7 +55,7 @@ unresolved engineering policy on the project's behalf.
 ```
 
 For a different configuration location, adjust the prompt to use paths relative to that configuration rather than assuming `.code-rules/`.
-See the [CLI reference](/reference/cli/#conflict-review-prompt) for the proposed command.
+Conflict review runs through your agent. The CLI does not provide a `conflicts` command.
 
 ## Resolve the intended policy
 

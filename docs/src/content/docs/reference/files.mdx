@@ -70,6 +70,14 @@ Use `code-rules build` to regenerate guidance from stored inputs, and `code-rule
 Missing or mismatched imported snapshots require `code-rules sync`.
 For recovery and file ownership details, see [Sync and recovery](/reference/sync/).
 
+## Project and group guides
+
+`code-rules init` creates `.code-rules/README.md` with definitions and commands for managing rules. If your configuration lives outside a directory named `.code-rules`, init writes `CODE_RULES.md` beside it and preserves the project's `README.md`.
+
+After upgrading Code Rules, rerun init to refresh an older guide. It preserves valid configuration and local rules but refuses to overwrite a manually edited guide. Preserve those notes separately before refreshing it. `code-rules check` reports a missing or outdated managed guide without changing it.
+
+Local and library group creation also writes a `README.md` beside `_group.json`. Group guides explain how to add, edit, and validate rules. These are authoring documents, excluded from rule loading and generated guidance. Existing group files are preserved.
+
 ## Where agents start
 
 Point your agent to `.code-rules/generated/RULES.md`. It lists the groups and explains when to read each one.
