@@ -10,7 +10,7 @@ The Code Rules tool imports its content at a specific commit.
 
 [Code Rules](https://github.com/fabricahq/code-rules) owns the conventions, importer, and documentation.
 A library owns its engineering opinions and their provenance.
-A consuming project owns the versions and exceptions it adopts.
+A consuming [project](/concepts/project/) owns the versions and exceptions it adopts.
 
 The importer works with compatible libraries independently of who publishes them.
 Sync uses the caller's Git credentials to access private libraries.
@@ -72,3 +72,5 @@ The full resolved rules live separately in `generated/rules/`.
 Code Rules does not import a library that itself inherits and republishes other libraries.
 A project imports each canonical library directly.
 Any later publishing mechanism needs to preserve rule identities and provenance across levels.
+
+See [Project](/concepts/project/) for the codebase that selects and uses a library.
