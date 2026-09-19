@@ -67,7 +67,7 @@ Separate confirmed failures from hypotheses that need verification.
 
 If a relevant group is missing, report the missing coverage.
 If resolved rules conflict, identify both IDs and ask the project owner to resolve the intended policy.
-Use [Conflicting guidance](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
+Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
 Keep the pinned ruleset during ordinary work; adopting upstream changes is a separate project update.
 
 ## Write or review rules themselves

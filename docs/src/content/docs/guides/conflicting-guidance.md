@@ -1,5 +1,5 @@
 ---
-title: "Conflicting guidance"
+title: "Resolve conflicting rules"
 description: "Find contradictory rules and make the project's intended policy explicit."
 ---
 

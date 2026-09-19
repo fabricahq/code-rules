@@ -1,5 +1,5 @@
 ---
-title: "Import rules"
+title: "Import and customize rules"
 description: "Choose groups from rule libraries and adapt their rules to your project."
 ---
 
@@ -126,7 +126,7 @@ It does not infer overrides from similar wording.
 Rules from different sources remain active even when their paths or titles match.
 If a local rule or another source contradicts an inherited obligation, explicitly replace or exclude the affected rule inside its owning source.
 Source order never resolves the conflict.
-Use [Conflicting guidance](/guides/conflicting-guidance/) to review the combined rules and resolve competing instructions.
+Use [Resolve conflicting rules](/guides/conflicting-guidance/) to review the combined rules and resolve competing instructions.
 
 
 Review `generated/RULES.md`, each relevant group index, and the full resolved definitions. Check exclusions and replacements against configuration and provenance.
