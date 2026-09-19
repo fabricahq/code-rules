@@ -38,6 +38,7 @@ export default defineConfig({
         { label: 'Rule', slug: 'concepts/rule' },
         { label: 'Group', slug: 'concepts/groups' },
         { label: 'Library', slug: 'concepts/libraries' },
+        { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', items: [
         { label: 'Import rules', slug: 'guides/select-rules' },
