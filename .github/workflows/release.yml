@@ -167,3 +167,24 @@ jobs:
             --repository "$RELEASE_REPOSITORY" \
             --directory "$RELEASE_ASSETS" \
             --commit "$RELEASE_COMMIT"
+
+  # A successful stable release wakes the tap. This job neither builds code nor edits the tap.
+  update-homebrew:
+    needs: [plan, publish]
+    if: ${{ !contains(needs.plan.outputs.version, '-') }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Create a token limited to the Fabrica tap
+        id: tap-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.HOMEBREW_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HOMEBREW_APP_PRIVATE_KEY }}
+          owner: fabricahq
+          repositories: homebrew-tap
+          permission-actions: write
+      - name: Trigger the Code Rules formula update
+        env:
+          GH_TOKEN: ${{ steps.tap-token.outputs.token }}
+        run: gh workflow run update-code-rules.yml --repo fabricahq/homebrew-tap --ref main
