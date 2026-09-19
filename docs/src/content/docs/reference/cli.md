@@ -3,7 +3,7 @@ title: "CLI commands"
 description: "Project and library commands, output, and error behavior."
 ---
 
-The Go CLI implements project setup, local and library authoring, source addition, sync, build, and check. [Install the CLI](/guides/install/) to use it. The conflict-review prompt and tool-update commands are not implemented.
+The Go CLI implements project setup, local and library authoring, source addition, sync, build, and check. [Install the CLI](/start-here/install/) to use it. The conflict-review prompt and tool-update commands are not implemented.
 See [Sync and recovery](/reference/sync/) for filesystem behavior.
 
 ## Choose a scope
@@ -73,7 +73,7 @@ Exit status is 0 for success, 1 for operation failure or stale output, and 2 for
 
 Both first-time and repeated initialization show the configuration file path.
 
-Build and sync automatically refresh an older generated guide using the template bundled in the selected CLI version. Repeating init also refreshes it. These commands preserve configuration and local rules, and refuse to overwrite manual edits to the guide. Changes to the managed guide format are [breaking changes](/guides/install/#versioning).
+Build and sync automatically refresh an older generated guide using the template bundled in the selected CLI version. Repeating init also refreshes it. These commands preserve configuration and local rules, and refuse to overwrite manual edits to the guide. Changes to the managed guide format are [breaking changes](/start-here/install/#versioning).
 
 Run `code-rules project check` in CI to verify both generated guidance and the project guide without changing files. A missing or outdated guide fails the check. Run `code-rules project build` to refresh the guide and regenerate guidance, or run `code-rules project init` to refresh only the guide and setup files. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
 
@@ -124,7 +124,7 @@ It does not mean application code follows those rules.
 
 ## Update the tool
 
-`code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/guides/install/#upgrade-or-roll-back), then refresh the managed guide and regenerate guidance with `code-rules project build`, and run `code-rules project check`. Use `project sync` separately to select library revisions again.
+`code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/start-here/install/#upgrade-or-roll-back), then refresh the managed guide and regenerate guidance with `code-rules project build`, and run `code-rules project check`. Use `project sync` separately to select library revisions again.
 
 ## Project location
 
@@ -155,7 +155,7 @@ Create the group before adding a rule. Rule creation fails before prompting for 
 `--ref` accepts an exact tag, full commit SHA, or version range. Bare versions are literal tags; ranges use operators such as `>=` or `~>`. The CLI saves the value in the appropriate `ref` or `version` configuration field.
 Before prompting, it explains the project-local alias, the single ref input, and group selectors with an example. Find group paths in the library documentation or its `practices/` and `techs/` directories at the selected revision. Choose explicit paths or one wildcard. The same guidance is available with `--help`, including an example with all required flags for agents and scripts.
 
-See [Set up a project](/guides/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
+See [Set up a project](/start-here/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
 Before prompting, group and rule commands show the selected path and an example of all the fields together. A group has a readable name, description, and reading cue. A rule has a readable title, reading cue, and impact details; the full instructions belong in its Markdown body. Examples are guidance only and are never saved as your content.
 
 After creating a group, the CLI shows a copyable add-rule command using that group's path and, for library commands, the selected library directory. Replace the example `my-rule` slug with your own.

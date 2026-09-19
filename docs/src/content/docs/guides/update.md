@@ -5,7 +5,7 @@ description: "Adopt upstream changes deliberately while preserving local decisio
 
 To adopt newer rules, select an exact revision or version constraint and run `code-rules project sync`.
 Sync downloads the selected rules from your source libraries and rebuilds the indexes and resolved rule files that agents read.
-Sync works with an [installed CLI](/guides/install/). See [Sync and recovery](/reference/sync/) for filesystem behavior.
+Sync works with an [installed CLI](/start-here/install/). See [Sync and recovery](/reference/sync/) for filesystem behavior.
 
 ## Update a library
 

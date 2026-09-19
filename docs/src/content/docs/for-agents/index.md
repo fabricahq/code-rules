@@ -5,7 +5,7 @@ description: "A suggested workflow for agents using the project\u2019s resolved 
 
 This page suggests an agent workflow for using the project's committed resolved rules during planning, implementation, and review.
 Adapt it to your project, or use your own prompts and tooling. Code Rules supplies the rule files; it does not run this workflow or require a particular validation or enforcement method.
-See [product scope](/overview/#what-code-rules-does-not-do).
+See [product scope](/start-here/overview/#what-code-rules-does-not-do).
 
 ## Project instructions
 

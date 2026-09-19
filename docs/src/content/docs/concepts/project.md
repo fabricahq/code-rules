@@ -33,4 +33,4 @@ See [Configuration](/reference/configuration/) for the recorded fields.
 - A [library](/concepts/libraries/) publishes rules for reuse.
 - A project is the place that selects and uses rules.
 
-See [Set up a project](/guides/set-up-project/) to create one.
+See [Set up a project](/start-here/set-up-project/) to create one.

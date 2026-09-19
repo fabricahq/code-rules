@@ -5,7 +5,7 @@ description: "Start with local rules, then add shared libraries without moving y
 
 Run these commands from the directory you want to configure as a [project](/concepts/project/).
 Installing the CLI makes the command available on your computer. `code-rules init` sets up this project.
-The examples assume `code-rules` is installed and available on your PATH. See [Install Code Rules](/guides/install/) if you need the executable.
+The examples assume `code-rules` is installed and available on your PATH. See [Install Code Rules](/start-here/install/) if you need the executable.
 
 ## Start with local rules
 

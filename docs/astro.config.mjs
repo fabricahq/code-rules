@@ -11,7 +11,13 @@ export default defineConfig({
   // Keep native bindings outside the SSR bundle: https://vite.dev/config/ssr-options.html#ssr-external
   // Satteri's installed index.js resolves platform binaries relative to its package.
   vite: { plugins: [tailwindcss()], ssr: { external: ['satteri'] } },
-  redirects: { '/guides/customize/': '/guides/select-rules/' },
+  redirects: {
+    '/guides/customize/': '/guides/select-rules/',
+    '/overview/': '/start-here/overview/',
+    '/guides/install/': '/start-here/install/',
+    '/guides/set-up-project/': '/start-here/set-up-project/',
+    '/guides/use-rules/': '/start-here/use-rules/',
+  },
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
   integrations: [starlight({
     title: 'Code Rules',
@@ -28,11 +34,10 @@ export default defineConfig({
     },
     sidebar: [
       { label: 'Start here', items: [
-        { label: 'What is Code Rules?', slug: 'overview' },
-        { label: 'Install Code Rules', slug: 'guides/install' },
-        { label: 'Set up a project', slug: 'guides/set-up-project' },
-        { label: 'Use rules in a project', slug: 'guides/use-rules' },
-        { label: 'Project status', slug: 'status' },
+        { label: 'What is Code Rules?', slug: 'start-here/overview' },
+        { label: 'Install Code Rules', slug: 'start-here/install' },
+        { label: 'Set up a project', slug: 'start-here/set-up-project' },
+        { label: 'Use rules in a project', slug: 'start-here/use-rules' },
       ] },
       { label: 'Concepts', items: [
         { label: 'Rule', slug: 'concepts/rule' },
