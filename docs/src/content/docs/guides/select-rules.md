@@ -7,7 +7,7 @@ Import the technology and practice groups your project needs from one or more li
 Add local rules and declare exceptions as part of that import configuration.
 Code Rules combines those choices into a root group index, group pages, and individual full rule files. Small group pages include complete rules; larger ones contain applicability summaries with explicit reading links.
 
-For a complete setup walkthrough, see [Use rules in a project](/guides/use-rules/).
+For a complete setup walkthrough, see [Use rules in a project](/start-here/use-rules/).
 
 ## Choose groups for your project
 

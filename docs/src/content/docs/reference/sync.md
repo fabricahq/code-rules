@@ -3,7 +3,7 @@ title: "Sync and recovery"
 description: "Import libraries, generate resolved rules, and apply changes safely."
 ---
 
-Sync fetches and validates library snapshots, resolves project rules, and installs the complete vendor and generated output. [Build or install the Go CLI](/guides/install/), then run from your project root:
+Sync fetches and validates library snapshots, resolves project rules, and installs the complete vendor and generated output. [Build or install the Go CLI](/start-here/install/), then run from your project root:
 
 ```sh
 code-rules sync

@@ -4,7 +4,7 @@ description: "The shared standard for writing and reviewing clear, scoped, verif
 ---
 
 Start with the Markdown template, then check the rule against the authoring rubric.
-The [local rule command](/guides/set-up-project/) uses this template; a parity test keeps its distributed copy aligned with this document.
+The [local rule command](/start-here/set-up-project/) uses this template; a parity test keeps its distributed copy aligned with this document.
 Authors and reviewing agents use the same rubric. The planned authoring skill uses those same references.
 One shared template covers technologies, practices, and project-specific rules. Metadata has a defined format; authors adapt the body to the rule.
 

@@ -3,7 +3,7 @@ title: "CLI commands"
 description: "Project and library commands, output, and error behavior."
 ---
 
-The Go CLI implements project setup, local and library authoring, source addition, sync, build, and check. [Install the CLI](/guides/install/) to use it. The conflict-review prompt and tool-update commands are not implemented.
+The Go CLI implements project setup, local and library authoring, source addition, sync, build, and check. [Install the CLI](/start-here/install/) to use it. The conflict-review prompt and tool-update commands are not implemented.
 See [Sync and recovery](/reference/sync/) for filesystem behavior.
 
 For `sync`, `build`, and `check`, run from the consuming project's root by default.
@@ -93,7 +93,7 @@ It does not mean application code follows those rules.
 
 ## Update the tool
 
-`code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/guides/install/#upgrade-or-roll-back), then refresh the managed project guide with `code-rules init`, regenerate with `code-rules build`, and run `code-rules check`. Use `sync` separately to select library revisions again.
+`code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/start-here/install/#upgrade-or-roll-back), then refresh the managed project guide with `code-rules init`, regenerate with `code-rules build`, and run `code-rules check`. Use `sync` separately to select library revisions again.
 
 ## Explicit configuration
 
@@ -120,7 +120,7 @@ Use `--config` to select a configuration file outside the default location.
 Create the group before adding a rule. Rule creation fails before prompting for metadata if the group does not exist. No source declaration is needed for local rules.
 `add source` validates and records a library declaration; run `sync` separately to fetch it. It preserves existing source exceptions and local files.
 
-See [Set up a project](/guides/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
+See [Set up a project](/start-here/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
 Authoring commands accept `--non-interactive`. Missing inputs fail without prompting when no terminal is available.
 
 ## Author a library

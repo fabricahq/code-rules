@@ -2,7 +2,7 @@
 
 [Fabrica Code Rules](https://code-rules.fabricahq.com) is the package manager for your engineering rules. Author project rules, adopt versioned Git libraries, and generate Markdown that agents can read before they work.
 
-The Go CLI is available. The installable authoring skill remains separate work; see [project status](docs/src/content/docs/status.md).
+The Go CLI is available. The installable authoring skill remains separate work.
 
 ## Build the CLI
 
@@ -15,7 +15,7 @@ go build -o ./dist/code-rules ./cmd/code-rules
 
 The executable runs without Node.js or Bun. From a consuming project's root, run `code-rules init`, create a local group and rule, then `code-rules build`. To adopt a library, use `code-rules add source` with its repository, revision, and groups, then run `code-rules sync`.
 
-Read [project setup](docs/src/content/docs/guides/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `check` reports status and problems without writing files.
+Read [project setup](docs/src/content/docs/start-here/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `check` reports status and problems without writing files.
 
 ## Validate changes
 

@@ -20,7 +20,7 @@ Compare the archive's SHA-256 with `SHA256SUMS` from the same release. On macOS,
 
 Use the executable's absolute path, or add its directory to your `PATH`. Installing the executable does not initialize projects or fetch libraries.
 
-Follow [Set up a project](/guides/set-up-project/) or [Create a rule library](/guides/create-library/).
+Follow [Set up a project](/start-here/set-up-project/) or [Create a rule library](/guides/create-library/).
 
 ## Build from source
 

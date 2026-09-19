@@ -8,7 +8,7 @@ The `sync` command coordinates import, resolution, generation, and installation.
 
 An import resolves each configured exact ref or version constraint and combines the resulting upstream snapshots with explicit project decisions.
 It produces ordinary files that agents can read without running the importer.
-This checkout implements fetching, offline generation, digest checks, and safe file updates; see [Project status](/status/).
+This checkout implements fetching, offline generation, digest checks, and safe file updates.
 
 ## What a vendored library contains
 

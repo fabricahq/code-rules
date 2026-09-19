@@ -37,7 +37,8 @@ Set Astro's `site` option after selecting a production URL; sitemap generation i
 
 ## Maintain the docs
 
-Write pages under `src/content/docs/` and keep navigation in `astro.config.mjs` aligned with their slugs.
+Write pages under `src/content/docs/` in folders matching the sidebar sections: `start-here/`, `concepts/`, `guides/`, `reference/`, and `for-agents/`.
+Keep the homepage at `index.mdx` and navigation in `astro.config.mjs` aligned with page slugs. When moving a public page, update links and add a redirect from its old URL.
 Homepage composition lives in `src/components/HomePage.astro` and its illustration components.
 
 ### Styling
@@ -48,7 +49,7 @@ Follow the [CSS and Tailwind guidelines](_internal/css.md) for styling ownership
 
 Use the docs to explain the product experience and its contracts.
 Keep implementation tasks in the internal planning material.
-Keep release availability accurate in the project status and installation guides.
+Keep release availability accurate in the installation guide.
 
 Before handing off visual changes, inspect desktop and narrow layouts, light and dark themes, keyboard navigation, and search in a production preview.
 Run `bun run check` to verify website/tooling formatting, lint, types, tests, the static build, and links between built pages. The Go build tests also compile the copyable rule examples through the current resolver and renderer.

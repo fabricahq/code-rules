@@ -3,11 +3,11 @@ title: "Use rules in a project"
 description: "Walk through the import workflow, from choosing libraries to directing agents."
 ---
 
-[Install the CLI](/guides/install/) before following these commands.
+[Install the CLI](/start-here/install/) before following these commands.
 
 ## Start locally
 
-Start with [project setup](/guides/set-up-project/) to create a local group and rule, then run `code-rules build`. Open `.code-rules/generated/RULES.md` to inspect the output. This local-only workflow fetches no libraries. The repository also includes an executable [Gruntwork runbook](https://github.com/fabricahq/code-rules/tree/main/runbooks/native-cli).
+Start with [project setup](/start-here/set-up-project/) to create a local group and rule, then run `code-rules build`. Open `.code-rules/generated/RULES.md` to inspect the output. This local-only workflow fetches no libraries. The repository also includes an executable [Gruntwork runbook](https://github.com/fabricahq/code-rules/tree/main/runbooks/native-cli).
 
 ## 1. Choose libraries and revisions
 
@@ -18,7 +18,7 @@ An upstream edit should arrive through an explicit update.
 
 ## 2. Select technologies and practices
 
-Start with [project setup](/guides/set-up-project/), or create `.code-rules/config.json` manually:
+Start with [project setup](/start-here/set-up-project/), or create `.code-rules/config.json` manually:
 
 ```json
 {
