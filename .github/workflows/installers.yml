@@ -1,0 +1,32 @@
+# Exercise the standalone installer on both supported operating systems and validate tap updates.
+name: Installers
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build a native executable for installer smoke tests
+        run: go build -ldflags '-X main.version=1.2.3' -o "$RUNNER_TEMP/code-rules-test" ./cmd/code-rules
+      - name: Test installation, upgrades, failures, and Homebrew generation
+        env:
+          CODE_RULES_TEST_BINARY: ${{ runner.temp }}/code-rules-test
+        run: |
+          sh -n docs/public/install.sh
+          python3 -m unittest discover -s _distribution/tests -v
+      - name: Check tap workflow
+        if: runner.os == 'Linux'
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes= _distribution/homebrew-tap/.github/workflows/update-code-rules.yml

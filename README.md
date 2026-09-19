@@ -4,6 +4,10 @@
 
 The Go CLI is available. The installable authoring skill remains separate work.
 
+## Installation
+
+See [Install Code Rules](docs/src/content/docs/start-here/install.md) for Homebrew, the standalone installer, and manual downloads, including current availability. These methods use native executables and require no Go, Node.js, or Bun. Maintainers can find channel activation and tests in [installation distribution](_distribution/README.md).
+
 ## Build the CLI
 
 Install the Go version declared in [go.mod](go.mod). Git is required to sync remote libraries.

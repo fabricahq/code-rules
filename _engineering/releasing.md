@@ -56,6 +56,10 @@ Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The 
 
 For execution details, read the [release workflow](../.github/workflows/release.yml), [release planner and publisher](../internal/release/), and [packager](../internal/distribution/).
 
+## Installation channels
+
+The standalone installer downloads the latest stable release or an explicitly selected version, using the four archives and `SHA256SUMS`.
+
 ## Homebrew updates
 
 After publishing a stable release, the `update-homebrew` job triggers **Update Code Rules** in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases do not update the formula. The tap validates the published archives and checksums before committing an update.
