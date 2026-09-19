@@ -26,7 +26,7 @@ Code Rules preserves declarations; it does not establish permission for you.
 
 ## 2. Create a compatible library
 
-[Create a library](/guides/create-library/) to maintain the adaptation. The original repository does not need to change.
+[Create a library](/start-here/create-library/) to maintain the adaptation. The original repository does not need to change.
 The library uses this layout:
 
 ```text

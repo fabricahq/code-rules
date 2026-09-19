@@ -1,88 +1,103 @@
 ---
-title: "Set up a project"
-description: "Start with local rules, then add shared libraries without moving your authored files."
+title: "Set up your first project"
+description: "Create a local rule, give it to your agent, then import a rule from the public library."
 ---
 
-Run these commands from the directory you want to configure as a [project](/concepts/project/).
-Installing the CLI makes the command available on your computer. `code-rules init` sets up this project.
-The examples assume `code-rules` is installed and available on your PATH. See [Install Code Rules](/start-here/install/) if you need the executable.
+A **project** is a codebase that uses rules. In this walkthrough, you'll give one project a local rule, connect those rules to your coding agent, and then import a rule from the Fabrica public library.
 
-## Start with local rules
+Start in the root of a project you want to work on. You need [Code Rules installed](/start-here/install/), and Git for the library import at the end. To publish guidance for several projects instead, follow [Create your first library](/start-here/create-library/).
+
+## 1. Set up the project
 
 ```sh
 code-rules init
-code-rules local add group practices/testing
-code-rules local add rule practices/testing/retry-budget
 ```
 
-`init` creates `.code-rules/config.json` with no imported sources and `.code-rules/local/README.md`.
-No imported library or existing Git repository is required. Repeating `init` preserves valid configuration and local rules and refreshes the managed project README. It refuses to overwrite manually edited guides; keep project notes in a separate file.
+This creates `.code-rules/` in your project. That directory holds your configuration, local rules, and the guidance Code Rules generates for agents. It does not change your project's `README.md` or agent instructions.
 
-`init` also creates a tool-owned agent guide at `.code-rules/README.md`. For a custom configuration outside a directory named `.code-rules`, the guide is `CODE_RULES.md` beside that configuration. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
+## 2. Add your first local rule
 
-On a terminal, group creation asks for a name, description, and when-to-read cue. Rule creation asks for its title, when-to-read cue, impact, and consequence.
-If the group is missing, rule creation stops before prompting and tells you to create the group first.
-A missing group or cancelled prompt writes nothing.
+A **local rule** belongs to this project. Let's add one about testing changed behavior.
 
-The new Markdown rule is a **draft** from the [canonical template](/reference/rule-authoring/). Complete its obligation, examples, implementation, and validation guidance before building. Remove prompts and sections that add no useful guidance.
-A successful format check does not establish that a draft is finished or that its guidance is correct.
+First create its group. A group collects related rules and tells agents when to read them:
+
+```sh
+code-rules local add group practices/testing \
+  --name Testing \
+  --description 'Tests for the behavior this project provides.' \
+  --when-to-read 'When adding or changing behavior, fixing bugs, or reviewing tests.'
+```
+
+Create `.code-rules/local/practices/testing/test-changed-behavior.md` in your editor and paste this complete rule:
+
+```md
+---
+title: Test changed behavior
+whenToRead: When adding or changing externally visible behavior.
+impact: HIGH
+impactDescription: Prevents behavior changes from silently breaking existing use cases.
+tags: testing
+---
+
+## Test changed behavior
+
+When a change alters behavior that a caller or user relies on, add or update a test for that outcome.
+
+For example, if a discount changes an order's total, assert the resulting total rather than which private helper was called.
+
+Run the relevant tests before considering the change complete. Changes that do not alter behavior do not need a new test solely to accompany the edit.
+```
+
+The fields at the top describe the rule; the Markdown below tells the agent what to do. You can write files directly, as here, or use [the rule authoring commands](/reference/cli/#local-add-rule) to create a draft.
+
+Now generate the guidance your agent will read:
 
 ```sh
 code-rules build
 code-rules check
 ```
 
-Open `.code-rules/generated/RULES.md` and review the generated rules. Commit configuration, local rules, and generated files.
-Use the [agent integration instructions](/for-agents/) to connect the rules to your existing workflow; setup does not modify `AGENTS.md`.
+Open `.code-rules/generated/RULES.md`. It points to the Testing group and your rule. Edit the source under `local/` when you want to change the rule, then run `build` again.
 
-## Add a library later
+## 3. Give the rules to your agent
+
+Add this section to your existing `AGENTS.md`, or the equivalent project instruction file your coding agent reads. Create that file if you don't have one; preserve any existing instructions.
+
+```markdown
+## Engineering rules
+
+Before planning, implementing, or reviewing a change, read `.code-rules/generated/RULES.md`.
+Open the groups relevant to the task, read their rules in full, and follow the applicable guidance and exceptions.
+If a group links to full rule definitions or additional index pages, read those too.
+```
+
+Try a small change you already need in this project. For example, ask your agent:
+
+> Read this project's engineering rules, then implement the change. Explain which rules apply and how you'll verify the result.
+
+Your project now has a working local rule. Code Rules supplies the files; your agent follows the instructions you've given it. For a more detailed implementation and review workflow, see [For agents](/for-agents/).
+
+## 4. Import a rule from the public library
+
+Now let's reuse a rule someone else has written. A **library** is a Git repository that shares rules across projects.
+
+The [Fabrica public library](https://github.com/fabricahq/.code-rules-public) includes a code-design group. In `v0.1.0`, that group contains one rule: **Express operations as meaningful steps**. It helps agents keep functions understandable without extracting unnecessary helpers. Read it before deciding to adopt it.
+
+From the same project directory, run:
 
 ```sh
-code-rules add source team \
-  --repository https://github.com/example/rules.git \
-  --version '>= 1.2.0, < 2.0.0' --groups '*'
+code-rules add source fabrica \
+  --repository https://github.com/fabricahq/.code-rules-public.git \
+  --ref v0.1.0 \
+  --groups practices/code-design
 code-rules sync
+code-rules check
 ```
 
-Replace the example repository and version with a library you can access.
-`add source` validates and records the declaration. It does not fetch, verify remote existence, or change generated files. `sync` performs those steps explicitly.
-Use exactly one of `--ref` (an exact tag or full commit) or `--version` (a HashiCorp version constraint).
+`fabrica` is this project's name for the source. `--ref v0.1.0` selects the library version used in this walkthrough. `add source` records that choice; `sync` downloads the selected rules and regenerates the agent guidance.
 
-Use `--groups '*'`, `--groups 'practices/*'`, `--groups 'techs/*'`, or repeat `--groups` for explicit IDs. Quote wildcard values in your shell. Wildcards cannot be combined with other selectors.
-Existing sources, exclusions, replacements, and local rule files are preserved. An existing source alias is an error; edit its configuration explicitly to change it.
-Local group metadata remains the project's description when imported rules join the same group.
+Open `.code-rules/generated/RULES.md` again. You'll now see your local Testing group and the imported Code design group. Your local rule remains yours to edit. The imported rule retains its source and license information.
 
-## Use explicit inputs in agents and scripts
+Review and commit `.code-rules/` and your agent instruction changes together. Your teammates and agents can then use the same guidance.
 
-Every prompt has an equivalent flag. A non-terminal invocation never prompts. `--non-interactive` also disables prompts when running from a terminal.
-Missing required inputs, unknown flags, and repeated single-value flags produce a usage error without authoring files.
-
-```sh
-code-rules local add group practices/testing \
-  --name Testing \
-  --description 'Verify observable project behavior.' \
-  --when-to-read 'Before planning, changing, or reviewing project behavior.' \
-  --non-interactive
-
-code-rules local add rule practices/testing/retry-budget \
-  --title 'Bound retry attempts' \
-  --when-to-read 'When implementing or reviewing retry behavior.' \
-  --impact HIGH \
-  --impact-description 'Unbounded retries can overload an unavailable service.' \
-  --non-interactive
-```
-
-Pass `--when-to-read` once for either a group or a rule. Combine distinct scope cues into that one string.
-Optionally pass `--body-file path/to/guidance.md` to use an already authored Markdown body instead of the draft body. The command creates frontmatter from the explicit metadata flags; the body file should not contain frontmatter.
-
-Create a missing group first with `code-rules local add group <group-id>`, then run `code-rules local add rule`. The Go CLI errors before asking for rule metadata if the group does not exist. A selected group from a verified imported library also counts as an existing group.
-Creating a local group establishes the project's description even when a library supplies the same group. Existing local metadata is never overwritten. Sync a configured library before relying on its group metadata.
-
-## File ownership
-
-All commands accept `--config path/to/config.json`; local, vendor, and generated directories live beside that file. Only `init` creates a missing project configuration.
-
-Authoring commands serialize writes with the same project lock used by sync and build. They reject links, unsupported files, and case-colliding target paths. New definitions are never overwritten. Adding a source moves the current configuration aside, verifies its exact bytes, and installs the new file only if the target path remains empty. An editor save is preserved rather than overwritten.
-A failed multi-file creation claims newly created files before comparing their bytes for rollback, preserving external replacements.
-Cancellation stops further publication and rolls back new files. Once a configuration replacement is published, it remains a complete result.
-If the original cannot be restored because another file occupies its path, Code Rules retains the original in the reported `.code-rules-authoring-*` directory. Inspect the saved files and `recovery.json`, keep the intended content, then remove that temporary directory before retrying authoring. Interrupted operations may also leave this directory for inspection. Setup does not fetch libraries, commit files, publish content, or prescribe rule enforcement.
+When you're ready, [import and customize more rules](/guides/select-rules/) or [update the rules you use](/guides/update/). To share rules of your own, continue with [Create your first library](/start-here/create-library/).

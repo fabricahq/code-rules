@@ -105,7 +105,7 @@ Extract into a new directory, retain `LICENSE.md`, and run `./code-rules --versi
 
 ## After installation or an upgrade
 
-Installing the executable does not initialize projects or fetch libraries. For a new installation, follow [Set up a project](/start-here/set-up-project/) or [Create a rule library](/guides/create-library/).
+Installing the executable does not initialize projects or fetch libraries. For a new installation, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
 After changing the executable version, run from an existing project:
 

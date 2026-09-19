@@ -16,7 +16,9 @@ export default defineConfig({
     '/overview/': '/start-here/overview/',
     '/guides/install/': '/start-here/install/',
     '/guides/set-up-project/': '/start-here/set-up-project/',
-    '/guides/use-rules/': '/start-here/use-rules/',
+    '/guides/use-rules/': '/start-here/set-up-project/',
+    '/start-here/use-rules/': '/start-here/set-up-project/',
+    '/guides/create-library/': '/start-here/create-library/',
   },
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
   integrations: [starlight({
@@ -36,8 +38,8 @@ export default defineConfig({
       { label: 'Start here', items: [
         { label: 'What is Code Rules?', slug: 'start-here/overview' },
         { label: 'Install Code Rules', slug: 'start-here/install' },
-        { label: 'Set up a project', slug: 'start-here/set-up-project' },
-        { label: 'Use rules in a project', slug: 'start-here/use-rules' },
+        { label: 'Set up your first project', slug: 'start-here/set-up-project' },
+        { label: 'Create your first library', slug: 'start-here/create-library' },
       ] },
       { label: 'Concepts', items: [
         { label: 'Rule', slug: 'concepts/rule' },
@@ -53,7 +55,6 @@ export default defineConfig({
         ] },
         { label: 'Write and share rules', items: [
           { label: 'Write a rule', slug: 'guides/write-rules' },
-          { label: 'Create a rule library', slug: 'guides/create-library' },
           { label: 'License rules', slug: 'guides/license-rules' },
           { label: 'Adapt a third-party rule', slug: 'guides/adapt-rules' },
         ] },

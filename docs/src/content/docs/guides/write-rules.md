@@ -5,7 +5,7 @@ description: "Author a focused engineering obligation with applicability, exampl
 
 Write each rule in Markdown with a rubric that helps agents make it clear, scoped, and verifiable.
 Use the shared template and rubric with any agent or editor.
-To set up a shared library and create groups before adding rules, follow [Create a rule library](/guides/create-library/).
+To set up a shared library and create groups before adding rules, follow [Create your first library](/start-here/create-library/).
 
 ## Rubric, template, and skill
 
