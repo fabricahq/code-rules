@@ -1,0 +1,76 @@
+# Refresh only the Code Rules formula from public, complete, stable releases.
+name: Update Code Rules
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: update-code-rules
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Generate the formula from the latest published release
+        run: python3 scripts/update_code_rules.py
+      - name: Prepare changed formula for publication
+        id: formula
+        run: |
+          if [ -f Formula/code-rules.rb ] && [ -n "$(git status --porcelain -- Formula/code-rules.rb)" ]; then
+            ruby -c Formula/code-rules.rb
+            mkdir prepared
+            cp Formula/code-rules.rb prepared/code-rules.rb
+            if git cat-file -e HEAD:Formula/code-rules.rb 2>/dev/null; then
+              git rev-parse HEAD:Formula/code-rules.rb > prepared/expected-sha
+            else
+              : > prepared/expected-sha
+            fi
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.formula.outputs.changed == 'true'
+        with:
+          name: code-rules-formula
+          path: prepared/
+          if-no-files-found: error
+    outputs:
+      changed: ${{ steps.formula.outputs.changed }}
+  publish:
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: code-rules-formula
+          path: formula
+      # This job reads the prepared formula as data. It checks out and executes no tap code.
+      - name: Publish the prepared formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAP_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          endpoint="repos/$TAP_REPOSITORY/contents/Formula/code-rules.rb"
+          # Contents API requires the existing file SHA; first installation has no file.
+          if gh api "$endpoint?ref=main" > current.json 2> read-error.txt; then
+            sha=$(jq -r .sha current.json)
+          elif grep -q 'HTTP 404' read-error.txt; then
+            sha=''
+          else
+            cat read-error.txt >&2
+            exit 1
+          fi
+          expected=$(cat formula/expected-sha)
+          [ "$sha" = "$expected" ] || { echo 'Formula changed while preparing this update; rerun the workflow.' >&2; exit 1; }
+          jq -n --rawfile formula formula/code-rules.rb --arg sha "$sha" \
+            '{message: "Update Code Rules formula", branch: "main", content: ($formula | @base64)} + (if $sha == "" then {} else {sha: $sha} end)' > request.json
+          gh api --method PUT "$endpoint" --input request.json

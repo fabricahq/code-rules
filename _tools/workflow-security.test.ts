@@ -20,11 +20,16 @@ function expectImmutableReference(reference: string) {
 }
 
 // Discover workflows automatically so newly added files inherit the same policy.
-for (const file of readdirSync('.github/workflows').filter((name) =>
-  /\.ya?ml$/.test(name),
+for (const file of [
+  '.github/workflows',
+  '_distribution/homebrew-tap/.github/workflows',
+].flatMap((directory) =>
+  readdirSync(directory)
+    .filter((name) => /\.ya?ml$/.test(name))
+    .map((name) => `${directory}/${name}`),
 )) {
   test(`${file} pins external references and disables checkout credential persistence`, () => {
-    const workflow = parse(readFileSync(`.github/workflows/${file}`, 'utf8'));
+    const workflow = parse(readFileSync(file, 'utf8'));
     for (const job of Object.values(workflow.jobs) as Array<{
       uses?: string;
       steps?: Array<{

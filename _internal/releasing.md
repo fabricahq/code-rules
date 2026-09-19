@@ -55,6 +55,14 @@ Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The 
 
 For execution details, read the [release workflow](../.github/workflows/release.yml), [release planner and publisher](../internal/release/), and [packager](../internal/distribution/).
 
+## Installation channels
+
+The standalone installer downloads the latest published stable release, or the explicit version the user selects. It uses the existing four archives and `SHA256SUMS`; release packaging and approval are unchanged.
+
+After the shared Homebrew tap is activated, its **Update Code Rules** workflow checks for a newly published stable release hourly. Run that workflow manually to update sooner. A tap failure does not unpublish or modify the release; fix the reported problem and rerun the tap workflow. Prereleases remain available through explicit standalone installation and manual downloads, but do not advance the Homebrew formula.
+
+See [installation channel setup](../_distribution/README.md) for the tap source, website endpoint, activation requirements, and validation. The tap owns its own write token, so the release workflow needs no credentials for another repository.
+
 ## Retry a failed release
 
 Prefer **Re-run all jobs** on the original failed Release run. To start a manual retry, use **Actions → Release → Run workflow**, select `main`, and copy both **Base SHA** and **Approved head SHA** from the original run summary into the corresponding inputs.
