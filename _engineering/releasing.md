@@ -55,6 +55,14 @@ Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The 
 
 For execution details, read the [release workflow](../.github/workflows/release.yml), [release planner and publisher](../internal/release/), and [packager](../internal/distribution/).
 
+## Homebrew updates
+
+After publishing a stable release, the `update-homebrew` job triggers **Update Code Rules** in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases do not update the formula. The tap validates the published archives and checksums before committing an update.
+
+The job authenticates through **Fabrica Homebrew Releaser**, installed only on the tap with Actions write and Metadata read permissions. The Code Rules repository stores its client ID in the `HOMEBREW_APP_CLIENT_ID` Actions variable and its private key in the `HOMEBREW_APP_PRIVATE_KEY` Actions secret. The job checks out no source and creates a short-lived token restricted to the tap. The tap uses its own token to commit the formula.
+
+If dispatch or the tap update fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure does not modify or unpublish the release. The app can serve other Fabrica tools; add each updater to its tap and grant the app access only to the required tap repositories.
+
 ## Retry a failed release
 
 Prefer **Re-run all jobs** on the original failed Release run. To start a manual retry, use **Actions → Release → Run workflow**, select `main`, and copy both **Base SHA** and **Approved head SHA** from the original run summary into the corresponding inputs.
