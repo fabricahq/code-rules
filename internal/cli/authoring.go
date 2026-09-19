@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/internal/authoring"
+	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
 )
@@ -75,11 +75,11 @@ func (f *authoringFlags) file(name string) string {
 }
 
 // options supplies the configured path or its documented default.
-func (f *authoringFlags) options() authoring.Options {
+func (f *authoringFlags) options() project.Options {
 	if f.value("config") == "" {
-		return authoring.Options{ConfigPath: filepath.Join(f.directory, ".code-rules", "config.json")}
+		return project.Options{ConfigPath: filepath.Join(f.directory, ".code-rules", "config.json")}
 	}
-	return authoring.Options{ConfigPath: f.file("config")}
+	return project.Options{ConfigPath: f.file("config")}
 }
 
 // group returns the explicit metadata for an existing or newly created group.
@@ -100,7 +100,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
 		*started = true
 
-		result, err := authoring.InitializeProject(cmd.Context(), f.options())
+		result, err := project.Initialize(cmd.Context(), f.options())
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 			return err
 		}
 		*started = true
-		result, err := authoring.AddSource(cmd.Context(), args[0], data, sf.options())
+		result, err := project.AddSource(cmd.Context(), args[0], data, sf.options())
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 			return err
 		}
 		*started = true
-		result, err := authoring.AddLocalGroup(cmd.Context(), args[0], gf.group(""), gf.options())
+		result, err := project.AddLocalGroup(cmd.Context(), args[0], gf.group(""), gf.options())
 		if err != nil {
 			return err
 		}
@@ -171,8 +171,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		if err != nil {
 			return err
 		}
-		ro := authoring.RuleOptions{Options: rf.options(), Body: body}
-		result, err := authoring.AddLocalRule(cmd.Context(), args[0], metadata, ro)
+		ro := project.RuleOptions{Options: rf.options(), Body: body}
+		result, err := project.AddLocalRule(cmd.Context(), args[0], metadata, ro)
 		if err != nil {
 			return err
 		}
@@ -184,27 +184,27 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 
 // collectRule validates the existing group before prompting and collects all input before writer ownership.
 // started preserves the CLI distinction between usage failures and failed authoring operations.
-func (f *authoringFlags) collectRule(ctx context.Context, id string, library bool, started *bool) (authoring.RuleMetadata, *string, error) {
+func (f *authoringFlags) collectRule(ctx context.Context, id string, library bool, started *bool) (rules.RuleMetadata, *string, error) {
 	if strings.HasSuffix(id, ".md") {
-		return authoring.RuleMetadata{}, nil, fmt.Errorf("use a rule ID without the .md extension")
+		return rules.RuleMetadata{}, nil, fmt.Errorf("use a rule ID without the .md extension")
 	}
 	if err := f.requireRuleGroup(id, library); err != nil {
 		*started = true
-		return authoring.RuleMetadata{}, nil, err
+		return rules.RuleMetadata{}, nil, err
 	}
 	if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
-		return authoring.RuleMetadata{}, nil, err
+		return rules.RuleMetadata{}, nil, err
 	}
 	*started = true
 	var body *string
 	if f.value("body-file") != "" {
 		text, err := readBody(ctx, f.file("body-file"))
 		if err != nil {
-			return authoring.RuleMetadata{}, nil, err
+			return rules.RuleMetadata{}, nil, err
 		}
 		body = &text
 	}
-	return authoring.RuleMetadata{Title: f.value("title"), WhenToRead: f.value("when-to-read"), Impact: f.value("impact"), ImpactDescription: f.value("impact-description")}, body, nil
+	return rules.RuleMetadata{Title: f.value("title"), WhenToRead: f.value("when-to-read"), Impact: f.value("impact"), ImpactDescription: f.value("impact-description")}, body, nil
 }
 
 // readBody loads a bounded regular UTF-8 input without interpreting it as a rule document.

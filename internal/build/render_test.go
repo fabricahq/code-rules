@@ -1,13 +1,12 @@
 // Validate rendered guidance, relocation, source preservation, and unsafe link failures.
 
-package build_test
+package build
 
 import (
 	"errors"
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -19,11 +18,11 @@ func renderFixture(t *testing.T, body string, support map[string][]byte) (map[st
 	for file, data := range support {
 		files[file] = data
 	}
-	resolved, err := build.Resolve(config, libraries, files)
+	resolved, err := resolve(config, libraries, files)
 	if err != nil {
 		return nil, err
 	}
-	return build.RenderRules(resolved)
+	return renderRules(resolved)
 }
 
 // TestRenderRules retains non-rewritten bytes and relocates parsed links without changing code examples.
@@ -88,11 +87,11 @@ func TestRenderRejectsRuleLinks(t *testing.T) {
 			}
 			supplied.Catalog.Groups[0].Rules[0].Document = document + "\n[other](/" + target + "#details)\n"
 			libraries["team"] = supplied
-			resolved, err := build.Resolve(config, libraries, nil)
+			resolved, err := resolve(config, libraries, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			output, err := build.RenderRules(resolved)
+			output, err := renderRules(resolved)
 			if err == nil || !strings.Contains(err.Error(), "links to other rule documents are not allowed") || output != nil {
 				t.Fatalf("expected rule-link error without partial output: %+v, %v", output, err)
 			}
@@ -111,7 +110,7 @@ func TestRenderPreservesEntityDestinations(t *testing.T) {
 	}
 }
 
-// TestRenderNestsEmptyHeading preserves empty heading structure below the generated Guidance section.
+// TestRenderNestsEmptyHeading preserves empty heading structure below the generated groupGuidance section.
 func TestRenderNestsEmptyHeading(t *testing.T) {
 	output, err := renderFixture(t, "#\nAfter.\n", nil)
 	if err != nil {
@@ -148,11 +147,11 @@ func TestRenderIgnoresInertHTML(t *testing.T) {
 // TestRenderRejectsFileDirectoryConflict refuses an output path that must be both file and directory.
 func TestRenderRejectsFileDirectoryConflict(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, map[string][]byte{"techs/go/a.md": []byte(document), "techs/go/a.md/b.md": []byte(document)})
+	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/a.md": []byte(document), "techs/go/a.md/b.md": []byte(document)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if output, err := build.RenderRules(resolved); err == nil || output != nil {
+	if output, err := renderRules(resolved); err == nil || output != nil {
 		t.Fatal("accepted file/directory conflict")
 	}
 }
@@ -165,11 +164,11 @@ func TestRenderReferenceImages(t *testing.T) {
 		lib.Catalog.Groups[0].Rules[0].Document = document + "\n" + body
 		lib.Catalog.SupportingFiles["assets/diagram.png"] = []byte("image bytes")
 		libraries["team"] = lib
-		resolved, err := build.Resolve(config, libraries, nil)
+		resolved, err := resolve(config, libraries, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		output, err := build.RenderRules(resolved)
+		output, err := renderRules(resolved)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -191,12 +190,12 @@ func TestRenderRejectsInvalidUTF8(t *testing.T) {
 // TestRenderRejectsInvalidDocumentBytes checks callers that construct a resolved value directly.
 func TestRenderRejectsInvalidDocumentBytes(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	resolved.Groups[0].Rules[0].Rule.Document += "\xff"
-	output, err := build.RenderRules(resolved)
+	output, err := renderRules(resolved)
 	var validation *rules.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "team:techs/go/errors" || !strings.Contains(err.Error(), "UTF-8") || output != nil {
 		t.Fatalf("expected contextual UTF-8 error without output, got %v, %v", output, err)
@@ -210,11 +209,11 @@ func TestRenderFlattensMetadataLineEndings(t *testing.T) {
 			config, libraries := fixture(t, `{}`, `{}`)
 			value := `"Safe` + ending + `## Extra"`
 			text := "---\ntitle: " + value + "\nimpact: HIGH\nimpactDescription: " + value + "\nwhenToRead: " + value + "\n---\nGuidance."
-			resolved, err := build.Resolve(config, libraries, map[string][]byte{"techs/go/local.md": []byte(text)})
+			resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/local.md": []byte(text)})
 			if err != nil {
 				t.Fatal(err)
 			}
-			output, err := build.RenderRules(resolved)
+			output, err := renderRules(resolved)
 			if err != nil {
 				t.Fatal(err)
 			}

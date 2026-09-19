@@ -60,13 +60,13 @@ func markdownParser(ends map[ast.Node]int) parser.Parser {
 var externalURI = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
 
 // renderBody rewrites destinations, removes a duplicate title, and nests guidance headings.
-func renderBody(body string, active ActiveRule, paths []string, outputPath string) (string, error) {
+func renderBody(body string, active resolvedRule, paths []string, outputPath string) (string, error) {
 	source := []byte(body)
 	ends := map[ast.Node]int{}
 	root := markdownParser(ends).Parse(source)
 	edits := []edit{}
 	bodyHeadingDepth := 3
-	if outputPath != RulePath(active.Rule) {
+	if outputPath != rulePath(active.Rule) {
 		edits = referenceEdits(root, active.Rule.ID)
 		bodyHeadingDepth = 5
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/fabricahq/code-rules/internal/build"
+	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
 )
 
@@ -22,7 +23,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 	}
 	defer root.Close()
 	var changes FileChanges
-	err = WithWriter(ctx, root, func(w *Writer) error {
+	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
 		before, err := readProject(ctx, root, name)
 		if err != nil {
 			return err
@@ -31,13 +32,13 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		if err != nil {
 			return err
 		}
-		snapshots := map[string]Snapshot{}
+		snapshots := map[string]snapshot{}
 		libraries := map[string]build.Library{}
 		for alias, item := range imported {
 			snapshots[alias] = item.Snapshot
 			libraries[alias] = build.Library{Catalog: item.Catalog, Commit: item.Snapshot.Commit, Tag: item.Snapshot.Tag}
 		}
-		vendor, err := EncodeSnapshots(before.config, snapshots)
+		vendor, err := encodeSnapshots(before.config, snapshots)
 		if err != nil {
 			return err
 		}
@@ -46,7 +47,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 			return err
 		}
 		changes = compareFiles(managedFiles(treeFiles(before.vendor), treeFiles(before.generated)), managedFiles(vendor, output.Files))
-		return w.Apply(map[Target]map[string][]byte{Vendor: vendor, Generated: output.Files}, func() error { return requireUnchanged(ctx, root, name, before) })
+		return w.Apply(map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}, func() error { return requireUnchanged(ctx, root, name, before) })
 	})
 	if err != nil {
 		return FileChanges{}, fmt.Errorf("sync project: %w", err)

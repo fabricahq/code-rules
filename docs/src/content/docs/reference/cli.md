@@ -36,8 +36,6 @@ JSON mode prints one response on stdout and never prompts. Success returns `ok: 
 
 Exit status is 0 for success, 1 for operation failure or stale output, and 2 for invalid usage. In human mode, operational errors go to stderr; an out-of-date check prints its status, problems, and next steps on stdout. In JSON mode, errors go in the JSON response; stderr is reserved for failures writing that response.
 
-The executable and the CLI runbook use this same output contract.
-
 ## Project agent guide
 
 `code-rules init` creates `.code-rules/README.md` alongside configuration and local rules. This guide defines rules, groups, and libraries and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results. If a custom configuration lives outside a directory named `.code-rules`, init creates `CODE_RULES.md` beside that configuration and preserves the project's `README.md`.

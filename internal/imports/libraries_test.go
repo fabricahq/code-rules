@@ -14,9 +14,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/gitfixture"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // libraryFiles supplies original rules, complete owned assets, shared dependencies, and exact license bytes.
@@ -257,7 +257,7 @@ func TestGitBlobFraming(t *testing.T) {
 		if err := os.WriteFile(script, []byte("#!/bin/sh\nprintf %s "+gitfixture.Quote(output)+"\n"), 0700); err != nil {
 			t.Fatal(err)
 		}
-		g := &gitFiles{ctx: context.Background(), revision: &Revision{directory: dir, runner: gitRunner{executable: script, environment: gitEnvironment(os.Environ())}}, entries: map[string]treeEntry{"x": {name: "x", mode: 0644, size: 1, object: oid}}}
+		g := &gitFiles{ctx: context.Background(), revision: &revision{directory: dir, runner: gitRunner{executable: script, environment: gitEnvironment(os.Environ())}}, entries: map[string]treeEntry{"x": {name: "x", mode: 0644, size: 1, object: oid}}}
 		_, err := g.ReadFile("x")
 		requireCode(t, err, "git-failed")
 	}

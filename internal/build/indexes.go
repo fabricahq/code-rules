@@ -10,14 +10,14 @@ import (
 	"unicode/utf8"
 )
 
-// DefaultIndexMaxLines keeps ordinary summaries together before pagination.
-const DefaultIndexMaxLines = 750
+// defaultIndexMaxLines keeps ordinary summaries together before pagination.
+const defaultIndexMaxLines = 750
 
-// IndexPages counts Markdown source lines, including blank lines and reading instructions.
+// indexPages counts Markdown source lines, including blank lines and reading instructions.
 // LF and CRLF both end one line; visual wrapping does not add lines.
-// IndexPages splits an index at entry boundaries; every returned file fits maxLines.
+// indexPages splits an index at entry boundaries; every returned file fits maxLines.
 // The original path is either the complete page or a complete directory of numbered parts.
-func IndexPages(file, header string, entries []string, footer string, maxLines int) (map[string]string, error) {
+func indexPages(file, header string, entries []string, footer string, maxLines int) (map[string]string, error) {
 	if !strings.HasSuffix(file, ".md") {
 		return nil, invalid(file, "expected a contained Markdown output path")
 	}
@@ -118,14 +118,8 @@ func indexDocument(header string, entries []string, footer string) string {
 	return strings.Join(blocks, "\n\n") + "\n"
 }
 
-// RenderIndexes creates summary-only discovery pages for a Resolve result.
-// It never truncates a rule or embeds its body; each summary links to the standalone rendered file.
-func RenderIndexes(resolved Resolved, maxLines int) (map[string]string, error) {
-	return renderIndexes(resolved, maxLines, 0)
-}
-
 // renderIndexes selects complete inline groups when both budgets permit, otherwise paginates summaries.
-func renderIndexes(resolved Resolved, maxLines, inlineMaxBytes int) (map[string]string, error) {
+func renderIndexes(resolved resolution, maxLines, inlineMaxBytes int) (map[string]string, error) {
 	if maxLines <= 0 {
 		return nil, invalid("indexMaxLines", "indexMaxLines must be positive")
 	}
@@ -154,13 +148,13 @@ func renderIndexes(resolved Resolved, maxLines, inlineMaxBytes int) (map[string]
 		entries := []string{}
 		for _, active := range group.Rules {
 			r := active.Rule
-			entries = append(entries, "### "+escapeText(r.Title)+"\n\nRule ID: `"+r.ID+"`\n\n**When to read:** "+escapeText(r.WhenToRead)+"\n\n**Impact:** "+escapeText(string(r.Impact))+"\n\n**Why it matters:** "+escapeText(r.ImpactDescription)+"\n\n**Read full rule:** ["+escapeText(r.Title)+"]("+relativeURL(file, RulePath(r))+")")
+			entries = append(entries, "### "+escapeText(r.Title)+"\n\nRule ID: `"+r.ID+"`\n\n**When to read:** "+escapeText(r.WhenToRead)+"\n\n**Impact:** "+escapeText(string(r.Impact))+"\n\n**Why it matters:** "+escapeText(r.ImpactDescription)+"\n\n**Read full rule:** ["+escapeText(r.Title)+"]("+relativeURL(file, rulePath(r))+")")
 		}
 		if len(entries) == 0 {
 			entries = append(entries, "No active rules in this group.")
 		}
 		header := groupIndexHeader(group.ID, name, cues, false)
-		pages, err := IndexPages(file, header, entries, footer, maxLines)
+		pages, err := indexPages(file, header, entries, footer, maxLines)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +163,7 @@ func renderIndexes(resolved Resolved, maxLines, inlineMaxBytes int) (map[string]
 		}
 	}
 	header := indexHeader(resolved.Groups)
-	pages, err := IndexPages("RULES.md", header, groupEntries, "These files are generated. Edit source rules or configuration and rebuild to change them.", maxLines)
+	pages, err := indexPages("RULES.md", header, groupEntries, "These files are generated. Edit source rules or configuration and rebuild to change them.", maxLines)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +177,7 @@ func renderIndexes(resolved Resolved, maxLines, inlineMaxBytes int) (map[string]
 }
 
 // inlineGroupPage returns a whole group or a size miss, without truncation or partial output.
-func inlineGroupPage(group Group, paths map[string][]string, file, footer string, maxBytes int) (string, bool, error) {
+func inlineGroupPage(group resolvedGroup, paths map[string][]string, file, footer string, maxBytes int) (string, bool, error) {
 	header := groupIndexHeader(group.ID, groupTitle(group), groupReadingGuidance(group), true)
 	bytes := len(indexDocument(header, nil, footer))
 	entries := []string{}
@@ -203,7 +197,7 @@ func inlineGroupPage(group Group, paths map[string][]string, file, footer string
 }
 
 // groupTitle joins distinct effective names in deterministic order.
-func groupTitle(group Group) string {
+func groupTitle(group resolvedGroup) string {
 	names := []string{}
 	for _, guidance := range group.EffectiveGuidance {
 		names = append(names, guidance.Metadata.Name)
@@ -217,7 +211,7 @@ func groupTitle(group Group) string {
 }
 
 // indexHeader explains empty selections or guides agents to the resolved groups and rules.
-func indexHeader(groups []Group) string {
+func indexHeader(groups []resolvedGroup) string {
 	blocks := []string{
 		"# Code Rules",
 		"This project uses [Fabrica Code Rules](https://code-rules.fabricahq.com) to declare its adopted engineering practices.",
@@ -272,7 +266,7 @@ func groupIndexHeader(id, name, cues string, inline bool) string {
 }
 
 // groupReadingGuidance repeats resolved descriptions and reading cues, labeling multiple definitions by source.
-func groupReadingGuidance(group Group) string {
+func groupReadingGuidance(group resolvedGroup) string {
 	blocks := []string{}
 	for _, guidance := range group.EffectiveGuidance {
 		metadata := guidance.Metadata

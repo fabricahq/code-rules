@@ -12,9 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/gitfixture"
+	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // syncProject initializes a custom config and a tagged library with exact binary and license content.
@@ -35,7 +36,10 @@ func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 			t.Error(err)
 		}
 	})
-	root := openProject(t)
+	root := openTestProject(t)
+	if _, err := Initialize(context.Background(), Options{ConfigPath: filepath.Join(root.Name(), "custom.json")}); err != nil {
+		t.Fatal(err)
+	}
 	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "ref": "v1.0.0", "groups": []string{"techs/go"}, "exclude": map[string]any{}, "replace": map[string]any{}}}})
 	writeFixture(t, root, "custom.json", string(raw))
 	return f, Options{ConfigPath: filepath.Join(root.Name(), "custom.json"), ToolVersion: "1.2.3"}, imports.Options{GitPath: f.GitPath, Environment: f.Environment}
@@ -58,14 +62,14 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshots, err := DecodeSnapshots(state.config, state.vendor.Files)
+	snapshots, err := decodeSnapshots(state.config, state.vendor.Files)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(snapshots["team"].Files["LICENSE"], []byte("Original terms\r\n")) || !bytes.Equal(snapshots["team"].Files["techs/go/assets/errors/data.bin"], []byte{0, 255, 128}) {
 		t.Fatal("original snapshot bytes changed")
 	}
-	before, _ := ReadTree(ctx, root, ".")
+	before, _ := filetxn.ReadTree(ctx, root, ".")
 	again, err := Sync(ctx, options, git)
 	if err != nil || len(again.Added)+len(again.Changed)+len(again.Removed) != 0 {
 		t.Fatalf("repeat: %+v %v", again, err)
@@ -73,10 +77,10 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	// This offline check cannot use Git or any language runtime through PATH.
 	t.Setenv("PATH", t.TempDir())
 	checked, err := Check(ctx, options)
-	if err != nil || !reflect.DeepEqual(checked, again) {
+	if err != nil || !checked.Current() {
 		t.Fatalf("offline check: %+v %v", checked, err)
 	}
-	after, _ := ReadTree(ctx, root, ".")
+	after, _ := filetxn.ReadTree(ctx, root, ".")
 	if before.Digest() != after.Digest() {
 		t.Fatal("repeat/check changed bytes")
 	}
@@ -85,7 +89,7 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	if err != nil || len(retired.Removed) == 0 {
 		t.Fatalf("retire: %+v %v", retired, err)
 	}
-	vendor, err := ReadTree(ctx, root, "vendor")
+	vendor, err := filetxn.ReadTree(ctx, root, "vendor")
 	if err != nil || len(vendor.Files) != 0 {
 		t.Fatal("retired files retained", err)
 	}
@@ -121,7 +125,7 @@ func TestSyncUpdatesTag(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshots, err := DecodeSnapshots(state.config, state.vendor.Files)
+	snapshots, err := decodeSnapshots(state.config, state.vendor.Files)
 	if err != nil || snapshots["team"].Commit != f.LatestCommit {
 		t.Fatal("stale identity", err)
 	}
@@ -151,7 +155,7 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 			} else if scenario == "invalid-local" {
 				writeFixture(t, root, "local/techs/go/bad.md", "invalid")
 			}
-			before, err := ReadTree(ctx, root, ".")
+			before, err := filetxn.ReadTree(ctx, root, ".")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -171,7 +175,7 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 			if scenario == "invalid-local" && !errors.As(err, &validation) {
 				t.Fatal("lost validation error", err)
 			}
-			after, err := ReadTree(context.Background(), root, ".")
+			after, err := filetxn.ReadTree(context.Background(), root, ".")
 			if err != nil || before.Digest() != after.Digest() {
 				t.Fatal("failed sync changed project", err)
 			}

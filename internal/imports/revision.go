@@ -26,9 +26,9 @@ type Options struct {
 	Timeout     time.Duration
 }
 
-// Revision owns a temporary bare repository until Close. It is not safe for concurrent use with Close.
+// revision owns a temporary bare repository until Close. It is not safe for concurrent use with Close.
 // Tag and Version are present only for a version-constraint selection.
-type Revision struct {
+type revision struct {
 	Commit    string `json:"commit"`
 	Tag       string `json:"resolvedTag,omitempty"`
 	Version   string `json:"resolvedVersion,omitempty"`
@@ -37,7 +37,7 @@ type Revision struct {
 }
 
 // Close removes all temporary repository state. Callers must handle cleanup failures.
-func (r *Revision) Close() error {
+func (r *revision) Close() error {
 	if r == nil || r.directory == "" {
 		return nil
 	}
@@ -50,9 +50,9 @@ func (r *Revision) Close() error {
 
 var gitVersion = regexp.MustCompile(`^git version ([0-9]+)\.([0-9]+)`)
 
-// FetchRevision validates a source selector, fetches it, and verifies the resulting immutable identity.
+// fetchRevision validates a source selector, fetches it, and verifies the resulting immutable identity.
 // The caller owns Close on success. Failure removes temporary state and returns no partial revision.
-func FetchRevision(ctx context.Context, source rules.Source, options Options) (_ *Revision, err error) {
+func fetchRevision(ctx context.Context, source rules.Source, options Options) (_ *revision, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, contextFailure(err)
 	}
@@ -105,7 +105,7 @@ func FetchRevision(ctx context.Context, source rules.Source, options Options) (_
 	if err != nil {
 		return nil, fail("temporary-storage", "Cannot create temporary Git storage.", err)
 	}
-	revision := &Revision{directory: dir, runner: runner}
+	revision := &revision{directory: dir, runner: runner}
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, revision.Close())

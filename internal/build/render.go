@@ -15,19 +15,19 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// RulePath maps one source-qualified identity to its standalone generated path.
-func RulePath(rule rules.Rule) string {
+// rulePath maps one source-qualified identity to its standalone generated path.
+func rulePath(rule rules.Rule) string {
 	return "rules/" + strings.Replace(rule.ID, ":", "/", 1) + ".md"
 }
 
-// RenderRules renders a Resolve result without modifying inputs or writing files.
+// renderRules renders a resolve result without modifying inputs or writing files.
 // Each rule gets one standalone document; combined group delivery is a separate capability.
-func RenderRules(resolved Resolved) (map[string]string, error) {
+func renderRules(resolved resolution) (map[string]string, error) {
 	output := map[string]string{}
 	paths := renderSourcePaths(resolved)
 	for _, group := range resolved.Groups {
 		for _, active := range group.Rules {
-			file := RulePath(active.Rule)
+			file := rulePath(active.Rule)
 			text, err := renderRule(active, paths[active.Origin.Source], file)
 			if err != nil {
 				return nil, err
@@ -45,7 +45,7 @@ func RenderRules(resolved Resolved) (map[string]string, error) {
 }
 
 // renderSourcePaths selects the retained inventory by the resolved rule's actual origin.
-func renderSourcePaths(resolved Resolved) map[string][]string {
+func renderSourcePaths(resolved resolution) map[string][]string {
 	paths := map[string][]string{"local": resolved.LocalPaths}
 	for _, source := range resolved.Sources {
 		paths[source.Name] = source.Paths
@@ -54,7 +54,7 @@ func renderSourcePaths(resolved Resolved) map[string][]string {
 }
 
 // renderRule wraps rewritten guidance in applicability, origin, and original frontmatter sections.
-func renderRule(active ActiveRule, paths []string, outputPath string) (string, error) {
+func renderRule(active resolvedRule, paths []string, outputPath string) (string, error) {
 	if !utf8.ValidString(active.Rule.Document) {
 		return "", invalid(active.Rule.ID, "expected UTF-8 text")
 	}
@@ -72,13 +72,13 @@ func renderRule(active ActiveRule, paths []string, outputPath string) (string, e
 	}
 	r := active.Rule
 	titleHeading := "#"
-	if outputPath != RulePath(r) {
+	if outputPath != rulePath(r) {
 		titleHeading = "###"
 	}
 	sectionHeading := titleHeading + "#"
 	lines := []string{titleHeading + " " + escapeText(r.Title), "", "Rule ID: `" + r.ID + "`", "", "**When to read:** " + escapeText(r.WhenToRead), "", "**Impact:** " + escapeText(string(r.Impact)), "", "**Why it matters:** " + escapeText(r.ImpactDescription), "", sectionHeading + " Guidance", "", body, "", sectionHeading + " Source and attribution", "", "**Rule source:** [Original rule](" + source + ")"}
-	if outputPath != RulePath(r) {
-		lines = append(lines, "", "**Separate rule file:** ["+escapeText(r.Title)+"]("+relativeURL(outputPath, RulePath(r))+")")
+	if outputPath != rulePath(r) {
+		lines = append(lines, "", "**Separate rule file:** ["+escapeText(r.Title)+"]("+relativeURL(outputPath, rulePath(r))+")")
 	}
 	for _, attribution := range r.Attribution {
 		lines = append(lines, "", "**Attribution:** ["+escapeText(attribution.Description)+"](<"+strings.NewReplacer("<", "%3C", ">", "%3E").Replace(attribution.URL)+">)")
@@ -138,7 +138,7 @@ func workspaceLink(outputPath, source, file string) string {
 }
 
 // sourceLink prefers a recognized repository's immutable commit URL and falls back to retained source.
-func sourceLink(origin Origin, outputPath string) (string, error) {
+func sourceLink(origin ruleOrigin, outputPath string) (string, error) {
 	if origin.Repository != "" {
 		raw, _ := json.Marshal(origin.Repository)
 		repository, err := rules.ParseRepository(raw, origin.Source)
@@ -153,10 +153,10 @@ func sourceLink(origin Origin, outputPath string) (string, error) {
 }
 
 // relocatedURL validates ownership and links local destinations to terms or retained files.
-func relocatedURL(destination string, active ActiveRule, paths []string, outputPath string) (string, error) {
+func relocatedURL(destination string, active resolvedRule, paths []string, outputPath string) (string, error) {
 	if strings.HasPrefix(destination, "#") {
-		if outputPath != RulePath(active.Rule) {
-			return relativeURL(outputPath, RulePath(active.Rule)) + destination, nil
+		if outputPath != rulePath(active.Rule) {
+			return relativeURL(outputPath, rulePath(active.Rule)) + destination, nil
 		}
 		return destination, nil
 	}

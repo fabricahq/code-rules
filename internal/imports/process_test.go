@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/gitfixture"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // TestExitObservationDoesNotReap leaves exit status available after observing an already-exited child.

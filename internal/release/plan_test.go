@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/gitfixture"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 func TestReleaseRequests(t *testing.T) {

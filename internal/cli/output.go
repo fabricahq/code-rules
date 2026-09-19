@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/authoring"
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
@@ -109,22 +109,11 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 				fmt.Fprintf(out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, problem.NextStep)
 			}
 		}
-	case authoring.Result:
-		if len(result.Files) == 0 {
-			out.WriteString("No files changed.\n")
-		} else {
-			out.WriteString("Updated files:\n")
-			for _, path := range result.Files {
-				fmt.Fprintf(out, "  %s\n", path)
-			}
-		}
-		for _, warning := range result.Warnings {
-			fmt.Fprintf(out, "Warning: %s\n", warning)
-		}
-		if result.Next != "" {
-			fmt.Fprintf(out, "\nNext: %s\n", result.Next)
-		}
-	case authoring.LibraryCheckResult:
+	case project.AuthoringResult:
+		formatAuthored(out, result.Files, result.Warnings, result.Next)
+	case library.AuthoringResult:
+		formatAuthored(out, result.Files, result.Warnings, result.Next)
+	case library.CheckResult:
 		fmt.Fprintf(out, "Library is valid: %d group(s), %d rule(s).\n", result.Groups, result.Rules)
 		for _, warning := range result.Warnings {
 			fmt.Fprintf(out, "Warning: %s\n", warning)
@@ -183,4 +172,22 @@ func requestsJSON(root *cobra.Command, args []string) bool {
 		}
 	}
 	return enabled
+}
+
+// formatAuthored presents completed file changes consistently for project and library operations.
+func formatAuthored(out *strings.Builder, files, warnings []string, next string) {
+	if len(files) == 0 {
+		out.WriteString("No files changed.\n")
+	} else {
+		out.WriteString("Updated files:\n")
+		for _, path := range files {
+			fmt.Fprintf(out, "  %s\n", path)
+		}
+	}
+	for _, warning := range warnings {
+		fmt.Fprintf(out, "Warning: %s\n", warning)
+	}
+	if next != "" {
+		fmt.Fprintf(out, "\nNext: %s\n", next)
+	}
 }

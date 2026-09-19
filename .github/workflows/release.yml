@@ -62,7 +62,7 @@ jobs:
           fi
           # Keep retry inputs available even when planning or a later build fails.
           printf 'Release request range\n\nBase SHA: `%s`\n\nApproved head SHA: `%s`\n' "$BASE" "$HEAD" >> "$GITHUB_STEP_SUMMARY"
-          go run ./cmd/release-plan --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/release-plan.json"
+          go run ./cmd/plan-release --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/release-plan.json"
           if [ "$EVENT" = workflow_dispatch ]; then
             jq -e '.tag != ""' "$RUNNER_TEMP/release-plan.json" > /dev/null || { echo 'Retry range contains no release request'; exit 1; }
           fi

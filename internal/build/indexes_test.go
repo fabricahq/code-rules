@@ -1,6 +1,6 @@
 // Verify page boundaries, directory completeness, and actionable discovery links.
 
-package build_test
+package build
 
 import (
 	"bytes"
@@ -10,7 +10,6 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/rules"
 
-	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/yuin/goldmark/v2/parser"
 	htmlrenderer "github.com/yuin/goldmark/v2/renderer/html"
 )
@@ -18,23 +17,23 @@ import (
 // TestIndexPagesMeasuresLines covers source lines at an exact fit and preserves complete ordered entries.
 func TestIndexPagesMeasuresLines(t *testing.T) {
 	entries := []string{"第一の項目"}
-	whole, err := build.IndexPages("RULES.md", "# Index", entries, "End", 1000)
+	whole, err := indexPages("RULES.md", "# Index", entries, "End", 1000)
 	if err != nil {
 		t.Fatal(err)
 	}
 	size := strings.Count(whole["RULES.md"], "\n")
-	exact, err := build.IndexPages("RULES.md", "# Index", entries, "End", size)
+	exact, err := indexPages("RULES.md", "# Index", entries, "End", size)
 	if err != nil || exact["RULES.md"] != whole["RULES.md"] {
 		t.Fatalf("exact fit: %v", err)
 	}
-	if output, err := build.IndexPages("RULES.md", "# Index", entries, "End", size-1); err == nil || output != nil {
+	if output, err := indexPages("RULES.md", "# Index", entries, "End", size-1); err == nil || output != nil {
 		t.Fatal("oversize entry accepted")
 	}
 	entries = nil
 	for i := range 7 {
 		entries = append(entries, fmt.Sprintf("Entry %d: %s", i, strings.Repeat("界\r\n", 240)))
 	}
-	pages, err := build.IndexPages("groups/techs/go.md", "# Go", entries, "Footer", 400)
+	pages, err := indexPages("groups/techs/go.md", "# Go", entries, "Footer", 400)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,10 +62,10 @@ func TestIndexPagesRejectsUnboundedDirectory(t *testing.T) {
 	for i := range entries {
 		entries[i] = strings.Repeat("x\n", 180)
 	}
-	if pages, err := build.IndexPages("RULES.md", "# Index", entries, "", 250); err == nil || pages != nil {
+	if pages, err := indexPages("RULES.md", "# Index", entries, "", 250); err == nil || pages != nil {
 		t.Fatal("accepted incomplete part directory")
 	}
-	if _, err := build.IndexPages("../RULES.md", "", nil, "", 100); err == nil {
+	if _, err := indexPages("../RULES.md", "", nil, "", 100); err == nil {
 		t.Fatal("accepted escaping output")
 	}
 }
@@ -74,11 +73,11 @@ func TestIndexPagesRejectsUnboundedDirectory(t *testing.T) {
 // TestRenderIndexesLinksToEffectiveDefinitions includes replacements and excludes full bodies.
 func TestRenderIndexesLinksToEffectiveDefinitions(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+	pages, err := renderIndexes(resolved, defaultIndexMaxLines, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +96,7 @@ func TestRenderIndexesLinksToEffectiveDefinitions(t *testing.T) {
 func TestIndexPagesRejectsMalformedUTF8(t *testing.T) {
 	bad := string([]byte{0xff})
 	for _, content := range [][]string{{bad, "entry", "footer"}, {"header", bad, "footer"}, {"header", "entry", bad}} {
-		if output, err := build.IndexPages("RULES.md", content[0], []string{content[1]}, content[2], 1000); err == nil || output != nil {
+		if output, err := indexPages("RULES.md", content[0], []string{content[1]}, content[2], 1000); err == nil || output != nil {
 			t.Fatal("accepted invalid UTF-8")
 		}
 	}
@@ -106,11 +105,11 @@ func TestIndexPagesRejectsMalformedUTF8(t *testing.T) {
 // TestRenderEmptyGroup explains why an adopted group has no rule summaries.
 func TestRenderEmptyGroup(t *testing.T) {
 	config, libraries := fixture(t, `{"techs/go/errors":"Not applicable"}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+	pages, err := renderIndexes(resolved, defaultIndexMaxLines, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +134,7 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 				want, unwanted = "When editing this project.", "When editing Go."
 				description, unwantedDescription = "Project guidance.", "Go guidance."
 			}
-			resolved, err := build.Resolve(config, libraries, files)
+			resolved, err := resolve(config, libraries, files)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -145,7 +144,7 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 				active.Rule.ID = fmt.Sprintf("team:techs/go/rule-%d", i)
 				resolved.Groups[0].Rules = append(resolved.Groups[0].Rules, active)
 			}
-			pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+			pages, err := renderIndexes(resolved, defaultIndexMaxLines, 0)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -170,7 +169,7 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 						t.Fatalf("%s omitted %q", file, instruction)
 					}
 				}
-				if !strings.Contains(strings.ToLower(page), "after compaction") || strings.Count(page, "\n") > build.DefaultIndexMaxLines {
+				if !strings.Contains(strings.ToLower(page), "after compaction") || strings.Count(page, "\n") > defaultIndexMaxLines {
 					t.Fatalf("%s lost reading instructions or exceeded its budget", file)
 				}
 			}
@@ -181,12 +180,12 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 // TestGroupPagesKeepMultipleSourceCues labels each imported definition when no local override applies.
 func TestGroupPagesKeepMultipleSourceCues(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	resolved.Groups[0].EffectiveGuidance = append(resolved.Groups[0].EffectiveGuidance, build.Guidance{Source: "second", Metadata: rules.GroupMetadata{Name: "Go Services", Description: "Other guidance.", WhenToRead: "When reviewing services."}})
-	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+	resolved.Groups[0].EffectiveGuidance = append(resolved.Groups[0].EffectiveGuidance, groupGuidance{Source: "second", Metadata: rules.GroupMetadata{Name: "Go Services", Description: "Other guidance.", WhenToRead: "When reviewing services."}})
+	pages, err := renderIndexes(resolved, defaultIndexMaxLines, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +201,7 @@ func TestGroupPagesKeepMultipleSourceCues(t *testing.T) {
 // TestIndexPagesRejectsNonportablePaths exercises direct callers before either pagination path returns output.
 func TestIndexPagesRejectsNonportablePaths(t *testing.T) {
 	for _, file := range []string{"groups/bad:name.md", "groups/bad\nname.md", "groups/bad\x7fname.md"} {
-		if pages, err := build.IndexPages(file, "# Index", []string{"Entry"}, "", 8000); err == nil || pages != nil {
+		if pages, err := indexPages(file, "# Index", []string{"Entry"}, "", 8000); err == nil || pages != nil {
 			t.Fatalf("accepted nonportable path %q", file)
 		}
 	}
@@ -218,7 +217,7 @@ func BenchmarkIndexPagesLarge(b *testing.B) {
 			}
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := build.IndexPages("RULES.md", "# Rules", entries, "Footer", build.DefaultIndexMaxLines); err != nil {
+				if _, err := indexPages("RULES.md", "# Rules", entries, "Footer", defaultIndexMaxLines); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -230,12 +229,12 @@ func BenchmarkIndexPagesLarge(b *testing.B) {
 func TestIndexPagesDefaultBoundary(t *testing.T) {
 	for _, ending := range []string{"\n", "\r\n"} {
 		entries := []string{strings.Repeat("界"+ending, 372), strings.Repeat("b"+ending, 369)}
-		exact, err := build.IndexPages("RULES.md", "# Rules", entries, "Footer", build.DefaultIndexMaxLines)
+		exact, err := indexPages("RULES.md", "# Rules", entries, "Footer", defaultIndexMaxLines)
 		if err != nil || len(exact) != 1 || strings.Count(exact["RULES.md"], "\n") != 750 {
 			t.Fatalf("750 lines: %v, %v", exact, err)
 		}
 		entries[1] += ending
-		split, err := build.IndexPages("RULES.md", "# Rules", entries, "Footer", build.DefaultIndexMaxLines)
+		split, err := indexPages("RULES.md", "# Rules", entries, "Footer", defaultIndexMaxLines)
 		if err != nil || len(split) != 3 {
 			t.Fatalf("751 lines: %v, %v", split, err)
 		}
@@ -246,7 +245,7 @@ func TestIndexPagesDefaultBoundary(t *testing.T) {
 		}
 	}
 	// A very long source line must not trigger byte-based pagination.
-	pages, err := build.IndexPages("RULES.md", "# Rules", []string{strings.Repeat("界", 10000)}, "", build.DefaultIndexMaxLines)
+	pages, err := indexPages("RULES.md", "# Rules", []string{strings.Repeat("界", 10000)}, "", defaultIndexMaxLines)
 	if err != nil || len(pages) != 1 {
 		t.Fatalf("long line: %v", err)
 	}
@@ -255,14 +254,14 @@ func TestIndexPagesDefaultBoundary(t *testing.T) {
 // TestOrdinarySummaryStaysTogether prevents premature part directories for small groups.
 func TestOrdinarySummaryStaysTogether(t *testing.T) {
 	config, libraries := fixture(t, "{}", "{}")
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for range 11 {
 		resolved.Groups[0].Rules = append(resolved.Groups[0].Rules, resolved.Groups[0].Rules[0])
 	}
-	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+	pages, err := renderIndexes(resolved, defaultIndexMaxLines, 0)
 	if err != nil || len(pages) != 2 {
 		t.Fatalf("twelve summaries should stay together: %v", err)
 	}
@@ -271,12 +270,12 @@ func TestOrdinarySummaryStaysTogether(t *testing.T) {
 // TestGroupDescriptionsEscapeMarkdown keeps authored descriptions from adding links or headings.
 func TestGroupDescriptionsEscapeMarkdown(t *testing.T) {
 	config, libraries := fixture(t, "{}", "{}")
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	resolved.Groups[0].EffectiveGuidance[0].Metadata.Description = "[guide](https://example.com)\n# Heading"
-	pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+	pages, err := renderIndexes(resolved, defaultIndexMaxLines, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,13 +289,13 @@ func TestGroupDescriptionsEscapeMarkdown(t *testing.T) {
 // TestGroupDescriptionsRemainLiteral prevents descriptions from becoming Markdown block syntax.
 func TestGroupDescriptionsRemainLiteral(t *testing.T) {
 	config, libraries := fixture(t, "{}", "{}")
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, description := range []string{"---", "- Text", "1. Text"} {
 		resolved.Groups[0].EffectiveGuidance[0].Metadata.Description = description
-		pages, err := build.RenderIndexes(resolved, build.DefaultIndexMaxLines)
+		pages, err := renderIndexes(resolved, defaultIndexMaxLines, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -319,7 +318,7 @@ func TestIndexPagesNavigation(t *testing.T) {
 		for i := range entries {
 			entries[i] = fmt.Sprintf("Entry %d\n%s", i, strings.Repeat("Content\n", 50))
 		}
-		pages, err := build.IndexPages("groups/go tips.md", "# Go", entries, "Footer", 70)
+		pages, err := indexPages("groups/go tips.md", "# Go", entries, "Footer", 70)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -363,7 +362,7 @@ func TestIndexPagesNavigation(t *testing.T) {
 			}
 		}
 	}
-	pages, err := build.IndexPages("RULES.md", "# Rules", []string{"Short summary"}, "", 750)
+	pages, err := indexPages("RULES.md", "# Rules", []string{"Short summary"}, "", 750)
 	if err != nil || len(pages) != 1 || strings.Contains(pages["RULES.md"], "**Page ") {
 		t.Fatal("unpaginated output changed")
 	}
@@ -371,7 +370,7 @@ func TestIndexPagesNavigation(t *testing.T) {
 
 // TestIndexPagesWithoutFooter keeps navigation last when no notice is supplied.
 func TestIndexPagesWithoutFooter(t *testing.T) {
-	pages, err := build.IndexPages("RULES.md", "# Rules", []string{strings.Repeat("one\n", 40), strings.Repeat("two\n", 40)}, "", 60)
+	pages, err := indexPages("RULES.md", "# Rules", []string{strings.Repeat("one\n", 40), strings.Repeat("two\n", 40)}, "", 60)
 	if err != nil {
 		t.Fatal(err)
 	}

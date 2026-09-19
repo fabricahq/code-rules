@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/gitfixture"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // fixtureRepository creates a real repository served by an isolated local upload-pack helper.
@@ -47,7 +47,7 @@ func TestFetchRevision(t *testing.T) {
 		{"commit", f.FirstCommit, "", f.FirstCommit}, {"lightweight", "v1.0.0", "", f.FirstCommit}, {"annotated", "v1.2.0", "", f.LatestCommit}, {"constraint", "", ">= 1.0.0", f.LatestCommit},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			revision, err := FetchRevision(context.Background(), rules.Source{Name: "team", Repository: f.Repository, Ref: tc.ref, Version: tc.version}, options)
+			revision, err := fetchRevision(context.Background(), rules.Source{Name: "team", Repository: f.Repository, Ref: tc.ref, Version: tc.version}, options)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -69,12 +69,12 @@ func TestFetchRevision(t *testing.T) {
 			}
 		})
 	}
-	revision, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "missing"}, options)
+	revision, err := fetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "missing"}, options)
 	requireCode(t, err, "ref-not-found")
 	if revision != nil {
 		t.Fatal("partial result")
 	}
-	_, err = FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Version: ">= 9.0.0"}, options)
+	_, err = fetchRevision(context.Background(), rules.Source{Repository: f.Repository, Version: ">= 9.0.0"}, options)
 	var selection *rules.VersionSelectionError
 	if !errors.As(err, &selection) || selection.Kind != rules.VersionNotFound {
 		t.Fatal(err)
@@ -91,7 +91,7 @@ func TestFetchRejectsMovedAnnotatedTag(t *testing.T) {
 	if err := os.WriteFile(transport, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
-	revision, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Version: ">= 1.0.0"}, Options{GitPath: f.GitPath, Environment: f.Environment})
+	revision, err := fetchRevision(context.Background(), rules.Source{Repository: f.Repository, Version: ">= 1.0.0"}, Options{GitPath: f.GitPath, Environment: f.Environment})
 	requireCode(t, err, "ref-changed")
 	if revision != nil {
 		t.Fatal("partial result")
@@ -106,7 +106,7 @@ func TestFetchRejectsAmbiguousAndNonCommitTags(t *testing.T) {
 	if _, err := f.Command(ctx, "tag", "1.2.0", f.FirstCommit); err != nil {
 		t.Fatal(err)
 	}
-	_, err := FetchRevision(ctx, rules.Source{Repository: f.Repository, Version: ">= 1.0.0"}, options)
+	_, err := fetchRevision(ctx, rules.Source{Repository: f.Repository, Version: ">= 1.0.0"}, options)
 	var selection *rules.VersionSelectionError
 	if !errors.As(err, &selection) || selection.Kind != rules.VersionAmbiguous {
 		t.Fatal(err)
@@ -118,7 +118,7 @@ func TestFetchRejectsAmbiguousAndNonCommitTags(t *testing.T) {
 	if _, err = f.Command(ctx, "tag", "blob", blob); err != nil {
 		t.Fatal(err)
 	}
-	_, err = FetchRevision(ctx, rules.Source{Repository: f.Repository, Ref: "blob"}, options)
+	_, err = fetchRevision(ctx, rules.Source{Repository: f.Repository, Ref: "blob"}, options)
 	requireCode(t, err, "unsupported-content")
 }
 
@@ -155,11 +155,11 @@ func TestProcessLimitsAndCancellation(t *testing.T) {
 	}
 	ctx, cancel = context.WithCancel(context.Background())
 	cancel()
-	_, err = FetchRevision(ctx, rules.Source{}, Options{})
+	_, err = fetchRevision(ctx, rules.Source{}, Options{})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatal(err)
 	}
-	_, err = FetchRevision(context.Background(), rules.Source{Repository: "https://example.invalid/rules", Ref: "v1.0.0"}, Options{GitPath: "/missing/git"})
+	_, err = fetchRevision(context.Background(), rules.Source{Repository: "https://example.invalid/rules", Ref: "v1.0.0"}, Options{GitPath: "/missing/git"})
 	requireCode(t, err, "git-unavailable")
 }
 
@@ -167,7 +167,7 @@ func TestProcessLimitsAndCancellation(t *testing.T) {
 func TestEnvironmentIsolation(t *testing.T) {
 	f := fixtureRepository(t)
 	environment := append(append([]string{}, f.Environment...), "GIT_DIR=/missing", "GIT_WORK_TREE=/missing", "GIT_INDEX_FILE=/missing", "GIT_OBJECT_DIRECTORY=/missing", "GIT_ALTERNATE_OBJECT_DIRECTORIES=/missing", "GIT_NAMESPACE=hidden", "GIT_SHALLOW_FILE=/missing")
-	r, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{GitPath: f.GitPath, Environment: environment})
+	r, err := fetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{GitPath: f.GitPath, Environment: environment})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestExpiredContextCodes(t *testing.T) {
 		} else {
 			cancel()
 		}
-		_, err := FetchRevision(ctx, rules.Source{}, Options{})
+		_, err := fetchRevision(ctx, rules.Source{}, Options{})
 		requireCode(t, err, want)
 		if !errors.Is(err, cause) {
 			t.Fatal("lost context cause")
@@ -208,7 +208,7 @@ func TestFetchUsesEnvironmentPath(t *testing.T) {
 	}
 	t.Setenv("PATH", "/missing-parent-path")
 	env := append(append([]string{}, f.Environment...), "PATH="+bin+":/usr/bin:/bin")
-	revision, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: env})
+	revision, err := fetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: env})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestFetchUsesEnvironmentPath(t *testing.T) {
 // TestFetchDoesNotFallBackToParentPath rejects missing Git in an explicitly replaced environment.
 func TestFetchDoesNotFallBackToParentPath(t *testing.T) {
 	f := fixtureRepository(t)
-	_, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: []string{"PATH=/missing-custom-path"}})
+	_, err := fetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: []string{"PATH=/missing-custom-path"}})
 	requireCode(t, err, "git-unavailable")
 }
 
@@ -234,7 +234,7 @@ func TestFetchSkipsRelativePathEntries(t *testing.T) {
 	}
 	t.Chdir(bin)
 	env := append(append([]string{}, f.Environment...), "PATH=.:"+filepath.Dir(f.GitPath)+":/usr/bin:/bin")
-	revision, err := FetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: env})
+	revision, err := fetchRevision(context.Background(), rules.Source{Repository: f.Repository, Ref: "v1.0.0"}, Options{Environment: env})
 	if err != nil {
 		t.Fatal(err)
 	}

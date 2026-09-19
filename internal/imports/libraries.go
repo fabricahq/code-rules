@@ -51,7 +51,7 @@ func importLibrary(ctx context.Context, source rules.Source, options Options) (_
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	revision, err := FetchRevision(ctx, source, options)
+	revision, err := fetchRevision(ctx, source, options)
 	if err != nil {
 		return Library{}, err
 	}

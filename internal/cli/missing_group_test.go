@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/terminalfixture"
+	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
 )
 
 // TestRuleRequiresExistingGroup exercises the same refusal in unattended and real-terminal use.

@@ -1,4 +1,5 @@
-// Package library reads bounded rule catalogs from local files or immutable Git objects.
+// Package library owns library initialization, authoring, validation, and catalog loading.
+// Catalogs can be read from confined local files or immutable Git objects.
 package library
 
 import (
