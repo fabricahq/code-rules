@@ -1,3 +1,4 @@
+/* Starlight shell sizing and generated syntax-highlighted markup. Layout uses Tailwind. */
 :root[data-has-hero] { --sl-content-width: 72rem; }
 [data-has-hero] .main-pane { width: 100%; }
 [data-has-hero] .content-panel { border: 0; padding-top: 0; }
@@ -5,53 +6,5 @@
 [data-has-hero] div.header { max-width: 72rem; margin-inline: auto; display: flex; }
 [data-has-hero] div.header > .sl-flex.print\:hidden { margin-left: auto; }
 [data-has-hero] site-search button[data-open-modal] { max-width: 12rem; }
-.cr-hero { text-align: center; padding: 5rem 0 3.5rem; }
-.cr-eyebrow, .cr-index { color: var(--cr-muted); font-size: .75rem; letter-spacing: .12em; font-weight: 500; }
-.cr-hero h1 { color: var(--cr-ink); font-size: clamp(2.25rem, 4.6vw, 4rem); font-weight: 400; letter-spacing: -.06em; line-height: 1.08; margin: 1.5rem 0; }
-.cr-lead { color: var(--cr-muted); font-size: 1.125rem; line-height: 1.7; max-width: 42rem; margin: 0 auto; }
-.cr-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin-top: 2rem; }
-.cr-button { display: inline-flex; gap: 2rem; align-items: center; justify-content: center; min-height: 48px; padding: .75rem 1.5rem; border: 1px solid var(--cr-muted); border-radius: 999px; font-size: .875rem; font-weight: 500; text-decoration: none; color: var(--cr-ink); background: transparent; transition: background-color 160ms ease, border-color 160ms ease; }
-.cr-button.primary { background: var(--cr-button); color: var(--cr-button-text); border-color: var(--cr-button); }
-.cr-button:is(:hover, :focus-visible) { background: var(--cr-surface); border-color: var(--cr-ink); }
-.cr-button.primary:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--cr-button) 85%, var(--cr-paper)); border-color: var(--cr-button); }
-.cr-button:focus-visible { outline: 2px solid var(--cr-ink); outline-offset: 4px; }
-@media (prefers-reduced-motion: reduce) { .cr-button { transition: none; } }
-.cr-feature { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 4rem; align-items: center; padding: 4rem 0; border-bottom: 1px solid var(--cr-faint); }
-.cr-feature h2 { color: var(--cr-ink); font-size: 2rem; font-weight: 500; letter-spacing: -.045em; line-height: 1.18; margin: 1rem 0; }
-.cr-feature p { color: var(--cr-muted); line-height: 1.7; }
-.cr-feature a:not(.cr-button) { color: var(--cr-ink); text-underline-offset: 4px; }
-.cr-feature > div > p + a { display: inline-block; margin-top: 1.25rem; }
-.cr-panel { min-width: 0; background: var(--cr-surface); border: 1px solid var(--cr-line); border-radius: 20px; padding: 1.5rem; }
-.cr-panel pre { margin: 1rem 0 0; overflow: auto; font: .85rem/1.9 var(--cr-font-mono); color: var(--cr-ink); }
-.cr-start { padding: 4rem 0 1rem; }
-.cr-start h2 { font-weight: 500; font-size: 2rem; letter-spacing: -.045em; }
-.cr-start p { color: var(--cr-muted); line-height: 1.7; margin-bottom: 1.5rem; }
-@media (max-width: 799px) {
-  .cr-hero { padding: 3rem 0 2.5rem; }
-  .cr-feature { grid-template-columns: minmax(0,1fr); gap: 1.5rem; }
-  .cr-feature { padding: 3rem 0; }
-  .cr-lead { font-size: 1rem; }
-  .desktop-break { display: none; }
-}
-
-.cr-artifact-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--cr-line); background: var(--cr-surface); }
-.cr-artifact-path { display: flex; align-items: flex-start; gap: .5rem; margin-top: .5rem; color: var(--cr-ink); font: .75rem/1.6 var(--cr-font-mono); overflow-wrap: anywhere; }
-.cr-artifact-path svg { flex-shrink: 0; margin-top: .1rem; color: var(--cr-muted); }
-.cr-artifact-path span { min-width: 0; }
 .cr-rule-file pre { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.65; }
 .cr-rule-file pre code { padding: 0; background: none; color: inherit; font: inherit; border: 0; }
-
-.cr-library-tree { padding: 0; overflow: hidden; background: var(--cr-paper); }
-.cr-library-tree pre { margin: 0; padding: 1.25rem 1.5rem; font-size: clamp(.65rem, 1.1vw, .78rem); line-height: 1.7; tab-size: 4; }
-.cr-library-tree pre code { padding: 0; border: 0; background: none; color: inherit; font: inherit; }
-.cr-tree-folder { color: var(--cr-ink); font-weight: 600; }
-.cr-tree-branch, .cr-tree-meta { color: var(--cr-muted); }
-.cr-tree-file { color: var(--cr-ink); }
-@media (min-width: 540px) and (max-width: 799px) {
-  .cr-library-tree pre { font-size: .8rem; }
-}
-
-.cr-rule-file { padding: 0; overflow: hidden; background: var(--cr-paper); --sample-padding: 1.25rem 1.5rem; --sample-size: .8rem; }
-
-.cr-aside { margin: 1.5rem 0 0; padding-left: 1rem; border-left: 2px solid var(--cr-line); color: var(--cr-muted); font-size: .8rem; font-style: italic; line-height: 1.65; max-width: 48rem; }
-.cr-aside a { color: var(--cr-ink); text-underline-offset: 3px; }

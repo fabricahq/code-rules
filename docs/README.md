@@ -38,8 +38,13 @@ Set Astro's `site` option after selecting a production URL; sitemap generation i
 ## Maintain the docs
 
 Write pages under `src/content/docs/` and keep navigation in `astro.config.mjs` aligned with their slugs.
-Shared typography and theme tokens live in `src/styles/custom.css`.
-Homepage composition lives in `src/components/HomePage.astro` and `src/styles/home.css`.
+Homepage composition lives in `src/components/HomePage.astro` and its illustration components.
+
+### Styling
+
+Follow the [CSS and Tailwind guidelines](_internal/css.md) for styling ownership, responsive breakpoints, design tokens, and reuse.
+
+### Product documentation
 
 Use the docs to explain the product experience and its contracts.
 Keep implementation tasks in the internal planning material.

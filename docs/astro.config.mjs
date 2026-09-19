@@ -3,13 +3,14 @@
 import { defineConfig } from 'astro/config';
 import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
+import tailwindcss from '@tailwindcss/vite';
 import accessibleAsideTitles from './src/plugins/accessible-aside-titles.mjs';
 
 export default defineConfig({
   devToolbar: { enabled: false },
   // Keep native bindings outside the SSR bundle: https://vite.dev/config/ssr-options.html#ssr-external
   // Satteri's installed index.js resolves platform binaries relative to its package.
-  vite: { ssr: { external: ['satteri'] } },
+  vite: { plugins: [tailwindcss()], ssr: { external: ['satteri'] } },
   redirects: { '/guides/customize/': '/guides/select-rules/' },
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
   integrations: [starlight({
@@ -17,7 +18,7 @@ export default defineConfig({
     description: 'The package manager for your engineering rules',
     favicon: '/favicon.svg',
     disable404Route: true,
-    customCss: ['./src/styles/custom.css', './src/styles/home.css'],
+    customCss: ['./src/styles/tailwind.css', './src/styles/custom.css', './src/styles/home.css'],
     components: {
       Hero: './src/components/HomePage.astro',
       SiteTitle: './src/components/SiteTitle.astro',

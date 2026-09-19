@@ -118,20 +118,20 @@ import { vectorLogos } from './VectorLogoStudies';
 </script>
 <style>
   #logo-prototype[hidden] { display: none; }
-  #logo-prototype { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 30; width: 480px; max-width: calc(100vw - 24px); display: flex; gap: 1.25rem; align-items: center; padding: 1rem 1.25rem; color: var(--cr-ink); background: var(--cr-paper); border: 1px solid var(--cr-line); border-radius: 18px; box-shadow: 0 8px 40px #0002; }
-  .study-preview { display: flex; padding-right: 1.25rem; border-right: 1px solid var(--cr-line); }
+  #logo-prototype { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 30; width: 480px; max-width: calc(100vw - 24px); display: flex; gap: 1.25rem; align-items: center; padding: 1rem 1.25rem; color: var(--cr-ink); background: var(--cr-paper); border: 1px solid var(--cr-border); border-radius: 18px; box-shadow: 0 8px 40px #0002; }
+  .study-preview { display: flex; padding-right: 1.25rem; border-right: 1px solid var(--cr-border); }
   .study-content { min-width: 0; }
   .study-eyebrow { display: block; color: var(--cr-muted); font-size: .65rem; letter-spacing: .12em; }
   .study-controls { display: flex; gap: .25rem; align-items: center; margin-top: .35rem; }
   .study-controls [role='group'] { display: flex; flex-wrap: wrap; justify-content: center; min-width: 0; gap: .25rem; }
   button { font: inherit; font-size: .8rem; color: var(--cr-muted); background: none; border: 0; border-radius: 7px; min-height: 36px; padding: .4rem .7rem; cursor: pointer; }
   button:hover { color: var(--cr-ink); background: var(--cr-surface); }
-  button[aria-pressed='true'] { color: var(--cr-button-text); background: var(--cr-button); }
-  #logo-choice { font: inherit; font-size: .85rem; color: var(--cr-ink); background: var(--cr-surface); border: 1px solid var(--cr-line); border-radius: 7px; min-height: 38px; min-width: 160px; max-width: 100%; padding: .4rem .7rem; }
+  button[aria-pressed='true'] { color: var(--cr-on-primary-action); background: var(--cr-primary-action); }
+  #logo-choice { font: inherit; font-size: .85rem; color: var(--cr-ink); background: var(--cr-surface); border: 1px solid var(--cr-border); border-radius: 7px; min-height: 38px; min-width: 160px; max-width: 100%; padding: .4rem .7rem; }
   .study-link { display: inline-block; color: var(--cr-muted); font-size: .7rem; margin-top: .5rem; margin-right: .8rem; text-decoration: none; }
   .study-link:hover { color: var(--cr-ink); }
   .zoom-control { display: flex; gap: .5rem; align-items: center; margin-top: .65rem; color: var(--cr-muted); font-size: .7rem; }
-  #logo-zoom { font: inherit; color: var(--cr-ink); background: var(--cr-surface); border: 1px solid var(--cr-line); border-radius: 5px; padding: .3rem; }
+  #logo-zoom { font: inherit; color: var(--cr-ink); background: var(--cr-surface); border: 1px solid var(--cr-border); border-radius: 5px; padding: .3rem; }
   :global(html[data-logo-variant] .cr-brand) { zoom: var(--logo-preview-zoom, 1); }
   #logo-description { font-size: .75rem; color: var(--cr-muted); margin: .4rem 0 0; }
   :global(html[data-logo-variant] body) { padding-bottom: 180px; }
