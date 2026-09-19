@@ -23,7 +23,14 @@ Follow [Set up a project](/guides/set-up-project/) or [Create a rule library](/g
 
 ## Try an unpublished release candidate
 
-The repository's packaging workflow builds candidate archives for review. Its PR comment links to downloadable GitHub Actions artifacts after a successful build. GitHub sign-in is required; artifacts expire after seven days.
+After a successful build, the PR comment offers direct executable downloads for macOS (Apple Silicon or Intel) and Linux (ARM or Intel/AMD). Download the file for your computer and rename it to `code-rules`, then run:
+
+```sh
+chmod +x code-rules
+./code-rules --help
+```
+
+No extraction or installation is needed. These previews have not been released. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, regardless of whether the PR is open, closed, or merged.
 
 To build your own candidate, commit the intended source first, then run:
 

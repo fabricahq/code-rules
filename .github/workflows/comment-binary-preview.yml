@@ -27,22 +27,30 @@ jobs:
             const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
               owner, repo, run_id: run.id, per_page: 100,
             });
-            const candidates = artifacts.filter(a =>
-              a.name === 'unpublished-native-candidates' && !a.expired && a.size_in_bytes > 0);
-            if (candidates.length !== 1) {
-              core.warning('No unique, unexpired binary preview found; no comment posted.');
-              return;
+            const targets = [
+              ['code-rules-darwin-arm64', 'macOS Apple Silicon'],
+              ['code-rules-darwin-amd64', 'macOS Intel'],
+              ['code-rules-linux-arm64', 'Linux ARM'],
+              ['code-rules-linux-amd64', 'Linux Intel/AMD'],
+            ];
+            const downloads = [];
+            for (const [name, label] of targets) {
+              const matches = artifacts.filter(a => a.name === name);
+              if (matches.length !== 1 || matches[0].expired || matches[0].size_in_bytes <= 0 ||
+                  !Number.isFinite(Date.parse(matches[0].expires_at))) {
+                core.warning(`Missing, duplicate, or unavailable ${name} preview; no comment posted.`);
+                return;
+              }
+              downloads.push({label, artifact: matches[0]});
             }
-            const artifact = candidates[0];
             // Query GitHub directly: workflow_run.pull_requests can be empty for fork PRs.
             const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
               owner, repo, commit_sha: run.head_sha, per_page: 100,
             });
             const marker = '<!-- code-rules-binary-preview -->';
             const runURL = `${context.serverUrl}/${owner}/${repo}/actions/runs/${run.id}`;
-            const downloadURL = `${runURL}/artifacts/${artifact.id}`;
             const commitURL = `${context.serverUrl}/${owner}/${repo}/commit/${run.head_sha}`;
-            const expires = new Date(artifact.expires_at).toLocaleString('en-US', {
+            const expires = new Date(Math.min(...downloads.map(d => Date.parse(d.artifact.expires_at)))).toLocaleString('en-US', {
               timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short',
             });
             for (const candidate of pulls) {
@@ -65,13 +73,20 @@ jobs:
                 '',
                 `A test build for [\`${run.head_sha.slice(0, 7)}\`](${commitURL}) is ready. Packaging and installation checks passed.`,
                 '',
-                `[Download for macOS or Linux](${downloadURL}) · [Build and test results](${runURL})`,
+                downloads.map(d => `[${d.label}](${runURL}/artifacts/${d.artifact.id})`).join(' · '),
                 '',
-                '**Manual testing is optional.** To try this PR, unzip the download, extract the archive for your computer, and run `./code-rules --help` from the extracted folder. No installation needed.',
+                '**Manual testing is optional.** Download the executable for your computer, rename it to `code-rules`, then run:',
                 '',
-                `Includes Intel/AMD and ARM builds. GitHub sign-in required. Download expires ${expires} UTC.`,
+                '```sh',
+                'chmod +x code-rules',
+                './code-rules --help',
+                '```',
                 '',
-                'This preview is for testing this PR and has not been released.',
+                'No extraction or installation needed.',
+                '',
+                `GitHub sign-in required. Downloads expire ${expires} UTC.`,
+                '',
+                `Unreleased preview · [Build and test results](${runURL}) · [License](${context.serverUrl}/${owner}/${repo}/blob/${run.head_sha}/LICENSE.md)`,
               ].join('\n');
               if (previous) {
                 await github.rest.issues.updateComment({owner, repo, comment_id: previous.id, body});
