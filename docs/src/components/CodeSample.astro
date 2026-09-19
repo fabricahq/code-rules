@@ -8,12 +8,12 @@ interface Props {
   code: string;
   lang: 'ts' | 'md' | 'diff' | 'text';
   label: string;
-  tone?: 'default' | 'terminal' | 'vivid';
+  tone?: 'default' | 'muted' | 'terminal' | 'vivid';
 }
 const { code, lang, label, tone = 'default' } = Astro.props;
 const theme = createCssVariablesTheme({ variablePrefix: '--sample-', fontStyle: false });
 ---
-<div class:list={["code-sample", { terminal: tone === "terminal", vivid: tone === "vivid" }]}>
+<div class:list={["code-sample", { muted: tone === "muted", terminal: tone === "terminal", vivid: tone === "vivid" }]}>
   <Code code={code} lang={lang} embeddedLangs={lang === 'md' ? ['yaml'] : []} theme={theme} wrap={true} aria-label={label} tabindex="0" />
 </div>
 <style>
@@ -39,6 +39,9 @@ const theme = createCssVariablesTheme({ variablePrefix: '--sample-', fontStyle: 
     --sample-token-string-expression: #526956;
     --sample-token-link: #4a6575;
   }
+  .code-sample.muted {
+    --sample-foreground: var(--cr-muted);
+  }
   .code-sample.vivid {
     --sample-token-constant: #79c0ff;
     --sample-token-string: #a5d6ff;
@@ -52,8 +55,8 @@ const theme = createCssVariablesTheme({ variablePrefix: '--sample-', fontStyle: 
   :global([data-theme='light']) .code-sample.vivid {
     --sample-token-constant: #005cc5;
     --sample-token-string: #032f62;
-    --sample-token-comment: #6a737d;
-    --sample-token-keyword: #d73a49;
+    --sample-token-comment: #626b75;
+    --sample-token-keyword: #cc3344;
     --sample-token-function: #6f42c1;
     --sample-token-string-expression: #032f62;
     --sample-token-punctuation: #24292e;
@@ -76,12 +79,12 @@ const theme = createCssVariablesTheme({ variablePrefix: '--sample-', fontStyle: 
     --sample-foreground: #23324a;
     --sample-token-constant: #966022;
     --sample-token-string: #267553;
-    --sample-token-comment: #60718b;
+    --sample-token-comment: #5b6d87;
     --sample-token-keyword: #7850ae;
     --sample-token-parameter: #23324a;
     --sample-token-function: #216bb0;
     --sample-token-string-expression: #267553;
-    --sample-token-punctuation: #60718b;
+    --sample-token-punctuation: #5b6d87;
     --sample-token-link: #216bb0;
   }
   .code-sample :global(pre.astro-code) { margin: 0; padding: var(--sample-padding, 1.25rem); border: 0; background: transparent; font: var(--sample-font-size, .78rem)/1.8 var(--cr-font-mono); white-space: pre-wrap; overflow: auto; overflow-wrap: anywhere; tab-size: 2; }
