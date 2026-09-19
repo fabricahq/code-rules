@@ -14,7 +14,7 @@ One shared template covers technologies, practices, and project-specific rules. 
 Start with this structure and replace the placeholders.
 For each distinct known application of the rule, aim to include an incorrect/correct example pair.
 Repeat the application block below as needed; omit sections that add no useful guidance.
-The [metadata reference](/reference/files/#rule-metadata) defines the frontmatter fields and allowed impact values.
+The [metadata reference](/reference/rule-library-format/#rule-metadata) defines the frontmatter fields and allowed impact values.
 
 ````md
 ---
@@ -87,7 +87,7 @@ Use specific evidence or a check command instead of “verify that this rule is 
 Make examples consistent with applicable technology and project conventions, and use a suitable language for code snippets.
 A practice rule's example language does not limit its scope.
 
-Preserve source attribution and any required notices when adapting existing material. Declare one license for the whole library in its manifest. Use optional [structured attribution](/reference/files/#rule-attribution) for each adapted rule. Rule and group license overrides are unsupported. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Code Rules format.
+Preserve source attribution and any required notices when adapting existing material. Declare one license for the whole library in its manifest. Use optional [structured attribution](/reference/rule-library-format/#rule-attribution) for each adapted rule. Rule and group license overrides are unsupported. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Code Rules format.
 Use the [complete example](/guides/write-rules/#example-rule) to see the template filled in.
 
 ## Write whenToRead guidance that helps selection
@@ -163,7 +163,7 @@ A high-impact design rule does not require extracting every multi-step function 
 Keep obligations and exceptions in the rule. Place optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory.
 Use the library-root `assets/` directory for material shared by multiple rules. Link assets using ordinary Markdown.
 Markdown inside asset directories is supporting text, not another rule. Keep each rule independently selectable: do not use filesystem links to other rule documents, including from attachments. Code Rules rejects these links regardless of selection or exclusion. Move shared supporting explanations to `assets/`. Do not link to another rule's private assets or arbitrary repository documents.
-See [Supporting assets](/reference/files/#supporting-assets) for the enforced layout, import behavior, and examples.
+See [Supporting assets](/reference/rule-library-format/#supporting-assets) for the enforced layout, import behavior, and examples.
 
 ## Authoring rubric
 

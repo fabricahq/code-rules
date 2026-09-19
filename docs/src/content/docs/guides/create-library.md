@@ -114,4 +114,4 @@ Consumers update from your maintained library; they do not automatically track t
 Keep optional rule-specific material in `assets/<rule-name>/` beside the rule file.
 For example, `practices/testing/verify-retries.md` can link to `assets/verify-retries/example-response.json`.
 Put shared material in the library-root `assets/` directory. Code Rules imports complete owned asset directories and includes shared assets when referenced.
-See [Supporting assets](/reference/files/#supporting-assets) before adding images, explanations, or other files.
+See [Supporting assets](/reference/rule-library-format/#supporting-assets) before adding images, explanations, or other files.

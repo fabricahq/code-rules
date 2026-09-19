@@ -57,7 +57,7 @@ Group cues describe the group's intended area of work, even when it contains onl
 An individual rule's cue identifies situations that warrant reading it; its full text defines the obligation and exceptions.
 Reading observability rules does not imply that every function needs a log statement.
 
-See [Import rules](/guides/select-rules/) for selecting and adapting groups, and [Files and formats](/reference/files/#group-metadata) for metadata.
+See [Import rules](/guides/select-rules/) for selecting and adapting groups, and [Group metadata](/reference/rule-library-format/#group-metadata) for metadata.
 
 ## Local group descriptions
 

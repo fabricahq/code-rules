@@ -29,12 +29,7 @@ Structured group-level update summaries are not available. Review the changed so
 
 ## Stored snapshots
 
-Sync writes `vendor/<alias>/_source.json` with `formatVersion: 1`, repository, requested `ref` or `version`, resolved commit, concrete groups, and `groupSelection`.
-Version selections additionally record `resolvedTag` and `resolvedVersion`.
-
-The `files` object maps every retained library-relative path to its lowercase SHA-256 hex digest, computed from original bytes.
-It excludes `_source.json` itself. The directory name supplies the source alias; there are no timestamps or machine-specific paths.
-
+Sync records each imported revision and its file digests in `vendor/<alias>/_source.json`. For record fields and resolved rule origins, see [Provenance](/reference/provenance/).
 
 Offline build and check reject missing, changed, or unexpected vendor files, invalid records, and source selections that differ from configuration.
 Sync deliberately refreshes vendor files, including locally modified snapshots. Put project changes in local rules instead.
