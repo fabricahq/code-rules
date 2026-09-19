@@ -17,7 +17,7 @@ Sync uses the caller's Git credentials to access private libraries.
 
 ## Create or adapt a library
 
-The [library authoring commands](/guides/create-library/) initialize a library, add groups and rules explicitly, and validate the input format.
+The [library authoring commands](/start-here/create-library/) initialize a library, add groups and rules explicitly, and validate the input format.
 Use them in a new or existing repository; a dedicated repository name is not required.
 
 Code Rules imports libraries that follow its format.
