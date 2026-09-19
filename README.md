@@ -25,12 +25,12 @@ go vet ./...
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go test -race ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -test ./...
-go build ./cmd/code-rules ./cmd/package-binaries ./cmd/release-plan ./cmd/publish-release
+go build ./cmd/code-rules ./cmd/package-binaries ./cmd/plan-release ./cmd/publish-release
 ```
 
-Tests exercise parsers, filesystem safety, Git imports, real CLI processes, generated agent instructions, and installation/upgrade/rollback. Parser regression fixtures live beside their Go tests. [Go conventions](_internal/go-conventions.md) cover error ownership and comments.
+Tests exercise parsers, filesystem safety, Git imports, real CLI processes, generated agent instructions, and installation/upgrade/rollback. Parser regression fixtures live beside their Go tests. [Go conventions](_engineering/go-conventions.md) cover error ownership and comments.
 
-[Security practices](_internal/security-practices.md) define dependency pins, Renovate updates, vulnerability scans, and review requirements.
+[Security practices](_engineering/security-practices.md) define dependency pins, Renovate updates, vulnerability scans, and review requirements.
 
 ## Documentation website
 
@@ -46,22 +46,25 @@ bun run docs:dev
 
 TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser require its compiler API. [TypeScript 7 does not yet provide that API](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0); revisit this pin when both tools support it.
 
-## Explore the CLI
-
-The [Gruntwork runbook](runbooks/native-cli/README.md) builds a temporary executable and demonstrates project and library authoring, read-only checks, and repair. The initial-development labs have been retired.
-
 ## Package binaries
 
-[Release instructions](_internal/releasing.md) explain candidate archives and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. A release PR supplies editable notes and the version in `releases/v<version>.md`; merging it starts testing, packaging, and publication. Assets are verified on a draft before publication. The first release is `v0.1.0`; the tool uses the [MIT license](LICENSE.md).
+[Release instructions](_engineering/releasing.md) explain candidate archives and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. A release PR supplies editable notes and the version in `releases/v<version>.md`; merging it starts testing, packaging, and publication. Assets are verified on a draft before publication. The first release is `v0.1.0`; the tool uses the [MIT license](LICENSE.md).
 
 ## Implementation map
 
 - `internal/rules`: validated configuration, identities, documents, links, and versions.
-- `internal/library` and `internal/imports`: local catalogs and verified Git imports.
-- `internal/build`: resolve adopted rules and render output.
-- `internal/project`: persisted snapshots, read-only checks, and coordinated file updates.
-- `internal/authoring` and `internal/cli`: create definitions and expose commands.
+- `internal/library`: initialize, author, check, and load rule libraries.
+- `internal/imports`: import complete libraries with verified Git provenance.
+- `internal/build`: generate complete output from validated inputs through `Generate`.
+- `internal/project`: initialize and author consuming projects, sync libraries, build offline, and check complete project freshness.
+- `internal/filetxn`: bounded filesystem reads, writer ownership, safe publication, and recovery shared by both owners.
+- `internal/cli`: collect inputs and present operation results.
 - `internal/distribution`: package and verify executable archives.
 - `internal/release`: validate release requests and publish verified assets through the GitHub API.
+- `internal/test/acceptance`: exercise complete CLI workflows through real processes.
+- `internal/test/gitfixture`: supply disposable Git repositories for tests.
+- `internal/test/terminalfixture`: exercise interactive CLI prompts in isolated terminals.
+
+`internal/test/` groups these three independent packages; it contains no Go package of its own. Unit tests remain beside the code they test.
 
 Engineering policies belong to independently owned libraries. This repository supplies the formats, tools, and public authoring guidance.

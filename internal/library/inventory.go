@@ -14,9 +14,9 @@ import (
 	"unicode/utf8"
 )
 
-// ValidateInventoryLimits checks all captured files and directories, including unreferenced assets.
+// validateInventoryLimits checks all captured files and directories, including unreferenced assets.
 // It uses the same byte and entry limits as catalog loading; it does not validate content or paths.
-func ValidateInventoryLimits(ctx context.Context, files map[string][]byte, directories []string) error {
+func validateInventoryLimits(ctx context.Context, files map[string][]byte, directories []string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -37,33 +37,33 @@ func ValidateInventoryLimits(ctx context.Context, files map[string][]byte, direc
 	return nil
 }
 
-// Inventory owns a bounded snapshot of every library-owned file, including unused assets and empty directories.
-type Inventory struct {
+// inventorySnapshot owns a bounded snapshot of every library-owned file, including unused assets and empty directories.
+type inventorySnapshot struct {
 	Files       map[string][]byte
 	Directories []string
 	License     *rules.LicenseDeclaration
 }
 
-// ReadInventory captures complete library content through the catalog's bounded local reader.
+// readLocalInventory captures complete library content through the catalog's bounded local reader.
 // Unrelated repository files are ignored; the caller owns root and no files are written.
-func ReadInventory(ctx context.Context, root *os.Root) (Inventory, error) {
+func readLocalInventory(ctx context.Context, root *os.Root) (inventorySnapshot, error) {
 	if root == nil {
-		return Inventory{}, bad("library", "expected an open filesystem root")
+		return inventorySnapshot{}, bad("library", "expected an open filesystem root")
 	}
 	return readInventory(ctx, rootFiles{ctx: ctx, root: root})
 }
 
 // readInventory shares capture logic with bounded sources so tests can verify early read termination.
-func readInventory(ctx context.Context, input FileSource) (Inventory, error) {
+func readInventory(ctx context.Context, input FileSource) (inventorySnapshot, error) {
 	r := reader{ctx: ctx, input: portableInventorySource{input}, files: map[string][]byte{}}
 	if _, err := r.read("rule-library.json"); err != nil {
-		return Inventory{}, err
+		return inventorySnapshot{}, err
 	}
 	license, err := r.license("library")
 	if err != nil {
-		return Inventory{}, err
+		return inventorySnapshot{}, err
 	}
-	inventory := Inventory{Files: r.files, Directories: []string{}, License: license}
+	inventory := inventorySnapshot{Files: r.files, Directories: []string{}, License: license}
 	// walk visits each owned directory once and enforces limits before traversing later siblings.
 	var walk func(string, bool, int) error
 	walk = func(directory string, optional bool, depth int) error {
@@ -103,12 +103,12 @@ func readInventory(ctx context.Context, input FileSource) (Inventory, error) {
 	}
 	for _, directory := range []string{"assets", "practices", "techs"} {
 		if err := walk(directory, true, 1); err != nil {
-			return Inventory{}, err
+			return inventorySnapshot{}, err
 		}
 	}
 	slices.Sort(inventory.Directories)
-	if err := ValidateInventoryLimits(ctx, inventory.Files, inventory.Directories); err != nil {
-		return Inventory{}, err
+	if err := validateInventoryLimits(ctx, inventory.Files, inventory.Directories); err != nil {
+		return inventorySnapshot{}, err
 	}
 	return inventory, nil
 }

@@ -5,7 +5,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/fabricahq/code-rules/internal/authoring"
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/spf13/cobra"
 )
 
@@ -19,15 +19,15 @@ func newLibraryCommand(use, description string, arity int, directory string) (*c
 }
 
 // libraryOptions anchors the library path to the embedding caller's working directory.
-func (f *authoringFlags) libraryOptions() authoring.LibraryOptions {
+func (f *authoringFlags) libraryOptions() library.Options {
 	if f.value("directory") == "" {
 		directory := f.directory
 		if directory == "" {
 			directory = "."
 		}
-		return authoring.LibraryOptions{Directory: directory}
+		return library.Options{Directory: directory}
 	}
-	return authoring.LibraryOptions{Directory: f.file("directory")}
+	return library.Options{Directory: f.file("directory")}
 }
 
 // addLibraryCommands installs a separate command tree that never reads consumer configuration.
@@ -54,13 +54,13 @@ func libraryInitCommand(options Options, started *bool, output *commandOutput) *
 			return fmt.Errorf("--notice-file requires --spdx and --license-file")
 		}
 		*started = true
-		var terms *authoring.LibraryTerms
+		var terms *library.Terms
 		if f.value("spdx") != "" {
 			license, err := readAuthoringText(cmd.Context(), f.file("license-file"), "license text")
 			if err != nil {
 				return err
 			}
-			terms = &authoring.LibraryTerms{SPDXExpression: f.value("spdx"), License: license}
+			terms = &library.Terms{SPDXExpression: f.value("spdx"), License: license}
 			if f.value("notice-file") != "" {
 				notice, err := readAuthoringText(cmd.Context(), f.file("notice-file"), "notice text")
 				if err != nil {
@@ -69,7 +69,7 @@ func libraryInitCommand(options Options, started *bool, output *commandOutput) *
 				terms.Notice = &notice
 			}
 		}
-		result, err := authoring.InitializeLibrary(cmd.Context(), f.libraryOptions(), terms)
+		result, err := library.Initialize(cmd.Context(), f.libraryOptions(), terms)
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func libraryCheckCommand(options Options, started *bool, output *commandOutput) 
 	cmd, f := newLibraryCommand("check", "Validate every library group, rule, asset, and declared term", 0, options.Directory)
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		*started = true
-		result, err := authoring.CheckLibrary(cmd.Context(), f.libraryOptions())
+		result, err := library.Check(cmd.Context(), f.libraryOptions())
 		if err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func libraryGroupCommand(options Options, started *bool, output *commandOutput) 
 			return err
 		}
 		*started = true
-		result, err := authoring.AddLibraryGroup(cmd.Context(), args[0], f.group(""), f.libraryOptions())
+		result, err := library.AddGroup(cmd.Context(), args[0], f.group(""), f.libraryOptions())
 		if err != nil {
 			return err
 		}
@@ -124,8 +124,8 @@ func libraryRuleCommand(options Options, started *bool, output *commandOutput) *
 		if err != nil {
 			return err
 		}
-		ro := authoring.LibraryRuleOptions{LibraryOptions: f.libraryOptions(), Body: body}
-		result, err := authoring.AddLibraryRule(cmd.Context(), args[0], metadata, ro)
+		ro := library.RuleOptions{Options: f.libraryOptions(), Body: body}
+		result, err := library.AddRule(cmd.Context(), args[0], metadata, ro)
 		if err != nil {
 			return err
 		}

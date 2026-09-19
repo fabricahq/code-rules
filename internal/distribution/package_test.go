@@ -5,7 +5,7 @@ package distribution
 import (
 	"context"
 	"debug/buildinfo"
-	"github.com/fabricahq/code-rules/internal/gitfixture"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 	"os"
 	"os/exec"
 	"path/filepath"

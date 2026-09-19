@@ -13,26 +13,13 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// Output owns generated-root-relative file contents, including byte-exact license and notice copies.
-type Output struct {
-	Files map[string][]byte `json:"files"`
-}
-
-// Options provides the declared tool version and Markdown line limit and inline byte limit.
-type Options struct {
-	ToolVersion   string
-	IndexMaxLines int
-	// GroupInlineMaxBytes defaults to 8 KiB when nil; zero forces summary-only group pages.
-	GroupInlineMaxBytes *int
-}
-
-// Prepare combines rendering and group discovery pages with terms and provenance, returning no partial output.
-// It accepts a Resolve result and performs no filesystem or network operations.
-func Prepare(resolved Resolved, options Options) (Output, error) {
+// prepare combines rendering and group discovery pages with terms and provenance, returning no partial output.
+// It accepts a resolve result and performs no filesystem or network operations.
+func prepare(resolved resolution, options Options) (Output, error) {
 	if err := rules.ValidateToolVersion(options.ToolVersion); err != nil {
 		return Output{}, err
 	}
-	rendered, err := RenderRules(resolved)
+	rendered, err := renderRules(resolved)
 	if err != nil {
 		return Output{}, err
 	}
@@ -83,7 +70,7 @@ func Prepare(resolved Resolved, options Options) (Output, error) {
 }
 
 // libraryReadme exposes source identity and generated terms without interpreting their legal meaning.
-func libraryReadme(source Source) string {
+func libraryReadme(source resolvedSource) string {
 	file := "libraries/" + source.Name + "/README.md"
 	requested := source.Ref
 	if source.Version != "" {
@@ -134,9 +121,9 @@ type provenanceSource struct {
 
 // provenanceGroup retains all guidance plus the sources chosen for display.
 type provenanceGroup struct {
-	ID        string     `json:"id"`
-	Guidance  []Guidance `json:"guidance"`
-	Effective []string   `json:"effectiveGuidanceSources"`
+	ID        string          `json:"id"`
+	Guidance  []groupGuidance `json:"guidance"`
+	Effective []string        `json:"effectiveGuidanceSources"`
 }
 
 // provenanceRule records effective origin, replacement history, and declared attribution.
@@ -171,7 +158,7 @@ func termProvenance(source, originalPrefix string, license *rules.LicenseDeclara
 }
 
 // renderProvenance serializes stable identities and policy outcomes, without redundant raw documents.
-func renderProvenance(resolved Resolved, version string) ([]byte, error) {
+func renderProvenance(resolved resolution, version string) ([]byte, error) {
 	result := struct {
 		ToolVersion string             `json:"toolVersion"`
 		Sources     []provenanceSource `json:"sources"`
@@ -188,7 +175,7 @@ func renderProvenance(resolved Resolved, version string) ([]byte, error) {
 		}
 		guidance := slices.Clone(group.Guidance)
 		// Keep source guidance in its established order, with local guidance last.
-		slices.SortStableFunc(guidance, func(a, b Guidance) int {
+		slices.SortStableFunc(guidance, func(a, b groupGuidance) int {
 			if a.Source == "local" && b.Source != "local" {
 				return 1
 			}
@@ -238,7 +225,7 @@ func nullableText(value string) *string {
 }
 
 // originProvenance converts internal identity values to the public nullable provenance shape.
-func originProvenance(origin *Origin) *provenanceOrigin {
+func originProvenance(origin *ruleOrigin) *provenanceOrigin {
 	if origin == nil {
 		return nil
 	}

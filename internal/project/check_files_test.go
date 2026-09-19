@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/filetxn"
 )
 
 // TestCheckWithFiles reports guide drift together with generated drift without writing repairs.
@@ -26,11 +28,11 @@ func TestCheckWithFiles(t *testing.T) {
 			if state == "current" {
 				writeFixture(t, root, "README.md", string(expected["README.md"]))
 			}
-			before, err := ReadTree(ctx, root, ".")
+			before, err := filetxn.ReadTree(ctx, root, ".")
 			if err != nil {
 				t.Fatal(err)
 			}
-			generated, files, err := CheckWithFiles(ctx, options, expected)
+			generated, files, err := checkWithFiles(ctx, options, expected)
 			if err != nil || len(generated.Added)+len(generated.Changed)+len(generated.Removed) != 0 {
 				t.Fatal(generated, files, err)
 			}
@@ -44,7 +46,7 @@ func TestCheckWithFiles(t *testing.T) {
 			if !reflect.DeepEqual(files, want) {
 				t.Fatal(files, want)
 			}
-			after, err := ReadTree(ctx, root, ".")
+			after, err := filetxn.ReadTree(ctx, root, ".")
 			if err != nil || before.Digest() != after.Digest() {
 				t.Fatal("check changed files", err)
 			}
@@ -82,7 +84,7 @@ func TestCheckSnapshotRejectsEdits(t *testing.T) {
 			case "config-edited":
 				writeFixture(t, root, filepath.Base(options.ConfigPath), "{\n\"schemaVersion\":1,\"sources\":{}}\n")
 			case "writer-started":
-				if err := root.Mkdir(lockName, 0700); err != nil {
+				if err := root.Mkdir(".code-rules-lock", 0700); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -104,7 +106,7 @@ func TestCheckWithFilesRejectsUnsafeGuide(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(root.Name(), "README.md")); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := CheckWithFiles(context.Background(), options, map[string][]byte{"README.md": []byte("Outside")}); err == nil {
+	if _, _, err := checkWithFiles(context.Background(), options, map[string][]byte{"README.md": []byte("Outside")}); err == nil {
 		t.Fatal("followed guide symlink")
 	}
 }

@@ -1,6 +1,6 @@
 // Verify byte-preserving terms, policy provenance, deterministic output, and failure atomicity.
 
-package build_test
+package build
 
 import (
 	"bytes"
@@ -10,14 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // TestPrepareReadableProvenance keeps constraint operators readable while preserving JSON string contents.
 func TestPrepareReadableProvenance(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +24,7 @@ func TestPrepareReadableProvenance(t *testing.T) {
 	resolved.Sources[0].Ref = ""
 	resolved.Sources[0].Version = constraint
 	version := "review & <test> \"quoted\"\\path\nnext"
-	output, err := build.Prepare(resolved, build.Options{ToolVersion: version, IndexMaxLines: build.DefaultIndexMaxLines})
+	output, err := prepare(resolved, Options{ToolVersion: version, IndexMaxLines: defaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +61,7 @@ func TestPrepareToolVersionWhitespace(t *testing.T) {
 		{"padded", " v1.2.3 ", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			output, err := build.Prepare(build.Resolved{}, build.Options{ToolVersion: tc.version, IndexMaxLines: build.DefaultIndexMaxLines})
+			output, err := prepare(resolution{}, Options{ToolVersion: tc.version, IndexMaxLines: defaultIndexMaxLines})
 			if !tc.valid {
 				var validation *rules.ValidationError
 				if !errors.As(err, &validation) || validation.Location != "toolVersion" || output.Files != nil {
@@ -90,12 +89,12 @@ func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
 	supplied.Catalog.SupportingFiles["LICENSE"] = terms
 	supplied.Catalog.SupportingFiles["NOTICE"] = []byte("Notice\r\n")
 	libraries["team"] = supplied
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	options := build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines}
-	got, err := build.Prepare(resolved, options)
+	options := Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines}
+	got, err := prepare(resolved, options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +115,7 @@ func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
 	if len(provenance.Sources) != 1 || len(provenance.Rules) != 0 {
 		t.Fatal("lost excluded-source provenance")
 	}
-	again, err := build.Prepare(resolved, options)
+	again, err := prepare(resolved, options)
 	if err != nil || !reflect.DeepEqual(got, again) {
 		t.Fatal("nondeterministic output")
 	}
@@ -129,19 +128,19 @@ func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
 // TestPrepareReplacementProvenance retains upstream identity but assigns only the local definition's license basis.
 func TestPrepareReplacementProvenance(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{"techs/go/errors":{"file":"local/techs/go/custom.md","reason":"Project policy"}}`)
-	resolved, err := build.Resolve(config, libraries, map[string][]byte{"techs/go/custom.md": []byte(document)})
+	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/custom.md": []byte(document)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
+	got, err := prepare(resolved, Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
 	var provenance struct {
 		Rules []struct {
 			ID                string
-			Origin            build.Origin
-			Upstream          *build.Origin
+			Origin            ruleOrigin
+			Upstream          *ruleOrigin
 			ReplacementReason string
 			LicenseBasis      string
 		}
@@ -164,18 +163,18 @@ func TestPrepareReplacementProvenance(t *testing.T) {
 // TestPrepareNoPartialOutput rejects missing term bytes and invalid budgets after resolution.
 func TestPrepareNoPartialOutput(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, nil)
+	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, options := range []build.Options{{ToolVersion: "", IndexMaxLines: build.DefaultIndexMaxLines}, {ToolVersion: "test", IndexMaxLines: 0}} {
-		output, err := build.Prepare(resolved, options)
+	for _, options := range []Options{{ToolVersion: "", IndexMaxLines: defaultIndexMaxLines}, {ToolVersion: "test", IndexMaxLines: 0}} {
+		output, err := prepare(resolved, options)
 		if err == nil || output.Files != nil {
 			t.Fatal("accepted invalid options or returned partial output")
 		}
 	}
 	resolved.Sources[0].License = &rules.LicenseDeclaration{Files: []string{"missing"}}
-	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
+	output, err := prepare(resolved, Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines})
 	if err == nil || output.Files != nil {
 		t.Fatal("accepted missing terms")
 	}
@@ -189,11 +188,11 @@ func TestProvenanceCompatibility(t *testing.T) {
 	lib.Catalog.SupportingFiles["LICENSE"] = []byte("Terms")
 	lib.Catalog.SupportingFiles["NOTICE"] = []byte("Notice")
 	libraries["team"] = lib
-	resolved, err := build.Resolve(config, libraries, map[string][]byte{"techs/go/local.md": []byte(document)})
+	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/local.md": []byte(document)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
+	output, err := prepare(resolved, Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +240,7 @@ func TestProvenanceCompatibility(t *testing.T) {
 		t.Fatal("obsolete licenses array in provenance")
 	}
 	resolved.Sources[0].License = nil
-	output, err = build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
+	output, err = prepare(resolved, Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,18 +255,18 @@ func TestProvenanceCompatibility(t *testing.T) {
 // TestProvenanceGuidanceOrder retains library-first provenance without changing effective local priority.
 func TestProvenanceGuidanceOrder(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := build.Resolve(config, libraries, map[string][]byte{"techs/go/_group.json": []byte(`{"name":"Local Go","description":"Local policy","whenToRead":"When editing Go"}`)})
+	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/_group.json": []byte(`{"name":"Local Go","description":"Local policy","whenToRead":"When editing Go"}`)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	original := append([]build.Guidance(nil), resolved.Groups[0].Guidance...)
-	output, err := build.Prepare(resolved, build.Options{ToolVersion: "test", IndexMaxLines: build.DefaultIndexMaxLines})
+	original := append([]groupGuidance(nil), resolved.Groups[0].Guidance...)
+	output, err := prepare(resolved, Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
 	var data struct {
 		Groups []struct {
-			Guidance                 []build.Guidance
+			Guidance                 []groupGuidance
 			EffectiveGuidanceSources []string
 		}
 	}

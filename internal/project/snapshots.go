@@ -1,4 +1,5 @@
-// Package project verifies persisted source snapshots and coordinates project-owned files.
+// Verify persisted source snapshots before offline generation.
+
 package project
 
 import (
@@ -7,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"maps"
 	"slices"
 	"strings"
@@ -15,12 +15,10 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/unicode/norm"
 )
 
-// Snapshot is the library-owned value persisted by project snapshot encoding.
-type Snapshot = library.Snapshot
+// snapshot is the library-owned value persisted by project snapshot encoding.
+type snapshot = library.Snapshot
 
 // sourceRecord preserves the version-1 TypeScript record layout without embedding file content.
 type sourceRecord struct {
@@ -36,9 +34,9 @@ type sourceRecord struct {
 	Files           map[string]string `json:"files"`
 }
 
-// EncodeSnapshots prepares complete vendor bytes for parsed configuration, without writing files.
+// encodeSnapshots prepares complete vendor bytes for parsed configuration, without writing files.
 // Inputs stay unchanged; returned maps and byte slices belong to the caller. Errors return nil.
-func EncodeSnapshots(config rules.Configuration, snapshots map[string]Snapshot) (map[string][]byte, error) {
+func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) (map[string][]byte, error) {
 	output := map[string][]byte{}
 	if len(snapshots) != len(config.Sources) {
 		return nil, invalidSnapshot("vendor", "source inventory differs from configuration; run sync")
@@ -53,7 +51,7 @@ func EncodeSnapshots(config rules.Configuration, snapshots map[string]Snapshot) 
 			return nil, fmt.Errorf("encode selection for %s: %v", source.Name, err)
 		}
 		record := sourceRecord{1, snapshot.Repository, snapshot.Ref, snapshot.Version, snapshot.Tag, snapshot.ResolvedVersion, snapshot.Commit, snapshot.Groups, selection, map[string]string{}}
-		if err := validateFilePaths(snapshot.Files); err != nil {
+		if err := rules.ValidatePaths(snapshot.Files, nil); err != nil {
 			return nil, err
 		}
 		for _, file := range slices.Sorted(maps.Keys(snapshot.Files)) {
@@ -76,20 +74,20 @@ func EncodeSnapshots(config rules.Configuration, snapshots map[string]Snapshot) 
 		}
 		output[source.Name+"/_source.json"] = encoded.Bytes()
 	}
-	if err := validateFilePaths(output); err != nil {
+	if err := rules.ValidatePaths(output, nil); err != nil {
 		return nil, err
 	}
 	return output, nil
 }
 
-// DecodeSnapshots verifies every original byte and source identity before returning owned snapshots.
+// decodeSnapshots verifies every original byte and source identity before returning owned snapshots.
 // Unexpected source files and incomplete records fail closed. It performs no filesystem or Git access.
 // Rule and manifest validation remains the catalog loader's responsibility after this integrity check.
-func DecodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[string]Snapshot, error) {
-	if err := validateFilePaths(vendor); err != nil {
+func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[string]snapshot, error) {
+	if err := rules.ValidatePaths(vendor, nil); err != nil {
 		return nil, err
 	}
-	result := map[string]Snapshot{}
+	result := map[string]snapshot{}
 	expected := map[string]bool{}
 	for _, source := range config.Sources {
 		recordPath := source.Name + "/_source.json"
@@ -116,7 +114,7 @@ func DecodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		if err != nil {
 			return nil, err
 		}
-		result[source.Name] = Snapshot{Repository: record.Repository, Ref: record.Ref, Version: record.Version, Tag: record.Tag, ResolvedVersion: record.ResolvedVersion, Commit: record.Commit, Groups: record.Groups, Selection: selection, Files: files}
+		result[source.Name] = snapshot{Repository: record.Repository, Ref: record.Ref, Version: record.Version, Tag: record.Tag, ResolvedVersion: record.ResolvedVersion, Commit: record.Commit, Groups: record.Groups, Selection: selection, Files: files}
 	}
 	for _, file := range slices.Sorted(maps.Keys(vendor)) {
 		if !expected[file] {
@@ -181,7 +179,7 @@ func parseSourceRecord(data []byte, source rules.Source) (sourceRecord, error) {
 		}
 		paths[file] = nil
 	}
-	if err := validateFilePaths(paths); err != nil {
+	if err := rules.ValidatePaths(paths, nil); err != nil {
 		return sourceRecord{}, fmt.Errorf("%s: %w", where, err)
 	}
 	if _, ok := paths["rule-library.json"]; !ok {
@@ -232,49 +230,6 @@ func matchSnapshotSource(want, got rules.Source, record sourceRecord, where stri
 	for _, group := range record.Groups {
 		if got.Groups.Pattern != "" && got.Groups.Pattern != "*" && !strings.HasPrefix(group, strings.TrimSuffix(got.Groups.Pattern, "*")) {
 			return invalidSnapshot(where, "resolved group is outside the requested selection")
-		}
-	}
-	return nil
-}
-
-// validateFilePaths enforces contained portable names and rejects file/directory collisions before use.
-func validateFilePaths(files map[string][]byte) error {
-	return validatePaths(files, nil)
-}
-
-// validatePaths checks portable spelling across both files and empty directories.
-func validatePaths(files map[string][]byte, directories []string) error {
-	names := maps.Clone(files)
-	if names == nil {
-		names = map[string][]byte{}
-	}
-	for _, dir := range directories {
-		if _, ok := files[dir]; ok {
-			return invalidSnapshot(dir, "file also used as directory")
-		}
-		names[dir] = nil
-	}
-	spellings := map[string]string{}
-	for _, file := range slices.Sorted(maps.Keys(names)) {
-		if file == "." || !fs.ValidPath(file) || strings.ContainsAny(file, "\\:\x00") || !utf8.ValidString(file) {
-			return invalidSnapshot(file, "expected a contained relative file path")
-		}
-		parts := strings.Split(file, "/")
-		for i, part := range parts {
-			if strings.ContainsFunc(part, func(r rune) bool { return r < 32 || r == 127 }) {
-				return invalidSnapshot(file, "control characters are unsupported in paths")
-			}
-			prefix := strings.Join(parts[:i+1], "/")
-			folded := cases.Fold().String(norm.NFC.String(prefix))
-			if previous, ok := spellings[folded]; ok && previous != prefix {
-				return invalidSnapshot(file, "portable path collision with "+previous)
-			}
-			spellings[folded] = prefix
-			if i < len(parts)-1 {
-				if _, ok := files[prefix]; ok {
-					return invalidSnapshot(file, "file also used as directory: "+prefix)
-				}
-			}
 		}
 	}
 	return nil

@@ -34,14 +34,10 @@ func TestDocumentationRules(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			resolved, err := build.Resolve(config, nil, map[string][]byte{
+			output, err := build.Generate(config, nil, map[string][]byte{
 				"practices/testing/_group.json": []byte(`{"name":"Testing","description":"Verify behavior.","whenToRead":"Changing behavior."}`),
 				"practices/testing/example.md":  data,
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-			output, err := build.Prepare(resolved, build.Options{ToolVersion: "documentation-example", IndexMaxLines: build.DefaultIndexMaxLines})
+			}, build.Options{ToolVersion: "documentation-example", IndexMaxLines: 750})
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -7,7 +7,7 @@ description: "Walk through the import workflow, from choosing libraries to direc
 
 ## Try the working builder
 
-Start with [project setup](/guides/set-up-project/) to create a local group and rule, then run `code-rules build`. Open `.code-rules/generated/RULES.md` to inspect the output. This local-only workflow fetches no libraries. The repository also includes an executable [Gruntwork runbook](https://github.com/fabricahq/code-rules/tree/main/runbooks/native-cli).
+Start with [project setup](/guides/set-up-project/) to create a local group and rule, then run `code-rules build`. Open `.code-rules/generated/RULES.md` to inspect the output. This local-only workflow fetches no libraries.
 
 ## 1. Choose libraries and revisions
 

@@ -49,14 +49,14 @@ func (e treeEntry) Sys() any { return nil }
 // gitFiles supplies metadata without I/O and fetches only files requested by shared catalog validation.
 type gitFiles struct {
 	ctx         context.Context
-	revision    *Revision
+	revision    *revision
 	entries     map[string]treeEntry
 	directories map[string][]fs.DirEntry
 	total       int
 }
 
 // openTree reads the bounded NUL-framed tree and constructs directories without a checkout.
-func (r *Revision) openTree(ctx context.Context) (*gitFiles, error) {
+func (r *revision) openTree(ctx context.Context) (*gitFiles, error) {
 	if r == nil || r.directory == "" {
 		return nil, fail("closed-revision", "Revision has been closed.", nil)
 	}

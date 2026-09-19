@@ -105,14 +105,14 @@ Rule-input validation and generated-file consistency checks are in scope; checki
 
 ## Releases
 
-When asked to make a release, draft or revise release notes, or retry a failed release, follow [the release workflow](_internal/releasing.md). The agent prepares the release PR; the maintainer approves publication by merging it.
+When asked to make a release, draft or revise release notes, or retry a failed release, follow [the release workflow](_engineering/releasing.md). The agent prepares the release PR; the maintainer approves publication by merging it.
 
 ## Working in this repository
 
 Before implementing or reviewing code, consult [Fabrica's engineering rules](https://github.com/fabricahq/app/tree/main/_rules) and read the individual rules relevant to the change.
-For Go implementation, also read [Go conventions](_internal/go-conventions.md).
+For Go implementation, also read [Go conventions](_engineering/go-conventions.md).
 Apply the portable guidance; identify app-specific assumptions and explain any adaptation needed for this CLI.
-For comments, use [the local comment rule](_internal/rules/comment-role-result-and-constraints.md), which supersedes the linked app comment policy.
+For comments, use [the local comment rule](_engineering/rules/comment-role-result-and-constraints.md), which supersedes the linked app comment policy.
 For website JavaScript and TypeScript, use `@fileoverview` headers; an Astro component's frontmatter overview also describes its rendered result because its export is implicit.
 
 The Go CLI is implemented; public release publication and the installable authoring skill remain separate work.

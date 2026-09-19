@@ -18,25 +18,25 @@ func TestInventoryLimits(t *testing.T) {
 	for i := range 8 {
 		files[string(rune('a'+i))] = chunk
 	}
-	if err := ValidateInventoryLimits(context.Background(), files, nil); err != nil {
+	if err := validateInventoryLimits(context.Background(), files, nil); err != nil {
 		t.Fatal(err)
 	}
 	files["extra"] = []byte{1}
-	if err := ValidateInventoryLimits(context.Background(), files, nil); err == nil {
+	if err := validateInventoryLimits(context.Background(), files, nil); err == nil {
 		t.Fatal("aggregate limit ignored")
 	}
-	if err := ValidateInventoryLimits(context.Background(), map[string][]byte{"large": make([]byte, maxFileBytes+1)}, nil); err == nil {
+	if err := validateInventoryLimits(context.Background(), map[string][]byte{"large": make([]byte, maxFileBytes+1)}, nil); err == nil {
 		t.Fatal("file limit ignored")
 	}
-	if err := ValidateInventoryLimits(context.Background(), nil, make([]string, maxFiles)); err != nil {
+	if err := validateInventoryLimits(context.Background(), nil, make([]string, maxFiles)); err != nil {
 		t.Fatal(err)
 	}
-	if err := ValidateInventoryLimits(context.Background(), map[string][]byte{"file": nil}, make([]string, maxFiles)); err == nil {
+	if err := validateInventoryLimits(context.Background(), map[string][]byte{"file": nil}, make([]string, maxFiles)); err == nil {
 		t.Fatal("entry limit ignored")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if err := ValidateInventoryLimits(ctx, nil, nil); !errors.Is(err, context.Canceled) {
+	if err := validateInventoryLimits(ctx, nil, nil); !errors.Is(err, context.Canceled) {
 		t.Fatal(err)
 	}
 }
@@ -119,7 +119,7 @@ func TestInventoryPreservesPortablePaths(t *testing.T) {
 					t.Fatal(err)
 				}
 				defer root.Close()
-				if _, err := ReadInventory(context.Background(), root); err == nil {
+				if _, err := readLocalInventory(context.Background(), root); err == nil {
 					t.Fatal("unsafe path accepted")
 				}
 			})
