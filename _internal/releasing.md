@@ -59,9 +59,9 @@ For execution details, read the [release workflow](../.github/workflows/release.
 
 The standalone installer downloads the latest published stable release, or the explicit version the user selects. It uses the existing four archives and `SHA256SUMS`; release packaging and approval are unchanged.
 
-After the shared Homebrew tap is activated, its **Update Code Rules** workflow checks for a newly published stable release hourly. Run that workflow manually to update sooner. A tap failure does not unpublish or modify the release; fix the reported problem and rerun the tap workflow. Prereleases remain available through explicit standalone installation and manual downloads, but do not advance the Homebrew formula.
+After successfully publishing a stable release, the release workflow uses the **Fabrica Homebrew Releaser** GitHub App to trigger **Update Code Rules** in the [Fabrica Homebrew tap](https://github.com/fabricahq/homebrew-tap). It does not poll. The app token can run Actions only in the tap; the tap uses its own token to commit the formula. A dispatch or tap failure does not unpublish or modify the release. Fix the reported problem and run the tap workflow manually; do not prepare another release just to retry a formula update. Prereleases remain available through explicit standalone installation and manual downloads, but do not advance the Homebrew formula.
 
-See [installation channel setup](../_distribution/README.md) for the tap source, website endpoint, activation requirements, and validation. The tap owns its own write token, so the release workflow needs no credentials for another repository.
+See [installation channel setup](../_distribution/README.md) for the tap source, website endpoint, activation requirements, and validation. The release repository requires the `HOMEBREW_APP_CLIENT_ID` Actions variable and `HOMEBREW_APP_PRIVATE_KEY` Actions secret. The app credential is used only in the dispatch job after publication succeeds, never in PR validation or release builds.
 
 ## Retry a failed release
 

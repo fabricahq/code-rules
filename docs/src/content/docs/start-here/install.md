@@ -3,9 +3,13 @@ title: "Install Code Rules"
 description: "Install Code Rules with Homebrew, a standalone installer, or a manual download."
 ---
 
-Code Rules is a single executable for macOS and Linux on Intel/AMD (`amd64`) and ARM (`arm64`) processors. You do not need Go, Node.js, or Bun to run it. Git and your repository credentials are also required when syncing remote rule libraries. Windows is not supported.
+Code Rules is a standalone binary for macOS and Linux.
 
-**Availability:** Homebrew and the hosted installer are prepared for activation. They require a published release, the Fabrica tap, and the installer endpoint. Until those are available, [build from source](#build-from-source).
+**Windows:** Native Windows is not supported yet. The Linux version is expected to work in [Windows Subsystem for Linux 2 (WSL 2)](https://learn.microsoft.com/en-us/windows/wsl/about), but we have not tested Code Rules on WSL end to end.
+
+For WSL 2, follow the Linux instructions in your Linux terminal, using Git and repository credentials configured there. Keep your project in the [WSL Linux filesystem](https://learn.microsoft.com/en-us/windows/wsl/filesystems), such as `~/projects/my-app`, rather than `/mnt/c/`. WSL 1 is not a supported target.
+
+**Availability:** The [Fabrica tap](https://github.com/fabricahq/homebrew-tap) is set up to update automatically, but installation requires the first published Code Rules release. The hosted installer also needs endpoint validation. For now, [build from source](#build-from-source).
 
 Use **Homebrew** if you already have it, or the **standalone installer** to install without a package manager. Manual release downloads remain available as a fallback once releases are published.
 
