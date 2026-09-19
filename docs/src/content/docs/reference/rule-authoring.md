@@ -7,7 +7,7 @@ A **rule** is a Markdown file that tells an agent what to do, when the instructi
 
 Use this page when writing a new rule, improving an existing one, or reviewing a proposed rule. The **template** gives you a starting structure. The **rubric** is a checklist for deciding whether the rule is clear, useful, and verifiable.
 
-The same template and rubric apply to rules in shared libraries and rules written for one project. This page explains how to complete the template and review the result. For the steps to create a rule, see [Make a rule](/guides/write-rules/).
+The same template and rubric apply to rules in shared libraries and rules written for one project. This page explains how to complete the template and review the result. For the steps to create a rule, see [Write a rule](/guides/write-rules/).
 
 ## What goes in a rule
 

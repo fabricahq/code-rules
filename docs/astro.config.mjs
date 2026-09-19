@@ -46,13 +46,17 @@ export default defineConfig({
         { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', items: [
-        { label: 'Import rules', slug: 'guides/select-rules' },
-        { label: 'Create a rule library', slug: 'guides/create-library' },
-        { label: 'Make a rule', slug: 'guides/write-rules' },
-        { label: 'Adapt a third-party rule', slug: 'guides/adapt-rules' },
-        { label: 'Update rules', slug: 'guides/update' },
-        { label: 'Conflicting guidance', slug: 'guides/conflicting-guidance' },
-        { label: 'License rules', slug: 'guides/license-rules' },
+        { label: 'Manage project rules', items: [
+          { label: 'Import and customize rules', slug: 'guides/select-rules' },
+          { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
+          { label: 'Update rules', slug: 'guides/update' },
+        ] },
+        { label: 'Write and share rules', items: [
+          { label: 'Write a rule', slug: 'guides/write-rules' },
+          { label: 'Create a rule library', slug: 'guides/create-library' },
+          { label: 'License rules', slug: 'guides/license-rules' },
+          { label: 'Adapt a third-party rule', slug: 'guides/adapt-rules' },
+        ] },
       ] },
       { label: 'Reference', items: [
         { label: 'Projects', items: [

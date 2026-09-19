@@ -53,4 +53,4 @@ Agents select rules from group pages, which include complete definitions for sma
 Each rule keeps its identity and provenance even when several rules share a group applicability index.
 Agents select relevant groups, then apply each individual rule's conditions and exceptions.
 
-See [Group](/concepts/groups/) for how rules are organized, or [Make a rule](/guides/write-rules/) to create one.
+See [Group](/concepts/groups/) for how rules are organized, or [Write a rule](/guides/write-rules/) to create one.

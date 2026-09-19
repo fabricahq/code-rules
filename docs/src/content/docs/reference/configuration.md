@@ -273,7 +273,7 @@ Source-qualified IDs prevent naming collisions, but distinct rules can still req
 Both remain active unless the project explicitly excludes or replaces a rule under its owning source.
 The importer does not infer priority from source order or interpret prose to resolve contradictions.
 
-See [Conflicting guidance](/guides/conflicting-guidance/) for examples, an agent review prompt, and ways to resolve competing instructions.
+See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an agent review prompt, and ways to resolve competing instructions.
 
 ## Version boundaries
 

@@ -1,5 +1,5 @@
 ---
-title: "Make a rule"
+title: "Write a rule"
 description: "Author a focused engineering obligation with applicability, examples, and verification guidance."
 ---
 
