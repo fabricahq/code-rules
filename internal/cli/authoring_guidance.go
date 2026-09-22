@@ -107,10 +107,12 @@ func formatGroupCreated(out *strings.Builder, cmd *cobra.Command, files, warning
 	rulePath := cmd.Flags().Args()[0] + "/my-rule"
 	fmt.Fprintf(out, "\nNext: Add a rule to this group (replace my-rule with your rule's slug):\n  %s\n", authoringFollowupCommand(cmd, "add rule "+rulePath, isLibrary))
 	action := "build"
+	next := "After writing the rule text, to make the rule accessible to this project, run:"
 	if isLibrary {
 		action = "check"
+		next = "After writing the rule text, run:"
 	}
-	fmt.Fprintf(out, "\nAfter writing the rule text, run:\n  %s\n", authoringFollowupCommand(cmd, action, isLibrary))
+	fmt.Fprintf(out, "\n%s\n  %s\n", next, authoringFollowupCommand(cmd, action, isLibrary))
 }
 
 // authoringFollowupCommand preserves the selected scope and quotes custom locations for shell use.
