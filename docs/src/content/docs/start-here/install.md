@@ -1,41 +1,19 @@
 ---
 title: "Install Code Rules"
-description: "Install Code Rules with Homebrew, a standalone installer, or a manual download."
+description: "Install Code Rules with the shell script or Homebrew."
 ---
 
 Code Rules is a standalone binary for macOS and Linux.
 
-**Windows:** Native Windows is not supported yet. The Linux version is expected to work in [Windows Subsystem for Linux 2 (WSL 2)](https://learn.microsoft.com/en-us/windows/wsl/about), but we have not tested Code Rules on WSL end to end.
+Native Windows is not supported yet. See [Installing on Windows](#installing-on-windows) below.
 
-For WSL 2, follow the Linux instructions in your Linux terminal, using Git and repository credentials configured there. Keep your project in the [WSL Linux filesystem](https://learn.microsoft.com/en-us/windows/wsl/filesystems), such as `~/projects/my-app`, rather than `/mnt/c/`. WSL 1 is not a supported target.
-
-**Availability:** The [Fabrica tap](https://github.com/fabricahq/homebrew-tap) is set up to update automatically, but installation requires the first published Code Rules release. The hosted installer also needs endpoint validation. For now, [build from source](#build-from-source).
-
-Use **Homebrew** if you already have it, or the **standalone installer** to install without a package manager. Manual release downloads remain available as a fallback once releases are published.
-
-## Install with Homebrew
-
-With [Homebrew](https://brew.sh/) installed on macOS or Linux:
-
-```sh
-brew install fabricahq/tap/code-rules
-code-rules --version
-```
-
-The Fabrica tap selects the release archive for your operating system and processor and verifies its checksum. Homebrew manages the installed executable and its license.
-
-To upgrade or remove it:
-
-```sh
-brew upgrade code-rules
-brew uninstall code-rules
-```
+Install with the [shell script](#use-the-standalone-installer), or use [Homebrew](#install-with-homebrew).
 
 ## Use the standalone installer
 
 The installer downloads the latest stable release, verifies its SHA-256, and installs into `~/.local/bin`. It does not use `sudo` or change your shell configuration.
 
-Once the endpoint is activated, run:
+Until the first release is available, [build from source](#build-from-source). Once available, run:
 
 ```sh
 curl -fsSL https://code-rules.fabricahq.com/install.sh | sh
@@ -92,6 +70,24 @@ rm "$HOME/.local/bin/code-rules" "$HOME/.local/bin/code-rules.LICENSE"
 
 Use your custom installation directory if you chose one. Removing the executable does not remove rules from your projects.
 
+## Install with Homebrew
+
+With [Homebrew](https://brew.sh/) installed on macOS or Linux:
+
+```sh
+brew install fabricahq/tap/code-rules
+code-rules --version
+```
+
+The Fabrica tap selects the release archive for your operating system and processor and verifies its checksum. Homebrew manages the installed executable and its license.
+
+To upgrade or remove it:
+
+```sh
+brew upgrade code-rules
+brew uninstall code-rules
+```
+
 ## Download a release manually
 
 Choose an archive and `SHA256SUMS` from the same [GitHub release](https://github.com/fabricahq/code-rules/releases):
@@ -106,6 +102,14 @@ Choose an archive and `SHA256SUMS` from the same [GitHub release](https://github
 Compute the archive's SHA-256 with `shasum -a 256 <archive>` on macOS or `sha256sum <archive>` on Linux. Compare it with that archive's entry in `SHA256SUMS` **before extracting it**. Checksums detect corruption; they do not authenticate a download if someone can replace both the archive and its checksum record.
 
 Extract into a new directory, retain `LICENSE.md`, and run `./code-rules --version` and `./code-rules --help`. Add that directory to your `PATH`, or use the executable's absolute path. Keep separate versioned directories if you want to switch versions without downloading again.
+
+## Installing on Windows
+
+The Linux version is expected to work in [Windows Subsystem for Linux 2 (WSL 2)](https://learn.microsoft.com/en-us/windows/wsl/about), but we have not tested Code Rules on WSL end to end. WSL 1 is not a supported target.
+
+Follow the Linux installation instructions in your WSL 2 terminal. Until published releases are available, [build from source](#build-from-source) there instead.
+
+Keep your project in the [WSL Linux filesystem](https://learn.microsoft.com/en-us/windows/wsl/filesystems), such as `~/projects/my-app`, rather than `/mnt/c/`. To sync remote libraries, use Git and repository credentials configured inside WSL 2.
 
 ## After installation or an upgrade
 
