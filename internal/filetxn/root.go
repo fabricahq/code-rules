@@ -35,7 +35,7 @@ func open(ctx context.Context, directory string, create bool) (*os.Root, error) 
 	}
 	info, err := os.Lstat(absolute)
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, failure("needs-init", "rules directory is not initialized; use code-rules project init for a project or code-rules library init for a shared library", err)
+		return nil, failure("missing-root", absolute+": directory does not exist", err)
 	}
 	if err != nil {
 		return nil, err

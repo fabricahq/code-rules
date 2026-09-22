@@ -89,3 +89,41 @@ func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
 		t.Fatal("changed unrelated config", err)
 	}
 }
+
+func TestProjectRootFailuresAreConsistent(t *testing.T) {
+	binary := buildCLI(t)
+	commands := [][]string{{"build"}, {"sync"}, {"check"}, {"add", "group", "techs/go"}, {"add", "rule", "techs/go/errors"}, {"add", "library", "team"}}
+	for _, state := range []string{"missing-directory", "missing-config", "symlink"} {
+		t.Run(state, func(t *testing.T) {
+			directory, target := t.TempDir(), t.TempDir()
+			if out, diagnostic, code := runCLI(t, binary, target, "project", "init"); code != 0 {
+				t.Fatal(code, out, diagnostic)
+			}
+			want := "run code-rules project init"
+			switch state {
+			case "missing-config":
+				if err := os.Mkdir(filepath.Join(directory, ".code-rules"), 0700); err != nil {
+					t.Fatal(err)
+				}
+			case "symlink":
+				if err := os.Symlink(filepath.Join(target, ".code-rules"), filepath.Join(directory, ".code-rules")); err != nil {
+					t.Fatal(err)
+				}
+				want = "without symlinks"
+			}
+			before := projectFileContents(t, target)
+			for _, command := range commands {
+				args := append([]string{"project"}, command...)
+				args = append(args, "--json")
+				out, diagnostic, code := runCLI(t, binary, directory, args...)
+				var result response
+				if json.Unmarshal([]byte(out), &result) != nil || code != 1 || result.OK || result.Error == nil || diagnostic != "" || !strings.Contains(result.Error.Message, want) {
+					t.Errorf("%v: code=%d stdout=%s stderr=%s", args, code, out, diagnostic)
+				}
+			}
+			if !reflect.DeepEqual(before, projectFileContents(t, target)) {
+				t.Fatal("changed symlink target")
+			}
+		})
+	}
+}

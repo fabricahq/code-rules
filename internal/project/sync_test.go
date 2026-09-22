@@ -53,12 +53,12 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	if err != nil || len(first.Added) == 0 {
 		t.Fatalf("initial sync: %+v %v", first, err)
 	}
-	root, name, err := projectLocation(options.Directory)
+	root, err := openProject(ctx, options, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	state, err := readProject(ctx, root, name)
+	state, err := readProject(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	if before.Digest() != after.Digest() {
 		t.Fatal("repeat/check changed bytes")
 	}
-	writeFixture(t, root, name, `{"schemaVersion":1,"sources":{}}`)
+	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{}}`)
 	retired, err := Sync(ctx, options, imports.Options{GitPath: "/missing/git"})
 	if err != nil || len(retired.Removed) == 0 {
 		t.Fatalf("retire: %+v %v", retired, err)
@@ -116,12 +116,12 @@ func TestSyncUpdatesTag(t *testing.T) {
 	if err != nil || len(changes.Changed) == 0 {
 		t.Fatalf("updated sync: %+v %v", changes, err)
 	}
-	root, name, err := projectLocation(options.Directory)
+	root, err := openProject(ctx, options, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	state, err := readProject(ctx, root, name)
+	state, err := readProject(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,18 +140,18 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 			if _, err := Sync(ctx, options, git); err != nil {
 				t.Fatal(err)
 			}
-			root, name, err := projectLocation(options.Directory)
+			root, err := openProject(ctx, options, false)
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer root.Close()
 			if scenario == "missing-ref" {
-				raw, err := root.ReadFile(name)
+				raw, err := root.ReadFile(configurationFile)
 				if err != nil {
 					t.Fatal(err)
 				}
 				raw = bytes.ReplaceAll(raw, []byte("v1.0.0"), []byte("missing"))
-				writeFixture(t, root, name, string(raw))
+				writeFixture(t, root, configurationFile, string(raw))
 			} else if scenario == "invalid-local" {
 				writeFixture(t, root, "local/techs/go/bad.md", "invalid")
 			}

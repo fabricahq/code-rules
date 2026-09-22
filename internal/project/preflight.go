@@ -27,12 +27,12 @@ func CheckNewLocalRule(ctx context.Context, id string, options Options) error {
 }
 
 func checkNewLocalFiles(ctx context.Context, options Options, names ...string) error {
-	root, configName, err := openProject(ctx, options, false)
+	root, err := openProject(ctx, options, false)
 	if err != nil {
 		return err
 	}
 	defer root.Close()
-	if _, _, err := configuration(ctx, root, configName); err != nil {
+	if _, _, err := configuration(ctx, root); err != nil {
 		return err
 	}
 	return filetxn.RequireAbsent(ctx, root, names...)
@@ -40,12 +40,12 @@ func checkNewLocalFiles(ctx context.Context, options Options, names ...string) e
 
 // CheckNewSource rejects an alias already declared in configuration without fetching the library.
 func CheckNewSource(ctx context.Context, alias string, options Options) error {
-	root, name, err := openProject(ctx, options, false)
+	root, err := openProject(ctx, options, false)
 	if err != nil {
 		return err
 	}
 	defer root.Close()
-	_, config, err := configuration(ctx, root, name)
+	_, config, err := configuration(ctx, root)
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -53,7 +54,11 @@ func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, e
 	if create {
 		return filetxn.Create(ctx, directory)
 	}
-	return filetxn.Open(ctx, directory)
+	root, err := filetxn.Open(ctx, directory)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, failure("needs-init", directory+": missing library directory; run code-rules library init first", err)
+	}
+	return root, err
 }
 
 // declaredTerms validates the declaration before reading contained term paths, using planned bytes during initialization.

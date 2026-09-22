@@ -199,12 +199,12 @@ func TestOfflineRejectsSemanticCorruptionBeyondDigests(t *testing.T) {
 // TestProjectInputRecheckRejectsLaterEdits verifies the same guard Build supplies to Apply.
 func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
 	root, _ := localProject(t)
-	state, err := readProject(context.Background(), root, "config.json")
+	state, err := readProject(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	writeFixture(t, root, "local/techs/go/errors.md", projectRule+"Later edit.\n")
-	projectCode(t, requireUnchanged(context.Background(), root, "config.json", state), "concurrent-change")
+	projectCode(t, requireUnchanged(context.Background(), root, state), "concurrent-change")
 }
 
 // TestOfflineRejectsContentChangedBetweenVerificationAndLoading binds rendered bytes to the verified snapshot.
@@ -212,7 +212,7 @@ func TestOfflineRejectsContentChangedBetweenVerificationAndLoading(t *testing.T)
 	for _, file := range []string{"techs/go/errors.md", "techs/go/_group.json"} {
 		t.Run(file, func(t *testing.T) {
 			root, options := importedProject(t)
-			state, err := readProject(context.Background(), root, "config.json")
+			state, err := readProject(context.Background(), root)
 			if err != nil {
 				t.Fatal(err)
 			}

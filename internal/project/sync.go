@@ -17,14 +17,14 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
 	}
-	root, name, err := projectLocation(options.Directory)
+	root, err := openProject(ctx, options, false)
 	if err != nil {
 		return FileChanges{}, err
 	}
 	defer root.Close()
 	var changes FileChanges
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
-		before, err := readProject(ctx, root, name)
+		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
 		}
@@ -54,7 +54,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}
 		includeProjectGuide(targets, guide, &changes)
 		return w.Apply(targets, func() error {
-			if err := requireUnchanged(ctx, root, name, before); err != nil {
+			if err := requireUnchanged(ctx, root, before); err != nil {
 				return err
 			}
 			return requireGuideUnchanged(ctx, root, guide)

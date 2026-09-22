@@ -73,7 +73,7 @@ func TestCheckSnapshotRejectsEdits(t *testing.T) {
 			} else {
 				writeFixture(t, root, "README.md", string(expected["README.md"]))
 			}
-			before, err := readProject(ctx, root, "config.json")
+			before, err := readProject(ctx, root)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -97,7 +97,7 @@ func TestCheckSnapshotRejectsEdits(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			err = requireCheckUnchanged(ctx, root, "config.json", before, expected, files)
+			err = requireCheckUnchanged(ctx, root, before, expected, files)
 			if err == nil {
 				t.Fatal("accepted changing project", change)
 			}
