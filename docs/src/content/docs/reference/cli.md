@@ -11,7 +11,7 @@ See [Sync and recovery](/reference/sync/) for filesystem behavior.
 Use `project` to configure and manage rules for the software project you are working in.
 Use `library` to create and maintain a collection of rules shared across projects.
 Rules and groups added through `project` belong to that project; rules and groups added through `library` belong to the shared library.
-Command menus follow the workflow: `project` before `library`, initialization before authoring, and groups before their rules.
+Command menus list `project` before `library` and initialization before authoring. Add menus list `rule`, `group`, then `library` where available.
 Project help separates the main commands (`init`, `add`, and `sync`) from utility commands (`build` and `check`).
 
 ```text

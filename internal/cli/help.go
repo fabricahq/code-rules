@@ -82,7 +82,7 @@ func commandsInHelpOrder(cmd *cobra.Command) []*cobra.Command {
 		"code-rules": {"project", "library"},
 		"project":    {"init", "add", "sync", "build", "check"},
 		"library":    {"init", "add", "check"},
-		"add":        {"group", "rule", "library", "source"},
+		"add":        {"rule", "group", "library", "source"},
 	}[cmd.Name()]
 	commands := cmd.Commands()
 	ordered := make([]*cobra.Command, 0, len(commands))
