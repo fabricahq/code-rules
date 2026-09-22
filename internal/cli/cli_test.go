@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -69,7 +70,7 @@ func TestCLIProcess(t *testing.T) {
 			if code == 0 && (out == "" || diagnostic != "") {
 				t.Fatalf("help/version streams: %q %q", out, diagnostic)
 			}
-			if code != 0 && (out != "" || diagnostic == "") {
+			if code != 0 && (out != "" || !strings.HasPrefix(diagnostic, "\nError: ")) {
 				t.Fatalf("error streams: %q %q", out, diagnostic)
 			}
 			entries, err := os.ReadDir(dir)

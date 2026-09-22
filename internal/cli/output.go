@@ -58,6 +58,10 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error, c
 	} else {
 		var text strings.Builder
 		if o.value != nil {
+			if errors.Is(err, errCheckOutOfDate) {
+				text.WriteString(humanError(streams.Out, err))
+				text.WriteByte('\n')
+			}
 			formatHuman(&text, cmd, o.value)
 		} else if err == nil {
 			text.WriteString(o.text.String())
@@ -65,15 +69,20 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error, c
 		if text.Len() > 0 {
 			_, writeErr = io.WriteString(streams.Out, text.String())
 		}
-		if err != nil && err != errCheckOutOfDate {
-			fmt.Fprintln(streams.Err, err)
+		if err != nil && !errors.Is(err, errCheckOutOfDate) {
+			_, diagnosticErr := io.WriteString(streams.Err, humanError(streams.Err, err))
+			writeErr = errors.Join(writeErr, diagnosticErr)
 			if code == 2 {
 				fmt.Fprintf(streams.Err, "\nRun %s --help for usage.\n", cmd.CommandPath())
 			}
 		}
 	}
 	if writeErr != nil {
-		fmt.Fprintf(streams.Err, "write command output: %v\n", writeErr)
+		if o.json {
+			fmt.Fprintf(streams.Err, "write command output: %v\n", writeErr)
+		} else {
+			fmt.Fprint(streams.Err, humanError(streams.Err, fmt.Errorf("write command output: %w", writeErr)))
+		}
 		return 1
 	}
 	return code
