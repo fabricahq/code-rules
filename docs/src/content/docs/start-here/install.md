@@ -13,7 +13,7 @@ Install with the [shell script](#use-the-standalone-installer), or use [Homebrew
 
 The installer downloads the latest stable release, verifies its SHA-256, and installs into `~/.local/bin`. It does not use `sudo` or change your shell configuration.
 
-Until the first release is available, [build from source](#build-from-source). Once available, run:
+Run:
 
 ```sh
 curl -fsSL https://code-rules.fabricahq.com/install.sh | sh
@@ -107,7 +107,7 @@ Extract into a new directory, retain `LICENSE.md`, and run `./code-rules --versi
 
 The Linux version is expected to work in [Windows Subsystem for Linux 2 (WSL 2)](https://learn.microsoft.com/en-us/windows/wsl/about), but we have not tested Code Rules on WSL end to end. WSL 1 is not a supported target.
 
-Follow the Linux installation instructions in your WSL 2 terminal. Until published releases are available, [build from source](#build-from-source) there instead.
+Follow the Linux installation instructions in your WSL 2 terminal.
 
 Keep your project in the [WSL Linux filesystem](https://learn.microsoft.com/en-us/windows/wsl/filesystems), such as `~/projects/my-app`, rather than `/mnt/c/`. To sync remote libraries, use Git and repository credentials configured inside WSL 2.
 
