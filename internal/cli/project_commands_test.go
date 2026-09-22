@@ -68,6 +68,7 @@ func TestScopedUsageErrors(t *testing.T) {
 		{"project", "add", "group", "techs/go", "--json"},
 		{"project", "check", "unexpected", "--json"},
 		{"project", "build", "--bad", "--json"},
+		{"project", "add", "library", "team", "--version", ">= 1.0.0", "--json"},
 	} {
 		out, diagnostic, code := runCLI(t, binary, directory, args...)
 		var result response

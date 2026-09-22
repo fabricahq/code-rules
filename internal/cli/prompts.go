@@ -118,25 +118,13 @@ func (p *promptStream) Read(data []byte) (int, error) {
 
 // collectSource prompts only for missing source inputs and preserves explicitly supplied flags.
 func (f *authoringFlags) collectSource(groups *[]string) error {
-	if f.value("ref") != "" && f.value("version") != "" {
-		return fmt.Errorf("specify exactly one of --ref or --version")
+	if f.value("ref") != "" {
+		if _, _, err := libraryRef(f.value("ref")); err != nil {
+			return err
+		}
 	}
-	if err := f.require("repository"); err != nil {
+	if err := f.require("repository", "ref"); err != nil {
 		return err
-	}
-	if f.value("ref") == "" && f.value("version") == "" {
-		kind, err := f.askValidated("Revision kind (ref or version):", func(value string) error {
-			if value != "ref" && value != "version" {
-				return fmt.Errorf("choose ref or version")
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-		if err := f.require(kind); err != nil {
-			return err
-		}
 	}
 	if len(*groups) == 0 {
 		text, err := f.askValidated("Groups (comma-separated paths, *, practices/*, or techs/*):", func(value string) error {

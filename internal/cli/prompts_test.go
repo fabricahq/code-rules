@@ -84,7 +84,7 @@ func TestInteractiveSource(t *testing.T) {
 	if _, stderr, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
 		t.Fatal(stderr)
 	}
-	steps := []terminalfixture.Step{{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"}, {Prompt: "Revision kind (ref or version):", Answer: "version"}, {Prompt: "Version range:", Answer: ">= 1.2.3"}, {Prompt: "Groups (comma-separated paths, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}}
+	steps := []terminalfixture.Step{{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"}, {Prompt: "Ref (tag, full commit SHA, or version range):", Answer: ">= 1.2.3"}, {Prompt: "Groups (comma-separated paths, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}}
 	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"project", "add", "library", "team"}, steps)
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)

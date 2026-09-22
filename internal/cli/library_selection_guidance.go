@@ -4,9 +4,13 @@ package cli
 
 import "fmt"
 
-const librarySelectionGuidance = `Choose a revision:
-  ref      An exact tag (e.g. v1.2.3) or a full commit SHA. Branch names are not supported.
-  version  A version range (e.g. >= 1.2.0, < 2.0.0). Sync selects the highest matching release tag.
+const librarySelectionGuidance = `Choose a ref:
+  v1.2.3                Use this exact tag.
+  <full commit SHA>     Use this exact commit.
+  >= 1.2.0, < 2.0.0     Let sync select the highest matching release tag.
+
+Plain versions such as 1.2.3 are literal tags. Start a range with an operator
+such as >=, =, or ~>. Branch names and abbreviated commits are not supported.
 
 Choose groups from that library:
   practices/testing, techs/go  Only these groups (example paths).
@@ -20,7 +24,6 @@ Choose explicit paths or one wildcard; do not combine them.
 
 Example library selection:
   Repository: https://github.com/example/rules.git
-  Revision kind: ref
   Ref: v1.2.3
   Groups: practices/testing, techs/go`
 
@@ -43,8 +46,9 @@ ALIAS is your project's short name for the library (e.g. team), not its reposito
 
 ` + librarySelectionGuidance + `
 
-For scripts and agents, supply --repository, either --ref or --version, and --groups.
+For scripts and agents, supply --repository, --ref, and --groups.
 Repeat --groups for individual paths; quote wildcards and version ranges in the shell.
 Use --non-interactive to require explicit flags, or --json for structured output without prompts.
+Use refs/tags/<name> for a literal tag that looks like a range.
 The example repository, tag, and groups are illustrative; replace them with your library's values.
 Run code-rules project sync afterward to fetch the rules and build guidance.`

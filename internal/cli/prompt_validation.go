@@ -46,10 +46,7 @@ func validateAnswer(name, value string) error {
 		_, err = rules.ParseRepository(data, "--repository")
 		return err
 	case "ref":
-		_, err := rules.ParseGitRef(value, "--ref")
-		return err
-	case "version":
-		_, err := rules.ParseVersionConstraint(value, "--version")
+		_, _, err := libraryRef(value)
 		return err
 	}
 	return nil

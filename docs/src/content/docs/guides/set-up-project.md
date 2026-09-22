@@ -42,13 +42,17 @@ Use the [agent integration instructions](/for-agents/) to connect the rules to y
 ```sh
 code-rules project add library team \
   --repository https://github.com/example/rules.git \
-  --version '>= 1.2.0, < 2.0.0' --groups '*'
+  --ref '>= 1.2.0, < 2.0.0' --groups '*'
 code-rules project sync
 ```
 
 Replace the example repository and version with a library you can access.
 `project add library` validates and records the declaration. It does not fetch, verify remote existence, or change generated files. `project sync` performs those steps explicitly.
-Use exactly one of `--ref` (an exact tag or full commit) or `--version` (a HashiCorp version constraint).
+Use `--ref` for an exact tag, a full commit SHA, or a version range. The interactive command asks for the same single value.
+A bare version such as `1.2.3` or `v1.2.3` selects that exact tag. A range such as `>= 1.2.0, < 2.0.0` selects the highest matching release tag during sync.
+Quote ranges in the shell. Branch names and abbreviated commits are unsupported.
+Values beginning with comparison operators or containing commas are parsed as version constraints. Use `refs/tags/<name>` for a literal tag that resembles a constraint.
+The CLI writes exact selections to `ref` and ranges to `version` in configuration. Existing configuration files need no migration; the separate `--version` flag is no longer accepted by this command.
 
 Use `--groups '*'`, `--groups 'practices/*'`, `--groups 'techs/*'`, or repeat `--groups` for explicit IDs. Quote wildcard values in your shell. Wildcards cannot be combined with other selectors.
 Existing sources, exclusions, replacements, and local rule files are preserved. An existing source alias is an error; edit its configuration explicitly to change it.

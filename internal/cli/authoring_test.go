@@ -19,7 +19,7 @@ func TestAuthoringCLIProcess(t *testing.T) {
 		{"project", "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When editing Go."},
 		{"project", "add", "rule", "techs/go/errors", "--title", "Return errors", "--impact", "HIGH", "--impact-description", "Preserve failures.", "--when-to-read", "When calling functions.", "--body-file", "body.md"},
 		{"project", "build"}, {"project", "check"},
-		{"project", "add", "library", "team", "--repository", "https://github.com/acme/rules", "--version", ">= 1.2.3, < 2.0.0", "--groups", "techs/go"},
+		{"project", "add", "library", "team", "--repository", "https://github.com/acme/rules", "--ref", ">= 1.2.3, < 2.0.0", "--groups", "techs/go"},
 	} {
 		if err := os.WriteFile(filepath.Join(directory, "body.md"), []byte("# Return errors\n\nReturn failures to callers.\n"), 0600); err != nil {
 			t.Fatal(err)

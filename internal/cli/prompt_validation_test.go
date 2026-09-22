@@ -71,23 +71,21 @@ func TestSourceAnswerRetry(t *testing.T) {
 			if _, stderr, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
 				t.Fatal(stderr)
 			}
-			revisionPrompt, invalid, valid := "Exact tag or full commit:", "bad ref", "v1.2.3"
+			revisionPrompt, invalid, valid := "Ref (tag, full commit SHA, or version range):", "bad ref", "v1.2.3"
 			if kind == "version" {
-				revisionPrompt, invalid, valid = "Version range:", "not-a-version", ">= 1.2.3"
+				invalid, valid = ">= not-a-version", ">= 1.2.3"
 			}
 			groupPrompt := "Groups (comma-separated paths, *, practices/*, or techs/*):"
 			steps := []terminalfixture.Step{
 				{Prompt: "Git repository URL:", Answer: "acme/rules"},
 				{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"},
-				{Prompt: "Revision kind (ref or version):", Answer: "branch"},
-				{Prompt: "Revision kind (ref or version):", Answer: kind},
 				{Prompt: revisionPrompt, Answer: invalid},
 				{Prompt: revisionPrompt, Answer: valid},
 				{Prompt: groupPrompt, Answer: "techs/go, techs/go"},
 				{Prompt: groupPrompt, Answer: "techs/*"},
 			}
 			result, err := terminalfixture.Run(context.Background(), binary, dir, []string{"project", "add", "library", "team"}, steps)
-			if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 4 {
+			if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 3 {
 				t.Fatal(err, result)
 			}
 			data, err := os.ReadFile(filepath.Join(dir, ".code-rules/config.json"))

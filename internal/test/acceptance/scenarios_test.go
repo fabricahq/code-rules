@@ -162,7 +162,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			online = append(online, value)
 		}
 	}
-	for _, args := range [][]string{{"project", "init"}, {"project", "add", "library", "team", "--repository", fixture.Repository, "--version", ">= 1.0.0, < 2.0.0", "--groups", "techs/go"}} {
+	for _, args := range [][]string{{"project", "init"}, {"project", "add", "library", "team", "--repository", fixture.Repository, "--ref", ">= 1.0.0, < 2.0.0", "--groups", "techs/go"}} {
 		if err := invoke("Configure consumer", consumer, offline, 0, args...); err != nil {
 			return report, err
 		}
