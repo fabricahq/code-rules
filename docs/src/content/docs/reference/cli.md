@@ -70,6 +70,8 @@ Exit status is 0 for success, 1 for operation failure or stale output, and 2 for
 
 `code-rules project init` creates `.code-rules/README.md` alongside configuration and local rules. This guide defines rules, groups, and libraries and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results. If a custom configuration lives outside a directory named `.code-rules`, init creates `CODE_RULES.md` beside that configuration and preserves the project's `README.md`.
 
+Both first-time and repeated initialization show the configuration file path.
+
 After upgrading, run `code-rules project init` again to refresh an older generated guide. It preserves valid configuration and local rules. If someone edited the managed guide, init refuses to overwrite it and explains how to preserve those notes separately.
 
 Run `code-rules project check` in CI to verify both generated guidance and the project guide without changing files. A missing or outdated guide fails the check; run `code-rules project init` to refresh it. Rebuild stale generated guidance with `code-rules project build`. Use `--config` for a custom configuration location. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.

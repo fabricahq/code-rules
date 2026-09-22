@@ -55,6 +55,13 @@ func TestProjectInitGuidance(t *testing.T) {
 			if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Code Rules is already initialized.\nNo files changed.\n") || strings.Contains(out, "my-rule") {
 				t.Fatal("repeat init should report existing setup", code, out, diagnostic)
 			}
+			location := config
+			if location == "" {
+				location = ".code-rules/config.json"
+			}
+			if !strings.Contains(out, "Configuration: "+location+"\n") {
+				t.Fatal("repeat init should show the configuration path", out)
+			}
 			out, diagnostic, code = runCLI(t, binary, directory, append(args, "--json")...)
 			var result struct {
 				OK    bool

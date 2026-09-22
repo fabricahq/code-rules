@@ -153,15 +153,15 @@ func formatProjectInitialized(out *strings.Builder, cmd *cobra.Command, result p
 		fmt.Fprintf(out, "Warning: %s\n", warning)
 	}
 	config := cmd.Flags().Lookup("config").Value.String()
-	if len(result.Files) == 0 {
-		out.WriteString("\nRun code-rules project --help to manage this project's rules.\n")
-		return
-	}
 	location := config
 	if location == "" {
 		location = ".code-rules/config.json"
 	}
 	fmt.Fprintf(out, "\nConfiguration: %s\n", location)
+	if len(result.Files) == 0 {
+		out.WriteString("\nRun code-rules project --help to manage this project's rules.\n")
+		return
+	}
 	fmt.Fprintf(out, "\nStart with a project-only rule (example):\n  %s\n  %s\n",
 		checkRepairCommand("add group practices/testing", config),
 		checkRepairCommand("add rule practices/testing/my-rule", config))
