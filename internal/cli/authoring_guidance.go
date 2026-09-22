@@ -52,7 +52,7 @@ Enter your rule's details below.
 
 // addRuleFlags keeps the two authoring scopes' field labels and body instructions consistent.
 func (f *authoringFlags) addRuleFlags(cmd *cobra.Command) {
-	cmd.Long = cmd.Short + "\n\nRULE_PATH includes the group path and rule slug, without .md (e.g. practices/testing/my-rule).\nThe title is the rule's readable name. Enter metadata here, then edit the created\nMarkdown file to write the instructions and examples. Use --body-file to supply\nexisting rule text instead of creating a draft."
+	cmd.Long = cmd.Short + "\n\nA rule is a Markdown file that gives agents guidance for a specific task or situation.\n\nRULE_PATH includes the group path and rule slug, without .md (e.g. practices/testing/my-rule).\nThe title is the rule's readable name. Enter metadata here, then edit the created\nMarkdown file to write the instructions and examples. Use --body-file to supply\nexisting rule text instead of creating a draft." + documentationHelp
 	for name, description := range map[string]string{
 		"title":              "Readable, action-oriented rule title",
 		"when-to-read":       "When an agent should read this rule",

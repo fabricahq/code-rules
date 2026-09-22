@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
+const documentationHelp = "\n\nLearn more: https://code-rules.fabricahq.com"
+
 // commandUsage preserves command navigation while grouping only the options available at this scope.
 func commandUsage(cmd *cobra.Command) error {
 	var out strings.Builder
