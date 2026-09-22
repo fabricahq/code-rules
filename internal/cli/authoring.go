@@ -108,7 +108,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		return nil
 	}
 	root.AddCommand(initialize)
-	add := &cobra.Command{Use: "add", Short: "Add a library, project-only group, or project-only rule"}
+	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or library"}
 	root.AddCommand(add)
 	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", 1, options.Directory)
 	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag or full commit", "version": "HashiCorp version constraint"} {
