@@ -165,7 +165,7 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		Sources         []provenanceSource `json:"sources"`
 		Groups          []provenanceGroup  `json:"groups"`
 		Rules           []provenanceRule   `json:"rules"`
-	}{GeneratedNotice: generatedNotice + " Edit source rules or configuration, then regenerate with code-rules project build or code-rules project sync. Use the same --config option for custom configuration.", ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
+	}{GeneratedNotice: generatedNotice + " Edit source rules or configuration, then regenerate with code-rules project build or code-rules project sync. Run project commands from the project root.", ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
 	for _, source := range resolved.Sources {
 		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: source.Tag, ResolvedVersion: source.ResolvedVersion, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, LicenseFiles: rules.LicensePaths(source.License), License: termProvenance(source.Name, "", source.License)})
 	}

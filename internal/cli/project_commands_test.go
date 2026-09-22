@@ -21,7 +21,7 @@ func TestScopedCommandHelp(t *testing.T) {
 		{[]string{"project", "--help"}, []string{"Main commands:", "Utility commands:"}, []string{"Available Commands:"}},
 		{[]string{"project", "add"}, []string{"  rule ", "  group ", "  library "}, []string{"  source ", "  local "}},
 		{[]string{"project", "add", "library", "--help"}, []string{"without fetching", "code-rules project sync", "--repository", "--groups"}, nil},
-		{[]string{"project", "check", "--help"}, []string{"not whether application code follows", "--config"}, nil},
+		{[]string{"project", "check", "--help"}, []string{"not whether application code follows"}, []string{"--config"}},
 		{[]string{"project", "add", "rule", "-h"}, []string{"code-rules project add rule RULE_PATH", "--body-file"}, nil},
 		{[]string{"library"}, []string{"  init ", "  add ", "  check "}, nil},
 		{[]string{"library", "add"}, []string{"  rule ", "  group "}, nil},

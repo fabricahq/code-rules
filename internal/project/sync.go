@@ -17,7 +17,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
 	}
-	root, name, err := projectLocation(options.ConfigPath)
+	root, name, err := projectLocation(options.Directory)
 	if err != nil {
 		return FileChanges{}, err
 	}
@@ -28,7 +28,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		if err != nil {
 			return err
 		}
-		guide, err := planProjectGuide(ctx, root, name)
+		guide, err := planProjectGuide(ctx, root)
 		if err != nil {
 			return err
 		}

@@ -35,8 +35,7 @@ code-rules library check
 Use `project sync` to fetch configured libraries and rebuild guidance. Use `project build` to rebuild from library snapshots already on disk.
 `project check` verifies file consistency; it does not review application code for compliance with the rules.
 
-For `project sync`, `project build`, and `project check`, run from the consuming project's root by default.
-Use `--config` to identify a configuration file elsewhere.
+Run all project commands from the project root. They always use `.code-rules/config.json`.
 
 Use `code-rules --version` to print the installed version.
 Run `code-rules --help` for a command overview, then narrow the help to the operation you need:
@@ -53,7 +52,7 @@ Bare command groups such as `code-rules library` also show navigation.
 Help never prompts or writes files. Invalid commands and options exit with status 2 and point to the relevant help page.
 If an authoring command is missing a required alias or path, the error names the missing argument, explains its purpose, and shows the command syntax and an example.
 Authoring help distinguishes fields prompted on a terminal from optional flags; both `project init` and `library init` currently run without prompts.
-Every command separates its own options from **Common options**. Group and rule creation use **Group options** and **Rule options**; adding a library or initializing one uses **Library options**. Commands with no specific options show only **Common options**. Common options are reused across commands, not necessarily available everywhere: `--help` is local to each command, `--non-interactive` is local to authoring commands, and `--json` is inherited globally. Project commands use `--config`; library commands use `--directory`.
+Every command separates its own options from **Common options**. Group and rule creation use **Group options** and **Rule options**; adding a library or initializing one uses **Library options**. Commands with no specific options show only **Common options**. Common options are reused across commands, not necessarily available everywhere: `--help` is local to each command, `--non-interactive` is local to authoring commands, and `--json` is inherited globally. Library commands also accept `--directory`.
 
 ## Command output
 
@@ -70,13 +69,13 @@ Exit status is 0 for success, 1 for operation failure or stale output, and 2 for
 
 ## Project agent guide
 
-`code-rules project init` creates `.code-rules/README.md` alongside configuration and local rules. This guide defines rules, groups, and libraries and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results. If a custom configuration lives outside a directory named `.code-rules`, init creates `CODE_RULES.md` beside that configuration and preserves the project's `README.md`.
+`code-rules project init` creates `.code-rules/README.md` alongside configuration and local rules. This guide defines rules, groups, and libraries and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results. The project's root `README.md` remains untouched.
 
 Both first-time and repeated initialization show the configuration file path.
 
 Build and sync automatically refresh an older generated guide using the template bundled in the selected CLI version. Repeating init also refreshes it. These commands preserve configuration and local rules, and refuse to overwrite manual edits to the guide. Changes to the managed guide format are [breaking changes](/guides/install/#versioning).
 
-Run `code-rules project check` in CI to verify both generated guidance and the project guide without changing files. A missing or outdated guide fails the check. Run `code-rules project build` to refresh the guide and regenerate guidance, or run `code-rules project init` to refresh only the guide and setup files. Use `--config` for a custom configuration location. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
+Run `code-rules project check` in CI to verify both generated guidance and the project guide without changing files. A missing or outdated guide fails the check. Run `code-rules project build` to refresh the guide and regenerate guidance, or run `code-rules project init` to refresh only the guide and setup files. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
 
 ## Sync
 
@@ -127,14 +126,10 @@ It does not mean application code follows those rules.
 
 `code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/guides/install/#upgrade-or-roll-back), then refresh the managed guide and regenerate guidance with `code-rules project build`, and run `code-rules project check`. Use `project sync` separately to select library revisions again.
 
-## Explicit configuration
+## Project location
 
-```sh
-code-rules project check --config path/to/code-rules/config.json
-```
-
-Resolve local paths relative to the chosen configuration directory.
-Keep replacement files within that directory's `local/` tree.
+Run project commands from the project root. Configuration lives in `.code-rules/config.json`; custom configuration locations are not supported. Commands do not search parent directories or discover the Git root.
+Keep replacement files within `.code-rules/local/`.
 
 ## Initialize and author a project
 
@@ -147,8 +142,7 @@ code-rules project add rule practices/testing/retry-budget
 code-rules project add library team --repository https://github.com/example/rules.git --ref '>= 1.2.0, < 2.0.0' --groups '*'
 ```
 
-Use `--config` to select a configuration file outside the default location.
-`project init` creates an empty source configuration and `local/README.md` under `.code-rules/` by default, preserving existing files.
+`project init` creates an empty source configuration and `local/README.md` under `.code-rules/`, preserving existing files.
 Create the group before adding a rule. Rule creation fails before prompting for metadata if the group does not exist. No source declaration is needed for local rules.
 `project add library` validates and records a library declaration; run `project sync` separately to fetch it. It preserves existing source exceptions and local files.
 `--ref` accepts an exact tag, full commit SHA, or version range. Bare versions are literal tags; ranges use operators such as `>=` or `~>`. The CLI saves the value in the appropriate `ref` or `version` configuration field.
@@ -157,16 +151,16 @@ Before prompting, it explains the project-local alias, the single ref input, and
 See [Set up a project](/guides/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
 Before prompting, group and rule commands show the selected path and an example of all the fields together. A group has a readable name, description, and reading cue. A rule has a readable title, reading cue, and impact details; the full instructions belong in its Markdown body. Examples are guidance only and are never saved as your content.
 
-After creating a group, the CLI shows a copyable add-rule command using that group's path and your custom configuration or library directory. Replace the example `my-rule` slug with your own.
+After creating a group, the CLI shows a copyable add-rule command using that group's path and, for library commands, the selected library directory. Replace the example `my-rule` slug with your own.
 
-After creating a rule, the CLI prints its Markdown file path and explains what to edit below the metadata block. Finish the instructions, rationale, correct and incorrect examples, and validation steps; replace template placeholders and remove unused sections. The final commands preserve your `--config` or `--directory` selection. Supplying `--body-file` creates a rule with existing text and shows review instructions instead of draft-completion steps.
+After creating a rule, the CLI prints its Markdown file path and explains what to edit below the metadata block. Finish the instructions, rationale, correct and incorrect examples, and validation steps; replace template placeholders and remove unused sections. The final commands preserve your library `--directory` selection. Supplying `--body-file` creates a rule with existing text and shows review instructions instead of draft-completion steps.
 
 Authoring commands accept `--non-interactive`. Missing inputs fail without prompting when no terminal is available.
 
 ## Author a library
 
 These commands run from the library root, independently of a consuming project's configuration.
-Use `--directory path` for a different library root. They do not accept `--config`. Follow [Create a rule library](/guides/create-library/) for the complete workflow.
+Use `--directory path` for a different library root. Follow [Create a rule library](/guides/create-library/) for the complete workflow.
 
 ```sh
 code-rules library init

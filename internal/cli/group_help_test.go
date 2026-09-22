@@ -51,16 +51,16 @@ func TestGroupHelpSections(t *testing.T) {
 						t.Fatal("metadata in wrong section", flag, out)
 					}
 				}
-				location, absent := "--config", "--directory"
+				flags := []string{"--help", "--json", "--non-interactive"}
 				if scope == "library" {
-					location, absent = absent, location
+					flags = append(flags, "--directory")
 				}
-				for _, flag := range []string{location, "--help", "--json", "--non-interactive"} {
+				for _, flag := range flags {
 					if strings.Count(common, flag) != 1 || strings.Contains(group, flag) {
 						t.Fatal("common option in wrong section", flag, out)
 					}
 				}
-				if strings.Contains(out, absent) || strings.Contains(out, "Global Flags:") || !strings.Contains(out, "GROUP_PATH combines a category and group slug") || !strings.Contains(group, "Title shown in rule indexes and group pages") {
+				if strings.Contains(out, "--config") || (scope == "project" && strings.Contains(out, "--directory")) || strings.Contains(out, "Global Flags:") || !strings.Contains(out, "GROUP_PATH combines a category and group slug") || !strings.Contains(group, "Title shown in rule indexes and group pages") {
 					t.Fatal("incorrect scope or unclear group name", out)
 				}
 			}

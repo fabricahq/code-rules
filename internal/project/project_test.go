@@ -19,17 +19,17 @@ import (
 const projectRule = "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\nReturn errors to the caller.\n"
 const projectMetadata = `{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}`
 
-// localProject supplies a custom config path and local-only authored Go guidance.
+// localProject supplies a project with local-only authored Go guidance.
 func localProject(t *testing.T) (*os.Root, Options) {
 	t.Helper()
 	root := openTestProject(t)
-	if _, err := Initialize(context.Background(), Options{ConfigPath: filepath.Join(root.Name(), "custom.json")}); err != nil {
+	if _, err := Initialize(context.Background(), Options{Directory: filepath.Dir(root.Name())}); err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, "custom.json", `{"schemaVersion":1,"sources":{}}`)
+	writeFixture(t, root, "config.json", `{"schemaVersion":1,"sources":{}}`)
 	writeFixture(t, root, "local/techs/go/_group.json", projectMetadata)
 	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
-	return root, Options{ConfigPath: filepath.Join(root.Name(), "custom.json"), ToolVersion: "1.2.3"}
+	return root, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}
 }
 
 // importedProject seeds byte-verified native snapshots without invoking Git or a network process.
@@ -40,7 +40,7 @@ func importedProject(t *testing.T) (*os.Root, Options) {
 		t.Fatal(err)
 	}
 	configJSON := []byte(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{},"replace":{}}}}`)
-	writeFixture(t, root, "custom.json", string(configJSON))
+	writeFixture(t, root, "config.json", string(configJSON))
 	config, err := rules.ParseConfiguration(configJSON)
 	if err != nil {
 		t.Fatal(err)
@@ -198,13 +198,13 @@ func TestOfflineRejectsSemanticCorruptionBeyondDigests(t *testing.T) {
 
 // TestProjectInputRecheckRejectsLaterEdits verifies the same guard Build supplies to Apply.
 func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
-	root, options := localProject(t)
-	state, err := readProject(context.Background(), root, filepath.Base(options.ConfigPath))
+	root, _ := localProject(t)
+	state, err := readProject(context.Background(), root, "config.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	writeFixture(t, root, "local/techs/go/errors.md", projectRule+"Later edit.\n")
-	projectCode(t, requireUnchanged(context.Background(), root, filepath.Base(options.ConfigPath), state), "concurrent-change")
+	projectCode(t, requireUnchanged(context.Background(), root, "config.json", state), "concurrent-change")
 }
 
 // TestOfflineRejectsContentChangedBetweenVerificationAndLoading binds rendered bytes to the verified snapshot.
@@ -212,7 +212,7 @@ func TestOfflineRejectsContentChangedBetweenVerificationAndLoading(t *testing.T)
 	for _, file := range []string{"techs/go/errors.md", "techs/go/_group.json"} {
 		t.Run(file, func(t *testing.T) {
 			root, options := importedProject(t)
-			state, err := readProject(context.Background(), root, "custom.json")
+			state, err := readProject(context.Background(), root, "config.json")
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -11,7 +11,7 @@ code-rules project build
 code-rules project check
 ```
 
-Without `--config`, commands use `.code-rules/config.json` relative to the working directory.
+Run project commands from the project root. They use `.code-rules/config.json` in that directory.
 The configuration directory contains `local/`, `vendor/`, and `generated/`. The directory and configuration must already exist.
 
 ## Ownership

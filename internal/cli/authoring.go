@@ -27,12 +27,11 @@ type authoringFlags struct {
 	prompted     bool
 }
 
-// newAuthoringCommand registers shared configuration and noninteractive flags with strict positional arity.
+// newAuthoringCommand registers noninteractive flags with strict positional arity.
 func newAuthoringCommand(use, description string, args cobra.PositionalArgs, directory string) (*cobra.Command, *authoringFlags) {
 	cmd := &cobra.Command{Use: use, Short: description, Args: args}
 	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: directory}
 	cmd.PostRunE = flags.finishPrompts
-	flags.add(cmd, "config", "Project configuration file (default .code-rules/config.json)")
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
 	return cmd, flags
 }
@@ -88,12 +87,9 @@ func (f *authoringFlags) file(name string) string {
 	return value
 }
 
-// options supplies the configured path or its documented default.
+// options anchors project operations to the caller's project root.
 func (f *authoringFlags) options() project.Options {
-	if f.value("config") == "" {
-		return project.Options{ConfigPath: filepath.Join(f.directory, ".code-rules", "config.json")}
-	}
-	return project.Options{ConfigPath: f.file("config")}
+	return project.Options{Directory: f.directory}
 }
 
 // group returns the explicit metadata for an existing or newly created group.

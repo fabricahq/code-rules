@@ -18,12 +18,12 @@ import (
 func TestProjectAuthoringLifecycle(t *testing.T) {
 	ctx := context.Background()
 	directory := filepath.Join(t.TempDir(), ".code-rules")
-	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
+	options := Options{Directory: filepath.Dir(directory)}
 	result, err := Initialize(ctx, options)
 	if err != nil || len(result.Files) != 3 {
 		t.Fatal(result, err)
 	}
-	original, err := os.ReadFile(options.ConfigPath)
+	original, err := os.ReadFile(filepath.Join(directory, "config.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
-	if _, err = Build(ctx, Options{ConfigPath: options.ConfigPath}); err != nil {
+	if _, err = Build(ctx, options); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = AddLocalRule(ctx, "techs/go/errors", ruleMeta, RuleOptions{Options: options, Body: &body}); err == nil {
@@ -73,7 +73,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
-	updated, _ := os.ReadFile(options.ConfigPath)
+	updated, _ := os.ReadFile(filepath.Join(directory, "config.json"))
 	if bytes.Equal(updated, original) || bytes.Contains(updated, []byte(`\u003e`)) {
 		t.Fatal(string(updated))
 	}
@@ -93,14 +93,14 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 	for _, scenario := range []string{"invalid-config", "linked-local", "case-alias", "hardlink", "pending-recovery", "cancelled"} {
 		t.Run(scenario, func(t *testing.T) {
 			ctx := context.Background()
-			directory := t.TempDir()
-			options := Options{ConfigPath: filepath.Join(directory, "config.json")}
+			directory := filepath.Join(t.TempDir(), ".code-rules")
+			options := Options{Directory: filepath.Dir(directory)}
 			if _, err := Initialize(ctx, options); err != nil {
 				t.Fatal(err)
 			}
 			switch scenario {
 			case "invalid-config":
-				os.WriteFile(options.ConfigPath, []byte(`{`), 0600)
+				os.WriteFile(filepath.Join(directory, "config.json"), []byte(`{`), 0600)
 			case "linked-local":
 				os.RemoveAll(filepath.Join(directory, "local"))
 				if err := os.Symlink(t.TempDir(), filepath.Join(directory, "local")); err != nil {
@@ -109,7 +109,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 			case "case-alias":
 				os.MkdirAll(filepath.Join(directory, "local", "Techs"), 0700)
 			case "hardlink":
-				if err := os.Link(options.ConfigPath, filepath.Join(directory, "alias")); err != nil {
+				if err := os.Link(filepath.Join(directory, "config.json"), filepath.Join(directory, "alias")); err != nil {
 					t.Fatal(err)
 				}
 			case "pending-recovery":
@@ -119,12 +119,12 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 				ctx, cancel = context.WithCancel(ctx)
 				cancel()
 			}
-			before, _ := os.ReadFile(options.ConfigPath)
+			before, _ := os.ReadFile(filepath.Join(directory, "config.json"))
 			result, err := AddLocalGroup(ctx, "techs/go", rules.GroupMetadata{Name: "Go", Description: "Go.", WhenToRead: "When editing Go."}, options)
 			if err == nil || result.Files != nil {
 				t.Fatal("expected no partial result", result, err)
 			}
-			after, _ := os.ReadFile(options.ConfigPath)
+			after, _ := os.ReadFile(filepath.Join(directory, "config.json"))
 			if !bytes.Equal(before, after) {
 				t.Fatal("changed config on failure")
 			}
@@ -138,8 +138,8 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 // TestRuleRequiresGroup rejects missing metadata without changing an existing document.
 func TestRuleRequiresGroup(t *testing.T) {
 	ctx := context.Background()
-	directory := t.TempDir()
-	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
+	directory := filepath.Join(t.TempDir(), ".code-rules")
+	options := Options{Directory: filepath.Dir(directory)}
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
@@ -163,8 +163,8 @@ func TestRuleRequiresGroup(t *testing.T) {
 // TestRuleUsesImportedGroup accepts imported metadata without creating a local override.
 func TestRuleUsesImportedGroup(t *testing.T) {
 	ctx := context.Background()
-	directory := t.TempDir()
-	options := Options{ConfigPath: filepath.Join(directory, "config.json")}
+	directory := filepath.Join(t.TempDir(), ".code-rules")
+	options := Options{Directory: filepath.Dir(directory)}
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if available, err := HasLocalRuleGroup(ctx, "techs/go", options); err != nil || available {
 		t.Fatal(available, err)
 	}
-	data, err := os.ReadFile(options.ConfigPath)
+	data, err := os.ReadFile(filepath.Join(directory, "config.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

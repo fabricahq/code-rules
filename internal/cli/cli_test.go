@@ -56,11 +56,11 @@ func TestCLIProcess(t *testing.T) {
 		{"root-help", nil, 0}, {"removed-help-command", []string{"help"}, 2}, {"help", []string{"project", "build", "--help"}, 0}, {"version", []string{"--version"}, 0},
 		{"short-version", []string{"-v"}, 0}, {"unknown", []string{"no-such-command"}, 2},
 		{"unknown-flag", []string{"project", "build", "--force"}, 2}, {"positional", []string{"project", "check", "unexpected"}, 2},
-		{"missing-flag-value", []string{"project", "build", "--config"}, 2}, {"duplicate", []string{"project", "build", "--config", "one", "--config", "two"}, 2},
+		{"missing-flag-value", []string{"library", "check", "--directory"}, 2}, {"duplicate", []string{"library", "check", "--directory", "one", "--directory", "two"}, 2},
 		{"missing-project", []string{"project", "build"}, 1},
-		{"flag-as-value", []string{"project", "build", "--config", "--help"}, 2},
-		{"short-flag-as-value", []string{"project", "build", "--config", "-h"}, 2},
-		{"blank-value", []string{"project", "build", "--config", " \t "}, 2},
+		{"flag-as-value", []string{"library", "check", "--directory", "--help"}, 2},
+		{"short-flag-as-value", []string{"library", "check", "--directory", "-h"}, 2},
+		{"blank-value", []string{"library", "check", "--directory", " \t "}, 2},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			out, diagnostic, code := runCLI(t, binary, dir, test.args...)
@@ -103,25 +103,12 @@ func TestCLIProcess(t *testing.T) {
 	if code != 0 || diagnostic != "" || !json.Valid([]byte(out)) {
 		t.Fatalf("build: %d %s %s", code, out, diagnostic)
 	}
-	out, diagnostic, code = runCLI(t, binary, dir, "project", "check", "--json", "--config", filepath.Join(root, "config.json"))
+	out, diagnostic, code = runCLI(t, binary, dir, "project", "check", "--json")
 	if code != 0 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || response.Value.Status != "up_to_date" || len(response.Value.Problems) != 0 {
 		t.Fatalf("clean check: %d %s %s", code, out, diagnostic)
 	}
 	out, diagnostic, code = runCLI(t, binary, dir, "project", "sync", "--json")
 	if code != 0 || diagnostic != "" || !json.Valid([]byte(out)) {
 		t.Fatalf("empty-source sync: %d %s %s", code, out, diagnostic)
-	}
-}
-
-// TestHyphenConfigValue verifies unambiguous equals syntax reaches the real project command.
-func TestHyphenConfigValue(t *testing.T) {
-	binary := buildCLI(t)
-	directory := t.TempDir()
-	if err := os.WriteFile(filepath.Join(directory, "-project.json"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
-		t.Fatal(err)
-	}
-	stdout, stderr, code := runCLI(t, binary, directory, "project", "build", "--config=-project.json")
-	if code != 0 || stderr != "" || stdout == "" {
-		t.Fatal(code, stdout, stderr)
 	}
 }

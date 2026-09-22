@@ -18,10 +18,10 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// Options locates config and its sibling local/vendor/generated trees and controls rendering.
+// Options identifies the project root and controls rendering.
 type Options struct {
-	// ConfigPath defaults to .code-rules/config.json, relative to the process working directory.
-	ConfigPath  string
+	// Directory is the project root; empty means the process working directory.
+	Directory   string
 	ToolVersion string
 	// IndexMaxLines defaults to 750 when zero. Negative limits are rejected by the renderer.
 	IndexMaxLines int
@@ -50,7 +50,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
 	}
-	root, name, err := projectLocation(options.ConfigPath)
+	root, name, err := projectLocation(options.Directory)
 	if err != nil {
 		return FileChanges{}, err
 	}
@@ -61,7 +61,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		if err != nil {
 			return err
 		}
-		guide, err := planProjectGuide(ctx, root, name)
+		guide, err := planProjectGuide(ctx, root)
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	if err := rules.ValidatePaths(expected, nil); err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
-	root, name, err := projectLocation(options.ConfigPath)
+	root, name, err := projectLocation(options.Directory)
 	if err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
@@ -158,20 +158,17 @@ type projectState struct {
 	local, vendor, generated *filetxn.Tree
 }
 
-// projectLocation opens the config parent while leaving the config file itself subject to no-link reads.
-func projectLocation(configPath string) (*os.Root, string, error) {
-	if configPath == "" {
-		configPath = filepath.Join(".code-rules", "config.json")
-	}
-	absolute, err := filepath.Abs(configPath)
+// projectLocation opens .code-rules while leaving config.json subject to no-link reads.
+func projectLocation(directory string) (*os.Root, string, error) {
+	absolute, err := filepath.Abs(filepath.Join(directory, ".code-rules"))
 	if err != nil {
 		return nil, "", err
 	}
-	root, err := os.OpenRoot(filepath.Dir(absolute))
+	root, err := os.OpenRoot(absolute)
 	if err != nil {
 		return nil, "", fmt.Errorf("open Code Rules directory: %w", err)
 	}
-	return root, filepath.Base(absolute), nil
+	return root, "config.json", nil
 }
 
 // readProject validates configuration and retains every authored and managed byte used for change detection.

@@ -18,7 +18,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
-// syncProject initializes a custom config and a tagged library with exact binary and license content.
+// syncProject initializes a project and a tagged library with exact binary and license content.
 func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 	t.Helper()
 	f, err := gitfixture.New(context.Background(), map[string][]byte{
@@ -37,12 +37,12 @@ func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 		}
 	})
 	root := openTestProject(t)
-	if _, err := Initialize(context.Background(), Options{ConfigPath: filepath.Join(root.Name(), "custom.json")}); err != nil {
+	if _, err := Initialize(context.Background(), Options{Directory: filepath.Dir(root.Name())}); err != nil {
 		t.Fatal(err)
 	}
 	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "ref": "v1.0.0", "groups": []string{"techs/go"}, "exclude": map[string]any{}, "replace": map[string]any{}}}})
-	writeFixture(t, root, "custom.json", string(raw))
-	return f, Options{ConfigPath: filepath.Join(root.Name(), "custom.json"), ToolVersion: "1.2.3"}, imports.Options{GitPath: f.GitPath, Environment: f.Environment}
+	writeFixture(t, root, "config.json", string(raw))
+	return f, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}, imports.Options{GitPath: f.GitPath, Environment: f.Environment}
 }
 
 // TestSyncRoundTripAndRetirement preserves original bytes, produces clean offline output, and removes retired sources.
@@ -53,7 +53,7 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	if err != nil || len(first.Added) == 0 {
 		t.Fatalf("initial sync: %+v %v", first, err)
 	}
-	root, name, err := projectLocation(options.ConfigPath)
+	root, name, err := projectLocation(options.Directory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestSyncUpdatesTag(t *testing.T) {
 	if err != nil || len(changes.Changed) == 0 {
 		t.Fatalf("updated sync: %+v %v", changes, err)
 	}
-	root, name, err := projectLocation(options.ConfigPath)
+	root, name, err := projectLocation(options.Directory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 			if _, err := Sync(ctx, options, git); err != nil {
 				t.Fatal(err)
 			}
-			root, name, err := projectLocation(options.ConfigPath)
+			root, name, err := projectLocation(options.Directory)
 			if err != nil {
 				t.Fatal(err)
 			}

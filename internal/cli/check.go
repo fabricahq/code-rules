@@ -5,7 +5,6 @@ package cli
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/project"
 )
@@ -27,7 +26,7 @@ type checkProblem struct {
 }
 
 // checkProject checks generated files and the managed README, keeping unreadable or invalid inputs as operational errors.
-func checkProject(ctx context.Context, options project.Options, configArgument string) (projectCheckResult, error) {
+func checkProject(ctx context.Context, options project.Options) (projectCheckResult, error) {
 	report, err := project.Check(ctx, options)
 	if err != nil {
 		return projectCheckResult{}, err
@@ -49,20 +48,11 @@ func checkProject(ctx context.Context, options project.Options, configArgument s
 		if problem.Repair == project.RefreshGuide {
 			command = "init"
 		}
-		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextStep: checkRepairCommand(command, configArgument)})
+		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextStep: "code-rules project " + command})
 	}
 	if !report.Current() {
 		result.Status = "out_of_date"
 		return result, errCheckOutOfDate
 	}
 	return result, nil
-}
-
-// checkRepairCommand keeps custom configuration selections and quotes them for copying into a shell.
-func checkRepairCommand(command, config string) string {
-	result := "code-rules project " + command
-	if config != "" {
-		result += " --config='" + strings.ReplaceAll(config, "'", "'\"'\"'") + "'"
-	}
-	return result
 }

@@ -114,14 +114,14 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 		if result.Status == "up_to_date" {
 			out.WriteString("Status: up to date.\nGenerated guidance and the Code Rules guide are current.\nNo files were changed.\n")
 		} else {
-			fmt.Fprintf(out, "Status: out of date.\nNo files were changed.\nPaths are relative to the Code Rules directory: %s\n\nProblems:\n", filepath.Dir(projectConfigurationPath(cmd)))
+			out.WriteString("Status: out of date.\nNo files were changed.\nPaths are relative to the Code Rules directory: .code-rules\n\nProblems:\n")
 			for _, problem := range result.Problems {
 				fmt.Fprintf(out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, problem.NextStep)
 			}
 		}
 	case project.AuthoringResult:
 		if cmd.Name() == "init" {
-			formatProjectInitialized(out, cmd, result)
+			formatProjectInitialized(out, result)
 		} else if cmd.Name() == "rule" {
 			formatRuleCreated(out, cmd, result.Files, result.Warnings, false)
 		} else if cmd.Name() == "group" {
@@ -144,20 +144,19 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 		}
 	case project.FileChanges:
 		if result.Guide != nil {
-			config := projectConfigurationPath(cmd)
 			action := "updated"
 			if result.Guide.Created {
 				action = "created"
 			}
-			fmt.Fprintf(out, "Code Rules guide %s: %s\n", action, filepath.Join(filepath.Dir(config), result.Guide.Path))
+			fmt.Fprintf(out, "Code Rules guide %s: %s\n", action, filepath.Join(".code-rules", result.Guide.Path))
 		}
 		stale := len(result.Added)+len(result.Changed)+len(result.Removed) > 0
 		fmt.Fprintf(out, "%s complete: %d added, %d changed, %d removed.\n", strings.ToUpper(cmd.Name()[:1])+cmd.Name()[1:], len(result.Added), len(result.Changed), len(result.Removed))
 		if stale && cmd.Name() == "build" {
-			fmt.Fprintf(out, "Paths relative to %s:\n", filepath.Join(filepath.Dir(projectConfigurationPath(cmd)), "generated"))
+			out.WriteString("Paths relative to .code-rules/generated:\n")
 		}
 		if stale && cmd.Name() == "sync" {
-			fmt.Fprintf(out, "Paths relative to the Code Rules directory: %s\n", filepath.Dir(projectConfigurationPath(cmd)))
+			out.WriteString("Paths relative to the Code Rules directory: .code-rules\n")
 		}
 		for _, group := range []struct {
 			label string
@@ -171,7 +170,7 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 }
 
 // formatProjectInitialized orients people after setup while leaving the structured result unchanged.
-func formatProjectInitialized(out *strings.Builder, cmd *cobra.Command, result project.AuthoringResult) {
+func formatProjectInitialized(out *strings.Builder, result project.AuthoringResult) {
 	if len(result.Files) == 0 {
 		out.WriteString("Code Rules is already initialized.\nNo files changed.\n")
 	} else {
@@ -180,19 +179,13 @@ func formatProjectInitialized(out *strings.Builder, cmd *cobra.Command, result p
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(out, "Warning: %s\n", warning)
 	}
-	config := cmd.Flags().Lookup("config").Value.String()
-	location := projectConfigurationPath(cmd)
-	fmt.Fprintf(out, "\nCode Rules directory: %s\nProject configuration: %s\n", filepath.Dir(location), location)
+	out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.json\n")
 	if len(result.Files) == 0 {
 		out.WriteString("\nRun code-rules project --help to manage this project's rules.\n")
 		return
 	}
-	fmt.Fprintf(out, "\nStart with a project-only rule (example):\n  %s\n  %s\n",
-		checkRepairCommand("add group practices/testing", config),
-		checkRepairCommand("add rule practices/testing/my-rule", config))
-	fmt.Fprintf(out, "\nOr use a shared library (example):\n  %s\n  %s\n",
-		checkRepairCommand("add library team", config),
-		checkRepairCommand("sync", config))
+	out.WriteString("\nStart with a project-only rule (example):\n  code-rules project add group practices/testing\n  code-rules project add rule practices/testing/my-rule\n")
+	out.WriteString("\nOr use a shared library (example):\n  code-rules project add library team\n  code-rules project sync\n")
 }
 
 // requestsJSON recognizes the output flag before usage validation, ignoring equals-form values and positional literals after --.
@@ -247,12 +240,4 @@ func formatAuthored(out *strings.Builder, files, warnings []string, next string)
 	if next != "" {
 		fmt.Fprintf(out, "\nNext: %s\n", next)
 	}
-}
-
-// projectConfigurationPath preserves an explicit location for human output, using the default when omitted.
-func projectConfigurationPath(cmd *cobra.Command) string {
-	if value := cmd.Flags().Lookup("config").Value.String(); value != "" {
-		return value
-	}
-	return ".code-rules/config.json"
 }

@@ -17,46 +17,41 @@ import (
 func TestBuildThenCheckAfterGuideUpgrade(t *testing.T) {
 	binary := buildCLI(t)
 	for _, command := range []string{"build", "sync"} {
-		for _, config := range []string{".code-rules/config.json", "custom.json"} {
-			for _, state := range []string{"old", "missing"} {
-				t.Run(command+"/"+config+"/"+state, func(t *testing.T) {
-					directory := t.TempDir()
-					if _, diagnostic, code := runCLI(t, binary, directory, "project", "init", "--config", config); code != 0 {
-						t.Fatal(code, diagnostic)
-					}
-					guideName := "README.md"
-					if config == "custom.json" {
-						guideName = "CODE_RULES.md"
-					}
-					guidePath := filepath.Join(directory, filepath.Dir(config), guideName)
-					// Simulate an untouched guide from an earlier release using its ownership marker.
-					body := []byte("# Code Rules\n\nProject guide from an earlier release.\n")
-					guide := []byte(fmt.Sprintf("<!-- code-rules:project-guide sha256:%x -->\n%s", sha256.Sum256(body), body))
-					if err := os.WriteFile(guidePath, guide, 0600); err != nil {
+		for _, state := range []string{"old", "missing"} {
+			t.Run(command+"/"+state, func(t *testing.T) {
+				directory := t.TempDir()
+				if _, diagnostic, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
+					t.Fatal(code, diagnostic)
+				}
+				guideName := "README.md"
+				guidePath := filepath.Join(directory, ".code-rules", guideName)
+				// Simulate an untouched guide from an earlier release using its ownership marker.
+				body := []byte("# Code Rules\n\nProject guide from an earlier release.\n")
+				guide := []byte(fmt.Sprintf("<!-- code-rules:project-guide sha256:%x -->\n%s", sha256.Sum256(body), body))
+				if err := os.WriteFile(guidePath, guide, 0600); err != nil {
+					t.Fatal(err)
+				}
+				if state == "missing" {
+					if err := os.Remove(guidePath); err != nil {
 						t.Fatal(err)
 					}
-					if state == "missing" {
-						if err := os.Remove(guidePath); err != nil {
-							t.Fatal(err)
-						}
+				}
+				for i, action := range []string{command, command, "check"} {
+					out, diagnostic, code := runCLI(t, binary, directory, "project", action)
+					if code != 0 {
+						t.Fatalf("project %s after guide upgrade: exit %d\n%s%s", action, code, out, diagnostic)
 					}
-					for i, action := range []string{command, command, "check"} {
-						out, diagnostic, code := runCLI(t, binary, directory, "project", action, "--config", config)
-						if code != 0 {
-							t.Fatalf("project %s after guide upgrade: exit %d\n%s%s", action, code, out, diagnostic)
-						}
-						if i == 0 && !strings.Contains(out, "Code Rules guide ") {
-							t.Fatal("guide update not reported", out)
-						}
-						if i == 1 && strings.Contains(out, "Code Rules guide ") {
-							t.Fatal("guide updated twice", out)
-						}
-						if action == "check" && !strings.Contains(out, "Status: up to date.") {
-							t.Fatal(out)
-						}
+					if i == 0 && !strings.Contains(out, "Code Rules guide ") {
+						t.Fatal("guide update not reported", out)
 					}
-				})
-			}
+					if i == 1 && strings.Contains(out, "Code Rules guide ") {
+						t.Fatal("guide updated twice", out)
+					}
+					if action == "check" && !strings.Contains(out, "Status: up to date.") {
+						t.Fatal(out)
+					}
+				}
+			})
 		}
 	}
 }

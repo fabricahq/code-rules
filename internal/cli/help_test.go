@@ -19,12 +19,12 @@ func TestCommandOptionSections(t *testing.T) {
 		{"", "", nil, []string{"help", "json", "version"}},
 		{"project", "", nil, []string{"help", "json"}},
 		{"project add", "", nil, []string{"help", "json"}},
-		{"project init", "", nil, []string{"config", "help", "json", "non-interactive"}},
-		{"project sync", "", nil, []string{"config", "help", "json"}},
-		{"project build", "", nil, []string{"config", "help", "json"}},
-		{"project check", "", nil, []string{"config", "help", "json"}},
-		{"project add library", "Library options", []string{"repository", "ref", "groups"}, []string{"config", "help", "json", "non-interactive"}},
-		{"project add rule", "Rule options", []string{"title", "when-to-read", "impact", "impact-description", "body-file"}, []string{"config", "help", "json", "non-interactive"}},
+		{"project init", "", nil, []string{"help", "json", "non-interactive"}},
+		{"project sync", "", nil, []string{"help", "json"}},
+		{"project build", "", nil, []string{"help", "json"}},
+		{"project check", "", nil, []string{"help", "json"}},
+		{"project add library", "Library options", []string{"repository", "ref", "groups"}, []string{"help", "json", "non-interactive"}},
+		{"project add rule", "Rule options", []string{"title", "when-to-read", "impact", "impact-description", "body-file"}, []string{"help", "json", "non-interactive"}},
 		{"library", "", nil, []string{"help", "json"}},
 		{"library add", "", nil, []string{"help", "json"}},
 		{"library init", "Library options", []string{"spdx", "license-file", "notice-file"}, []string{"directory", "help", "json", "non-interactive"}},
@@ -76,7 +76,7 @@ func TestCommandOptionSections(t *testing.T) {
 						t.Fatal("wrong common option section", flag, out)
 					}
 				}
-				if strings.Contains(common, "--config ") && strings.Contains(common, "--directory ") {
+				if strings.Contains(common, "--config ") || (strings.HasPrefix(test.path, "project") && strings.Contains(common, "--directory ")) {
 					t.Fatal("options from another scope leaked", out)
 				}
 			}

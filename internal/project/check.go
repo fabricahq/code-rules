@@ -43,7 +43,7 @@ func (r CheckResult) Current() bool { return len(r.Problems) == 0 }
 // Check compares generated output and the managed guide in one optimistic snapshot.
 // It performs no writes, locks, recovery, Git, or network access. Staleness is a result, not an error.
 func Check(ctx context.Context, options Options) (CheckResult, error) {
-	guideName, guideBytes := projectGuide(options.ConfigPath)
+	guideName, guideBytes := projectGuide()
 	changes, guideChanges, err := checkWithFiles(ctx, options, map[string][]byte{guideName: guideBytes})
 	if err != nil {
 		return CheckResult{}, err

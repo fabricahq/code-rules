@@ -32,7 +32,7 @@ func TestCLIOutputModes(t *testing.T) {
 		{[]string{"project", "build", "--json=false", "--bad", "--json"}, 2, "error"},
 		{[]string{"project", "build", "--bad-flag", "--json"}, 2, "error"},
 		{[]string{"project", "build", "--config", "--json"}, 2, "error"},
-		{[]string{"project", "build", "--json", "--config", "missing.json"}, 1, "error"},
+		{[]string{"project", "build", "--json", "--config", "missing.json"}, 2, "error"},
 		{[]string{"project", "add", "group", "techs/go", "--json"}, 2, "error"},
 	} {
 		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {

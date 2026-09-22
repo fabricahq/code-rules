@@ -112,7 +112,7 @@ func commandOptions(cmd *cobra.Command) (*pflag.FlagSet, *pflag.FlagSet) {
 	available.AddFlagSet(cmd.InheritedFlags())
 	available.VisitAll(func(flag *pflag.Flag) {
 		switch flag.Name {
-		case "config", "directory", "help", "json", "non-interactive":
+		case "directory", "help", "json", "non-interactive":
 			common.AddFlag(flag)
 		case "version":
 			// The root prints the tool version; library adoption uses a version constraint.

@@ -33,21 +33,17 @@ type RuleOptions struct {
 
 // openProject resolves configuration while keeping root creation inside the storage module.
 func openProject(ctx context.Context, options Options, create bool) (*os.Root, string, error) {
-	config := options.ConfigPath
-	if config == "" {
-		config = filepath.Join(".code-rules", "config.json")
-	}
-	absolute, err := filepath.Abs(config)
+	absolute, err := filepath.Abs(filepath.Join(options.Directory, ".code-rules"))
 	if err != nil {
 		return nil, "", err
 	}
 	var root *os.Root
 	if create {
-		root, err = filetxn.Create(ctx, filepath.Dir(absolute))
+		root, err = filetxn.Create(ctx, absolute)
 	} else {
-		root, err = filetxn.Open(ctx, filepath.Dir(absolute))
+		root, err = filetxn.Open(ctx, absolute)
 	}
-	return root, filepath.Base(absolute), err
+	return root, "config.json", err
 }
 
 // configuration reads valid project configuration and its exact bytes under the current root.
@@ -88,7 +84,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 		if err != nil {
 			return nil, err
 		}
-		guide, err := prepareProjectGuide(ctx, root, name)
+		guide, err := prepareProjectGuide(ctx, root)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +93,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 			files = append(files, filetxn.File{Path: name, Content: data})
 		}
 		if readme == nil {
-			files = append(files, filetxn.File{Path: "local/README.md", Content: renderLocalReadme(filepath.Join(root.Name(), name))})
+			files = append(files, filetxn.File{Path: "local/README.md", Content: renderLocalReadme()})
 		}
 		if guide != nil {
 			files = append(files, *guide)
@@ -142,7 +138,7 @@ func AddLocalGroup(ctx context.Context, id string, metadata rules.GroupMetadata,
 		return AuthoringResult{}, err
 	}
 	return editProject(ctx, options, "Add a rule to this group, then run code-rules project build.", func(root *os.Root, name string, _ []byte, _ rules.Configuration) ([]filetxn.File, error) {
-		guideName, _ := projectGuide(filepath.Join(root.Name(), name))
+		guideName, _ := projectGuide()
 		return groupFiles(path.Join("local", id), id, data, guideName), nil
 	})
 }
@@ -277,6 +273,6 @@ func failure(code, problem string, cause error) error {
 }
 
 func groupFiles(directory, id string, metadata []byte, projectGuideName string) []filetxn.File {
-	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for complete commands and the correct configuration path.\nUse `code-rules project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun code-rules project build and code-rules project check with that configuration after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
+	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `code-rules project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun code-rules project build and code-rules project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
 	return []filetxn.File{{Path: path.Join(directory, "_group.json"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

@@ -32,7 +32,7 @@ The name is a convention, not automatic discovery.
 A project's configuration explicitly names each source repository, exact ref or version constraint, and selected groups.
 
 The consuming project's default directory is `.code-rules/`.
-A custom configuration path places its related directories beside that configuration file.
+Project commands run from the project root and use `.code-rules/config.json`.
 Its name does not depend on the remote repository name.
 
 ## Share only what applies

@@ -17,6 +17,9 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 	binary := buildCLI(t)
 	for _, scope := range []string{"project", "library"} {
 		for _, custom := range []bool{false, true} {
+			if custom && scope == "project" {
+				continue
+			}
 			name := scope
 			if custom {
 				name += "/custom"
@@ -25,11 +28,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				directory := t.TempDir()
 				var location []string
 				if custom {
-					if scope == "project" {
-						location = []string{"--config", "settings/team 'rules'.json"}
-					} else {
-						location = []string{"--directory", "shared 'rules'"}
-					}
+					location = []string{"--directory", "shared 'rules'"}
 				}
 				run := func(args ...string) string {
 					t.Helper()
@@ -77,11 +76,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 					root = directory
 				}
 				if custom {
-					if scope == "project" {
-						root = filepath.Join(directory, "settings", "local")
-					} else {
-						root = filepath.Join(directory, "shared 'rules'")
-					}
+					root = filepath.Join(directory, "shared 'rules'")
 				}
 				file := filepath.Join(root, "techs/go/return-errors.md")
 				data, err := os.ReadFile(file)

@@ -125,7 +125,7 @@ func ruleReadyHeading(isLibrary bool) string {
 // authoringFollowupCommand preserves the selected scope and quotes custom locations for shell use.
 func authoringFollowupCommand(cmd *cobra.Command, action string, isLibrary bool) string {
 	if !isLibrary {
-		return checkRepairCommand(action, cmd.Flags().Lookup("config").Value.String())
+		return "code-rules project " + action
 	}
 	command := "code-rules library " + action
 	if directory := cmd.Flags().Lookup("directory").Value.String(); directory != "" {

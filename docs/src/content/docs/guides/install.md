@@ -41,6 +41,6 @@ To roll back, select the previous executable and review regeneration with that v
 
 Code Rules uses semantic versions: `MAJOR.MINOR.PATCH`. Before `1.0.0`, breaking changes require a new minor version. From `1.0.0`, they require a new major version.
 
-Changes to the managed project README format are breaking changes. This policy also covers `CODE_RULES.md`, the guide used with custom configuration locations. Release notes describe the format change. Running build or sync applies the template bundled in the selected CLI version automatically when the existing guide has no manual edits.
+Changes to the managed project README format are breaking changes. Release notes describe the format change. Running build or sync applies the template bundled in the selected CLI version automatically when the existing guide has no manual edits.
 
 Keep project-specific notes in a separate file. If a guide was edited, preserve those notes and move the guide aside before rerunning build or sync.

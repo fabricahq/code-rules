@@ -20,7 +20,7 @@ code-rules project add rule practices/testing/retry-budget
 No imported library or existing Git repository is required. Repeating `init` preserves valid configuration and local rules and refreshes the managed project README. It refuses to overwrite manually edited guides; keep project notes in a separate file.
 Human output starts with a setup confirmation and example commands for project-only rules or a shared library. If setup is already current, it reports that no files changed. Use `--json` for the exact changed file paths.
 
-**Native Go candidate:** `init` also creates a tool-owned agent guide at `.code-rules/README.md`. For a custom configuration outside a directory named `.code-rules`, the guide is `CODE_RULES.md` beside that configuration. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
+**Native Go candidate:** `init` also creates a tool-owned agent guide at `.code-rules/README.md`. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
 
 On a terminal, group creation asks for a name, description, and when-to-read cue. Rule creation asks for its title, when-to-read cue, impact, and consequence.
 If the group is missing, rule creation stops before prompting and tells you to create the group first.
@@ -86,7 +86,7 @@ Creating a local group establishes the project's description even when a library
 
 ## File ownership
 
-All commands accept `--config path/to/config.json`; local, vendor, and generated directories live beside that file. Only `init` creates a missing project configuration.
+Run project commands from the project root. They use `.code-rules/config.json`, with local rules, vendor snapshots, and generated guidance under `.code-rules/`. Custom configuration locations are not supported. Only `init` creates a missing project configuration.
 
 Authoring commands serialize writes with the same project lock used by sync and build. They reject links, unsupported files, and case-colliding target paths. New definitions are never overwritten. Adding a source moves the current configuration aside, verifies its exact bytes, and installs the new file only if the target path remains empty. An editor save is preserved rather than overwritten.
 A failed multi-file creation claims newly created files before comparing their bytes for rollback, preserving external replacements.

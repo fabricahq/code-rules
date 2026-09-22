@@ -12,28 +12,27 @@ import (
 	"testing"
 )
 
-// TestCheckReportsCurrentProblems verifies all mismatch kinds and executes the custom-config repair commands.
+// TestCheckReportsCurrentProblems verifies all mismatch kinds and executes the reported repair commands.
 func TestCheckReportsCurrentProblems(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
-	config := "-project 'custom'.json"
 	for _, command := range []string{"init", "build"} {
-		if out, diagnostic, code := runCLI(t, binary, directory, "project", command, "--config="+config); code != 0 {
+		if out, diagnostic, code := runCLI(t, binary, directory, "project", command); code != 0 {
 			t.Fatal(code, out, diagnostic)
 		}
 	}
-	for _, name := range []string{"CODE_RULES.md", "generated/groups/README.md"} {
-		if err := os.Remove(filepath.Join(directory, name)); err != nil {
+	for _, name := range []string{"README.md", "generated/groups/README.md"} {
+		if err := os.Remove(filepath.Join(directory, ".code-rules", name)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	for _, name := range []string{"generated/RULES.md", "generated/unexpected.md"} {
-		if err := os.WriteFile(filepath.Join(directory, name), []byte("Manual content."), 0600); err != nil {
+		if err := os.WriteFile(filepath.Join(directory, ".code-rules", name), []byte("Manual content."), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
 	before := projectFileContents(t, directory)
-	out, diagnostic, code := runCLI(t, binary, directory, "project", "check", "--config="+config, "--json")
+	out, diagnostic, code := runCLI(t, binary, directory, "project", "check", "--json")
 	var result struct {
 		OK    bool
 		Value projectCheckResult
@@ -58,7 +57,7 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 		"missing_file":    "generated/groups/README.md",
 		"stale_contents":  "generated/RULES.md",
 		"unexpected_file": "generated/unexpected.md",
-		"outdated_readme": "CODE_RULES.md",
+		"outdated_readme": "README.md",
 	}
 	if !reflect.DeepEqual(kinds, want) {
 		t.Fatal(kinds, want)
@@ -72,7 +71,7 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 			t.Fatalf("check implies completed changes: %s", out)
 		}
 	}
-	human, diagnostic, code := runCLI(t, binary, directory, "project", "check", "--config="+config)
+	human, diagnostic, code := runCLI(t, binary, directory, "project", "check")
 	if code != 1 || diagnostic != "" || !strings.Contains(human, "No files were changed.") {
 		t.Fatal(code, human, diagnostic)
 	}
@@ -92,7 +91,7 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 			t.Fatal(repair, err, string(output))
 		}
 	}
-	out, diagnostic, code = runCLI(t, binary, directory, "project", "check", "--config="+config, "--json")
+	out, diagnostic, code = runCLI(t, binary, directory, "project", "check", "--json")
 	if err := json.Unmarshal([]byte(out), &result); err != nil {
 		t.Fatal(err)
 	}
