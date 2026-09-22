@@ -12,9 +12,9 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'yaml';
+import { fakeGitHubCLI } from './fake-github-cli';
 
 const workflow = parse(
   readFileSync('.github/workflows/comment-binary-preview.yml', 'utf8'),
@@ -415,7 +415,7 @@ test('refuses an unpinned installer', async () => {
 });
 
 // Exercise the copyable command, including failure before the installer may execute.
-test('downloads the pinned installer completely before running it', async () => {
+test('runs the generated install command only after a successful script download', async () => {
   const { writes } = await preview();
   const command = String(writes[0]!.body).match(/```sh\n([^\n]+)\n```/)?.[1];
   expect(command).toBeDefined();
@@ -433,27 +433,40 @@ test('downloads the pinned installer completely before running it', async () => 
           '#!/bin/sh\nprintf "Darwin arm64\\n"\n',
           { mode: 0o755 },
         );
-        writeFileSync(
-          join(bin, 'gh'),
-          `#!/bin/sh
-set -eu
-[ "$1" = api ] && [ "$2" = --hostname ] && [ "$3" = github.com ]
-if [ "$#" -eq 6 ]; then
-  [ "$4" = -H ] && [ "$5" = 'Accept: application/vnd.github.raw+json' ]
-  [ "$6" = '/repos/fabricahq/code-rules/contents/_tools/install-preview.sh?ref=${'c'.repeat(40)}' ]
-  case "$FIXTURE_MODE" in
-    partial) printf 'touch executed-partial-script\\n'; exit 1 ;;
-    empty) exit 0 ;;
-  esac
-  cat "$FIXTURE_INSTALLER"
-else
-  [ "$#" -eq 4 ]
-  [ "$4" = '/repos/fabricahq/code-rules/actions/artifacts/70/zip' ]
-  printf '#!/bin/sh\\nprintf "preview works\\\\n"\\n'
-fi
-`,
-          { mode: 0o755 },
-        );
+        const installerRequest = [
+          'api',
+          '--hostname',
+          'github.com',
+          '-H',
+          'Accept: application/vnd.github.raw+json',
+          `/repos/fabricahq/code-rules/contents/_tools/install-preview.sh?ref=${'c'.repeat(40)}`,
+        ];
+        const binaryRequest = [
+          'api',
+          '--hostname',
+          'github.com',
+          '/repos/fabricahq/code-rules/actions/artifacts/70/zip',
+        ];
+        // Replace network responses only; the generated command runs the real installer.
+        const ghCalls = fakeGitHubCLI(bin, [
+          {
+            args: installerRequest,
+            stdout:
+              mode === 'partial'
+                ? 'touch executed-partial-script\n'
+                : mode === 'empty'
+                  ? ''
+                  : readFileSync(
+                      new URL('./install-preview.sh', import.meta.url),
+                      'utf8',
+                    ),
+            exitCode: mode === 'partial' ? 1 : 0,
+          },
+          {
+            args: binaryRequest,
+            stdout: '#!/bin/sh\nprintf "preview works\\n"\n',
+          },
+        ]);
         writeFileSync(join(directory, 'code-rules'), 'old executable');
         const result = spawnSync(shell, ['-c', command!], {
           cwd: directory,
@@ -461,10 +474,6 @@ fi
             ...process.env,
             PATH: `${bin}:${process.env.PATH}`,
             TMPDIR: scratch,
-            FIXTURE_MODE: mode,
-            FIXTURE_INSTALLER: fileURLToPath(
-              new URL('./install-preview.sh', import.meta.url),
-            ),
           },
           encoding: 'utf8',
         });
@@ -481,6 +490,11 @@ fi
             'old executable',
           );
         }
+        expect(ghCalls()).toEqual(
+          mode === 'success'
+            ? [installerRequest, binaryRequest]
+            : [installerRequest],
+        );
         expect(readdirSync(directory)).not.toContain('executed-partial-script');
         expect(readdirSync(scratch)).toEqual([]);
       } finally {

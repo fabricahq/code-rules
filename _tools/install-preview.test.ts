@@ -14,6 +14,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fakeGitHubCLI } from './fake-github-cli';
 
 test('installs the matching executable and preserves the old file on failure', () => {
   const executable = '#!/bin/sh\nprintf "preview works\\n"\n';
@@ -43,24 +44,25 @@ test('installs the matching executable and preserves the old file on failure', (
             '#!/bin/sh\nprintf "%s\\n" "$FIXTURE_PLATFORM"\n',
             { mode: 0o755 },
           );
-          writeFileSync(
-            join(bin, 'gh'),
-            `#!/bin/sh
-set -eu
-[ "$#" -eq 4 ]
-[ "$1" = api ]
-[ "$2" = --hostname ]
-[ "$3" = github.com ]
-[ "$4" = "/repos/fabricahq/code-rules/actions/artifacts/$FIXTURE_ARTIFACT/zip" ]
-case "$FIXTURE_MODE" in
-  partial) printf partial; exit 1 ;;
-  empty) exit 0 ;;
-esac
-cat "$FIXTURE_PAYLOAD"
-`,
-            { mode: 0o755 },
-          );
-          writeFileSync(join(directory, 'payload'), executable);
+          const binaryRequest = [
+            'api',
+            '--hostname',
+            'github.com',
+            `/repos/fabricahq/code-rules/actions/artifacts/${artifact}/zip`,
+          ];
+          // The installer remains real; gh returns the selected download outcome without network access.
+          const ghCalls = fakeGitHubCLI(bin, [
+            {
+              args: binaryRequest,
+              stdout:
+                mode === 'partial'
+                  ? 'partial'
+                  : mode === 'empty'
+                    ? ''
+                    : executable,
+              exitCode: mode === 'partial' ? 1 : 0,
+            },
+          ]);
           const destination = join(directory, 'code-rules');
           const other = join(directory, 'other');
           if (mode === 'directory') mkdirSync(destination);
@@ -90,9 +92,6 @@ cat "$FIXTURE_PAYLOAD"
                 PATH: `${bin}:${process.env.PATH}`,
                 FIXTURE_PLATFORM:
                   mode === 'unsupported' ? 'Linux riscv64' : platform,
-                FIXTURE_ARTIFACT: artifact,
-                FIXTURE_MODE: mode,
-                FIXTURE_PAYLOAD: join(directory, 'payload'),
               },
               encoding: 'utf8',
             },
@@ -121,6 +120,11 @@ cat "$FIXTURE_PAYLOAD"
             } else
               expect(readFileSync(destination, 'utf8')).toBe('old executable');
           }
+          expect(ghCalls()).toEqual(
+            ['directory', 'directory-symlink', 'unsupported'].includes(mode)
+              ? []
+              : [binaryRequest],
+          );
           expect(
             readdirSync(directory).filter((name) =>
               name.startsWith('.code-rules.'),
