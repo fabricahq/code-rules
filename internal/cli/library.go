@@ -101,6 +101,10 @@ func libraryGroupCommand(options Options, started *bool, output *commandOutput) 
 	cmd, f := newLibraryCommand("group GROUP_PATH", "Create library group metadata", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	f.addGroupFlags(cmd, "")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := library.CheckNewGroup(cmd.Context(), args[0], f.libraryOptions()); err != nil {
+			*started = true
+			return err
+		}
 		f.introduction = groupIntroduction(args[0])
 		if err := f.require("name", "description", "when-to-read"); err != nil {
 			return err

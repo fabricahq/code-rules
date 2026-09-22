@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
@@ -135,6 +136,10 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	var groups []string
 	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := project.CheckNewSource(cmd.Context(), args[0], sf.options()); err != nil {
+			*started = true
+			return err
+		}
 		sf.introduction = librarySelectionIntroduction(args[0])
 		if err := sf.collectSource(&groups); err != nil {
 			return err
@@ -161,6 +166,10 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	group, gf := newAuthoringCommand("group GROUP_PATH", "Create a project-only rule group", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	gf.addGroupFlags(group, "")
 	group.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := project.CheckNewLocalGroup(cmd.Context(), args[0], gf.options()); err != nil {
+			*started = true
+			return err
+		}
 		gf.introduction = groupIntroduction(args[0])
 		if err := gf.require("name", "description", "when-to-read"); err != nil {
 			return err
@@ -194,11 +203,21 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 
 // collectRule validates the existing group before prompting and collects all input before writer ownership.
 // started preserves the CLI distinction between usage failures and failed authoring operations.
-func (f *authoringFlags) collectRule(ctx context.Context, id string, library bool, started *bool) (rules.RuleMetadata, *string, error) {
+func (f *authoringFlags) collectRule(ctx context.Context, id string, isLibrary bool, started *bool) (rules.RuleMetadata, *string, error) {
 	if strings.HasSuffix(id, ".md") {
 		return rules.RuleMetadata{}, nil, fmt.Errorf("use a rule path without the .md extension")
 	}
-	if err := f.requireRuleGroup(id, library); err != nil {
+	if err := f.requireRuleGroup(id, isLibrary); err != nil {
+		*started = true
+		return rules.RuleMetadata{}, nil, err
+	}
+	var err error
+	if isLibrary {
+		err = library.CheckNewRule(ctx, id, f.libraryOptions())
+	} else {
+		err = project.CheckNewLocalRule(ctx, id, f.options())
+	}
+	if err != nil {
 		*started = true
 		return rules.RuleMetadata{}, nil, err
 	}

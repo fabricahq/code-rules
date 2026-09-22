@@ -143,6 +143,7 @@ code-rules project add library team --repository https://github.com/example/rule
 ```
 
 `project init` creates an empty source configuration and `local/README.md` under `.code-rules/`, preserving existing files.
+Adding an existing group, rule, or library alias fails before any prompts. Edit the existing item or choose a different path or alias.
 Create the group before adding a rule. Rule creation fails before prompting for metadata if the group does not exist. No source declaration is needed for local rules.
 `project add library` validates and records a library declaration; run `project sync` separately to fetch it. It preserves existing source exceptions and local files.
 `--ref` accepts an exact tag, full commit SHA, or version range. Bare versions are literal tags; ranges use operators such as `>=` or `~>`. The CLI saves the value in the appropriate `ref` or `version` configuration field.

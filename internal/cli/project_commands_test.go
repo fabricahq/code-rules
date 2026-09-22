@@ -5,6 +5,7 @@ package cli
 import (
 	"encoding/json"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -61,6 +62,10 @@ func TestScopedCommandHelp(t *testing.T) {
 func TestScopedUsageErrors(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
+	if out, diagnostic, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	before := projectFileContents(t, directory)
 	for _, args := range [][]string{
 		{"project", "build", "--config", "--json"},
 		{"--json", "project", "build", "--config", "one", "--config", "two"},
@@ -76,8 +81,7 @@ func TestScopedUsageErrors(t *testing.T) {
 			t.Fatal(args, code, out, diagnostic)
 		}
 	}
-	entries, err := os.ReadDir(directory)
-	if err != nil || len(entries) != 0 {
-		t.Fatal("usage errors wrote files", entries, err)
+	if !reflect.DeepEqual(before, projectFileContents(t, directory)) {
+		t.Fatal("usage errors wrote files")
 	}
 }
