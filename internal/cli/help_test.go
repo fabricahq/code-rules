@@ -58,6 +58,8 @@ func TestCommandOptionSections(t *testing.T) {
 				if !found || strings.Contains(out, "Flags:") {
 					t.Fatal("missing common options", out)
 				}
+				// Examples may repeat flags after the options section.
+				common, _, _ = strings.Cut(common, "\n\n")
 				specific := ""
 				if test.title != "" {
 					_, specific, found = strings.Cut(before, test.title+":\n")

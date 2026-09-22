@@ -151,6 +151,7 @@ Use `--config` to select a configuration file outside the default location.
 `project init` creates an empty source configuration and `local/README.md` under `.code-rules/` by default, preserving existing files.
 Create the group before adding a rule. Rule creation fails before prompting for metadata if the group does not exist. No source declaration is needed for local rules.
 `project add library` validates and records a library declaration; run `project sync` separately to fetch it. It preserves existing source exceptions and local files.
+Before prompting, it explains the project-local alias, revision choices, and group selectors with an example. Find group paths in the library documentation or its `practices/` and `techs/` directories at the selected revision. Choose explicit paths or one wildcard. The same guidance is available with `--help`, including an example with all required flags for agents and scripts.
 
 See [Set up a project](/guides/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
 Before prompting, group and rule commands show the selected path and an example of all the fields together. A group has a readable name, description, and reading cue. A rule has a readable title, reading cue, and impact details; the full instructions belong in its Markdown body. Examples are guidance only and are never saved as your content.

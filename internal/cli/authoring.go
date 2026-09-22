@@ -131,13 +131,16 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or library"}
 	root.AddCommand(add)
 	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project's configuration."), options.Directory)
-	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag or full commit", "version": "HashiCorp version constraint"} {
+	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag or full commit SHA (not a branch)", "version": "Version range (e.g. >= 1.2.0, < 2.0.0)"} {
 		sf.add(source, name, description)
 	}
-	source.Long = "Record a shared library in this project's configuration without fetching it. Run code-rules project sync to fetch configured libraries and build guidance. ALIAS names the library in the sources configuration." + documentationHelp
+	source.Long = librarySelectionHelp + documentationHelp
+	source.Example = "  code-rules project add library team --repository https://github.com/example/rules.git --ref v1.2.3 --groups practices/testing --groups techs/go --non-interactive"
+	sf.prompts = map[string]string{"repository": "Git repository URL", "ref": "Exact tag or full commit", "version": "Version range"}
 	var groups []string
-	source.Flags().StringArrayVar(&groups, "groups", nil, "Group path (repeat) or one wildcard")
+	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group path (repeat) or one selector: *, practices/*, techs/*")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
+		sf.introduction = librarySelectionIntroduction(args[0])
 		if err := sf.collectSource(&groups); err != nil {
 			return err
 		}

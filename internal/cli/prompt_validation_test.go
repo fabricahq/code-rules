@@ -73,7 +73,7 @@ func TestSourceAnswerRetry(t *testing.T) {
 			}
 			revisionPrompt, invalid, valid := "Exact tag or full commit:", "bad ref", "v1.2.3"
 			if kind == "version" {
-				revisionPrompt, invalid, valid = "HashiCorp version constraint:", "not-a-version", ">= 1.2.3"
+				revisionPrompt, invalid, valid = "Version range:", "not-a-version", ">= 1.2.3"
 			}
 			groupPrompt := "Groups (comma-separated paths, *, practices/*, or techs/*):"
 			steps := []terminalfixture.Step{
