@@ -77,7 +77,7 @@ code-rules project add rule practices/testing/retry-budget \
 Pass `--when-to-read` once for either a group or a rule. Combine distinct scope cues into that one string.
 Optionally pass `--body-file path/to/guidance.md` to use an already authored Markdown body instead of the draft body. The command creates frontmatter from the explicit metadata flags; the body file should not contain frontmatter.
 
-Create a missing group first with `code-rules project add group <group-id>`, then run `code-rules project add rule`. The Go CLI errors before asking for rule metadata if the group does not exist. A selected group from a verified imported library also counts as an existing group.
+Create a missing group first with `code-rules project add group GROUP_PATH`, then run `code-rules project add rule`. The Go CLI errors before asking for rule metadata if the group does not exist. A selected group from a verified imported library also counts as an existing group.
 Creating a local group establishes the project's description even when a library supplies the same group. Existing local metadata is never overwritten. Sync a configured library before relying on its group metadata.
 
 ## File ownership

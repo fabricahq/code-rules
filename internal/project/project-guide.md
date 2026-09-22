@@ -24,7 +24,7 @@ Human-readable output is the default. Add `--json` to any command for a structur
 
 #### Add a group
 
-Choose a technology ID such as `techs/go`, or a practice ID such as `practices/testing`. Use `description` to describe its scope and `when-to-read` to tell agents when to open it. Create a group once, before adding its rules.
+Choose a technology group path such as `techs/go`, or a practice group path such as `practices/testing`. Use `description` to describe its scope and `when-to-read` to tell agents when to open it. Create a group once, before adding its rules.
 
 ```sh
 code-rules project add group techs/go --config {{CONFIG_ARG}} \
@@ -37,7 +37,7 @@ Read `local/techs/go/README.md` for group authoring instructions. Confirm that `
 
 #### Add a rule
 
-Choose a rule ID within an existing group. If the group is missing, create it first with `code-rules project add group`; rule creation returns an error without creating the group. Supply a complete Markdown body and discovery metadata. This example creates a new body file without overwriting an existing one:
+Choose a rule path within an existing group. If the group is missing, create it first with `code-rules project add group`; rule creation returns an error without creating the group. Supply a complete Markdown body and discovery metadata. This example creates a new body file without overwriting an existing one:
 
 ```sh
 set -C
@@ -62,7 +62,7 @@ Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/
 
 #### Add a third-party library
 
-Obtain the publisher's Git repository address, a released tag or full commit, and the group IDs you intend to adopt. Inspect the library's guidance and license terms before adopting it. Replace this illustrative repository and selection:
+Obtain the publisher's Git repository address, a released tag or full commit, and the group paths you intend to adopt. Inspect the library's guidance and license terms before adopting it. Replace this illustrative repository and selection:
 
 ```sh
 code-rules project add library team --config {{CONFIG_ARG}} \

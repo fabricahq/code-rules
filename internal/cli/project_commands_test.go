@@ -24,11 +24,11 @@ func TestScopedCommandHelp(t *testing.T) {
 		{[]string{"project", "add"}, []string{"  rule ", "  group ", "  library "}, []string{"  source ", "  local "}},
 		{[]string{"project", "add", "library", "--help"}, []string{"without fetching", "code-rules project sync", "--repository", "--groups"}, nil},
 		{[]string{"project", "check", "--help"}, []string{"not whether application code follows", "--config"}, nil},
-		{[]string{"project", "add", "rule", "-h"}, []string{"code-rules project add rule ID", "--body-file"}, nil},
+		{[]string{"project", "add", "rule", "-h"}, []string{"code-rules project add rule RULE_PATH", "--body-file"}, nil},
 		{[]string{"library"}, []string{"  init ", "  add ", "  check "}, nil},
 		{[]string{"local", "add"}, []string{"  rule ", "  group "}, nil},
 		{[]string{"library", "add"}, []string{"  rule ", "  group "}, nil},
-		{[]string{"local", "add", "rule", "--help"}, []string{"code-rules local add rule ID", "--body-file"}, nil},
+		{[]string{"local", "add", "rule", "--help"}, []string{"code-rules local add rule RULE_PATH", "--body-file"}, nil},
 		{[]string{"add", "source", "--help"}, []string{"code-rules add source ALIAS", "--repository"}, nil},
 	} {
 		t.Run(strings.Join(test.args, " "), func(t *testing.T) {

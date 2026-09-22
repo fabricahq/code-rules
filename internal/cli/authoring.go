@@ -101,7 +101,7 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 		prefix + "name":        "Group name (e.g. Testing)",
 		prefix + "description": "What this group covers (e.g. Unit and integration testing)",
 	}
-	cmd.Long = cmd.Short + "\n\nID identifies the group in paths and configuration (e.g. practices/testing).\nThe name is its readable title (e.g. Testing or Testing and quality)."
+	cmd.Long = cmd.Short + "\n\nGROUP_PATH combines a category and group slug (e.g. practices/testing).\nThe name is its readable title (e.g. Testing or Testing and quality)."
 }
 
 // addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.
@@ -126,7 +126,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	}
 	source.Long = "Record a shared library in this project's configuration without fetching it. Run code-rules project sync to fetch configured libraries and build guidance. ALIAS names the library in the sources configuration."
 	var groups []string
-	source.Flags().StringArrayVar(&groups, "groups", nil, "Group ID (repeat) or one wildcard")
+	source.Flags().StringArrayVar(&groups, "groups", nil, "Group path (repeat) or one wildcard")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := sf.collectSource(&groups); err != nil {
 			return err
@@ -154,7 +154,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		return nil
 	}
 	add.AddCommand(source)
-	group, gf := newAuthoringCommand("group ID", "Create a project-only rule group", requiredArgument("group ID", "practices/testing", "A group ID identifies the group in paths and configuration."), options.Directory)
+	group, gf := newAuthoringCommand("group GROUP_PATH", "Create a project-only rule group", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	gf.addGroupFlags(group, "")
 	group.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := gf.require("name", "description", "when-to-read"); err != nil {
@@ -169,7 +169,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		return nil
 	}
 	add.AddCommand(group)
-	rule, rf := newAuthoringCommand("rule ID", "Create a project-only rule or unfinished draft", requiredArgument("rule ID", "practices/testing/my-rule", "A rule ID includes its group and rule name, without the .md extension."), options.Directory)
+	rule, rf := newAuthoringCommand("rule RULE_PATH", "Create a project-only rule or unfinished draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
+	rule.Long = rule.Short + "\n\nRULE_PATH includes the group path and rule slug, without .md (e.g. practices/testing/my-rule)."
 	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When an agent should read this rule", "impact": "Consequence level", "impact-description": "Why the rule matters", "body-file": "Existing UTF-8 Markdown body file"} {
 		rf.add(rule, name, description)
 	}
@@ -193,7 +194,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 // started preserves the CLI distinction between usage failures and failed authoring operations.
 func (f *authoringFlags) collectRule(ctx context.Context, id string, library bool, started *bool) (rules.RuleMetadata, *string, error) {
 	if strings.HasSuffix(id, ".md") {
-		return rules.RuleMetadata{}, nil, fmt.Errorf("use a rule ID without the .md extension")
+		return rules.RuleMetadata{}, nil, fmt.Errorf("use a rule path without the .md extension")
 	}
 	if err := f.requireRuleGroup(id, library); err != nil {
 		*started = true

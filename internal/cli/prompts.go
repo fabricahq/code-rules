@@ -129,7 +129,7 @@ func (f *authoringFlags) collectSource(groups *[]string) error {
 		}
 	}
 	if len(*groups) == 0 {
-		text, err := f.ask("Groups (comma-separated IDs, *, practices/*, or techs/*):")
+		text, err := f.ask("Groups (comma-separated paths, *, practices/*, or techs/*):")
 		if err != nil {
 			return err
 		}

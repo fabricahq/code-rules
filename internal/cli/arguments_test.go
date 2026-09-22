@@ -14,13 +14,13 @@ func TestAuthoringArgumentErrors(t *testing.T) {
 	binary := buildCLI(t)
 	for _, test := range []struct{ command, name, example string }{
 		{"project add library", "library alias", "team"},
-		{"project add group", "group ID", "practices/testing"},
-		{"project add rule", "rule ID", "practices/testing/my-rule"},
-		{"library add group", "group ID", "practices/testing"},
-		{"library add rule", "rule ID", "practices/testing/my-rule"},
+		{"project add group", "group path", "practices/testing"},
+		{"project add rule", "rule path", "practices/testing/my-rule"},
+		{"library add group", "group path", "practices/testing"},
+		{"library add rule", "rule path", "practices/testing/my-rule"},
 		{"add source", "library alias", "team"},
-		{"local add group", "group ID", "practices/testing"},
-		{"local add rule", "rule ID", "practices/testing/my-rule"},
+		{"local add group", "group path", "practices/testing"},
+		{"local add rule", "rule path", "practices/testing/my-rule"},
 	} {
 		for _, extra := range []bool{false, true} {
 			for _, structured := range []bool{false, true} {

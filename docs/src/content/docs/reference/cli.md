@@ -17,17 +17,19 @@ Project help separates the main commands (`init`, `add`, and `sync`) from utilit
 ```text
 code-rules project init
 code-rules project add library <alias>
-code-rules project add group <id>
-code-rules project add rule <id>
+code-rules project add group GROUP_PATH
+code-rules project add rule RULE_PATH
 code-rules project sync
 code-rules project build
 code-rules project check
 
 code-rules library init
-code-rules library add group <id>
-code-rules library add rule <id>
+code-rules library add group GROUP_PATH
+code-rules library add rule RULE_PATH
 code-rules library check
 ```
+
+`GROUP_PATH` combines a category and group slug, such as `practices/testing`. `RULE_PATH` adds a rule slug, such as `practices/testing/my-rule`, without `.md`. These paths identify rules and groups within a project or library; the group name and rule title are their readable labels.
 
 `project add library` records configuration without fetching anything. Its alias identifies the library under `sources` in configuration.
 Use `project sync` to fetch configured libraries and rebuild guidance. Use `project build` to rebuild from library snapshots already on disk.
@@ -49,7 +51,7 @@ code-rules project check --help
 Use `-h` or `--help` on any command to see its accepted options, defaults, examples, and relevant behavior.
 Bare command groups such as `code-rules library` also show navigation.
 Help never prompts or writes files. Invalid commands and options exit with status 2 and point to the relevant help page.
-If an authoring command is missing a required alias or ID, the error names the missing argument, explains its purpose, and shows the command syntax and an example.
+If an authoring command is missing a required alias or path, the error names the missing argument, explains its purpose, and shows the command syntax and an example.
 Authoring help distinguishes fields prompted on a terminal from optional flags; both `project init` and `library init` currently run without prompts.
 Every command separates its own options from **Common options**. Group and rule creation use **Group options** and **Rule options**; adding a library or initializing one uses **Library options**. Commands with no specific options show only **Common options**. Common options are reused across commands, not necessarily available everywhere: `--help` is local to each command, `--non-interactive` is local to authoring commands, and `--json` is inherited globally. Project commands use `--config`; library commands use `--directory`.
 
@@ -166,8 +168,8 @@ code-rules library check
 ```
 
 - `library init` creates the format manifest and a README pointing to the canonical authoring guidance. The README defines rules, groups, and libraries and gives agents executable examples for authoring and validation. Existing READMEs are preserved. Supply `--spdx expression --license-file path` and optional `--notice-file path` to copy explicit terms to `LICENSE.md` and `NOTICE.md`. Authors may defer that choice; the manifest then leaves it undeclared.
-- `library add group <group-id>` creates `_group.json` under `techs/` or `practices/`, collecting the name, description, and group-level `whenToRead` cues. A group can exist before it has rules.
-- `library add rule <rule-id>` creates a Markdown draft from the canonical template in an existing group. If the group is missing, the Go CLI errors with the command to create it first. It does not offer automatic group creation. Required fields need author input; the command does not invent policy.
+- `library add group GROUP_PATH` creates `_group.json` under `techs/` or `practices/`, collecting the name, description, and group-level `whenToRead` cues. A group can exist before it has rules.
+- `library add rule RULE_PATH` creates a Markdown draft from the canonical template in an existing group. If the group is missing, the Go CLI errors with the command to create it first. It does not offer automatic group creation. Required fields need author input; the command does not invent policy.
 - `library check` validates the manifest, all group and rule definitions, and declared license and notice assets offline without writing files. It reports file-specific errors and group and rule counts. Marked drafts fail until completed and their `code-rules:draft` marker is removed. Empty groups are valid. Undeclared licenses produce warnings; malformed declarations and missing declared files fail validation.
 
 Scaffolding commands validate paths and detect collisions before writing. They never overwrite existing files or leave partial scaffolds after a failed operation.

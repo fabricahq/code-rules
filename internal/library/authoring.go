@@ -268,7 +268,7 @@ func HasGroup(ctx context.Context, id string, options Options) (bool, error) {
 // AddRule creates supplied guidance or a marked unfinished canonical draft, in an existing group.
 func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
 	if strings.HasSuffix(id, ".md") {
-		return AuthoringResult{}, failure("invalid-operation", "use a rule ID without the .md extension", nil)
+		return AuthoringResult{}, failure("invalid-operation", "use a rule path without the .md extension", nil)
 	}
 	group, err := rules.GroupFromPath(id+".md", "rule")
 	if err != nil {

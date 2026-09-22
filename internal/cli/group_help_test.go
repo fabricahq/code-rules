@@ -60,7 +60,7 @@ func TestGroupHelpSections(t *testing.T) {
 						t.Fatal("common option in wrong section", flag, out)
 					}
 				}
-				if strings.Contains(out, absent) || strings.Contains(out, "Global Flags:") || !strings.Contains(out, "ID identifies the group") || !strings.Contains(group, "Title shown in rule indexes and group pages") {
+				if strings.Contains(out, absent) || strings.Contains(out, "Global Flags:") || !strings.Contains(out, "GROUP_PATH combines a category and group slug") || !strings.Contains(group, "Title shown in rule indexes and group pages") {
 					t.Fatal("incorrect scope or unclear group name", out)
 				}
 			}

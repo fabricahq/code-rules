@@ -201,7 +201,7 @@ func HasLocalRuleGroup(ctx context.Context, id string, options Options) (bool, e
 // AddLocalRule creates a validated rule or canonical unfinished draft, in an existing group.
 func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
 	if strings.HasSuffix(id, ".md") {
-		return AuthoringResult{}, failure("invalid-operation", "use a rule ID without the .md extension", nil)
+		return AuthoringResult{}, failure("invalid-operation", "use a rule path without the .md extension", nil)
 	}
 	group, err := rules.GroupFromPath(id+".md", "rule")
 	if err != nil {

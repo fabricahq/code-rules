@@ -96,7 +96,7 @@ func libraryCheckCommand(options Options, started *bool, output *commandOutput) 
 
 // libraryGroupCommand requires all group metadata before attempting exclusive publication.
 func libraryGroupCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
-	cmd, f := newLibraryCommand("group ID", "Create library group metadata", requiredArgument("group ID", "practices/testing", "A group ID identifies the group in paths and configuration."), options.Directory)
+	cmd, f := newLibraryCommand("group GROUP_PATH", "Create library group metadata", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	f.addGroupFlags(cmd, "")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := f.require("name", "description", "when-to-read"); err != nil {
@@ -115,7 +115,8 @@ func libraryGroupCommand(options Options, started *bool, output *commandOutput) 
 
 // libraryRuleCommand creates supplied guidance or a marked canonical draft in an existing group.
 func libraryRuleCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
-	cmd, f := newLibraryCommand("rule ID", "Create a complete library rule or marked draft", requiredArgument("rule ID", "practices/testing/my-rule", "A rule ID includes its group and rule name, without the .md extension."), options.Directory)
+	cmd, f := newLibraryCommand("rule RULE_PATH", "Create a complete library rule or marked draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
+	cmd.Long = cmd.Short + "\n\nRULE_PATH includes the group path and rule slug, without .md (e.g. practices/testing/my-rule)."
 	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When to read this rule", "impact": "Consequence level", "impact-description": "Why this rule matters", "body-file": "Existing UTF-8 Markdown body"} {
 		f.add(cmd, name, description)
 	}
