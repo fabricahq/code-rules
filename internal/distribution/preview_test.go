@@ -43,7 +43,20 @@ func TestPackagedPreviewWarning(t *testing.T) {
 			if err := installEntries(installed, entries, writeEntry); err != nil {
 				t.Fatal(err)
 			}
-			for _, args := range [][]string{nil, {"--help"}, {"build", "--help"}, {"--version"}, {"unknown-command"}, {"build"}, {"check", "--json"}, {"init", "--json"}} {
+			for _, test := range []struct {
+				args []string
+				exit int
+			}{
+				{nil, 0},
+				{[]string{"--help"}, 0},
+				{[]string{"project", "build", "--help"}, 0},
+				{[]string{"--version"}, 0},
+				{[]string{"unknown-command"}, 2},
+				{[]string{"project", "build"}, 1},
+				{[]string{"project", "check", "--json"}, 1},
+				{[]string{"project", "init", "--json"}, 0},
+			} {
+				args := test.args
 				command := exec.Command(filepath.Join(installed, "code-rules"), args...)
 				command.Dir = t.TempDir()
 				var stdout, stderr bytes.Buffer
@@ -53,6 +66,9 @@ func TestPackagedPreviewWarning(t *testing.T) {
 					if _, ok := err.(*exec.ExitError); !ok {
 						t.Fatal(err)
 					}
+				}
+				if got := command.ProcessState.ExitCode(); got != test.exit {
+					t.Fatalf("%v: exit %d, want %d; stdout=%q stderr=%q", args, got, test.exit, stdout.String(), stderr.String())
 				}
 				warning := "WARNING: Unreleased preview from commit " + revision + ". For testing only; not for production use.\n"
 				if candidate && (!strings.HasPrefix(stderr.String(), warning) || strings.Count(stderr.String(), warning) != 1) {

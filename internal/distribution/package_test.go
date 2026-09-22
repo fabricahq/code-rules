@@ -76,14 +76,14 @@ func TestNativeInstallUpgradeRollback(t *testing.T) {
 		if got := strings.TrimSpace(run("--version")); got != version {
 			t.Fatal(got)
 		}
-		run("init")
-		run("local", "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When editing Go.")
+		run("project", "init")
+		run("project", "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When editing Go.")
 		if err := os.WriteFile(filepath.Join(project, "body.md"), []byte("Return failures to the caller.\n"), 0600); err != nil {
 			t.Fatal(err)
 		}
-		run("local", "add", "rule", "techs/go/errors", "--title", "Return errors", "--impact", "HIGH", "--impact-description", "Preserve failures.", "--when-to-read", "When calling functions.", "--body-file", "body.md")
-		run("build")
-		run("check")
+		run("project", "add", "rule", "techs/go/errors", "--title", "Return errors", "--impact", "HIGH", "--impact-description", "Preserve failures.", "--when-to-read", "When calling functions.", "--body-file", "body.md")
+		run("project", "build")
+		run("project", "check")
 		if _, err := Install(output, target, installed); err == nil {
 			t.Fatal("overwrote an existing installation")
 		}
