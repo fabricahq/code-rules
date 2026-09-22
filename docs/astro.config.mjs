@@ -14,6 +14,7 @@ export default defineConfig({
   redirects: {
     '/guides/customize/': '/guides/select-rules/',
     '/overview/': '/start-here/overview/',
+    '/status/': '/start-here/install/',
     '/guides/install/': '/start-here/install/',
     '/guides/set-up-project/': '/start-here/set-up-project/',
     '/guides/use-rules/': '/start-here/set-up-project/',
