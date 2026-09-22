@@ -5,6 +5,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -67,11 +68,37 @@ func commandUsage(cmd *cobra.Command) error {
 
 func writeCommandGroup(out *strings.Builder, cmd *cobra.Command, title, id string) {
 	fmt.Fprintf(out, "\n%s\n", title)
-	for _, child := range cmd.Commands() {
+	for _, child := range commandsInHelpOrder(cmd) {
 		if child.GroupID == id && child.IsAvailableCommand() {
 			fmt.Fprintf(out, "  %-*s %s\n", child.NamePadding(), child.Name(), child.Short)
 		}
 	}
+}
+
+// commandsInHelpOrder lists known workflows first, then any new commands in Cobra's default order.
+// Keep ordering local to presentation: Cobra's sorting setting is shared across command trees and callers.
+func commandsInHelpOrder(cmd *cobra.Command) []*cobra.Command {
+	order := map[string][]string{
+		"code-rules": {"project", "library"},
+		"project":    {"init", "add", "sync", "build", "check"},
+		"library":    {"init", "add", "check"},
+		"add":        {"group", "rule", "library", "source"},
+	}[cmd.Name()]
+	commands := cmd.Commands()
+	ordered := make([]*cobra.Command, 0, len(commands))
+	for _, name := range order {
+		for _, child := range commands {
+			if child.Name() == name {
+				ordered = append(ordered, child)
+			}
+		}
+	}
+	for _, child := range commands {
+		if !slices.Contains(order, child.Name()) {
+			ordered = append(ordered, child)
+		}
+	}
+	return ordered
 }
 
 // commandOptions builds presentation-only sets; the original flags retain their local or inherited scope.

@@ -19,12 +19,14 @@ func TestScopedCommandHelp(t *testing.T) {
 		want, absent []string
 	}{
 		{nil, []string{"  project ", "  library "}, []string{"\n  help ", "  init ", "  add ", "  local ", "  build ", "  sync ", "  check "}},
-		{[]string{"project"}, []string{"Main commands:", "Utility commands:", "  init ", "  add ", "  build ", "  sync ", "  check "}, []string{"  local ", "Available Commands:", "Additional Commands:"}},
+		{[]string{"project"}, []string{"Main commands:", "Utility commands:", "  init ", "  add ", "  sync ", "  build ", "  check "}, []string{"  local ", "Available Commands:", "Additional Commands:"}},
 		{[]string{"project", "--help"}, []string{"Main commands:", "Utility commands:"}, []string{"Available Commands:"}},
-		{[]string{"project", "add"}, []string{"  library ", "  group ", "  rule "}, []string{"  source ", "  local "}},
+		{[]string{"project", "add"}, []string{"  group ", "  rule ", "  library "}, []string{"  source ", "  local "}},
 		{[]string{"project", "add", "library", "--help"}, []string{"without fetching", "code-rules project sync", "--repository", "--groups"}, nil},
 		{[]string{"project", "check", "--help"}, []string{"not whether application code follows", "--config"}, nil},
 		{[]string{"project", "add", "rule", "-h"}, []string{"code-rules project add rule ID", "--body-file"}, nil},
+		{[]string{"library"}, []string{"  init ", "  add ", "  check "}, nil},
+		{[]string{"local", "add"}, []string{"  group ", "  rule "}, nil},
 		{[]string{"library", "add"}, []string{"  group ", "  rule "}, nil},
 		{[]string{"local", "add", "rule", "--help"}, []string{"code-rules local add rule ID", "--body-file"}, nil},
 		{[]string{"add", "source", "--help"}, []string{"code-rules add source ALIAS", "--repository"}, nil},
@@ -34,9 +36,18 @@ func TestScopedCommandHelp(t *testing.T) {
 			if code != 0 || diagnostic != "" {
 				t.Fatal(code, out, diagnostic)
 			}
+			lastCommand := -1
 			for _, want := range test.want {
 				if !strings.Contains(out, want) {
 					t.Fatalf("missing %q in %s", want, out)
+				}
+
+				if strings.HasPrefix(want, "  ") {
+					position := strings.Index(out, "\n"+want)
+					if position <= lastCommand {
+						t.Fatalf("command %q is out of workflow order in %s", want, out)
+					}
+					lastCommand = position
 				}
 			}
 			for _, absent := range test.absent {
