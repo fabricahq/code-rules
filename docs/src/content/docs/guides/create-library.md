@@ -8,7 +8,7 @@ Create one in a new or existing Git repository, then add groups and rules using 
 For a rule used by only one project, you can instead [author it locally](/guides/write-rules/).
 
 The library commands work through the development CLI or the [locally installed release candidate](/guides/install/).
-Use `--directory path` to author or check a library elsewhere.
+Initialize from the Git repository root. Other library commands can run from any subdirectory. Use `--directory path` to author or check a library elsewhere; initialization still requires the selected target to be a repository root. Outside Git, use the library root or an explicit `--directory`.
 
 ## 1. Initialize the library
 

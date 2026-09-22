@@ -86,7 +86,7 @@ Creating a local group establishes the project's description even when a library
 
 ## File ownership
 
-Run project commands from the project root. They use `.code-rules/config.json`, with local rules, vendor snapshots, and generated guidance under `.code-rules/`. Custom configuration locations are not supported. Only `init` creates a missing project configuration.
+Run `project init` from the Git repository root; other project commands can run from any subdirectory. Outside Git, run commands from the project root. They use `.code-rules/config.json`, with local rules, vendor snapshots, and generated guidance under `.code-rules/`. Custom configuration locations are not supported. Only `init` creates a missing project configuration.
 
 Authoring commands serialize writes with the same project lock used by sync and build. They reject links, unsupported files, and case-colliding target paths. New definitions are never overwritten. Adding a source moves the current configuration aside, verifies its exact bytes, and installs the new file only if the target path remains empty. An editor save is preserved rather than overwritten.
 A failed multi-file creation claims newly created files before comparing their bytes for rollback, preserving external replacements.

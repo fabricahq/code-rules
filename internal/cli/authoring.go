@@ -86,9 +86,10 @@ func (f *authoringFlags) file(name string) string {
 	return value
 }
 
-// options anchors project operations to the caller's project root.
-func (f *authoringFlags) options() project.Options {
-	return project.Options{Directory: f.directory}
+// options resolves the project target while file inputs remain relative to the caller.
+func (f *authoringFlags) options(ctx context.Context, initialize bool) (project.Options, error) {
+	directory, err := commandDirectory(ctx, f.directory, "project", initialize)
+	return project.Options{Directory: directory}, err
 }
 
 // group returns the explicit metadata for an existing or newly created group.
@@ -113,8 +114,11 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 func addProjectAuthoringCommands(root *cobra.Command, options Options, output *commandOutput) {
 	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", cobra.NoArgs, options.Directory)
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
-
-		result, err := project.Initialize(cmd.Context(), f.options())
+		target, err := f.options(cmd.Context(), true)
+		if err != nil {
+			return err
+		}
+		result, err := project.Initialize(cmd.Context(), target)
 		if err != nil {
 			return err
 		}
@@ -133,7 +137,11 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, output *c
 	var groups []string
 	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
-		plan, err := project.PlanSource(cmd.Context(), args[0], sf.options())
+		target, err := sf.options(cmd.Context(), false)
+		if err != nil {
+			return err
+		}
+		plan, err := project.PlanSource(cmd.Context(), args[0], target)
 		if err != nil {
 			return err
 		}
@@ -162,7 +170,11 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, output *c
 	group, gf := newAuthoringCommand("group GROUP_PATH", "Create a project-only rule group", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	gf.addGroupFlags(group, "")
 	group.RunE = func(cmd *cobra.Command, args []string) error {
-		plan, err := project.PlanLocalGroup(cmd.Context(), args[0], gf.options())
+		target, err := gf.options(cmd.Context(), false)
+		if err != nil {
+			return err
+		}
+		plan, err := project.PlanLocalGroup(cmd.Context(), args[0], target)
 		if err != nil {
 			return err
 		}
@@ -181,7 +193,11 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, output *c
 	rule, rf := newAuthoringCommand("rule RULE_PATH", "Create a project-only rule or unfinished draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
 	rf.addRuleFlags(rule)
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
-		plan, err := project.PlanLocalRule(cmd.Context(), args[0], rf.options())
+		target, err := rf.options(cmd.Context(), false)
+		if err != nil {
+			return err
+		}
+		plan, err := project.PlanLocalRule(cmd.Context(), args[0], target)
 		if err != nil {
 			return err
 		}

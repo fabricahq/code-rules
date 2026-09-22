@@ -15,7 +15,7 @@ This guide explains how to manage this project's [Fabrica Code Rules](https://co
 Use this guide to **manage rules**. Use `.code-rules/generated/RULES.md` to **read and apply adopted rules** when working on the project.
 
 1. Identify the requested change: add local guidance, adopt a library, change an existing definition, or verify generated output.
-2. Run the corresponding commands below. Run them **from the project root**, the parent of `.code-rules/`. Project commands use `.code-rules/config.json`.
+2. Run the corresponding commands below. Run `project init` **from the Git repository root**. Other project commands can run from any subdirectory and use the root's `.code-rules/config.json`. Outside Git, run commands from the project root, the parent of `.code-rules/`.
 3. Supply the project's intended metadata and guidance. The examples below illustrate command syntax; replace their values before using them in a real project.
 4. Build after local edits. Sync after changing a library's repository, ref, version constraint, or group selection. Inspect the resulting diff and resolve errors before reporting completion.
 5. Run check. Exit 0 confirms that generated files match their inputs and this guide matches the installed CLI; it does not verify application code against the rules.
@@ -79,7 +79,7 @@ Use `--ref` for an exact tag, full commit SHA, or version constraint. For a vers
 
 #### Maintain and verify the project
 
-- After editing local rules, run `project build`, then `project check` from the project root.
+- After editing local rules, run `project build`, then `project check`. In Git repositories, both work from any subdirectory.
 - After changing source selection, run `project sync`, then `project check`. Sync resolves tags again, so inspect revision changes before committing them.
 - Review configuration, local rules, vendor snapshots, and generated output together. Keep project-specific notes in a separate file.
 - Use `library --help` when authoring a separately published library. Project-local authoring and publisher authoring use different command trees.

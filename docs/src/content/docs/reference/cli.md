@@ -35,7 +35,7 @@ code-rules library check
 Use `project sync` to fetch configured libraries and rebuild guidance. Use `project build` to rebuild from library snapshots already on disk.
 `project check` verifies file consistency; it does not review application code for compliance with the rules.
 
-Run all project commands from the project root. They always use `.code-rules/config.json`.
+In Git repositories, run `project init` from the repository root. Other project commands can run from any subdirectory and use the root’s `.code-rules/config.json`. Outside Git, run commands from the project root.
 
 Use `code-rules --version` to print the installed version.
 Run `code-rules --help` for a command overview, then narrow the help to the operation you need:
@@ -128,7 +128,13 @@ It does not mean application code follows those rules.
 
 ## Project location
 
-Run project commands from the project root. Configuration lives in `.code-rules/config.json`; custom configuration locations are not supported. Commands do not search parent directories or discover the Git root.
+In a Git repository, `project init` and `library init` must target the repository root. Running either from a subfolder fails before creating files and shows a command to run from the root. This also applies to the target of `library init --directory`.
+
+Other project and library commands locate the nearest ancestor containing a `.git` directory or file. This supports normal repositories, worktrees, and submodules without invoking Git. Discovery stops at that boundary: it never uses an outer repository's configuration, even if the nearest repository has not been initialized. A nested `.code-rules` directory does not override the repository root.
+
+Project configuration lives in the repository root's `.code-rules/config.json`; custom configuration locations are not supported. Library commands use the repository root's `rule-library.json`. If the required files are missing, initialize that repository from its root.
+
+Outside Git, commands continue to use the current directory (or the explicit library `--directory`). They do not search parent directories for configuration. Relative input paths such as `--body-file`, `--license-file`, and `--notice-file` always resolve from the directory where you ran the command.
 Keep replacement files within `.code-rules/local/`.
 
 ## Initialize and author a project
@@ -160,7 +166,7 @@ Authoring commands accept `--non-interactive`. Missing inputs fail without promp
 
 ## Author a library
 
-These commands run from the library root, independently of a consuming project's configuration.
+Initialize from the library repository root. Other library commands can run from its subdirectories, independently of a consuming project's configuration.
 Use `--directory path` for a different library root. Follow [Create a rule library](/guides/create-library/) for the complete workflow.
 
 ```sh

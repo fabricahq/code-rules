@@ -11,7 +11,7 @@ code-rules project build
 code-rules project check
 ```
 
-Run project commands from the project root. They use `.code-rules/config.json` in that directory.
+Run `project init` from the Git repository root; other project commands can run from any subdirectory. Outside Git, run commands from the project root. They use `.code-rules/config.json` at the project root.
 The configuration directory contains `local/`, `vendor/`, and `generated/`. The directory and configuration must already exist.
 
 ## Ownership

@@ -10,7 +10,7 @@ import (
 // newProjectCommand groups project operations with their flags and help sections.
 func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 	command := &cobra.Command{Use: "project", Short: "Manage rules for this project"}
-	command.Long = command.Short + "\n\nCode Rules stores this project's configuration and rules in the .code-rules/\ndirectory at its root. Rules can be project-only, imported from libraries, or both.\nRun project commands from the project root." + documentationHelp
+	command.Long = command.Short + "\n\nCode Rules stores this project's configuration and rules in the .code-rules/\ndirectory at its root. Rules can be project-only, imported from libraries, or both.\nRun init from the Git repository root. Other project commands can run from any\nsubdirectory. Outside Git, run commands from the project root." + documentationHelp
 	command.AddGroup(
 		&cobra.Group{ID: "main", Title: "Main commands:"},
 		&cobra.Group{ID: "utility", Title: "Utility commands:"},
@@ -22,9 +22,12 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 			cmd.Long = "Check project configuration, generated guidance, and the Code Rules guide without changing files or fetching libraries. This checks file consistency, not whether application code follows the rules."
 		}
 		cmd.RunE = func(cmd *cobra.Command, _ []string) error {
-			projectOptions := project.Options{Directory: options.Directory, ToolVersion: options.Version}
+			directory, err := commandDirectory(cmd.Context(), options.Directory, "project", false)
+			if err != nil {
+				return err
+			}
+			projectOptions := project.Options{Directory: directory, ToolVersion: options.Version}
 			var changes project.FileChanges
-			var err error
 			switch name {
 			case "sync":
 				changes, err = project.Sync(cmd.Context(), projectOptions, options.Git)

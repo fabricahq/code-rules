@@ -5,6 +5,7 @@ package project
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -22,7 +23,7 @@ func openProject(ctx context.Context, options Options, create bool) (*os.Root, e
 	}
 	root, err := filetxn.Open(ctx, directory)
 	if errors.Is(err, os.ErrNotExist) {
-		return nil, failure("needs-init", ".code-rules: missing Code Rules directory; run code-rules project init first", err)
+		return nil, failure("needs-init", fmt.Sprintf(".code-rules: missing Code Rules directory; run code-rules project init first from %s", options.Directory), err)
 	}
 	return root, err
 }
@@ -34,7 +35,7 @@ func configuration(ctx context.Context, root *os.Root) ([]byte, rules.Configurat
 		return nil, rules.Configuration{}, err
 	}
 	if data == nil {
-		return nil, rules.Configuration{}, failure("needs-init", ".code-rules/config.json: missing configuration; run code-rules project init first", nil)
+		return nil, rules.Configuration{}, failure("needs-init", fmt.Sprintf(".code-rules/config.json: missing configuration; run code-rules project init first from %s", filepath.Dir(root.Name())), nil)
 	}
 	config, err := rules.ParseConfiguration(data)
 	return data, config, err
