@@ -18,7 +18,6 @@ func TestGroupHelpSections(t *testing.T) {
 			for _, args := range [][]string{
 				append(append([]string{}, path...), "--help"),
 				append(append([]string{}, path...), "-h"),
-				append([]string{"help"}, path...),
 				append(append([]string{}, path...), "--help", "--json"),
 			} {
 				out, diagnostic, code := runCLI(t, binary, directory, args...)

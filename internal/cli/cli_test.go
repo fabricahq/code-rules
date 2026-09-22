@@ -52,7 +52,7 @@ func TestCLIProcess(t *testing.T) {
 		args []string
 		code int
 	}{
-		{"root-help", nil, 0}, {"help", []string{"build", "--help"}, 0}, {"version", []string{"--version"}, 0},
+		{"root-help", nil, 0}, {"removed-help-command", []string{"help"}, 2}, {"help", []string{"build", "--help"}, 0}, {"version", []string{"--version"}, 0},
 		{"short-version", []string{"-v"}, 0}, {"unknown", []string{"no-such-command"}, 2},
 		{"unknown-flag", []string{"build", "--force"}, 2}, {"positional", []string{"check", "unexpected"}, 2},
 		{"missing-flag-value", []string{"build", "--config"}, 2}, {"duplicate", []string{"build", "--config", "one", "--config", "two"}, 2},

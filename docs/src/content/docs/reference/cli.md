@@ -45,7 +45,7 @@ code-rules library add rule --help
 code-rules project check --help
 ```
 
-Each command's help lists its accepted options, defaults, examples, and relevant behavior.
+Use `-h` or `--help` on any command to see its accepted options, defaults, examples, and relevant behavior.
 Bare command groups such as `code-rules library` also show navigation.
 Help never prompts or writes files. Invalid commands and options exit with status 2 and point to the relevant help page.
 If an authoring command is missing a required alias or ID, the error names the missing argument, explains its purpose, and shows the command syntax and an example.

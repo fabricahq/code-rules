@@ -44,6 +44,8 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	output := &commandOutput{}
 	root := &cobra.Command{Use: "code-rules", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
 	root.CompletionOptions.DisableDefaultCmd = true
+	// An unnamed, hidden command prevents Cobra from installing its help subcommand. Help flags remain local.
+	root.SetHelpCommand(&cobra.Command{Hidden: true})
 	root.SetIn(streams.In)
 	root.SetOut(&output.text)
 	root.PersistentFlags().Bool("json", false, "Return one JSON response, including errors; never prompt")

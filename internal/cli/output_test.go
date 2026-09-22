@@ -27,6 +27,7 @@ func TestCLIOutputModes(t *testing.T) {
 		{[]string{"--json", "--version"}, 0, "value"},
 		{[]string{"library", "--help", "--json"}, 0, "value"},
 		{[]string{"nonsense", "--json"}, 2, "error"},
+		{[]string{"help", "project", "--json"}, 2, "error"},
 		{[]string{"build", "--json=invalid"}, 2, "error"},
 		{[]string{"build", "--json=false", "--bad", "--json"}, 2, "error"},
 		{[]string{"build", "--bad-flag", "--json"}, 2, "error"},

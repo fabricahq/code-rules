@@ -68,7 +68,7 @@ func commandUsage(cmd *cobra.Command) error {
 func writeCommandGroup(out *strings.Builder, cmd *cobra.Command, title, id string) {
 	fmt.Fprintf(out, "\n%s\n", title)
 	for _, child := range cmd.Commands() {
-		if child.GroupID == id && (child.IsAvailableCommand() || child.Name() == "help") {
+		if child.GroupID == id && child.IsAvailableCommand() {
 			fmt.Fprintf(out, "  %-*s %s\n", child.NamePadding(), child.Name(), child.Short)
 		}
 	}
