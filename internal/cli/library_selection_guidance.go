@@ -28,7 +28,8 @@ func librarySelectionIntroduction(alias string) string {
 	return fmt.Sprintf(`Adding a library as: %s
 
 - The alias %q identifies this library in your project's configuration.
-- This command saves your selection. Run code-rules project sync afterward to fetch the rules and build guidance.
+
+This command updates your config. Run code-rules project sync afterward to fetch the rules and build guidance.
 
 %s
 
