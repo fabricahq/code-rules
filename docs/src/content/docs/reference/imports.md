@@ -11,13 +11,13 @@ This page explains which files Code Rules imports and how it combines imported r
 
 ## From library rules to project guidance
 
-When you run `code-rules sync`, Code Rules:
+When you run `code-rules project sync`, Code Rules:
 
 1. Reads your configuration to find the libraries, versions, and groups you selected. A **group** collects related rules, such as testing practices or TypeScript conventions.
 2. Copies the selected library files into your project. Each copy comes from one Git commit and is called a **snapshot**.
 3. Combines the imported rules with your local rules and configured exceptions, then generates files for your agents to read.
 
-These files normally live under `.code-rules/`:
+These files live in the **Code Rules directory**, `.code-rules/` at the project root:
 
 | Directory | What it contains |
 | --- | --- |
@@ -25,7 +25,7 @@ These files normally live under `.code-rules/`:
 | `local/` | Rules you author for this project, including replacements for imported rules. |
 | `generated/` | The rules and reading indexes your agents use. |
 
-For the complete layout, see [Project files](/reference/files/). Once the library files are stored, `code-rules build` can regenerate guidance without network access.
+For the complete layout, see [Project files](/reference/files/). Once the library files are stored, `code-rules project build` can regenerate guidance without network access.
 
 ## What gets copied
 
@@ -77,7 +77,7 @@ The same files support implementation and review. Your project chooses how to ch
 
 ## What changes when you update
 
-Running `code-rules sync` again fetches the library revisions allowed by your configuration:
+Running `code-rules project sync` again fetches the library revisions allowed by your configuration:
 
 | Version choice | What a later sync can fetch |
 | --- | --- |

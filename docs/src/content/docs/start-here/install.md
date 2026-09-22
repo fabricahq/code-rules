@@ -97,17 +97,21 @@ Keep your project in the [WSL Linux filesystem](https://learn.microsoft.com/en-u
 
 Installing the executable does not initialize projects or fetch libraries. For a new installation, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
-After changing the executable version, run from an existing project:
+After changing the executable version, run from an existing project root:
 
 ```sh
-code-rules init
-code-rules build
-code-rules check
+code-rules project init
+code-rules project build
+code-rules project check
 ```
 
-Init refreshes the managed project README while preserving valid configuration and local rules. It refuses to overwrite manual edits to the guide. Build regenerates guidance and provenance; review those changes before committing. Use `sync` separately when you want to resolve remote library revisions again.
+Init refreshes the managed guide in the Code Rules directory while preserving valid configuration and local rules. Build and sync can also refresh an older, unedited guide. These commands refuse to overwrite manual edits to it. Build regenerates guidance and provenance; review those changes before committing. Use `project sync` separately when you want to resolve remote library revisions again.
 
 Use the same review process after rolling back. The `code-rules update` command is not implemented; upgrade the executable through your chosen installation method.
+
+## Versioning
+
+Changes to the managed Code Rules guide's README format are breaking changes under the release policy. They require a minor release before 1.0 and a major release after 1.0. After upgrading, run `code-rules project build` and `code-rules project check` from the project root to refresh and verify the managed files.
 
 ## Build from source
 

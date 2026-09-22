@@ -3,7 +3,7 @@ title: "Create your first library"
 description: "Write and validate one shared rule, then publish it for projects to import."
 ---
 
-A **library** is a Git repository that publishes rules for other projects to use. Create one when you want to maintain the same engineering guidance for several codebases. A rule that belongs to only one project can stay [local to that project](/start-here/set-up-project/).
+A **library** is an independently maintained collection of rule groups that projects can import. Create one when you want to maintain the same engineering guidance for several codebases. A rule that belongs to only one project can stay [local to that project](/start-here/set-up-project/).
 
 This walkthrough creates a library containing one complete rule. You need [Code Rules installed](/start-here/install/) and Git when you're ready to share it. You don't need to complete the project walkthrough first.
 
@@ -69,7 +69,7 @@ engineering-rules/
       make-errors-actionable.md
 ```
 
-Library rules live directly under `practices/` or `techs/`. Unlike a consuming project, a library does not need a `.code-rules/` folder or generated agent guidance.
+Library rules live directly under `practices/` or `techs/`. Publishing a library does not require a Code Rules directory or generated agent guidance. Those belong to projects that consume rules.
 
 ## 3. Check the library
 
@@ -113,15 +113,15 @@ git tag v0.1.0
 
 Create an empty repository on your Git host, add it as `origin`, and push the commit and tag through your usual Git workflow. The repository can be public or private; consuming projects need access to it.
 
-Then return to a project you've initialized with `code-rules init`. Replace the example URL below with your library's Git URL:
+Then return to the root of a project you've set up with `code-rules project init`. Replace the example URL below with your library's Git URL:
 
 ```sh
-code-rules add source team \
+code-rules project add library team \
   --repository https://github.com/YOUR-ORG/engineering-rules.git \
   --ref v0.1.0 \
   --groups practices/error-handling
-code-rules sync
-code-rules check
+code-rules project sync
+code-rules project check
 ```
 
 Open `.code-rules/generated/RULES.md` in that project and follow its Error handling group to your shared rule. The same library can now serve another project without copying and maintaining the rule by hand.

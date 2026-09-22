@@ -3,8 +3,7 @@ title: "Library"
 description: "Understand who owns shared rules, project exceptions, and the tooling that connects them."
 ---
 
-A **library** is a Git repository containing rule groups.
-The Code Rules tool imports its content at a specific commit.
+A **library** is an independently maintained collection of rule groups that projects can import. Libraries publish their source files in Git repositories; Code Rules imports their content at a specific commit.
 
 ## Keep tooling and opinions separate
 
@@ -31,9 +30,8 @@ We recommend `<organization>/.code-rules`, such as `acme/.code-rules`.
 The name is a convention, not automatic discovery.
 A project's configuration explicitly names each source repository, exact ref or version constraint, and selected groups.
 
-The consuming project's default directory is `.code-rules/`.
-Project commands use `.code-rules/config.json` at the project root. In Git repositories, only `project init` requires running from the root; other commands can run from subdirectories.
-Its name does not depend on the remote repository name.
+The consuming project's **Code Rules directory** is `.code-rules/` at the project root. Its name does not depend on the library repository name.
+In Git repositories, initialize from the root; other project commands can run from subdirectories.
 
 ## Share only what applies
 

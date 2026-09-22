@@ -7,13 +7,13 @@ import { FileTree } from '@astrojs/starlight/components';
 
 This page describes how libraries are structured, including their folders, rule files, and metadata.
 
-A **library** publishes engineering **rules** for use by many projects. A **project** imports rules from one or more libraries and generates guidance for its coding agents.
+A **library** is an independently maintained collection of rule groups that projects can import. A **project** is the codebase whose engineering **rules** Code Rules manages. Projects can use project-only rules, rules imported from libraries, or both.
 
 Libraries live in Git repositories. Each rule is a Markdown file, and related rules belong to groups.
 
 ## Library layout
 
-The tree below shows a library repository named **`engineering-rules/`**. The folder name is an example; you can name your library repository anything you like. These are the library's source files. A consuming project stores imported copies under `.code-rules/vendor/`; see [Project files](/reference/files/).
+The tree below shows a library repository named **`engineering-rules/`**. The folder name is an example; you can name your library repository anything you like. These are the library's source files. A consuming project stores imported copies under `vendor/` in its Code Rules directory (`.code-rules/vendor/`); see [Project files](/reference/files/).
 
 <FileTree>
 

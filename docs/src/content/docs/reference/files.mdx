@@ -5,11 +5,11 @@ description: "What to edit, what Code Rules manages, and where your agent starts
 
 import { FileTree } from '@astrojs/starlight/components';
 
-A Code Rules project keeps its rule configuration, rule files, and generated guidance together in your repository, usually under `.code-rules/`. These files define which rules the project uses and give your agents a shared place to read them.
+A **project** is the codebase whose rules Code Rules manages. Its **Code Rules directory**, `.code-rules/` at the project root, contains project configuration, project-only rules, imported library snapshots, and generated guidance. These files define which rules the project uses and give your agents a shared place to read them.
 
 ## Project layout
 
-The tree below shows **`/.code-rules/` at the root of your repository**. The leading `/` refers to the repository root, not your computer's filesystem root.
+The tree below shows **`/.code-rules/` at the project root**, the top-level directory of your codebase. The leading `/` refers to the project root, not your computer's filesystem root.
 
 <FileTree>
 
@@ -38,7 +38,9 @@ The tree below shows **`/.code-rules/` at the root of your repository**. The lea
 
 </FileTree>
 
-Your `AGENTS.md` stays outside this directory, at the repository root. With `--config`, Code Rules stores `local/`, `vendor/`, and `generated/` beside the chosen configuration file.
+Your `AGENTS.md` stays outside the Code Rules directory, at the project root. The **project configuration** is `.code-rules/config.json`.
+
+Run project commands from the project root. They use `.code-rules/` in your current working directory; they do not search parent directories or discover a Git root.
 
 ## Local, imported, and resolved rules
 
@@ -58,23 +60,25 @@ For example, when you replace a library rule, its imported source stays in `vend
 | `AGENTS.md` | You | Tell your agent to read the generated rules. |
 | `.code-rules/config.json` | You | Choose libraries, revisions, groups, and exceptions. |
 | `.code-rules/local/` | You, after initialization | Add project rules, replacements, and local group metadata. |
-| `.code-rules/README.md` | `code-rules init` | Explain the project's rule setup and commands. |
-| `.code-rules/vendor/` | `code-rules sync` | Store imported source files and their revision records. |
-| `.code-rules/generated/` | `code-rules sync` and `code-rules build` | Provide resolved rules and indexes for your agent. |
+| `.code-rules/README.md` | `code-rules project init`, `project build`, and `project sync` | Explain the project's rule setup and commands. |
+| `.code-rules/vendor/` | `code-rules project sync` | Store imported source files and their revision records. |
+| `.code-rules/generated/` | `code-rules project sync` and `code-rules project build` | Provide resolved rules and indexes for your agent. |
 
 Keep authored changes in configuration and `local/`. Edits in `vendor/` or `generated/` will be replaced or removed.
 Commit configuration, local rules, and both managed directories so your team and agents can use the same rules offline.
 Commit the project instructions and README as well.
 
-Use `code-rules build` to regenerate guidance from stored inputs, and `code-rules check` to verify consistency without changing files.
-Missing or mismatched imported snapshots require `code-rules sync`.
+Use `code-rules project build` to regenerate guidance from stored inputs, and `code-rules project check` to verify consistency without changing files.
+Missing or mismatched imported snapshots require `code-rules project sync`.
 For recovery and file ownership details, see [Sync and recovery](/reference/sync/).
 
 ## Project and group guides
 
-`code-rules init` creates `.code-rules/README.md` with definitions and commands for managing rules. If your configuration lives outside a directory named `.code-rules`, init writes `CODE_RULES.md` beside it and preserves the project's `README.md`.
+`code-rules project init` creates `.code-rules/README.md` with definitions and commands for managing rules. It preserves the project's own `README.md` at the project root.
 
-After upgrading Code Rules, rerun init to refresh an older guide. It preserves valid configuration and local rules but refuses to overwrite a manually edited guide. Preserve those notes separately before refreshing it. `code-rules check` reports a missing or outdated managed guide without changing it.
+After upgrading Code Rules, run `code-rules project build` to refresh an older guide and regenerate guidance, or rerun `project init` to refresh only the guide and setup files. Build, sync, and init preserve valid configuration and local rules but refuse to overwrite a manually edited guide. Preserve those notes separately before refreshing it. `code-rules project check` reports a missing or outdated managed guide without changing it.
+
+Managed guide format changes are breaking changes under the [release policy](/start-here/install/#versioning). This guide is separate from your project's own README.
 
 Local and library group creation also writes a `README.md` beside `_group.json`. Group guides explain how to add, edit, and validate rules. These are authoring documents, excluded from rule loading and generated guidance. Existing group files are preserved.
 

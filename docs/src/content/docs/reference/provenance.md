@@ -3,7 +3,7 @@ title: "Provenance"
 description: "Where to find a rule's source, imported version, replacement reason, and declared license."
 ---
 
-**Provenance** records where your project's rules came from. The main file is `.code-rules/generated/provenance.json`. It identifies the libraries and versions your project uses, the source of each active rule, and any local replacements.
+**Provenance** records where your project's rules came from. The main file is `generated/provenance.json` in the **Code Rules directory**, so its path from the project root is `.code-rules/generated/provenance.json`. It identifies the libraries and versions your project uses, the source of each active rule, and any local replacements.
 
 Read it when you want to understand why a rule is present, investigate a library update, or find out why your project replaced a rule. Tools can also read the JSON to report this information. To find and follow the rules themselves, agents start with [the generated rule index](/reference/files/#where-agents-start).
 
@@ -19,14 +19,14 @@ Code Rules keeps three related records:
 | `vendor/<source-name>/_source.json` | Which commit and original files were imported from one library. |
 | `generated/libraries/<source-name>/README.md` | A readable summary of one library's revision and declared license terms. |
 
-These paths are relative to the configuration directory, normally `.code-rules/`. The **source name** is the name you gave a library in your configuration, such as `team`.
+These paths are relative to the Code Rules directory, `.code-rules/`. The **source name** is the name you gave a library in your configuration, such as `team`.
 
 Code Rules writes these files. To change the information they describe, edit your configuration or local rules and run the appropriate [sync or build command](/reference/sync/).
 
 ## How the records are created
 
 1. **You select libraries and rules.** Configuration records the library versions, groups, exclusions, and replacements your project wants to use.
-2. **Sync records what it imports.** `code-rules sync` copies each library's selected files and writes its `_source.json` record with the exact Git commit and file checksums.
+2. **Sync records what it imports.** `code-rules project sync` copies each library's selected files and writes its `_source.json` record with the exact Git commit and file checksums.
 3. **Generation records the result.** Sync or build combines the imported and local rules, then writes `generated/provenance.json` alongside the guidance your agents read.
 
 An **active rule** is one included in that generated guidance. An excluded rule has no active rule entry. A local replacement has an entry that also identifies the imported rule it replaced.
@@ -110,7 +110,7 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 
 ### What offline checks can verify
 
-`code-rules build` and `code-rules check` compare the recorded library selection with configuration and compare stored files with their checksums. Revision checks depend on how you selected the library:
+`code-rules project build` and `code-rules project check` compare the recorded library selection with configuration and compare stored files with their checksums. Revision checks depend on how you selected the library:
 
 | Selection | What Code Rules verifies offline |
 | --- | --- |
@@ -130,8 +130,8 @@ The license record distinguishes original files from the copies retained with ge
 
 | Field inside `license` | Paths in a source record | Paths in a rule record |
 | --- | --- | --- |
-| `files` | Original license files, relative to the library root. | Original license files under `vendor/<source-name>/`, relative to the configuration directory. |
-| `attributionFiles` | Original notice files, relative to the library root. | Original notice files under `vendor/<source-name>/`, relative to the configuration directory. |
+| `files` | Original license files, relative to the library root. | Original license files under `vendor/<source-name>/`, relative to the Code Rules directory. |
+| `attributionFiles` | Original notice files, relative to the library root. | Original notice files under `vendor/<source-name>/`, relative to the Code Rules directory. |
 | `generatedFiles` | Retained license copies, relative to `generated/`. | The same generated license copies. |
 | `generatedAttributionFiles` | Retained notice copies, relative to `generated/`. | The same generated notice copies. |
 

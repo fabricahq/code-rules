@@ -5,25 +5,39 @@ description: "The package manager for engineering rules that agents follow when 
 
 Code Rules is the package manager for your engineering rules.
 
-You write the rules you want agents to follow, or you adopt them from a library. Each project picks the rules it needs, and every agent working on that project reads the same guidance.
+Create a `.code-rules` directory in your repo, then write the rules you want agents to follow, or import rules from a "rule library." From then on, every agent working on your project reads the same guidance.
 
-## What traditional package managers do
+## Why we built Code Rules
 
-Almost every codebase depends on some code it did not write. Before "code-native" package managers, teams would manually copy third-party code into each project. The different copies inevitably drifted apart, nobody knew which version of the imported code they had, and "upstream" fixes were painful to adopt.
+We've all heard the buzz:
 
-Traditional package managers like `npm` and `go mod` solve this. Shared code lives in one place, typically a git repo. Each project names the library or module to import, and pins the version it wants. When the library improves, projects import updates on their own schedule.
+"Code is cheap!"
+"Coding is solved!"
+"The code is no longer the blocker!"
 
-## Agents need a package manager for guidance
+But if coding is so cheap and trivial, why do agents so often produce a mess of unmaintainable code? Worse, why do they so often cut corners on the practices serious software depends on, like logging, error handling, testing, and observability?
 
-With AI-led coding, we depend heavily on _prompts_ we did not write, or do not want to write every time.
+The reality is that agents are _capable_ of writing testable, maintainable, well-organized code, but _they don't do it by default._ They do it when you tell them how. That makes the guidance you give your agents one of the biggest levers on the quality of the code they write.
 
-Today that guidance lives in an AGENTS.md file. Portions of it get copied from repo to repo and edited a little each time. Over time, every project has its own collection of best practices..
+We wrote Code Rules to help individuals and teams manage that guidance, whether for a single project or at scale.
 
-In short, today's tools for assembling context give us limited control to construct exactly the prompt we want.
+### Why managing agent guidance is hard
+
+Once you've written good guidance for your agents, you want it in every project. So you copy chunks of your `AGENTS.md` into the next repo, tweak them a little, and move on. Then you do it again. Before long, you run into problems like these:
+
+- **Drift.** Every copy has been tweaked, and each project has its own version of your best practices.
+- **No versioning.** You can't tell which version of a rule a given repo has, or whether it's current.
+- **Improvements don't spread.** When you improve a rule in one project, the other projects never get it unless someone copies it over by hand.
+- **Unclear provenance.** Once a rule is pasted in, there's no record of where it came from, who maintains it, or what license it carries.
+- **Hand-merging.** Combining guidance from several sources means merging it into one file by hand, with no clean way to take only the parts you want.
+
+We've seen this before! Teams used to copy third-party code into each project by hand, and ran into every one of these issues. That's exactly the problem **package managers** like `npm` and `go mod` solve: shared code lives in one place, each project declares what it depends on and pins a version, and each project adopts updates on its own schedule.
+
+Code Rules does the same for agent guidance.
 
 ## How Code Rules works
 
-Code Rules is the package manager for your engineering rules.
+Code Rules is built around just a few simple concepts.
 
 ### Rules
 
@@ -35,11 +49,27 @@ You organize rules into [groups](/concepts/groups/), where a group represents ei
 
 ### Projects
 
-You declare the rules you want in a [project](/concepts/project/), typically in a `/.code-rules` folder in your project repo. You (or your agent) can use the `code-rules` CLI to initialize a new project, and add local rules and groups. We recommend that you commit `/.code-rules` to version control.
+You declare the rules you want in a [project](/concepts/project/), specifically in the `/.code-rules` folder in your project repo. You (or your agent) can use the `code-rules` CLI to initialize a new project, and add local rules and groups. We recommend committing `/.code-rules` to version control.
 
 ### Libraries
 
-Finally, you probably want to import some rules from a [library](/concepts/libraries/), which is a collection of rules and groups maintained by a third-party. Libraries can declare license terms, which Code Rules carries into your project. If a library has no license declaration, inspect its terms before using or sharing its rules.
+Finally, you probably want to import some pre-existing rules from a [library](/concepts/libraries/), which is a collection of rules and groups maintained by a third-party. Libraries can optionally declare license terms, which Code Rules carries into your project.
+
+### RULES.md
+
+Code Rules combines project-only and imported rules into guidance under `.code-rules/generated/`. Agents start with `RULES.md`, an index that tells them which groups to read.
+
+An abbreviated `RULES.md` entry:
+
+```md
+### Testing
+
+**When to read this group:** When changing behavior or fixing bugs.
+
+**Open group:** [Testing](groups/practices/testing.md)
+```
+
+The linked group page contains the rules in full, or links to their full definitions. For example, it might tell an agent to add a regression test when fixing a bug. See [the generated file layout](/reference/files/) for details.
 
 ## What Code Rules does not do
 

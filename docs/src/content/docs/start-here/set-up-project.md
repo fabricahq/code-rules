@@ -3,9 +3,9 @@ title: "Set up your first project"
 description: "Create a local rule, give it to your agent, then import a rule from the public library."
 ---
 
-A **project** is a codebase that uses rules. In this walkthrough, you'll give one project a local rule, connect those rules to your coding agent, and then import a rule from the Fabrica public library.
+A **project** is the codebase whose rules Code Rules manages. In this walkthrough, you'll give one project a local rule, connect those rules to your coding agent, and then import a rule from the Fabrica public library.
 
-Start in the root of a project you want to work on. You need [Code Rules installed](/start-here/install/), and Git for the library import at the end. To publish guidance for several projects instead, follow [Create your first library](/start-here/create-library/).
+Start in the **project root**, the top-level directory of the codebase you want to work on. You need [Code Rules installed](/start-here/install/), and Git for the library import at the end. To publish guidance for several projects instead, follow [Create your first library](/start-here/create-library/).
 
 ## 1. Set up the project
 
@@ -13,7 +13,9 @@ Start in the root of a project you want to work on. You need [Code Rules install
 code-rules project init
 ```
 
-This creates `.code-rules/` in your project. That directory holds your configuration, local rules, and the guidance Code Rules generates for agents. It does not change your project's `README.md` or agent instructions.
+This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.json` and a place for project-only rules in `local/`. Imported library snapshots and generated guidance will also live here. It does not change your project's `README.md` or agent instructions.
+
+Run all project commands below from the project root. They use `.code-rules/` in your current working directory; they do not search parent directories or discover the Git root. See [Project files](/reference/files/) for the layout.
 
 ## 2. Add your first local rule
 
@@ -48,7 +50,7 @@ For example, if a discount changes an order's total, assert the resulting total 
 Run the relevant tests before considering the change complete. Changes that do not alter behavior do not need a new test solely to accompany the edit.
 ```
 
-The fields at the top describe the rule; the Markdown below tells the agent what to do. You can write files directly, as here, or use [the rule authoring commands](/reference/cli/#local-add-rule) to create a draft.
+The fields at the top describe the rule; the Markdown below tells the agent what to do. You can write files directly, as here, or use [the rule authoring commands](/reference/cli/#project-add-rule) to create a draft.
 
 Now generate the guidance your agent will read:
 
@@ -57,7 +59,7 @@ code-rules project build
 code-rules project check
 ```
 
-Open `.code-rules/generated/RULES.md`. It points to the Testing group and your rule. Edit the source under `local/` when you want to change the rule, then run `build` again.
+Open `.code-rules/generated/RULES.md`. It points to the Testing group and your rule. Edit the source under `local/` when you want to change the rule, then run `code-rules project build` again.
 
 ## 3. Give the rules to your agent
 
@@ -79,11 +81,11 @@ Your project now has a working local rule. Code Rules supplies the files; your a
 
 ## 4. Import a rule from the public library
 
-Now let's reuse a rule someone else has written. A **library** is a Git repository that shares rules across projects.
+Now let's reuse a rule someone else has written. A **library** is an independently maintained collection of rule groups that projects can import.
 
 The [Fabrica public library](https://github.com/fabricahq/.code-rules-public) includes a code-design group. In `v0.1.0`, that group contains one rule: **Express operations as meaningful steps**. It helps agents keep functions understandable without extracting unnecessary helpers. Read it before deciding to adopt it.
 
-From the same project directory, run:
+From the same project root, run:
 
 ```sh
 code-rules project add library fabrica \
@@ -94,7 +96,7 @@ code-rules project sync
 code-rules project check
 ```
 
-`fabrica` is this project's name for the source. `--ref v0.1.0` selects the library version used in this walkthrough. `add source` records that choice; `sync` downloads the selected rules and regenerates the agent guidance.
+`fabrica` is this project's name for the source. `--ref v0.1.0` selects the library version used in this walkthrough. `project add library` records that choice; `project sync` downloads the selected rules and regenerates the agent guidance.
 
 Open `.code-rules/generated/RULES.md` again. You'll now see your local Testing group and the imported Code design group. Your local rule remains yours to edit. The imported rule retains its source and license information.
 

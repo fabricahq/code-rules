@@ -26,17 +26,17 @@ import exampleRule from '../examples/make-errors-actionable.md?raw';
     </div>
     <div class="cr-rule-file min-w-0 border border-border rounded-panel overflow-hidden bg-surface [--sample-padding:1.25rem_1.5rem] [--sample-font-size:.8rem]">
       <header class="px-6 py-4 border-b border-border bg-surface-header">
-        <span class="cr-index">EXAMPLE RULE</span>
+        <span class="cr-index">EXAMPLE RULE · ABBREVIATED</span>
         <div class="flex items-start gap-2 mt-2 text-ink font-mono text-xs leading-[1.6] [overflow-wrap:anywhere] [&_svg]:shrink-0 [&_svg]:mt-[.1rem] [&_svg]:text-muted [&_span]:min-w-0"><svg aria-hidden="true" width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></svg><span>practices/error-handling/make-errors-actionable.md</span></div>
       </header>
-      <CodeSample code={exampleRule.trimEnd()} lang="md" tone="vivid" label="Example rule with YAML frontmatter and Markdown guidance" />
+      <CodeSample code={exampleRule.trimEnd()} lang="md" tone="vivid" label="Abbreviated example rule with YAML frontmatter and Markdown guidance" />
     </div>
   </article>
   <article class="grid grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] gap-16 items-center py-16 border-b border-border-subtle max-md:grid-cols-1 max-md:gap-6 max-md:py-12">
     <div>
       <span class="cr-index">02 / SHARE</span>
       <h2 class="my-4 text-ink text-[2rem] font-medium tracking-[-.045em] leading-[1.18]">Declare rules for a single repo, or an entire organization.</h2>
-      <p class="text-muted leading-[1.7]">Each repo keeps its rules in <code>.code-rules</code>. Publish shared defaults from an organization <code>.code-rules</code> repository and import them. Combine shared and project-specific rules so agents have the right guidance in each repo.</p>
+      <p class="text-muted leading-[1.7]">Each project keeps its configuration and rules in the Code Rules directory, <code>.code-rules/</code>. Publish shared defaults from an organization <code>.code-rules</code> repository and import them. Combine shared and project-specific rules so agents have the right guidance in each repo.</p>
       <a class="inline-block mt-5 text-ink underline-offset-4" href="/concepts/libraries/">See how rule libraries work →</a>
     </div>
     <div class="min-w-0 border border-border rounded-panel overflow-hidden bg-surface">

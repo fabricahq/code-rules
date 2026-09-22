@@ -3,7 +3,9 @@ title: "Configuration"
 description: "Fields in .code-rules/config.json."
 ---
 
-`.code-rules/config.json` records the project's sources, selected groups, and exceptions.
+The **project configuration**, `.code-rules/config.json`, records the project's sources, selected groups, and exceptions. The **Code Rules directory**, `.code-rules/`, also holds `local/`, `vendor/`, and `generated/`.
+
+Run project commands from the project root. They look for `.code-rules/config.json` in your current working directory without searching parent directories or discovering the Git root.
 A project can import rules directly from multiple canonical libraries, pinning each one independently.
 Sync, build, and check validate the fields below.
 
@@ -63,7 +65,7 @@ Unknown configuration fields are rejected, including unknown source and replacem
 Local groups are discovered from `local/<group-id>/_group.json`; no source entry or separate group list is required.
 The former `localGroups` field is rejected with migration guidance. Remove it and keep the group metadata files.
 Each source includes its own `exclude` and `replace` objects, empty when unused.
-Replacement paths resolve relative to the configuration directory and must stay under its `local/` directory.
+Replacement paths resolve relative to the Code Rules directory and must stay under its `local/` directory.
 
 Each source specifies exactly one of `ref` or `version` and owns its groups and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.

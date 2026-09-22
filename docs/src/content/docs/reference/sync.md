@@ -11,7 +11,7 @@ This page explains how to run sync, what it changes, and what to do when files a
 
 - **`code-rules project sync`**: Fetch selected library revisions or restore imported files. Sync validates the library files and regenerates agent guidance.
 - **`code-rules project build`**: Apply local rule changes or exceptions using the library files you already have. Build regenerates guidance without contacting a repository.
-- **`code-rules project check`**: Find out whether generated guidance and the project README are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
+- **`code-rules project check`**: Find out whether generated guidance and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 
 You do not need to run build after a successful sync; sync already generates the guidance. Run check when you want to verify consistency without making changes.
 
@@ -30,6 +30,7 @@ In a Git repository, project commands find the nearest repository root and use i
 | File or directory | What it contains | What the commands do |
 | --- | --- | --- |
 | `config.json` | Your selected libraries, groups, and exceptions. | Sync, build, and check read it without changing it. |
+| `README.md` | The managed Code Rules guide. | Init, build, and sync refresh an older, unedited guide. Check verifies it without changing it. |
 | `local/` | Rules and replacements you author for this project. | Sync, build, and check preserve these files. |
 | `vendor/` | Original files copied from selected library revisions. | Sync replaces this directory. Build and check validate it without changing it. |
 | `generated/` | Rules and reading indexes for your agents. | Sync and build replace this directory. Check compares it with the expected output. |
@@ -53,7 +54,7 @@ In human output, sync and build report a concise outcome and suggest running che
 
 There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
-Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies both generated guidance and the managed project README without writing either.
+Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies both generated guidance and the managed Code Rules guide without writing either.
 
 | Check exit code | Meaning |
 | --- | --- |
@@ -69,7 +70,7 @@ Use the problem reported by `code-rules project check` to choose a repair:
 | --- | --- |
 | Generated guidance is missing or outdated, but imported files are valid. | Run `code-rules project build`. |
 | Imported files are missing, modified, or no longer match your configured sources or groups. | Run `code-rules project sync`. Preserve any edits you intended to keep as local rules first. |
-| The managed project README is missing or outdated. | Run `code-rules project build` or `code-rules project sync` to refresh it and regenerate guidance. Run `code-rules project init` to refresh only setup files. |
+| The managed Code Rules guide is missing or outdated. | Run `code-rules project build` or `code-rules project sync` to refresh it and regenerate guidance. Run `code-rules project init` to refresh only setup files. |
 | Configuration or rule metadata is invalid. | Correct the reported input, then retry the appropriate command. |
 
 Run `code-rules project check` again after repairing the problem.
@@ -121,7 +122,7 @@ Cancellation can stop work before replacement starts. Once replacement begins, t
 
 These protections apply to cooperating Code Rules commands on a local filesystem with normal file-renaming behavior. They do not guarantee recovery from power loss, protection against hostile concurrent file changes, or locking on network filesystems.
 
-All operations reject symbolic links and special files within the directories they inspect. They also reject regular files with multiple hard links. Ordinary aliases in the configuration's parent path, such as macOS `/tmp`, are supported.
+All operations reject symbolic links and special files within the directories they inspect. They also reject regular files with multiple hard links. Ordinary aliases in the project's parent path, such as macOS `/tmp`, are supported.
 
 | Input resource | Limit |
 | --- | --- |
