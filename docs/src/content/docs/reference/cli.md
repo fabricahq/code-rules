@@ -64,7 +64,7 @@ code-rules project init
 code-rules project check --json
 ```
 
-JSON mode prints one response on stdout and never prompts. Success returns `ok: true` with a `value`. Failure returns `ok: false` with an `error` containing `kind` and `message`, plus `location` for validation errors when available. A native project check returns `value.status` (`up_to_date` or `out_of_date`) and a `value.problems` list. Each problem identifies its `kind`, `path`, `message`, and repair command in `nextStep`. Problem paths are relative to the configuration directory. Both generated guidance and the project guide must be current for `ok: true`. Only build and sync report `added`, `changed`, and `removed` files. Help and version return their text in `value.text`.
+JSON mode prints one response on stdout and never prompts. Success returns `ok: true` with a `value`. Failure returns `ok: false` with an `error` containing `kind` and `message`, plus `location` for validation errors when available. A native project check returns `value.status` (`up_to_date` or `out_of_date`) and a `value.problems` list. Each problem identifies its `kind`, `path`, `message`, and repair command in `nextStep`. Problem paths are relative to the configuration directory. Both generated guidance and the project guide must be current for `ok: true`. Build and sync report `added`, `changed`, and `removed` files. When they refresh the managed guide, `value.guide` reports its configuration-relative `path` and whether it was `created`. Help and version return their text in `value.text`.
 
 Exit status is 0 for success, 1 for operation failure or stale output, and 2 for invalid usage. In human mode, failures start with a separated `Error:` label. The label is bold red on a supported terminal and plain text when redirected, when `NO_COLOR` is nonempty, or when `TERM` is empty or `dumb`. Operational errors go to stderr; an out-of-date check prints its error label, status, problems, and next steps on stdout. In JSON mode, errors go in the JSON response; stderr is reserved for failures writing that response.
 
@@ -74,9 +74,9 @@ Exit status is 0 for success, 1 for operation failure or stale output, and 2 for
 
 Both first-time and repeated initialization show the configuration file path.
 
-After upgrading, run `code-rules project init` again to refresh an older generated guide. It preserves valid configuration and local rules. If someone edited the managed guide, init refuses to overwrite it and explains how to preserve those notes separately.
+Build and sync automatically refresh an older generated guide using the template bundled in the selected CLI version. Repeating init also refreshes it. These commands preserve configuration and local rules, and refuse to overwrite manual edits to the guide. Changes to the managed guide format are [breaking changes](/guides/install/#versioning).
 
-Run `code-rules project check` in CI to verify both generated guidance and the project guide without changing files. A missing or outdated guide fails the check; run `code-rules project init` to refresh it. Rebuild stale generated guidance with `code-rules project build`. Use `--config` for a custom configuration location. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
+Run `code-rules project check` in CI to verify both generated guidance and the project guide without changing files. A missing or outdated guide fails the check. Run `code-rules project build` to refresh the guide and regenerate guidance, or run `code-rules project init` to refresh only the guide and setup files. Use `--config` for a custom configuration location. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
 
 ## Sync
 
@@ -101,7 +101,7 @@ code-rules project build
 ```
 
 Generate resolved rules from verified vendor content, local rules, and configuration.
-Build works offline and does not change imported revisions.
+Build works offline and does not change imported revisions. It also creates a missing managed project guide or refreshes an older, unedited guide. Guide and generated-output updates share one recoverable transaction. A manually edited guide stops the build before it changes output.
 
 If any source repository, requested revision selection, or imported groups differ from the vendor snapshot, sync before building.
 
@@ -125,7 +125,7 @@ It does not mean application code follows those rules.
 
 ## Update the tool
 
-`code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/guides/install/#upgrade-or-roll-back), then refresh the managed project guide with `code-rules project init`, regenerate with `code-rules project build`, and run `code-rules project check`. Use `project sync` separately to select library revisions again.
+`code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/guides/install/#upgrade-or-roll-back), then refresh the managed guide and regenerate guidance with `code-rules project build`, and run `code-rules project check`. Use `project sync` separately to select library revisions again.
 
 ## Explicit configuration
 

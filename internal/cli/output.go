@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -142,6 +143,17 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 			fmt.Fprintf(out, "Warning: %s\n", warning)
 		}
 	case project.FileChanges:
+		if result.Guide != nil {
+			config := cmd.Flags().Lookup("config").Value.String()
+			if config == "" {
+				config = ".code-rules/config.json"
+			}
+			action := "updated"
+			if result.Guide.Created {
+				action = "created"
+			}
+			fmt.Fprintf(out, "Project guide %s: %s\n", action, filepath.Join(filepath.Dir(config), result.Guide.Path))
+		}
 		stale := len(result.Added)+len(result.Changed)+len(result.Removed) > 0
 		fmt.Fprintf(out, "%s complete: %d added, %d changed, %d removed.\n", strings.ToUpper(cmd.Name()[:1])+cmd.Name()[1:], len(result.Added), len(result.Changed), len(result.Removed))
 		if stale && cmd.Name() == "build" {

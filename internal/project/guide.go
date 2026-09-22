@@ -56,6 +56,18 @@ func unmodifiedProjectGuide(data []byte) bool {
 
 // prepareProjectGuide returns a safe creation or refresh, refusing to overwrite manually authored or edited bytes.
 func prepareProjectGuide(ctx context.Context, root *os.Root, configName string) (*filetxn.File, error) {
+	file, err := planProjectGuide(ctx, root, configName)
+	if err != nil {
+		return nil, err
+	}
+	if bytes.Equal(file.Previous, file.Content) {
+		return nil, nil
+	}
+	return file, nil
+}
+
+// planProjectGuide retains original bytes even for a current guide so builds can detect concurrent edits.
+func planProjectGuide(ctx context.Context, root *os.Root, configName string) (*filetxn.File, error) {
 	name, wanted := projectGuide(filepath.Join(root.Name(), configName))
 	if strings.EqualFold(configName, name) {
 		return nil, failure("path-collision", "configuration and project guide must use different filenames", nil)
@@ -64,10 +76,7 @@ func prepareProjectGuide(ctx context.Context, root *os.Root, configName string) 
 	if err != nil {
 		return nil, err
 	}
-	if bytes.Equal(current, wanted) {
-		return nil, nil
-	}
-	if current != nil && !unmodifiedProjectGuide(current) {
+	if !bytes.Equal(current, wanted) && current != nil && !unmodifiedProjectGuide(current) {
 		return nil, failure("guide-edited", name+": unrecognized or manually edited project guide; preserve your notes in a separate file, move this guide aside, then run code-rules project init again", nil)
 	}
 	return &filetxn.File{Path: name, Content: wanted, Previous: current}, nil
@@ -98,4 +107,25 @@ Complete drafts before building. Run code-rules project build after local edits,
 func renderLocalReadme(configPath string) []byte {
 	name, _ := projectGuide(configPath)
 	return []byte(strings.ReplaceAll(localReadme, "{{PROJECT_GUIDE}}", name))
+}
+
+// includeProjectGuide stages only changed managed guidance and reports its configuration-relative path.
+func includeProjectGuide(output map[filetxn.Target]map[string][]byte, guide *filetxn.File, changes *FileChanges) {
+	if bytes.Equal(guide.Previous, guide.Content) {
+		return
+	}
+	output[filetxn.Target(guide.Path)] = map[string][]byte{guide.Path: guide.Content}
+	changes.Guide = &GuideChange{Path: guide.Path, Created: guide.Previous == nil}
+}
+
+// requireGuideUnchanged refuses edits made after guide ownership was established, including new files.
+func requireGuideUnchanged(ctx context.Context, root *os.Root, guide *filetxn.File) error {
+	current, err := filetxn.ReadOptional(ctx, root, guide.Path)
+	if err != nil {
+		return err
+	}
+	if (current == nil) != (guide.Previous == nil) || !bytes.Equal(current, guide.Previous) {
+		return failure("concurrent-change", guide.Path+": project guide changed during the operation; retry after edits finish", nil)
+	}
+	return nil
 }

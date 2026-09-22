@@ -30,14 +30,21 @@ type Options struct {
 }
 
 // FileChanges lists sorted changed paths. Build uses generated-relative paths; Sync prefixes managed tree names.
-// Empty lists mean matching output.
+// Empty lists mean matching tree output; Guide reports a separate managed-guide update.
 type FileChanges struct {
-	Added   []string `json:"added"`
-	Changed []string `json:"changed"`
-	Removed []string `json:"removed"`
+	Added   []string     `json:"added"`
+	Changed []string     `json:"changed"`
+	Removed []string     `json:"removed"`
+	Guide   *GuideChange `json:"guide,omitempty"`
 }
 
-// Build generates rules entirely offline and replaces only generated/ under exclusive ownership.
+// GuideChange reports a managed-guide update separately from generated-relative file paths.
+type GuideChange struct {
+	Path    string `json:"path"` // Relative to the configuration directory.
+	Created bool   `json:"created"`
+}
+
+// Build generates rules offline and refreshes the managed project guide in one recoverable transaction.
 // Cancellation, validation failure, or detected edits preserve existing output; errors return no changes.
 func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
@@ -54,12 +61,23 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		if err != nil {
 			return err
 		}
+		guide, err := planProjectGuide(ctx, root, name)
+		if err != nil {
+			return err
+		}
 		output, err := prepareProject(ctx, root, before, options)
 		if err != nil {
 			return err
 		}
 		changes = compareFiles(treeFiles(before.generated), output.Files)
-		return w.Apply(map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}, func() error { return requireUnchanged(ctx, root, name, before) })
+		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
+		includeProjectGuide(targets, guide, &changes)
+		return w.Apply(targets, func() error {
+			if err := requireUnchanged(ctx, root, name, before); err != nil {
+				return err
+			}
+			return requireGuideUnchanged(ctx, root, guide)
+		})
 	})
 	if err != nil {
 		return FileChanges{}, err
