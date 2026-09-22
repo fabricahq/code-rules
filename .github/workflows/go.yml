@@ -14,7 +14,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
+          cache-dependency-path: go.sum
       - run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes=
       - run: go version
       - name: Check Go formatting
@@ -26,5 +27,5 @@ jobs:
           fi
       - run: go vet ./...
       - run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
-      - run: go test -race ./...
+      - run: go test -race -count=1 ./...
       - run: go build ./cmd/code-rules ./cmd/package-binaries ./cmd/plan-release ./cmd/publish-release

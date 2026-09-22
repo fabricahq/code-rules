@@ -19,9 +19,10 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
+          cache-dependency-path: go.sum
       - name: Install, upgrade, and roll back native binaries
-        run: go test -race ./internal/distribution
+        run: go test -race -count=1 ./internal/distribution
       - name: Build all candidate targets
         if: runner.os == 'Linux'
         run: go run ./cmd/package-binaries --candidate --output native-artifacts
