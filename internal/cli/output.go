@@ -110,7 +110,11 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 			}
 		}
 	case project.AuthoringResult:
-		formatAuthored(out, result.Files, result.Warnings, result.Next)
+		if cmd.Name() == "init" {
+			formatProjectInitialized(out, cmd, result)
+		} else {
+			formatAuthored(out, result.Files, result.Warnings, result.Next)
+		}
 	case library.AuthoringResult:
 		formatAuthored(out, result.Files, result.Warnings, result.Next)
 	case library.CheckResult:
@@ -136,6 +140,34 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 			}
 		}
 	}
+}
+
+// formatProjectInitialized orients people after setup while leaving the structured result unchanged.
+func formatProjectInitialized(out *strings.Builder, cmd *cobra.Command, result project.AuthoringResult) {
+	if len(result.Files) == 0 {
+		out.WriteString("Code Rules is already initialized.\nNo files changed.\n")
+	} else {
+		out.WriteString("Code Rules initialized!\n")
+	}
+	for _, warning := range result.Warnings {
+		fmt.Fprintf(out, "Warning: %s\n", warning)
+	}
+	config := cmd.Flags().Lookup("config").Value.String()
+	if len(result.Files) == 0 {
+		out.WriteString("\nRun code-rules project --help to manage this project's rules.\n")
+		return
+	}
+	location := config
+	if location == "" {
+		location = ".code-rules/config.json"
+	}
+	fmt.Fprintf(out, "\nConfiguration: %s\n", location)
+	fmt.Fprintf(out, "\nStart with a project-only rule (example):\n  %s\n  %s\n",
+		checkRepairCommand("add group practices/testing", config),
+		checkRepairCommand("add rule practices/testing/my-rule", config))
+	fmt.Fprintf(out, "\nOr use a shared library (example):\n  %s\n  %s\n",
+		checkRepairCommand("add library team", config),
+		checkRepairCommand("sync", config))
 }
 
 // requestsJSON recognizes the output flag before usage validation, ignoring equals-form values and positional literals after --.

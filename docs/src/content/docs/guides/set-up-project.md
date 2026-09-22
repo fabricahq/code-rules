@@ -18,6 +18,7 @@ code-rules project add rule practices/testing/retry-budget
 
 `init` creates `.code-rules/config.json` with no imported sources and `.code-rules/local/README.md`.
 No imported library or existing Git repository is required. Repeating `init` preserves valid configuration and local rules and refreshes the managed project README. It refuses to overwrite manually edited guides; keep project notes in a separate file.
+Human output starts with a setup confirmation and example commands for project-only rules or a shared library. If setup is already current, it reports that no files changed. Use `--json` for the exact changed file paths.
 
 **Native Go candidate:** `init` also creates a tool-owned agent guide at `.code-rules/README.md`. For a custom configuration outside a directory named `.code-rules`, the guide is `CODE_RULES.md` beside that configuration. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
 
