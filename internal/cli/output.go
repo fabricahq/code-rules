@@ -68,7 +68,7 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error, c
 		if err != nil && err != errCheckOutOfDate {
 			fmt.Fprintln(streams.Err, err)
 			if code == 2 {
-				fmt.Fprintln(streams.Err, "Run code-rules --help for usage.")
+				fmt.Fprintf(streams.Err, "\nRun %s --help for usage.\n", cmd.CommandPath())
 			}
 		}
 	}

@@ -10,8 +10,8 @@ import (
 )
 
 // newLibraryCommand registers library-specific location and explicit-input flags.
-func newLibraryCommand(use, description string, arity int, directory string) (*cobra.Command, *authoringFlags) {
-	cmd := &cobra.Command{Use: use, Short: description, Args: cobra.ExactArgs(arity)}
+func newLibraryCommand(use, description string, args cobra.PositionalArgs, directory string) (*cobra.Command, *authoringFlags) {
+	cmd := &cobra.Command{Use: use, Short: description, Args: args}
 	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: directory}
 	flags.add(cmd, "directory", "Library directory (default current directory)")
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
@@ -42,7 +42,7 @@ func addLibraryCommands(root *cobra.Command, options Options, started *bool, out
 
 // libraryInitCommand reads explicit publisher terms before creating library-owned files.
 func libraryInitCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
-	cmd, f := newLibraryCommand("init", "Initialize a rule library without overwriting authored files", 0, options.Directory)
+	cmd, f := newLibraryCommand("init", "Initialize a rule library without overwriting authored files", cobra.NoArgs, options.Directory)
 	for name, description := range map[string]string{"spdx": "Library SPDX expression", "license-file": "Existing UTF-8 license text", "notice-file": "Existing UTF-8 notice text"} {
 		f.add(cmd, name, description)
 	}
@@ -81,7 +81,7 @@ func libraryInitCommand(options Options, started *bool, output *commandOutput) *
 
 // libraryCheckCommand reports counts and licensing caveats without changing library files.
 func libraryCheckCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
-	cmd, f := newLibraryCommand("check", "Validate every library group, rule, asset, and declared term", 0, options.Directory)
+	cmd, f := newLibraryCommand("check", "Validate every library group, rule, asset, and declared term", cobra.NoArgs, options.Directory)
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		*started = true
 		result, err := library.Check(cmd.Context(), f.libraryOptions())
@@ -96,7 +96,7 @@ func libraryCheckCommand(options Options, started *bool, output *commandOutput) 
 
 // libraryGroupCommand requires all group metadata before attempting exclusive publication.
 func libraryGroupCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
-	cmd, f := newLibraryCommand("group ID", "Create library group metadata", 1, options.Directory)
+	cmd, f := newLibraryCommand("group ID", "Create library group metadata", requiredArgument("group ID", "practices/testing", "A group ID identifies the group in paths and configuration."), options.Directory)
 	f.addGroupFlags(cmd, "")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := f.require("name", "description", "when-to-read"); err != nil {
@@ -115,7 +115,7 @@ func libraryGroupCommand(options Options, started *bool, output *commandOutput) 
 
 // libraryRuleCommand creates supplied guidance or a marked canonical draft in an existing group.
 func libraryRuleCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
-	cmd, f := newLibraryCommand("rule ID", "Create a complete library rule or marked draft", 1, options.Directory)
+	cmd, f := newLibraryCommand("rule ID", "Create a complete library rule or marked draft", requiredArgument("rule ID", "practices/testing/my-rule", "A rule ID includes its group and rule name, without the .md extension."), options.Directory)
 	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When to read this rule", "impact": "Consequence level", "impact-description": "Why this rule matters", "body-file": "Existing UTF-8 Markdown body"} {
 		f.add(cmd, name, description)
 	}

@@ -26,8 +26,8 @@ type authoringFlags struct {
 }
 
 // newAuthoringCommand registers shared configuration and noninteractive flags with strict positional arity.
-func newAuthoringCommand(use, description string, arity int, directory string) (*cobra.Command, *authoringFlags) {
-	cmd := &cobra.Command{Use: use, Short: description, Args: cobra.ExactArgs(arity)}
+func newAuthoringCommand(use, description string, args cobra.PositionalArgs, directory string) (*cobra.Command, *authoringFlags) {
+	cmd := &cobra.Command{Use: use, Short: description, Args: args}
 	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: directory}
 	flags.add(cmd, "config", "Configuration file (default .code-rules/config.json)")
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
@@ -106,7 +106,7 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 
 // addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.
 func addProjectAuthoringCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
-	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", 0, options.Directory)
+	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", cobra.NoArgs, options.Directory)
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
 		*started = true
 
@@ -120,7 +120,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	root.AddCommand(initialize)
 	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or library"}
 	root.AddCommand(add)
-	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", 1, options.Directory)
+	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project's configuration."), options.Directory)
 	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag or full commit", "version": "HashiCorp version constraint"} {
 		sf.add(source, name, description)
 	}
@@ -154,7 +154,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		return nil
 	}
 	add.AddCommand(source)
-	group, gf := newAuthoringCommand("group ID", "Create a project-only rule group", 1, options.Directory)
+	group, gf := newAuthoringCommand("group ID", "Create a project-only rule group", requiredArgument("group ID", "practices/testing", "A group ID identifies the group in paths and configuration."), options.Directory)
 	gf.addGroupFlags(group, "")
 	group.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := gf.require("name", "description", "when-to-read"); err != nil {
@@ -169,7 +169,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		return nil
 	}
 	add.AddCommand(group)
-	rule, rf := newAuthoringCommand("rule ID", "Create a project-only rule or unfinished draft", 1, options.Directory)
+	rule, rf := newAuthoringCommand("rule ID", "Create a project-only rule or unfinished draft", requiredArgument("rule ID", "practices/testing/my-rule", "A rule ID includes its group and rule name, without the .md extension."), options.Directory)
 	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When an agent should read this rule", "impact": "Consequence level", "impact-description": "Why the rule matters", "body-file": "Existing UTF-8 Markdown body file"} {
 		rf.add(rule, name, description)
 	}

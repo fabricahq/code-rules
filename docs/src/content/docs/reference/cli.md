@@ -48,6 +48,7 @@ code-rules project check --help
 Each command's help lists its accepted options, defaults, examples, and relevant behavior.
 Bare command groups such as `code-rules library` also show navigation.
 Help never prompts or writes files. Invalid commands and options exit with status 2 and point to the relevant help page.
+If an authoring command is missing a required alias or ID, the error names the missing argument, explains its purpose, and shows the command syntax and an example.
 Authoring help distinguishes fields prompted on a terminal from optional flags; both `project init` and `library init` currently run without prompts.
 Every command separates its own options from **Common options**. Group and rule creation use **Group options** and **Rule options**; adding a library or initializing one uses **Library options**. Commands with no specific options show only **Common options**. Common options are reused across commands, not necessarily available everywhere: `--help` is local to each command, `--non-interactive` is local to authoring commands, and `--json` is inherited globally. Project commands use `--config`; library commands use `--directory`.
 
