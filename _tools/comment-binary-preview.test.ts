@@ -1,7 +1,16 @@
 /** @fileoverview Executes the preview workflow's API script against GitHub response fixtures. */
 
 import { expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'yaml';
 
@@ -10,6 +19,14 @@ const workflow = parse(
 );
 const script = workflow.jobs.comment.steps[0].with.script;
 const marker = '<!-- code-rules-binary-preview -->';
+const targets = ['darwin-arm64', 'darwin-amd64', 'linux-arm64', 'linux-amd64'];
+const artifacts = targets.map((target, index) => ({
+  id: 70 + index,
+  name: `code-rules-${target}`,
+  expired: false,
+  size_in_bytes: 100,
+  expires_at: '2026-09-24T12:00:00Z',
+}));
 
 // Exercise the shipped script without credentials or external writes.
 async function preview(
@@ -33,15 +50,8 @@ async function preview(
     head: { sha: options.head ?? sha, repo: { id: 99 } },
     base: { repo: { id: options.foreign ? 2 : 1 } },
   };
-  const artifact = {
-    id: 70,
-    name: 'unpublished-native-candidates',
-    expired: false,
-    size_in_bytes: 100,
-    expires_at: '2026-09-24T12:00:00Z',
-  };
   const responses: Record<string, object[]> = {
-    artifacts: options.artifacts ?? [artifact],
+    artifacts: options.artifacts ?? artifacts,
     pulls: [pr],
     comments: options.previous ? [options.previous] : [],
   };
@@ -89,11 +99,30 @@ test('posts downloadable candidates for an open fork PR even without event PR me
   const { writes } = await preview();
   expect(writes).toHaveLength(1);
   expect(writes[0]).toMatchObject({ method: 'create', issue_number: 38 });
+  for (const [index, label] of [
+    'macOS Apple Silicon',
+    'macOS Intel',
+    'Linux ARM',
+    'Linux Intel/AMD',
+  ].entries()) {
+    expect(writes[0]!.body).toContain(
+      `[${label}](https://github.com/fabricahq/code-rules/actions/runs/500/artifacts/${70 + index})`,
+    );
+  }
+  expect(writes[0]!.body).toContain('### CLI preview ready');
   expect(writes[0]!.body).toContain(
-    'https://github.com/fabricahq/code-rules/actions/runs/500/artifacts/70',
+    'Packaging and installation checks passed.',
   );
-  expect(writes[0]!.body).toContain('expire 2026-09-24T12:00:00Z');
-  expect(writes[0]!.body).toContain('unpublished review builds');
+  expect(writes[0]!.body).toContain('**Manual testing is optional.**');
+  expect(writes[0]!.body).toContain('chmod +x code-rules\n./code-rules --help');
+  expect(writes[0]!.body).toContain(
+    `[\`aaaaaaa\`](https://github.com/fabricahq/code-rules/commit/${'a'.repeat(40)})`,
+  );
+  expect(writes[0]!.body).toMatch(
+    /Downloads expire Sep 24, 2026(?:,| at) 12:00\sPM UTC\./,
+  );
+  expect(writes[0]!.body).toContain('Unreleased preview');
+  expect(writes[0]!.body).toContain(`/blob/${'a'.repeat(40)}/LICENSE.md`);
 });
 
 test('updates its existing bot comment instead of posting another', async () => {
@@ -127,26 +156,48 @@ for (const options of [
     artifacts: [
       {
         name: 'unpublished-native-candidates',
-        expired: true,
+        expired: false,
         size_in_bytes: 100,
       },
     ],
   },
-  {
-    artifacts: [
-      {
-        name: 'unpublished-native-candidates',
-        expired: false,
-        size_in_bytes: 0,
-      },
-    ],
-  },
-  { artifacts: [{ name: 'other', expired: false, size_in_bytes: 100 }] },
 ]) {
   test(`does not post an unavailable or inapplicable preview: ${JSON.stringify(options)}`, async () => {
     expect((await preview(options)).writes).toEqual([]);
   });
 }
+
+for (const target of targets) {
+  test(`does not advertise incomplete or unavailable ${target} downloads`, async () => {
+    const selected = artifacts.find((a) => a.name === `code-rules-${target}`)!;
+    const others = artifacts.filter((a) => a !== selected);
+    for (const invalid of [
+      others,
+      [...others, selected, selected],
+      [...others, { ...selected, expired: true }],
+      [...others, { ...selected, size_in_bytes: 0 }],
+      [...others, { ...selected, expires_at: 'invalid' }],
+    ]) {
+      const result = await preview({ artifacts: invalid });
+      expect(result.writes).toEqual([]);
+      expect(result.warnings).toHaveLength(1);
+    }
+  });
+}
+
+test('uses the earliest expiry and ignores unrelated artifacts', async () => {
+  const result = await preview({
+    artifacts: [
+      ...artifacts.slice(0, 3),
+      { ...artifacts[3], expires_at: '2026-09-23T23:30:00Z' },
+      { name: 'unrelated', expired: true },
+    ],
+  });
+  expect(result.writes).toHaveLength(1);
+  expect(result.writes[0]!.body).toMatch(
+    /Downloads expire Sep 23, 2026(?:,| at) 11:30\sPM UTC\./,
+  );
+});
 
 for (const stamp of ['run:501 attempt:1', 'run:500 attempt:3']) {
   test(`does not replace newer preview ${stamp}`, async () => {
@@ -183,4 +234,77 @@ test('keeps builds read-only and limits the notification to API access', () => {
     /^actions\/github-script@[a-f0-9]{40}$/,
   );
   expect(workflow.jobs.comment.steps[0].run).toBeUndefined();
+});
+
+test('uploads four unarchived executables with seven-day retention', () => {
+  const packaging = parse(
+    readFileSync('.github/workflows/package-binaries.yml', 'utf8'),
+  );
+  const uploads = packaging.jobs.install.steps.filter(
+    (step: { uses?: string }) =>
+      step.uses?.startsWith('actions/upload-artifact@'),
+  );
+  expect(
+    uploads.map((step: { with: { path: string } }) => step.with.path).sort(),
+  ).toEqual(
+    targets.map((target) => `native-previews/code-rules-${target}`).sort(),
+  );
+  for (const step of uploads) {
+    expect(step.with.archive).toBe(false);
+    expect(step.with['retention-days']).toBe(7);
+    expect(step.with['if-no-files-found']).toBe('error');
+  }
+});
+
+test('extracts exact executable bytes from each packaged target and refuses a missing archive', () => {
+  const packaging = parse(
+    readFileSync('.github/workflows/package-binaries.yml', 'utf8'),
+  );
+  const extract = packaging.jobs.install.steps.find(
+    (step: { name?: string }) => step.name === 'Extract preview executables',
+  ).run;
+  const directory = mkdtempSync(join(tmpdir(), 'code-rules-preview-'));
+  try {
+    mkdirSync(join(directory, 'native-artifacts'));
+    const expected = new Map<string, Buffer<ArrayBuffer>>();
+    for (const target of targets) {
+      const bytes = Buffer.from(`executable for ${target}\0\xff`, 'latin1');
+      expected.set(target, bytes);
+      writeFileSync(join(directory, 'code-rules'), bytes);
+      writeFileSync(join(directory, 'LICENSE.md'), 'Fixture license');
+      execFileSync(
+        'tar',
+        [
+          '-czf',
+          `native-artifacts/code-rules_candidate_${target.replaceAll('-', '_')}.tar.gz`,
+          'code-rules',
+          'LICENSE.md',
+        ],
+        { cwd: directory },
+      );
+    }
+    execFileSync('bash', ['-e', '-o', 'pipefail', '-c', extract], {
+      cwd: directory,
+    });
+    for (const [target, bytes] of expected) {
+      expect(
+        readFileSync(join(directory, `native-previews/code-rules-${target}`)),
+      ).toEqual(bytes);
+    }
+    rmSync(join(directory, 'native-previews'), { recursive: true });
+    rmSync(
+      join(
+        directory,
+        'native-artifacts/code-rules_candidate_linux_arm64.tar.gz',
+      ),
+    );
+    expect(() =>
+      execFileSync('bash', ['-e', '-o', 'pipefail', '-c', extract], {
+        cwd: directory,
+        stdio: 'pipe',
+      }),
+    ).toThrow();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
