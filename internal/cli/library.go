@@ -105,7 +105,7 @@ func libraryGroupCommand(options Options, started *bool, output *commandOutput) 
 			*started = true
 			return err
 		}
-		f.introduction = groupIntroduction(args[0])
+		f.introduction = groupIntroduction(args[0], true)
 		if err := f.require("name", "description", "when-to-read"); err != nil {
 			return err
 		}

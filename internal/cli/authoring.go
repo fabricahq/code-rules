@@ -170,7 +170,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 			*started = true
 			return err
 		}
-		gf.introduction = groupIntroduction(args[0])
+		gf.introduction = groupIntroduction(args[0], false)
 		if err := gf.require("name", "description", "when-to-read"); err != nil {
 			return err
 		}
@@ -221,7 +221,7 @@ func (f *authoringFlags) collectRule(ctx context.Context, id string, isLibrary b
 		*started = true
 		return rules.RuleMetadata{}, nil, err
 	}
-	f.introduction = ruleIntroduction(id, f.value("body-file"))
+	f.introduction = ruleIntroduction(id, f.value("body-file"), isLibrary)
 	if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
 		return rules.RuleMetadata{}, nil, err
 	}

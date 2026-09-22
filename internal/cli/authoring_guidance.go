@@ -9,8 +9,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func groupIntroduction(groupPath string) string {
-	return fmt.Sprintf(`Adding a group at: %s
+func groupIntroduction(groupPath string, isLibrary bool) string {
+	heading := fmt.Sprintf("Adding a group at: %s", groupPath)
+	if !isLibrary {
+		heading = fmt.Sprintf("Adding a project-only group at: %s\n\nThis group belongs to this project.\nIts files are stored in .code-rules/local/%s/.", groupPath, groupPath)
+	}
+	return fmt.Sprintf(`%s
 
 - A group collects related rules. Use individual rules to give agents guidance.
 - The path %q uniquely identifies this group.
@@ -23,15 +27,19 @@ Example group:
 
 Enter your group's details below.
 
-`, groupPath, groupPath)
+`, heading, groupPath)
 }
 
-func ruleIntroduction(rulePath, bodyFile string) string {
+func ruleIntroduction(rulePath, bodyFile string, isLibrary bool) string {
+	heading := fmt.Sprintf("Adding a rule at: %s", rulePath)
+	if !isLibrary {
+		heading = fmt.Sprintf("Adding a project-only rule at: %s\n\nThis rule belongs to this project.\nIts file is stored in:\n  .code-rules/local/%s.md", rulePath, rulePath)
+	}
 	next := "Then edit the created Markdown file to write the full rule."
 	if bodyFile != "" {
 		next = fmt.Sprintf("The rule text will be read from %s.", bodyFile)
 	}
-	return fmt.Sprintf(`Adding a rule at: %s
+	return fmt.Sprintf(`%s
 
 - A rule gives agents guidance for a specific task or situation.
 - The path %q uniquely identifies this rule.
@@ -47,7 +55,7 @@ Example rule:
 Enter your rule's details below.
 %s
 
-`, rulePath, rulePath, next)
+`, heading, rulePath, next)
 }
 
 // addRuleFlags keeps the two authoring scopes' field labels and body instructions consistent.
@@ -119,7 +127,7 @@ func ruleReadyHeading(isLibrary bool) string {
 	if isLibrary {
 		return "After writing the rule text, run:"
 	}
-	return "After writing the rule text, to make the rule accessible to this project, run:"
+	return "Project-only groups and rules are discovered automatically when you build; you don't need to list them in config.json.\n\nAfter writing the rule text, to make the rule accessible to this project, run:"
 }
 
 // authoringFollowupCommand preserves the selected scope and quotes custom locations for shell use.

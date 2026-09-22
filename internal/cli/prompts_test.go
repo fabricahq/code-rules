@@ -47,7 +47,7 @@ func TestInteractiveAuthoring(t *testing.T) {
 				t.Fatal("unattended mode showed interactive introduction", result)
 			}
 			if tc.name == "group" {
-				for _, text := range []string{"Adding a group at: techs/go", "Example group:", "Name: Testing", "Description: Unit and integration testing.", "When to read: When writing or changing tests."} {
+				for _, text := range []string{"Adding a project-only group at: techs/go", "This group belongs to this project.", "Its files are stored in .code-rules/local/techs/go/.", "Example group:", "Name: Testing", "Description: Unit and integration testing.", "When to read: When writing or changing tests."} {
 					if !strings.Contains(result.Transcript, text) {
 						t.Fatalf("missing orientation %q: %s", text, result.Transcript)
 					}

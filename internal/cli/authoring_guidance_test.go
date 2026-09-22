@@ -63,7 +63,22 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				if err != nil || result.ExitCode != 0 {
 					t.Fatal(err, result)
 				}
-				for _, text := range []string{"Adding a rule at: techs/go/return-errors", "- A rule gives agents guidance", `- The path "techs/go/return-errors" uniquely identifies this rule.`, "Enter your rule's details below.", "Example rule:", "Title: Test boundary conditions", "Rule text:", "Then edit the created Markdown file"} {
+				heading := "Adding a rule at: techs/go/return-errors"
+				if scope == "project" {
+					heading = "Adding a project-only rule at: techs/go/return-errors"
+					for _, text := range []string{"This rule belongs to this project.", "Its file is stored in:", ".code-rules/local/techs/go/return-errors.md"} {
+						if !strings.Contains(result.Transcript, text) {
+							t.Fatal("missing project ownership", result.Transcript)
+						}
+					}
+				}
+				discovery := "Project-only groups and rules are discovered automatically when you build; you don't need to list them in config.json."
+				for _, output := range []string{groupOutput, result.Stdout} {
+					if strings.Contains(output, discovery) != (scope == "project") {
+						t.Fatal("incorrect discovery scope", output)
+					}
+				}
+				for _, text := range []string{heading, "- A rule gives agents guidance", `- The path "techs/go/return-errors" uniquely identifies this rule.`, "Enter your rule's details below.", "Example rule:", "Title: Test boundary conditions", "Rule text:", "Then edit the created Markdown file"} {
 					if !strings.Contains(result.Transcript, text) {
 						t.Fatalf("missing orientation %q: %s", text, result.Transcript)
 					}
