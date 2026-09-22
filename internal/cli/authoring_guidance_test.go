@@ -40,15 +40,27 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 					return out
 				}
 				run(scope, "init")
-				run(scope, "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When writing Go.")
+				groupOutput := run(scope, "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When writing Go.")
 				steps := []terminalfixture.Step{
 					{Prompt: "Rule title:", Answer: "Return errors to the caller"},
 					{Prompt: "When to read:", Answer: "When calling fallible operations."},
 					{Prompt: "Impact (CRITICAL, HIGH, MEDIUM-HIGH, MEDIUM, LOW-MEDIUM, LOW):", Answer: "HIGH"},
 					{Prompt: "Why it matters:", Answer: "Keep failures visible."},
 				}
-				args := append([]string{scope, "add", "rule", "techs/go/return-errors"}, location...)
-				result, err := terminalfixture.Run(context.Background(), binary, directory, args, steps)
+				var example string
+				for _, line := range strings.Split(groupOutput, "\n") {
+					if strings.HasPrefix(strings.TrimSpace(line), "code-rules ") {
+						example = strings.TrimSpace(line)
+						break
+					}
+				}
+				if !strings.HasPrefix(example, "code-rules "+scope+" add rule techs/go/my-rule") {
+					t.Fatal("missing group-specific rule command", groupOutput)
+				}
+				// Follow the displayed command after choosing a slug; retain its quoted location options.
+				example = strings.Replace(example, "my-rule", "return-errors", 1)
+				example = strings.Replace(example, "code-rules", "'"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"'", 1)
+				result, err := terminalfixture.Run(context.Background(), "/bin/sh", directory, []string{"-c", example}, steps)
 				if err != nil || result.ExitCode != 0 {
 					t.Fatal(err, result)
 				}

@@ -114,12 +114,16 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 			formatProjectInitialized(out, cmd, result)
 		} else if cmd.Name() == "rule" {
 			formatRuleCreated(out, cmd, result.Files, result.Warnings, false)
+		} else if cmd.Name() == "group" {
+			formatGroupCreated(out, cmd, result.Files, result.Warnings, false)
 		} else {
 			formatAuthored(out, result.Files, result.Warnings, result.Next)
 		}
 	case library.AuthoringResult:
 		if cmd.Name() == "rule" {
 			formatRuleCreated(out, cmd, result.Files, result.Warnings, true)
+		} else if cmd.Name() == "group" {
+			formatGroupCreated(out, cmd, result.Files, result.Warnings, true)
 		} else {
 			formatAuthored(out, result.Files, result.Warnings, result.Next)
 		}

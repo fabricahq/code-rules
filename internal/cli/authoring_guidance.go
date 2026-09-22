@@ -92,14 +92,35 @@ func formatRuleCreated(out *strings.Builder, cmd *cobra.Command, files, warnings
 		out.WriteString("\nReview the Markdown file above. Make future edits directly in that file.\n")
 	}
 	out.WriteString("\nWhen the rule is ready, run:\n")
+	actions := []string{"build", "check"}
 	if isLibrary {
-		command := "code-rules library check"
-		if directory := cmd.Flags().Lookup("directory").Value.String(); directory != "" {
-			command += " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
-		}
-		fmt.Fprintf(out, "  %s\n", command)
-	} else {
-		config := cmd.Flags().Lookup("config").Value.String()
-		fmt.Fprintf(out, "  %s\n  %s\n", checkRepairCommand("build", config), checkRepairCommand("check", config))
+		actions = []string{"check"}
 	}
+	for _, action := range actions {
+		fmt.Fprintf(out, "  %s\n", authoringFollowupCommand(cmd, action, isLibrary))
+	}
+}
+
+// formatGroupCreated supplies a runnable rule example in the group that was just created.
+func formatGroupCreated(out *strings.Builder, cmd *cobra.Command, files, warnings []string, isLibrary bool) {
+	formatAuthored(out, files, warnings, "")
+	rulePath := cmd.Flags().Args()[0] + "/my-rule"
+	fmt.Fprintf(out, "\nNext: Add a rule to this group (replace my-rule with your rule's slug):\n  %s\n", authoringFollowupCommand(cmd, "add rule "+rulePath, isLibrary))
+	action := "build"
+	if isLibrary {
+		action = "check"
+	}
+	fmt.Fprintf(out, "\nAfter writing the rule text, run:\n  %s\n", authoringFollowupCommand(cmd, action, isLibrary))
+}
+
+// authoringFollowupCommand preserves the selected scope and quotes custom locations for shell use.
+func authoringFollowupCommand(cmd *cobra.Command, action string, isLibrary bool) string {
+	if !isLibrary {
+		return checkRepairCommand(action, cmd.Flags().Lookup("config").Value.String())
+	}
+	command := "code-rules library " + action
+	if directory := cmd.Flags().Lookup("directory").Value.String(); directory != "" {
+		command += " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
+	}
+	return command
 }

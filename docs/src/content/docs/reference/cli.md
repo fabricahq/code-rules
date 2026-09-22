@@ -155,6 +155,8 @@ Create the group before adding a rule. Rule creation fails before prompting for 
 See [Set up a project](/guides/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
 Before prompting, group and rule commands show the selected path and an example of all the fields together. A group has a readable name, description, and reading cue. A rule has a readable title, reading cue, and impact details; the full instructions belong in its Markdown body. Examples are guidance only and are never saved as your content.
 
+After creating a group, the CLI shows a copyable add-rule command using that group's path and your custom configuration or library directory. Replace the example `my-rule` slug with your own.
+
 After creating a rule, the CLI prints its Markdown file path and explains what to edit below the metadata block. Finish the instructions, rationale, correct and incorrect examples, and validation steps; replace template placeholders and remove unused sections. The final commands preserve your `--config` or `--directory` selection. Supplying `--body-file` creates a rule with existing text and shows review instructions instead of draft-completion steps.
 
 Authoring commands accept `--non-interactive`. Missing inputs fail without prompting when no terminal is available.
