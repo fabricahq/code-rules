@@ -11,8 +11,10 @@ import (
 
 func groupIntroduction(groupPath string) string {
 	return fmt.Sprintf(`Adding a group at: %s
-The group path identifies it; the name is its readable label.
-Groups organize rules. The instructions belong in each rule's Markdown file.
+
+- The path %q uniquely identifies the group.
+- The name is a human-friendly label, such as "Testing".
+- A group collects related rules. Use individual rules to give agents guidance.
 
 Example group:
   Path: practices/testing
@@ -22,7 +24,7 @@ Example group:
 
 Enter your group's details below. The example is not saved.
 
-`, groupPath)
+`, groupPath, groupPath)
 }
 
 func ruleIntroduction(rulePath, bodyFile string) string {
