@@ -102,7 +102,6 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 		prefix + "description": "What this group covers (e.g. Unit and integration testing)",
 	}
 	cmd.Long = cmd.Short + "\n\nID identifies the group in paths and configuration (e.g. practices/testing).\nThe name is its readable title (e.g. Testing or Testing and quality)."
-	cmd.SetUsageFunc(groupUsage)
 }
 
 // addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.

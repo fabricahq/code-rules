@@ -51,6 +51,7 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.SetArgs(args)
 	root.Version = options.Version
 	root.SetVersionTemplate("{{.Version}}\n")
+	root.SetUsageFunc(commandUsage)
 	root.RunE = func(cmd *cobra.Command, _ []string) error { return cmd.Help() }
 	root.AddCommand(newProjectCommand(options, &started, output))
 	addLegacyProjectCommands(root, options, &started, output)
