@@ -56,13 +56,19 @@ Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The 
 
 For execution details, read the [release workflow](../.github/workflows/release.yml), [release planner and publisher](../internal/release/), and [packager](../internal/distribution/).
 
-## Installation channels
+## Standalone installer
 
 The standalone installer downloads the latest stable release or an explicitly selected version, using the four archives and `SHA256SUMS`.
 
-After successfully publishing a stable release, the release workflow uses the **Fabrica Homebrew Releaser** GitHub App to trigger **Update Code Rules** in the [Fabrica Homebrew tap](https://github.com/fabricahq/homebrew-tap). It does not poll. The app token can run Actions only in the tap; the tap uses its own token to commit the formula. A dispatch or tap failure does not unpublish or modify the release. Fix the reported problem and run the tap workflow manually; do not prepare another release just to retry a formula update. Prereleases remain available through explicit standalone installation and manual downloads, but do not advance the Homebrew formula.
+See [installer setup](../_distribution/README.md) for the website endpoint, activation requirements, and validation. Prereleases are available through explicit standalone installation and manual downloads.
 
-See [installation channel setup](../_distribution/README.md) for the tap source, website endpoint, activation requirements, and validation. The release repository requires the `HOMEBREW_APP_CLIENT_ID` Actions variable and `HOMEBREW_APP_PRIVATE_KEY` Actions secret. The app credential is used only in the dispatch job after publication succeeds, never in PR validation or release builds.
+## Homebrew updates
+
+After publishing a stable release, the `update-homebrew` job triggers **Update Code Rules** in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases do not update the formula. The tap validates the published archives and checksums before committing an update.
+
+The job authenticates through **Fabrica Homebrew Releaser**, installed only on the tap with Actions write and Metadata read permissions. The Code Rules repository stores its client ID in the `HOMEBREW_APP_CLIENT_ID` Actions variable and its private key in the `HOMEBREW_APP_PRIVATE_KEY` Actions secret. The job checks out no source and creates a short-lived token restricted to the tap. The tap uses its own token to commit the formula.
+
+If dispatch or the tap update fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure does not modify or unpublish the release. The app can serve other Fabrica tools; add each updater to its tap and grant the app access only to the required tap repositories.
 
 ## Retry a failed release
 

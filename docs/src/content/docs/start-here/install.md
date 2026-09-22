@@ -1,13 +1,13 @@
 ---
 title: "Install Code Rules"
-description: "Install Code Rules with the shell script or Homebrew."
+description: "Install Code Rules with the shell script or a manual download."
 ---
 
 Code Rules is a standalone binary for macOS and Linux.
 
 Native Windows is not supported yet. See [Installing on Windows](#installing-on-windows) below.
 
-Install with the [shell script](#use-the-standalone-installer), or use [Homebrew](#install-with-homebrew).
+Install with the [shell script](#use-the-standalone-installer), or [download a release manually](#download-a-release-manually).
 
 ## Use the standalone installer
 
@@ -69,24 +69,6 @@ rm "$HOME/.local/bin/code-rules" "$HOME/.local/bin/code-rules.LICENSE"
 ```
 
 Use your custom installation directory if you chose one. Removing the executable does not remove rules from your projects.
-
-## Install with Homebrew
-
-With [Homebrew](https://brew.sh/) installed on macOS or Linux:
-
-```sh
-brew install fabricahq/tap/code-rules
-code-rules --version
-```
-
-The Fabrica tap selects the release archive for your operating system and processor and verifies its checksum. Homebrew manages the installed executable and its license.
-
-To upgrade or remove it:
-
-```sh
-brew upgrade code-rules
-brew uninstall code-rules
-```
 
 ## Download a release manually
 
