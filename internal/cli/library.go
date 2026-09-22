@@ -13,6 +13,7 @@ import (
 func newLibraryCommand(use, description string, args cobra.PositionalArgs, directory string) (*cobra.Command, *authoringFlags) {
 	cmd := &cobra.Command{Use: use, Short: description, Args: args}
 	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: directory}
+	cmd.PostRunE = flags.finishPrompts
 	flags.add(cmd, "directory", "Library directory (default current directory)")
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
 	return cmd, flags

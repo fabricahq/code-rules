@@ -24,15 +24,26 @@ type authoringFlags struct {
 	prompts      map[string]string
 	directory    string
 	introduction string
+	prompted     bool
 }
 
 // newAuthoringCommand registers shared configuration and noninteractive flags with strict positional arity.
 func newAuthoringCommand(use, description string, args cobra.PositionalArgs, directory string) (*cobra.Command, *authoringFlags) {
 	cmd := &cobra.Command{Use: use, Short: description, Args: args}
 	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: directory}
+	cmd.PostRunE = flags.finishPrompts
 	flags.add(cmd, "config", "Configuration file (default .code-rules/config.json)")
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
 	return cmd, flags
+}
+
+// finishPrompts separates the last terminal answer from the completed command's output.
+func (f *authoringFlags) finishPrompts(cmd *cobra.Command, _ []string) error {
+	if !f.prompted {
+		return nil
+	}
+	_, err := fmt.Fprintln(cmd.ErrOrStderr())
+	return err
 }
 
 // add registers one scalar option that refuses accidental repetition.

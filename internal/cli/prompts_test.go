@@ -60,6 +60,9 @@ func TestInteractiveAuthoring(t *testing.T) {
 			}
 			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.json"))
 			if tc.created {
+				if !strings.HasSuffix(strings.ReplaceAll(result.Transcript, "\r\n", "\n"), "\n\n") {
+					t.Fatal("missing blank line after prompts", result.Transcript)
+				}
 				if err != nil || !strings.Contains(string(data), `"name": "Go"`) {
 					t.Fatal(string(data), err)
 				}

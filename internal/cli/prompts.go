@@ -54,6 +54,7 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("terminal input ended; no files were written: %w", err)
 	}
+	f.prompted = true
 	return strings.TrimSpace(answer), nil
 }
 
