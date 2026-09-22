@@ -13,6 +13,10 @@ import (
 // newProjectCommand gives each command tree its own flags and closures.
 func newProjectCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
 	command := &cobra.Command{Use: "project", Short: "Configure and manage rules for this project"}
+	command.AddGroup(
+		&cobra.Group{ID: "main", Title: "Main commands:"},
+		&cobra.Group{ID: "utility", Title: "Utility commands:"},
+	)
 	for _, name := range []string{"sync", "build", "check"} {
 		config := &singleString{}
 		descriptions := map[string]string{"sync": "Fetch configured libraries and build guidance", "build": "Rebuild guidance using local library snapshots", "check": "Check configuration and generated guidance"}
@@ -54,6 +58,12 @@ func newProjectCommand(options Options, started *bool, output *commandOutput) *c
 		command.AddCommand(cmd)
 	}
 	addProjectAuthoringCommands(command, options, started, output)
+	for _, child := range command.Commands() {
+		child.GroupID = "main"
+		if child.Name() == "build" || child.Name() == "check" {
+			child.GroupID = "utility"
+		}
+	}
 
 	return command
 }
@@ -67,6 +77,8 @@ func addLegacyProjectCommands(root *cobra.Command, options Options, started *boo
 	local.AddCommand(localAdd)
 	for _, command := range legacy.Commands() {
 		legacy.RemoveCommand(command)
+		// The root has no project help groups; compatibility commands must not retain them.
+		command.GroupID = ""
 		command.Hidden = true
 		if command.Name() == "add" {
 			for _, child := range command.Commands() {

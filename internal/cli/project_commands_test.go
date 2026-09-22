@@ -19,7 +19,8 @@ func TestScopedCommandHelp(t *testing.T) {
 		want, absent []string
 	}{
 		{nil, []string{"  project ", "  library ", "  help "}, []string{"  init ", "  add ", "  local ", "  build ", "  sync ", "  check "}},
-		{[]string{"project"}, []string{"  init ", "  add ", "  build ", "  sync ", "  check "}, []string{"  local "}},
+		{[]string{"project"}, []string{"Main commands:", "Utility commands:", "  init ", "  add ", "  build ", "  sync ", "  check "}, []string{"  local ", "Available Commands:", "Additional Commands:"}},
+		{[]string{"project", "--help"}, []string{"Main commands:", "Utility commands:"}, []string{"Available Commands:"}},
 		{[]string{"project", "add"}, []string{"  library ", "  group ", "  rule "}, []string{"  source ", "  local "}},
 		{[]string{"project", "add", "library", "--help"}, []string{"without fetching", "code-rules project sync", "--repository", "--groups"}, nil},
 		{[]string{"project", "check", "--help"}, []string{"not whether application code follows", "--config"}, nil},
