@@ -64,21 +64,22 @@ jobs:
             const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
               owner, repo, run_id: run.id, per_page: 100,
             });
+            // Artifact order matches install-preview.sh arguments.
             const targets = [
-              ['code-rules-darwin-arm64', 'macOS Apple Silicon', 'Darwin arm64'],
-              ['code-rules-darwin-amd64', 'macOS Intel', 'Darwin x86_64'],
-              ['code-rules-linux-arm64', 'Linux ARM', 'Linux aarch64'],
-              ['code-rules-linux-amd64', 'Linux Intel/AMD', 'Linux x86_64'],
+              ['code-rules-darwin-arm64', 'macOS Apple Silicon'],
+              ['code-rules-darwin-amd64', 'macOS Intel'],
+              ['code-rules-linux-arm64', 'Linux ARM'],
+              ['code-rules-linux-amd64', 'Linux Intel/AMD'],
             ];
             const downloads = [];
-            for (const [name, label, platform] of targets) {
+            for (const [name, label] of targets) {
               const matches = artifacts.filter(a => a.name === name);
               if (matches.length !== 1 || matches[0].expired || matches[0].size_in_bytes <= 0 ||
                   !Number.isFinite(Date.parse(matches[0].expires_at))) {
                 core.warning(`Missing, duplicate, or unavailable ${name} preview; no comment posted.`);
                 return;
               }
-              downloads.push({label, platform, artifact: matches[0]});
+              downloads.push({label, artifact: matches[0]});
             }
             // Query GitHub directly: workflow_run.pull_requests can be empty for fork PRs.
             const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
@@ -90,18 +91,18 @@ jobs:
             const expires = new Date(Math.min(...downloads.map(d => Date.parse(d.artifact.expires_at)))).toLocaleString('en-US', {
               timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short',
             });
-            // The artifact API returns raw bytes for archive:false uploads, despite its /zip suffix.
-            // Keep the old executable until download and chmod succeed; a subshell contains variables and traps.
+            // Pin the installer to this trusted default-branch workflow, never the PR's source commit.
+            const installerCommit = process.env.GITHUB_WORKFLOW_SHA;
+            if (!/^[a-f0-9]{40}$/.test(installerCommit ?? '')) {
+              throw new Error('Missing trusted installer commit.');
+            }
+            const hostname = new URL(context.serverUrl).hostname;
             const installCommand = [
-              '(set -eu;',
-              'case "$(uname -sm)" in',
-              ...downloads.map(d => `"${d.platform}") artifact=${d.artifact.id} ;;`),
-              '*) echo "Unsupported platform: $(uname -sm)" >&2; exit 1 ;; esac;',
-              `if [ -d ./code-rules ]; then printf '%s\\n' "Cannot install: $(pwd)/code-rules is an existing folder." "Nothing was changed. Run this command from a different directory." >&2; exit 1; fi;`,
-              'tmp=$(mktemp ./.code-rules.XXXXXX);',
-              `trap 'rm -f "$tmp"' EXIT;`,
-              `gh api --hostname ${new URL(context.serverUrl).hostname} /repos/${owner}/${repo}/actions/artifacts/"$artifact"/zip > "$tmp";`,
-              'test -s "$tmp"; chmod +x "$tmp"; mv -f "$tmp" ./code-rules; echo "Downloaded and wrote ./code-rules")',
+              '(set -eu; installer=$(mktemp);',
+              `trap 'rm -f "$installer"' EXIT;`,
+              `gh api --hostname ${hostname} -H 'Accept: application/vnd.github.raw+json' '/repos/${owner}/${repo}/contents/_tools/install-preview.sh?ref=${installerCommit}' > "$installer";`,
+              'test -s "$installer";',
+              `sh "$installer" ${hostname} ${owner}/${repo} ${downloads.map(d => d.artifact.id).join(' ')})`,
             ].join(' ');
             for (const candidate of pulls) {
               if (candidate.base.repo.id !== context.payload.repository.id) continue;

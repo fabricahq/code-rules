@@ -5,8 +5,6 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import {
   mkdtempSync,
   readdirSync,
-  statSync,
-  symlinkSync,
   mkdirSync,
   readFileSync,
   rmSync,
@@ -14,6 +12,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'yaml';
 
@@ -38,6 +37,7 @@ async function preview(
     authorPermission?: string;
     trigger?: string;
     ref?: string;
+    installerCommit?: string;
     permission?: string;
     runID?: string;
     approvedCommit?: string;
@@ -120,6 +120,9 @@ async function preview(
   await runInNewContext(`(async () => { ${script}\n })()`, {
     github,
     URL,
+    process: {
+      env: { GITHUB_WORKFLOW_SHA: options.installerCommit ?? 'c'.repeat(40) },
+    },
     core: {
       warning: (message: string) => warnings.push(message),
       notice: () => {},
@@ -405,113 +408,84 @@ for (const options of [
   });
 }
 
-// Execute the exact copyable command with controlled platform and download responses.
-test('installs the matching executable and preserves the old file on failure', async () => {
+test('refuses an unpinned installer', async () => {
+  await expect(preview({ installerCommit: 'main' })).rejects.toThrow(
+    'Missing trusted installer commit.',
+  );
+});
+
+// Exercise the copyable command, including failure before the installer may execute.
+test('downloads the pinned installer completely before running it', async () => {
   const { writes } = await preview();
   const command = String(writes[0]!.body).match(/```sh\n([^\n]+)\n```/)?.[1];
   expect(command).toBeDefined();
-  const executable = '#!/bin/sh\nprintf "preview works\\n"\n';
+  expect(command).not.toContain(`ref=${'a'.repeat(40)}`);
   for (const shell of ['sh', 'bash']) {
-    for (const [platform, artifact] of [
-      ['Darwin arm64', '70'],
-      ['Darwin x86_64', '71'],
-      ['Linux aarch64', '72'],
-      ['Linux x86_64', '73'],
-    ]) {
-      for (const mode of [
-        'success',
-        'fresh',
-        'partial',
-        'empty',
-        'directory',
-        'symlink',
-        'directory-symlink',
-        'unsupported',
-      ]) {
-        const directory = mkdtempSync(join(tmpdir(), 'preview install '));
-        try {
-          const bin = join(directory, 'bin');
-          mkdirSync(bin);
-          writeFileSync(
-            join(bin, 'uname'),
-            '#!/bin/sh\nprintf "%s\\n" "$FIXTURE_PLATFORM"\n',
-            { mode: 0o755 },
-          );
-          writeFileSync(
-            join(bin, 'gh'),
-            `#!/bin/sh
+    for (const mode of ['success', 'partial', 'empty']) {
+      const directory = mkdtempSync(join(tmpdir(), 'preview bootstrap '));
+      try {
+        const bin = join(directory, 'bin');
+        mkdirSync(bin);
+        const scratch = join(directory, 'scratch');
+        mkdirSync(scratch);
+        writeFileSync(
+          join(bin, 'uname'),
+          '#!/bin/sh\nprintf "Darwin arm64\\n"\n',
+          { mode: 0o755 },
+        );
+        writeFileSync(
+          join(bin, 'gh'),
+          `#!/bin/sh
 set -eu
-[ "$#" -eq 4 ]
-[ "$1" = api ]
-[ "$2" = --hostname ]
-[ "$3" = github.com ]
-[ "$4" = "/repos/fabricahq/code-rules/actions/artifacts/$FIXTURE_ARTIFACT/zip" ]
-case "$FIXTURE_MODE" in
-  partial) printf partial; exit 1 ;;
-  empty) exit 0 ;;
-esac
-cat "$FIXTURE_PAYLOAD"
+[ "$1" = api ] && [ "$2" = --hostname ] && [ "$3" = github.com ]
+if [ "$#" -eq 6 ]; then
+  [ "$4" = -H ] && [ "$5" = 'Accept: application/vnd.github.raw+json' ]
+  [ "$6" = '/repos/fabricahq/code-rules/contents/_tools/install-preview.sh?ref=${'c'.repeat(40)}' ]
+  case "$FIXTURE_MODE" in
+    partial) printf 'touch executed-partial-script\\n'; exit 1 ;;
+    empty) exit 0 ;;
+  esac
+  cat "$FIXTURE_INSTALLER"
+else
+  [ "$#" -eq 4 ]
+  [ "$4" = '/repos/fabricahq/code-rules/actions/artifacts/70/zip' ]
+  printf '#!/bin/sh\\nprintf "preview works\\\\n"\\n'
+fi
 `,
-            { mode: 0o755 },
-          );
-          writeFileSync(join(directory, 'payload'), executable);
-          const destination = join(directory, 'code-rules');
-          const other = join(directory, 'other');
-          if (mode === 'directory') mkdirSync(destination);
-          else if (mode === 'directory-symlink') {
-            mkdirSync(other);
-            symlinkSync(other, destination);
-          } else if (mode === 'symlink') {
-            writeFileSync(other, 'keep symlink target');
-            symlinkSync(other, destination);
-          } else if (mode !== 'fresh')
-            writeFileSync(destination, 'old executable');
-          const result = spawnSync(shell, ['-c', command!], {
-            cwd: directory,
-            env: {
-              ...process.env,
-              PATH: `${bin}:${process.env.PATH}`,
-              FIXTURE_PLATFORM:
-                mode === 'unsupported' ? 'Linux riscv64' : platform,
-              FIXTURE_ARTIFACT: artifact,
-              FIXTURE_MODE: mode,
-              FIXTURE_PAYLOAD: join(directory, 'payload'),
-            },
-            encoding: 'utf8',
-          });
-          if (['success', 'fresh', 'symlink'].includes(mode)) {
-            expect(result.status).toBe(0);
-            expect(result.stdout).toBe('Downloaded and wrote ./code-rules\n');
-            expect(readFileSync(destination, 'utf8')).toBe(executable);
-            expect(statSync(destination).mode & 0o100).toBe(0o100);
-            expect(execFileSync(destination, { encoding: 'utf8' })).toBe(
-              'preview works\n',
-            );
-            if (mode === 'symlink')
-              expect(readFileSync(other, 'utf8')).toBe('keep symlink target');
-          } else {
-            expect(result.status).not.toBe(0);
-            expect(result.stdout).toBe('');
-            if (mode === 'directory' || mode === 'directory-symlink') {
-              expect(readdirSync(destination)).toEqual([]);
-              expect(result.stderr).toMatch(
-                /Cannot install: \/.*\/code-rules is an existing folder\./,
-              );
-              expect(result.stderr).toContain(
-                'Nothing was changed. Run this command from a different directory.',
-              );
-            } else
-              expect(readFileSync(destination, 'utf8')).toBe('old executable');
-          }
-          expect(
-            readdirSync(directory).filter((name) =>
-              name.startsWith('.code-rules.'),
+          { mode: 0o755 },
+        );
+        writeFileSync(join(directory, 'code-rules'), 'old executable');
+        const result = spawnSync(shell, ['-c', command!], {
+          cwd: directory,
+          env: {
+            ...process.env,
+            PATH: `${bin}:${process.env.PATH}`,
+            TMPDIR: scratch,
+            FIXTURE_MODE: mode,
+            FIXTURE_INSTALLER: fileURLToPath(
+              new URL('./install-preview.sh', import.meta.url),
             ),
-          ).toEqual([]);
-        } finally {
-          rmSync(directory, { recursive: true, force: true });
+          },
+          encoding: 'utf8',
+        });
+        if (mode === 'success') {
+          expect(result.status).toBe(0);
+          expect(result.stdout).toBe('Downloaded and wrote ./code-rules\n');
+          expect(
+            execFileSync(join(directory, 'code-rules'), { encoding: 'utf8' }),
+          ).toBe('preview works\n');
+        } else {
+          expect(result.status).not.toBe(0);
+          expect(result.stdout).toBe('');
+          expect(readFileSync(join(directory, 'code-rules'), 'utf8')).toBe(
+            'old executable',
+          );
         }
+        expect(readdirSync(directory)).not.toContain('executed-partial-script');
+        expect(readdirSync(scratch)).toEqual([]);
+      } finally {
+        rmSync(directory, { recursive: true, force: true });
       }
     }
   }
-}, 30_000);
+});

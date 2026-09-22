@@ -29,7 +29,9 @@ After a successful build, PRs opened by a maintainer from a branch in this repos
 
 The PR comment includes a one-line install command that detects your platform: macOS (Apple Silicon or Intel) or Linux (ARM or Intel/AMD). Install [GitHub CLI](https://cli.github.com/) and sign in with `gh auth login`, then copy the command into your terminal.
 
-The command downloads the preview into your current directory as `code-rules` and makes it executable. It replaces an existing `./code-rules` only after a successful download; failed downloads leave the old file intact. It refuses to replace a directory. Then run:
+The command first downloads an installer pinned to the trusted workflow’s commit. It runs the installer only after that download succeeds.
+
+The installer downloads the preview into your current directory as `code-rules` and makes it executable. It replaces an existing `./code-rules` only after a successful download; failed downloads leave the old file intact. It refuses to replace a directory. Then run:
 
 ```sh
 ./code-rules --help
