@@ -54,10 +54,10 @@ func prepare(resolved resolution, options Options) (Output, error) {
 				files[mapping.Generated] = bytes.Clone(data)
 			}
 		}
-		files["libraries/"+source.Name+"/README.md"] = []byte(libraryReadme(source))
+		files["libraries/"+source.Name+"/README.md"] = []byte(generatedMarkdown(libraryReadme(source)))
 	}
-	files["rules/README.md"] = []byte("# Resolved rules\n\nThese files contain the complete resolved definitions after exclusions, replacements, and local additions. Start with [RULES.md](../RULES.md). See [provenance.json](../provenance.json) for origins. Edit source inputs and rebuild.\n")
-	files["groups/README.md"] = []byte("# Rule groups\n\nStart with [RULES.md](../RULES.md), then open relevant group indexes and read each applicable rule in full. Each group page provides reading instructions and either complete rules or summaries with explicit links to the full definitions.\n")
+	files["rules/README.md"] = []byte(generatedMarkdown("# Resolved rules\n\nThese files contain the complete resolved definitions after exclusions, replacements, and local additions. Start with [RULES.md](../RULES.md). See [provenance.json](../provenance.json) for origins. Edit source inputs and rebuild.\n"))
+	files["groups/README.md"] = []byte(generatedMarkdown("# Rule groups\n\nStart with [RULES.md](../RULES.md), then open relevant group indexes and read each applicable rule in full. Each group page provides reading instructions and either complete rules or summaries with explicit links to the full definitions.\n"))
 	provenance, err := renderProvenance(resolved, options.ToolVersion)
 	if err != nil {
 		return Output{}, err
@@ -76,7 +76,7 @@ func libraryReadme(source resolvedSource) string {
 	if source.Version != "" {
 		requested = source.Version
 	}
-	sections := []string{"# " + escapeText(source.Name), "This folder retains declared library license and notice files.", "**Repository:** " + escapeText(source.Repository), "**Requested revision or version:** " + escapeText(requested), "**Resolved commit:** `" + source.Commit + "`"}
+	sections := []string{"# " + escapeText(source.Name), "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.", "**Repository:** " + escapeText(source.Repository), "**Requested revision or version:** " + escapeText(requested), "**Resolved commit:** `" + source.Commit + "`"}
 	if source.Tag != "" {
 		sections = append(sections, "**Selected tag:** "+escapeText(source.Tag), "**Selected version:** "+escapeText(source.ResolvedVersion))
 	}
@@ -160,11 +160,12 @@ func termProvenance(source, originalPrefix string, license *rules.LicenseDeclara
 // renderProvenance serializes stable identities and policy outcomes, without redundant raw documents.
 func renderProvenance(resolved resolution, version string) ([]byte, error) {
 	result := struct {
-		ToolVersion string             `json:"toolVersion"`
-		Sources     []provenanceSource `json:"sources"`
-		Groups      []provenanceGroup  `json:"groups"`
-		Rules       []provenanceRule   `json:"rules"`
-	}{ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
+		GeneratedNotice string             `json:"generatedNotice"`
+		ToolVersion     string             `json:"toolVersion"`
+		Sources         []provenanceSource `json:"sources"`
+		Groups          []provenanceGroup  `json:"groups"`
+		Rules           []provenanceRule   `json:"rules"`
+	}{GeneratedNotice: generatedNotice + " Edit source rules or configuration, then regenerate with code-rules project build or code-rules project sync. Use the same --config option for custom configuration.", ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
 	for _, source := range resolved.Sources {
 		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: source.Tag, ResolvedVersion: source.ResolvedVersion, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, LicenseFiles: rules.LicensePaths(source.License), License: termProvenance(source.Name, "", source.License)})
 	}

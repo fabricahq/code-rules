@@ -89,10 +89,10 @@ Use exactly one of `--ref` or `--version`. For a version constraint, replace `--
 Code Rules owns this guide. After upgrading the CLI, refresh it from this folder:
 
 ```sh
-code-rules project init --config {{CONFIG_ARG}}
+code-rules project build --config {{CONFIG_ARG}}
 code-rules project check --config {{CONFIG_ARG}}
 ```
 
-`project init` creates missing scaffolding and refreshes an unmodified generated guide. It preserves valid configuration and local definitions. If this guide has manual edits or an unrecognized format, init stops and asks you to move those notes to a separate file before regenerating it.
+`project build` and `project sync` refresh this guide alongside generated guidance. `project init` also refreshes it when creating or checking project setup. These commands preserve valid configuration and local definitions. If this guide has manual edits or an unrecognized format, they stop and ask you to move those notes to a separate file before regenerating it.
 
-Include `code-rules project check --config {{CONFIG_ARG}}` in CI after installing the pinned CLI version. It verifies generated guidance and this guide without writing files. It fails if generated output is stale or this guide is missing or differs from the guide shipped with that version. Run `code-rules project build` with the same configuration to refresh generated output, or `code-rules project init` to refresh this guide. Code Rules' own tests execute the command examples above against the real CLI on every release change.
+Include `code-rules project check --config {{CONFIG_ARG}}` in CI after installing the pinned CLI version. It verifies generated guidance and this guide without writing files. It fails if generated output is stale or this guide is missing or differs from the guide shipped with that version. Run `code-rules project build` with the same configuration to refresh both generated output and this guide, or `code-rules project init` to refresh only this guide and setup files. Code Rules' own tests execute the command examples above against the real CLI on every release change.

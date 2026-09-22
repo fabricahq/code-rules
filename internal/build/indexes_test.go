@@ -228,7 +228,7 @@ func BenchmarkIndexPagesLarge(b *testing.B) {
 // TestIndexPagesDefaultBoundary keeps exactly 750 lines together and splits only above it.
 func TestIndexPagesDefaultBoundary(t *testing.T) {
 	for _, ending := range []string{"\n", "\r\n"} {
-		entries := []string{strings.Repeat("界"+ending, 372), strings.Repeat("b"+ending, 369)}
+		entries := []string{strings.Repeat("界"+ending, 372), strings.Repeat("b"+ending, 366)}
 		exact, err := indexPages("RULES.md", "# Rules", entries, "Footer", defaultIndexMaxLines)
 		if err != nil || len(exact) != 1 || strings.Count(exact["RULES.md"], "\n") != 750 {
 			t.Fatalf("750 lines: %v, %v", exact, err)
