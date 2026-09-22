@@ -13,7 +13,7 @@ import (
 // newProjectCommand groups project operations with their flags and help sections.
 func newProjectCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
 	command := &cobra.Command{Use: "project", Short: "Configure and manage rules for this project"}
-	command.Long = command.Short + "\n\nProjects combine rules imported from shared libraries with their own project-only rules." + documentationHelp
+	command.Long = command.Short + "\n\nA project is a codebase with a .code-rules/ directory at its root.\nProjects contain project-only rules, rules imported from libraries, or both." + documentationHelp
 	command.AddGroup(
 		&cobra.Group{ID: "main", Title: "Main commands:"},
 		&cobra.Group{ID: "utility", Title: "Utility commands:"},
