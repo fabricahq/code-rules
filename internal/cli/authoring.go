@@ -21,6 +21,7 @@ import (
 type authoringFlags struct {
 	command   *cobra.Command
 	values    map[string]*singleString
+	prompts   map[string]string
 	directory string
 }
 
@@ -52,7 +53,11 @@ func (f *authoringFlags) value(name string) string {
 func (f *authoringFlags) require(names ...string) error {
 	for _, name := range names {
 		if f.value(name) == "" {
-			value, err := f.ask(f.command.Flags().Lookup(name).Usage + ":")
+			label := f.command.Flags().Lookup(name).Usage
+			if prompt, ok := f.prompts[name]; ok {
+				label = prompt
+			}
+			value, err := f.ask(label + ":")
 			if err != nil {
 				return err
 			}
@@ -89,9 +94,15 @@ func (f *authoringFlags) group(prefix string) rules.GroupMetadata {
 
 // addGroupFlags defines the three required group fields with an optional creation prefix.
 func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
-	f.add(cmd, prefix+"name", "Group display name")
-	f.add(cmd, prefix+"description", "Group scope")
-	f.add(cmd, prefix+"when-to-read", "When an agent should read this group")
+	f.add(cmd, prefix+"name", `Title shown in rule indexes and group pages (e.g. "Testing")`)
+	f.add(cmd, prefix+"description", `What this group covers (e.g. "Unit and integration testing")`)
+	f.add(cmd, prefix+"when-to-read", "When an agent should read this group's rules")
+	f.prompts = map[string]string{
+		prefix + "name":        "Group title (e.g. Testing)",
+		prefix + "description": "What this group covers (e.g. Unit and integration testing)",
+	}
+	cmd.Long = cmd.Short + "\n\nID identifies the group in paths and configuration (e.g. practices/testing).\nThe name is its readable title (e.g. Testing or Testing and quality)."
+	cmd.SetUsageFunc(groupUsage)
 }
 
 // addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.

@@ -50,6 +50,7 @@ Each rule keeps its source-qualified ID and each source retains its selection gu
 ## When to read a group
 
 Each group supplies a name, description, and `whenToRead` guidance.
+The ID, such as `practices/testing`, identifies the group in paths and configuration. The name is a readable title, such as `Testing` or `Testing and quality`, shown in rule indexes and group pages. Use `--name` to supply that title when creating a group.
 For testing, that guidance should include behavior changes even when no test files change.
 Use the canonical [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) to describe intended work, add recognizable examples, and check selection against representative tasks.
 

@@ -9,6 +9,7 @@ require (
 	github.com/hashicorp/go-version v1.9.0
 	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.10
 	github.com/yuin/goldmark/v2 v2.1.4
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	golang.org/x/net v0.59.0
@@ -21,5 +22,4 @@ require (
 	github.com/bits-and-blooms/bitset v1.25.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
 )
