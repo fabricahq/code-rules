@@ -13,7 +13,7 @@ func groupIntroduction(groupPath string) string {
 	return fmt.Sprintf(`Adding a group at: %s
 
 - A group collects related rules. Use individual rules to give agents guidance.
-- The path %q uniquely identifies the group.
+- The path %q uniquely identifies this group.
 
 Example group:
   Path: practices/testing
@@ -34,7 +34,7 @@ func ruleIntroduction(rulePath, bodyFile string) string {
 	return fmt.Sprintf(`Adding a rule at: %s
 
 - A rule gives agents guidance for a specific task or situation.
-- The path %q uniquely identifies the rule.
+- The path %q uniquely identifies this rule.
 
 Example rule:
   Path: practices/testing/test-boundaries

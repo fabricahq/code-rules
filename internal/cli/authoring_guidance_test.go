@@ -64,7 +64,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				if err != nil || result.ExitCode != 0 {
 					t.Fatal(err, result)
 				}
-				for _, text := range []string{"Adding a rule at: techs/go/return-errors", "- A rule gives agents guidance", `- The path "techs/go/return-errors" uniquely identifies the rule.`, "Enter your rule's details below.", "Example rule:", "Title: Test boundary conditions", "Rule text:", "Then edit the created Markdown file"} {
+				for _, text := range []string{"Adding a rule at: techs/go/return-errors", "- A rule gives agents guidance", `- The path "techs/go/return-errors" uniquely identifies this rule.`, "Enter your rule's details below.", "Example rule:", "Title: Test boundary conditions", "Rule text:", "Then edit the created Markdown file"} {
 					if !strings.Contains(result.Transcript, text) {
 						t.Fatalf("missing orientation %q: %s", text, result.Transcript)
 					}
