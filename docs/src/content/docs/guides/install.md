@@ -1,11 +1,11 @@
 ---
 title: "Install Code Rules"
-description: "Build the Go CLI or try a binary candidate, then upgrade or roll back deliberately."
+description: "Build the Go CLI from source, then upgrade or roll back deliberately."
 ---
 
 Code Rules is a standalone Go executable for macOS and Linux on amd64 and arm64. Running it requires neither Node.js nor Bun. Sync also needs Git and your existing repository credentials. Windows is not supported.
 
-Public release publication remains separate work. The checkout supports source builds and unpublished candidate archives.
+Public release publication remains separate work. Build the CLI from source using the instructions below.
 
 ## Build from source
 
@@ -20,44 +20,6 @@ go build -o ./dist/code-rules ./cmd/code-rules
 Use the executable's absolute path, or add its directory to your `PATH`. A source build reports a development version unless built with an explicit version. Installing the executable does not initialize projects or fetch libraries.
 
 Follow [Set up a project](/guides/set-up-project/) or [Create a rule library](/guides/create-library/).
-
-## Try an unpublished release candidate
-
-After a successful build, PRs opened by a maintainer from a branch in this repository automatically receive preview links. Fork PRs and other contributors need a maintainer to approve the exact commit before the bot posts links.
-
-**Warning: These executables run code from the PR. Use a disposable test environment without credentials or private files. Even `--help` executes the program.**
-
-The PR comment includes a one-line install command that detects your platform: macOS (Apple Silicon or Intel) or Linux (ARM or Intel/AMD). Install [GitHub CLI](https://cli.github.com/) and sign in with `gh auth login`, then copy the command into your terminal.
-
-The command first downloads an installer pinned to the trusted workflow’s commit. It runs the installer only after that download succeeds.
-
-The installer downloads the preview into your current directory as `code-rules` and makes it executable. It replaces an existing `./code-rules` only after a successful download; failed downloads leave the old file intact. It refuses to replace a directory. Then run:
-
-```sh
-./code-rules --help
-```
-
-Each preview command prints this warning to stderr before command output, including help, version, and JSON commands:
-
-```text
-WARNING: Unreleased preview from commit <full SHA>. For testing only; not for production use.
-```
-
-JSON output on stdout remains unchanged. The warning is a reminder, not proof of authenticity: someone modifying the binary could remove it. Preview binaries are not publisher-signed or attested by Code Rules.
-
-No extraction or global installation is needed. You can also use the direct download links in the comment, rename the file to `code-rules`, and run `chmod +x code-rules`. These previews have not been released. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, regardless of whether the PR is open, closed, or merged.
-
-To build your own candidate, commit the intended source first, then run:
-
-```sh
-go run ./cmd/package-binaries --candidate --output /tmp/code-rules-artifacts
-```
-
-Choose a new output directory. Packaging builds committed HEAD in isolation, excluding uncommitted edits. Candidate versions identify the source commit. Explicit release versions come from the approved release request; tool terms come from `LICENSE.md`.
-
-The directory contains target-specific `.tar.gz` archives, `manifest.json`, and `SHA256SUMS`. Compare the target archive's SHA-256 against a trusted manifest before extracting it into a new directory. On macOS, use `shasum -a 256`; on Linux, use `sha256sum`. Inspect the manifest's source commit, target, and version, then run the extracted `./code-rules --version` and `./code-rules --help`.
-
-Checksums detect changed bytes; replacing both an archive and its manifest defeats that comparison. Candidate packaging does not publish a release or grant a tool license.
 
 ## Upgrade or roll back
 
