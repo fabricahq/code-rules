@@ -11,6 +11,7 @@ export type TranscriptFrame = {
   phase: 'typing' | 'running' | 'settled' | 'complete';
 };
 
+const PROMPT_READ_MS = 600;
 const CHARACTER_MS = 16;
 const TOOL_START_MS = 350;
 const OUTPUT_LINE_MS = 140;
@@ -82,11 +83,13 @@ export class TranscriptPlayback {
   get view() {
     const frame = transcriptFrame(
       this.sessions.get(this.session) ?? [],
-      this.elapsed,
+      this.elapsed - PROMPT_READ_MS,
     );
     return {
       frame,
+      isPromptOnly: frame.phase !== 'complete' && this.elapsed < PROMPT_READ_MS,
       isPlaying: this.playing,
+      isPaused: !this.playing && frame.phase !== 'complete',
       isPreview: !this.revealed.has(this.session),
       isComplete: frame.phase === 'complete',
     };
@@ -110,6 +113,11 @@ export class TranscriptPlayback {
   toggle() {
     if (this.view.isComplete) this.restart();
     else this.playing = !this.playing;
+  }
+
+  /** Continue an interrupted session without restarting completed or unplayed sessions. */
+  resume() {
+    if (this.view.isPaused) this.playing = true;
   }
 
   /** Pause without discarding progress. */

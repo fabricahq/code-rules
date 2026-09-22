@@ -2,12 +2,12 @@
 /** @fileoverview Shows two illustrative, controllable agent sessions using adopted rules to write and review code. */
 import AgentSession from './AgentSession.astro';
 const readRule = {
-  title: 'Read your rule', kind: 'RULE', file: 'Keep secrets out of logs',
+  title: 'Read your rule', kind: 'RULE', file: '.code-rules/rules/practices/logging/no_secrets_in_logs.md',
   note: 'First, I’ll read your logging rule.',
   code: 'Never write secrets to logs.', lang: 'text' as const,
 };
 const write = [readRule, {
-  title: 'Apply it', kind: 'EDIT', file: 'sign-in.ts · excerpt',
+  title: 'Apply it', kind: 'EDIT', file: 'sign-in.ts',
   note: 'I’m writing the logging code to follow your rule: include user IDs, never passwords.',
   code: 'log.info({ userId }, "Signed in");', lang: 'ts' as const,
 }, {
@@ -16,13 +16,13 @@ const write = [readRule, {
   code: '✓ Sign-ins logged · passwords excluded', lang: 'text' as const,
 }];
 const review = [{
-  title: 'Inspect the code', kind: 'READ', file: 'sign-in.ts · excerpt',
-  note: 'This sign-in handler logs credentials.',
+  title: 'Inspect the code', kind: 'READ', file: 'sign-in.ts',
+  note: 'It looks like this sign-in handler logs credentials.',
   code: 'log.info({ userId, password });', lang: 'ts' as const,
 }, {
   ...readRule, note: 'I’ll check your rule for logging secrets.',
 }, {
-  title: 'Find and fix', kind: 'PATCH', file: 'sign-in.ts · excerpt',
+  title: 'Find and fix', kind: 'PATCH', file: 'sign-in.ts',
   note: 'Logging the password violates this rule. I’ll remove it.',
   code: '- log.info({ userId, password });\n+ log.info({ userId });', lang: 'diff' as const,
 }, {
@@ -42,10 +42,10 @@ const review = [{
       <div class="relative">
         <AgentSession id="write" title="Write with rules" task="Add logging for successful sign-ins." steps={write} selected />
         <AgentSession id="review" title="Review and fix" task="Review our sign-in logging. Fix any issues." steps={review} />
-        <div class="absolute inset-0 grid place-items-center bg-[linear-gradient(transparent_15%,var(--session-surface)_55%)]" hidden data-preview-overlay>
+        <div class="absolute inset-0 grid place-items-center bg-[linear-gradient(transparent_15%,var(--session-surface)_55%)] data-[paused]:bg-none data-[paused]:bg-[color-mix(in_srgb,var(--session-surface)_65%,transparent)]" hidden data-preview-overlay>
           <button type="button" class="inline-flex items-center gap-[.65rem] min-h-[52px] py-3 px-[1.4rem] border border-(--session-border) rounded-full bg-(--session-surface) text-(--session-text) shadow-[0_4px_18px_#162a4912,0_1px_3px_#162a4910] cursor-pointer font-sans text-[.85rem] font-medium leading-[normal] hover:border-(--session-action) hover:bg-(--session-surface-subtle) focus-visible:outline-2 focus-visible:outline-(--session-action) focus-visible:outline-offset-4" data-start aria-label="Play example session">
             <span class="grid place-items-center text-(--session-action) [&_svg]:size-5"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m8 4 12 8-12 8Z" /></svg></span>
-            <span>Play example</span>
+            <span class="flex flex-col text-left"><span data-start-label>Play example</span><span class="text-xs font-normal text-(--session-text-muted)" data-resume-hint hidden>Continue where you paused</span></span>
           </button>
         </div>
       </div>

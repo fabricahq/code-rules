@@ -78,6 +78,67 @@ const sessions = new Map([
 ]);
 
 describe('tabbed session controls', () => {
+  test('resume preserves the paused frame and never replays completed sessions', () => {
+    const playback = new TranscriptPlayback(sessions, 'write');
+    playback.resume();
+    expect(playback.view).toMatchObject({
+      isPreview: true,
+      isPlaying: false,
+      isPaused: false,
+    });
+    playback.restart();
+    playback.advance(2800);
+    playback.pause();
+    const pausedFrame = playback.view.frame;
+    expect(playback.view.isPaused).toBe(true);
+    playback.advance(5000);
+    expect(playback.view.frame).toEqual(pausedFrame);
+    playback.resume();
+    expect(playback.view).toMatchObject({
+      isPlaying: true,
+      isPaused: false,
+      frame: pausedFrame,
+    });
+    playback.advance(140);
+    expect(playback.view.frame.lines).toBeGreaterThan(pausedFrame.lines);
+    playback.complete(true);
+    playback.resume();
+    expect(playback.view).toMatchObject({
+      isPlaying: false,
+      isPaused: false,
+      isComplete: true,
+    });
+  });
+
+  test('shows the user message before the agent responds, including after replay', () => {
+    const playback = new TranscriptPlayback(sessions, 'write');
+    playback.restart();
+    expect(playback.view.isPromptOnly).toBe(true);
+    playback.advance(300);
+    playback.pause();
+    playback.advance(5000);
+    expect(playback.view.isPromptOnly).toBe(true);
+    playback.toggle();
+    playback.advance(300);
+    expect(playback.view).toMatchObject({
+      isPromptOnly: false,
+      frame: { characters: 0 },
+    });
+    playback.advance(160);
+    expect(playback.view.frame.characters).toBe(10);
+    playback.restart();
+    expect(playback.view.isPromptOnly).toBe(true);
+    playback.complete(true);
+    expect(playback.view).toMatchObject({
+      isPromptOnly: false,
+      isComplete: true,
+      isPlaying: false,
+    });
+    playback.select('review');
+    playback.restart();
+    expect(playback.view.isPromptOnly).toBe(true);
+  });
+
   test('each tab keeps its own initial preview until explicitly played or revealed', () => {
     const playback = new TranscriptPlayback(sessions, 'write');
     expect(playback.view).toMatchObject({
@@ -86,7 +147,7 @@ describe('tabbed session controls', () => {
       isComplete: true,
     });
     playback.restart();
-    playback.advance(800);
+    playback.advance(1400);
     expect(playback.view).toMatchObject({
       isPreview: false,
       isPlaying: true,
@@ -116,7 +177,7 @@ describe('tabbed session controls', () => {
   test('pause preserves progress, resume continues, and replay starts over', () => {
     const playback = new TranscriptPlayback(sessions, 'write');
     playback.toggle();
-    playback.advance(800);
+    playback.advance(1400);
     playback.toggle();
     playback.advance(10_000);
     expect(playback.view).toMatchObject({
@@ -156,7 +217,7 @@ describe('tabbed session controls', () => {
     playback.select('review');
     expect(playback.view.isPreview).toBe(true);
     playback.restart();
-    playback.advance(80);
+    playback.advance(680);
     playback.select('review');
     expect(playback.view).toMatchObject({
       isPlaying: true,
