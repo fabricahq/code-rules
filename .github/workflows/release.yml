@@ -132,12 +132,34 @@ jobs:
           name: release-assets
           path: ${{ runner.temp }}/release-assets/
           if-no-files-found: error
+  # Sign the exact checksum manifest after both platform builds pass. Signing runs
+  # without source checkout, build tools, repository write access, or release keys.
+  attest:
+    needs: [plan, build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/release-assets
+      - name: Attest the archive checksum manifest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/release-assets/SHA256SUMS
+
   # Give write access only to the job that uploads and publishes the finished bundle.
   # The Go publisher verifies local assets, stages them on a draft, checks GitHub's stored
   # checksums, and makes the release public only when the complete asset set is verified.
   publish:
-    needs: [plan, build]
+    needs: [plan, build, attest]
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
     # Serialize publication across all versions to prevent competing releases from racing.
@@ -170,6 +192,7 @@ jobs:
 
   # A successful stable release wakes the tap. This job neither builds code nor edits the tap.
   update-homebrew:
+    environment: homebrew-dispatch
     needs: [plan, publish]
     if: ${{ !contains(needs.plan.outputs.version, '-') }}
     runs-on: ubuntu-latest

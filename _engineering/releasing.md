@@ -66,9 +66,19 @@ See [installer setup](../_distribution/README.md) for the website endpoint, acti
 
 After publishing a stable release, the `update-homebrew` job triggers **Update Code Rules** in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases do not update the formula. The tap validates the published archives and checksums before committing an update.
 
-The job authenticates through **Fabrica Homebrew Releaser**, installed only on the tap with Actions write and Metadata read permissions. The Code Rules repository stores its client ID in the `HOMEBREW_APP_CLIENT_ID` Actions variable and its private key in the `HOMEBREW_APP_PRIVATE_KEY` Actions secret. The job checks out no source and creates a short-lived token restricted to the tap. The tap uses its own token to commit the formula.
+The job authenticates through **Fabrica Homebrew Releaser**, a shared trigger App for trusted Fabrica products. It is installed only on the tap with Actions write and Metadata read permissions. Set `HOMEBREW_APP_CLIENT_ID` as an Actions variable and store `HOMEBREW_APP_PRIVATE_KEY` in the `homebrew-dispatch` environment, restricted to `main`. Remove any repository-level copy after this workflow is merged. The job checks out no source and creates a short-lived token restricted to the tap.
 
-If dispatch or the tap update fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure does not modify or unpublish the release. The app can serve other Fabrica tools; add each updater to its tap and grant the app access only to the required tap repositories.
+The tap uses a separate publishing App whose key stays in its protected environment. Product repositories never receive that key. Formula publication runs automatically; no human review is required for routine formula updates.
+
+If dispatch or the tap update fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure does not modify or unpublish the release. Other trusted Fabrica products can use the shared trigger App to dispatch their own updater workflows.
+
+## Release provenance and protection
+
+After both platform builds pass, the release workflow signs `SHA256SUMS` with a GitHub artifact attestation. The signing job checks out no source and has no Contents write permission. The publisher runs only after signing succeeds. The tap verifies the signature against this repository's release workflow on `main` before accepting the archive checksums.
+
+Configure the `release` and `homebrew-dispatch` environments to allow only the `main` branch, with no reviewers or wait timers. Require pull requests for changes to `main` and protect its history from deletion and force pushes. Enable immutable releases so published assets and tags cannot be replaced. Repository administrators can bypass review requirements through a PR, but not by pushing directly.
+
+Merge the attestation workflow and the tap's verifier before the first release. These controls authenticate the release workflow and preserve published artifacts; they cannot detect malicious code approved into that workflow.
 
 ## Retry a failed release
 
