@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"slices"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -109,6 +108,9 @@ func AddLocalGroup(ctx context.Context, id string, metadata rules.GroupMetadata,
 		return AuthoringResult{}, err
 	}
 	return editProject(ctx, options, "Add a rule to this group, then run code-rules project build.", func(root *os.Root, _ []byte, _ rules.Configuration) ([]filetxn.File, error) {
+		if err := checkLocalGroup(ctx, root, id); err != nil {
+			return nil, err
+		}
 		guideName, _ := projectGuide()
 		return groupFiles(path.Join("local", id), id, data, guideName), nil
 	})
@@ -147,33 +149,8 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 	return false, nil
 }
 
-// HasLocalRuleGroup checks current metadata before prompting; writes must still recheck under the writer lock.
-// This advisory read does not require an idle writer; publication owns recovery and revalidation.
-func HasLocalRuleGroup(ctx context.Context, id string, options Options) (bool, error) {
-	if err := rules.ValidateGroupID(id, "group"); err != nil {
-		return false, err
-	}
-	root, err := openProject(ctx, options, false)
-	if err != nil {
-		return false, err
-	}
-	defer root.Close()
-	_, config, err := configuration(ctx, root)
-	if err != nil {
-		return false, err
-	}
-	return groupAvailable(ctx, root, config, id)
-}
-
 // AddLocalRule creates a validated rule or canonical unfinished draft, in an existing group.
 func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
-	if strings.HasSuffix(id, ".md") {
-		return AuthoringResult{}, failure("invalid-operation", "use a rule path without the .md extension", nil)
-	}
-	group, err := rules.GroupFromPath(id+".md", "rule")
-	if err != nil {
-		return AuthoringResult{}, err
-	}
 	data, err := rules.RenderRule(id, metadata, options.Body)
 	if err != nil {
 		return AuthoringResult{}, err
@@ -184,12 +161,8 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 		next = "Complete the draft and remove unused template prompts before running code-rules project build."
 	}
 	return editProject(ctx, options.Options, next, func(root *os.Root, _ []byte, config rules.Configuration) ([]filetxn.File, error) {
-		available, err := groupAvailable(ctx, root, config, group)
-		if err != nil {
+		if err := checkLocalRule(ctx, root, config, id); err != nil {
 			return nil, err
-		}
-		if !available {
-			return nil, failure("missing-group", "group "+group+" does not exist; create it first with code-rules project add group "+group+", then retry adding the rule", nil)
 		}
 		return []filetxn.File{{Path: path.Join("local", id+".md"), Content: data}}, nil
 	})
@@ -197,13 +170,13 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 
 // AddSource records a validated source declaration without Git access, preserving other selections and exceptions.
 func AddSource(ctx context.Context, alias string, source json.RawMessage, options Options) (AuthoringResult, error) {
-	return editProject(ctx, options, "Run code-rules project sync to import this source and regenerate resolved rules.", func(_ *os.Root, original []byte, _ rules.Configuration) ([]filetxn.File, error) {
+	return editProject(ctx, options, "Run code-rules project sync to import this source and regenerate resolved rules.", func(_ *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
 		var fields map[string]json.RawMessage
 		json.Unmarshal(original, &fields)
 		var sources map[string]json.RawMessage
 		json.Unmarshal(fields["sources"], &sources)
-		if _, ok := sources[alias]; ok {
-			return nil, failure("source-exists", "source "+alias+" already exists; edit its configuration explicitly", nil)
+		if err := checkSourceAlias(config, alias); err != nil {
+			return nil, err
 		}
 		sources[alias] = source
 		encoded, err := jsonText(sources)

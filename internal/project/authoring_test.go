@@ -172,8 +172,8 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if _, err := AddSource(ctx, "team", source, options); err != nil {
 		t.Fatal(err)
 	}
-	if available, err := HasLocalRuleGroup(ctx, "techs/go", options); err != nil || available {
-		t.Fatal(available, err)
+	if _, err := PlanLocalRule(ctx, "techs/go/errors", options); err == nil {
+		t.Fatal("planned rule before imported group was fetched")
 	}
 	data, err := os.ReadFile(filepath.Join(directory, "config.json"))
 	if err != nil {

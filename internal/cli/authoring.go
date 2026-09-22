@@ -9,10 +9,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"unicode/utf8"
 
-	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
@@ -136,7 +134,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	var groups []string
 	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
-		if err := project.CheckNewSource(cmd.Context(), args[0], sf.options()); err != nil {
+		plan, err := project.PlanSource(cmd.Context(), args[0], sf.options())
+		if err != nil {
 			*started = true
 			return err
 		}
@@ -155,7 +154,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 			return err
 		}
 		*started = true
-		result, err := project.AddSource(cmd.Context(), args[0], data, sf.options())
+		result, err := plan.Commit(cmd.Context(), data)
 		if err != nil {
 			return err
 		}
@@ -166,7 +165,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	group, gf := newAuthoringCommand("group GROUP_PATH", "Create a project-only rule group", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	gf.addGroupFlags(group, "")
 	group.RunE = func(cmd *cobra.Command, args []string) error {
-		if err := project.CheckNewLocalGroup(cmd.Context(), args[0], gf.options()); err != nil {
+		plan, err := project.PlanLocalGroup(cmd.Context(), args[0], gf.options())
+		if err != nil {
 			*started = true
 			return err
 		}
@@ -175,7 +175,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 			return err
 		}
 		*started = true
-		result, err := project.AddLocalGroup(cmd.Context(), args[0], gf.group(""), gf.options())
+		result, err := plan.Commit(cmd.Context(), gf.group(""))
 		if err != nil {
 			return err
 		}
@@ -186,12 +186,16 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	rule, rf := newAuthoringCommand("rule RULE_PATH", "Create a project-only rule or unfinished draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
 	rf.addRuleFlags(rule)
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
+		plan, err := project.PlanLocalRule(cmd.Context(), args[0], rf.options())
+		if err != nil {
+			*started = true
+			return err
+		}
 		metadata, body, err := rf.collectRule(cmd.Context(), args[0], false, started)
 		if err != nil {
 			return err
 		}
-		ro := project.RuleOptions{Options: rf.options(), Body: body}
-		result, err := project.AddLocalRule(cmd.Context(), args[0], metadata, ro)
+		result, err := plan.Commit(cmd.Context(), metadata, body)
 		if err != nil {
 			return err
 		}
@@ -201,26 +205,9 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	add.AddCommand(rule)
 }
 
-// collectRule validates the existing group before prompting and collects all input before writer ownership.
+// collectRule collects metadata and body after the domain has planned the target.
 // started preserves the CLI distinction between usage failures and failed authoring operations.
 func (f *authoringFlags) collectRule(ctx context.Context, id string, isLibrary bool, started *bool) (rules.RuleMetadata, *string, error) {
-	if strings.HasSuffix(id, ".md") {
-		return rules.RuleMetadata{}, nil, fmt.Errorf("use a rule path without the .md extension")
-	}
-	if err := f.requireRuleGroup(id, isLibrary); err != nil {
-		*started = true
-		return rules.RuleMetadata{}, nil, err
-	}
-	var err error
-	if isLibrary {
-		err = library.CheckNewRule(ctx, id, f.libraryOptions())
-	} else {
-		err = project.CheckNewLocalRule(ctx, id, f.options())
-	}
-	if err != nil {
-		*started = true
-		return rules.RuleMetadata{}, nil, err
-	}
 	f.introduction = ruleIntroduction(id, f.value("body-file"), isLibrary)
 	if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
 		return rules.RuleMetadata{}, nil, err

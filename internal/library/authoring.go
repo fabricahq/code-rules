@@ -232,7 +232,10 @@ func AddGroup(ctx context.Context, id string, metadata rules.GroupMetadata, opti
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return editLibrary(ctx, options, id, "Add a library rule, then run library check.", func(_ *os.Root) ([]filetxn.File, error) {
+	return editLibrary(ctx, options, id, "Add a library rule, then run library check.", func(root *os.Root) ([]filetxn.File, error) {
+		if err := checkNewGroup(ctx, root, id); err != nil {
+			return nil, err
+		}
 		return groupFiles(id, id, data), nil
 	})
 }
@@ -253,28 +256,8 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 	return err == nil, err
 }
 
-// HasGroup checks current metadata before an interactive prompt; writes recheck under the lock.
-// This advisory read does not require an idle writer; publication owns recovery and revalidation.
-func HasGroup(ctx context.Context, id string, options Options) (bool, error) {
-	if err := rules.ValidateGroupID(id, "group"); err != nil {
-		return false, err
-	}
-	root, err := openLibrary(ctx, options, false)
-	if err != nil {
-		return false, err
-	}
-	defer root.Close()
-	if _, _, err = libraryManifest(ctx, root); err != nil {
-		return false, err
-	}
-	return hasGroupMetadata(ctx, root, id)
-}
-
 // AddRule creates supplied guidance or a marked unfinished canonical draft, in an existing group.
 func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
-	if strings.HasSuffix(id, ".md") {
-		return AuthoringResult{}, failure("invalid-operation", "use a rule path without the .md extension", nil)
-	}
 	group, err := rules.GroupFromPath(id+".md", "rule")
 	if err != nil {
 		return AuthoringResult{}, err
@@ -290,12 +273,8 @@ func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, option
 	}
 
 	return editLibrary(ctx, options.Options, group, next, func(root *os.Root) ([]filetxn.File, error) {
-		exists, err := hasGroupMetadata(ctx, root, group)
-		if err != nil {
+		if err := checkNewRule(ctx, root, id, options.Options); err != nil {
 			return nil, err
-		}
-		if !exists {
-			return nil, failure("missing-group", "group "+group+" does not exist; create it first with code-rules library add group "+group+", then retry adding the rule", nil)
 		}
 		return []filetxn.File{{Path: id + ".md", Content: data}}, nil
 	})

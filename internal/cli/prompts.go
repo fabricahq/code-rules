@@ -11,8 +11,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
@@ -142,32 +140,6 @@ func (f *authoringFlags) collectSource(groups *[]string) error {
 			return err
 		}
 		*groups = splitPromptGroups(text)
-	}
-	return nil
-}
-
-// requireRuleGroup refuses absent metadata before any prompts; publication rechecks under its writer lock.
-func (f *authoringFlags) requireRuleGroup(id string, isLibrary bool) error {
-	group, err := rules.GroupFromPath(id+".md", "rule")
-	if err != nil {
-		return err
-	}
-	var exists bool
-	command := "code-rules project add group " + group
-	if isLibrary {
-		exists, err = library.HasGroup(f.command.Context(), group, f.libraryOptions())
-		command = "code-rules library add group " + group
-		if directory := f.value("directory"); directory != "" {
-			command += " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
-		}
-	} else {
-		exists, err = project.HasLocalRuleGroup(f.command.Context(), group, f.options())
-	}
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("group %s does not exist; create it first with %s, then retry adding the rule", group, command)
 	}
 	return nil
 }

@@ -101,7 +101,8 @@ func libraryGroupCommand(options Options, started *bool, output *commandOutput) 
 	cmd, f := newLibraryCommand("group GROUP_PATH", "Create library group metadata", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	f.addGroupFlags(cmd, "")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		if err := library.CheckNewGroup(cmd.Context(), args[0], f.libraryOptions()); err != nil {
+		plan, err := library.PlanGroup(cmd.Context(), args[0], f.libraryOptions())
+		if err != nil {
 			*started = true
 			return err
 		}
@@ -110,7 +111,7 @@ func libraryGroupCommand(options Options, started *bool, output *commandOutput) 
 			return err
 		}
 		*started = true
-		result, err := library.AddGroup(cmd.Context(), args[0], f.group(""), f.libraryOptions())
+		result, err := plan.Commit(cmd.Context(), f.group(""))
 		if err != nil {
 			return err
 		}
@@ -125,12 +126,16 @@ func libraryRuleCommand(options Options, started *bool, output *commandOutput) *
 	cmd, f := newLibraryCommand("rule RULE_PATH", "Create a complete library rule or marked draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
 	f.addRuleFlags(cmd)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		plan, err := library.PlanRule(cmd.Context(), args[0], f.libraryOptions())
+		if err != nil {
+			*started = true
+			return err
+		}
 		metadata, body, err := f.collectRule(cmd.Context(), args[0], true, started)
 		if err != nil {
 			return err
 		}
-		ro := library.RuleOptions{Options: f.libraryOptions(), Body: body}
-		result, err := library.AddRule(cmd.Context(), args[0], metadata, ro)
+		result, err := plan.Commit(cmd.Context(), metadata, body)
 		if err != nil {
 			return err
 		}
