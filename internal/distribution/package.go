@@ -119,7 +119,7 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 		return Manifest{}, err
 	}
 	for _, target := range targets {
-		artifact, err := buildTarget(ctx, source, options.Output, version, target, license, options.Candidate)
+		artifact, err := buildTarget(ctx, source, options.Output, version, revision, target, license, options.Candidate)
 		if err != nil {
 			return Manifest{}, err
 		}
@@ -163,7 +163,7 @@ func output(ctx context.Context, directory, name string, args ...string) (string
 }
 
 // buildTarget creates one statically linked native executable and archives it with original tool terms.
-func buildTarget(ctx context.Context, source, directory, version, target string, license []byte, candidate bool) (Artifact, error) {
+func buildTarget(ctx context.Context, source, directory, version, revision, target string, license []byte, candidate bool) (Artifact, error) {
 	temporary, err := os.MkdirTemp(directory, ".build-")
 	if err != nil {
 		return Artifact{}, err
@@ -171,7 +171,11 @@ func buildTarget(ctx context.Context, source, directory, version, target string,
 	defer os.RemoveAll(temporary)
 	binary := filepath.Join(temporary, "code-rules")
 	platform := strings.Split(target, "/")
-	command := exec.CommandContext(ctx, "go", "build", "-trimpath", "-buildvcs=false", "-ldflags", "-s -w -X main.version="+version, "-o", binary, "./cmd/code-rules")
+	flags := "-s -w -X main.version=" + version
+	if candidate {
+		flags += " -X main.previewCommit=" + revision
+	}
+	command := exec.CommandContext(ctx, "go", "build", "-trimpath", "-buildvcs=false", "-ldflags", flags, "-o", binary, "./cmd/code-rules")
 	command.Dir = source
 	command.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS="+platform[0], "GOARCH="+platform[1], "GOWORK=off", "GOFLAGS=", "GOENV=off", "GOAMD64=v1", "GOARM64=v8.0", "GOEXPERIMENT=")
 	if text, err := command.CombinedOutput(); err != nil {

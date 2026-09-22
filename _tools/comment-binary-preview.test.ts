@@ -31,6 +31,15 @@ const artifacts = targets.map((target, index) => ({
 // Exercise the shipped script without credentials or external writes.
 async function preview(
   options: {
+    sameRepository?: boolean;
+    authorPermission?: string;
+    trigger?: string;
+    ref?: string;
+    permission?: string;
+    runID?: string;
+    approvedCommit?: string;
+    runRepository?: number;
+    runStatus?: string;
     event?: string;
     conclusion?: string;
     path?: string;
@@ -46,8 +55,12 @@ async function preview(
   const warnings: string[] = [];
   const pr = {
     number: 38,
+    user: { login: 'contributor' },
     state: options.state ?? 'open',
-    head: { sha: options.head ?? sha, repo: { id: 99 } },
+    head: {
+      sha: options.head ?? sha,
+      repo: { id: options.sameRepository ? 1 : 99 },
+    },
     base: { repo: { id: options.foreign ? 2 : 1 } },
   };
   const responses: Record<string, object[]> = {
@@ -55,11 +68,40 @@ async function preview(
     pulls: [pr],
     comments: options.previous ? [options.previous] : [],
   };
+  const run = {
+    id: 500,
+    run_attempt: 2,
+    head_sha: sha,
+    repository: { id: options.runRepository ?? 1 },
+    status: options.runStatus ?? 'completed',
+    event: options.event ?? 'pull_request',
+    conclusion: options.conclusion ?? 'success',
+    path: options.path ?? '.github/workflows/package-binaries.yml',
+    pull_requests: [],
+  };
   const github = {
     paginate: async (route: string) => responses[route],
     rest: {
-      actions: { listWorkflowRunArtifacts: 'artifacts' },
-      repos: { listPullRequestsAssociatedWithCommit: 'pulls' },
+      actions: {
+        listWorkflowRunArtifacts: 'artifacts',
+        getWorkflowRun: async (args: { run_id: string }) => {
+          expect(args.run_id).toBe('500');
+          return { data: run };
+        },
+      },
+      repos: {
+        listPullRequestsAssociatedWithCommit: 'pulls',
+        getCollaboratorPermissionLevel: async (args: { username: string }) => {
+          return {
+            data: {
+              permission:
+                args.username === 'maintainer'
+                  ? (options.permission ?? 'write')
+                  : (options.authorPermission ?? 'read'),
+            },
+          };
+        },
+      },
       pulls: { get: async () => ({ data: pr }) },
       issues: {
         listComments: 'comments',
@@ -74,20 +116,22 @@ async function preview(
   };
   await runInNewContext(`(async () => { ${script}\n })()`, {
     github,
-    core: { warning: (message: string) => warnings.push(message) },
+    core: {
+      warning: (message: string) => warnings.push(message),
+      notice: () => {},
+    },
     context: {
       repo: { owner: 'fabricahq', repo: 'code-rules' },
       serverUrl: 'https://github.com',
+      actor: 'maintainer',
+      eventName: options.trigger ?? 'workflow_dispatch',
+      ref: options.ref ?? 'refs/heads/main',
       payload: {
-        repository: { id: 1 },
-        workflow_run: {
-          id: 500,
-          run_attempt: 2,
-          head_sha: sha,
-          event: options.event ?? 'pull_request',
-          conclusion: options.conclusion ?? 'success',
-          path: options.path ?? '.github/workflows/package-binaries.yml',
-          pull_requests: [],
+        repository: { id: 1, default_branch: 'main' },
+        workflow_run: run,
+        inputs: {
+          run_id: options.runID ?? '500',
+          commit: options.approvedCommit ?? sha,
         },
       },
     },
@@ -95,7 +139,7 @@ async function preview(
   return { writes, warnings };
 }
 
-test('posts downloadable candidates for an open fork PR even without event PR metadata', async () => {
+test('advertises a maintainer-approved commit for an open fork PR', async () => {
   const { writes } = await preview();
   expect(writes).toHaveLength(1);
   expect(writes[0]).toMatchObject({ method: 'create', issue_number: 38 });
@@ -112,6 +156,9 @@ test('posts downloadable candidates for an open fork PR even without event PR me
   expect(writes[0]!.body).toContain('### CLI preview ready');
   expect(writes[0]!.body).toContain(
     'Packaging and installation checks passed.',
+  );
+  expect(writes[0]!.body).toContain(
+    '**Warning: Runs code from this PR. For isolated testing only; not an official release.**',
   );
   expect(writes[0]!.body).toContain('**Manual testing is optional.**');
   expect(writes[0]!.body).toContain('chmod +x code-rules\n./code-rules --help');
@@ -145,9 +192,6 @@ test('does not edit a human comment containing the preview marker', async () => 
 });
 
 for (const options of [
-  { event: 'workflow_dispatch' },
-  { conclusion: 'failure' },
-  { path: '.github/workflows/another.yml' },
   { state: 'closed' },
   { head: 'b'.repeat(40) },
   { foreign: true },
@@ -224,6 +268,8 @@ test('keeps builds read-only and limits the notification to API access', () => {
     workflows: [packaging.name],
     types: ['completed'],
   });
+  expect(workflow.on.workflow_dispatch.inputs.commit.required).toBe(true);
+  expect(workflow.on.workflow_dispatch.inputs.run_id.required).toBe(true);
   expect(workflow.permissions).toEqual({
     actions: 'read',
     contents: 'read',
@@ -308,3 +354,47 @@ test('extracts exact executable bytes from each packaged target and refuses a mi
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+for (const options of [
+  { trigger: 'pull_request_target' },
+  { ref: 'refs/heads/contributor-branch' },
+  { permission: 'read' },
+  { permission: 'none' },
+  { runID: '500; echo unsafe' },
+  { approvedCommit: 'aaaaaaa' },
+  { approvedCommit: 'b'.repeat(40) },
+  { runRepository: 2 },
+  { runStatus: 'in_progress' },
+  { event: 'workflow_dispatch' },
+  { conclusion: 'failure' },
+  { path: '.github/workflows/another.yml' },
+]) {
+  test(`refuses an unauthorized or mismatched approval: ${JSON.stringify(options)}`, async () => {
+    await expect(preview(options)).rejects.toThrow();
+  });
+}
+
+test('automatically advertises same-repository PRs opened by current maintainers', async () => {
+  for (const authorPermission of ['write', 'admin']) {
+    const result = await preview({
+      trigger: 'workflow_run',
+      sameRepository: true,
+      authorPermission,
+    });
+    expect(result.writes).toHaveLength(1);
+  }
+});
+
+for (const options of [
+  { sameRepository: false, authorPermission: 'write' },
+  { sameRepository: true, authorPermission: 'read' },
+  { sameRepository: true, authorPermission: 'none' },
+  { sameRepository: true, authorPermission: 'write', head: 'b'.repeat(40) },
+  { sameRepository: true, authorPermission: 'write', conclusion: 'failure' },
+]) {
+  test(`withholds automatic links without a current trusted PR: ${JSON.stringify(options)}`, async () => {
+    expect(
+      (await preview({ trigger: 'workflow_run', ...options })).writes,
+    ).toEqual([]);
+  });
+}

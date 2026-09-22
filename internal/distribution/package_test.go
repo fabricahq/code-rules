@@ -3,6 +3,7 @@
 package distribution
 
 import (
+	"bytes"
 	"context"
 	"debug/buildinfo"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -64,9 +65,11 @@ func TestNativeInstallUpgradeRollback(t *testing.T) {
 			cmd := exec.Command(binary, args...)
 			cmd.Dir = project
 			cmd.Env = []string{"PATH=" + parent + "/no-runtime"}
-			data, err := cmd.CombinedOutput()
+			var diagnostic bytes.Buffer
+			cmd.Stderr = &diagnostic
+			data, err := cmd.Output()
 			if err != nil {
-				t.Fatal(args, err, string(data))
+				t.Fatal(args, err, string(data), diagnostic.String())
 			}
 			return string(data)
 		}
