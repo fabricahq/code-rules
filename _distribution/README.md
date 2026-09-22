@@ -12,10 +12,10 @@ The standalone installer lives at [`docs/public/install.sh`](../docs/public/inst
 
 ```sh
 sh -n docs/public/install.sh
-python3 -m unittest discover -s _distribution/tests -v
+go test -race -count=1 ./internal/distribution -run '^TestStandaloneInstaller$'
 bun run check
 ```
 
-The **Installers** workflow runs the fixture tests on Linux and macOS and builds a native executable for an installation smoke test. Most tests replace `curl` and `uname`; the native smoke test uses the runner's actual platform. Filesystem updates, archive handling, checksum tools, and PATH instructions run normally.
+The **Installers** workflow runs the Go tests on Linux and macOS. The suite builds a native executable for an installation smoke test; no prebuilt binary or Python runtime is required. Most tests replace `curl` and `uname`; the native smoke test uses the runner's actual platform. Filesystem updates, archive handling, checksum tools, and PATH instructions run normally.
 
 These tests do not prove that the public endpoint is deployed or that a published executable runs on every architecture.

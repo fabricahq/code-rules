@@ -19,11 +19,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - name: Build a native executable for installer smoke tests
-        run: go build -ldflags '-X main.version=1.2.3' -o "$RUNNER_TEMP/code-rules-test" ./cmd/code-rules
       - name: Test installation, upgrades, and failures
-        env:
-          CODE_RULES_TEST_BINARY: ${{ runner.temp }}/code-rules-test
         run: |
           sh -n docs/public/install.sh
-          python3 -m unittest discover -s _distribution/tests -v
+          go test -race -count=1 ./internal/distribution -run '^TestStandaloneInstaller$'
