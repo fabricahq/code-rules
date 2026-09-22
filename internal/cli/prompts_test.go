@@ -24,11 +24,11 @@ func TestInteractiveAuthoring(t *testing.T) {
 		created bool
 		flags   []string
 	}{
-		{"group", []terminalfixture.Step{{Prompt: "Group title (e.g. Testing):", Answer: "  Go  "}, {Prompt: "What this group covers (e.g. Unit and integration testing):", Answer: "Go guidance."}, {Prompt: "When an agent should read this group's rules:", Answer: "When editing Go."}}, 0, true, nil},
-		{"EOF", []terminalfixture.Step{{Prompt: "Group title (e.g. Testing):", EOF: true}}, 2, false, nil},
-		{"interrupt", []terminalfixture.Step{{Prompt: "Group title (e.g. Testing):", Interrupt: true}}, 1, false, nil},
-		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group title (e.g. Testing):", Answer: "\x03"}}, 1, false, nil},
-		{"blank", []terminalfixture.Step{{Prompt: "Group title (e.g. Testing):", Answer: "   "}}, 2, false, nil},
+		{"group", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", Answer: "  Go  "}, {Prompt: "What this group covers (e.g. Unit and integration testing):", Answer: "Go guidance."}, {Prompt: "When an agent should read this group's rules:", Answer: "When editing Go."}}, 0, true, nil},
+		{"EOF", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", EOF: true}}, 2, false, nil},
+		{"interrupt", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", Interrupt: true}}, 1, false, nil},
+		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", Answer: "\x03"}}, 1, false, nil},
+		{"blank", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", Answer: "   "}}, 2, false, nil},
 		{"unattended", nil, 2, false, []string{"--non-interactive"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
