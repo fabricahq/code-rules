@@ -5,6 +5,7 @@ package cli
 import (
 	"encoding/json"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -59,7 +60,7 @@ func TestProjectInitGuidance(t *testing.T) {
 			if location == "" {
 				location = ".code-rules/config.json"
 			}
-			if !strings.Contains(out, "Configuration: "+location+"\n") {
+			if !strings.Contains(out, "Project configuration: "+location+"\n") || !strings.Contains(out, "Code Rules directory: "+filepath.Dir(location)+"\n") {
 				t.Fatal("repeat init should show the configuration path", out)
 			}
 			out, diagnostic, code = runCLI(t, binary, directory, append(args, "--json")...)

@@ -30,9 +30,9 @@ Example library selection:
 func librarySelectionIntroduction(alias string) string {
 	return fmt.Sprintf(`Adding a library as: %s
 
-- The alias %q identifies this library in your project's configuration.
+- The alias %q identifies this library in your project configuration.
 
-This command updates your config. Run code-rules project sync afterward to fetch the rules and build guidance.
+This command updates your project configuration. Run code-rules project sync afterward to fetch the rules and build guidance.
 
 %s
 
@@ -41,8 +41,8 @@ Enter your library's details below.
 `, alias, alias, librarySelectionGuidance)
 }
 
-const librarySelectionHelp = `Add a shared library to this project's config without fetching its rules.
-Run from your project directory after code-rules project init.
+const librarySelectionHelp = `Add a shared library to the project configuration without fetching its rules.
+Run from your project root after code-rules project init.
 
 Interactive setup:
   code-rules project add library team

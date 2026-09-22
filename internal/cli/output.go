@@ -112,9 +112,9 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 	switch result := value.(type) {
 	case projectCheckResult:
 		if result.Status == "up_to_date" {
-			out.WriteString("Status: up to date.\nGenerated guidance and the project guide are current.\nNo files were changed.\n")
+			out.WriteString("Status: up to date.\nGenerated guidance and the Code Rules guide are current.\nNo files were changed.\n")
 		} else {
-			out.WriteString("Status: out of date.\nNo files were changed.\nPaths are relative to the configuration directory.\n\nProblems:\n")
+			fmt.Fprintf(out, "Status: out of date.\nNo files were changed.\nPaths are relative to the Code Rules directory: %s\n\nProblems:\n", filepath.Dir(projectConfigurationPath(cmd)))
 			for _, problem := range result.Problems {
 				fmt.Fprintf(out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, problem.NextStep)
 			}
@@ -144,23 +144,20 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 		}
 	case project.FileChanges:
 		if result.Guide != nil {
-			config := cmd.Flags().Lookup("config").Value.String()
-			if config == "" {
-				config = ".code-rules/config.json"
-			}
+			config := projectConfigurationPath(cmd)
 			action := "updated"
 			if result.Guide.Created {
 				action = "created"
 			}
-			fmt.Fprintf(out, "Project guide %s: %s\n", action, filepath.Join(filepath.Dir(config), result.Guide.Path))
+			fmt.Fprintf(out, "Code Rules guide %s: %s\n", action, filepath.Join(filepath.Dir(config), result.Guide.Path))
 		}
 		stale := len(result.Added)+len(result.Changed)+len(result.Removed) > 0
 		fmt.Fprintf(out, "%s complete: %d added, %d changed, %d removed.\n", strings.ToUpper(cmd.Name()[:1])+cmd.Name()[1:], len(result.Added), len(result.Changed), len(result.Removed))
 		if stale && cmd.Name() == "build" {
-			out.WriteString("Paths relative to generated/:\n")
+			fmt.Fprintf(out, "Paths relative to %s:\n", filepath.Join(filepath.Dir(projectConfigurationPath(cmd)), "generated"))
 		}
 		if stale && cmd.Name() == "sync" {
-			out.WriteString("Paths relative to the configuration directory:\n")
+			fmt.Fprintf(out, "Paths relative to the Code Rules directory: %s\n", filepath.Dir(projectConfigurationPath(cmd)))
 		}
 		for _, group := range []struct {
 			label string
@@ -184,11 +181,8 @@ func formatProjectInitialized(out *strings.Builder, cmd *cobra.Command, result p
 		fmt.Fprintf(out, "Warning: %s\n", warning)
 	}
 	config := cmd.Flags().Lookup("config").Value.String()
-	location := config
-	if location == "" {
-		location = ".code-rules/config.json"
-	}
-	fmt.Fprintf(out, "\nConfiguration: %s\n", location)
+	location := projectConfigurationPath(cmd)
+	fmt.Fprintf(out, "\nCode Rules directory: %s\nProject configuration: %s\n", filepath.Dir(location), location)
 	if len(result.Files) == 0 {
 		out.WriteString("\nRun code-rules project --help to manage this project's rules.\n")
 		return
@@ -253,4 +247,12 @@ func formatAuthored(out *strings.Builder, files, warnings []string, next string)
 	if next != "" {
 		fmt.Fprintf(out, "\nNext: %s\n", next)
 	}
+}
+
+// projectConfigurationPath preserves an explicit location for human output, using the default when omitted.
+func projectConfigurationPath(cmd *cobra.Command) string {
+	if value := cmd.Flags().Lookup("config").Value.String(); value != "" {
+		return value
+	}
+	return ".code-rules/config.json"
 }

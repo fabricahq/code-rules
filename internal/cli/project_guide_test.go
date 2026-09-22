@@ -197,7 +197,7 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 							if !strings.Contains(out, "Status:") {
 								t.Fatal(out, diagnostic)
 							}
-							if wantCode == 0 && !strings.Contains(out, "the project guide are current") {
+							if wantCode == 0 && !strings.Contains(out, "the Code Rules guide are current") {
 								t.Fatal(out)
 							}
 							if guideState != "current" && !strings.Contains(out, guideName) {

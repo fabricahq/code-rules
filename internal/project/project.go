@@ -169,7 +169,7 @@ func projectLocation(configPath string) (*os.Root, string, error) {
 	}
 	root, err := os.OpenRoot(filepath.Dir(absolute))
 	if err != nil {
-		return nil, "", fmt.Errorf("open configuration directory: %w", err)
+		return nil, "", fmt.Errorf("open Code Rules directory: %w", err)
 	}
 	return root, filepath.Base(absolute), nil
 }

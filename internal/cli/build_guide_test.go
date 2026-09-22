@@ -45,10 +45,10 @@ func TestBuildThenCheckAfterGuideUpgrade(t *testing.T) {
 						if code != 0 {
 							t.Fatalf("project %s after guide upgrade: exit %d\n%s%s", action, code, out, diagnostic)
 						}
-						if i == 0 && !strings.Contains(out, "Project guide ") {
+						if i == 0 && !strings.Contains(out, "Code Rules guide ") {
 							t.Fatal("guide update not reported", out)
 						}
-						if i == 1 && strings.Contains(out, "Project guide ") {
+						if i == 1 && strings.Contains(out, "Code Rules guide ") {
 							t.Fatal("guide updated twice", out)
 						}
 						if action == "check" && !strings.Contains(out, "Status: up to date.") {

@@ -10,7 +10,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/project"
 )
 
-var errCheckOutOfDate = errors.New("project is out of date; see the reported problems and next steps")
+var errCheckOutOfDate = errors.New("this project's Code Rules files are out of date; see the reported problems and next steps")
 
 // projectCheckResult describes the current project; checking never applies the suggested repairs.
 type projectCheckResult struct {
@@ -43,7 +43,7 @@ func checkProject(ctx context.Context, options project.Options, configArgument s
 		case project.UnexpectedFile:
 			message = "Unexpected generated file"
 		case project.OutdatedGuide:
-			message = "Project guide is missing or outdated; preserve any manual edits before refreshing"
+			message = "Code Rules guide is missing or outdated; preserve any manual edits before refreshing"
 		}
 		command := "build"
 		if problem.Repair == project.RefreshGuide {

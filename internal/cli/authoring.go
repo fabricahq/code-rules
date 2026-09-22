@@ -32,7 +32,7 @@ func newAuthoringCommand(use, description string, args cobra.PositionalArgs, dir
 	cmd := &cobra.Command{Use: use, Short: description, Args: args}
 	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: directory}
 	cmd.PostRunE = flags.finishPrompts
-	flags.add(cmd, "config", "Configuration file (default .code-rules/config.json)")
+	flags.add(cmd, "config", "Project configuration file (default .code-rules/config.json)")
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
 	return cmd, flags
 }
@@ -130,7 +130,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	root.AddCommand(initialize)
 	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or library"}
 	root.AddCommand(add)
-	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project's configuration."), options.Directory)
+	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project configuration."), options.Directory)
 	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag, full commit SHA, or version range (e.g. >= 1.2.0, < 2.0.0)"} {
 		sf.add(source, name, description)
 	}
