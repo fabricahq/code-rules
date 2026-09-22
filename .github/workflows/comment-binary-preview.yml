@@ -101,7 +101,7 @@ jobs:
               'tmp=$(mktemp ./.code-rules.XXXXXX);',
               `trap 'rm -f "$tmp"' EXIT;`,
               `gh api --hostname ${new URL(context.serverUrl).hostname} /repos/${owner}/${repo}/actions/artifacts/"$artifact"/zip > "$tmp";`,
-              'test -s "$tmp"; chmod +x "$tmp"; mv -f "$tmp" ./code-rules)',
+              'test -s "$tmp"; chmod +x "$tmp"; mv -f "$tmp" ./code-rules; echo "Downloaded and wrote ./code-rules")',
             ].join(' ');
             for (const candidate of pulls) {
               if (candidate.base.repo.id !== context.payload.repository.id) continue;

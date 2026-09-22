@@ -481,6 +481,7 @@ cat "$FIXTURE_PAYLOAD"
           });
           if (['success', 'fresh', 'symlink'].includes(mode)) {
             expect(result.status).toBe(0);
+            expect(result.stdout).toBe('Downloaded and wrote ./code-rules\n');
             expect(readFileSync(destination, 'utf8')).toBe(executable);
             expect(statSync(destination).mode & 0o100).toBe(0o100);
             expect(execFileSync(destination, { encoding: 'utf8' })).toBe(
@@ -490,6 +491,7 @@ cat "$FIXTURE_PAYLOAD"
               expect(readFileSync(other, 'utf8')).toBe('keep symlink target');
           } else {
             expect(result.status).not.toBe(0);
+            expect(result.stdout).toBe('');
             if (mode === 'directory' || mode === 'directory-symlink') {
               expect(readdirSync(destination)).toEqual([]);
               expect(result.stderr).toMatch(
