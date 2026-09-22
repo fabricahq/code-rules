@@ -69,12 +69,9 @@ func (f *authoringFlags) require(names ...string) error {
 			if prompt, ok := f.prompts[name]; ok {
 				label = prompt
 			}
-			value, err := f.ask(label + ":")
+			value, err := f.askValidated(label+":", func(value string) error { return validateAnswer(name, value) })
 			if err != nil {
 				return err
-			}
-			if value == "" {
-				return fmt.Errorf("provide --%s", name)
 			}
 			f.values[name].value = value
 		}
@@ -144,11 +141,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		if err := sf.collectSource(&groups); err != nil {
 			return err
 		}
-		var selection any = groups
-		if len(groups) == 1 && (groups[0] == "*" || groups[0] == "techs/*" || groups[0] == "practices/*") {
-			selection = groups[0]
-		}
-		declaration := map[string]any{"repository": sf.value("repository"), "groups": selection, "exclude": map[string]string{}, "replace": map[string]any{}}
+		declaration := map[string]any{"repository": sf.value("repository"), "groups": sourceGroupSelection(groups), "exclude": map[string]string{}, "replace": map[string]any{}}
 		if sf.value("ref") != "" {
 			declaration["ref"] = sf.value("ref")
 		} else {

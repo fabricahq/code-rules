@@ -116,12 +116,9 @@ func ruleFields(fields map[string]*yaml.Node, location string) (Rule, error) {
 	if err != nil {
 		return Rule{}, err
 	}
-	r.Impact = Impact(impact)
-	switch r.Impact {
-	case ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow:
-	default:
-		return Rule{}, invalid(location, fmt.Sprintf("impact must be one of %s, %s, %s, %s, %s, %s; got %s",
-			ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow, quote(impact)))
+	r.Impact, err = ParseImpact(impact, location)
+	if err != nil {
+		return Rule{}, err
 	}
 	r.ImpactDescription, err = ruleText(fields["impactDescription"], location+".impactDescription")
 	if err != nil {
@@ -208,4 +205,16 @@ func ruleAttribution(node *yaml.Node, location string) ([]Attribution, error) {
 		result = append(result, Attribution{URL: parsed.Href(false), Description: description})
 	}
 	return result, nil
+}
+
+// ParseImpact accepts the six declared consequence levels without normalizing authored values.
+func ParseImpact(value, location string) (Impact, error) {
+	impact := Impact(value)
+	switch impact {
+	case ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow:
+		return impact, nil
+	default:
+		return "", invalid(location, fmt.Sprintf("impact must be one of %s, %s, %s, %s, %s, %s; got %s",
+			ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow, quote(value)))
+	}
 }

@@ -66,7 +66,7 @@ code-rules project check --json
 
 JSON mode prints one response on stdout and never prompts. Success returns `ok: true` with a `value`. Failure returns `ok: false` with an `error` containing `kind` and `message`, plus `location` for validation errors when available. A native project check returns `value.status` (`up_to_date` or `out_of_date`) and a `value.problems` list. Each problem identifies its `kind`, `path`, `message`, and repair command in `nextStep`. Problem paths are relative to the configuration directory. Both generated guidance and the project guide must be current for `ok: true`. Only build and sync report `added`, `changed`, and `removed` files. Help and version return their text in `value.text`.
 
-Exit status is 0 for success, 1 for operation failure or stale output, and 2 for invalid usage. In human mode, operational errors go to stderr; an out-of-date check prints its status, problems, and next steps on stdout. In JSON mode, errors go in the JSON response; stderr is reserved for failures writing that response.
+Exit status is 0 for success, 1 for operation failure or stale output, and 2 for invalid usage. In human mode, failures start with a separated `Error:` label. The label is bold red on a supported terminal and plain text when redirected, when `NO_COLOR` is nonempty, or when `TERM` is empty or `dumb`. Operational errors go to stderr; an out-of-date check prints its error label, status, problems, and next steps on stdout. In JSON mode, errors go in the JSON response; stderr is reserved for failures writing that response.
 
 ## Project agent guide
 
@@ -180,7 +180,7 @@ code-rules library check
 
 Scaffolding commands validate paths and detect collisions before writing. They never overwrite existing files or leave partial scaffolds after a failed operation.
 They do not create Git repositories, commit, publish, infer licenses, or convert arbitrary upstream material.
-Interactive prompts collect missing author input. Noninteractive use must accept equivalent explicit inputs and fail with actionable errors when required input is missing.
+Interactive prompts collect missing author input. A blank required answer or an invalid impact, repository, revision choice, revision value, or group selection shows an error and repeats the same question, keeping earlier answers. Press Ctrl-C to cancel. Explicit flags are validated without replacing them with prompts. Noninteractive use must accept equivalent explicit inputs and fail with actionable errors when required input is missing.
 Group and rule commands use the same metadata flags as local authoring; run `code-rules --help` for the complete syntax.
 
 Library validation checks the input format, not the quality of the guidance or legal permissions.

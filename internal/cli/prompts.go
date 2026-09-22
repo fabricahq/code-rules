@@ -4,6 +4,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -124,28 +125,35 @@ func (f *authoringFlags) collectSource(groups *[]string) error {
 		return err
 	}
 	if f.value("ref") == "" && f.value("version") == "" {
-		kind, err := f.ask("Revision kind (ref or version):")
+		kind, err := f.askValidated("Revision kind (ref or version):", func(value string) error {
+			if value != "ref" && value != "version" {
+				return fmt.Errorf("choose ref or version")
+			}
+			return nil
+		})
 		if err != nil {
 			return err
-		}
-		if kind != "ref" && kind != "version" {
-			return fmt.Errorf("choose ref or version")
 		}
 		if err := f.require(kind); err != nil {
 			return err
 		}
 	}
 	if len(*groups) == 0 {
-		text, err := f.ask("Groups (comma-separated paths, *, practices/*, or techs/*):")
+		text, err := f.askValidated("Groups (comma-separated paths, *, practices/*, or techs/*):", func(value string) error {
+			if err := validateAnswer("groups", value); err != nil {
+				return err
+			}
+			data, err := json.Marshal(sourceGroupSelection(splitPromptGroups(value)))
+			if err != nil {
+				return err
+			}
+			_, err = rules.ParseGroupSelection(data, "--groups")
+			return err
+		})
 		if err != nil {
 			return err
 		}
-		if text == "" {
-			return fmt.Errorf("provide --groups")
-		}
-		for _, group := range strings.Split(text, ",") {
-			*groups = append(*groups, strings.TrimSpace(group))
-		}
+		*groups = splitPromptGroups(text)
 	}
 	return nil
 }

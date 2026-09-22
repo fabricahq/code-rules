@@ -28,7 +28,8 @@ func TestInteractiveAuthoring(t *testing.T) {
 		{"EOF", []terminalfixture.Step{{Prompt: "Group name:", EOF: true}}, 2, false, nil},
 		{"interrupt", []terminalfixture.Step{{Prompt: "Group name:", Interrupt: true}}, 1, false, nil},
 		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group name:", Answer: "\x03"}}, 1, false, nil},
-		{"blank", []terminalfixture.Step{{Prompt: "Group name:", Answer: "   "}}, 2, false, nil},
+		{"blank-retry", []terminalfixture.Step{{Prompt: "Group name:", Answer: "   "}, {Prompt: "Group name:", Answer: "Go"}, {Prompt: "Group description:", Answer: "Go guidance."}, {Prompt: "When to read:", Answer: "When editing Go."}}, 0, true, nil},
+		{"blank-EOF", []terminalfixture.Step{{Prompt: "Group name:", Answer: "   "}, {Prompt: "Group name:", EOF: true}}, 2, false, nil},
 		{"unattended", nil, 2, false, []string{"--non-interactive"}},
 		{"json", nil, 2, false, []string{"--json"}},
 	} {
