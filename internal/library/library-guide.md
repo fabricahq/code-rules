@@ -24,7 +24,7 @@ Human-readable output is the default. Add `--json` for structured results, or `-
 
 #### Add a group
 
-Choose a technology or practice ID and supply its scope and reading cue:
+Choose a technology or practice group path and supply its scope and reading cue:
 
 ```sh
 code-rules library add group techs/go \
@@ -55,7 +55,7 @@ code-rules library add rule techs/go/return-errors \
 ```
 
 Inspect `techs/go/return-errors.md`; make future edits there. The body file is only an authoring input.
-If you omit `--body-file`, complete the generated draft and remove unused template prompts before validation.
+If you omit `--body-file`, open the created Markdown file in your editor. Keep its metadata between the `---` lines; below it, write the instructions, rationale, correct and incorrect examples, and validation steps. Replace template placeholders, remove unused sections, and remove the `<!-- code-rules:draft -->` marker when the rule is complete. Then run `code-rules library check`.
 
 #### Validate and share
 

@@ -19,10 +19,11 @@ import (
 
 // authoringFlags owns one command's scalar flags and resolves paths against the caller's directory.
 type authoringFlags struct {
-	command   *cobra.Command
-	values    map[string]*singleString
-	prompts   map[string]string
-	directory string
+	command      *cobra.Command
+	values       map[string]*singleString
+	prompts      map[string]string
+	directory    string
+	introduction string
 }
 
 // newAuthoringCommand registers shared configuration and noninteractive flags with strict positional arity.
@@ -98,8 +99,9 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 	f.add(cmd, prefix+"description", `What this group covers (e.g. "Unit and integration testing")`)
 	f.add(cmd, prefix+"when-to-read", "When an agent should read this group's rules")
 	f.prompts = map[string]string{
-		prefix + "name":        "Group name (e.g. Testing)",
-		prefix + "description": "What this group covers (e.g. Unit and integration testing)",
+		prefix + "name":         "Group name",
+		prefix + "description":  "Group description",
+		prefix + "when-to-read": "When to read",
 	}
 	cmd.Long = cmd.Short + "\n\nGROUP_PATH combines a category and group slug (e.g. practices/testing).\nThe name is its readable title (e.g. Testing or Testing and quality)."
 }
@@ -157,6 +159,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	group, gf := newAuthoringCommand("group GROUP_PATH", "Create a project-only rule group", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	gf.addGroupFlags(group, "")
 	group.RunE = func(cmd *cobra.Command, args []string) error {
+		gf.introduction = groupIntroduction(args[0])
 		if err := gf.require("name", "description", "when-to-read"); err != nil {
 			return err
 		}
@@ -170,10 +173,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	}
 	add.AddCommand(group)
 	rule, rf := newAuthoringCommand("rule RULE_PATH", "Create a project-only rule or unfinished draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
-	rule.Long = rule.Short + "\n\nRULE_PATH includes the group path and rule slug, without .md (e.g. practices/testing/my-rule)."
-	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When an agent should read this rule", "impact": "Consequence level", "impact-description": "Why the rule matters", "body-file": "Existing UTF-8 Markdown body file"} {
-		rf.add(rule, name, description)
-	}
+	rf.addRuleFlags(rule)
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
 		metadata, body, err := rf.collectRule(cmd.Context(), args[0], false, started)
 		if err != nil {
@@ -200,6 +200,7 @@ func (f *authoringFlags) collectRule(ctx context.Context, id string, library boo
 		*started = true
 		return rules.RuleMetadata{}, nil, err
 	}
+	f.introduction = ruleIntroduction(id, f.value("body-file"))
 	if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
 		return rules.RuleMetadata{}, nil, err
 	}

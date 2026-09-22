@@ -31,6 +31,12 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if !f.interactive() {
 		return "", fmt.Errorf("%s Missing input; supply explicit flags in non-interactive mode", label)
 	}
+	if f.introduction != "" {
+		if _, err := io.WriteString(f.command.ErrOrStderr(), f.introduction); err != nil {
+			return "", err
+		}
+		f.introduction = ""
+	}
 	input := f.command.InOrStdin().(*os.File)
 	fd := int(input.Fd())
 	state, err := term.MakeRaw(fd)

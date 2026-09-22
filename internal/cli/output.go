@@ -112,11 +112,17 @@ func formatHuman(out *strings.Builder, cmd *cobra.Command, value any) {
 	case project.AuthoringResult:
 		if cmd.Name() == "init" {
 			formatProjectInitialized(out, cmd, result)
+		} else if cmd.Name() == "rule" {
+			formatRuleCreated(out, cmd, result.Files, result.Warnings, false)
 		} else {
 			formatAuthored(out, result.Files, result.Warnings, result.Next)
 		}
 	case library.AuthoringResult:
-		formatAuthored(out, result.Files, result.Warnings, result.Next)
+		if cmd.Name() == "rule" {
+			formatRuleCreated(out, cmd, result.Files, result.Warnings, true)
+		} else {
+			formatAuthored(out, result.Files, result.Warnings, result.Next)
+		}
 	case library.CheckResult:
 		fmt.Fprintf(out, "Library is valid: %d group(s), %d rule(s).\n", result.Groups, result.Rules)
 		for _, warning := range result.Warnings {

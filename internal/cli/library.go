@@ -99,6 +99,7 @@ func libraryGroupCommand(options Options, started *bool, output *commandOutput) 
 	cmd, f := newLibraryCommand("group GROUP_PATH", "Create library group metadata", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	f.addGroupFlags(cmd, "")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		f.introduction = groupIntroduction(args[0])
 		if err := f.require("name", "description", "when-to-read"); err != nil {
 			return err
 		}
@@ -116,10 +117,7 @@ func libraryGroupCommand(options Options, started *bool, output *commandOutput) 
 // libraryRuleCommand creates supplied guidance or a marked canonical draft in an existing group.
 func libraryRuleCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("rule RULE_PATH", "Create a complete library rule or marked draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
-	cmd.Long = cmd.Short + "\n\nRULE_PATH includes the group path and rule slug, without .md (e.g. practices/testing/my-rule)."
-	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When to read this rule", "impact": "Consequence level", "impact-description": "Why this rule matters", "body-file": "Existing UTF-8 Markdown body"} {
-		f.add(cmd, name, description)
-	}
+	f.addRuleFlags(cmd)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		metadata, body, err := f.collectRule(cmd.Context(), args[0], true, started)
 		if err != nil {

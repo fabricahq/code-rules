@@ -24,12 +24,13 @@ func TestInteractiveAuthoring(t *testing.T) {
 		created bool
 		flags   []string
 	}{
-		{"group", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", Answer: "  Go  "}, {Prompt: "What this group covers (e.g. Unit and integration testing):", Answer: "Go guidance."}, {Prompt: "When an agent should read this group's rules:", Answer: "When editing Go."}}, 0, true, nil},
-		{"EOF", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", EOF: true}}, 2, false, nil},
-		{"interrupt", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", Interrupt: true}}, 1, false, nil},
-		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", Answer: "\x03"}}, 1, false, nil},
-		{"blank", []terminalfixture.Step{{Prompt: "Group name (e.g. Testing):", Answer: "   "}}, 2, false, nil},
+		{"group", []terminalfixture.Step{{Prompt: "Group name:", Answer: "  Go  "}, {Prompt: "Group description:", Answer: "Go guidance."}, {Prompt: "When to read:", Answer: "When editing Go."}}, 0, true, nil},
+		{"EOF", []terminalfixture.Step{{Prompt: "Group name:", EOF: true}}, 2, false, nil},
+		{"interrupt", []terminalfixture.Step{{Prompt: "Group name:", Interrupt: true}}, 1, false, nil},
+		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group name:", Answer: "\x03"}}, 1, false, nil},
+		{"blank", []terminalfixture.Step{{Prompt: "Group name:", Answer: "   "}}, 2, false, nil},
 		{"unattended", nil, 2, false, []string{"--non-interactive"}},
+		{"json", nil, 2, false, []string{"--json"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			directory := t.TempDir()
@@ -40,6 +41,19 @@ func TestInteractiveAuthoring(t *testing.T) {
 			result, err := terminalfixture.Run(context.Background(), binary, directory, args, tc.steps)
 			if err != nil {
 				t.Fatal(err, result)
+			}
+			if len(tc.flags) > 0 && (strings.Contains(result.Transcript, "Example group:") || strings.Contains(result.Stdout, "Example group:")) {
+				t.Fatal("unattended mode showed interactive introduction", result)
+			}
+			if tc.name == "group" {
+				for _, text := range []string{"Adding a group at: techs/go", "Example group:", "Name: Testing", "Description: Unit and integration testing.", "When to read: When writing or changing tests."} {
+					if !strings.Contains(result.Transcript, text) {
+						t.Fatalf("missing orientation %q: %s", text, result.Transcript)
+					}
+				}
+				if strings.Index(result.Transcript, "Example group:") > strings.Index(result.Transcript, "Group name:") {
+					t.Fatal("example shown after prompts", result.Transcript)
+				}
 			}
 			if result.ExitCode != tc.code {
 				t.Fatal(result)
@@ -82,7 +96,7 @@ func TestLongTerminalPaste(t *testing.T) {
 		t.Fatal(stderr)
 	}
 	description := strings.Repeat("x", 2000)
-	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"local", "add", "group", "techs/go", "--name", "Go", "--when-to-read", "When editing Go."}, []terminalfixture.Step{{Prompt: "What this group covers (e.g. Unit and integration testing):", Answer: description}})
+	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"local", "add", "group", "techs/go", "--name", "Go", "--when-to-read", "When editing Go."}, []terminalfixture.Step{{Prompt: "Group description:", Answer: description}})
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)
 	}

@@ -56,7 +56,7 @@ code-rules project build --config {{CONFIG_ARG}}
 code-rules project check --config {{CONFIG_ARG}}
 ```
 
-Confirm that `local/techs/go/return-errors.md` contains the complete rule and that the generated Go group includes it. The body file is an authoring input; future edits belong in the local rule file. If you omit `--body-file`, the CLI creates an unfinished draft. Complete the draft and remove unused template prompts before building.
+Confirm that `local/techs/go/return-errors.md` contains the complete rule and that the generated Go group includes it. The body file is an authoring input; future edits belong in the local rule file. If you omit `--body-file`, open the created Markdown file in your editor. Keep its metadata between the `---` lines; below it, write the instructions, rationale, correct and incorrect examples, and validation steps. Replace template placeholders and remove unused sections before building.
 
 Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions or replacements in the configuration when overriding imported rules; adding a local rule does not automatically replace an imported rule.
 
