@@ -64,7 +64,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				if err != nil || result.ExitCode != 0 {
 					t.Fatal(err, result)
 				}
-				for _, text := range []string{"Adding a rule at: techs/go/return-errors", "Example rule:", "Title: Test boundary conditions", "Rule text:", "Then edit the created Markdown file"} {
+				for _, text := range []string{"Adding a rule at: techs/go/return-errors", "- A rule gives agents guidance", `- The path "techs/go/return-errors" uniquely identifies the rule.`, "Enter your rule's details below.", "Example rule:", "Title: Test boundary conditions", "Rule text:", "Then edit the created Markdown file"} {
 					if !strings.Contains(result.Transcript, text) {
 						t.Fatalf("missing orientation %q: %s", text, result.Transcript)
 					}
@@ -88,7 +88,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				if err != nil || !strings.Contains(string(data), "title: Return errors to the caller") || strings.Contains(string(data), "Test boundary conditions") {
 					t.Fatal("example replaced author input", err, string(data))
 				}
-				for _, text := range []string{"Rule draft created:", file, "Open the Markdown file above in your editor", "correct and incorrect examples", "Replace <...> placeholders", "When the rule is ready, run:"} {
+				for _, text := range []string{"Rule draft created:", file, "Open the Markdown file above in your editor", "correct and incorrect examples", "Replace <...> placeholders", "After writing the rule text,"} {
 					if !strings.Contains(result.Stdout, text) {
 						t.Fatalf("missing completion step %q: %s", text, result.Stdout)
 					}

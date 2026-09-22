@@ -27,12 +27,14 @@ Enter your group's details below.
 }
 
 func ruleIntroduction(rulePath, bodyFile string) string {
-	next := "First, enter the details below. Then edit the created Markdown file to write the full rule."
+	next := "Then edit the created Markdown file to write the full rule."
 	if bodyFile != "" {
-		next = fmt.Sprintf("The rule text will be read from %s. Enter the remaining details below.", bodyFile)
+		next = fmt.Sprintf("The rule text will be read from %s.", bodyFile)
 	}
 	return fmt.Sprintf(`Adding a rule at: %s
-The rule path identifies it; the title is its readable name.
+
+- A rule gives agents guidance for a specific task or situation.
+- The path %q uniquely identifies the rule.
 
 Example rule:
   Path: practices/testing/test-boundaries
@@ -42,11 +44,10 @@ Example rule:
   Why it matters: Boundary bugs can silently produce incorrect results.
   Rule text: Test empty inputs and values at each supported limit.
 
-Your title, reading cue, and impact details go at the
-top of the Markdown file. The instructions and examples go below that metadata.
+Enter your rule's details below.
 %s
 
-`, rulePath, next)
+`, rulePath, rulePath, next)
 }
 
 // addRuleFlags keeps the two authoring scopes' field labels and body instructions consistent.
@@ -91,7 +92,7 @@ func formatRuleCreated(out *strings.Builder, cmd *cobra.Command, files, warnings
 	} else {
 		out.WriteString("\nReview the Markdown file above. Make future edits directly in that file.\n")
 	}
-	out.WriteString("\nWhen the rule is ready, run:\n")
+	fmt.Fprintf(out, "\n%s\n", ruleReadyHeading(isLibrary))
 	actions := []string{"build", "check"}
 	if isLibrary {
 		actions = []string{"check"}
@@ -107,12 +108,18 @@ func formatGroupCreated(out *strings.Builder, cmd *cobra.Command, files, warning
 	rulePath := cmd.Flags().Args()[0] + "/my-rule"
 	fmt.Fprintf(out, "\nNext: Add a rule to this group (replace my-rule with your rule's slug):\n  %s\n", authoringFollowupCommand(cmd, "add rule "+rulePath, isLibrary))
 	action := "build"
-	next := "After writing the rule text, to make the rule accessible to this project, run:"
 	if isLibrary {
 		action = "check"
-		next = "After writing the rule text, run:"
 	}
-	fmt.Fprintf(out, "\n%s\n  %s\n", next, authoringFollowupCommand(cmd, action, isLibrary))
+	fmt.Fprintf(out, "\n%s\n  %s\n", ruleReadyHeading(isLibrary), authoringFollowupCommand(cmd, action, isLibrary))
+}
+
+// ruleReadyHeading explains the next action consistently after group and rule creation.
+func ruleReadyHeading(isLibrary bool) string {
+	if isLibrary {
+		return "After writing the rule text, run:"
+	}
+	return "After writing the rule text, to make the rule accessible to this project, run:"
 }
 
 // authoringFollowupCommand preserves the selected scope and quotes custom locations for shell use.
