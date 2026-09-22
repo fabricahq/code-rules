@@ -50,7 +50,7 @@ func TestPilotRejectsWritingChecks(t *testing.T) {
 	for _, change := range []string{"printf unexpected > unrelated-user-file.txt", "/bin/mkdir unexpected-empty-directory"} {
 		t.Run(change, func(t *testing.T) {
 			wrapper := filepath.Join(t.TempDir(), "wrapper")
-			script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = check ]; then\n IFS= read -r line < .code-rules/generated/RULES.md\n if [ \"$line\" = 'Stale output' ]; then %s; fi\nfi\nexec '%s' \"$@\"\n", change, binary)
+			script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = project ] && [ \"$2\" = check ]; then\n IFS= read -r line < .code-rules/generated/RULES.md\n if [ \"$line\" = 'Stale output' ]; then %s; fi\nfi\nexec '%s' \"$@\"\n", change, binary)
 			if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 				t.Fatal(err)
 			}
@@ -74,7 +74,7 @@ func TestPilotRejectsSilentRefusal(t *testing.T) {
 		t.Fatal(err, string(data))
 	}
 	wrapper := filepath.Join(t.TempDir(), "wrapper")
-	script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = build ] && [ -f .code-rules/vendor/team/LICENSE.md ]; then\n IFS= read -r line < .code-rules/vendor/team/LICENSE.md\n if [ \"$line\" = 'Manual edit' ]; then exit 1; fi\nfi\nexec '%s' \"$@\"\n", binary)
+	script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = project ] && [ \"$2\" = build ] && [ -f .code-rules/vendor/team/LICENSE.md ]; then\n IFS= read -r line < .code-rules/vendor/team/LICENSE.md\n if [ \"$line\" = 'Manual edit' ]; then exit 1; fi\nfi\nexec '%s' \"$@\"\n", binary)
 	if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestFailedPilotCapture(t *testing.T) {
 			if scenario == "cancellation" {
 				action = fmt.Sprintf("printf ready > '%s'; exec /bin/sleep 30", marker)
 			}
-			script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = init ]; then\n printf 'observed before failure' > observation.txt\n %s\nfi\nexec '%s' \"$@\"\n", action, binary)
+			script := fmt.Sprintf("#!/bin/sh\nif [ \"$1\" = project ] && [ \"$2\" = init ]; then\n printf 'observed before failure' > observation.txt\n %s\nfi\nexec '%s' \"$@\"\n", action, binary)
 			if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 				t.Fatal(err)
 			}

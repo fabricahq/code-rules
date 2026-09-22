@@ -6,30 +6,56 @@ description: "Project and library commands, output, and error behavior."
 The Go CLI implements project setup, local and library authoring, source addition, sync, build, and check. [Build or install a candidate executable](/guides/install/) to use it. Public release publication remains separate work. The conflict-review prompt and tool-update commands are not implemented.
 See [Sync and recovery](/reference/sync/) for filesystem behavior.
 
-For `sync`, `build`, and `check`, run from the consuming project's root by default.
+## Choose a scope
+
+Use `project` to configure and manage rules for the software project you are working in.
+Use `library` to create and maintain a collection of rules shared across projects.
+Rules and groups added through `project` belong to that project; rules and groups added through `library` belong to the shared library.
+
+```text
+code-rules project init
+code-rules project add library <alias>
+code-rules project add group <id>
+code-rules project add rule <id>
+code-rules project sync
+code-rules project build
+code-rules project check
+
+code-rules library init
+code-rules library add group <id>
+code-rules library add rule <id>
+code-rules library check
+```
+
+`project add library` records configuration without fetching anything. Its alias identifies the library under `sources` in configuration.
+Use `project sync` to fetch configured libraries and rebuild guidance. Use `project build` to rebuild from library snapshots already on disk.
+`project check` verifies file consistency; it does not review application code for compliance with the rules.
+
+For `project sync`, `project build`, and `project check`, run from the consuming project's root by default.
 Use `--config` to identify a configuration file elsewhere.
 
 Use `code-rules --version` to print the installed version.
 Run `code-rules --help` for a command overview, then narrow the help to the operation you need:
 
 ```sh
+code-rules project --help
 code-rules library --help
 code-rules library add rule --help
-code-rules check --help
+code-rules project check --help
 ```
 
 Each command's help lists its accepted options, defaults, examples, and relevant behavior.
 Bare command groups such as `code-rules library` also show navigation.
 Help never prompts or writes files. Invalid commands and options exit with status 2 and point to the relevant help page.
-Authoring help distinguishes fields prompted on a terminal from optional flags; both `init` commands currently run without prompts.
+Authoring help distinguishes fields prompted on a terminal from optional flags; both `project init` and `library init` currently run without prompts.
 
 ## Command output
 
 The CLI uses human-readable output by default. Add `--json` to any command when a script needs structured results:
 
 ```sh
-code-rules init
-code-rules check --json
+code-rules project init
+code-rules project check --json
 ```
 
 JSON mode prints one response on stdout and never prompts. Success returns `ok: true` with a `value`. Failure returns `ok: false` with an `error` containing `kind` and `message`, plus `location` for validation errors when available. A native project check returns `value.status` (`up_to_date` or `out_of_date`) and a `value.problems` list. Each problem identifies its `kind`, `path`, `message`, and repair command in `nextStep`. Problem paths are relative to the configuration directory. Both generated guidance and the project guide must be current for `ok: true`. Only build and sync report `added`, `changed`, and `removed` files. Help and version return their text in `value.text`.
@@ -38,16 +64,16 @@ Exit status is 0 for success, 1 for operation failure or stale output, and 2 for
 
 ## Project agent guide
 
-`code-rules init` creates `.code-rules/README.md` alongside configuration and local rules. This guide defines rules, groups, and libraries and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results. If a custom configuration lives outside a directory named `.code-rules`, init creates `CODE_RULES.md` beside that configuration and preserves the project's `README.md`.
+`code-rules project init` creates `.code-rules/README.md` alongside configuration and local rules. This guide defines rules, groups, and libraries and gives agents commands for adding groups, adding rules, adopting libraries, building, and checking results. If a custom configuration lives outside a directory named `.code-rules`, init creates `CODE_RULES.md` beside that configuration and preserves the project's `README.md`.
 
-After upgrading, run `code-rules init` again to refresh an older generated guide. It preserves valid configuration and local rules. If someone edited the managed guide, init refuses to overwrite it and explains how to preserve those notes separately.
+After upgrading, run `code-rules project init` again to refresh an older generated guide. It preserves valid configuration and local rules. If someone edited the managed guide, init refuses to overwrite it and explains how to preserve those notes separately.
 
-Run `code-rules check` in CI to verify both generated guidance and the project guide without changing files. A missing or outdated guide fails the check; run `code-rules init` to refresh it. Rebuild stale generated guidance with `code-rules build`. Use `--config` for a custom configuration location. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
+Run `code-rules project check` in CI to verify both generated guidance and the project guide without changing files. A missing or outdated guide fails the check; run `code-rules project init` to refresh it. Rebuild stale generated guidance with `code-rules project build`. Use `--config` for a custom configuration location. The guide is embedded in each native binary, and Code Rules CI executes its shell examples against the real CLI.
 
 ## Sync
 
 ```sh
-code-rules sync
+code-rules project sync
 ```
 
 Resolve each source's exact ref or highest matching version tag to a full commit SHA, validate all libraries, and generate resolved rules together.
@@ -63,7 +89,7 @@ If any source fails, preserve the previous complete output.
 ## Build
 
 ```sh
-code-rules build
+code-rules project build
 ```
 
 Generate resolved rules from verified vendor content, local rules, and configuration.
@@ -74,7 +100,7 @@ If any source repository, requested revision selection, or imported groups diffe
 ## Check
 
 ```sh
-code-rules check
+code-rules project check
 ```
 
 Render expected output without modifying files.
@@ -91,12 +117,12 @@ It does not mean application code follows those rules.
 
 ## Update the tool
 
-`code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/guides/install/#upgrade-or-roll-back), then refresh the managed project guide with `code-rules init`, regenerate with `code-rules build`, and run `code-rules check`. Use `sync` separately to select library revisions again.
+`code-rules update` is not implemented. Replace the executable using the [installation and upgrade procedure](/guides/install/#upgrade-or-roll-back), then refresh the managed project guide with `code-rules project init`, regenerate with `code-rules project build`, and run `code-rules project check`. Use `project sync` separately to select library revisions again.
 
 ## Explicit configuration
 
 ```sh
-code-rules check --config path/to/code-rules/config.json
+code-rules project check --config path/to/code-rules/config.json
 ```
 
 Resolve local paths relative to the chosen configuration directory.
@@ -107,16 +133,16 @@ Keep replacement files within that directory's `local/` tree.
 Run these commands from your consuming project with `code-rules` installed:
 
 ```sh
-code-rules init
-code-rules local add group practices/testing
-code-rules local add rule practices/testing/retry-budget
-code-rules add source team --repository https://github.com/example/rules.git --version '>= 1.2.0, < 2.0.0' --groups '*'
+code-rules project init
+code-rules project add group practices/testing
+code-rules project add rule practices/testing/retry-budget
+code-rules project add library team --repository https://github.com/example/rules.git --version '>= 1.2.0, < 2.0.0' --groups '*'
 ```
 
 Use `--config` to select a configuration file outside the default location.
-`init` creates an empty source configuration and `local/README.md` under `.code-rules/` by default, preserving existing files.
+`project init` creates an empty source configuration and `local/README.md` under `.code-rules/` by default, preserving existing files.
 Create the group before adding a rule. Rule creation fails before prompting for metadata if the group does not exist. No source declaration is needed for local rules.
-`add source` validates and records a library declaration; run `sync` separately to fetch it. It preserves existing source exceptions and local files.
+`project add library` validates and records a library declaration; run `project sync` separately to fetch it. It preserves existing source exceptions and local files.
 
 See [Set up a project](/guides/set-up-project/) for all explicit flags, the draft completion workflow, and file ownership.
 Authoring commands accept `--non-interactive`. Missing inputs fail without prompting when no terminal is available.
@@ -144,7 +170,7 @@ Interactive prompts collect missing author input. Noninteractive use must accept
 Group and rule commands use the same metadata flags as local authoring; run `code-rules --help` for the complete syntax.
 
 Library validation checks the input format, not the quality of the guidance or legal permissions.
-Consumer `code-rules check` instead verifies generated output against adopted inputs.
+Consumer `code-rules project check` instead verifies generated output against adopted inputs.
 For non-native material, follow [Adapt a third-party rule](/guides/adapt-rules/).
 
 ## Errors
@@ -156,3 +182,20 @@ Exit nonzero on failure and preserve the previous working output if installation
 ### Group guides
 
 The CLI creates `README.md` alongside `_group.json` for each new local or library group. The guide directs agents to the current metadata and explains how to add, edit, and validate rules. Group READMEs are authoring documentation and are excluded from rule loading and generated guidance. Existing group files are preserved.
+
+## Compatibility with earlier commands
+
+The original commands remain supported for existing scripts, but are hidden from root help.
+Use the scoped commands in new scripts and documentation. Compatibility commands retain their options, output modes, and exit statuses; suggested next steps use the scoped names.
+
+| Earlier command | Canonical command |
+| --- | --- |
+| `code-rules init` | `code-rules project init` |
+| `code-rules add source` | `code-rules project add library` |
+| `code-rules local add group` | `code-rules project add group` |
+| `code-rules local add rule` | `code-rules project add rule` |
+| `code-rules sync` | `code-rules project sync` |
+| `code-rules build` | `code-rules project build` |
+| `code-rules check` | `code-rules project check` |
+
+Library commands and the on-disk configuration and directory layout are unchanged.

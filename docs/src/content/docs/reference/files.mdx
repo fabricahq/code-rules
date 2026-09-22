@@ -283,11 +283,11 @@ The consuming repository's root license is not rewritten.
 
 ## Offline builder API
 
-Use `code-rules build` and `code-rules check` for supported project operations. The repository's Go implementation is under `internal/`; it is not a public Go SDK.
+Use `code-rules project build` and `code-rules project check` for supported project operations. The repository's Go implementation is under `internal/`; it is not a public Go SDK.
 
 Internally, resolution consumes validated configuration, library catalogs with retained bytes, and local files. Rendering returns a complete map of generated paths to bytes without network or filesystem effects. Project operations verify persisted snapshots and install or compare that output.
 
-Invalid input returns an error with its location. Missing or mismatched vendor snapshots require `code-rules sync`; the offline builder never silently fetches a replacement. Binary attachments and declared terms retain their original bytes.
+Invalid input returns an error with its location. Missing or mismatched vendor snapshots require `code-rules project sync`; the offline builder never silently fetches a replacement. Binary attachments and declared terms retain their original bytes.
 
 ## Provenance records
 

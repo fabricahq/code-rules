@@ -60,7 +60,7 @@ func checkProject(ctx context.Context, options project.Options, configArgument s
 
 // checkRepairCommand keeps custom configuration selections and quotes them for copying into a shell.
 func checkRepairCommand(command, config string) string {
-	result := "code-rules " + command
+	result := "code-rules project " + command
 	if config != "" {
 		result += " --config='" + strings.ReplaceAll(config, "'", "'\"'\"'") + "'"
 	}

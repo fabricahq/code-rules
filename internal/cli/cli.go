@@ -6,11 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/spf13/cobra"
 )
 
@@ -54,44 +52,8 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.Version = options.Version
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.RunE = func(cmd *cobra.Command, _ []string) error { return cmd.Help() }
-	for _, name := range []string{"sync", "build", "check"} {
-		config := &singleString{}
-		descriptions := map[string]string{"sync": "Fetch libraries and rebuild vendor and generated files", "build": "Rebuild generated guidance from verified local snapshots", "check": "Check generated guidance and the project guide without changing files or using Git"}
-		cmd := &cobra.Command{Use: name, Short: descriptions[name], Args: cobra.NoArgs}
-		cmd.Flags().Var(config, "config", "Configuration file (default .code-rules/config.json)")
-		cmd.RunE = func(cmd *cobra.Command, _ []string) error {
-			started = true
-			path := config.value
-			if path == "" {
-				path = filepath.Join(".code-rules", "config.json")
-			}
-			if !filepath.IsAbs(path) {
-				path = filepath.Join(options.Directory, path)
-			}
-			projectOptions := project.Options{ConfigPath: path, ToolVersion: options.Version}
-			var changes project.FileChanges
-			var err error
-			switch name {
-			case "sync":
-				changes, err = project.Sync(cmd.Context(), projectOptions, options.Git)
-			case "build":
-				changes, err = project.Build(cmd.Context(), projectOptions)
-			case "check":
-				report, checkErr := checkProject(cmd.Context(), projectOptions, config.value)
-				if checkErr == nil || errors.Is(checkErr, errCheckOutOfDate) {
-					output.value = report
-				}
-				return checkErr
-			}
-			if err != nil {
-				return err
-			}
-			output.value = changes
-			return nil
-		}
-		root.AddCommand(cmd)
-	}
-	addProjectAuthoringCommands(root, options, &started, output)
+	root.AddCommand(newProjectCommand(options, &started, output))
+	addLegacyProjectCommands(root, options, &started, output)
 	addLibraryCommands(root, options, &started, output)
 	// Discover the output mode even when Cobra stops at an earlier invalid argument.
 	output.json = requestsJSON(root, args)

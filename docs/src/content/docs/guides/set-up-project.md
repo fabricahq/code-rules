@@ -11,9 +11,9 @@ For an executable you can run outside the checkout, [install the packed release 
 ## Start with local rules
 
 ```sh
-code-rules init
-code-rules local add group practices/testing
-code-rules local add rule practices/testing/retry-budget
+code-rules project init
+code-rules project add group practices/testing
+code-rules project add rule practices/testing/retry-budget
 ```
 
 `init` creates `.code-rules/config.json` with no imported sources and `.code-rules/local/README.md`.
@@ -29,8 +29,8 @@ The new Markdown rule is a **draft** from the [canonical template](/reference/ru
 A successful format check does not establish that a draft is finished or that its guidance is correct.
 
 ```sh
-code-rules build
-code-rules check
+code-rules project build
+code-rules project check
 ```
 
 Open `.code-rules/generated/RULES.md` and review the generated rules. Commit configuration, local rules, and generated files.
@@ -39,14 +39,14 @@ Use the [agent integration instructions](/for-agents/) to connect the rules to y
 ## Add a library later
 
 ```sh
-code-rules add source team \
+code-rules project add library team \
   --repository https://github.com/example/rules.git \
   --version '>= 1.2.0, < 2.0.0' --groups '*'
-code-rules sync
+code-rules project sync
 ```
 
 Replace the example repository and version with a library you can access.
-`add source` validates and records the declaration. It does not fetch, verify remote existence, or change generated files. `sync` performs those steps explicitly.
+`project add library` validates and records the declaration. It does not fetch, verify remote existence, or change generated files. `project sync` performs those steps explicitly.
 Use exactly one of `--ref` (an exact tag or full commit) or `--version` (a HashiCorp version constraint).
 
 Use `--groups '*'`, `--groups 'practices/*'`, `--groups 'techs/*'`, or repeat `--groups` for explicit IDs. Quote wildcard values in your shell. Wildcards cannot be combined with other selectors.
@@ -59,13 +59,13 @@ Every prompt has an equivalent flag. A non-terminal invocation never prompts. `-
 Missing required inputs, unknown flags, and repeated single-value flags produce a usage error without authoring files.
 
 ```sh
-code-rules local add group practices/testing \
+code-rules project add group practices/testing \
   --name Testing \
   --description 'Verify observable project behavior.' \
   --when-to-read 'Before planning, changing, or reviewing project behavior.' \
   --non-interactive
 
-code-rules local add rule practices/testing/retry-budget \
+code-rules project add rule practices/testing/retry-budget \
   --title 'Bound retry attempts' \
   --when-to-read 'When implementing or reviewing retry behavior.' \
   --impact HIGH \
@@ -76,7 +76,7 @@ code-rules local add rule practices/testing/retry-budget \
 Pass `--when-to-read` once for either a group or a rule. Combine distinct scope cues into that one string.
 Optionally pass `--body-file path/to/guidance.md` to use an already authored Markdown body instead of the draft body. The command creates frontmatter from the explicit metadata flags; the body file should not contain frontmatter.
 
-Create a missing group first with `code-rules local add group <group-id>`, then run `code-rules local add rule`. The Go CLI errors before asking for rule metadata if the group does not exist. A selected group from a verified imported library also counts as an existing group.
+Create a missing group first with `code-rules project add group <group-id>`, then run `code-rules project add rule`. The Go CLI errors before asking for rule metadata if the group does not exist. A selected group from a verified imported library also counts as an existing group.
 Creating a local group establishes the project's description even when a library supplies the same group. Existing local metadata is never overwritten. Sync a configured library before relying on its group metadata.
 
 ## File ownership

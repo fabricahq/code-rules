@@ -30,7 +30,7 @@ func TestInitCreatesAgentGuide(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, text := range []string{"Add a group", "Add a rule", "Add a third-party library", "code-rules check"} {
+	for _, text := range []string{"Add a group", "Add a rule", "Add a third-party library", "code-rules project check"} {
 		if !strings.Contains(string(guide), text) {
 			t.Fatalf("guide missing %q", text)
 		}

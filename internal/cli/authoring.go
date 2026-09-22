@@ -96,7 +96,7 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 
 // addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.
 func addProjectAuthoringCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
-	initialize, f := newAuthoringCommand("init", "Initialize project files and refresh the agent guide", 0, options.Directory)
+	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", 0, options.Directory)
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
 		*started = true
 
@@ -108,12 +108,13 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		return nil
 	}
 	root.AddCommand(initialize)
-	add := &cobra.Command{Use: "add", Short: "Add project configuration"}
+	add := &cobra.Command{Use: "add", Short: "Add a library, project-only group, or project-only rule"}
 	root.AddCommand(add)
-	source, sf := newAuthoringCommand("source ALIAS", "Record one Git source without fetching", 1, options.Directory)
+	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", 1, options.Directory)
 	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag or full commit", "version": "HashiCorp version constraint"} {
 		sf.add(source, name, description)
 	}
+	source.Long = "Record a shared library in this project's configuration without fetching it. Run code-rules project sync to fetch configured libraries and build guidance. ALIAS names the library in the sources configuration."
 	var groups []string
 	source.Flags().StringArrayVar(&groups, "groups", nil, "Group ID (repeat) or one wildcard")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
@@ -143,11 +144,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		return nil
 	}
 	add.AddCommand(source)
-	local := &cobra.Command{Use: "local", Short: "Author local engineering rules"}
-	localAdd := &cobra.Command{Use: "add", Short: "Add a local group or rule"}
-	local.AddCommand(localAdd)
-	root.AddCommand(local)
-	group, gf := newAuthoringCommand("group ID", "Create local group metadata", 1, options.Directory)
+	group, gf := newAuthoringCommand("group ID", "Create a project-only rule group", 1, options.Directory)
 	gf.addGroupFlags(group, "")
 	group.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := gf.require("name", "description", "when-to-read"); err != nil {
@@ -161,8 +158,8 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		output.value = result
 		return nil
 	}
-	localAdd.AddCommand(group)
-	rule, rf := newAuthoringCommand("rule ID", "Create a local rule body or canonical unfinished draft", 1, options.Directory)
+	add.AddCommand(group)
+	rule, rf := newAuthoringCommand("rule ID", "Create a project-only rule or unfinished draft", 1, options.Directory)
 	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When an agent should read this rule", "impact": "Consequence level", "impact-description": "Why the rule matters", "body-file": "Existing UTF-8 Markdown body file"} {
 		rf.add(rule, name, description)
 	}
@@ -179,7 +176,7 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		output.value = result
 		return nil
 	}
-	localAdd.AddCommand(rule)
+	add.AddCommand(rule)
 }
 
 // collectRule validates the existing group before prompting and collects all input before writer ownership.

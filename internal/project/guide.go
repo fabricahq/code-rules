@@ -68,7 +68,7 @@ func prepareProjectGuide(ctx context.Context, root *os.Root, configName string) 
 		return nil, nil
 	}
 	if current != nil && !unmodifiedProjectGuide(current) {
-		return nil, failure("guide-edited", name+": unrecognized or manually edited project guide; preserve your notes in a separate file, move this guide aside, then run init again", nil)
+		return nil, failure("guide-edited", name+": unrecognized or manually edited project guide; preserve your notes in a separate file, move this guide aside, then run code-rules project init again", nil)
 	}
 	return &filetxn.File{Path: name, Content: wanted, Previous: current}, nil
 }
@@ -91,7 +91,7 @@ Local and library definitions can contribute to the same group, such as techs/go
 
 Follow [the project guide](../{{PROJECT_GUIDE}}) to add groups and rules. Keep rules within their group's scope and follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md).
 
-Complete drafts before building. Run build after local edits, or sync after changing a library source. Read the resulting [resolved rules](../generated/RULES.md) when working on the project.
+Complete drafts before building. Run code-rules project build after local edits, or code-rules project sync after changing a library source. Read the resulting [resolved rules](../generated/RULES.md) when working on the project.
 `
 
 // renderLocalReadme links newly initialized local guidance to the configuration's managed guide.

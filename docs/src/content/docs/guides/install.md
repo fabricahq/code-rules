@@ -28,9 +28,9 @@ Keep executables in separate versioned directories. Test the new executable agai
 After selecting a new version, run from your project:
 
 ```sh
-code-rules init
-code-rules build
-code-rules check
+code-rules project init
+code-rules project build
+code-rules project check
 ```
 
 Init refreshes the managed project README while preserving valid configuration and local rules. It refuses to overwrite manual edits to the guide. Build regenerates guidance and provenance; review those changes before committing. Use `sync` separately when you want to resolve remote library revisions again.

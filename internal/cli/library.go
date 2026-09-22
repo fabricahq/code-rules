@@ -32,7 +32,7 @@ func (f *authoringFlags) libraryOptions() library.Options {
 
 // addLibraryCommands installs a separate command tree that never reads consumer configuration.
 func addLibraryCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
-	library := &cobra.Command{Use: "library", Short: "Author and validate a shared rule library"}
+	library := &cobra.Command{Use: "library", Short: "Create and maintain a shared rule library"}
 	root.AddCommand(library)
 	library.AddCommand(libraryInitCommand(options, started, output), libraryCheckCommand(options, started, output))
 	add := &cobra.Command{Use: "add", Short: "Add a library group or rule"}

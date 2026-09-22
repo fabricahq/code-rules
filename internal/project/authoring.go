@@ -57,7 +57,7 @@ func configuration(ctx context.Context, root *os.Root, name string) ([]byte, rul
 		return nil, rules.Configuration{}, err
 	}
 	if data == nil {
-		return nil, rules.Configuration{}, failure("needs-init", name+": missing configuration; run init first", nil)
+		return nil, rules.Configuration{}, failure("needs-init", name+": missing configuration; run code-rules project init first", nil)
 	}
 	config, err := rules.ParseConfiguration(data)
 	return data, config, err
@@ -104,7 +104,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 		}
 		return files, nil
 	})
-	return authoringResult(changes, "Add a local group and rule, then run build. Or add a source and run sync.", err)
+	return authoringResult(changes, "Add a local group and rule, then run code-rules project build. Or add a library and run code-rules project sync.", err)
 }
 
 // editProject revalidates configuration and local paths under exclusive ownership before publishing authored files.
@@ -141,7 +141,7 @@ func AddLocalGroup(ctx context.Context, id string, metadata rules.GroupMetadata,
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return editProject(ctx, options, "Add a rule to this group, then run build.", func(root *os.Root, name string, _ []byte, _ rules.Configuration) ([]filetxn.File, error) {
+	return editProject(ctx, options, "Add a rule to this group, then run code-rules project build.", func(root *os.Root, name string, _ []byte, _ rules.Configuration) ([]filetxn.File, error) {
 		guideName, _ := projectGuide(filepath.Join(root.Name(), name))
 		return groupFiles(path.Join("local", id), id, data, guideName), nil
 	})
@@ -212,9 +212,9 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 		return AuthoringResult{}, err
 	}
 
-	next := "Review the rule, then run build."
+	next := "Review the rule, then run code-rules project build."
 	if options.Body == nil {
-		next = "Complete the draft and remove unused template prompts before running build."
+		next = "Complete the draft and remove unused template prompts before running code-rules project build."
 	}
 	return editProject(ctx, options.Options, next, func(root *os.Root, _ string, _ []byte, config rules.Configuration) ([]filetxn.File, error) {
 		available, err := groupAvailable(ctx, root, config, group)
@@ -222,7 +222,7 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 			return nil, err
 		}
 		if !available {
-			return nil, failure("missing-group", "group "+group+" does not exist; create it first with code-rules local add group "+group+", then retry adding the rule", nil)
+			return nil, failure("missing-group", "group "+group+" does not exist; create it first with code-rules project add group "+group+", then retry adding the rule", nil)
 		}
 		return []filetxn.File{{Path: path.Join("local", id+".md"), Content: data}}, nil
 	})
@@ -230,7 +230,7 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 
 // AddSource records a validated source declaration without Git access, preserving other selections and exceptions.
 func AddSource(ctx context.Context, alias string, source json.RawMessage, options Options) (AuthoringResult, error) {
-	return editProject(ctx, options, "Run sync to import this source and regenerate resolved rules.", func(_ *os.Root, name string, original []byte, _ rules.Configuration) ([]filetxn.File, error) {
+	return editProject(ctx, options, "Run code-rules project sync to import this source and regenerate resolved rules.", func(_ *os.Root, name string, original []byte, _ rules.Configuration) ([]filetxn.File, error) {
 		var fields map[string]json.RawMessage
 		json.Unmarshal(original, &fields)
 		var sources map[string]json.RawMessage
@@ -277,6 +277,6 @@ func failure(code, problem string, cause error) error {
 }
 
 func groupFiles(directory, id string, metadata []byte, projectGuideName string) []filetxn.File {
-	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for complete commands and the correct configuration path.\nUse `code-rules local add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun build and check with that configuration after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
+	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for complete commands and the correct configuration path.\nUse `code-rules project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun code-rules project build and code-rules project check with that configuration after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
 	return []filetxn.File{{Path: path.Join(directory, "_group.json"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

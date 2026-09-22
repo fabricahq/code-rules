@@ -282,7 +282,7 @@ func verifyLoadedSnapshot(source string, catalog library.Catalog, snapshot snaps
 		}
 	}
 	if !slices.Equal(groups, snapshot.Groups) || !slices.Equal(slices.Sorted(maps.Keys(files)), slices.Sorted(maps.Keys(snapshot.Files))) {
-		return failure("invalid-snapshot", source+": recorded groups or inventory differ from the selected library; run sync", nil)
+		return failure("invalid-snapshot", source+": recorded groups or inventory differ from the selected library; run code-rules project sync", nil)
 	}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !bytes.Equal(files[file], snapshot.Files[file]) {

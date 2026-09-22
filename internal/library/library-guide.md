@@ -69,6 +69,6 @@ Use one license declaration for the library in `rule-library.json`, with the act
 
 Review the diff, commit the library, and publish a Git tag using the repository's release process.
 Give consumers the repository address, tag or version constraint, and group IDs.
-Consumers run `code-rules add source` in their project, then `code-rules sync` to import the selected guidance.
+Consumers run `code-rules project add library` in their project, then `code-rules project sync` to import the selected guidance.
 
 You may customize this README for the library. Re-running `code-rules library init` preserves an existing README.

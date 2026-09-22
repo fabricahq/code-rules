@@ -7,7 +7,7 @@ description: "Walk through the import workflow, from choosing libraries to direc
 
 ## Try the working builder
 
-Start with [project setup](/guides/set-up-project/) to create a local group and rule, then run `code-rules build`. Open `.code-rules/generated/RULES.md` to inspect the output. This local-only workflow fetches no libraries.
+Start with [project setup](/guides/set-up-project/) to create a local group and rule, then run `code-rules project build`. Open `.code-rules/generated/RULES.md` to inspect the output. This local-only workflow fetches no libraries.
 
 ## 1. Choose libraries and revisions
 
@@ -65,7 +65,7 @@ The complete configuration contract is in [Configuration](/reference/configurati
 Run:
 
 ```sh
-code-rules sync
+code-rules project sync
 ```
 
 Sync resolves each ref to a full commit SHA and records it as `resolvedCommit` in `.code-rules/vendor/<source-name>/_source.json`.

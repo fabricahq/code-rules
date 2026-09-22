@@ -150,7 +150,7 @@ func (f *authoringFlags) requireRuleGroup(id string, isLibrary bool) error {
 		return err
 	}
 	var exists bool
-	command := checkRepairCommand("local add group "+group, f.value("config"))
+	command := checkRepairCommand("add group "+group, f.value("config"))
 	if isLibrary {
 		exists, err = library.HasGroup(f.command.Context(), group, f.libraryOptions())
 		command = "code-rules library add group " + group

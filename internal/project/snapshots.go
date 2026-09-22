@@ -39,12 +39,12 @@ type sourceRecord struct {
 func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) (map[string][]byte, error) {
 	output := map[string][]byte{}
 	if len(snapshots) != len(config.Sources) {
-		return nil, invalidSnapshot("vendor", "source inventory differs from configuration; run sync")
+		return nil, invalidSnapshot("vendor", "source inventory differs from configuration; run code-rules project sync")
 	}
 	for _, source := range config.Sources {
 		snapshot, ok := snapshots[source.Name]
 		if !ok {
-			return nil, invalidSnapshot(source.Name, "missing source snapshot; run sync")
+			return nil, invalidSnapshot(source.Name, "missing source snapshot; run code-rules project sync")
 		}
 		selection, err := json.Marshal(snapshot.Selection)
 		if err != nil {
@@ -93,7 +93,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		recordPath := source.Name + "/_source.json"
 		data, ok := vendor[recordPath]
 		if !ok {
-			return nil, invalidSnapshot(recordPath, "missing source record; run sync")
+			return nil, invalidSnapshot(recordPath, "missing source record; run code-rules project sync")
 		}
 		record, err := parseSourceRecord(data, source)
 		if err != nil {
@@ -105,7 +105,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 			full := source.Name + "/" + file
 			data, ok := vendor[full]
 			if !ok || digest(data) != record.Files[file] {
-				return nil, invalidSnapshot(full, "missing or modified imported content; run sync")
+				return nil, invalidSnapshot(full, "missing or modified imported content; run code-rules project sync")
 			}
 			files[file] = bytes.Clone(data)
 			expected[full] = true
@@ -118,7 +118,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 	}
 	for _, file := range slices.Sorted(maps.Keys(vendor)) {
 		if !expected[file] {
-			return nil, invalidSnapshot(file, "unexpected imported file or removed source; run sync")
+			return nil, invalidSnapshot(file, "unexpected imported file or removed source; run code-rules project sync")
 		}
 	}
 	return result, nil
@@ -196,7 +196,7 @@ func parseSourceRecord(data []byte, source rules.Source) (sourceRecord, error) {
 // matchSnapshotSource rejects stale selectors and inconsistent resolved revisions without fetching Git.
 func matchSnapshotSource(want, got rules.Source, record sourceRecord, where string) error {
 	if want.Repository != got.Repository || want.Ref != got.Ref || want.Version != got.Version || want.Groups.Pattern != got.Groups.Pattern || !slices.Equal(want.Groups.Groups, got.Groups.Groups) {
-		return invalidSnapshot(where, "source identity or group selection changed; run sync")
+		return invalidSnapshot(where, "source identity or group selection changed; run code-rules project sync")
 	}
 	commit, err := rules.ParseGitRef(record.Commit, where+".resolvedCommit")
 	if err != nil || commit.Kind != rules.GitRefCommit {
