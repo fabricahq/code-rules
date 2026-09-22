@@ -1,9 +1,12 @@
 /** @fileoverview Executes the preview workflow's API script against GitHub response fixtures. */
 
 import { expect, test } from 'bun:test';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   mkdtempSync,
+  readdirSync,
+  statSync,
+  symlinkSync,
   mkdirSync,
   readFileSync,
   rmSync,
@@ -116,6 +119,7 @@ async function preview(
   };
   await runInNewContext(`(async () => { ${script}\n })()`, {
     github,
+    URL,
     core: {
       warning: (message: string) => warnings.push(message),
       notice: () => {},
@@ -161,7 +165,9 @@ test('advertises a maintainer-approved commit for an open fork PR', async () => 
     '**Warning: Runs code from this PR. For isolated testing only; not an official release.**',
   );
   expect(writes[0]!.body).toContain('**Manual testing is optional.**');
-  expect(writes[0]!.body).toContain('chmod +x code-rules\n./code-rules --help');
+  expect(writes[0]!.body).toContain('gh auth login');
+  expect(writes[0]!.body).toContain('Then run `./code-rules --help`.');
+  expect(writes[0]!.body).toContain('It replaces any existing `./code-rules`');
   expect(writes[0]!.body).toContain(
     `[\`aaaaaaa\`](https://github.com/fabricahq/code-rules/commit/${'a'.repeat(40)})`,
   );
@@ -398,3 +404,106 @@ for (const options of [
     ).toEqual([]);
   });
 }
+
+// Execute the exact copyable command with controlled platform and download responses.
+test('installs the matching executable and preserves the old file on failure', async () => {
+  const { writes } = await preview();
+  const command = String(writes[0]!.body).match(/```sh\n([^\n]+)\n```/)?.[1];
+  expect(command).toBeDefined();
+  const executable = '#!/bin/sh\nprintf "preview works\\n"\n';
+  for (const shell of ['sh', 'bash']) {
+    for (const [platform, artifact] of [
+      ['Darwin arm64', '70'],
+      ['Darwin x86_64', '71'],
+      ['Linux aarch64', '72'],
+      ['Linux x86_64', '73'],
+    ]) {
+      for (const mode of [
+        'success',
+        'fresh',
+        'partial',
+        'empty',
+        'directory',
+        'symlink',
+        'directory-symlink',
+        'unsupported',
+      ]) {
+        const directory = mkdtempSync(join(tmpdir(), 'preview install '));
+        try {
+          const bin = join(directory, 'bin');
+          mkdirSync(bin);
+          writeFileSync(
+            join(bin, 'uname'),
+            '#!/bin/sh\nprintf "%s\\n" "$FIXTURE_PLATFORM"\n',
+            { mode: 0o755 },
+          );
+          writeFileSync(
+            join(bin, 'gh'),
+            `#!/bin/sh
+set -eu
+[ "$#" -eq 4 ]
+[ "$1" = api ]
+[ "$2" = --hostname ]
+[ "$3" = github.com ]
+[ "$4" = "/repos/fabricahq/code-rules/actions/artifacts/$FIXTURE_ARTIFACT/zip" ]
+case "$FIXTURE_MODE" in
+  partial) printf partial; exit 1 ;;
+  empty) exit 0 ;;
+esac
+cat "$FIXTURE_PAYLOAD"
+`,
+            { mode: 0o755 },
+          );
+          writeFileSync(join(directory, 'payload'), executable);
+          const destination = join(directory, 'code-rules');
+          const other = join(directory, 'other');
+          if (mode === 'directory') mkdirSync(destination);
+          else if (mode === 'directory-symlink') {
+            mkdirSync(other);
+            symlinkSync(other, destination);
+          } else if (mode === 'symlink') {
+            writeFileSync(other, 'keep symlink target');
+            symlinkSync(other, destination);
+          } else if (mode !== 'fresh')
+            writeFileSync(destination, 'old executable');
+          const result = spawnSync(shell, ['-c', command!], {
+            cwd: directory,
+            env: {
+              ...process.env,
+              PATH: `${bin}:${process.env.PATH}`,
+              FIXTURE_PLATFORM:
+                mode === 'unsupported' ? 'Linux riscv64' : platform,
+              FIXTURE_ARTIFACT: artifact,
+              FIXTURE_MODE: mode,
+              FIXTURE_PAYLOAD: join(directory, 'payload'),
+            },
+            encoding: 'utf8',
+          });
+          if (['success', 'fresh', 'symlink'].includes(mode)) {
+            expect(result.status).toBe(0);
+            expect(readFileSync(destination, 'utf8')).toBe(executable);
+            expect(statSync(destination).mode & 0o100).toBe(0o100);
+            expect(execFileSync(destination, { encoding: 'utf8' })).toBe(
+              'preview works\n',
+            );
+            if (mode === 'symlink')
+              expect(readFileSync(other, 'utf8')).toBe('keep symlink target');
+          } else {
+            expect(result.status).not.toBe(0);
+            if (mode === 'directory' || mode === 'directory-symlink')
+              expect(readdirSync(destination)).toEqual([]);
+            else
+              expect(readFileSync(destination, 'utf8')).toBe('old executable');
+          }
+          expect(
+            readdirSync(directory).filter((name) =>
+              name.startsWith('.code-rules.'),
+            ),
+          ).toEqual([]);
+        } finally {
+          rmSync(directory, { recursive: true, force: true });
+        }
+      }
+    }
+  }
+}, 30_000);

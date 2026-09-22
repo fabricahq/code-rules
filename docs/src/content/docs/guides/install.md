@@ -27,10 +27,11 @@ After a successful build, PRs opened by a maintainer from a branch in this repos
 
 **Warning: These executables run code from the PR. Use a disposable test environment without credentials or private files. Even `--help` executes the program.**
 
-The PR comment offers direct executable downloads for macOS (Apple Silicon or Intel) and Linux (ARM or Intel/AMD). Download the file for your computer and rename it to `code-rules`, then run:
+The PR comment includes a one-line install command that detects your platform: macOS (Apple Silicon or Intel) or Linux (ARM or Intel/AMD). Install [GitHub CLI](https://cli.github.com/) and sign in with `gh auth login`, then copy the command into your terminal.
+
+The command downloads the preview into your current directory as `code-rules` and makes it executable. It replaces an existing `./code-rules` only after a successful download; failed downloads leave the old file intact. It refuses to replace a directory. Then run:
 
 ```sh
-chmod +x code-rules
 ./code-rules --help
 ```
 
@@ -42,7 +43,7 @@ WARNING: Unreleased preview from commit <full SHA>. For testing only; not for pr
 
 JSON output on stdout remains unchanged. The warning is a reminder, not proof of authenticity: someone modifying the binary could remove it. Preview binaries are not publisher-signed or attested by Code Rules.
 
-No extraction or installation is needed. These previews have not been released. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, regardless of whether the PR is open, closed, or merged.
+No extraction or global installation is needed. You can also use the direct download links in the comment, rename the file to `code-rules`, and run `chmod +x code-rules`. These previews have not been released. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, regardless of whether the PR is open, closed, or merged.
 
 To build your own candidate, commit the intended source first, then run:
 

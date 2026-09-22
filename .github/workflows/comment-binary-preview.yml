@@ -65,20 +65,20 @@ jobs:
               owner, repo, run_id: run.id, per_page: 100,
             });
             const targets = [
-              ['code-rules-darwin-arm64', 'macOS Apple Silicon'],
-              ['code-rules-darwin-amd64', 'macOS Intel'],
-              ['code-rules-linux-arm64', 'Linux ARM'],
-              ['code-rules-linux-amd64', 'Linux Intel/AMD'],
+              ['code-rules-darwin-arm64', 'macOS Apple Silicon', 'Darwin arm64'],
+              ['code-rules-darwin-amd64', 'macOS Intel', 'Darwin x86_64'],
+              ['code-rules-linux-arm64', 'Linux ARM', 'Linux aarch64'],
+              ['code-rules-linux-amd64', 'Linux Intel/AMD', 'Linux x86_64'],
             ];
             const downloads = [];
-            for (const [name, label] of targets) {
+            for (const [name, label, platform] of targets) {
               const matches = artifacts.filter(a => a.name === name);
               if (matches.length !== 1 || matches[0].expired || matches[0].size_in_bytes <= 0 ||
                   !Number.isFinite(Date.parse(matches[0].expires_at))) {
                 core.warning(`Missing, duplicate, or unavailable ${name} preview; no comment posted.`);
                 return;
               }
-              downloads.push({label, artifact: matches[0]});
+              downloads.push({label, platform, artifact: matches[0]});
             }
             // Query GitHub directly: workflow_run.pull_requests can be empty for fork PRs.
             const pulls = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
@@ -90,6 +90,19 @@ jobs:
             const expires = new Date(Math.min(...downloads.map(d => Date.parse(d.artifact.expires_at)))).toLocaleString('en-US', {
               timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short',
             });
+            // The artifact API returns raw bytes for archive:false uploads, despite its /zip suffix.
+            // Keep the old executable until download and chmod succeed; a subshell contains variables and traps.
+            const installCommand = [
+              '(set -eu;',
+              'case "$(uname -sm)" in',
+              ...downloads.map(d => `"${d.platform}") artifact=${d.artifact.id} ;;`),
+              '*) echo "Unsupported platform: $(uname -sm)" >&2; exit 1 ;; esac;',
+              'if [ -d ./code-rules ]; then echo "./code-rules is a directory" >&2; exit 1; fi;',
+              'tmp=$(mktemp ./.code-rules.XXXXXX);',
+              `trap 'rm -f "$tmp"' EXIT;`,
+              `gh api --hostname ${new URL(context.serverUrl).hostname} /repos/${owner}/${repo}/actions/artifacts/"$artifact"/zip > "$tmp";`,
+              'test -s "$tmp"; chmod +x "$tmp"; mv -f "$tmp" ./code-rules)',
+            ].join(' ');
             for (const candidate of pulls) {
               if (candidate.base.repo.id !== context.payload.repository.id) continue;
               const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number: candidate.number});
@@ -119,14 +132,13 @@ jobs:
                 '',
                 '**Warning: Runs code from this PR. For isolated testing only; not an official release.**',
                 '',
-                '**Manual testing is optional.** Download the executable for your computer, rename it to `code-rules`, then run:',
+                '**Manual testing is optional.** With [GitHub CLI](https://cli.github.com/) installed and signed in (`gh auth login`), copy this line to install the build for your computer in the current directory. It replaces any existing `./code-rules` after a successful download:',
                 '',
                 '```sh',
-                'chmod +x code-rules',
-                './code-rules --help',
+                installCommand,
                 '```',
                 '',
-                'No extraction or installation needed.',
+                'Then run `./code-rules --help`. No extraction or global installation needed.',
                 '',
                 `GitHub sign-in required. Downloads expire ${expires} UTC.`,
                 '',
