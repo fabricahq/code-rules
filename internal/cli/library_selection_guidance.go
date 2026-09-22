@@ -41,14 +41,41 @@ Enter your library's details below.
 `, alias, alias, librarySelectionGuidance)
 }
 
-const librarySelectionHelp = `Record a shared library in this project's configuration without fetching it.
-ALIAS is your project's short name for the library (e.g. team), not its repository name.
+const librarySelectionHelp = `Add a shared library to this project's config without fetching its rules.
+Run from your project directory after code-rules project init.
 
-` + librarySelectionGuidance + `
+Interactive setup:
+  code-rules project add library team
 
-For scripts and agents, supply --repository, --ref, and --groups.
-Repeat --groups for individual paths; quote wildcards and version ranges in the shell.
-Use --non-interactive to require explicit flags, or --json for structured output without prompts.
-Use refs/tags/<name> for a literal tag that looks like a range.
-The example repository, tag, and groups are illustrative; replace them with your library's values.
-Run code-rules project sync afterward to fetch the rules and build guidance.`
+  Answer the prompts for the repository URL, ref, and groups.
+
+For agents and scripts (no prompts):
+  code-rules project add library team \
+    --repository https://github.com/example/rules.git \
+    --ref '>= 1.2.0, < 2.0.0' \
+    --groups practices/testing --groups techs/go \
+    --non-interactive
+
+Replace team with an alias you choose for this library in your project.
+Replace the example repository, ref, and group paths with your library's values.
+Add --json for machine-readable output; --json also disables prompts.
+
+Choosing a ref:
+  Use an exact tag (v1.2.3), a full commit SHA, or a range (>= 1.2.0, < 2.0.0).
+  Plain versions are literal tags. For ranges, sync selects the highest matching release tag.
+  Quote ranges in the shell. Branch names and abbreviated commits are not supported.
+  Use refs/tags/<name> for a literal tag that looks like a range.
+
+Choosing groups:
+  Specific groups:  --groups practices/testing --groups techs/go
+  All groups:       --groups '*'
+  All practices:    --groups 'practices/*'
+  All technologies: --groups 'techs/*'
+
+Find group paths in the library's docs or its practices/ and techs/ directories.
+Use paths that exist at your chosen ref. Do not mix a wildcard with specific paths.
+At the interactive prompt, enter paths separated by commas, or one wildcard.
+On the command line, repeat --groups for each path, as shown above.
+
+After adding the library, fetch its rules and build guidance:
+  code-rules project sync`

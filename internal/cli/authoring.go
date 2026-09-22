@@ -135,10 +135,9 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		sf.add(source, name, description)
 	}
 	source.Long = librarySelectionHelp + documentationHelp
-	source.Example = "  code-rules project add library team --repository https://github.com/example/rules.git --ref v1.2.3 --groups practices/testing --groups techs/go --non-interactive"
 	sf.prompts = map[string]string{"repository": "Git repository URL", "ref": "Ref (tag, full commit SHA, or version range)"}
 	var groups []string
-	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group path (repeat) or one selector: *, practices/*, techs/*")
+	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
 		sf.introduction = librarySelectionIntroduction(args[0])
 		if err := sf.collectSource(&groups); err != nil {
