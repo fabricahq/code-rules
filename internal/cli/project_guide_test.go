@@ -21,7 +21,7 @@ import (
 func TestInitCreatesAgentGuide(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
-	out, diagnostic, code := runCLI(t, binary, directory, "init")
+	out, diagnostic, code := runCLI(t, binary, directory, "project", "init")
 	if code != 0 {
 		t.Fatal(out, diagnostic)
 	}
@@ -35,21 +35,21 @@ func TestInitCreatesAgentGuide(t *testing.T) {
 			t.Fatalf("guide missing %q", text)
 		}
 	}
-	if out, diagnostic, code := runCLI(t, binary, directory, "build"); code != 0 {
+	if out, diagnostic, code := runCLI(t, binary, directory, "project", "build"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	out, diagnostic, code = runCLI(t, binary, directory, "check")
+	out, diagnostic, code = runCLI(t, binary, directory, "project", "check")
 	if code != 0 || !strings.Contains(out, "up to date") {
 		t.Fatal(code, out, diagnostic)
 	}
 	if err := os.WriteFile(guidePath, append(guide, []byte("\nMy custom text.\n")...), 0600); err != nil {
 		t.Fatal(err)
 	}
-	out, diagnostic, code = runCLI(t, binary, directory, "check", "--json")
+	out, diagnostic, code = runCLI(t, binary, directory, "project", "check", "--json")
 	if code != 1 || !strings.Contains(out, `"ok": false`) || diagnostic != "" {
 		t.Fatal(code, out, diagnostic)
 	}
-	out, diagnostic, code = runCLI(t, binary, directory, "init")
+	out, diagnostic, code = runCLI(t, binary, directory, "project", "init")
 	if code != 1 || !strings.Contains(diagnostic, "README.md") {
 		t.Fatal(code, out, diagnostic)
 	}
@@ -82,7 +82,7 @@ func TestProjectGuideExamples(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(directory, "README.md"), []byte(readme), 0600); err != nil {
 				t.Fatal(err)
 			}
-			out, diagnostic, code := runCLI(t, binary, directory, "init", "--config", configName)
+			out, diagnostic, code := runCLI(t, binary, directory, "project", "init", "--config", configName)
 			if code != 0 {
 				t.Fatal(out, diagnostic)
 			}
@@ -136,7 +136,7 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 				t.Run(name, func(t *testing.T) {
 					directory := t.TempDir()
 					for _, command := range []string{"init", "build"} {
-						if out, diagnostic, code := runCLI(t, binary, directory, command, "--config", config); code != 0 {
+						if out, diagnostic, code := runCLI(t, binary, directory, "project", command, "--config", config); code != 0 {
 							t.Fatal(code, out, diagnostic)
 						}
 					}
@@ -162,7 +162,7 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 					}
 					before := projectFileContents(t, directory)
 					for _, jsonMode := range []bool{false, true} {
-						args := []string{"check", "--config", config}
+						args := []string{"project", "check", "--config", config}
 						if jsonMode {
 							args = append(args, "--json")
 						}
@@ -212,7 +212,7 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 			}
 		}
 	}
-	if out, diagnostic, code := runCLI(t, binary, t.TempDir(), "init", "--check"); code != 2 || !strings.Contains(diagnostic, "unknown flag") {
+	if out, diagnostic, code := runCLI(t, binary, t.TempDir(), "project", "init", "--check"); code != 2 || !strings.Contains(diagnostic, "unknown flag") {
 		t.Fatal(code, out, diagnostic)
 	}
 }
@@ -244,7 +244,7 @@ func projectFileContents(t *testing.T, root string) map[string]string {
 // TestCheckDoesNotInitialize leaves a missing project absent when the actual command fails.
 func TestCheckDoesNotInitialize(t *testing.T) {
 	directory := t.TempDir()
-	out, diagnostic, code := runCLI(t, buildCLI(t), directory, "check")
+	out, diagnostic, code := runCLI(t, buildCLI(t), directory, "project", "check")
 	if code != 1 {
 		t.Fatal(code, out, diagnostic)
 	}

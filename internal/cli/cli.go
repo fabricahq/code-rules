@@ -56,12 +56,14 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.SetUsageFunc(commandUsage)
 	root.RunE = func(cmd *cobra.Command, _ []string) error { return cmd.Help() }
 	root.AddCommand(newProjectCommand(options, &started, output))
-	addLegacyProjectCommands(root, options, &started, output)
 	addLibraryCommands(root, options, &started, output)
 	// Discover the output mode even when Cobra stops at an earlier invalid argument.
 	output.json = requestsJSON(root, args)
 	if err := rejectMissingValues(root, args); err != nil {
 		return output.finish(streams, root, err, 2)
+	}
+	if command, err := validateCommandPath(root, args); err != nil {
+		return output.finish(streams, command, err, 2)
 	}
 	command, err := root.ExecuteContextC(ctx)
 	if command == nil {

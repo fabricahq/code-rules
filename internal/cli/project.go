@@ -1,4 +1,4 @@
-// Group consuming-project commands and preserve the original command paths for existing scripts.
+// Register the supported commands for consuming projects.
 
 package cli
 
@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newProjectCommand gives each command tree its own flags and closures.
+// newProjectCommand groups project operations with their flags and help sections.
 func newProjectCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
 	command := &cobra.Command{Use: "project", Short: "Configure and manage rules for this project"}
 	command.Long = command.Short + "\n\nProjects combine rules imported from shared libraries with their own project-only rules." + documentationHelp
@@ -67,31 +67,4 @@ func newProjectCommand(options Options, started *bool, output *commandOutput) *c
 	}
 
 	return command
-}
-
-// addLegacyProjectCommands uses fresh command instances so compatibility paths cannot
-// change the canonical tree's parents or flag state. Only the old root groups are hidden.
-func addLegacyProjectCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
-	legacy := newProjectCommand(options, started, output)
-	local := &cobra.Command{Use: "local", Short: "Author local engineering rules", Hidden: true}
-	localAdd := &cobra.Command{Use: "add", Short: "Add a local group or rule"}
-	local.AddCommand(localAdd)
-	for _, command := range legacy.Commands() {
-		legacy.RemoveCommand(command)
-		// The root has no project help groups; compatibility commands must not retain them.
-		command.GroupID = ""
-		command.Hidden = true
-		if command.Name() == "add" {
-			for _, child := range command.Commands() {
-				if child.Name() == "library" {
-					child.Use = "source ALIAS"
-				} else {
-					command.RemoveCommand(child)
-					localAdd.AddCommand(child)
-				}
-			}
-		}
-		root.AddCommand(command)
-	}
-	root.AddCommand(local)
 }

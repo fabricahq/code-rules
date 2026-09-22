@@ -59,8 +59,8 @@ func TestGroupGuides(t *testing.T) {
 					t.Fatal(out)
 				}
 			} else {
-				run("build")
-				run("check")
+				run("project", "build")
+				run("project", "check")
 			}
 			out, diagnostic, code := runCLI(t, binary, directory, prefix, "add", "group", "techs/go", "--name", "Changed", "--description", "Changed", "--when-to-read", "Changed")
 			if code != 1 {

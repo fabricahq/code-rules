@@ -12,7 +12,7 @@ import (
 func TestGroupHelpSections(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
-	for _, scope := range []string{"project", "library", "local"} {
+	for _, scope := range []string{"project", "library"} {
 		t.Run(scope, func(t *testing.T) {
 			path := []string{scope, "add", "group"}
 			for _, args := range [][]string{

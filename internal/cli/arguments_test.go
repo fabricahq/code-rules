@@ -18,9 +18,6 @@ func TestAuthoringArgumentErrors(t *testing.T) {
 		{"project add rule", "rule path", "practices/testing/my-rule"},
 		{"library add group", "group path", "practices/testing"},
 		{"library add rule", "rule path", "practices/testing/my-rule"},
-		{"add source", "library alias", "team"},
-		{"local add group", "group path", "practices/testing"},
-		{"local add rule", "rule path", "practices/testing/my-rule"},
 	} {
 		for _, extra := range []bool{false, true} {
 			for _, structured := range []bool{false, true} {

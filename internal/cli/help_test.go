@@ -30,9 +30,6 @@ func TestCommandOptionSections(t *testing.T) {
 		{"library init", "Library options", []string{"spdx", "license-file", "notice-file"}, []string{"directory", "help", "json", "non-interactive"}},
 		{"library check", "", nil, []string{"directory", "help", "json", "non-interactive"}},
 		{"library add rule", "Rule options", []string{"title", "when-to-read", "impact", "impact-description", "body-file"}, []string{"directory", "help", "json", "non-interactive"}},
-		{"add source", "Library options", []string{"repository", "ref", "version", "groups"}, []string{"config", "help", "json", "non-interactive"}},
-		{"local add rule", "Rule options", []string{"title", "when-to-read", "impact", "impact-description", "body-file"}, []string{"config", "help", "json", "non-interactive"}},
-		{"build", "", nil, []string{"config", "help", "json"}},
 	} {
 		t.Run(test.path, func(t *testing.T) {
 			for _, structured := range []bool{false, true} {

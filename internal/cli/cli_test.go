@@ -53,14 +53,14 @@ func TestCLIProcess(t *testing.T) {
 		args []string
 		code int
 	}{
-		{"root-help", nil, 0}, {"removed-help-command", []string{"help"}, 2}, {"help", []string{"build", "--help"}, 0}, {"version", []string{"--version"}, 0},
+		{"root-help", nil, 0}, {"removed-help-command", []string{"help"}, 2}, {"help", []string{"project", "build", "--help"}, 0}, {"version", []string{"--version"}, 0},
 		{"short-version", []string{"-v"}, 0}, {"unknown", []string{"no-such-command"}, 2},
-		{"unknown-flag", []string{"build", "--force"}, 2}, {"positional", []string{"check", "unexpected"}, 2},
-		{"missing-flag-value", []string{"build", "--config"}, 2}, {"duplicate", []string{"build", "--config", "one", "--config", "two"}, 2},
-		{"missing-project", []string{"build"}, 1},
-		{"flag-as-value", []string{"build", "--config", "--help"}, 2},
-		{"short-flag-as-value", []string{"build", "--config", "-h"}, 2},
-		{"blank-value", []string{"build", "--config", " \t "}, 2},
+		{"unknown-flag", []string{"project", "build", "--force"}, 2}, {"positional", []string{"project", "check", "unexpected"}, 2},
+		{"missing-flag-value", []string{"project", "build", "--config"}, 2}, {"duplicate", []string{"project", "build", "--config", "one", "--config", "two"}, 2},
+		{"missing-project", []string{"project", "build"}, 1},
+		{"flag-as-value", []string{"project", "build", "--config", "--help"}, 2},
+		{"short-flag-as-value", []string{"project", "build", "--config", "-h"}, 2},
+		{"blank-value", []string{"project", "build", "--config", " \t "}, 2},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			out, diagnostic, code := runCLI(t, binary, dir, test.args...)
@@ -86,10 +86,10 @@ func TestCLIProcess(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "config.json"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if out, diagnostic, code := runCLI(t, binary, dir, "init"); code != 0 {
+	if out, diagnostic, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	out, diagnostic, code := runCLI(t, binary, dir, "check", "--json")
+	out, diagnostic, code := runCLI(t, binary, dir, "project", "check", "--json")
 	var response struct {
 		Value projectCheckResult `json:"value"`
 	}
@@ -99,15 +99,15 @@ func TestCLIProcess(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "generated")); !os.IsNotExist(err) {
 		t.Fatal("check created output", err)
 	}
-	out, diagnostic, code = runCLI(t, binary, dir, "build", "--json")
+	out, diagnostic, code = runCLI(t, binary, dir, "project", "build", "--json")
 	if code != 0 || diagnostic != "" || !json.Valid([]byte(out)) {
 		t.Fatalf("build: %d %s %s", code, out, diagnostic)
 	}
-	out, diagnostic, code = runCLI(t, binary, dir, "check", "--json", "--config", filepath.Join(root, "config.json"))
+	out, diagnostic, code = runCLI(t, binary, dir, "project", "check", "--json", "--config", filepath.Join(root, "config.json"))
 	if code != 0 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || response.Value.Status != "up_to_date" || len(response.Value.Problems) != 0 {
 		t.Fatalf("clean check: %d %s %s", code, out, diagnostic)
 	}
-	out, diagnostic, code = runCLI(t, binary, dir, "sync", "--json")
+	out, diagnostic, code = runCLI(t, binary, dir, "project", "sync", "--json")
 	if code != 0 || diagnostic != "" || !json.Valid([]byte(out)) {
 		t.Fatalf("empty-source sync: %d %s %s", code, out, diagnostic)
 	}
@@ -120,7 +120,7 @@ func TestHyphenConfigValue(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(directory, "-project.json"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	stdout, stderr, code := runCLI(t, binary, directory, "build", "--config=-project.json")
+	stdout, stderr, code := runCLI(t, binary, directory, "project", "build", "--config=-project.json")
 	if code != 0 || stderr != "" || stdout == "" {
 		t.Fatal(code, stdout, stderr)
 	}

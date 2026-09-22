@@ -198,10 +198,10 @@ Exit nonzero on failure and preserve the previous working output if installation
 
 The CLI creates `README.md` alongside `_group.json` for each new local or library group. The guide directs agents to the current metadata and explains how to add, edit, and validate rules. Group READMEs are authoring documentation and are excluded from rule loading and generated guidance. Existing group files are preserved.
 
-## Compatibility with earlier commands
+## Migrating from earlier commands
 
-The original commands remain supported for existing scripts, but are hidden from root help.
-Use the scoped commands in new scripts and documentation. Compatibility commands retain their options, output modes, and exit statuses; suggested next steps use the scoped names.
+Only the `project` and `library` command trees are supported. Earlier command paths now fail with an unknown-command error.
+Update existing scripts to use the scoped commands below. Use `-h` or `--help` for help; there is no `help` subcommand.
 
 | Earlier command | Canonical command |
 | --- | --- |

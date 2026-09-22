@@ -15,10 +15,10 @@ import (
 // TestRuleRequiresExistingGroup exercises the same refusal in unattended and real-terminal use.
 func TestRuleRequiresExistingGroup(t *testing.T) {
 	binary := buildCLI(t)
-	for _, family := range []string{"project", "library", "local"} {
+	for _, family := range []string{"project", "library"} {
 		t.Run(family, func(t *testing.T) {
 			directory := t.TempDir()
-			init := []string{"init"}
+			init := []string{"project", "init"}
 			if family == "library" {
 				init = []string{"library", "init"}
 			}
@@ -27,11 +27,7 @@ func TestRuleRequiresExistingGroup(t *testing.T) {
 			}
 			before := projectFileContents(t, directory)
 			args := []string{family, "add", "rule", "techs/go/errors"}
-			scope := family
-			if scope == "local" {
-				scope = "project"
-			}
-			want := "code-rules " + scope + " add group techs/go"
+			want := "code-rules " + family + " add group techs/go"
 			out, diagnostic, code := runCLI(t, binary, directory, append(args, "--json")...)
 			if code == 0 || !strings.Contains(out, want) || diagnostic != "" {
 				t.Fatal(code, out, diagnostic)
