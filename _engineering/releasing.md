@@ -66,7 +66,9 @@ See [installer setup](../_distribution/README.md) for the website endpoint, acti
 
 After publishing a stable release, the `update-homebrew` job triggers **Update Code Rules** in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases do not update the formula. The tap validates the published archives and checksums before committing an update.
 
-The job authenticates through **Fabrica Homebrew Releaser**, a shared trigger App for trusted Fabrica products. It is installed only on the tap with Actions write and Metadata read permissions. Set `HOMEBREW_APP_CLIENT_ID` as an Actions variable and store `HOMEBREW_APP_PRIVATE_KEY` in the `homebrew-dispatch` environment, restricted to `main`. Remove any repository-level copy after this workflow is merged. The job checks out no source and creates a short-lived token restricted to the tap.
+The job authenticates through **Fabrica Homebrew Releaser**, a shared trigger App for trusted Fabrica products. It is installed only on the tap with Actions write and Metadata read permissions. Store `HOMEBREW_APP_PRIVATE_KEY` as a Fabrica organization Actions secret and `HOMEBREW_APP_CLIENT_ID` as an organization variable. Limit both to selected trusted product repositories; initially, only `fabricahq/code-rules` has access. Do not keep repository or environment copies that override these organization values. The job checks out no source and creates a short-lived token restricted to the tap.
+
+Organization secrets are available to eligible workflows in allowed repositories, regardless of branch or environment. The `main`-only `homebrew-dispatch` environment constrains this dispatch job, but does not restrict other jobs from reading the organization secret. [CR-7](https://linear.app/ohmygoshjosh/issue/CR-7/replace-shared-homebrew-trigger-keys-with-an-oidc-dispatch-service) tracks replacing shared-key access with an OIDC dispatch service for Fabrica tools.
 
 The tap uses a separate publishing App whose key stays in its protected environment. Product repositories never receive that key. Formula publication runs automatically; no human review is required for routine formula updates.
 
