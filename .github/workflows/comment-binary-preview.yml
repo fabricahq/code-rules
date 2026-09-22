@@ -97,7 +97,7 @@ jobs:
               'case "$(uname -sm)" in',
               ...downloads.map(d => `"${d.platform}") artifact=${d.artifact.id} ;;`),
               '*) echo "Unsupported platform: $(uname -sm)" >&2; exit 1 ;; esac;',
-              'if [ -d ./code-rules ]; then echo "./code-rules is a directory" >&2; exit 1; fi;',
+              `if [ -d ./code-rules ]; then printf '%s\\n' "Cannot install: $(pwd)/code-rules is an existing folder." "Nothing was changed. Run this command from a different directory." >&2; exit 1; fi;`,
               'tmp=$(mktemp ./.code-rules.XXXXXX);',
               `trap 'rm -f "$tmp"' EXIT;`,
               `gh api --hostname ${new URL(context.serverUrl).hostname} /repos/${owner}/${repo}/actions/artifacts/"$artifact"/zip > "$tmp";`,

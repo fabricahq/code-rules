@@ -490,9 +490,15 @@ cat "$FIXTURE_PAYLOAD"
               expect(readFileSync(other, 'utf8')).toBe('keep symlink target');
           } else {
             expect(result.status).not.toBe(0);
-            if (mode === 'directory' || mode === 'directory-symlink')
+            if (mode === 'directory' || mode === 'directory-symlink') {
               expect(readdirSync(destination)).toEqual([]);
-            else
+              expect(result.stderr).toMatch(
+                /Cannot install: \/.*\/code-rules is an existing folder\./,
+              );
+              expect(result.stderr).toContain(
+                'Nothing was changed. Run this command from a different directory.',
+              );
+            } else
               expect(readFileSync(destination, 'utf8')).toBe('old executable');
           }
           expect(
