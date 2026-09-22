@@ -1,29 +1,66 @@
-# Announce downloadable candidates without executing code or reading artifact contents from the PR.
-name: Comment binary preview
+# Promote trusted PR previews without executing PR code or reading artifact contents.
+name: CLI preview downloads
 on:
   workflow_run:
     workflows: [Package CLI binaries]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Successful Package CLI binaries run ID to advertise'
+        required: true
+        type: string
+      commit:
+        description: 'Full PR commit SHA reviewed for isolated testing'
+        required: true
+        type: string
 permissions:
   actions: read
   contents: read
   pull-requests: write
 concurrency:
-  group: binary-preview-${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}
+  group: binary-preview-promotions
   cancel-in-progress: false
 jobs:
   comment:
-    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Link the completed binary preview on its pull request
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const run = context.payload.workflow_run;
-            if (run.path !== '.github/workflows/package-binaries.yml' ||
-                run.event !== 'pull_request' || run.conclusion !== 'success') return;
+            const manual = context.eventName === 'workflow_dispatch';
+            if ((!manual && context.eventName !== 'workflow_run') ||
+                context.ref !== `refs/heads/${context.payload.repository.default_branch}`) {
+              throw new Error('Preview promotion must use the default-branch workflow.');
+            }
             const {owner, repo} = context.repo;
+            const canApprove = async username => {
+              const {data: access} = await github.rest.repos.getCollaboratorPermissionLevel({owner, repo, username});
+              return ['admin', 'write'].includes(access.permission);
+            };
+            let run;
+            if (manual) {
+              const {run_id, commit} = context.payload.inputs;
+              if (!/^[1-9][0-9]*$/.test(run_id) || !/^[a-f0-9]{40}$/.test(commit)) {
+                throw new Error('Provide a build run ID and the full 40-character commit SHA.');
+              }
+              if (!await canApprove(context.actor)) {
+                throw new Error('Preview approval requires repository write access.');
+              }
+              ({data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id}));
+              if (run.head_sha !== commit) {
+                throw new Error('The selected run does not match the approved commit.');
+              }
+            } else {
+              run = context.payload.workflow_run;
+            }
+            if (run.path !== '.github/workflows/package-binaries.yml' ||
+                run.event !== 'pull_request' || run.status !== 'completed' || run.conclusion !== 'success' ||
+                run.repository.id !== context.payload.repository.id) {
+              if (manual) throw new Error('Select a successful PR packaging run in this repository.');
+              return;
+            }
             const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
               owner, repo, run_id: run.id, per_page: 100,
             });
@@ -57,6 +94,11 @@ jobs:
               if (candidate.base.repo.id !== context.payload.repository.id) continue;
               const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number: candidate.number});
               if (pr.state !== 'open' || pr.head.sha !== run.head_sha) continue;
+              // Same-repository branches require write access; fork authorship alone does not establish who can push.
+              if (!manual && (pr.head.repo?.id !== context.payload.repository.id || !await canApprove(pr.user.login))) {
+                core.notice('External previews need manual approval for this commit. Use Run workflow with its run ID and full SHA.');
+                continue;
+              }
               const comments = await github.paginate(github.rest.issues.listComments, {
                 owner, repo, issue_number: pr.number, per_page: 100,
               });
@@ -74,6 +116,8 @@ jobs:
                 `A test build for [\`${run.head_sha.slice(0, 7)}\`](${commitURL}) is ready. Packaging and installation checks passed.`,
                 '',
                 downloads.map(d => `[${d.label}](${runURL}/artifacts/${d.artifact.id})`).join(' · '),
+                '',
+                '**Warning: Runs code from this PR. For isolated testing only; not an official release.**',
                 '',
                 '**Manual testing is optional.** Download the executable for your computer, rename it to `code-rules`, then run:',
                 '',

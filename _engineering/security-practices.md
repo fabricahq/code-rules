@@ -93,6 +93,27 @@ SHA pins and minimal permissions protect against compromised actions as well as 
 
 Dependency updates do not publish releases. A maintainer approves a release by merging its release-note PR, as described in [the release procedure](releasing.md).
 
+### PR preview downloads
+
+The packaging workflow builds PR code with read-only repository permissions. Successful builds do not establish that the code is safe.
+The separate **CLI preview downloads** workflow runs from the default branch and only reads GitHub metadata and posts comments. It never checks out PR code or downloads or runs an artifact.
+
+A preview receives automatic download links only if its PR author currently has repository write or admin permission and the PR branch belongs to this repository.
+Forks, including maintainer-owned forks, and other contributors require explicit approval:
+
+1. Review the current PR commit, including source, dependencies, tests, and build workflow changes, for isolated testing.
+2. Find its successful **Package CLI binaries** run. Copy the numeric run ID from its URL and the PR's full 40-character commit SHA.
+3. In Actions, select **CLI preview downloads**, then **Run workflow** from the default branch. Enter that run ID and commit SHA.
+
+The workflow checks the approver's current write access, the build's repository, workflow, event, completion and success, and the PR's current head.
+A new commit requires a new approval for external previews. Approval advertises a particular preview; it does not approve a release or certify that the code is safe.
+Artifacts remain accessible in Actions before promotion; this gate controls the bot's download recommendation, not access to the build output.
+
+Preview commands print a warning with the packaged source commit to stderr, preserving stdout for command results and JSON.
+The warning and version string are self-reported metadata, not authentication. Preview executables are not publisher-signed or attested by Code Rules.
+Run them only in disposable environments without credentials or private files. GitHub artifact digests can detect changed bytes against a trusted reference, but do not establish benign behavior.
+Official release publication remains a separate reviewed process.
+
 ### GitHub setup and activation
 
 Repository configuration does not install the Renovate GitHub App or enforce branch protection.
