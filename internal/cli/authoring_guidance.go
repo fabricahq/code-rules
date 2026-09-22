@@ -12,9 +12,8 @@ import (
 func groupIntroduction(groupPath string) string {
 	return fmt.Sprintf(`Adding a group at: %s
 
-- The path %q uniquely identifies the group.
-- The name is a human-friendly label, such as "Testing".
 - A group collects related rules. Use individual rules to give agents guidance.
+- The path %q uniquely identifies the group.
 
 Example group:
   Path: practices/testing
@@ -22,7 +21,7 @@ Example group:
   Description: Unit and integration testing.
   When to read: When writing or changing tests.
 
-Enter your group's details below. The example is not saved.
+Enter your group's details below.
 
 `, groupPath, groupPath)
 }
@@ -43,7 +42,7 @@ Example rule:
   Why it matters: Boundary bugs can silently produce incorrect results.
   Rule text: Test empty inputs and values at each supported limit.
 
-The example is not saved. Your title, reading cue, and impact details go at the
+Your title, reading cue, and impact details go at the
 top of the Markdown file. The instructions and examples go below that metadata.
 %s
 
