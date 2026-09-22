@@ -1,9 +1,10 @@
 /** @fileoverview Executes the preview workflow's API script against GitHub response fixtures. */
 
 import { expect, test } from 'bun:test';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   mkdtempSync,
+  readdirSync,
   mkdirSync,
   readFileSync,
   rmSync,
@@ -13,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import { parse } from 'yaml';
+import { fakeGitHubCLI } from './fake-github-cli';
 
 const workflow = parse(
   readFileSync('.github/workflows/comment-binary-preview.yml', 'utf8'),
@@ -35,6 +37,7 @@ async function preview(
     authorPermission?: string;
     trigger?: string;
     ref?: string;
+    installerCommit?: string;
     permission?: string;
     runID?: string;
     approvedCommit?: string;
@@ -116,6 +119,10 @@ async function preview(
   };
   await runInNewContext(`(async () => { ${script}\n })()`, {
     github,
+    URL,
+    process: {
+      env: { GITHUB_WORKFLOW_SHA: options.installerCommit ?? 'c'.repeat(40) },
+    },
     core: {
       warning: (message: string) => warnings.push(message),
       notice: () => {},
@@ -161,7 +168,9 @@ test('advertises a maintainer-approved commit for an open fork PR', async () => 
     '**Warning: Runs code from this PR. For isolated testing only; not an official release.**',
   );
   expect(writes[0]!.body).toContain('**Manual testing is optional.**');
-  expect(writes[0]!.body).toContain('chmod +x code-rules\n./code-rules --help');
+  expect(writes[0]!.body).toContain('gh auth login');
+  expect(writes[0]!.body).toContain('Then run `./code-rules --help`.');
+  expect(writes[0]!.body).toContain('It replaces any existing `./code-rules`');
   expect(writes[0]!.body).toContain(
     `[\`aaaaaaa\`](https://github.com/fabricahq/code-rules/commit/${'a'.repeat(40)})`,
   );
@@ -398,3 +407,99 @@ for (const options of [
     ).toEqual([]);
   });
 }
+
+test('refuses an unpinned installer', async () => {
+  await expect(preview({ installerCommit: 'main' })).rejects.toThrow(
+    'Missing trusted installer commit.',
+  );
+});
+
+// Exercise the copyable command, including failure before the installer may execute.
+test('runs the generated install command only after a successful script download', async () => {
+  const { writes } = await preview();
+  const command = String(writes[0]!.body).match(/```sh\n([^\n]+)\n```/)?.[1];
+  expect(command).toBeDefined();
+  expect(command).not.toContain(`ref=${'a'.repeat(40)}`);
+  for (const shell of ['sh', 'bash']) {
+    for (const mode of ['success', 'partial', 'empty']) {
+      const directory = mkdtempSync(join(tmpdir(), 'preview bootstrap '));
+      try {
+        const bin = join(directory, 'bin');
+        mkdirSync(bin);
+        const scratch = join(directory, 'scratch');
+        mkdirSync(scratch);
+        writeFileSync(
+          join(bin, 'uname'),
+          '#!/bin/sh\nprintf "Darwin arm64\\n"\n',
+          { mode: 0o755 },
+        );
+        const installerRequest = [
+          'api',
+          '--hostname',
+          'github.com',
+          '-H',
+          'Accept: application/vnd.github.raw+json',
+          `/repos/fabricahq/code-rules/contents/_tools/install-preview.sh?ref=${'c'.repeat(40)}`,
+        ];
+        const binaryRequest = [
+          'api',
+          '--hostname',
+          'github.com',
+          '/repos/fabricahq/code-rules/actions/artifacts/70/zip',
+        ];
+        // Replace network responses only; the generated command runs the real installer.
+        const ghCalls = fakeGitHubCLI(bin, [
+          {
+            args: installerRequest,
+            stdout:
+              mode === 'partial'
+                ? 'touch executed-partial-script\n'
+                : mode === 'empty'
+                  ? ''
+                  : readFileSync(
+                      new URL('./install-preview.sh', import.meta.url),
+                      'utf8',
+                    ),
+            exitCode: mode === 'partial' ? 1 : 0,
+          },
+          {
+            args: binaryRequest,
+            stdout: '#!/bin/sh\nprintf "preview works\\n"\n',
+          },
+        ]);
+        writeFileSync(join(directory, 'code-rules'), 'old executable');
+        const result = spawnSync(shell, ['-c', command!], {
+          cwd: directory,
+          env: {
+            ...process.env,
+            PATH: `${bin}:${process.env.PATH}`,
+            TMPDIR: scratch,
+          },
+          encoding: 'utf8',
+        });
+        if (mode === 'success') {
+          expect(result.status).toBe(0);
+          expect(result.stdout).toBe('Downloaded and wrote ./code-rules\n');
+          expect(
+            execFileSync(join(directory, 'code-rules'), { encoding: 'utf8' }),
+          ).toBe('preview works\n');
+        } else {
+          expect(result.status).not.toBe(0);
+          expect(result.stdout).toBe('');
+          expect(readFileSync(join(directory, 'code-rules'), 'utf8')).toBe(
+            'old executable',
+          );
+        }
+        expect(ghCalls()).toEqual(
+          mode === 'success'
+            ? [installerRequest, binaryRequest]
+            : [installerRequest],
+        );
+        expect(readdirSync(directory)).not.toContain('executed-partial-script');
+        expect(readdirSync(scratch)).toEqual([]);
+      } finally {
+        rmSync(directory, { recursive: true, force: true });
+      }
+    }
+  }
+});

@@ -64,6 +64,7 @@ jobs:
             const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
               owner, repo, run_id: run.id, per_page: 100,
             });
+            // Artifact order matches install-preview.sh arguments.
             const targets = [
               ['code-rules-darwin-arm64', 'macOS Apple Silicon'],
               ['code-rules-darwin-amd64', 'macOS Intel'],
@@ -90,6 +91,19 @@ jobs:
             const expires = new Date(Math.min(...downloads.map(d => Date.parse(d.artifact.expires_at)))).toLocaleString('en-US', {
               timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short',
             });
+            // Pin the installer to this trusted default-branch workflow, never the PR's source commit.
+            const installerCommit = process.env.GITHUB_WORKFLOW_SHA;
+            if (!/^[a-f0-9]{40}$/.test(installerCommit ?? '')) {
+              throw new Error('Missing trusted installer commit.');
+            }
+            const hostname = new URL(context.serverUrl).hostname;
+            const installCommand = [
+              '(set -eu; installer=$(mktemp);',
+              `trap 'rm -f "$installer"' EXIT;`,
+              `gh api --hostname ${hostname} -H 'Accept: application/vnd.github.raw+json' '/repos/${owner}/${repo}/contents/_tools/install-preview.sh?ref=${installerCommit}' > "$installer";`,
+              'test -s "$installer";',
+              `sh "$installer" ${hostname} ${owner}/${repo} ${downloads.map(d => d.artifact.id).join(' ')})`,
+            ].join(' ');
             for (const candidate of pulls) {
               if (candidate.base.repo.id !== context.payload.repository.id) continue;
               const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number: candidate.number});
@@ -119,14 +133,13 @@ jobs:
                 '',
                 '**Warning: Runs code from this PR. For isolated testing only; not an official release.**',
                 '',
-                '**Manual testing is optional.** Download the executable for your computer, rename it to `code-rules`, then run:',
+                '**Manual testing is optional.** With [GitHub CLI](https://cli.github.com/) installed and signed in (`gh auth login`), copy this line to install the build for your computer in the current directory. It replaces any existing `./code-rules` after a successful download:',
                 '',
                 '```sh',
-                'chmod +x code-rules',
-                './code-rules --help',
+                installCommand,
                 '```',
                 '',
-                'No extraction or installation needed.',
+                'Then run `./code-rules --help`. No extraction or global installation needed.',
                 '',
                 `GitHub sign-in required. Downloads expire ${expires} UTC.`,
                 '',
