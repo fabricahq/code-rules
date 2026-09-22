@@ -39,7 +39,7 @@ You declare the rules you want in a [project](/concepts/project/), typically in 
 
 ### Libraries
 
-Finally, you probably want to import some rules from a [library](/concepts/libraries/), which is a collection of rules and groups maintained by a third-party. Libraries declare their license terms, which Code Rules will propagate into your project.
+Finally, you probably want to import some rules from a [library](/concepts/libraries/), which is a collection of rules and groups maintained by a third-party. Libraries can declare license terms, which Code Rules carries into your project. If a library has no license declaration, inspect its terms before using or sharing its rules.
 
 ## What Code Rules does not do
 
