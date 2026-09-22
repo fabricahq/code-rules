@@ -43,6 +43,6 @@ Finally, you probably want to import some rules from a [library](/concepts/libra
 
 ## What Code Rules does not do
 
-Code Rules assembles collections of rules from multiple sources (libaries) into a cohesive, agent-friendly collection of local files in your repo.
+Code Rules assembles collections of rules from multiple sources (libraries) into a cohesive, agent-friendly collection of local files in your repo.
 
 That is where Code Rules stops. It is not opinionated about how your agents consume these rules. At least for now, that part is up to you, though we'll share best practices as we discover them.
