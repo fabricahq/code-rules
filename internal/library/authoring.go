@@ -17,11 +17,12 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// AuthoringResult lists published library files, next actions, and any post-commit cleanup warnings.
+// AuthoringResult lists published library files and any post-commit cleanup warnings.
 type AuthoringResult struct {
-	Files    []string `json:"files"`
-	Next     string   `json:"next"`
-	Warnings []string `json:"warnings,omitempty"`
+	Files []string `json:"files"`
+	// LicenseDeclared describes the manifest after initialization.
+	LicenseDeclared bool
+	Warnings        []string `json:"warnings,omitempty"`
 }
 
 // Options locates the library itself, independently of any consumer project.
@@ -191,15 +192,13 @@ func Initialize(ctx context.Context, options Options, terms *Terms) (AuthoringRe
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	next := "Add a group and rule, then run library check."
-	if license == nil {
-		next = "License is undeclared. Decide terms before sharing. " + next
-	}
-	return authoringResult(changes, next, err)
+	result, err := authoringResult(changes, err)
+	result.LicenseDeclared = license != nil
+	return result, err
 }
 
 // editLibrary revalidates manifest and the target category under exclusive ownership before publication.
-func editLibrary(ctx context.Context, options Options, group, next string, prepare func(*os.Root) ([]filetxn.File, error)) (AuthoringResult, error) {
+func editLibrary(ctx context.Context, options Options, group string, prepare func(*os.Root) ([]filetxn.File, error)) (AuthoringResult, error) {
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
 		return AuthoringResult{}, err
@@ -220,7 +219,7 @@ func editLibrary(ctx context.Context, options Options, group, next string, prepa
 		}
 		return files, nil
 	})
-	return authoringResult(changes, next, err)
+	return authoringResult(changes, err)
 }
 
 // AddGroup creates complete metadata without changing existing library content.
@@ -232,7 +231,7 @@ func AddGroup(ctx context.Context, id string, metadata rules.GroupMetadata, opti
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return editLibrary(ctx, options, id, "Add a library rule, then run library check.", func(root *os.Root) ([]filetxn.File, error) {
+	return editLibrary(ctx, options, id, func(root *os.Root) ([]filetxn.File, error) {
 		if err := checkNewGroup(ctx, root, id); err != nil {
 			return nil, err
 		}
@@ -266,13 +265,11 @@ func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, option
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	next := "Review the rule and run library check."
 	if options.Body == nil {
 		data = append(data, []byte("\n<!-- code-rules:draft -->\n")...)
-		next = "Complete the draft and remove its code-rules:draft marker, then run library check."
 	}
 
-	return editLibrary(ctx, options.Options, group, next, func(root *os.Root) ([]filetxn.File, error) {
+	return editLibrary(ctx, options.Options, group, func(root *os.Root) ([]filetxn.File, error) {
 		if err := checkNewRule(ctx, root, id, options.Options); err != nil {
 			return nil, err
 		}
@@ -280,12 +277,12 @@ func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, option
 	})
 }
 
-// authoringResult adds the domain's next action to the completed publication report.
-func authoringResult(changes filetxn.Changes, next string, err error) (AuthoringResult, error) {
+// authoringResult returns published paths and cleanup warnings only after a successful write.
+func authoringResult(changes filetxn.Changes, err error) (AuthoringResult, error) {
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return AuthoringResult{Files: changes.Files, Next: next, Warnings: changes.Warnings}, nil
+	return AuthoringResult{Files: changes.Files, Warnings: changes.Warnings}, nil
 }
 
 func jsonText(value any) ([]byte, error) {

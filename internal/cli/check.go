@@ -4,12 +4,9 @@ package cli
 
 import (
 	"context"
-	"errors"
 
 	"github.com/fabricahq/code-rules/internal/project"
 )
-
-var errCheckOutOfDate = errors.New("this project's Code Rules files are out of date; see the reported problems and next steps")
 
 // projectCheckResult describes the current project; checking never applies the suggested repairs.
 type projectCheckResult struct {
@@ -52,7 +49,6 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 	}
 	if !report.Current() {
 		result.Status = "out_of_date"
-		return result, errCheckOutOfDate
 	}
 	return result, nil
 }

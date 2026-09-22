@@ -3,7 +3,6 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -40,7 +39,6 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	if options.Version == "" {
 		options.Version = "0.0.0-development"
 	}
-	started := false
 	output := &commandOutput{}
 	root := &cobra.Command{Use: "code-rules", Short: "The package manager for your engineering rules", SilenceErrors: true, SilenceUsage: true, Args: cobra.NoArgs}
 	root.CompletionOptions.DisableDefaultCmd = true
@@ -55,28 +53,22 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.SetUsageFunc(commandUsage)
 	root.RunE = func(cmd *cobra.Command, _ []string) error { return cmd.Help() }
-	root.AddCommand(newProjectCommand(options, &started, output))
-	addLibraryCommands(root, options, &started, output)
+	root.AddCommand(newProjectCommand(options, output))
+	addLibraryCommands(root, options, output)
 	// Discover the output mode even when Cobra stops at an earlier invalid argument.
+	classifyArguments(root)
 	output.json = requestsJSON(root, args)
 	if err := rejectMissingValues(root, args); err != nil {
-		return output.finish(streams, root, err, 2)
+		return output.finish(streams, root, usage(err))
 	}
 	if command, err := validateCommandPath(root, args); err != nil {
-		return output.finish(streams, command, err, 2)
+		return output.finish(streams, command, usage(err))
 	}
 	command, err := root.ExecuteContextC(ctx)
 	if command == nil {
 		command = root
 	}
-	code := 0
-	if err != nil {
-		code = 1
-		if !started && ctx.Err() == nil && !errors.Is(err, context.Canceled) {
-			code = 2
-		}
-	}
-	return output.finish(streams, command, err, code)
+	return output.finish(streams, command, err)
 }
 
 // singleString rejects duplicate scalar flags so an accidental repeated option cannot silently replace its value.

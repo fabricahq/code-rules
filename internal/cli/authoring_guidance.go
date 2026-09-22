@@ -4,7 +4,6 @@ package cli
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -78,66 +77,10 @@ func (f *authoringFlags) addRuleFlags(cmd *cobra.Command) {
 	}
 }
 
-// formatRuleCreated uses published paths, preserves warnings, and points to the correct scope and location.
-func formatRuleCreated(out *strings.Builder, cmd *cobra.Command, files, warnings []string, isLibrary bool) {
-	draft := cmd.Flags().Lookup("body-file").Value.String() == ""
-	if draft {
-		out.WriteString("Rule draft created:\n")
-	} else {
-		out.WriteString("Rule created from --body-file:\n")
-	}
-	for _, file := range files {
-		fmt.Fprintf(out, "  %s\n", file)
-	}
-	for _, warning := range warnings {
-		fmt.Fprintf(out, "Warning: %s\n", warning)
-	}
-	if draft {
-		out.WriteString("\nNext: Open the Markdown file above in your editor.\nKeep the metadata between the --- lines at the top. Below it:\n  - State the instructions and explain why they matter.\n  - Add correct and incorrect examples, then describe how to check compliance.\n  - Replace <...> placeholders and remove unused template sections.\n")
-		if isLibrary {
-			out.WriteString("  - Remove the <!-- code-rules:draft --> marker when the rule is complete.\n")
-		}
-	} else {
-		out.WriteString("\nReview the Markdown file above. Make future edits directly in that file.\n")
-	}
-	fmt.Fprintf(out, "\n%s\n", ruleReadyHeading(isLibrary))
-	actions := []string{"build", "check"}
-	if isLibrary {
-		actions = []string{"check"}
-	}
-	for _, action := range actions {
-		fmt.Fprintf(out, "  %s\n", authoringFollowupCommand(cmd, action, isLibrary))
-	}
-}
-
-// formatGroupCreated supplies a runnable rule example in the group that was just created.
-func formatGroupCreated(out *strings.Builder, cmd *cobra.Command, files, warnings []string, isLibrary bool) {
-	formatAuthored(out, files, warnings, "")
-	rulePath := cmd.Flags().Args()[0] + "/my-rule"
-	fmt.Fprintf(out, "\nNext: Add a rule to this group (replace my-rule with your rule's slug):\n  %s\n", authoringFollowupCommand(cmd, "add rule "+rulePath, isLibrary))
-	action := "build"
-	if isLibrary {
-		action = "check"
-	}
-	fmt.Fprintf(out, "\n%s\n  %s\n", ruleReadyHeading(isLibrary), authoringFollowupCommand(cmd, action, isLibrary))
-}
-
 // ruleReadyHeading explains the next action consistently after group and rule creation.
 func ruleReadyHeading(isLibrary bool) string {
 	if isLibrary {
 		return "After writing the rule text, run:"
 	}
 	return "Project-only groups and rules are discovered automatically when you build; you don't need to list them in config.json.\n\nAfter writing the rule text, to make the rule accessible to this project, run:"
-}
-
-// authoringFollowupCommand preserves the selected scope and quotes custom locations for shell use.
-func authoringFollowupCommand(cmd *cobra.Command, action string, isLibrary bool) string {
-	if !isLibrary {
-		return "code-rules project " + action
-	}
-	command := "code-rules library " + action
-	if directory := cmd.Flags().Lookup("directory").Value.String(); directory != "" {
-		command += " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
-	}
-	return command
 }

@@ -15,10 +15,9 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// AuthoringResult lists absolute authored paths and the next explicit user action. Errors return no result.
+// AuthoringResult lists absolute authored paths and cleanup warnings. Errors return no result.
 type AuthoringResult struct {
 	Files []string `json:"files"`
-	Next  string   `json:"next"`
 	// Warnings describe cleanup failures after all requested files were committed.
 	Warnings []string `json:"warnings,omitempty"`
 }
@@ -70,11 +69,11 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 		}
 		return files, nil
 	})
-	return authoringResult(changes, "Add a local group and rule, then run code-rules project build. Or add a library and run code-rules project sync.", err)
+	return authoringResult(changes, err)
 }
 
 // editProject revalidates configuration and local paths under exclusive ownership before publishing authored files.
-func editProject(ctx context.Context, options Options, next string, prepare func(*os.Root, []byte, rules.Configuration) ([]filetxn.File, error)) (AuthoringResult, error) {
+func editProject(ctx context.Context, options Options, prepare func(*os.Root, []byte, rules.Configuration) ([]filetxn.File, error)) (AuthoringResult, error) {
 	root, err := openProject(ctx, options, false)
 	if err != nil {
 		return AuthoringResult{}, err
@@ -95,7 +94,7 @@ func editProject(ctx context.Context, options Options, next string, prepare func
 		}
 		return files, nil
 	})
-	return authoringResult(changes, next, err)
+	return authoringResult(changes, err)
 }
 
 // AddLocalGroup creates one complete local group definition without overwriting existing metadata.
@@ -107,7 +106,7 @@ func AddLocalGroup(ctx context.Context, id string, metadata rules.GroupMetadata,
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return editProject(ctx, options, "Add a rule to this group, then run code-rules project build.", func(root *os.Root, _ []byte, _ rules.Configuration) ([]filetxn.File, error) {
+	return editProject(ctx, options, func(root *os.Root, _ []byte, _ rules.Configuration) ([]filetxn.File, error) {
 		if err := checkLocalGroup(ctx, root, id); err != nil {
 			return nil, err
 		}
@@ -156,11 +155,7 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 		return AuthoringResult{}, err
 	}
 
-	next := "Review the rule, then run code-rules project build."
-	if options.Body == nil {
-		next = "Complete the draft and remove unused template prompts before running code-rules project build."
-	}
-	return editProject(ctx, options.Options, next, func(root *os.Root, _ []byte, config rules.Configuration) ([]filetxn.File, error) {
+	return editProject(ctx, options.Options, func(root *os.Root, _ []byte, config rules.Configuration) ([]filetxn.File, error) {
 		if err := checkLocalRule(ctx, root, config, id); err != nil {
 			return nil, err
 		}
@@ -170,7 +165,7 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 
 // AddSource records a validated source declaration without Git access, preserving other selections and exceptions.
 func AddSource(ctx context.Context, alias string, source json.RawMessage, options Options) (AuthoringResult, error) {
-	return editProject(ctx, options, "Run code-rules project sync to import this source and regenerate resolved rules.", func(_ *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
+	return editProject(ctx, options, func(_ *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
 		var fields map[string]json.RawMessage
 		json.Unmarshal(original, &fields)
 		var sources map[string]json.RawMessage
@@ -195,12 +190,12 @@ func AddSource(ctx context.Context, alias string, source json.RawMessage, option
 	})
 }
 
-// authoringResult adds the domain's next action to the completed publication report.
-func authoringResult(changes filetxn.Changes, next string, err error) (AuthoringResult, error) {
+// authoringResult returns published paths and cleanup warnings only after a successful write.
+func authoringResult(changes filetxn.Changes, err error) (AuthoringResult, error) {
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return AuthoringResult{Files: changes.Files, Next: next, Warnings: changes.Warnings}, nil
+	return AuthoringResult{Files: changes.Files, Warnings: changes.Warnings}, nil
 }
 
 func jsonText(value any) ([]byte, error) {

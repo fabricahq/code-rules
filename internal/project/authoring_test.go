@@ -61,7 +61,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 		t.Fatal(parsed, err)
 	}
 	result, err = AddLocalRule(ctx, "techs/go/draft", ruleMeta, RuleOptions{Options: options})
-	if err != nil || !strings.Contains(result.Next, "Complete the draft") {
+	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
 	draft, _ := os.ReadFile(result.Files[0])

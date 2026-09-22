@@ -28,7 +28,7 @@ func (f *authoringFlags) interactive() bool {
 // ask uses Go's terminal editor for pasted text and restores terminal settings on every return path.
 func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if !f.interactive() {
-		return "", fmt.Errorf("%s Missing input; supply explicit flags in non-interactive mode", label)
+		return "", usage(fmt.Errorf("%s Missing input; supply explicit flags in non-interactive mode", label))
 	}
 	if f.introduction != "" {
 		if _, err := io.WriteString(f.command.ErrOrStderr(), f.introduction); err != nil {
@@ -51,7 +51,11 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 	}
 	answer, err = terminal.ReadLine()
 	if err != nil {
-		return "", fmt.Errorf("terminal input ended; no files were written: %w", err)
+		ended := fmt.Errorf("terminal input ended; no files were written: %w", err)
+		if errors.Is(err, io.EOF) {
+			return "", usage(ended)
+		}
+		return "", ended
 	}
 	f.prompted = true
 	return strings.TrimSpace(answer), nil
@@ -118,7 +122,7 @@ func (p *promptStream) Read(data []byte) (int, error) {
 func (f *authoringFlags) collectSource(groups *[]string) error {
 	if f.value("ref") != "" {
 		if _, _, err := libraryRef(f.value("ref")); err != nil {
-			return err
+			return usage(err)
 		}
 	}
 	if err := f.require("repository", "ref"); err != nil {

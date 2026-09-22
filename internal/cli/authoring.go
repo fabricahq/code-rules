@@ -110,16 +110,15 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 }
 
 // addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.
-func addProjectAuthoringCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
+func addProjectAuthoringCommands(root *cobra.Command, options Options, output *commandOutput) {
 	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", cobra.NoArgs, options.Directory)
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
-		*started = true
 
 		result, err := project.Initialize(cmd.Context(), f.options())
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = projectInitializedReport(result)
 		return nil
 	}
 	root.AddCommand(initialize)
@@ -136,7 +135,6 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	source.RunE = func(cmd *cobra.Command, args []string) error {
 		plan, err := project.PlanSource(cmd.Context(), args[0], sf.options())
 		if err != nil {
-			*started = true
 			return err
 		}
 		sf.introduction = librarySelectionIntroduction(args[0])
@@ -146,19 +144,18 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		declaration := map[string]any{"repository": sf.value("repository"), "groups": sourceGroupSelection(groups), "exclude": map[string]string{}, "replace": map[string]any{}}
 		field, value, err := libraryRef(sf.value("ref"))
 		if err != nil {
-			return err
+			return usage(err)
 		}
 		declaration[field] = value
 		data, err := json.Marshal(declaration)
 		if err != nil {
 			return err
 		}
-		*started = true
 		result, err := plan.Commit(cmd.Context(), data)
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = sourceAddedReport(result)
 		return nil
 	}
 	add.AddCommand(source)
@@ -167,19 +164,17 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	group.RunE = func(cmd *cobra.Command, args []string) error {
 		plan, err := project.PlanLocalGroup(cmd.Context(), args[0], gf.options())
 		if err != nil {
-			*started = true
 			return err
 		}
 		gf.introduction = groupIntroduction(args[0], false)
 		if err := gf.require("name", "description", "when-to-read"); err != nil {
 			return err
 		}
-		*started = true
 		result, err := plan.Commit(cmd.Context(), gf.group(""))
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = groupCreatedReport(result.Files, result.Warnings, args[0], authoringScope{})
 		return nil
 	}
 	add.AddCommand(group)
@@ -188,10 +183,9 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
 		plan, err := project.PlanLocalRule(cmd.Context(), args[0], rf.options())
 		if err != nil {
-			*started = true
 			return err
 		}
-		metadata, body, err := rf.collectRule(cmd.Context(), args[0], false, started)
+		metadata, body, err := rf.collectRule(cmd.Context(), args[0], false)
 		if err != nil {
 			return err
 		}
@@ -199,20 +193,18 @@ func addProjectAuthoringCommands(root *cobra.Command, options Options, started *
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{})
 		return nil
 	}
 	add.AddCommand(rule)
 }
 
 // collectRule collects metadata and body after the domain has planned the target.
-// started preserves the CLI distinction between usage failures and failed authoring operations.
-func (f *authoringFlags) collectRule(ctx context.Context, id string, isLibrary bool, started *bool) (rules.RuleMetadata, *string, error) {
+func (f *authoringFlags) collectRule(ctx context.Context, id string, isLibrary bool) (rules.RuleMetadata, *string, error) {
 	f.introduction = ruleIntroduction(id, f.value("body-file"), isLibrary)
 	if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
 		return rules.RuleMetadata{}, nil, err
 	}
-	*started = true
 	var body *string
 	if f.value("body-file") != "" {
 		text, err := readBody(ctx, f.file("body-file"))

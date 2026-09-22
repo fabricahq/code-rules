@@ -32,30 +32,29 @@ func (f *authoringFlags) libraryOptions() library.Options {
 }
 
 // addLibraryCommands installs a separate command tree that never reads consumer configuration.
-func addLibraryCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
+func addLibraryCommands(root *cobra.Command, options Options, output *commandOutput) {
 	library := &cobra.Command{Use: "library", Short: "Create and maintain a shared rule library"}
 	library.Long = library.Short + "\n\nLibraries are maintained separately from projects. Projects can define their own rule groups and import groups from libraries." + documentationHelp
 	root.AddCommand(library)
-	library.AddCommand(libraryInitCommand(options, started, output), libraryCheckCommand(options, started, output))
+	library.AddCommand(libraryInitCommand(options, output), libraryCheckCommand(options, output))
 	add := &cobra.Command{Use: "add", Short: "Add a library group or rule"}
 	library.AddCommand(add)
-	add.AddCommand(libraryGroupCommand(options, started, output), libraryRuleCommand(options, started, output))
+	add.AddCommand(libraryGroupCommand(options, output), libraryRuleCommand(options, output))
 }
 
 // libraryInitCommand reads explicit publisher terms before creating library-owned files.
-func libraryInitCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
+func libraryInitCommand(options Options, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("init", "Initialize a rule library without overwriting authored files", cobra.NoArgs, options.Directory)
 	for name, description := range map[string]string{"spdx": "Library SPDX expression", "license-file": "Existing UTF-8 license text", "notice-file": "Existing UTF-8 notice text"} {
 		f.add(cmd, name, description)
 	}
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		if (f.value("spdx") == "") != (f.value("license-file") == "") {
-			return fmt.Errorf("supply --spdx and --license-file together")
+			return usage(fmt.Errorf("supply --spdx and --license-file together"))
 		}
 		if f.value("notice-file") != "" && f.value("spdx") == "" {
-			return fmt.Errorf("--notice-file requires --spdx and --license-file")
+			return usage(fmt.Errorf("--notice-file requires --spdx and --license-file"))
 		}
-		*started = true
 		var terms *library.Terms
 		if f.value("spdx") != "" {
 			license, err := readAuthoringText(cmd.Context(), f.file("license-file"), "license text")
@@ -75,63 +74,59 @@ func libraryInitCommand(options Options, started *bool, output *commandOutput) *
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = libraryInitializedReport(result, authoringScope{library: true, directory: f.value("directory")})
 		return nil
 	}
 	return cmd
 }
 
 // libraryCheckCommand reports counts and licensing caveats without changing library files.
-func libraryCheckCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
+func libraryCheckCommand(options Options, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("check", "Validate every library group, rule, asset, and declared term", cobra.NoArgs, options.Directory)
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
-		*started = true
 		result, err := library.Check(cmd.Context(), f.libraryOptions())
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = libraryCheckedReport(result)
 		return nil
 	}
 	return cmd
 }
 
 // libraryGroupCommand requires all group metadata before attempting exclusive publication.
-func libraryGroupCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
+func libraryGroupCommand(options Options, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("group GROUP_PATH", "Create library group metadata", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	f.addGroupFlags(cmd, "")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		plan, err := library.PlanGroup(cmd.Context(), args[0], f.libraryOptions())
 		if err != nil {
-			*started = true
 			return err
 		}
 		f.introduction = groupIntroduction(args[0], true)
 		if err := f.require("name", "description", "when-to-read"); err != nil {
 			return err
 		}
-		*started = true
 		result, err := plan.Commit(cmd.Context(), f.group(""))
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = groupCreatedReport(result.Files, result.Warnings, args[0], authoringScope{library: true, directory: f.value("directory")})
 		return nil
 	}
 	return cmd
 }
 
 // libraryRuleCommand creates supplied guidance or a marked canonical draft in an existing group.
-func libraryRuleCommand(options Options, started *bool, output *commandOutput) *cobra.Command {
+func libraryRuleCommand(options Options, output *commandOutput) *cobra.Command {
 	cmd, f := newLibraryCommand("rule RULE_PATH", "Create a complete library rule or marked draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
 	f.addRuleFlags(cmd)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		plan, err := library.PlanRule(cmd.Context(), args[0], f.libraryOptions())
 		if err != nil {
-			*started = true
 			return err
 		}
-		metadata, body, err := f.collectRule(cmd.Context(), args[0], true, started)
+		metadata, body, err := f.collectRule(cmd.Context(), args[0], true)
 		if err != nil {
 			return err
 		}
@@ -139,7 +134,7 @@ func libraryRuleCommand(options Options, started *bool, output *commandOutput) *
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{library: true, directory: f.value("directory")})
 		return nil
 	}
 	return cmd
