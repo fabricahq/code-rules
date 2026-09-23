@@ -56,9 +56,9 @@ code-rules project build
 code-rules project check
 ```
 
-Confirm that `.code-rules/local/techs/go/return-errors.md` contains the complete rule and that the generated Go group includes it. The body file is an authoring input; future edits belong in the local rule file. If you omit `--body-file`, open the created Markdown file in your editor. Keep its metadata between the `---` lines; below it, write the instructions, rationale, correct and incorrect examples, and validation steps. Replace template placeholders and remove unused sections before building.
+Confirm that `.code-rules/local/techs/go/return-errors.md` contains the complete rule and that the generated Go group includes it. The body file is an authoring input; future edits belong in the local rule file. If you omit `--body-file`, open the created Markdown file in your editor. Keep its required metadata between the `---` lines and write a nonempty instruction below it. Add rationale, examples, exceptions, or validation guidance when they help someone apply the rule. Replace template placeholders and remove unused sections before building.
 
-Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions or replacements in the configuration when overriding imported rules; adding a local rule does not automatically replace an imported rule.
+Use the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md) for writing advice, and follow this project's authoring conventions. Code Rules validates the required format, not every rubric criterion. Use explicit exclusions or replacements in the configuration when overriding imported rules; adding a local rule does not automatically replace an imported rule.
 
 #### Add a third-party library
 

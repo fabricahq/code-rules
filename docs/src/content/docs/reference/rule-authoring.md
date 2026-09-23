@@ -1,20 +1,22 @@
 ---
 title: "Rule rubric and template"
-description: "How to write a rule agents can understand and check it against the shared authoring standard."
+description: "Recommended guidance for writing and reviewing clear, useful rules."
 ---
 
 A **rule** is a Markdown file that tells an agent what to do, when the instruction applies, and how to check its work. A useful rule gives enough context and examples for the agent to follow it without guessing what you meant.
 
 Use this page when writing a new rule, improving an existing one, or reviewing a proposed rule. The **template** gives you a starting structure. The **rubric** is a checklist for deciding whether the rule is clear, useful, and verifiable.
 
-The same template and rubric apply to rules in shared libraries and rules written for one project. This page explains how to complete the template and review the result. For the steps to create a rule, see [Write a rule](/guides/write-rules/).
+The template and rubric can help with rules in shared libraries or one project. They are recommendations, not a pass/fail checklist.
+Code Rules checks the [required file format](/reference/rule-library-format/), including metadata and a nonempty body. Library and project owners may set their own authoring conventions.
+For the steps to create a rule, see [Write a rule](/guides/write-rules/).
 
 ## What goes in a rule
 
 A rule file has two parts:
 
 - **Metadata:** the fields between the opening `---` lines, also called YAML frontmatter. They give the rule a title, explain when to read it, and describe why it matters.
-- **Body:** the Markdown below those fields. It states the instruction, explains its scope and exceptions, and provides examples and ways to check the result.
+- **Body:** the Markdown below those fields. A useful body states the instruction and gives enough context to apply it. Scope, exceptions, examples, and checks help when the rule needs them.
 
 The metadata helps agents find relevant guidance. The body tells them what following that guidance means.
 
@@ -34,7 +36,7 @@ A relevant rule is not evidence of a violation. Its full instruction and excepti
 
 ## Markdown template
 
-Copy the template below and replace the placeholders. The [local rule command](/start-here/set-up-project/) uses this same starting structure.
+Use the template below as a starting point if it helps. The [local rule command](/start-here/set-up-project/) uses this same starting structure.
 
 Keep sections that add useful information and remove unused prompts. You do not need a separate Implementation or Validation section if the instruction and examples already answer those questions.
 
@@ -222,7 +224,7 @@ When adapting someone else's material, preserve source attribution and required 
 
 ## Authoring rubric
 
-Use this checklist to review every rule. A completed template is a starting point; headings alone do not establish that the guidance is useful.
+Use these criteria to spot unclear or incomplete guidance. They are review prompts, not file-format requirements. A short rule can be complete without every example or template section.
 
 | Criterion | What to look for |
 | --- | --- |
@@ -238,11 +240,11 @@ Use this checklist to review every rule. A completed template is a starting poin
 | Honest claims | Support factual claims and retain source attribution where needed. Distinguish team preferences from universal requirements. |
 | Complete meaning | Make the instruction understandable with its stated context. Keep the obligation, scope, and checks visible instead of hiding them behind unexplained references. |
 
-Evaluate every criterion and revise missing or unclear guidance where it applies. Add headings only when they help convey that guidance.
+Consider the criteria that fit the rule. Suggest changes when they make the instruction clearer or easier to apply; add headings only when they help.
 
 ## Review a proposed rule
 
-For each unmet criterion:
+When a relevant criterion reveals a problem:
 
 1. Identify the passage that needs work.
 2. Explain what is ambiguous, missing, or unsupported.
@@ -250,4 +252,4 @@ For each unmet criterion:
 
 For example, if a Validation section only says “review the code,” identify the behavior or surrounding contract the reviewer should check.
 
-The rubric evaluates the quality of the instruction. The library owner chooses the engineering policy. Keep writing-quality findings separate from disagreements with that policy, and ask the author when the intended policy is unclear.
+The rubric helps assess writing quality. Library and project owners choose their engineering policies and may set stricter authoring conventions. Keep writing suggestions separate from policy disagreements, and ask the owner when the intended policy is unclear.

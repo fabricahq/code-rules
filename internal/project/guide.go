@@ -82,7 +82,7 @@ Local and library definitions can contribute to the same group, such as techs/go
 
 ## Manage local guidance
 
-Follow [the project guide](../{{PROJECT_GUIDE}}) to add groups and rules. Keep rules within their group's scope and follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md).
+Follow [the project guide](../{{PROJECT_GUIDE}}) to add groups and rules. Keep rules within their group's scope. Use the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md) for writing advice and follow this project's authoring conventions. Code Rules validates the required format, not every rubric criterion.
 
 Complete drafts before building. Run code-rules project build after local edits, or code-rules project sync after changing a library source. Read the resulting [resolved rules](../generated/RULES.md) when working on the project.
 `

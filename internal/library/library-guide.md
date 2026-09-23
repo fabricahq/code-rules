@@ -17,7 +17,7 @@ Library groups supply shared guidance. A consuming project's local groups belong
 
 1. Run the commands below from the folder containing this README. From elsewhere, pass `--directory` with this library's path.
 2. Replace example metadata and guidance with the publisher's intended engineering practices.
-3. Before adding or revising a rule, read the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md).
+3. Before adding or revising a rule, consult the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md) for writing advice and follow this library's authoring conventions. The rubric is not a format check.
 4. After editing, run `code-rules library check`. Fix every error and review licensing warnings before reporting the library ready.
 
 Human-readable output is the default. Add `--json` for structured results, or `--help` to inspect a command's options.
@@ -55,7 +55,7 @@ code-rules library add rule techs/go/return-errors \
 ```
 
 Inspect `techs/go/return-errors.md`; make future edits there. The body file is only an authoring input.
-If you omit `--body-file`, open the created Markdown file in your editor. Keep its metadata between the `---` lines; below it, write the instructions, rationale, correct and incorrect examples, and validation steps. Replace template placeholders, remove unused sections, and remove the `<!-- code-rules:draft -->` marker when the rule is complete. Then run `code-rules library check`.
+If you omit `--body-file`, open the created Markdown file in your editor. Keep its required metadata between the `---` lines and write a nonempty instruction below it. Add rationale, examples, exceptions, or validation guidance when they help someone apply the rule. Replace template placeholders, remove unused sections, and remove the `<!-- code-rules:draft -->` marker when the rule is complete. Then run `code-rules library check`.
 
 #### Validate and share
 

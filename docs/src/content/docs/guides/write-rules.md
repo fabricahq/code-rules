@@ -5,18 +5,18 @@ description: "Author a focused engineering obligation with applicability, exampl
 
 A **rule** is a Markdown file that tells an agent how to apply one engineering practice. Writing a rule turns a recurring expectation or review comment into guidance you can reuse across tasks. A useful rule explains when it applies, what to do, and how to verify the result.
 
-This guide explains how to draft and review a rule using the shared template and quality criteria. You'll choose a group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
+This guide explains how to draft and review a rule using a suggested template and quality criteria. You'll choose a group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
 
 You can write rules with any agent or editor. For the CLI steps to create your first rule, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
 ## Rubric, template, and skill
 
-- The [authoring rubric](/reference/rule-authoring/#authoring-rubric) defines what makes a useful rule and how to review it.
+- The [authoring rubric](/reference/rule-authoring/#authoring-rubric) offers prompts for writing and reviewing a useful rule.
 - The [Markdown template](/reference/rule-authoring/#markdown-template) gives each rule a consistent starting structure.
 - The Code Rules authoring skill guides an agent through drafting, revising, and reviewing rules using those two references.
 
-The rubric is authoritative.
-The skill references it rather than maintaining a separate copy of the authoring guidance.
+The rubric is recommended guidance, not a pass/fail checklist. Code Rules validates the [required file format](/reference/rule-library-format/); library and project owners can set their own authoring conventions.
+The skill references the rubric rather than maintaining a separate copy of the advice.
 You can also use the rubric and template without a skill, with any agent or editor.
 
 :::note[Skill availability]
@@ -30,7 +30,7 @@ The workflow below describes how the skill is intended to work.
 1. Give the agent a best practice, its intended scope, and any supporting context or sources.
 2. The skill reads the rubric, template, and target library's conventions.
 3. The agent drafts one rule per file, specifying `whenToRead` and separately considering implementation and validation guidance.
-4. The agent checks the draft against every rubric criterion and revises unclear passages.
+4. The agent uses relevant rubric criteria and the owner's conventions to suggest improvements to unclear passages.
 5. The agent presents the rule and any unresolved policy questions for review.
 
 The same skill can revise an existing rule or review a proposed rule against the rubric.
@@ -105,7 +105,7 @@ When publishing or adapting rules, follow [License rules](/guides/license-rules/
 
 For a step-by-step example with inspectable license provenance, follow [Adapt a third-party rule](/guides/adapt-rules/).
 
-The original repository does not have to change. The definition you give Code Rules must use its input format: a technology or practice group with `_group.yaml`, a Markdown rule with the required metadata, and retained supporting files. The body follows the flexible authoring rubric; it does not need every template heading.
+The original repository does not have to change. The definition you give Code Rules must use its input format: a technology or practice group with `_group.yaml`, a Markdown rule with the required metadata, and retained supporting files. Use the rubric as writing guidance where it helps; the body does not need every template heading, example, or validation section.
 
 For an existing compatible Code Rules library, use the normal import workflow. For a linter rule, style guide, skill, or other document that is not a compatible library:
 
@@ -113,7 +113,7 @@ For an existing compatible Code Rules library, use the normal import workflow. F
 2. Create an adapted definition in a compatible library, which may contain just this one rule. Preserve the original separately when useful for reviewing future updates.
 3. Add the required metadata and an activity-based `whenToRead` cue. Preserve the obligation, important conditions, exceptions, and examples; explain deliberate changes. A detector's analysis limitations do not automatically become exceptions to a written rule.
 4. Declare the library-wide license and notice files in `rule-library.yaml`. Record per-rule [attribution](/reference/rule-library-format/#rule-attribution) with a commit-pinned source URL and describe the adaptation.
-5. Review the adaptation against the [authoring rubric](/reference/rule-authoring/), then generate and inspect the resolved rule, license links, and provenance. Commit the adapted source and retained notices together.
+5. Use the [authoring rubric](/reference/rule-authoring/) to look for useful improvements, then generate and inspect the resolved rule, license links, and provenance. Commit the adapted source and retained notices together.
 
 An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the upstream commit. The adapted library has its own repository and version while retaining the earlier attribution chain. Local rules are for guidance you author for your project.
 

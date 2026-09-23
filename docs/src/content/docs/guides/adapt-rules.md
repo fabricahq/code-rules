@@ -71,7 +71,7 @@ Do not put edited material in `vendor/` and label it an unchanged upstream snaps
 
 ## 4. Review, import, and generate
 
-Review the definition against the authoring rubric and the original source.
+Compare the definition with the original source. Use the [authoring rubric](/reference/rule-authoring/) to look for useful writing improvements.
 `code-rules library check` validates the library format.
 Publish the compatible library to a Git repository and select it through the consuming project's `sources` configuration.
 The Imports API fetches the selected groups; the builder then generates resolved rules and license links. Sync applies those files to the consuming project.
