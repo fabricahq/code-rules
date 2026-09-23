@@ -51,7 +51,7 @@ func TestProjectInitGuidance(t *testing.T) {
 		if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Code Rules is already initialized.\nNo files changed.\n") || strings.Contains(out, "my-rule") {
 			t.Fatal("repeat init should report existing setup", code, out, diagnostic)
 		}
-		location := ".code-rules/config.json"
+		location := ".code-rules/config.yaml"
 		if !strings.Contains(out, "Project configuration: "+location+"\n") || !strings.Contains(out, "Code Rules directory: "+".code-rules"+"\n") {
 			t.Fatal("repeat init should show the configuration path", out)
 		}

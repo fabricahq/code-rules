@@ -258,7 +258,7 @@ func TestProvenanceCompatibility(t *testing.T) {
 // TestProvenanceGuidanceOrder retains library-first provenance without changing effective local priority.
 func TestProvenanceGuidanceOrder(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/_group.json": []byte(`{"name":"Local Go","description":"Local policy","whenToRead":"When editing Go"}`)})
+	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/_group.yaml": []byte(`{"name":"Local Go","description":"Local policy","whenToRead":"When editing Go"}`)})
 	if err != nil {
 		t.Fatal(err)
 	}

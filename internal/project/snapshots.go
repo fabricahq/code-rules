@@ -182,11 +182,11 @@ func parseSourceRecord(data []byte, source rules.Source) (sourceRecord, error) {
 	if err := rules.ValidatePaths(paths, nil); err != nil {
 		return sourceRecord{}, fmt.Errorf("%s: %w", where, err)
 	}
-	if _, ok := paths["rule-library.json"]; !ok {
+	if _, ok := paths["rule-library.yaml"]; !ok {
 		return sourceRecord{}, invalidSnapshot(where, "missing library manifest from inventory")
 	}
 	for _, group := range record.Groups {
-		if _, ok := paths[group+"/_group.json"]; !ok {
+		if _, ok := paths[group+"/_group.yaml"]; !ok {
 			return sourceRecord{}, invalidSnapshot(where, "missing group metadata from inventory: "+group)
 		}
 	}

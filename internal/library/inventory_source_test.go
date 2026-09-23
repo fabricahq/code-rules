@@ -25,7 +25,7 @@ func (s inventoryMapSource) ReadDir(name string) ([]fs.DirEntry, error) {
 
 // TestInventoryAbsentOptionalRoot does not invent a collision between declared terms and an absent assets tree.
 func TestInventoryAbsentOptionalRoot(t *testing.T) {
-	source := inventoryMapSource{fstest.MapFS{"rule-library.json": {Data: []byte(`{"formatVersion":1,"license":{"file":"Assets/LICENSE","notices":[]}}`)}, "Assets/LICENSE": {Data: []byte("Terms")}}}
+	source := inventoryMapSource{fstest.MapFS{"rule-library.yaml": {Data: []byte(`{"formatVersion":1,"license":{"file":"Assets/LICENSE","notices":[]}}`)}, "Assets/LICENSE": {Data: []byte("Terms")}}}
 	inventory, err := readInventory(context.Background(), source)
 	if err != nil || string(inventory.Files["Assets/LICENSE"]) != "Terms" {
 		t.Fatal(inventory, err)
@@ -34,7 +34,7 @@ func TestInventoryAbsentOptionalRoot(t *testing.T) {
 
 // TestInventoryEmptyDirectoryAliases rejects real directory collisions even with no child files.
 func TestInventoryEmptyDirectoryAliases(t *testing.T) {
-	source := inventoryMapSource{fstest.MapFS{"rule-library.json": {Data: []byte(`{"formatVersion":1}`)}, "assets/One": {Mode: fs.ModeDir}, "assets/one": {Mode: fs.ModeDir}}}
+	source := inventoryMapSource{fstest.MapFS{"rule-library.yaml": {Data: []byte(`{"formatVersion":1}`)}, "assets/One": {Mode: fs.ModeDir}, "assets/one": {Mode: fs.ModeDir}}}
 	if _, err := readInventory(context.Background(), source); err == nil {
 		t.Fatal("directory alias accepted")
 	}

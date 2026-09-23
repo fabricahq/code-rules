@@ -23,13 +23,13 @@ After [installing Code Rules](/start-here/install/) and [setting up your project
 code-rules project sync
 ```
 
-In a Git repository, project commands find the nearest repository root and use its `.code-rules/config.json`. Outside Git, run commands from the project root. Custom configuration locations are not supported. The paths below are relative to `.code-rules/`.
+In a Git repository, project commands find the nearest repository root and use its `.code-rules/config.yaml`. Outside Git, run commands from the project root. Custom configuration locations are not supported. The paths below are relative to `.code-rules/`.
 
 ## Which files change
 
 | File or directory | What it contains | What the commands do |
 | --- | --- | --- |
-| `config.json` | Your selected libraries, groups, and exceptions. | Sync, build, and check read it without changing it. |
+| `config.yaml` | Your selected libraries, groups, and exceptions. | Sync, build, and check read it without changing it. |
 | `README.md` | The managed Code Rules guide. | Init, build, and sync refresh an older, unedited guide. Check verifies it without changing it. |
 | `local/` | Rules and replacements you author for this project. | Sync, build, and check preserve these files. |
 | `vendor/` | Original files copied from selected library revisions. | Sync replaces this directory. Build and check validate it without changing it. |

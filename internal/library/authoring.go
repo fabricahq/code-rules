@@ -6,9 +6,9 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"go.yaml.in/yaml/v4"
 	"os"
 	"path"
 	"strings"
@@ -64,29 +64,11 @@ func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, e
 
 // declaredTerms validates the declaration before reading contained term paths, using planned bytes during initialization.
 func declaredTerms(ctx context.Context, root *os.Root, manifest []byte, planned map[string][]byte) (map[string][]byte, *rules.LicenseDeclaration, error) {
-	inventory := map[string][]byte{"rule-library.json": manifest}
-	var raw struct {
-		License struct {
-			File    string
-			Notices []string
-		}
-	}
-	// Discovery supplies only placeholder presence; the domain parser validates every path and field before reads.
-	if json.Unmarshal(manifest, &raw) == nil {
-		if raw.License.File != "rule-library.json" {
-			inventory[raw.License.File] = nil
-		}
-		for _, name := range raw.License.Notices {
-			if name != "rule-library.json" {
-				inventory[name] = nil
-			}
-		}
-	}
-	license, err := rules.ReadLibraryLicense(inventory, "library")
+	license, err := rules.ParseLibraryLicense(manifest, "library")
 	if err != nil {
 		return nil, nil, err
 	}
-	inventory = map[string][]byte{"rule-library.json": manifest}
+	inventory := map[string][]byte{"rule-library.yaml": manifest}
 	for _, name := range rules.LicensePaths(license) {
 		data, ok := planned[name]
 		if !ok {
@@ -124,12 +106,12 @@ func checkParents(root *os.Root, name string) error {
 
 // libraryManifest requires an initialized manifest and valid declared terms.
 func libraryManifest(ctx context.Context, root *os.Root) (map[string][]byte, *rules.LicenseDeclaration, error) {
-	data, err := filetxn.ReadOptional(ctx, root, "rule-library.json")
+	data, err := filetxn.ReadOptional(ctx, root, "rule-library.yaml")
 	if err != nil {
 		return nil, nil, err
 	}
 	if data == nil {
-		return nil, nil, failure("needs-init", "missing rule-library.json; run library init first", nil)
+		return nil, nil, failure("needs-init", "missing rule-library.yaml; run library init first", nil)
 	}
 	return declaredTerms(ctx, root, data, nil)
 }
@@ -144,7 +126,7 @@ func Initialize(ctx context.Context, options Options, terms *Terms) (AuthoringRe
 	var license *rules.LicenseDeclaration
 	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
 		var files []filetxn.File
-		existing, err := filetxn.ReadOptional(ctx, root, "rule-library.json")
+		existing, err := filetxn.ReadOptional(ctx, root, "rule-library.yaml")
 		if err != nil {
 			return nil, err
 		}
@@ -162,11 +144,11 @@ func Initialize(ctx context.Context, options Options, terms *Terms) (AuthoringRe
 				}
 				value["license"] = map[string]any{"spdxExpression": terms.SPDXExpression, "file": "LICENSE.md", "notices": notices}
 			}
-			manifest, err = jsonText(value)
+			manifest, err = yamlText(value)
 			if err != nil {
 				return nil, err
 			}
-			files = append(files, filetxn.File{Path: "rule-library.json", Content: manifest})
+			files = append(files, filetxn.File{Path: "rule-library.yaml", Content: manifest})
 		}
 		if terms != nil {
 			planned["LICENSE.md"] = []byte(terms.License)
@@ -241,17 +223,17 @@ func AddGroup(ctx context.Context, id string, metadata rules.GroupMetadata, opti
 
 // hasGroupMetadata validates an existing group definition without creating it.
 func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, error) {
-	if err := checkParents(root, id+"/_group.json"); err != nil {
+	if err := checkParents(root, id+"/_group.yaml"); err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
 		}
 		return false, err
 	}
-	data, err := filetxn.ReadOptional(ctx, root, id+"/_group.json")
+	data, err := filetxn.ReadOptional(ctx, root, id+"/_group.yaml")
 	if err != nil || data == nil {
 		return false, err
 	}
-	_, err = rules.ParseGroupMetadata(data, id)
+	_, err = rules.ParseGroupMetadataYAML(data, id)
 	return err == nil, err
 }
 
@@ -285,13 +267,14 @@ func authoringResult(changes filetxn.Changes, err error) (AuthoringResult, error
 	return AuthoringResult{Files: changes.Files, Warnings: changes.Warnings}, nil
 }
 
-func jsonText(value any) ([]byte, error) {
+func yamlText(value any) ([]byte, error) {
 	var out bytes.Buffer
-	e := json.NewEncoder(&out)
-	e.SetEscapeHTML(false)
-	e.SetIndent("", "  ")
-	err := e.Encode(value)
-	return out.Bytes(), err
+	e := yaml.NewEncoder(&out)
+	e.SetIndent(2)
+	if err := e.Encode(value); err != nil {
+		return nil, err
+	}
+	return out.Bytes(), e.Close()
 }
 
 func failure(code, problem string, cause error) error {
@@ -300,5 +283,5 @@ func failure(code, problem string, cause error) error {
 
 func groupFiles(directory, id string, metadata []byte) []filetxn.File {
 	instructions := fmt.Sprintf("## Add or edit rules\n\nRun commands from the library root, two directories above this folder.\nUse `code-rules library add rule %s/<rule-name>` to add a rule; run `code-rules library add rule --help` for metadata and body options.\nEdit existing rule files directly, then run `code-rules library check`. Resolve errors before committing or publishing the library.\n\nA consuming project selects this group in its configuration and runs sync. Its generated/RULES.md identifies the adopted rules after exclusions and replacements.\n", id)
-	return []filetxn.File{{Path: path.Join(directory, "_group.json"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
+	return []filetxn.File{{Path: path.Join(directory, "_group.yaml"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

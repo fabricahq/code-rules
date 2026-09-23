@@ -83,7 +83,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 			}
 			spellings[key] = prefix
 		}
-		if name == "rule-library.json" || slices.Contains(terms, name) || rules.IsGroupReadme(name) {
+		if name == "rule-library.yaml" || slices.Contains(terms, name) || rules.IsGroupReadme(name) {
 			continue
 		}
 		asset := slices.Contains(parts, "assets")
@@ -107,9 +107,9 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 			if err := rules.ValidateGroupID(group, name); err != nil {
 				return err
 			}
-			if name != group+"/_group.json" {
+			if name != group+"/_group.yaml" {
 				if _, err := rules.GroupFromPath(name, name); err != nil {
-					return failure("invalid-library", name+": use rule Markdown, _group.json, or a conventional assets directory", err)
+					return failure("invalid-library", name+": use rule Markdown, _group.yaml, or a conventional assets directory", err)
 				}
 				if bytes.Contains(files[name], []byte("<!-- code-rules:draft -->")) {
 					return failure("incomplete-rule", name+": complete the draft and remove its code-rules:draft marker", nil)

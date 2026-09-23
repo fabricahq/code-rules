@@ -63,8 +63,8 @@ func TestInitCreatesAgentGuide(t *testing.T) {
 func TestProjectGuideExamples(t *testing.T) {
 	binary := buildCLI(t)
 	fixture, err := gitfixture.New(context.Background(), map[string][]byte{
-		"rule-library.json":    []byte(`{"formatVersion":1}`),
-		"techs/go/_group.json": []byte(`{"name":"Go","description":"Shared Go guidance.","whenToRead":"When writing Go."}`),
+		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+		"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Shared Go guidance.","whenToRead":"When writing Go."}`),
 		"techs/go/shared.md":   []byte("---\ntitle: Preserve errors\nimpact: HIGH\nimpactDescription: Keep failures visible.\nwhenToRead: When calling fallible functions.\n---\nReturn errors to the caller.\n"),
 	})
 	if err != nil {

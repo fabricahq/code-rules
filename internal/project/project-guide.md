@@ -15,7 +15,7 @@ This guide explains how to manage this project's [Fabrica Code Rules](https://co
 Use this guide to **manage rules**. Use `.code-rules/generated/RULES.md` to **read and apply adopted rules** when working on the project.
 
 1. Identify the requested change: add local guidance, adopt a library, change an existing definition, or verify generated output.
-2. Run the corresponding commands below. Run `code-rules project init` **from the Git repository root**. Other project commands can run from any subdirectory and use the root's `.code-rules/config.json`. Outside Git, run commands from the project root, the parent of `.code-rules/`.
+2. Run the corresponding commands below. Run `code-rules project init` **from the Git repository root**. Other project commands can run from any subdirectory and use the root's `.code-rules/config.yaml`. Outside Git, run commands from the project root, the parent of `.code-rules/`.
 3. Supply the project's intended metadata and guidance. The examples below illustrate command syntax; replace their values before using them in a real project.
 4. Build after local edits. Sync after changing a library's repository, ref, version constraint, or group selection. Inspect the resulting diff and resolve errors before reporting completion.
 5. Run check. Exit 0 confirms that generated files match their inputs and this guide matches the installed CLI; it does not verify application code against the rules.
@@ -33,7 +33,7 @@ code-rules project add group techs/go \
   --when-to-read 'When writing or reviewing Go code.'
 ```
 
-Read `.code-rules/local/techs/go/README.md` for group authoring instructions. Confirm that `.code-rules/local/techs/go/_group.json` contains the intended metadata. Local group metadata takes precedence over imported metadata for the same group.
+Read `.code-rules/local/techs/go/README.md` for group authoring instructions. Confirm that `.code-rules/local/techs/go/_group.yaml` contains the intended metadata. Local group metadata takes precedence over imported metadata for the same group.
 
 #### Add a rule
 

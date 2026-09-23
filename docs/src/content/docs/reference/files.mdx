@@ -14,7 +14,7 @@ The tree below shows **`/.code-rules/` at the project root**, the top-level dire
 <FileTree>
 
 - /.code-rules/
-  - config.json
+  - config.yaml
   - README.md
   - local/
     - README.md
@@ -23,7 +23,7 @@ The tree below shows **`/.code-rules/` at the project root**, the top-level dire
   - vendor/
     - fabrica/
       - _source.json
-      - rule-library.json
+      - rule-library.yaml
       - practices/testing/
         - ...
   - generated/
@@ -38,7 +38,7 @@ The tree below shows **`/.code-rules/` at the project root**, the top-level dire
 
 </FileTree>
 
-Your `AGENTS.md` stays outside the Code Rules directory, at the project root. The **project configuration** is `.code-rules/config.json`.
+Your `AGENTS.md` stays outside the Code Rules directory, at the project root. The **project configuration** is `.code-rules/config.yaml`.
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/` directory. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
 
@@ -46,9 +46,9 @@ Initialize from the project root. In Git repositories, other project commands fi
 
 The three directories serve different purposes:
 
-- **`local/`: rules you author for this project.** Add your own rules here, or write replacements for imported rules and select those replacements in `config.json`. You maintain these files; syncing libraries preserves them.
+- **`local/`: rules you author for this project.** Add your own rules here, or write replacements for imported rules and select those replacements in `config.yaml`. You maintain these files; syncing libraries preserves them.
 - **`vendor/`: source files imported from libraries.** Code Rules keeps a snapshot of the selected library content at a specific Git commit. These files let you rebuild offline and trace rules back to their source. Do not customize them here; put your changes in `local/` instead.
-- **`generated/`: the resolved rules your agents read.** Code Rules combines the imported and local rules according to `config.json`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
+- **`generated/`: the resolved rules your agents read.** Code Rules combines the imported and local rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
 
 Think of `local/` and `vendor/` as inputs, and `generated/` as the output for your agent.
 For example, when you replace a library rule, its imported source stays in `vendor/`, your replacement lives in `local/`, and `generated/` presents the replacement to your agent.
@@ -58,7 +58,7 @@ For example, when you replace a library rule, its imported source stays in `vend
 | File or directory | Who maintains it | Purpose |
 | --- | --- | --- |
 | `AGENTS.md` | You | Tell your agent to read the generated rules. |
-| `.code-rules/config.json` | You | Choose libraries, revisions, groups, and exceptions. |
+| `.code-rules/config.yaml` | You | Choose libraries, revisions, groups, and exceptions. |
 | `.code-rules/local/` | You, after initialization | Add project rules, replacements, and local group metadata. |
 | `.code-rules/README.md` | `code-rules project init`, `project build`, and `project sync` | Explain the project's rule setup and commands. |
 | `.code-rules/vendor/` | `code-rules project sync` | Store imported source files and their revision records. |
@@ -82,7 +82,7 @@ After upgrading Code Rules, run `code-rules project build` to refresh an older g
 
 Managed guide format changes are breaking changes under the [release policy](https://github.com/fabricahq/code-rules/blob/main/_engineering/releasing.md#version-policy): a minor release before 1.0 and a major release after 1.0. This guide is separate from your project's own README.
 
-Local and library group creation also writes a `README.md` beside `_group.json`. Group guides explain how to add, edit, and validate rules. These are authoring documents, excluded from rule loading and generated guidance. Existing group files are preserved.
+Local and library group creation also writes a `README.md` beside `_group.yaml`. Group guides explain how to add, edit, and validate rules. These are authoring documents, excluded from rule loading and generated guidance. Existing group files are preserved.
 
 ## Where agents start
 
@@ -154,8 +154,8 @@ The authored version stays in `.code-rules/local/practices/testing/test-changed-
 
 ### Examples of other project files
 
-- [Project configuration](/reference/configuration/#complete-example): the libraries, groups, exclusions, and replacements declared in `config.json`.
-- [Group metadata](/reference/rule-library-format/#group-metadata): the name and reading cues in `_group.json`.
+- [Project configuration](/reference/configuration/#complete-example): the libraries, groups, exclusions, and replacements declared in `config.yaml`.
+- [Group metadata](/reference/rule-library-format/#group-metadata): the name and reading cues in `_group.yaml`.
 - [Authored rule](/reference/rule-authoring/#markdown-template): the Markdown and metadata you write before building.
 - [Imported source record](/reference/provenance/#inspect-the-original-imported-files): the library revision stored in `vendor/<source>/_source.json`.
 - [Provenance](/reference/provenance/#trace-a-rule-to-its-source): how `generated/provenance.json` records a rule's origin.

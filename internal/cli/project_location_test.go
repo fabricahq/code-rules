@@ -64,7 +64,7 @@ func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
 	// An unrelated configuration file must never become project state implicitly.
-	custom := filepath.Join(directory, "config.json")
+	custom := filepath.Join(directory, "config.yaml")
 	original := []byte(`{"schemaVersion":1,"sources":{}}`)
 	if err := os.WriteFile(custom, original, 0600); err != nil {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
 			t.Fatal(command, code, out, diagnostic)
 		}
 	}
-	for _, name := range []string{"config.json", "README.md", "generated/RULES.md"} {
+	for _, name := range []string{"config.yaml", "README.md", "generated/RULES.md"} {
 		if _, err := os.Stat(filepath.Join(directory, ".code-rules", name)); err != nil {
 			t.Fatal(err)
 		}

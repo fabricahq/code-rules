@@ -245,15 +245,15 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 		if file == "README.md" || rules.IsGroupReadme(file) {
 			continue
 		}
-		if slices.Contains(strings.Split(file, "/"), "assets") && !(strings.Count(file, "/") == 2 && path.Base(file) == "_group.json" && (strings.HasPrefix(file, "techs/") || strings.HasPrefix(file, "practices/"))) {
+		if slices.Contains(strings.Split(file, "/"), "assets") && !(strings.Count(file, "/") == 2 && path.Base(file) == "_group.yaml" && (strings.HasPrefix(file, "techs/") || strings.HasPrefix(file, "practices/"))) {
 			continue
 		}
-		if path.Base(file) == "_group.json" {
+		if path.Base(file) == "_group.yaml" {
 			id := path.Dir(file)
 			if err := rules.ValidateGroupID(id, "local/"+file); err != nil {
 				return nil, err
 			}
-			metadata, err := rules.ParseGroupMetadata(json.RawMessage(files[file]), "local/"+file)
+			metadata, err := rules.ParseGroupMetadataYAML(json.RawMessage(files[file]), "local/"+file)
 			if err != nil {
 				return nil, err
 			}

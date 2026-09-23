@@ -78,7 +78,7 @@ func projectInitializedReport(result project.AuthoringResult) commandReport {
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
-	out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.json\n")
+	out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.yaml\n")
 	steps := []nextStep{{Instruction: "Run code-rules project --help to manage this project's rules.", Commands: []string{"code-rules project --help"}}}
 	if len(result.Files) > 0 {
 		steps = []nextStep{

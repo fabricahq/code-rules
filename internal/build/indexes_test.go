@@ -130,7 +130,7 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 			want, unwanted := "When editing Go.", ""
 			description, unwantedDescription := "Go guidance.", ""
 			if local {
-				files = map[string][]byte{"techs/go/_group.json": []byte(`{"name":"Project Go","description":"Project guidance.","whenToRead":"When editing this project."}`)}
+				files = map[string][]byte{"techs/go/_group.yaml": []byte(`{"name":"Project Go","description":"Project guidance.","whenToRead":"When editing this project."}`)}
 				want, unwanted = "When editing this project.", "When editing Go."
 				description, unwantedDescription = "Project guidance.", "Go guidance."
 			}

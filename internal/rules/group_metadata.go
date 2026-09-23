@@ -13,9 +13,9 @@ import (
 
 // GroupMetadata describes a group for selection. Text has no surrounding whitespace.
 type GroupMetadata struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	WhenToRead  string `json:"whenToRead"`
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
+	WhenToRead  string `json:"whenToRead" yaml:"whenToRead"`
 }
 
 // ParseGroupMetadata validates a group's JSON document and rejects unknown fields.
@@ -34,7 +34,7 @@ func ParseGroupMetadata(input json.RawMessage, location string) (GroupMetadata, 
 	}
 	for _, key := range []string{"license", "licenses"} {
 		if _, present := fields[key]; present {
-			return GroupMetadata{}, invalid(location+"."+key, "declare one license for the whole library in rule-library.json; group-level licenses are unsupported")
+			return GroupMetadata{}, invalid(location+"."+key, "declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported")
 		}
 	}
 	// Sort keys so multiple unknown fields produce a deterministic first error.
@@ -110,4 +110,13 @@ func validUnicodeString(input json.RawMessage) bool {
 		}
 	}
 	return true
+}
+
+// ParseGroupMetadataYAML validates one authored YAML group using the group metadata schema.
+func ParseGroupMetadataYAML(input []byte, location string) (GroupMetadata, error) {
+	_, data, err := authoredYAML(input, location)
+	if err != nil {
+		return GroupMetadata{}, err
+	}
+	return ParseGroupMetadata(data, location)
 }

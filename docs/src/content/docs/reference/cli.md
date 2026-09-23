@@ -9,7 +9,7 @@ Find each command's syntax and options below. Every command also accepts `--json
 
 `code-rules project` manages rules for a **project**, the codebase whose rules Code Rules manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
 
-Configuration lives in `.code-rules/config.json` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
+Configuration lives in `.code-rules/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
 
 ### project init
 
@@ -61,7 +61,7 @@ The repository address and groups are illustrative; replace them with a library 
 code-rules project add group ID [options]
 ```
 
-Create a local group with `_group.json` metadata and an authoring README. `ID` is a group path such as `practices/testing` or `techs/typescript`.
+Create a local group with `_group.yaml` metadata and an authoring README. `ID` is a group path such as `practices/testing` or `techs/typescript`.
 
 | Option | Meaning |
 | --- | --- |
@@ -137,7 +137,7 @@ Use check in CI to detect files that need regeneration. It uses recorded commits
 code-rules library init [options]
 ```
 
-Create `rule-library.json` and an authoring README without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library.
+Create `rule-library.yaml` and an authoring README without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library.
 
 | Option | Meaning |
 | --- | --- |
@@ -155,7 +155,7 @@ If you omit the license options, the manifest leaves the license undeclared. Ini
 code-rules library add group ID [options]
 ```
 
-Create a group with `_group.json` metadata and an authoring README in the library. `ID` is a group path such as `practices/testing` or `techs/typescript`.
+Create a group with `_group.yaml` metadata and an authoring README in the library. `ID` is a group path such as `practices/testing` or `techs/typescript`.
 
 | Option | Meaning |
 | --- | --- |
@@ -230,7 +230,7 @@ The root `--version` flag prints the tool version. To select a library revision,
 
 In Git repositories, run `code-rules project init` or `code-rules library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `library init --directory`.
 
-Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project commands use that root's `.code-rules/config.json`; library commands use its `rule-library.json`. They stop at that repository boundary, even if its configuration is missing. A nested `.code-rules/` does not override the root's configuration.
+Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project commands use that root's `.code-rules/config.yaml`; library commands use its `rule-library.yaml`. They stop at that repository boundary, even if its configuration is missing. A nested `.code-rules/` does not override the root's configuration.
 
 Outside Git, commands use the current directory, or the directory selected by `--directory` for library commands. They do not search parent directories for configuration. Custom project configuration locations are not supported.
 

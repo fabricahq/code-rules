@@ -83,7 +83,7 @@ func TestCLIProcess(t *testing.T) {
 	if err := os.Mkdir(root, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "config.json"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "config.yaml"), []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if out, diagnostic, code := runCLI(t, binary, dir, "project", "init"); code != 0 {

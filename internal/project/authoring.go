@@ -3,9 +3,7 @@
 package project
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -42,7 +40,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 			return nil, err
 		}
 		if old != nil {
-			if _, err = rules.ParseConfiguration(old); err != nil {
+			if _, err = rules.ParseConfigurationYAML(old); err != nil {
 				return nil, err
 			}
 		}
@@ -58,7 +56,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 			return nil, err
 		}
 		if old == nil {
-			data, _ := jsonText(map[string]any{"schemaVersion": 1, "sources": map[string]any{}})
+			data := []byte("schemaVersion: 1\nsources: {}\n")
 			files = append(files, filetxn.File{Path: configurationFile, Content: data})
 		}
 		if readme == nil {
@@ -122,8 +120,8 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 		return false, err
 	}
 	if local != nil {
-		if data, ok := local.Files[id+"/_group.json"]; ok {
-			_, err = rules.ParseGroupMetadata(data, id)
+		if data, ok := local.Files[id+"/_group.yaml"]; ok {
+			_, err = rules.ParseGroupMetadataYAML(data, id)
 			return err == nil, err
 		}
 	}
@@ -140,8 +138,8 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 		if !slices.Contains(snapshot.Groups, id) {
 			continue
 		}
-		if data, ok := snapshot.Files[id+"/_group.json"]; ok {
-			_, err = rules.ParseGroupMetadata(data, id)
+		if data, ok := snapshot.Files[id+"/_group.yaml"]; ok {
+			_, err = rules.ParseGroupMetadataYAML(data, id)
 			return err == nil, err
 		}
 	}
@@ -164,26 +162,17 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 }
 
 // AddSource records a validated source declaration without Git access, preserving other selections and exceptions.
-func AddSource(ctx context.Context, alias string, source json.RawMessage, options Options) (AuthoringResult, error) {
+func AddSource(ctx context.Context, alias string, input SourceInput, options Options) (AuthoringResult, error) {
 	return editProject(ctx, options, func(_ *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
-		var fields map[string]json.RawMessage
-		json.Unmarshal(original, &fields)
-		var sources map[string]json.RawMessage
-		json.Unmarshal(fields["sources"], &sources)
 		if err := checkSourceAlias(config, alias); err != nil {
 			return nil, err
 		}
-		sources[alias] = source
-		encoded, err := jsonText(sources)
+		source, err := parseSourceInput(input)
 		if err != nil {
 			return nil, err
 		}
-		fields["sources"] = encoded
-		data, err := jsonText(fields)
+		data, err := rules.AppendConfigurationSource(original, alias, source)
 		if err != nil {
-			return nil, err
-		}
-		if _, err = rules.ParseConfiguration(data); err != nil {
 			return nil, err
 		}
 		return []filetxn.File{{Path: configurationFile, Content: data, Previous: original}}, nil
@@ -198,20 +187,11 @@ func authoringResult(changes filetxn.Changes, err error) (AuthoringResult, error
 	return AuthoringResult{Files: changes.Files, Warnings: changes.Warnings}, nil
 }
 
-func jsonText(value any) ([]byte, error) {
-	var out bytes.Buffer
-	e := json.NewEncoder(&out)
-	e.SetEscapeHTML(false)
-	e.SetIndent("", "  ")
-	err := e.Encode(value)
-	return out.Bytes(), err
-}
-
 func failure(code, problem string, cause error) error {
 	return &filetxn.Error{Code: code, Problem: problem, Cause: cause}
 }
 
 func groupFiles(directory, id string, metadata []byte, projectGuideName string) []filetxn.File {
 	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `code-rules project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun code-rules project build and code-rules project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
-	return []filetxn.File{{Path: path.Join(directory, "_group.json"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
+	return []filetxn.File{{Path: path.Join(directory, "_group.yaml"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

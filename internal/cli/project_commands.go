@@ -3,8 +3,6 @@
 package cli
 
 import (
-	"encoding/json"
-
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -103,17 +101,7 @@ func projectLibraryCommand(options Options, output *commandOutput) *cobra.Comman
 		if err := sf.collectSource(&groups); err != nil {
 			return err
 		}
-		declaration := map[string]any{"repository": sf.value("repository"), "groups": sourceGroupSelection(groups), "exclude": map[string]string{}, "replace": map[string]any{}}
-		field, value, err := libraryRef(sf.value("ref"))
-		if err != nil {
-			return usage(err)
-		}
-		declaration[field] = value
-		data, err := json.Marshal(declaration)
-		if err != nil {
-			return err
-		}
-		result, err := plan.Commit(cmd.Context(), data)
+		result, err := plan.Commit(cmd.Context(), project.SourceInput{Repository: sf.value("repository"), Ref: sf.value("ref"), Groups: groups})
 		if err != nil {
 			return err
 		}

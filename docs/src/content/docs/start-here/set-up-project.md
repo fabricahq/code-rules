@@ -23,7 +23,7 @@ Start in the **project root**, the top-level directory of the codebase you want 
 code-rules project init
 ```
 
-This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.json` and a place for project-only rules in `local/`. Initializing Code Rules does not change your project's `README.md` or agent instructions.
+This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `local/`. Initializing Code Rules does not change your project's `README.md` or agent instructions.
 
 Later, when you import a library, Code Rules saves a copy of its files at the version you selected in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
@@ -86,7 +86,7 @@ Run:
 code-rules project build
 ```
 
-Build reads your rules and `.code-rules/config.json`, validates them, and writes the results into `.code-rules/generated/`. It:
+Build reads your rules and `.code-rules/config.yaml`, validates them, and writes the results into `.code-rules/generated/`. It:
 
 - **Applies your choices:** includes the selected rules, leaves out rules you've excluded, and substitutes your local replacements for imported rules where configured.
 - **Organizes the rules for reading:** creates `RULES.md` and group indexes with links and instructions that help agents find and read relevant rules. See [a sample `RULES.md` and the files it links to](/reference/files/#example-follow-a-rule-from-the-index).
@@ -123,7 +123,7 @@ code-rules project add library fabrica \
   --groups practices/code-design
 ```
 
-This adds the library's repository, version constraint, and selected group to `.code-rules/config.json` under the source name `fabrica`.
+This adds the library's repository, version constraint, and selected group to `.code-rules/config.yaml` under the source name `fabrica`.
 
 The version constraint `>= 0.1.0, < 0.2.0` allows updates within the `0.1.x` series. Each time you run `code-rules project sync`, Code Rules automatically selects the newest release that matches.
 

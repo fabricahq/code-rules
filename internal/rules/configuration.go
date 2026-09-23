@@ -46,7 +46,7 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		return Configuration{}, err
 	}
 	if _, ok := fields["localGroups"]; ok {
-		return Configuration{}, invalid("localGroups", "remove localGroups; local groups are discovered from local/<group>/_group.json")
+		return Configuration{}, invalid("localGroups", "remove localGroups; local groups are discovered from local/<group>/_group.yaml")
 	}
 	if err := knownJSONFields(fields, []string{"schemaVersion", "sources"}, "configuration"); err != nil {
 		return Configuration{}, err
