@@ -1,10 +1,10 @@
 <h1 align="center">Code Rules</h1>
 
-<h3 align="center">The package manager for your engineering rules.</h3>
+<h3 align="center">The package manager for your engineering&nbsp;rules.</h3>
 
 <p align="center">
-  Write your best practices once. Version them, share them across repositories,<br>
-  and give every coding agent the same guidance <em>before</em> it writes code.
+  Write your best practices once. Version them, share them across repositories,
+  and give every coding agent the same guidance <em>before</em> it writes&nbsp;code.
 </p>
 
 <p align="center">
