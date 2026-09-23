@@ -4,14 +4,12 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
 )
@@ -116,34 +114,4 @@ func (p *promptStream) Read(data []byte) (int, error) {
 		}
 		return n, nil
 	}
-}
-
-// collectSource prompts only for missing source inputs and preserves explicitly supplied flags.
-func (f *authoringFlags) collectSource(groups *[]string) error {
-	if f.value("ref") != "" {
-		if _, _, err := libraryRef(f.value("ref")); err != nil {
-			return usage(err)
-		}
-	}
-	if err := f.require("repository", "ref"); err != nil {
-		return err
-	}
-	if len(*groups) == 0 {
-		text, err := f.askValidated("Groups (comma-separated paths, *, practices/*, or techs/*):", func(value string) error {
-			if err := validateAnswer("groups", value); err != nil {
-				return err
-			}
-			data, err := json.Marshal(sourceGroupSelection(splitPromptGroups(value)))
-			if err != nil {
-				return err
-			}
-			_, err = rules.ParseGroupSelection(data, "--groups")
-			return err
-		})
-		if err != nil {
-			return err
-		}
-		*groups = splitPromptGroups(text)
-	}
-	return nil
 }
