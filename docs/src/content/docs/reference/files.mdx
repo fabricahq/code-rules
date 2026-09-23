@@ -103,3 +103,57 @@ A rule's source name appears in its generated path. For example, `fabrica:practi
 Local rules and replacements use `local/` in place of the imported source name. Excluded rules and replaced upstream bodies have no generated rule file.
 
 For source revisions, replacement history, and retained license records, see [Provenance](/reference/provenance/).
+
+## Example: follow a rule from the index
+
+These abbreviated excerpts show how an agent finds a local rule. The full generated files also include reading instructions, metadata, and source information.
+
+### RULES.md: choose a group
+
+`.code-rules/generated/RULES.md` is the starting point. Each entry tells the agent when to open a group:
+
+```md
+### Testing
+
+**When to read this group:** When adding or changing behavior, fixing bugs, or reviewing tests.
+
+**Open group:** [Testing](groups/practices/testing.md)
+```
+
+### Group page: find the rules
+
+`.code-rules/generated/groups/practices/testing.md` contains the group's rules. Small groups include full rule text; larger groups use summaries like this, linking to each full definition:
+
+```md
+### Test changed behavior
+
+Rule ID: `local:practices/testing/test-changed-behavior`
+
+**When to read:** When adding or changing externally visible behavior.
+
+**Read full rule:** [Test changed behavior](../../rules/local/practices/testing/test-changed-behavior.md)
+```
+
+### Rule file: read the guidance
+
+`.code-rules/generated/rules/local/practices/testing/test-changed-behavior.md` contains the rule the agent follows:
+
+```md
+# Test changed behavior
+
+Rule ID: `local:practices/testing/test-changed-behavior`
+
+## Guidance
+
+When a change alters behavior that a caller or user relies on, add or update a test for that outcome.
+```
+
+The authored version stays in `.code-rules/local/practices/testing/test-changed-behavior.md`. Edit that source file and rebuild to update the generated copy.
+
+### Examples of other project files
+
+- [Project configuration](/reference/configuration/#complete-example): the libraries, groups, exclusions, and replacements declared in `config.json`.
+- [Group metadata](/reference/rule-library-format/#group-metadata): the name and reading cues in `_group.json`.
+- [Authored rule](/reference/rule-authoring/#markdown-template): the Markdown and metadata you write before building.
+- [Imported source record](/reference/provenance/#inspect-the-original-imported-files): the library revision stored in `vendor/<source>/_source.json`.
+- [Provenance](/reference/provenance/#trace-a-rule-to-its-source): how `generated/provenance.json` records a rule's origin.
