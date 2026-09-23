@@ -15,7 +15,7 @@ This guide explains how to manage this project's [Fabrica Code Rules](https://co
 Use this guide to **manage rules**. Use `.code-rules/generated/RULES.md` to **read and apply adopted rules** when working on the project.
 
 1. Identify the requested change: add local guidance, adopt a library, change an existing definition, or verify generated output.
-2. Run the corresponding commands below. Run `project init` **from the Git repository root**. Other project commands can run from any subdirectory and use the root's `.code-rules/config.json`. Outside Git, run commands from the project root, the parent of `.code-rules/`.
+2. Run the corresponding commands below. Run `code-rules project init` **from the Git repository root**. Other project commands can run from any subdirectory and use the root's `.code-rules/config.json`. Outside Git, run commands from the project root, the parent of `.code-rules/`.
 3. Supply the project's intended metadata and guidance. The examples below illustrate command syntax; replace their values before using them in a real project.
 4. Build after local edits. Sync after changing a library's repository, ref, version constraint, or group selection. Inspect the resulting diff and resolve errors before reporting completion.
 5. Run check. Exit 0 confirms that generated files match their inputs and this guide matches the installed CLI; it does not verify application code against the rules.
@@ -73,16 +73,16 @@ code-rules project sync
 code-rules project check
 ```
 
-`project add library` records the declaration without fetching. `project sync` fetches configured sources, validates them, and installs vendor and generated files together. If any source fails, the previous complete output stays in place. Inspect the selected revision and retained terms in `.code-rules/generated/provenance.json` and `.code-rules/vendor/team/`.
+`code-rules project add library` records the declaration without fetching. `code-rules project sync` fetches configured sources, validates them, and installs vendor and generated files together. If any source fails, the previous complete output stays in place. Inspect the selected revision and retained terms in `.code-rules/generated/provenance.json` and `.code-rules/vendor/team/`.
 
 Use `--ref` for an exact tag, full commit SHA, or version constraint. For a version constraint, replace `--ref v1.0.0` with `--ref '>= 1.0.0, < 2.0.0'`. Repeat `--groups` for multiple groups. For a wildcard, quote it: `--groups 'techs/*'` or `--groups '*'`.
 
 #### Maintain and verify the project
 
-- After editing local rules, run `project build`, then `project check`. In Git repositories, both work from any subdirectory.
-- After changing source selection, run `project sync`, then `project check`. Sync resolves tags again, so inspect revision changes before committing them.
+- After editing local rules, run `code-rules project build`, then `code-rules project check`. In Git repositories, both work from any subdirectory.
+- After changing source selection, run `code-rules project sync`, then `code-rules project check`. Sync resolves tags again, so inspect revision changes before committing them.
 - Review configuration, local rules, vendor snapshots, and generated output together. Keep project-specific notes in a separate file.
-- Use `library --help` when authoring a separately published library. Project-local authoring and publisher authoring use different command trees.
+- Use `code-rules library --help` when authoring a separately published library. Project-local authoring and publisher authoring use different command trees.
 
 #### Keep this guide current
 
@@ -93,6 +93,6 @@ code-rules project build
 code-rules project check
 ```
 
-`project build` and `project sync` refresh this guide alongside generated guidance. `project init` also refreshes it when creating or checking project setup. These commands preserve valid configuration and local definitions. If this guide has manual edits or an unrecognized format, they stop and ask you to move those notes to a separate file before regenerating it.
+`code-rules project build` and `code-rules project sync` refresh this guide alongside generated guidance. `code-rules project init` also refreshes it when creating or checking project setup. These commands preserve valid configuration and local definitions. If this guide has manual edits or an unrecognized format, they stop and ask you to move those notes to a separate file before regenerating it.
 
 Include `code-rules project check` in CI after installing the pinned CLI version. It verifies generated guidance and this guide without writing files. It fails if generated output is stale or this guide is missing or differs from the guide shipped with that version. Run `code-rules project build` to refresh both generated output and this guide, or `code-rules project init` to refresh only this guide and setup files. Code Rules' own tests execute the command examples above against the real CLI on every release change.

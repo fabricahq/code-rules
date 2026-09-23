@@ -54,7 +54,7 @@ Present proposed changes for review. Do not modify rules or choose an
 unresolved engineering policy on the project's behalf.
 ```
 
-For a different configuration location, adjust the prompt to use paths relative to that configuration rather than assuming `.code-rules/`.
+The paths in this prompt are relative to the project root. Project configuration is stored in `.code-rules/config.json`; custom configuration locations are not supported.
 See the [CLI reference](/reference/cli/#conflict-review-prompt) for the planned command.
 
 ## Resolve the intended policy
