@@ -156,6 +156,35 @@ func TestLoadTermsAndLimits(t *testing.T) {
 	}
 }
 
+// TestLoadRequiresDeclaredTerms proves retained files are checked by the production reader.
+func TestLoadRequiresDeclaredTerms(t *testing.T) {
+	for _, missing := range []string{"LICENSE", "NOTICE"} {
+		t.Run(missing, func(t *testing.T) {
+			files := map[string]string{
+				"rule-library.yaml": "formatVersion: 1\nlicense:\n  file: LICENSE\n  notices: [NOTICE]\n",
+				"LICENSE":           "", "NOTICE": "",
+			}
+			delete(files, missing)
+			_, root := fixture(t, files)
+			got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{}})
+			var validation *rules.ValidationError
+			if !errors.As(err, &validation) || validation.Location != missing || !reflect.DeepEqual(got, library.Catalog{}) {
+				t.Fatalf("missing %s: got %+v, %v", missing, got, err)
+			}
+		})
+	}
+}
+
+// TestLoadRejectsLegacyManifestName requires the authored YAML filename.
+func TestLoadRejectsLegacyManifestName(t *testing.T) {
+	_, root := fixture(t, map[string]string{"rule-library.json": `{"formatVersion":1}`})
+	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{}})
+	var validation *rules.ValidationError
+	if !errors.As(err, &validation) || validation.Location != "rule-library.yaml" || !reflect.DeepEqual(got, library.Catalog{}) {
+		t.Fatalf("legacy manifest: got %+v, %v", got, err)
+	}
+}
+
 // TestLoadLeavesFilesUnchanged verifies that catalog loading does not alter the fixture tree.
 func TestLoadLeavesFilesUnchanged(t *testing.T) {
 	files := validFiles()

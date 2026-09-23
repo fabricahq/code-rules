@@ -69,3 +69,52 @@ func TestYAMLConfigurationRejectsAmbiguousInput(t *testing.T) {
 		})
 	}
 }
+
+// TestAppendConfigurationSource preserves authored presentation while validating the edited document.
+func TestAppendConfigurationSource(t *testing.T) {
+	input := []byte(`# Project guidance
+schemaVersion: 1
+sources:
+  existing:
+    repository: 'https://github.com/acme/existing.git' # keep the selected library
+    version: '>= 0.1.0, < 0.2.0'
+    groups: '*'
+    exclude: {}
+    replace: {}
+`)
+	source := rules.Source{
+		Repository: "https://github.com/acme/added.git", Ref: "v0.1.0",
+		Groups:  rules.GroupSelection{Pattern: "*"},
+		Exclude: map[string]string{}, Replace: map[string]rules.Replacement{},
+	}
+	out, err := rules.AppendConfigurationSource(input, "added", source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, retained := range []string{"# Project guidance", "'https://github.com/acme/existing.git' # keep the selected library", "version: '>= 0.1.0, < 0.2.0'", "groups: '*'"} {
+		if !strings.Contains(string(out), retained) {
+			t.Fatalf("lost authored presentation %q:\n%s", retained, out)
+		}
+	}
+	if strings.Index(string(out), "  existing:") > strings.Index(string(out), "  added:") {
+		t.Fatalf("reordered existing source:\n%s", out)
+	}
+	got, err := rules.ParseConfigurationYAML(out)
+	if err != nil || len(got.Sources) != 2 || got.Sources[0].Name != "added" || got.Sources[0].Repository != source.Repository {
+		t.Fatalf("invalid appended source: %+v, %v", got, err)
+	}
+	if out, err := rules.AppendConfigurationSource(input, "existing", source); err == nil || out != nil {
+		t.Fatalf("accepted duplicate source: %s, %v", out, err)
+	}
+}
+
+// TestAppendConfigurationSourceValidatesInputFirst preserves errors from the existing document.
+func TestAppendConfigurationSourceValidatesInputFirst(t *testing.T) {
+	for _, input := range []string{"schemaVersion: 1", "schemaVersion: 1\nsources: []", "schemaVersion: 1\nsources: {}\nsources: {}"} {
+		_, want := rules.ParseConfigurationYAML([]byte(input))
+		out, got := rules.AppendConfigurationSource([]byte(input), "invalid alias", rules.Source{})
+		if want == nil || got == nil || got.Error() != want.Error() || out != nil {
+			t.Fatalf("input error lost: output %s, got %v, want %v", out, got, want)
+		}
+	}
+}

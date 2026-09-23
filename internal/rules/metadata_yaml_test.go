@@ -16,13 +16,9 @@ func TestYAMLMetadata(t *testing.T) {
 		t.Fatal(metadata, err)
 	}
 	manifest := "# Library terms\nformatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n  notices:\n    - NOTICE.md\n"
-	files := map[string][]byte{"rule-library.yaml": []byte(manifest), "LICENSE.md": []byte("License\r\n"), "NOTICE.md": []byte{0, 255}}
-	license, err := rules.ReadLibraryLicense(files, "library")
+	license, err := rules.ParseLibraryLicense([]byte(manifest), "library")
 	if err != nil || license == nil || *license.SPDXExpression != "MIT" || len(license.AttributionFiles) != 1 {
 		t.Fatal(license, err)
-	}
-	if string(files["rule-library.yaml"]) != manifest || string(files["LICENSE.md"]) != "License\r\n" {
-		t.Fatal("source files changed")
 	}
 }
 
@@ -49,12 +45,9 @@ func TestYAMLMetadataRejectsAmbiguousInput(t *testing.T) {
 		"nested-duplicate": "formatVersion: 1\nlicense: {file: LICENSE.md, file: NOTICE.md, notices: []}",
 	} {
 		t.Run("library/"+name, func(t *testing.T) {
-			if _, err := rules.ReadLibraryLicense(map[string][]byte{"rule-library.yaml": []byte(input)}, "library"); err == nil {
+			if _, err := rules.ParseLibraryLicense([]byte(input), "library"); err == nil {
 				t.Fatal("accepted invalid metadata")
 			}
 		})
-	}
-	if _, err := rules.ReadLibraryLicense(map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1}`)}, "library"); err == nil {
-		t.Fatal("legacy manifest filename accepted")
 	}
 }

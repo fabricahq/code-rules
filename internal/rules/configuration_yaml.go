@@ -11,25 +11,21 @@ import (
 // ParseConfigurationYAML validates one UTF-8 YAML document using the configuration schema.
 // Only string-keyed mappings, sequences, and JSON scalar types are supported; aliases and tags are rejected.
 func ParseConfigurationYAML(input []byte) (Configuration, error) {
-	_, data, err := configurationYAML(input)
+	_, data, err := authoredYAML(input, "configuration")
 	if err != nil {
 		return Configuration{}, err
 	}
 	return ParseConfiguration(data)
 }
 
-func configurationYAML(input []byte) (*yaml.Node, []byte, error) {
-	return authoredYAML(input, "configuration")
-}
-
 // AppendConfigurationSource adds a source without dropping existing comments or reordering entries.
 // The complete resulting configuration is validated before any bytes are returned.
 func AppendConfigurationSource(input []byte, alias string, source Source) ([]byte, error) {
-	document, _, err := configurationYAML(input)
+	document, data, err := authoredYAML(input, "configuration")
 	if err != nil {
 		return nil, err
 	}
-	if _, err := ParseConfigurationYAML(input); err != nil {
+	if _, err := ParseConfiguration(data); err != nil {
 		return nil, err
 	}
 	root := document.Content[0]

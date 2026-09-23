@@ -1,4 +1,4 @@
-// Validate library manifest declarations against an in-memory inventory, preserving term files.
+// Validate library manifest declarations and return safe paths for callers to read.
 
 package rules
 
@@ -19,26 +19,11 @@ type LicenseDeclaration struct {
 	AttributionFiles []string `json:"attributionFiles"`
 }
 
-// ReadLibraryLicense validates rule-library.yaml and declared file presence.
-// It never decodes, copies, or mutates license/notice bytes; empty and binary files
-// count as present. Missing licensing returns nil, not an inferred license.
-// Unknown manifest fields retain baseline compatibility; license fields are strict.
-func ReadLibraryLicense(files map[string][]byte, source string) (*LicenseDeclaration, error) {
-	return readLibraryLicense(files, source, true)
-}
-
 // ParseLibraryLicense validates authored YAML and returns safe declared paths without checking file presence.
-// Callers can then read those paths through their confined filesystem or Git snapshot reader.
-func ParseLibraryLicense(input []byte, source string) (*LicenseDeclaration, error) {
-	return readLibraryLicense(map[string][]byte{"rule-library.yaml": input}, source, false)
-}
-
-func readLibraryLicense(files map[string][]byte, source string, checkPresence bool) (*LicenseDeclaration, error) {
+// Missing licensing returns nil, not an inferred license. Unknown manifest fields are allowed;
+// license fields are strict. Callers read retained bytes through their confined file reader.
+func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error) {
 	location := source + "/rule-library.yaml"
-	text, ok := files["rule-library.yaml"]
-	if !ok {
-		return nil, invalid(location, "missing required file")
-	}
 	if !utf8.Valid(text) {
 		return nil, invalid(location, "expected UTF-8 text")
 	}
@@ -81,14 +66,6 @@ func readLibraryLicense(files map[string][]byte, source string, checkPresence bo
 			return nil, err
 		}
 		notices[i] = path
-	}
-	if _, ok := files[file]; checkPresence && !ok {
-		return nil, invalid(location+".file", "missing declared file "+quote(file))
-	}
-	for i, path := range notices {
-		if _, ok := files[path]; checkPresence && !ok {
-			return nil, invalid(fmt.Sprintf("%s.notices[%d]", location, i), "missing declared file "+quote(path))
-		}
 	}
 	if _, ok := fields["expression"]; ok {
 		return nil, invalid(location+".expression", "renamed to license.spdxExpression; move the declaration to that field")
