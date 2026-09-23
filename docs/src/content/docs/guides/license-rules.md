@@ -3,9 +3,9 @@ title: "License rules"
 description: "Choose clear terms for rule content and preserve them when projects import and aggregate rules."
 ---
 
-A rule library should explain what consumers may do with its text, examples, and adaptations.
-Code Rules preserves those terms through imports; it does not choose a license for the publisher or grant additional rights.
-No particular license, including a Fair Source license, is required by the format.
+A library's **license** states the terms for using, copying, modifying, and sharing its rules. Clear terms help projects understand what they can do with your guidance and what notices they need to keep.
+
+This guide walks through choosing what your terms should cover, declaring them in `rule-library.json`, and checking what Code Rules preserves when projects import rules. Code Rules carries declared license text and notices with the rules; it does not choose a license or grant additional rights.
 
 ## Decide what the license covers
 
@@ -28,6 +28,8 @@ It does not settle the interpretation of a particular license, contract, or copi
 Have the chosen terms reviewed for the rights and restrictions you intend before publishing them.
 
 ## Declare the library's terms
+
+The Code Rules format does not require a particular license.
 
 Keep the actual license text in `LICENSE.md` at the library root, or another explicitly named file.
 The library metadata identifies the terms for the whole library and any accompanying notice files:

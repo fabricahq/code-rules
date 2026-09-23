@@ -4,7 +4,7 @@ description: "The two types of rule groups: technologies and engineering practic
 ---
 
 A **rule group** collects related [rules](/concepts/rule/) and explains when an agent should read them.
-There are two types:
+There are two types of groups:
 
 - **Technology groups**, under `techs/`, cover a named language, framework, tool, platform, or protocol.
 - **Practice groups**, under `practices/`, cover engineering practices that apply across technologies, such as testing or observability.
@@ -58,7 +58,7 @@ Group cues describe the group's intended area of work, even when it contains onl
 An individual rule's cue identifies situations that warrant reading it; its full text defines the obligation and exceptions.
 Reading observability rules does not imply that every function needs a log statement.
 
-See [Import and customize rules](/guides/select-rules/) for selecting and adapting groups, and [Group metadata](/reference/rule-library-format/#group-metadata) for metadata.
+See [Import rules](/guides/select-rules/) for selecting and adapting groups, and [Group metadata](/reference/rule-library-format/#group-metadata) for metadata.
 
 ## Local group descriptions
 

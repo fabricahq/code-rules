@@ -3,8 +3,9 @@ title: "Resolve conflicting rules"
 description: "Find contradictory rules and make the project's intended policy explicit."
 ---
 
-Two rules can have distinct IDs and still give incompatible instructions for the same situation.
-Namespacing identifies each rule; it does not reconcile what the rules say.
+Rules **conflict** when they require incompatible actions in the same situation. For example, one rule might require interfaces where another requires type aliases. An agent cannot follow both, so you need to decide which guidance your project should use.
+
+Code Rules does not detect contradictions in prose or choose which library takes precedence. In this guide, you'll identify conflicting instructions, review them with an agent, and record your decision by excluding or replacing a rule.
 
 ## Recognize a conflict
 

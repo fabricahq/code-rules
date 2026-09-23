@@ -1,13 +1,13 @@
 ---
-title: "Import and customize rules"
+title: "Import rules"
 description: "Choose groups from rule libraries and adapt their rules to your project."
 ---
 
-Import the technology and practice groups your project needs from one or more libraries.
-Add local rules and declare exceptions as part of that import configuration.
-Code Rules combines those choices into a root group index, group pages, and individual full rule files. Small group pages include complete rules; larger ones contain applicability summaries with explicit reading links.
+**Importing rules** brings guidance from a library into your project. A **library** is an independently maintained collection of rule groups that projects can reuse. You can adopt practices from your team or a third party without maintaining a separate copy by hand.
 
-For a complete setup walkthrough, see [Set up your first project](/start-here/set-up-project/).
+In this guide, you'll choose groups to import, record your choices in `.code-rules/config.json`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
+
+Start with a project that already has a `.code-rules/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/).
 
 ## Choose groups for your project
 

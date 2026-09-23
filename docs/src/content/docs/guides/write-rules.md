@@ -3,9 +3,11 @@ title: "Write a rule"
 description: "Author a focused engineering obligation with applicability, examples, and verification guidance."
 ---
 
-Write each rule in Markdown with a rubric that helps agents make it clear, scoped, and verifiable.
-Use the shared template and rubric with any agent or editor.
-To set up a shared library and create groups before adding rules, follow [Create your first library](/start-here/create-library/).
+A **rule** is a Markdown file that tells an agent how to apply one engineering practice. Writing a rule turns a recurring expectation or review comment into guidance you can reuse across tasks. A useful rule explains when it applies, what to do, and how to verify the result.
+
+This guide explains how to draft and review a rule using the shared template and quality criteria. You'll choose a group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
+
+You can write rules with any agent or editor. For the CLI steps to create your first rule, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
 ## Rubric, template, and skill
 

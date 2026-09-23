@@ -50,7 +50,7 @@ export default defineConfig({
       ] },
       { label: 'Guides', items: [
         { label: 'Manage project rules', items: [
-          { label: 'Import and customize rules', slug: 'guides/select-rules' },
+          { label: 'Import rules', slug: 'guides/select-rules' },
           { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
           { label: 'Update rules', slug: 'guides/update' },
         ] },

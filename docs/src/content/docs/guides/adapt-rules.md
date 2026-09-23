@@ -3,21 +3,15 @@ title: "Adapt a third-party rule"
 description: "Package external guidance in a compatible library with one library-wide license and preserved attribution."
 ---
 
-**Every imported rule must live in a group inside a compatible Code Rules library.**
-That includes every adapted third-party rule, even when the library contains only that one rule.
-The `importLibraries` API imports the library, rather than a standalone Markdown rule.
-Fetching, offline generation, safe file updates, and library authoring are part of the CLI. Publishing a library remains the author’s Git workflow.
-The library owns `rule-library.json`, group metadata, and any declared license and notice files.
+**Adapting a rule** means turning guidance from another source, such as a linter or style guide, into a Code Rules rule. You can reuse useful advice even when its author hasn't published a compatible library. The adapted rule needs to preserve the original meaning, attribution, and applicable terms.
 
-For guidance from another source, first create that compatible adaptation.
-An agent can help author it; automatic conversion of arbitrary repositories is outside the import workflow.
-Original project-authored rules and replacements may live under the consuming project’s `local/` directory without a separate library.
-That local workflow is separate from importing third-party guidance.
+In this guide, you'll adapt a JavaScript rule from ESLint Unicorn. You'll check the source and its terms, create a library for the adaptation, write the rule, and inspect the result in a consuming project.
 
-This guide illustrates an ESLint Unicorn adaptation based on commit `5d9d745c5365b6fdb824db1122ff982dd824b11a`.
-The adapted library must retain the source's MIT license text and an adaptation notice.
+Code Rules imports rules from compatible libraries; it does not automatically convert arbitrary documents. If the source already provides a compatible library, follow [Import rules](/guides/select-rules/) instead.
 
 ## 1. Identify the material and its terms
+
+This example uses ESLint Unicorn at commit `5d9d745c5365b6fdb824db1122ff982dd824b11a`. The adapted library must retain the source's MIT license text and an adaptation notice.
 
 Select the specific document and record its repository, file path, and exact revision.
 Read the source and applicable license files before adapting it.

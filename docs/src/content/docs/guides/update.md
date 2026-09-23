@@ -3,9 +3,11 @@ title: "Update rules"
 description: "Adopt upstream changes deliberately while preserving local decisions."
 ---
 
-To adopt newer rules, select an exact revision or version constraint and run `code-rules project sync`.
-Sync downloads the selected rules from your source libraries and rebuilds the indexes and resolved rule files that agents read.
-Sync works with an [installed CLI](/start-here/install/). See [Sync and recovery](/reference/sync/) for filesystem behavior.
+Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, or add rules. Your project adopts those changes when you run `code-rules project sync`, using the version choices in `.code-rules/config.json`.
+
+Reviewing an update lets you check that the changed guidance still fits your project, including any rules you've excluded or replaced. In this guide, you'll select a library version, sync the rules, review the changes, and commit the result. You'll also learn how to change your selection of groups and recover from a failed update.
+
+Start with a project that already [imports rules](/guides/select-rules/). For details about how sync changes files, see [Sync and recovery](/reference/sync/).
 
 ## Update a library
 
