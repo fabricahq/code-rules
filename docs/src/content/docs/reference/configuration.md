@@ -9,6 +9,8 @@ Initialize from the project root. In Git repositories, other project commands fi
 A project can import rules directly from multiple canonical libraries, pinning each one independently.
 Sync, build, and check validate the fields below.
 
+Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are rejected. Quote wildcard selectors, such as `groups: "*"`.
+
 ## Complete example
 
 ```yaml
