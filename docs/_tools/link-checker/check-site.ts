@@ -17,37 +17,12 @@ import {
   sep,
 } from 'node:path';
 import { unescape as decodePercentEscapes } from 'node:querystring';
-import { parse } from 'parse5';
-import type { DefaultTreeAdapterTypes } from 'parse5';
+import { pageLinks } from './html';
+import type { PageLinks } from './html';
+import { checkExternalLinks } from './external';
 
-/** IDs and anchor destinations found in a built page, after HTML entity decoding. */
-type PageLinks = {
-  readonly ids: ReadonlySet<string>;
-  readonly links: ReadonlyArray<string>;
-};
 /** A local URL's path and fragment, with query parameters omitted. */
 type LocalReference = { readonly path: string; readonly fragment: string };
-
-/** Collect IDs and anchor href values; comments and script text are not treated as markup. */
-function pageLinks(html: string): PageLinks {
-  const ids = new Set<string>();
-  const links: Array<string> = [];
-  /** Visit parsed elements and their children in document order. */
-  function visit(node: DefaultTreeAdapterTypes.Node): void {
-    if ('tagName' in node) {
-      const id = node.attrs.find((attribute) => attribute.name === 'id');
-      if (id !== undefined) ids.add(id.value);
-      if (node.tagName === 'a') {
-        const href = node.attrs.find((attribute) => attribute.name === 'href');
-        if (href !== undefined) links.push(href.value);
-      }
-    }
-    if ('content' in node) visit(node.content);
-    if ('childNodes' in node) for (const child of node.childNodes) visit(child);
-  }
-  visit(parse(html));
-  return { ids, links };
-}
 
 /** Discover HTML files without following symlinked directories outside the built site. */
 function htmlFiles(root: string): ReadonlyArray<string> {
@@ -77,7 +52,17 @@ function builtPages(root: string): ReadonlyMap<string, PageLinks> {
 
 /** Split local references without URL normalization hiding traversal outside the output root. */
 function localReference(rawHref: string): LocalReference | undefined {
-  const href = rawHref.replace(/^[\x00-\x20]+/u, '').replace(/[\t\r\n]/gu, '');
+  let href = rawHref.trim().replace(/[\t\r\n]/gu, '');
+  // Check absolute links to this site against this build, never the deployed version.
+  if (/^(https?:)?\/\//iu.test(href)) {
+    try {
+      const url = new URL(href, 'https://code-rules.fabricahq.com');
+      if (url.hostname === 'code-rules.fabricahq.com')
+        href = `${url.pathname}${url.search}${url.hash}`;
+    } catch {
+      return undefined; // The external check reports malformed HTTP URLs.
+    }
+  }
   if (/^[a-z][a-z0-9+.-]*:/iu.test(href) || href.startsWith('//'))
     return undefined;
   const hash = href.indexOf('#');
@@ -141,8 +126,12 @@ function checkLink(
   return undefined;
 }
 
-/** Check every local link and return a success summary; throw with all link diagnostics when any fail. */
-function checkSite(root: string): string {
+/** Check a built site and optionally public HTTP links; return a summary or throw all link diagnostics. */
+export async function checkSite(
+  directory: string,
+  external: boolean,
+): Promise<string> {
+  const root = resolvedPath(resolve(directory));
   const pages = builtPages(root);
   if (pages.size === 0)
     throw new Error('No built pages found. Run bun run docs:build first.');
@@ -153,18 +142,7 @@ function checkSite(root: string): string {
       if (error !== undefined) errors.push(error);
     }
   }
+  if (external) errors.push(...(await checkExternalLinks(root, pages)));
   if (errors.length) throw new Error(errors.join('\n'));
-  return `Checked local links and fragments in ${pages.size} pages.`;
-}
-
-if (import.meta.main) {
-  try {
-    const root = resolvedPath(
-      resolve(process.argv[2] ?? join(import.meta.dir, '../dist')),
-    );
-    console.log(checkSite(root));
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-  }
+  return `Checked ${external ? 'local and external links' : 'local links'} and fragments in ${pages.size} pages.`;
 }

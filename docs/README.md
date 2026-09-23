@@ -27,10 +27,10 @@ bun run docs:preview
 ```
 
 The output is `docs/dist/`.
-The rendered-link checker and its command-level tests live in `_tools/` beside these docs.
+The rendered-link checker lives in `_tools/link-checker/`. `cli.ts` owns command arguments and exit status; `check-site.ts` coordinates validation. HTML parsing, external requests, public-network restrictions, and their tests stay inside that folder.
 The root TypeScript, lint, and test commands include these Bun scripts; Astro checks the site code.
 `bun run docs:links` uses Bun and parse5 to check local destinations and fragments in the built HTML.
-For a different build directory, run `bun docs/_tools/check-doc-links.ts <directory>` from the repository root.
+For a different build directory, run `bun docs/_tools/link-checker/cli.ts <directory>` from the repository root.
 The production build includes the search index.
 Hosting is not configured, and these commands do not publish the site.
 Set Astro's `site` option after selecting a production URL; sitemap generation is skipped until then.
@@ -53,3 +53,13 @@ Keep release availability explicit in the project status and installation guides
 
 Before handing off visual changes, inspect desktop and narrow layouts, light and dark themes, keyboard navigation, and search in a production preview.
 Run `bun run check` to verify website/tooling formatting, lint, types, tests, the static build, and links between built pages. The Go build tests also compile the copyable rule examples through the current resolver and renderer.
+
+### Link checks
+
+`bun run check` checks links and anchors within the built site, including absolute URLs to `code-rules.fabricahq.com`. To also check external links, run `bun run docs:build && bun run docs:links:all` from the repository root.
+
+The Documentation workflow runs both checks on every push and pull request. A broken link fails the workflow, even when the change does not touch a Markdown file.
+
+The external check follows redirects and verifies anchors in static HTML. It permits only public network destinations, including after redirects. It fetches each URL once, retries temporary failures, and exits with an error listing the source pages and failing links. HTTP errors (including access denials), timeouts, and oversized HTML responses fail the check; they are never silently treated as valid links.
+
+Checks cover rendered hyperlinks, including linked downloads. URLs in code examples are not hyperlinks. Email links and other non-HTTP schemes are skipped. Fragments in non-HTML downloads are not checked; anchors created only by client-side JavaScript cannot be verified. Do not add broad exclusions to hide a failed check: fix the link, use a stable destination, or retry if the site is temporarily unavailable.
