@@ -3,7 +3,7 @@ title: "Update rules"
 description: "Adopt upstream changes deliberately while preserving local decisions."
 ---
 
-To adopt newer rules, select an exact revision or version constraint and run `code-rules sync`.
+To adopt newer rules, select an exact revision or version constraint and run `code-rules project sync`.
 Sync downloads the selected rules from your source libraries and rebuilds the indexes and resolved rule files that agents read.
 Sync works through the [development entry point](/reference/sync/) or an [installed release candidate](/guides/install/).
 
@@ -14,7 +14,7 @@ Sync works through the [development entry point](/reference/sync/) or an [instal
 3. From the project root, run:
 
    ```sh
-   code-rules sync
+   code-rules project sync
    ```
 
 4. Review and commit the configuration, refreshed vendor snapshots, and regenerated files together.

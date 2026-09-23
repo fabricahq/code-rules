@@ -11,15 +11,16 @@ For an executable you can run outside the checkout, [install the packed release 
 ## Start with local rules
 
 ```sh
-code-rules init
-code-rules local add group practices/testing
-code-rules local add rule practices/testing/retry-budget
+code-rules project init
+code-rules project add group practices/testing
+code-rules project add rule practices/testing/retry-budget
 ```
 
 `init` creates `.code-rules/config.json` with no imported sources and `.code-rules/local/README.md`.
 No imported library or existing Git repository is required. Repeating `init` preserves valid configuration and local rules and refreshes the managed project README. It refuses to overwrite manually edited guides; keep project notes in a separate file.
+Human output starts with a setup confirmation and example commands for project-only rules or a shared library. If setup is already current, it reports that no files changed. Use `--json` for the exact changed file paths.
 
-**Native Go candidate:** `init` also creates a tool-owned agent guide at `.code-rules/README.md`. For a custom configuration outside a directory named `.code-rules`, the guide is `CODE_RULES.md` beside that configuration. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
+**Native Go candidate:** `init` also creates a tool-owned agent guide at `.code-rules/README.md`. Your project's own `README.md` stays unchanged. Repeating `init` refreshes an older generated guide only if you have not edited it. If the guide contains manual edits, init stops and explains how to preserve them before refreshing. Configuration and local rules remain unchanged. Run `check` to verify both the guide and generated guidance.
 
 On a terminal, group creation asks for a name, description, and when-to-read cue. Rule creation asks for its title, when-to-read cue, impact, and consequence.
 If the group is missing, rule creation stops before prompting and tells you to create the group first.
@@ -29,8 +30,8 @@ The new Markdown rule is a **draft** from the [canonical template](/reference/ru
 A successful format check does not establish that a draft is finished or that its guidance is correct.
 
 ```sh
-code-rules build
-code-rules check
+code-rules project build
+code-rules project check
 ```
 
 Open `.code-rules/generated/RULES.md` and review the generated rules. Commit configuration, local rules, and generated files.
@@ -39,15 +40,19 @@ Use the [agent integration instructions](/for-agents/) to connect the rules to y
 ## Add a library later
 
 ```sh
-code-rules add source team \
+code-rules project add library team \
   --repository https://github.com/example/rules.git \
-  --version '>= 1.2.0, < 2.0.0' --groups '*'
-code-rules sync
+  --ref '>= 1.2.0, < 2.0.0' --groups '*'
+code-rules project sync
 ```
 
 Replace the example repository and version with a library you can access.
-`add source` validates and records the declaration. It does not fetch, verify remote existence, or change generated files. `sync` performs those steps explicitly.
-Use exactly one of `--ref` (an exact tag or full commit) or `--version` (a HashiCorp version constraint).
+`project add library` validates and records the declaration. It does not fetch, verify remote existence, or change generated files. `project sync` performs those steps explicitly.
+Use `--ref` for an exact tag, a full commit SHA, or a version range. The interactive command asks for the same single value.
+A bare version such as `1.2.3` or `v1.2.3` selects that exact tag. A range such as `>= 1.2.0, < 2.0.0` selects the highest matching release tag during sync.
+Quote ranges in the shell. Branch names and abbreviated commits are unsupported.
+Values beginning with comparison operators or containing commas are parsed as version constraints. Use `refs/tags/<name>` for a literal tag that resembles a constraint.
+The CLI writes exact selections to `ref` and ranges to `version` in configuration. Existing configuration files need no migration; the separate `--version` flag is no longer accepted by this command.
 
 Use `--groups '*'`, `--groups 'practices/*'`, `--groups 'techs/*'`, or repeat `--groups` for explicit IDs. Quote wildcard values in your shell. Wildcards cannot be combined with other selectors.
 Existing sources, exclusions, replacements, and local rule files are preserved. An existing source alias is an error; edit its configuration explicitly to change it.
@@ -59,13 +64,13 @@ Every prompt has an equivalent flag. A non-terminal invocation never prompts. `-
 Missing required inputs, unknown flags, and repeated single-value flags produce a usage error without authoring files.
 
 ```sh
-code-rules local add group practices/testing \
+code-rules project add group practices/testing \
   --name Testing \
   --description 'Verify observable project behavior.' \
   --when-to-read 'Before planning, changing, or reviewing project behavior.' \
   --non-interactive
 
-code-rules local add rule practices/testing/retry-budget \
+code-rules project add rule practices/testing/retry-budget \
   --title 'Bound retry attempts' \
   --when-to-read 'When implementing or reviewing retry behavior.' \
   --impact HIGH \
@@ -76,12 +81,12 @@ code-rules local add rule practices/testing/retry-budget \
 Pass `--when-to-read` once for either a group or a rule. Combine distinct scope cues into that one string.
 Optionally pass `--body-file path/to/guidance.md` to use an already authored Markdown body instead of the draft body. The command creates frontmatter from the explicit metadata flags; the body file should not contain frontmatter.
 
-Create a missing group first with `code-rules local add group <group-id>`, then run `code-rules local add rule`. The Go CLI errors before asking for rule metadata if the group does not exist. A selected group from a verified imported library also counts as an existing group.
+Create a missing group first with `code-rules project add group GROUP_PATH`, then run `code-rules project add rule`. The Go CLI errors before asking for rule metadata if the group does not exist. A selected group from a verified imported library also counts as an existing group.
 Creating a local group establishes the project's description even when a library supplies the same group. Existing local metadata is never overwritten. Sync a configured library before relying on its group metadata.
 
 ## File ownership
 
-All commands accept `--config path/to/config.json`; local, vendor, and generated directories live beside that file. Only `init` creates a missing project configuration.
+Run `project init` from the Git repository root; other project commands can run from any subdirectory. Outside Git, run commands from the project root. They use `.code-rules/config.json`, with local rules, vendor snapshots, and generated guidance under `.code-rules/`. Custom configuration locations are not supported. Only `init` creates a missing project configuration.
 
 Authoring commands serialize writes with the same project lock used by sync and build. They reject links, unsupported files, and case-colliding target paths. New definitions are never overwritten. Adding a source moves the current configuration aside, verifies its exact bytes, and installs the new file only if the target path remains empty. An editor save is preserved rather than overwritten.
 A failed multi-file creation claims newly created files before comparing their bytes for rollback, preserving external replacements.

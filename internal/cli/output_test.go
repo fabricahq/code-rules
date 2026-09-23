@@ -12,8 +12,8 @@ import (
 func TestCLIOutputModes(t *testing.T) {
 	binary := buildCLI(t)
 	dir := t.TempDir()
-	out, diagnostic, code := runCLI(t, binary, dir, "init")
-	if code != 0 || diagnostic != "" || !strings.Contains(out, "Updated files:") || !strings.Contains(out, "config.json") || json.Valid([]byte(out)) {
+	out, diagnostic, code := runCLI(t, binary, dir, "project", "init")
+	if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Code Rules initialized!\n") || !strings.Contains(out, "config.json") || json.Valid([]byte(out)) {
 		t.Fatalf("human init: %d %q %q", code, out, diagnostic)
 	}
 	for _, tc := range []struct {
@@ -21,18 +21,19 @@ func TestCLIOutputModes(t *testing.T) {
 		code  int
 		field string
 	}{
-		{[]string{"--json", "build"}, 0, "value"},
-		{[]string{"check", "--json"}, 0, "value"},
+		{[]string{"--json", "project", "build"}, 0, "value"},
+		{[]string{"project", "check", "--json"}, 0, "value"},
 		{[]string{"--json", "--help"}, 0, "value"},
 		{[]string{"--json", "--version"}, 0, "value"},
 		{[]string{"library", "--help", "--json"}, 0, "value"},
 		{[]string{"nonsense", "--json"}, 2, "error"},
-		{[]string{"build", "--json=invalid"}, 2, "error"},
-		{[]string{"build", "--json=false", "--bad", "--json"}, 2, "error"},
-		{[]string{"build", "--bad-flag", "--json"}, 2, "error"},
-		{[]string{"build", "--config", "--json"}, 2, "error"},
-		{[]string{"build", "--json", "--config", "missing.json"}, 1, "error"},
-		{[]string{"local", "add", "group", "techs/go", "--json"}, 2, "error"},
+		{[]string{"help", "project", "--json"}, 2, "error"},
+		{[]string{"project", "build", "--json=invalid"}, 2, "error"},
+		{[]string{"project", "build", "--json=false", "--bad", "--json"}, 2, "error"},
+		{[]string{"project", "build", "--bad-flag", "--json"}, 2, "error"},
+		{[]string{"project", "build", "--config", "--json"}, 2, "error"},
+		{[]string{"project", "build", "--json", "--config", "missing.json"}, 2, "error"},
+		{[]string{"project", "add", "group", "techs/go", "--json"}, 2, "error"},
 	} {
 		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
 			out, diagnostic, code := runCLI(t, binary, dir, tc.args...)
@@ -48,14 +49,14 @@ func TestCLIOutputModes(t *testing.T) {
 func TestHumanCheckAndJSONStale(t *testing.T) {
 	binary := buildCLI(t)
 	dir := t.TempDir()
-	if _, diagnostic, code := runCLI(t, binary, dir, "init"); code != 0 {
+	if _, diagnostic, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
 		t.Fatal(code, diagnostic)
 	}
-	out, diagnostic, code := runCLI(t, binary, dir, "check")
-	if code != 1 || diagnostic != "" || !strings.Contains(out, "No files were changed.") || !strings.Contains(out, "Missing generated file:") {
+	out, diagnostic, code := runCLI(t, binary, dir, "project", "check")
+	if code != 1 || diagnostic != "" || !strings.Contains(out, "No files were changed.") || !strings.Contains(out, "Missing generated file:") || !strings.HasPrefix(out, "\nError: ") {
 		t.Fatal(code, out, diagnostic)
 	}
-	out, diagnostic, code = runCLI(t, binary, dir, "check", "--json")
+	out, diagnostic, code = runCLI(t, binary, dir, "project", "check", "--json")
 	var result struct {
 		OK    bool
 		Value projectCheckResult
@@ -64,7 +65,7 @@ func TestHumanCheckAndJSONStale(t *testing.T) {
 	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "out_of_date" || result.Value.Status != "out_of_date" || len(result.Value.Problems) == 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	for _, args := range [][]string{{"build", "--json", "--bad", "--json=false"}, {"--json=false", "--help"}, {"--json", "--json=false", "--help"}, {"build", "--config=--json"}, {"build", "--", "--json"}} {
+	for _, args := range [][]string{{"project", "build", "--json", "--bad", "--json=false"}, {"--json=false", "--help"}, {"--json", "--json=false", "--help"}, {"project", "build", "--config=--json"}, {"project", "build", "--", "--json"}} {
 		out, diagnostic, _ = runCLI(t, binary, dir, args...)
 		if json.Valid([]byte(out)) || (out == "" && diagnostic == "") {
 			t.Fatal(args, out, diagnostic)

@@ -22,6 +22,11 @@ func TestCheckWithFiles(t *testing.T) {
 	expected := map[string][]byte{"README.md": []byte("Current guide\n")}
 	for _, state := range []string{"missing", "stale", "current"} {
 		t.Run(state, func(t *testing.T) {
+			if state == "missing" {
+				if err := root.Remove("README.md"); err != nil {
+					t.Fatal(err)
+				}
+			}
 			if state == "stale" {
 				writeFixture(t, root, "README.md", "Older guide\n")
 			}
@@ -58,13 +63,17 @@ func TestCheckWithFiles(t *testing.T) {
 func TestCheckSnapshotRejectsEdits(t *testing.T) {
 	for _, change := range []string{"guide-created", "guide-edited", "guide-removed", "local-edited", "config-edited", "writer-started"} {
 		t.Run(change, func(t *testing.T) {
-			root, options := localProject(t)
+			root, _ := localProject(t)
 			ctx := context.Background()
 			expected := map[string][]byte{"README.md": []byte("Current guide\n")}
-			if change != "guide-created" {
+			if change == "guide-created" {
+				if err := root.Remove("README.md"); err != nil {
+					t.Fatal(err)
+				}
+			} else {
 				writeFixture(t, root, "README.md", string(expected["README.md"]))
 			}
-			before, err := readProject(ctx, root, filepath.Base(options.ConfigPath))
+			before, err := readProject(ctx, root)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -82,13 +91,13 @@ func TestCheckSnapshotRejectsEdits(t *testing.T) {
 			case "local-edited":
 				writeFixture(t, root, "local/techs/go/errors.md", projectRule+"New guidance\n")
 			case "config-edited":
-				writeFixture(t, root, filepath.Base(options.ConfigPath), "{\n\"schemaVersion\":1,\"sources\":{}}\n")
+				writeFixture(t, root, "config.json", "{\n\"schemaVersion\":1,\"sources\":{}}\n")
 			case "writer-started":
 				if err := root.Mkdir(".code-rules-lock", 0700); err != nil {
 					t.Fatal(err)
 				}
 			}
-			err = requireCheckUnchanged(ctx, root, filepath.Base(options.ConfigPath), before, expected, files)
+			err = requireCheckUnchanged(ctx, root, before, expected, files)
 			if err == nil {
 				t.Fatal("accepted changing project", change)
 			}
@@ -99,6 +108,9 @@ func TestCheckSnapshotRejectsEdits(t *testing.T) {
 // TestCheckWithFilesRejectsUnsafeGuide refuses following a link outside the project.
 func TestCheckWithFilesRejectsUnsafeGuide(t *testing.T) {
 	root, options := localProject(t)
+	if err := root.Remove("README.md"); err != nil {
+		t.Fatal(err)
+	}
 	outside := filepath.Join(t.TempDir(), "guide")
 	if err := os.WriteFile(outside, []byte("Outside"), 0600); err != nil {
 		t.Fatal(err)

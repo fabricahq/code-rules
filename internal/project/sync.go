@@ -1,4 +1,4 @@
-// Fetch complete libraries and replace vendor and generated trees under one recoverable writer.
+// Fetch libraries and refresh vendor, generated output, and the managed guide under one recoverable writer.
 
 package project
 
@@ -17,14 +17,18 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
 	}
-	root, name, err := projectLocation(options.ConfigPath)
+	root, err := openProject(ctx, options, false)
 	if err != nil {
 		return FileChanges{}, err
 	}
 	defer root.Close()
 	var changes FileChanges
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
-		before, err := readProject(ctx, root, name)
+		before, err := readProject(ctx, root)
+		if err != nil {
+			return err
+		}
+		guide, err := planProjectGuide(ctx, root)
 		if err != nil {
 			return err
 		}
@@ -47,7 +51,14 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 			return err
 		}
 		changes = compareFiles(managedFiles(treeFiles(before.vendor), treeFiles(before.generated)), managedFiles(vendor, output.Files))
-		return w.Apply(map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}, func() error { return requireUnchanged(ctx, root, name, before) })
+		targets := map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}
+		includeProjectGuide(targets, guide, &changes)
+		return w.Apply(targets, func() error {
+			if err := requireUnchanged(ctx, root, before); err != nil {
+				return err
+			}
+			return requireGuideUnchanged(ctx, root, guide)
+		})
 	})
 	if err != nil {
 		return FileChanges{}, fmt.Errorf("sync project: %w", err)

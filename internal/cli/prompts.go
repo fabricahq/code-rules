@@ -4,14 +4,13 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
@@ -29,7 +28,13 @@ func (f *authoringFlags) interactive() bool {
 // ask uses Go's terminal editor for pasted text and restores terminal settings on every return path.
 func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if !f.interactive() {
-		return "", fmt.Errorf("%s Missing input; supply explicit flags in non-interactive mode", label)
+		return "", usage(fmt.Errorf("%s Missing input; supply explicit flags in non-interactive mode", label))
+	}
+	if f.introduction != "" {
+		if _, err := io.WriteString(f.command.ErrOrStderr(), f.introduction); err != nil {
+			return "", err
+		}
+		f.introduction = ""
 	}
 	input := f.command.InOrStdin().(*os.File)
 	fd := int(input.Fd())
@@ -46,8 +51,13 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 	}
 	answer, err = terminal.ReadLine()
 	if err != nil {
-		return "", fmt.Errorf("terminal input ended; no files were written: %w", err)
+		ended := fmt.Errorf("terminal input ended; no files were written: %w", err)
+		if errors.Is(err, io.EOF) {
+			return "", usage(ended)
+		}
+		return "", ended
 	}
+	f.prompted = true
 	return strings.TrimSpace(answer), nil
 }
 
@@ -110,61 +120,30 @@ func (p *promptStream) Read(data []byte) (int, error) {
 
 // collectSource prompts only for missing source inputs and preserves explicitly supplied flags.
 func (f *authoringFlags) collectSource(groups *[]string) error {
-	if f.value("ref") != "" && f.value("version") != "" {
-		return fmt.Errorf("specify exactly one of --ref or --version")
+	if f.value("ref") != "" {
+		if _, _, err := libraryRef(f.value("ref")); err != nil {
+			return usage(err)
+		}
 	}
-	if err := f.require("repository"); err != nil {
+	if err := f.require("repository", "ref"); err != nil {
 		return err
-	}
-	if f.value("ref") == "" && f.value("version") == "" {
-		kind, err := f.ask("Revision kind (ref or version):")
-		if err != nil {
-			return err
-		}
-		if kind != "ref" && kind != "version" {
-			return fmt.Errorf("choose ref or version")
-		}
-		if err := f.require(kind); err != nil {
-			return err
-		}
 	}
 	if len(*groups) == 0 {
-		text, err := f.ask("Groups (comma-separated IDs, *, practices/*, or techs/*):")
+		text, err := f.askValidated("Groups (comma-separated paths, *, practices/*, or techs/*):", func(value string) error {
+			if err := validateAnswer("groups", value); err != nil {
+				return err
+			}
+			data, err := json.Marshal(sourceGroupSelection(splitPromptGroups(value)))
+			if err != nil {
+				return err
+			}
+			_, err = rules.ParseGroupSelection(data, "--groups")
+			return err
+		})
 		if err != nil {
 			return err
 		}
-		if text == "" {
-			return fmt.Errorf("provide --groups")
-		}
-		for _, group := range strings.Split(text, ",") {
-			*groups = append(*groups, strings.TrimSpace(group))
-		}
-	}
-	return nil
-}
-
-// requireRuleGroup refuses absent metadata before any prompts; publication rechecks under its writer lock.
-func (f *authoringFlags) requireRuleGroup(id string, isLibrary bool) error {
-	group, err := rules.GroupFromPath(id+".md", "rule")
-	if err != nil {
-		return err
-	}
-	var exists bool
-	command := checkRepairCommand("local add group "+group, f.value("config"))
-	if isLibrary {
-		exists, err = library.HasGroup(f.command.Context(), group, f.libraryOptions())
-		command = "code-rules library add group " + group
-		if directory := f.value("directory"); directory != "" {
-			command += " --directory='" + strings.ReplaceAll(directory, "'", "'\"'\"'") + "'"
-		}
-	} else {
-		exists, err = project.HasLocalRuleGroup(f.command.Context(), group, f.options())
-	}
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("group %s does not exist; create it first with %s, then retry adding the rule", group, command)
+		*groups = splitPromptGroups(text)
 	}
 	return nil
 }

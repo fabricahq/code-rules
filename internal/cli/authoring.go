@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/project"
@@ -19,18 +18,30 @@ import (
 
 // authoringFlags owns one command's scalar flags and resolves paths against the caller's directory.
 type authoringFlags struct {
-	command   *cobra.Command
-	values    map[string]*singleString
-	directory string
+	command      *cobra.Command
+	values       map[string]*singleString
+	prompts      map[string]string
+	directory    string
+	introduction string
+	prompted     bool
 }
 
-// newAuthoringCommand registers shared configuration and noninteractive flags with strict positional arity.
-func newAuthoringCommand(use, description string, arity int, directory string) (*cobra.Command, *authoringFlags) {
-	cmd := &cobra.Command{Use: use, Short: description, Args: cobra.ExactArgs(arity)}
+// newAuthoringCommand registers noninteractive flags with strict positional arity.
+func newAuthoringCommand(use, description string, args cobra.PositionalArgs, directory string) (*cobra.Command, *authoringFlags) {
+	cmd := &cobra.Command{Use: use, Short: description, Args: args}
 	flags := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: directory}
-	flags.add(cmd, "config", "Configuration file (default .code-rules/config.json)")
+	cmd.PostRunE = flags.finishPrompts
 	cmd.Flags().Bool("non-interactive", false, "Require explicit flags; never prompt")
 	return cmd, flags
+}
+
+// finishPrompts separates the last terminal answer from the completed command's output.
+func (f *authoringFlags) finishPrompts(cmd *cobra.Command, _ []string) error {
+	if !f.prompted {
+		return nil
+	}
+	_, err := fmt.Fprintln(cmd.ErrOrStderr())
+	return err
 }
 
 // add registers one scalar option that refuses accidental repetition.
@@ -52,12 +63,13 @@ func (f *authoringFlags) value(name string) string {
 func (f *authoringFlags) require(names ...string) error {
 	for _, name := range names {
 		if f.value(name) == "" {
-			value, err := f.ask(f.command.Flags().Lookup(name).Usage + ":")
+			label := f.command.Flags().Lookup(name).Usage
+			if prompt, ok := f.prompts[name]; ok {
+				label = prompt
+			}
+			value, err := f.askValidated(label+":", func(value string) error { return validateAnswer(name, value) })
 			if err != nil {
 				return err
-			}
-			if value == "" {
-				return fmt.Errorf("provide --%s", name)
 			}
 			f.values[name].value = value
 		}
@@ -74,12 +86,10 @@ func (f *authoringFlags) file(name string) string {
 	return value
 }
 
-// options supplies the configured path or its documented default.
-func (f *authoringFlags) options() project.Options {
-	if f.value("config") == "" {
-		return project.Options{ConfigPath: filepath.Join(f.directory, ".code-rules", "config.json")}
-	}
-	return project.Options{ConfigPath: f.file("config")}
+// options resolves the project target while file inputs remain relative to the caller.
+func (f *authoringFlags) options(ctx context.Context, initialize bool) (project.Options, error) {
+	directory, err := commandDirectory(ctx, f.directory, "project", initialize)
+	return project.Options{Directory: directory}, err
 }
 
 // group returns the explicit metadata for an existing or newly created group.
@@ -89,113 +99,128 @@ func (f *authoringFlags) group(prefix string) rules.GroupMetadata {
 
 // addGroupFlags defines the three required group fields with an optional creation prefix.
 func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
-	f.add(cmd, prefix+"name", "Group display name")
-	f.add(cmd, prefix+"description", "Group scope")
-	f.add(cmd, prefix+"when-to-read", "When an agent should read this group")
+	f.add(cmd, prefix+"name", `Title shown in rule indexes and group pages (e.g. "Testing")`)
+	f.add(cmd, prefix+"description", `What this group covers (e.g. "Unit and integration testing")`)
+	f.add(cmd, prefix+"when-to-read", "When an agent should read this group's rules")
+	f.prompts = map[string]string{
+		prefix + "name":         "Group name",
+		prefix + "description":  "Group description",
+		prefix + "when-to-read": "When to read",
+	}
+	cmd.Long = cmd.Short + "\n\nGROUP_PATH combines a category and group slug (e.g. practices/testing).\nThe name is its readable title (e.g. Testing or Testing and quality)."
 }
 
 // addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.
-func addProjectAuthoringCommands(root *cobra.Command, options Options, started *bool, output *commandOutput) {
-	initialize, f := newAuthoringCommand("init", "Initialize project files and refresh the agent guide", 0, options.Directory)
+func addProjectAuthoringCommands(root *cobra.Command, options Options, output *commandOutput) {
+	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", cobra.NoArgs, options.Directory)
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
-		*started = true
-
-		result, err := project.Initialize(cmd.Context(), f.options())
+		target, err := f.options(cmd.Context(), true)
 		if err != nil {
 			return err
 		}
-		output.value = result
+		result, err := project.Initialize(cmd.Context(), target)
+		if err != nil {
+			return err
+		}
+		output.report = projectInitializedReport(result)
 		return nil
 	}
 	root.AddCommand(initialize)
-	add := &cobra.Command{Use: "add", Short: "Add project configuration"}
+	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or library"}
 	root.AddCommand(add)
-	source, sf := newAuthoringCommand("source ALIAS", "Record one Git source without fetching", 1, options.Directory)
-	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag or full commit", "version": "HashiCorp version constraint"} {
+	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project configuration."), options.Directory)
+	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag, full commit SHA, or version range (e.g. >= 1.2.0, < 2.0.0)"} {
 		sf.add(source, name, description)
 	}
+	source.Long = librarySelectionHelp + documentationHelp
+	sf.prompts = map[string]string{"repository": "Git repository URL", "ref": "Ref (tag, full commit SHA, or version range)"}
 	var groups []string
-	source.Flags().StringArrayVar(&groups, "groups", nil, "Group ID (repeat) or one wildcard")
+	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
+		target, err := sf.options(cmd.Context(), false)
+		if err != nil {
+			return err
+		}
+		plan, err := project.PlanSource(cmd.Context(), args[0], target)
+		if err != nil {
+			return err
+		}
+		sf.introduction = librarySelectionIntroduction(args[0])
 		if err := sf.collectSource(&groups); err != nil {
 			return err
 		}
-		var selection any = groups
-		if len(groups) == 1 && (groups[0] == "*" || groups[0] == "techs/*" || groups[0] == "practices/*") {
-			selection = groups[0]
+		declaration := map[string]any{"repository": sf.value("repository"), "groups": sourceGroupSelection(groups), "exclude": map[string]string{}, "replace": map[string]any{}}
+		field, value, err := libraryRef(sf.value("ref"))
+		if err != nil {
+			return usage(err)
 		}
-		declaration := map[string]any{"repository": sf.value("repository"), "groups": selection, "exclude": map[string]string{}, "replace": map[string]any{}}
-		if sf.value("ref") != "" {
-			declaration["ref"] = sf.value("ref")
-		} else {
-			declaration["version"] = sf.value("version")
-		}
+		declaration[field] = value
 		data, err := json.Marshal(declaration)
 		if err != nil {
 			return err
 		}
-		*started = true
-		result, err := project.AddSource(cmd.Context(), args[0], data, sf.options())
+		result, err := plan.Commit(cmd.Context(), data)
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = sourceAddedReport(result)
 		return nil
 	}
 	add.AddCommand(source)
-	local := &cobra.Command{Use: "local", Short: "Author local engineering rules"}
-	localAdd := &cobra.Command{Use: "add", Short: "Add a local group or rule"}
-	local.AddCommand(localAdd)
-	root.AddCommand(local)
-	group, gf := newAuthoringCommand("group ID", "Create local group metadata", 1, options.Directory)
+	group, gf := newAuthoringCommand("group GROUP_PATH", "Create a project-only rule group", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
 	gf.addGroupFlags(group, "")
 	group.RunE = func(cmd *cobra.Command, args []string) error {
+		target, err := gf.options(cmd.Context(), false)
+		if err != nil {
+			return err
+		}
+		plan, err := project.PlanLocalGroup(cmd.Context(), args[0], target)
+		if err != nil {
+			return err
+		}
+		gf.introduction = groupIntroduction(args[0], false)
 		if err := gf.require("name", "description", "when-to-read"); err != nil {
 			return err
 		}
-		*started = true
-		result, err := project.AddLocalGroup(cmd.Context(), args[0], gf.group(""), gf.options())
+		result, err := plan.Commit(cmd.Context(), gf.group(""))
 		if err != nil {
 			return err
 		}
-		output.value = result
+		output.report = groupCreatedReport(result.Files, result.Warnings, args[0], authoringScope{})
 		return nil
 	}
-	localAdd.AddCommand(group)
-	rule, rf := newAuthoringCommand("rule ID", "Create a local rule body or canonical unfinished draft", 1, options.Directory)
-	for name, description := range map[string]string{"title": "Action-oriented rule title", "when-to-read": "When an agent should read this rule", "impact": "Consequence level", "impact-description": "Why the rule matters", "body-file": "Existing UTF-8 Markdown body file"} {
-		rf.add(rule, name, description)
-	}
+	add.AddCommand(group)
+	rule, rf := newAuthoringCommand("rule RULE_PATH", "Create a project-only rule or unfinished draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
+	rf.addRuleFlags(rule)
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
-		metadata, body, err := rf.collectRule(cmd.Context(), args[0], false, started)
+		target, err := rf.options(cmd.Context(), false)
 		if err != nil {
 			return err
 		}
-		ro := project.RuleOptions{Options: rf.options(), Body: body}
-		result, err := project.AddLocalRule(cmd.Context(), args[0], metadata, ro)
+		plan, err := project.PlanLocalRule(cmd.Context(), args[0], target)
 		if err != nil {
 			return err
 		}
-		output.value = result
+		metadata, body, err := rf.collectRule(cmd.Context(), args[0], false)
+		if err != nil {
+			return err
+		}
+		result, err := plan.Commit(cmd.Context(), metadata, body)
+		if err != nil {
+			return err
+		}
+		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{})
 		return nil
 	}
-	localAdd.AddCommand(rule)
+	add.AddCommand(rule)
 }
 
-// collectRule validates the existing group before prompting and collects all input before writer ownership.
-// started preserves the CLI distinction between usage failures and failed authoring operations.
-func (f *authoringFlags) collectRule(ctx context.Context, id string, library bool, started *bool) (rules.RuleMetadata, *string, error) {
-	if strings.HasSuffix(id, ".md") {
-		return rules.RuleMetadata{}, nil, fmt.Errorf("use a rule ID without the .md extension")
-	}
-	if err := f.requireRuleGroup(id, library); err != nil {
-		*started = true
-		return rules.RuleMetadata{}, nil, err
-	}
+// collectRule collects metadata and body after the domain has planned the target.
+func (f *authoringFlags) collectRule(ctx context.Context, id string, isLibrary bool) (rules.RuleMetadata, *string, error) {
+	f.introduction = ruleIntroduction(id, f.value("body-file"), isLibrary)
 	if err := f.require("title", "when-to-read", "impact", "impact-description"); err != nil {
 		return rules.RuleMetadata{}, nil, err
 	}
-	*started = true
 	var body *string
 	if f.value("body-file") != "" {
 		text, err := readBody(ctx, f.file("body-file"))

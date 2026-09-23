@@ -19,9 +19,9 @@ func TestGroupGuides(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			directory := t.TempDir()
-			prefix := "local"
+			prefix := "project"
 			groupDir := filepath.Join(directory, ".code-rules/local/techs/go")
-			init := []string{"init"}
+			init := []string{"project", "init"}
 			if library {
 				prefix = "library"
 				groupDir = filepath.Join(directory, "techs/go")
@@ -59,8 +59,8 @@ func TestGroupGuides(t *testing.T) {
 					t.Fatal(out)
 				}
 			} else {
-				run("build")
-				run("check")
+				run("project", "build")
+				run("project", "check")
 			}
 			out, diagnostic, code := runCLI(t, binary, directory, prefix, "add", "group", "techs/go", "--name", "Changed", "--description", "Changed", "--when-to-read", "Changed")
 			if code != 1 {

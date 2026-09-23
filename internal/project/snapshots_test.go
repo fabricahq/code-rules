@@ -70,7 +70,7 @@ func TestSnapshotRepositoryAddressChangeRequiresSync(t *testing.T) {
 			if got != nil || !errors.As(err, &validation) {
 				t.Fatalf("accepted stale repository address: %v, %v", got, err)
 			}
-			if validation.Location != "team/_source.json" || !strings.Contains(validation.Problem, "run sync") {
+			if validation.Location != "team/_source.json" || !strings.Contains(validation.Problem, "run code-rules project sync") {
 				t.Fatalf("missing source location or recovery instruction: %v", err)
 			}
 		})

@@ -118,8 +118,8 @@ Include the intended scope and exceptions in that definition.
 
 ## Generate and review
 
-When sources, revision selections, or selected groups change, run `code-rules sync`.
-For changes limited to local rules or exceptions, run `code-rules build` against the existing vendor snapshots.
+When sources, revision selections, or selected groups change, run `code-rules project sync`.
+For changes limited to local rules or exceptions, run `code-rules project build` against the existing vendor snapshots.
 Review and commit the updated generated files with their inputs.
 
 The importer rejects missing targets, a rule both excluded and replaced, and replacement files reused for multiple rules.

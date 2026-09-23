@@ -115,7 +115,7 @@ func indexDocument(header string, entries []string, footer string) string {
 	if footer != "" {
 		blocks = append(blocks, "---", footer)
 	}
-	return strings.Join(blocks, "\n\n") + "\n"
+	return generatedMarkdown(strings.Join(blocks, "\n\n") + "\n")
 }
 
 // renderIndexes selects complete inline groups when both budgets permit, otherwise paginates summaries.

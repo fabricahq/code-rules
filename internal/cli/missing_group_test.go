@@ -15,10 +15,10 @@ import (
 // TestRuleRequiresExistingGroup exercises the same refusal in unattended and real-terminal use.
 func TestRuleRequiresExistingGroup(t *testing.T) {
 	binary := buildCLI(t)
-	for _, family := range []string{"local", "library"} {
+	for _, family := range []string{"project", "library"} {
 		t.Run(family, func(t *testing.T) {
 			directory := t.TempDir()
-			init := []string{"init"}
+			init := []string{"project", "init"}
 			if family == "library" {
 				init = []string{"library", "init"}
 			}
@@ -35,7 +35,7 @@ func TestRuleRequiresExistingGroup(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			result, err := terminalfixture.Run(ctx, binary, directory, args, nil)
-			if err != nil || result.ExitCode == 0 || !strings.Contains(result.Transcript, want) || strings.Contains(result.Transcript, "Action-oriented rule title:") || strings.Contains(result.Transcript, "[y/N]") {
+			if err != nil || result.ExitCode == 0 || !strings.Contains(result.Transcript, want) || strings.Contains(result.Transcript, "Rule title:") || strings.Contains(result.Transcript, "Example rule:") || strings.Contains(result.Transcript, "[y/N]") {
 				t.Fatal(err, result)
 			}
 			if !reflect.DeepEqual(before, projectFileContents(t, directory)) {

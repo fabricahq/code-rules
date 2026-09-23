@@ -26,7 +26,7 @@ Repeated guidance may be redundant without being contradictory.
 ## Generate a review prompt
 
 `code-rules conflicts --prompt` is planned and is not implemented in the Go CLI.
-For now, run `code-rules check` and resolve any reported problems before reviewing the adopted rules.
+For now, run `code-rules project check` and resolve any reported problems before reviewing the adopted rules.
 Then give a repository-aware agent this prompt:
 
 ```text
@@ -54,7 +54,7 @@ Present proposed changes for review. Do not modify rules or choose an
 unresolved engineering policy on the project's behalf.
 ```
 
-For a different configuration location, adjust the prompt to use paths relative to that configuration rather than assuming `.code-rules/`.
+The paths in this prompt are relative to the project root. Project configuration is stored in `.code-rules/config.json`; custom configuration locations are not supported.
 See the [CLI reference](/reference/cli/#conflict-review-prompt) for the planned command.
 
 ## Resolve the intended policy
@@ -90,9 +90,9 @@ Do not edit `vendor/` or `generated/` directly.
 
 ## Rebuild and review again
 
-Run `code-rules build` after changing local rules or exceptions.
-Run `code-rules sync` instead if you also change sources, revision selections, or imported groups.
+Run `code-rules project build` after changing local rules or exceptions.
+Run `code-rules project sync` instead if you also change sources, revision selections, or imported groups.
 Inspect the regenerated indexes and resolved definitions, then repeat the review against that snapshot.
 
 Commit the configuration, local rules, and generated output together; include vendor changes when sync refreshed them.
-A clean `code-rules check` confirms file consistency, while the agent review assesses whether the guidance can be followed together.
+A clean `code-rules project check` confirms file consistency, while the agent review assesses whether the guidance can be followed together.

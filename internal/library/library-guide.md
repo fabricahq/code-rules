@@ -24,7 +24,7 @@ Human-readable output is the default. Add `--json` for structured results, or `-
 
 #### Add a group
 
-Choose a technology or practice ID and supply its scope and reading cue:
+Choose a technology or practice group path and supply its scope and reading cue:
 
 ```sh
 code-rules library add group techs/go \
@@ -55,7 +55,7 @@ code-rules library add rule techs/go/return-errors \
 ```
 
 Inspect `techs/go/return-errors.md`; make future edits there. The body file is only an authoring input.
-If you omit `--body-file`, complete the generated draft and remove unused template prompts before validation.
+If you omit `--body-file`, open the created Markdown file in your editor. Keep its metadata between the `---` lines; below it, write the instructions, rationale, correct and incorrect examples, and validation steps. Replace template placeholders, remove unused sections, and remove the `<!-- code-rules:draft -->` marker when the rule is complete. Then run `code-rules library check`.
 
 #### Validate and share
 
@@ -69,6 +69,6 @@ Use one license declaration for the library in `rule-library.json`, with the act
 
 Review the diff, commit the library, and publish a Git tag using the repository's release process.
 Give consumers the repository address, tag or version constraint, and group IDs.
-Consumers run `code-rules add source` in their project, then `code-rules sync` to import the selected guidance.
+Consumers run `code-rules project add library` in their project, then `code-rules project sync` to import the selected guidance.
 
 You may customize this README for the library. Re-running `code-rules library init` preserves an existing README.

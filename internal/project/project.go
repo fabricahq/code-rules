@@ -6,10 +6,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"maps"
 	"os"
-	"path/filepath"
 	"slices"
 
 	"github.com/fabricahq/code-rules/internal/build"
@@ -18,10 +16,10 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// Options locates config and its sibling local/vendor/generated trees and controls rendering.
+// Options identifies the project root and controls rendering.
 type Options struct {
-	// ConfigPath defaults to .code-rules/config.json, relative to the process working directory.
-	ConfigPath  string
+	// Directory is the project root; empty means the process working directory.
+	Directory   string
 	ToolVersion string
 	// IndexMaxLines defaults to 750 when zero. Negative limits are rejected by the renderer.
 	IndexMaxLines int
@@ -30,27 +28,38 @@ type Options struct {
 }
 
 // FileChanges lists sorted changed paths. Build uses generated-relative paths; Sync prefixes managed tree names.
-// Empty lists mean matching output.
+// Empty lists mean matching tree output; Guide reports a separate managed-guide update.
 type FileChanges struct {
-	Added   []string `json:"added"`
-	Changed []string `json:"changed"`
-	Removed []string `json:"removed"`
+	Added   []string     `json:"added"`
+	Changed []string     `json:"changed"`
+	Removed []string     `json:"removed"`
+	Guide   *GuideChange `json:"guide,omitempty"`
 }
 
-// Build generates rules entirely offline and replaces only generated/ under exclusive ownership.
+// GuideChange reports a managed-guide update separately from generated-relative file paths.
+type GuideChange struct {
+	Path    string `json:"path"` // Relative to the configuration directory.
+	Created bool   `json:"created"`
+}
+
+// Build generates rules offline and refreshes the managed project guide in one recoverable transaction.
 // Cancellation, validation failure, or detected edits preserve existing output; errors return no changes.
 func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
 	}
-	root, name, err := projectLocation(options.ConfigPath)
+	root, err := openProject(ctx, options, false)
 	if err != nil {
 		return FileChanges{}, err
 	}
 	defer root.Close()
 	var changes FileChanges
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
-		before, err := readProject(ctx, root, name)
+		before, err := readProject(ctx, root)
+		if err != nil {
+			return err
+		}
+		guide, err := planProjectGuide(ctx, root)
 		if err != nil {
 			return err
 		}
@@ -59,7 +68,14 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 			return err
 		}
 		changes = compareFiles(treeFiles(before.generated), output.Files)
-		return w.Apply(map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}, func() error { return requireUnchanged(ctx, root, name, before) })
+		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
+		includeProjectGuide(targets, guide, &changes)
+		return w.Apply(targets, func() error {
+			if err := requireUnchanged(ctx, root, before); err != nil {
+				return err
+			}
+			return requireGuideUnchanged(ctx, root, guide)
+		})
 	})
 	if err != nil {
 		return FileChanges{}, err
@@ -76,7 +92,7 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	if err := rules.ValidatePaths(expected, nil); err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
-	root, name, err := projectLocation(options.ConfigPath)
+	root, err := openProject(ctx, options, false)
 	if err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
@@ -84,7 +100,7 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	if err := filetxn.RequireIdle(root); err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
-	before, err := readProject(ctx, root, name)
+	before, err := readProject(ctx, root)
 	if err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
@@ -96,7 +112,7 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	if err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
-	if err := requireCheckUnchanged(ctx, root, name, before, expected, files); err != nil {
+	if err := requireCheckUnchanged(ctx, root, before, expected, files); err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
 	return compareFiles(treeFiles(before.generated), output.Files), compareFiles(files, expected), nil
@@ -119,8 +135,8 @@ func readCheckFiles(ctx context.Context, root *os.Root, expected map[string][]by
 }
 
 // requireCheckUnchanged verifies both inventories before returning a single freshness decision.
-func requireCheckUnchanged(ctx context.Context, root *os.Root, name string, before projectState, expected, files map[string][]byte) error {
-	if err := requireUnchanged(ctx, root, name, before); err != nil {
+func requireCheckUnchanged(ctx context.Context, root *os.Root, before projectState, expected, files map[string][]byte) error {
+	if err := requireUnchanged(ctx, root, before); err != nil {
 		return err
 	}
 	after, err := readCheckFiles(ctx, root, expected)
@@ -140,29 +156,9 @@ type projectState struct {
 	local, vendor, generated *filetxn.Tree
 }
 
-// projectLocation opens the config parent while leaving the config file itself subject to no-link reads.
-func projectLocation(configPath string) (*os.Root, string, error) {
-	if configPath == "" {
-		configPath = filepath.Join(".code-rules", "config.json")
-	}
-	absolute, err := filepath.Abs(configPath)
-	if err != nil {
-		return nil, "", err
-	}
-	root, err := os.OpenRoot(filepath.Dir(absolute))
-	if err != nil {
-		return nil, "", fmt.Errorf("open configuration directory: %w", err)
-	}
-	return root, filepath.Base(absolute), nil
-}
-
 // readProject validates configuration and retains every authored and managed byte used for change detection.
-func readProject(ctx context.Context, root *os.Root, name string) (projectState, error) {
-	data, err := filetxn.ReadFile(ctx, root, name)
-	if err != nil {
-		return projectState{}, err
-	}
-	config, err := rules.ParseConfiguration(data)
+func readProject(ctx context.Context, root *os.Root) (projectState, error) {
+	data, config, err := configuration(ctx, root)
 	if err != nil {
 		return projectState{}, err
 	}
@@ -229,8 +225,8 @@ func renderProject(ctx context.Context, state projectState, libraries map[string
 }
 
 // requireUnchanged compares exact input/output identities immediately before a write or final check result.
-func requireUnchanged(ctx context.Context, root *os.Root, name string, before projectState) error {
-	after, err := readProject(ctx, root, name)
+func requireUnchanged(ctx context.Context, root *os.Root, before projectState) error {
+	after, err := readProject(ctx, root)
 	if err != nil {
 		return err
 	}
@@ -282,7 +278,7 @@ func verifyLoadedSnapshot(source string, catalog library.Catalog, snapshot snaps
 		}
 	}
 	if !slices.Equal(groups, snapshot.Groups) || !slices.Equal(slices.Sorted(maps.Keys(files)), slices.Sorted(maps.Keys(snapshot.Files))) {
-		return failure("invalid-snapshot", source+": recorded groups or inventory differ from the selected library; run sync", nil)
+		return failure("invalid-snapshot", source+": recorded groups or inventory differ from the selected library; run code-rules project sync", nil)
 	}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !bytes.Equal(files[file], snapshot.Files[file]) {

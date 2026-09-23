@@ -6,12 +6,12 @@ description: "Import libraries, generate resolved rules, and apply changes safel
 Sync fetches and validates library snapshots, resolves project rules, and installs the complete vendor and generated output. [Build or install the Go CLI](/guides/install/), then run from your project root:
 
 ```sh
-code-rules sync
-code-rules build
-code-rules check
+code-rules project sync
+code-rules project build
+code-rules project check
 ```
 
-Without `--config`, commands use `.code-rules/config.json` relative to the working directory.
+Run `project init` from the Git repository root; other project commands can run from any subdirectory. Outside Git, run commands from the project root. They use `.code-rules/config.json` at the project root.
 The configuration directory contains `local/`, `vendor/`, and `generated/`. The directory and configuration must already exist.
 
 ## Ownership
@@ -23,7 +23,7 @@ Build replaces only `generated/` and never contacts a repository. Check reads an
 
 Human-readable output is the default. Use `--json` for one structured response. Sync and build report sorted `added`, `changed`, and `removed` paths for completed changes. Sync paths start with `vendor/` or `generated/`; build paths are relative to `generated/`.
 
-Check reports `status` and `problems`, including each problem's path and repair command. It verifies generated files and the managed project README without writing either. Refresh an outdated README with `code-rules init`; repair generated output with `code-rules build`. Check exits 1 for differences or invalid inputs, 0 when current; usage errors exit 2.
+Check reports `status` and `problems`, including each problem's path and repair command. It verifies generated files and the managed project README without writing either. Run `code-rules project build` to refresh an outdated README and repair generated output. In Git repositories, the repair works from any subdirectory. Check exits 1 for differences or invalid inputs, 0 when current; usage errors exit 2.
 
 Structured group-level update summaries remain future work. Review the changed source records and generated provenance for revision changes.
 

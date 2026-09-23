@@ -8,7 +8,7 @@
 
 Both use `internal/filetxn` for contained reads and protected publication. Its `Edit` operation acquires ownership, prepares changes against current input, publishes them, and reports post-commit cleanup warnings. Shared rule templates and format validation live in `internal/rules`.
 
-Project init preserves valid configuration and local rules while refreshing an unmodified managed project guide. The guide carries a body digest to distinguish older generated text from manual edits; this is an ownership check, not authentication. Custom configurations outside a `.code-rules` directory use `CODE_RULES.md` to preserve the project's general README.
+Project init preserves valid configuration and local rules while refreshing an unmodified managed project guide. The guide carries a body digest to distinguish older generated text from manual edits; this is an ownership check, not authentication. Project commands use `.code-rules/config.json` from the project root. The managed guide lives at `.code-rules/README.md`; the project's root README is outside its ownership.
 
 Library and group READMEs explain authoring and remain user-owned after creation. Group-root READMEs are excluded from rule loading. The templates link to the canonical [rule authoring rubric](../docs/src/content/docs/reference/rule-authoring.md).
 

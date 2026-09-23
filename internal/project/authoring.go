@@ -9,18 +9,15 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"slices"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// AuthoringResult lists absolute authored paths and the next explicit user action. Errors return no result.
+// AuthoringResult lists absolute authored paths and cleanup warnings. Errors return no result.
 type AuthoringResult struct {
 	Files []string `json:"files"`
-	Next  string   `json:"next"`
 	// Warnings describe cleanup failures after all requested files were committed.
 	Warnings []string `json:"warnings,omitempty"`
 }
@@ -31,48 +28,16 @@ type RuleOptions struct {
 	Body *string
 }
 
-// openProject resolves configuration while keeping root creation inside the storage module.
-func openProject(ctx context.Context, options Options, create bool) (*os.Root, string, error) {
-	config := options.ConfigPath
-	if config == "" {
-		config = filepath.Join(".code-rules", "config.json")
-	}
-	absolute, err := filepath.Abs(config)
-	if err != nil {
-		return nil, "", err
-	}
-	var root *os.Root
-	if create {
-		root, err = filetxn.Create(ctx, filepath.Dir(absolute))
-	} else {
-		root, err = filetxn.Open(ctx, filepath.Dir(absolute))
-	}
-	return root, filepath.Base(absolute), err
-}
-
-// configuration reads valid project configuration and its exact bytes under the current root.
-func configuration(ctx context.Context, root *os.Root, name string) ([]byte, rules.Configuration, error) {
-	data, err := filetxn.ReadOptional(ctx, root, name)
-	if err != nil {
-		return nil, rules.Configuration{}, err
-	}
-	if data == nil {
-		return nil, rules.Configuration{}, failure("needs-init", name+": missing configuration; run init first", nil)
-	}
-	config, err := rules.ParseConfiguration(data)
-	return data, config, err
-}
-
 // Initialize creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and local files are preserved.
 func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
-	root, name, err := openProject(ctx, options, true)
+	root, err := openProject(ctx, options, true)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
 	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
 		var files []filetxn.File
-		old, err := filetxn.ReadOptional(ctx, root, name)
+		old, err := filetxn.ReadOptional(ctx, root, configurationFile)
 		if err != nil {
 			return nil, err
 		}
@@ -88,48 +53,48 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 		if err != nil {
 			return nil, err
 		}
-		guide, err := prepareProjectGuide(ctx, root, name)
+		guide, err := prepareProjectGuide(ctx, root)
 		if err != nil {
 			return nil, err
 		}
 		if old == nil {
 			data, _ := jsonText(map[string]any{"schemaVersion": 1, "sources": map[string]any{}})
-			files = append(files, filetxn.File{Path: name, Content: data})
+			files = append(files, filetxn.File{Path: configurationFile, Content: data})
 		}
 		if readme == nil {
-			files = append(files, filetxn.File{Path: "local/README.md", Content: renderLocalReadme(filepath.Join(root.Name(), name))})
+			files = append(files, filetxn.File{Path: "local/README.md", Content: renderLocalReadme()})
 		}
 		if guide != nil {
 			files = append(files, *guide)
 		}
 		return files, nil
 	})
-	return authoringResult(changes, "Add a local group and rule, then run build. Or add a source and run sync.", err)
+	return authoringResult(changes, err)
 }
 
 // editProject revalidates configuration and local paths under exclusive ownership before publishing authored files.
-func editProject(ctx context.Context, options Options, next string, prepare func(*os.Root, string, []byte, rules.Configuration) ([]filetxn.File, error)) (AuthoringResult, error) {
-	root, name, err := openProject(ctx, options, false)
+func editProject(ctx context.Context, options Options, prepare func(*os.Root, []byte, rules.Configuration) ([]filetxn.File, error)) (AuthoringResult, error) {
+	root, err := openProject(ctx, options, false)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
 	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
 		var files []filetxn.File
-		original, config, err := configuration(ctx, root, name)
+		original, config, err := configuration(ctx, root)
 		if err != nil {
 			return nil, err
 		}
 		if _, err = filetxn.ReadTree(ctx, root, "local"); err != nil {
 			return nil, err
 		}
-		files, err = prepare(root, name, original, config)
+		files, err = prepare(root, original, config)
 		if err != nil {
 			return nil, err
 		}
 		return files, nil
 	})
-	return authoringResult(changes, next, err)
+	return authoringResult(changes, err)
 }
 
 // AddLocalGroup creates one complete local group definition without overwriting existing metadata.
@@ -141,8 +106,11 @@ func AddLocalGroup(ctx context.Context, id string, metadata rules.GroupMetadata,
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return editProject(ctx, options, "Add a rule to this group, then run build.", func(root *os.Root, name string, _ []byte, _ rules.Configuration) ([]filetxn.File, error) {
-		guideName, _ := projectGuide(filepath.Join(root.Name(), name))
+	return editProject(ctx, options, func(root *os.Root, _ []byte, _ rules.Configuration) ([]filetxn.File, error) {
+		if err := checkLocalGroup(ctx, root, id); err != nil {
+			return nil, err
+		}
+		guideName, _ := projectGuide()
 		return groupFiles(path.Join("local", id), id, data, guideName), nil
 	})
 }
@@ -180,49 +148,16 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 	return false, nil
 }
 
-// HasLocalRuleGroup checks current metadata before prompting; writes must still recheck under the writer lock.
-// This advisory read does not require an idle writer; publication owns recovery and revalidation.
-func HasLocalRuleGroup(ctx context.Context, id string, options Options) (bool, error) {
-	if err := rules.ValidateGroupID(id, "group"); err != nil {
-		return false, err
-	}
-	root, name, err := openProject(ctx, options, false)
-	if err != nil {
-		return false, err
-	}
-	defer root.Close()
-	_, config, err := configuration(ctx, root, name)
-	if err != nil {
-		return false, err
-	}
-	return groupAvailable(ctx, root, config, id)
-}
-
 // AddLocalRule creates a validated rule or canonical unfinished draft, in an existing group.
 func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
-	if strings.HasSuffix(id, ".md") {
-		return AuthoringResult{}, failure("invalid-operation", "use a rule ID without the .md extension", nil)
-	}
-	group, err := rules.GroupFromPath(id+".md", "rule")
-	if err != nil {
-		return AuthoringResult{}, err
-	}
 	data, err := rules.RenderRule(id, metadata, options.Body)
 	if err != nil {
 		return AuthoringResult{}, err
 	}
 
-	next := "Review the rule, then run build."
-	if options.Body == nil {
-		next = "Complete the draft and remove unused template prompts before running build."
-	}
-	return editProject(ctx, options.Options, next, func(root *os.Root, _ string, _ []byte, config rules.Configuration) ([]filetxn.File, error) {
-		available, err := groupAvailable(ctx, root, config, group)
-		if err != nil {
+	return editProject(ctx, options.Options, func(root *os.Root, _ []byte, config rules.Configuration) ([]filetxn.File, error) {
+		if err := checkLocalRule(ctx, root, config, id); err != nil {
 			return nil, err
-		}
-		if !available {
-			return nil, failure("missing-group", "group "+group+" does not exist; create it first with code-rules local add group "+group+", then retry adding the rule", nil)
 		}
 		return []filetxn.File{{Path: path.Join("local", id+".md"), Content: data}}, nil
 	})
@@ -230,13 +165,13 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 
 // AddSource records a validated source declaration without Git access, preserving other selections and exceptions.
 func AddSource(ctx context.Context, alias string, source json.RawMessage, options Options) (AuthoringResult, error) {
-	return editProject(ctx, options, "Run sync to import this source and regenerate resolved rules.", func(_ *os.Root, name string, original []byte, _ rules.Configuration) ([]filetxn.File, error) {
+	return editProject(ctx, options, func(_ *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
 		var fields map[string]json.RawMessage
 		json.Unmarshal(original, &fields)
 		var sources map[string]json.RawMessage
 		json.Unmarshal(fields["sources"], &sources)
-		if _, ok := sources[alias]; ok {
-			return nil, failure("source-exists", "source "+alias+" already exists; edit its configuration explicitly", nil)
+		if err := checkSourceAlias(config, alias); err != nil {
+			return nil, err
 		}
 		sources[alias] = source
 		encoded, err := jsonText(sources)
@@ -251,16 +186,16 @@ func AddSource(ctx context.Context, alias string, source json.RawMessage, option
 		if _, err = rules.ParseConfiguration(data); err != nil {
 			return nil, err
 		}
-		return []filetxn.File{{Path: name, Content: data, Previous: original}}, nil
+		return []filetxn.File{{Path: configurationFile, Content: data, Previous: original}}, nil
 	})
 }
 
-// authoringResult adds the domain's next action to the completed publication report.
-func authoringResult(changes filetxn.Changes, next string, err error) (AuthoringResult, error) {
+// authoringResult returns published paths and cleanup warnings only after a successful write.
+func authoringResult(changes filetxn.Changes, err error) (AuthoringResult, error) {
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return AuthoringResult{Files: changes.Files, Next: next, Warnings: changes.Warnings}, nil
+	return AuthoringResult{Files: changes.Files, Warnings: changes.Warnings}, nil
 }
 
 func jsonText(value any) ([]byte, error) {
@@ -277,6 +212,6 @@ func failure(code, problem string, cause error) error {
 }
 
 func groupFiles(directory, id string, metadata []byte, projectGuideName string) []filetxn.File {
-	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for complete commands and the correct configuration path.\nUse `code-rules local add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun build and check with that configuration after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
+	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `code-rules project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun code-rules project build and code-rules project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
 	return []filetxn.File{{Path: path.Join(directory, "_group.json"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

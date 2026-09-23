@@ -71,7 +71,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	invoke := func(label, dir string, env []string, want int, args ...string) error {
 		var original *filetxn.Tree
 		var err error
-		if len(args) > 0 && args[0] == "check" {
+		if len(args) > 1 && args[0] == "project" && args[1] == "check" {
 			args = append(args, "--json")
 			original, err = readTree(ctx, dir)
 			if err != nil {
@@ -97,7 +97,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if code != want {
 			return fmt.Errorf("%s: exit %d, expected %d: %s", label, code, want, diagnostic.String())
 		}
-		if want != 0 && strings.TrimSpace(diagnostic.String()) == "" && !(len(args) > 0 && args[0] == "check" && reportsCheckProblems(out.Bytes())) {
+		if want != 0 && strings.TrimSpace(diagnostic.String()) == "" && !(len(args) > 1 && args[0] == "project" && args[1] == "check" && reportsCheckProblems(out.Bytes())) {
 			return fmt.Errorf("%s: refusal returned no diagnostic", label)
 		}
 		if original != nil {
@@ -162,12 +162,12 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			online = append(online, value)
 		}
 	}
-	for _, args := range [][]string{{"init"}, {"add", "source", "team", "--repository", fixture.Repository, "--version", ">= 1.0.0, < 2.0.0", "--groups", "techs/go"}} {
+	for _, args := range [][]string{{"project", "init"}, {"project", "add", "library", "team", "--repository", fixture.Repository, "--ref", ">= 1.0.0, < 2.0.0", "--groups", "techs/go"}} {
 		if err := invoke("Configure consumer", consumer, offline, 0, args...); err != nil {
 			return report, err
 		}
 	}
-	if err := invoke("Sync from real Git with no Node/Bun", consumer, online, 0, "sync"); err != nil {
+	if err := invoke("Sync from real Git with no Node/Bun", consumer, online, 0, "project", "sync"); err != nil {
 		return report, err
 	}
 	files, err := readTree(ctx, consumer)
@@ -184,13 +184,13 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		return report, fmt.Errorf("selected revision missing from provenance")
 	}
 	report.Verified = append(report.Verified, "Annotated v1.2.0 selected using HashiCorp constraints", "License, notice, and binary asset bytes preserved exactly")
-	if err := invoke("Local group overrides imported guidance", consumer, offline, 0, "local", "add", "group", "techs/go", "--name", "Project Go", "--description", "Project-specific Go guidance.", "--when-to-read", "When changing this project."); err != nil {
+	if err := invoke("Local group overrides imported guidance", consumer, offline, 0, "project", "add", "group", "techs/go", "--name", "Project Go", "--description", "Project-specific Go guidance.", "--when-to-read", "When changing this project."); err != nil {
 		return report, err
 	}
-	if err := invoke("Build offline without Git, Node, or Bun", consumer, offline, 0, "build"); err != nil {
+	if err := invoke("Build offline without Git, Node, or Bun", consumer, offline, 0, "project", "build"); err != nil {
 		return report, err
 	}
-	if err := invoke("Check offline", consumer, offline, 0, "check"); err != nil {
+	if err := invoke("Check offline", consumer, offline, 0, "project", "check"); err != nil {
 		return report, err
 	}
 	before, err := readTree(ctx, consumer)
@@ -200,7 +200,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	if !strings.Contains(string(before.Files[".code-rules/generated/RULES.md"]), "Project-specific Go guidance.") {
 		return report, fmt.Errorf("local group guidance missing")
 	}
-	if err := invoke("Repeat build", consumer, offline, 0, "build"); err != nil {
+	if err := invoke("Repeat build", consumer, offline, 0, "project", "build"); err != nil {
 		return report, err
 	}
 	after, err := readTree(ctx, consumer)
@@ -218,13 +218,13 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			return report, err
 		}
 		report.Steps = append(report.Steps, Step{Label: "Fixture edit: replace generated RULES.md with stale text"})
-		if err := invoke("Read-only check detects stale output", consumer, offline, 1, "check"); err != nil {
+		if err := invoke("Read-only check detects stale output", consumer, offline, 1, "project", "check"); err != nil {
 			return report, err
 		}
-		if err := invoke("Rebuild repairs generated output", consumer, offline, 0, "build"); err != nil {
+		if err := invoke("Rebuild repairs generated output", consumer, offline, 0, "project", "build"); err != nil {
 			return report, err
 		}
-		if err := invoke("Final offline check", consumer, offline, 0, "check"); err != nil {
+		if err := invoke("Final offline check", consumer, offline, 0, "project", "check"); err != nil {
 			return report, err
 		}
 		report.Verified = append(report.Verified, "Check reports stale output without changing it; rebuild repairs it")
@@ -238,7 +238,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if err != nil {
 			return report, err
 		}
-		if err := invoke("Refuse changed snapshot", consumer, offline, 1, "build"); err != nil {
+		if err := invoke("Refuse changed snapshot", consumer, offline, 1, "project", "build"); err != nil {
 			return report, err
 		}
 		after, err = readTree(ctx, consumer)
@@ -270,7 +270,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if scenario == "failed-sync" {
 			want = 1
 		}
-		if err := invoke("Sync newer selected release", consumer, online, want, "sync"); err != nil {
+		if err := invoke("Sync newer selected release", consumer, online, want, "project", "sync"); err != nil {
 			return report, err
 		}
 		after, err = readTree(ctx, consumer)
@@ -289,7 +289,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			if !strings.Contains(string(after.Files[".code-rules/generated/provenance.json"]), "v1.3.0") {
 				return report, fmt.Errorf("new tag missing from provenance")
 			}
-			if err := invoke("Check updated release offline", consumer, offline, 0, "check"); err != nil {
+			if err := invoke("Check updated release offline", consumer, offline, 0, "project", "check"); err != nil {
 				return report, err
 			}
 			report.Verified = append(report.Verified, "New release updates retained bytes and provenance, then checks offline")

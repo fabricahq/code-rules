@@ -24,28 +24,46 @@ func TestInteractiveAuthoring(t *testing.T) {
 		created bool
 		flags   []string
 	}{
-		{"group", []terminalfixture.Step{{Prompt: "Group display name:", Answer: "  Go  "}, {Prompt: "Group scope:", Answer: "Go guidance."}, {Prompt: "When an agent should read this group:", Answer: "When editing Go."}}, 0, true, nil},
-		{"EOF", []terminalfixture.Step{{Prompt: "Group display name:", EOF: true}}, 2, false, nil},
-		{"interrupt", []terminalfixture.Step{{Prompt: "Group display name:", Interrupt: true}}, 1, false, nil},
-		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group display name:", Answer: "\x03"}}, 1, false, nil},
-		{"blank", []terminalfixture.Step{{Prompt: "Group display name:", Answer: "   "}}, 2, false, nil},
+		{"group", []terminalfixture.Step{{Prompt: "Group name:", Answer: "  Go  "}, {Prompt: "Group description:", Answer: "Go guidance."}, {Prompt: "When to read:", Answer: "When editing Go."}}, 0, true, nil},
+		{"EOF", []terminalfixture.Step{{Prompt: "Group name:", EOF: true}}, 2, false, nil},
+		{"interrupt", []terminalfixture.Step{{Prompt: "Group name:", Interrupt: true}}, 1, false, nil},
+		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group name:", Answer: "\x03"}}, 1, false, nil},
+		{"blank-retry", []terminalfixture.Step{{Prompt: "Group name:", Answer: "   "}, {Prompt: "Group name:", Answer: "Go"}, {Prompt: "Group description:", Answer: "Go guidance."}, {Prompt: "When to read:", Answer: "When editing Go."}}, 0, true, nil},
+		{"blank-EOF", []terminalfixture.Step{{Prompt: "Group name:", Answer: "   "}, {Prompt: "Group name:", EOF: true}}, 2, false, nil},
 		{"unattended", nil, 2, false, []string{"--non-interactive"}},
+		{"json", nil, 2, false, []string{"--json"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			directory := t.TempDir()
-			if _, stderr, code := runCLI(t, binary, directory, "init"); code != 0 {
+			if _, stderr, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
 				t.Fatal(stderr)
 			}
-			args := append([]string{"local", "add", "group", "techs/go"}, tc.flags...)
+			args := append([]string{"project", "add", "group", "techs/go"}, tc.flags...)
 			result, err := terminalfixture.Run(context.Background(), binary, directory, args, tc.steps)
 			if err != nil {
 				t.Fatal(err, result)
+			}
+			if len(tc.flags) > 0 && (strings.Contains(result.Transcript, "Example group:") || strings.Contains(result.Stdout, "Example group:")) {
+				t.Fatal("unattended mode showed interactive introduction", result)
+			}
+			if tc.name == "group" {
+				for _, text := range []string{"Adding a project-only group at: techs/go", "This group belongs to this project.", "Its files are stored in .code-rules/local/techs/go/.", "Example group:", "Name: Testing", "Description: Unit and integration testing.", "When to read: When writing or changing tests."} {
+					if !strings.Contains(result.Transcript, text) {
+						t.Fatalf("missing orientation %q: %s", text, result.Transcript)
+					}
+				}
+				if strings.Index(result.Transcript, "Example group:") > strings.Index(result.Transcript, "Group name:") {
+					t.Fatal("example shown after prompts", result.Transcript)
+				}
 			}
 			if result.ExitCode != tc.code {
 				t.Fatal(result)
 			}
 			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.json"))
 			if tc.created {
+				if !strings.HasSuffix(strings.ReplaceAll(result.Transcript, "\r\n", "\n"), "\n\n") {
+					t.Fatal("missing blank line after prompts", result.Transcript)
+				}
 				if err != nil || !strings.Contains(string(data), `"name": "Go"`) {
 					t.Fatal(string(data), err)
 				}
@@ -63,11 +81,11 @@ func TestInteractiveAuthoring(t *testing.T) {
 func TestInteractiveSource(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
-	if _, stderr, code := runCLI(t, binary, directory, "init"); code != 0 {
+	if _, stderr, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
 		t.Fatal(stderr)
 	}
-	steps := []terminalfixture.Step{{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"}, {Prompt: "Revision kind (ref or version):", Answer: "version"}, {Prompt: "HashiCorp version constraint:", Answer: ">= 1.2.3"}, {Prompt: "Groups (comma-separated IDs, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}}
-	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"add", "source", "team"}, steps)
+	steps := []terminalfixture.Step{{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"}, {Prompt: "Ref (tag, full commit SHA, or version range):", Answer: ">= 1.2.3"}, {Prompt: "Groups (comma-separated paths, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}}
+	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"project", "add", "library", "team"}, steps)
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)
 	}
@@ -78,11 +96,11 @@ func TestInteractiveSource(t *testing.T) {
 func TestLongTerminalPaste(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
-	if _, stderr, code := runCLI(t, binary, directory, "init"); code != 0 {
+	if _, stderr, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
 		t.Fatal(stderr)
 	}
 	description := strings.Repeat("x", 2000)
-	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"local", "add", "group", "techs/go", "--name", "Go", "--when-to-read", "When editing Go."}, []terminalfixture.Step{{Prompt: "Group scope:", Answer: description}})
+	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"project", "add", "group", "techs/go", "--name", "Go", "--when-to-read", "When editing Go."}, []terminalfixture.Step{{Prompt: "Group description:", Answer: description}})
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)
 	}
@@ -95,10 +113,10 @@ func TestLongTerminalPaste(t *testing.T) {
 // TestInteractiveRuleRecoversDeadWriter checks advisory group lookup does not block authoritative writer recovery.
 func TestInteractiveRuleRecoversDeadWriter(t *testing.T) {
 	binary := buildCLI(t)
-	for _, kind := range []string{"local", "library"} {
+	for _, kind := range []string{"project", "library"} {
 		t.Run(kind, func(t *testing.T) {
 			directory := t.TempDir()
-			initArgs := []string{"init"}
+			initArgs := []string{"project", "init"}
 			root := filepath.Join(directory, ".code-rules")
 			if kind == "library" {
 				initArgs = []string{"library", "init"}
@@ -135,7 +153,7 @@ func TestInteractiveRuleRecoversDeadWriter(t *testing.T) {
 				t.Fatal("lock not recovered", err)
 			}
 			ruleRoot := root
-			if kind == "local" {
+			if kind == "project" {
 				ruleRoot = filepath.Join(root, "local")
 			}
 			if _, err := os.Stat(filepath.Join(ruleRoot, "techs/go/errors.md")); err != nil {

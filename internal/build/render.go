@@ -35,7 +35,7 @@ func renderRules(resolved resolution) (map[string]string, error) {
 			if _, exists := output[file]; exists {
 				return nil, invalid(file, "duplicate output rule")
 			}
-			output[file] = text
+			output[file] = generatedMarkdown(text)
 		}
 	}
 	if err := validateOutputPaths(output); err != nil {

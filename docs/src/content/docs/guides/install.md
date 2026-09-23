@@ -28,11 +28,19 @@ Keep executables in separate versioned directories. Test the new executable agai
 After selecting a new version, run from your project:
 
 ```sh
-code-rules init
-code-rules build
-code-rules check
+code-rules project build
+code-rules project check
 ```
 
-Init refreshes the managed project README while preserving valid configuration and local rules. It refuses to overwrite manual edits to the guide. Build regenerates guidance and provenance; review those changes before committing. Use `sync` separately when you want to resolve remote library revisions again.
+Build automatically refreshes the managed project README and regenerates guidance and provenance. It preserves configuration and local rules and refuses to overwrite manual edits to the guide. Review the changes before committing. Sync also refreshes the guide; use it when you want to resolve remote library revisions again.
 
 To roll back, select the previous executable and review regeneration with that version. The `code-rules update` command is not implemented.
+
+
+## Versioning
+
+Code Rules uses semantic versions: `MAJOR.MINOR.PATCH`. Before `1.0.0`, breaking changes require a new minor version. From `1.0.0`, they require a new major version.
+
+Changes to the managed project README format are breaking changes. Release notes describe the format change. Running build or sync applies the template bundled in the selected CLI version automatically when the existing guide has no manual edits.
+
+Keep project-specific notes in a separate file. If a guide was edited, preserve those notes and move the guide aside before rerunning build or sync.

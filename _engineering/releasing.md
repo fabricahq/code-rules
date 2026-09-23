@@ -43,6 +43,7 @@ Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The 
 - Start at `v0.1.0`.
 - Before `1.0.0`, increment patch for compatible fixes and minor for features or breaking changes. Always document breaking changes; `0.x` is not permission to hide them.
 - From `1.0.0`, increment major for incompatible public-contract changes, minor for compatible features, and patch for compatible fixes.
+- Changes to the managed project README format are breaking changes. Before `1.0.0`, release them in a new minor version; from `1.0.0`, use a new major version. Describe the format change and automatic guide refresh in the release notes. Build and sync replace an older, unedited guide with the template bundled in the selected CLI version; they refuse to overwrite manual edits.
 - Each requested version must be newer than existing version tags. Publish one release before requesting the next.
 - Published versions and tagged request files are immutable. Correct later behavior in a new release. If only published prose needs correction, edit the GitHub release description deliberately; do not rerun publication to overwrite it.
 

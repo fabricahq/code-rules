@@ -21,7 +21,7 @@ import (
 func TestInitCreatesAgentGuide(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
-	out, diagnostic, code := runCLI(t, binary, directory, "init")
+	out, diagnostic, code := runCLI(t, binary, directory, "project", "init")
 	if code != 0 {
 		t.Fatal(out, diagnostic)
 	}
@@ -30,26 +30,26 @@ func TestInitCreatesAgentGuide(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, text := range []string{"Add a group", "Add a rule", "Add a third-party library", "code-rules check"} {
+	for _, text := range []string{"Add a group", "Add a rule", "Add a third-party library", "code-rules project check"} {
 		if !strings.Contains(string(guide), text) {
 			t.Fatalf("guide missing %q", text)
 		}
 	}
-	if out, diagnostic, code := runCLI(t, binary, directory, "build"); code != 0 {
+	if out, diagnostic, code := runCLI(t, binary, directory, "project", "build"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	out, diagnostic, code = runCLI(t, binary, directory, "check")
+	out, diagnostic, code = runCLI(t, binary, directory, "project", "check")
 	if code != 0 || !strings.Contains(out, "up to date") {
 		t.Fatal(code, out, diagnostic)
 	}
 	if err := os.WriteFile(guidePath, append(guide, []byte("\nMy custom text.\n")...), 0600); err != nil {
 		t.Fatal(err)
 	}
-	out, diagnostic, code = runCLI(t, binary, directory, "check", "--json")
+	out, diagnostic, code = runCLI(t, binary, directory, "project", "check", "--json")
 	if code != 1 || !strings.Contains(out, `"ok": false`) || diagnostic != "" {
 		t.Fatal(code, out, diagnostic)
 	}
-	out, diagnostic, code = runCLI(t, binary, directory, "init")
+	out, diagnostic, code = runCLI(t, binary, directory, "project", "init")
 	if code != 1 || !strings.Contains(diagnostic, "README.md") {
 		t.Fatal(code, out, diagnostic)
 	}
@@ -75,18 +75,21 @@ func TestProjectGuideExamples(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	for _, configName := range []string{"config.json", "project 'custom'.json", "{{CONFIG_NAME}}-{{CONFIG_ARG}}.json"} {
-		t.Run(configName, func(t *testing.T) {
-			directory := t.TempDir()
+	for _, projectName := range []string{"project", "project 'quoted'"} {
+		t.Run(projectName, func(t *testing.T) {
+			directory := filepath.Join(t.TempDir(), projectName)
+			if err := os.Mkdir(directory, 0700); err != nil {
+				t.Fatal(err)
+			}
 			readme := "# My project\nKeep this authored README unchanged.\n"
 			if err := os.WriteFile(filepath.Join(directory, "README.md"), []byte(readme), 0600); err != nil {
 				t.Fatal(err)
 			}
-			out, diagnostic, code := runCLI(t, binary, directory, "init", "--config", configName)
+			out, diagnostic, code := runCLI(t, binary, directory, "project", "init")
 			if code != 0 {
 				t.Fatal(out, diagnostic)
 			}
-			guide, err := os.ReadFile(filepath.Join(directory, "CODE_RULES.md"))
+			guide, err := os.ReadFile(filepath.Join(directory, ".code-rules", "README.md"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -109,13 +112,13 @@ func TestProjectGuideExamples(t *testing.T) {
 				t.Fatal("changed authored README", err)
 			}
 			for _, file := range []string{"local/README.md", "local/techs/go/README.md"} {
-				content, err := os.ReadFile(filepath.Join(directory, file))
-				if err != nil || !strings.Contains(string(content), "/CODE_RULES.md)") {
+				content, err := os.ReadFile(filepath.Join(directory, ".code-rules", file))
+				if err != nil || !strings.Contains(string(content), "/README.md)") {
 					t.Fatalf("%s does not link to the managed guide: %v", file, err)
 				}
 			}
 			for _, path := range []string{"local/techs/go/return-errors.md", "vendor/team/techs/go/shared.md", "generated/RULES.md", "generated/groups/techs/go.md"} {
-				if _, err := os.Stat(filepath.Join(directory, path)); err != nil {
+				if _, err := os.Stat(filepath.Join(directory, ".code-rules", path)); err != nil {
 					t.Fatalf("README did not produce %s: %v", path, err)
 				}
 			}
@@ -126,93 +129,88 @@ func TestProjectGuideExamples(t *testing.T) {
 // TestCheckVerifiesGuideAndGeneratedOutput exercises both independent checks without allowing writes.
 func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 	binary := buildCLI(t)
-	for _, config := range []string{".code-rules/config.json", "custom/project.json"} {
-		for _, guideState := range []string{"current", "missing", "edited"} {
-			for _, stale := range []bool{false, true} {
-				name := config + "/" + guideState
-				if stale {
-					name += "/stale-output"
-				}
-				t.Run(name, func(t *testing.T) {
-					directory := t.TempDir()
-					for _, command := range []string{"init", "build"} {
-						if out, diagnostic, code := runCLI(t, binary, directory, command, "--config", config); code != 0 {
-							t.Fatal(code, out, diagnostic)
-						}
-					}
-					root := filepath.Join(directory, filepath.Dir(config))
-					guideName := "CODE_RULES.md"
-					if filepath.Base(filepath.Dir(config)) == ".code-rules" {
-						guideName = "README.md"
-					}
-					guidePath := filepath.Join(root, guideName)
-					if guideState == "missing" {
-						if err := os.Remove(guidePath); err != nil {
-							t.Fatal(err)
-						}
-					} else if guideState == "edited" {
-						if err := os.WriteFile(guidePath, []byte("Manually edited guide."), 0600); err != nil {
-							t.Fatal(err)
-						}
-					}
-					if stale {
-						if err := os.WriteFile(filepath.Join(root, "generated", "RULES.md"), []byte("Stale output."), 0600); err != nil {
-							t.Fatal(err)
-						}
-					}
-					before := projectFileContents(t, directory)
-					for _, jsonMode := range []bool{false, true} {
-						args := []string{"check", "--config", config}
-						if jsonMode {
-							args = append(args, "--json")
-						}
-						out, diagnostic, code := runCLI(t, binary, directory, args...)
-						wantCode := 0
-						if stale || guideState != "current" {
-							wantCode = 1
-						}
-						if code != wantCode {
-							t.Fatal(code, out, diagnostic)
-						}
-						if jsonMode {
-							var result struct {
-								OK    bool
-								Value projectCheckResult
-								Error *responseError
-							}
-							if err := json.Unmarshal([]byte(out), &result); err != nil {
-								t.Fatal(err, out)
-							}
-							if diagnostic != "" || result.OK != (wantCode == 0) || (result.Error != nil) != (wantCode != 0) {
-								t.Fatal(out, diagnostic)
-							}
-							kinds := map[string]bool{}
-							for _, problem := range result.Value.Problems {
-								kinds[problem.Kind] = true
-							}
-							if kinds["outdated_readme"] != (guideState != "current") || kinds["stale_contents"] != stale {
-								t.Fatal(out)
-							}
-						} else {
-							if !strings.Contains(out, "Status:") {
-								t.Fatal(out, diagnostic)
-							}
-							if wantCode == 0 && !strings.Contains(out, "the project guide are current") {
-								t.Fatal(out)
-							}
-							if guideState != "current" && !strings.Contains(out, guideName) {
-								t.Fatal(out, diagnostic)
-							}
-						}
-						if after := projectFileContents(t, directory); !reflect.DeepEqual(before, after) {
-							t.Fatal("check changed project files")
-						}
-					}
-				})
+	for _, guideState := range []string{"current", "missing", "edited"} {
+		for _, stale := range []bool{false, true} {
+			name := guideState
+			if stale {
+				name += "/stale-output"
 			}
+			t.Run(name, func(t *testing.T) {
+				directory := t.TempDir()
+				for _, command := range []string{"init", "build"} {
+					if out, diagnostic, code := runCLI(t, binary, directory, "project", command); code != 0 {
+						t.Fatal(code, out, diagnostic)
+					}
+				}
+				root := filepath.Join(directory, ".code-rules")
+				guideName := "README.md"
+				guidePath := filepath.Join(root, guideName)
+				if guideState == "missing" {
+					if err := os.Remove(guidePath); err != nil {
+						t.Fatal(err)
+					}
+				} else if guideState == "edited" {
+					if err := os.WriteFile(guidePath, []byte("Manually edited guide."), 0600); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if stale {
+					if err := os.WriteFile(filepath.Join(root, "generated", "RULES.md"), []byte("Stale output."), 0600); err != nil {
+						t.Fatal(err)
+					}
+				}
+				before := projectFileContents(t, directory)
+				for _, jsonMode := range []bool{false, true} {
+					args := []string{"project", "check"}
+					if jsonMode {
+						args = append(args, "--json")
+					}
+					out, diagnostic, code := runCLI(t, binary, directory, args...)
+					wantCode := 0
+					if stale || guideState != "current" {
+						wantCode = 1
+					}
+					if code != wantCode {
+						t.Fatal(code, out, diagnostic)
+					}
+					if jsonMode {
+						var result struct {
+							OK    bool
+							Value projectCheckResult
+							Error *responseError
+						}
+						if err := json.Unmarshal([]byte(out), &result); err != nil {
+							t.Fatal(err, out)
+						}
+						if diagnostic != "" || result.OK != (wantCode == 0) || (result.Error != nil) != (wantCode != 0) {
+							t.Fatal(out, diagnostic)
+						}
+						kinds := map[string]bool{}
+						for _, problem := range result.Value.Problems {
+							kinds[problem.Kind] = true
+						}
+						if kinds["outdated_readme"] != (guideState != "current") || kinds["stale_contents"] != stale {
+							t.Fatal(out)
+						}
+					} else {
+						if !strings.Contains(out, "Status:") {
+							t.Fatal(out, diagnostic)
+						}
+						if wantCode == 0 && !strings.Contains(out, "the Code Rules guide are current") {
+							t.Fatal(out)
+						}
+						if guideState != "current" && !strings.Contains(out, guideName) {
+							t.Fatal(out, diagnostic)
+						}
+					}
+					if after := projectFileContents(t, directory); !reflect.DeepEqual(before, after) {
+						t.Fatal("check changed project files")
+					}
+				}
+			})
 		}
 	}
-	if out, diagnostic, code := runCLI(t, binary, t.TempDir(), "init", "--check"); code != 2 || !strings.Contains(diagnostic, "unknown flag") {
+	if out, diagnostic, code := runCLI(t, binary, t.TempDir(), "project", "init", "--check"); code != 2 || !strings.Contains(diagnostic, "unknown flag") {
 		t.Fatal(code, out, diagnostic)
 	}
 }
@@ -244,7 +242,7 @@ func projectFileContents(t *testing.T, root string) map[string]string {
 // TestCheckDoesNotInitialize leaves a missing project absent when the actual command fails.
 func TestCheckDoesNotInitialize(t *testing.T) {
 	directory := t.TempDir()
-	out, diagnostic, code := runCLI(t, buildCLI(t), directory, "check")
+	out, diagnostic, code := runCLI(t, buildCLI(t), directory, "project", "check")
 	if code != 1 {
 		t.Fatal(code, out, diagnostic)
 	}

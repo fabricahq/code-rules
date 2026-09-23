@@ -32,7 +32,7 @@ The name is a convention, not automatic discovery.
 A project's configuration explicitly names each source repository, exact ref or version constraint, and selected groups.
 
 The consuming project's default directory is `.code-rules/`.
-A custom configuration path places its related directories beside that configuration file.
+Project commands use `.code-rules/config.json` at the project root. In Git repositories, only `project init` requires running from the root; other commands can run from subdirectories.
 Its name does not depend on the remote repository name.
 
 ## Share only what applies
