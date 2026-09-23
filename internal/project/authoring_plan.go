@@ -4,7 +4,6 @@ package project
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path"
 	"path/filepath"
@@ -76,7 +75,7 @@ func PlanSource(ctx context.Context, alias string, options Options) (*SourcePlan
 }
 
 // Commit validates and stores a source declaration, rechecking the alias under writer ownership.
-func (p *SourcePlan) Commit(ctx context.Context, declaration json.RawMessage) (AuthoringResult, error) {
+func (p *SourcePlan) Commit(ctx context.Context, declaration SourceInput) (AuthoringResult, error) {
 	if p == nil || p.alias == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned library alias", nil)
 	}
@@ -130,7 +129,7 @@ func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configurati
 func checkSourceAlias(config rules.Configuration, alias string) error {
 	for _, source := range config.Sources {
 		if source.Name == alias {
-			return failure("source-exists", "library alias "+alias+" already exists; edit .code-rules/config.json or choose a different alias", nil)
+			return failure("source-exists", "library alias "+alias+" already exists; edit .code-rules/config.yaml or choose a different alias", nil)
 		}
 	}
 	return nil

@@ -26,7 +26,7 @@ func localProject(t *testing.T) (*os.Root, Options) {
 	if _, err := Initialize(context.Background(), Options{Directory: filepath.Dir(root.Name())}); err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, "config.json", `{"schemaVersion":1,"sources":{}}`)
+	writeFixture(t, root, "config.yaml", `{"schemaVersion":1,"sources":{}}`)
 	writeFixture(t, root, "local/techs/go/_group.json", projectMetadata)
 	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
 	return root, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}
@@ -40,7 +40,7 @@ func importedProject(t *testing.T) (*os.Root, Options) {
 		t.Fatal(err)
 	}
 	configJSON := []byte(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{},"replace":{}}}}`)
-	writeFixture(t, root, "config.json", string(configJSON))
+	writeFixture(t, root, "config.yaml", string(configJSON))
 	config, err := rules.ParseConfiguration(configJSON)
 	if err != nil {
 		t.Fatal(err)

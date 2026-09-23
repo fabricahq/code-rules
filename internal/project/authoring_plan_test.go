@@ -4,7 +4,6 @@ package project
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,7 +53,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	declaration := json.RawMessage(`{"repository":"https://example.invalid/rules.git","ref":"v1.0.0","groups":"*","exclude":{},"replace":{}}`)
+	declaration := SourceInput{Repository: "https://example.invalid/rules.git", Ref: "v1.0.0", Groups: []string{"*"}}
 	if _, err := AddSource(ctx, "team", declaration, options); err != nil {
 		t.Fatal(err)
 	}

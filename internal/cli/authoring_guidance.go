@@ -58,5 +58,5 @@ func ruleReadyHeading(isLibrary bool) string {
 	if isLibrary {
 		return "After writing the rule text, run:"
 	}
-	return "Project-only groups and rules are discovered automatically when you build; you don't need to list them in config.json.\n\nAfter writing the rule text, to make the rule accessible to this project, run:"
+	return "Project-only groups and rules are discovered automatically when you build; you don't need to list them in config.yaml.\n\nAfter writing the rule text, to make the rule accessible to this project, run:"
 }

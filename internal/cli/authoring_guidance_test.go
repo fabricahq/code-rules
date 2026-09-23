@@ -72,7 +72,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 						}
 					}
 				}
-				discovery := "Project-only groups and rules are discovered automatically when you build; you don't need to list them in config.json."
+				discovery := "Project-only groups and rules are discovered automatically when you build; you don't need to list them in config.yaml."
 				for _, output := range []string{groupOutput, result.Stdout} {
 					if strings.Contains(output, discovery) != (scope == "project") {
 						t.Fatal("incorrect discovery scope", output)

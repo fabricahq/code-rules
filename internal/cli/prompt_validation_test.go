@@ -5,6 +5,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"go.yaml.in/yaml/v4"
 	"os"
 	"path/filepath"
 	"strings"
@@ -88,12 +89,12 @@ func TestSourceAnswerRetry(t *testing.T) {
 			if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 3 {
 				t.Fatal(err, result)
 			}
-			data, err := os.ReadFile(filepath.Join(dir, ".code-rules/config.json"))
+			data, err := os.ReadFile(filepath.Join(dir, ".code-rules/config.yaml"))
 			if err != nil {
 				t.Fatal(err)
 			}
 			var config struct{ Sources map[string]map[string]any }
-			if err := json.Unmarshal(data, &config); err != nil {
+			if err := yaml.Unmarshal(data, &config); err != nil {
 				t.Fatal(err)
 			}
 			source := config.Sources["team"]

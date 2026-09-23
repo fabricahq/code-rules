@@ -13,7 +13,7 @@ func TestCLIOutputModes(t *testing.T) {
 	binary := buildCLI(t)
 	dir := t.TempDir()
 	out, diagnostic, code := runCLI(t, binary, dir, "project", "init")
-	if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Code Rules initialized!\n") || !strings.Contains(out, "config.json") || json.Valid([]byte(out)) {
+	if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Code Rules initialized!\n") || !strings.Contains(out, "config.yaml") || json.Valid([]byte(out)) {
 		t.Fatalf("human init: %d %q %q", code, out, diagnostic)
 	}
 	for _, tc := range []struct {

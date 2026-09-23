@@ -3,9 +3,7 @@
 package project
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -42,7 +40,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 			return nil, err
 		}
 		if old != nil {
-			if _, err = rules.ParseConfiguration(old); err != nil {
+			if _, err = rules.ParseConfigurationYAML(old); err != nil {
 				return nil, err
 			}
 		}
@@ -58,7 +56,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 			return nil, err
 		}
 		if old == nil {
-			data, _ := jsonText(map[string]any{"schemaVersion": 1, "sources": map[string]any{}})
+			data := []byte("schemaVersion: 1\nsources: {}\n")
 			files = append(files, filetxn.File{Path: configurationFile, Content: data})
 		}
 		if readme == nil {
@@ -164,26 +162,17 @@ func AddLocalRule(ctx context.Context, id string, metadata rules.RuleMetadata, o
 }
 
 // AddSource records a validated source declaration without Git access, preserving other selections and exceptions.
-func AddSource(ctx context.Context, alias string, source json.RawMessage, options Options) (AuthoringResult, error) {
+func AddSource(ctx context.Context, alias string, input SourceInput, options Options) (AuthoringResult, error) {
 	return editProject(ctx, options, func(_ *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
-		var fields map[string]json.RawMessage
-		json.Unmarshal(original, &fields)
-		var sources map[string]json.RawMessage
-		json.Unmarshal(fields["sources"], &sources)
 		if err := checkSourceAlias(config, alias); err != nil {
 			return nil, err
 		}
-		sources[alias] = source
-		encoded, err := jsonText(sources)
+		source, err := parseSourceInput(input)
 		if err != nil {
 			return nil, err
 		}
-		fields["sources"] = encoded
-		data, err := jsonText(fields)
+		data, err := rules.AppendConfigurationSource(original, alias, source)
 		if err != nil {
-			return nil, err
-		}
-		if _, err = rules.ParseConfiguration(data); err != nil {
 			return nil, err
 		}
 		return []filetxn.File{{Path: configurationFile, Content: data, Previous: original}}, nil
@@ -196,15 +185,6 @@ func authoringResult(changes filetxn.Changes, err error) (AuthoringResult, error
 		return AuthoringResult{}, err
 	}
 	return AuthoringResult{Files: changes.Files, Warnings: changes.Warnings}, nil
-}
-
-func jsonText(value any) ([]byte, error) {
-	var out bytes.Buffer
-	e := json.NewEncoder(&out)
-	e.SetEscapeHTML(false)
-	e.SetIndent("", "  ")
-	err := e.Encode(value)
-	return out.Bytes(), err
 }
 
 func failure(code, problem string, cause error) error {

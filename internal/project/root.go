@@ -13,7 +13,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-const configurationFile = "config.json"
+const configurationFile = "config.yaml"
 
 // openProject applies the same no-link policy to readers and writers; only initialization creates the root.
 func openProject(ctx context.Context, options Options, create bool) (*os.Root, error) {
@@ -35,8 +35,8 @@ func configuration(ctx context.Context, root *os.Root) ([]byte, rules.Configurat
 		return nil, rules.Configuration{}, err
 	}
 	if data == nil {
-		return nil, rules.Configuration{}, failure("needs-init", fmt.Sprintf(".code-rules/config.json: missing configuration; run code-rules project init first from %s", filepath.Dir(root.Name())), nil)
+		return nil, rules.Configuration{}, failure("needs-init", fmt.Sprintf(".code-rules/config.yaml: missing configuration; run code-rules project init first from %s", filepath.Dir(root.Name())), nil)
 	}
-	config, err := rules.ParseConfiguration(data)
+	config, err := rules.ParseConfigurationYAML(data)
 	return data, config, err
 }
