@@ -6,7 +6,7 @@ The Go CLI is available. The installable authoring skill remains separate work.
 
 ## Installation
 
-See [Install Code Rules](docs/src/content/docs/start-here/install.md) for the standalone installer and manual downloads. These methods use native executables and require no Go, Node.js, or Bun. Maintainers can find channel activation and tests in [installation distribution](_distribution/README.md).
+See [Install Code Rules](docs/src/content/docs/start-here/install.md) for the standalone installer, Homebrew, and manual downloads. These methods use native executables and require no Go, Node.js, or Bun. Maintainers can find channel activation and tests in [installation distribution](_distribution/README.md).
 
 ## Build the CLI
 
