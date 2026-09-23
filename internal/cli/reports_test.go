@@ -164,7 +164,7 @@ func TestCompletedAuthoringReportSurvivesSeparatorFailure(t *testing.T) {
 			directory := t.TempDir()
 			output := &commandOutput{json: structured}
 			root := &cobra.Command{Use: "code-rules", SilenceErrors: true, SilenceUsage: true}
-			addProjectAuthoringCommands(root, Options{Directory: directory}, output)
+			root.AddCommand(projectInitCommand(Options{Directory: directory}, output))
 			command, _, err := root.Find([]string{"init"})
 			if err != nil {
 				t.Fatal(err)

@@ -2,11 +2,7 @@
 
 package cli
 
-import (
-	"fmt"
-
-	"github.com/spf13/cobra"
-)
+import "fmt"
 
 func groupIntroduction(groupPath string, isLibrary bool) string {
 	heading := fmt.Sprintf("Adding a group at: %s", groupPath)
@@ -55,26 +51,6 @@ Enter your rule's details below.
 %s
 
 `, heading, rulePath, next)
-}
-
-// addRuleFlags keeps the two authoring scopes' field labels and body instructions consistent.
-func (f *authoringFlags) addRuleFlags(cmd *cobra.Command) {
-	cmd.Long = cmd.Short + "\n\nA rule is a Markdown file that gives agents guidance for a specific task or situation.\n\nRULE_PATH includes the group path and rule slug, without .md (e.g. practices/testing/my-rule).\nThe title is the rule's readable name. Enter metadata here, then edit the created\nMarkdown file to write the instructions and examples. Use --body-file to supply\nexisting rule text instead of creating a draft." + documentationHelp
-	for name, description := range map[string]string{
-		"title":              "Readable, action-oriented rule title",
-		"when-to-read":       "When an agent should read this rule",
-		"impact":             "Consequence level: CRITICAL, HIGH, MEDIUM-HIGH, MEDIUM, LOW-MEDIUM, or LOW",
-		"impact-description": "Why this rule matters",
-		"body-file":          "Read rule text from this UTF-8 Markdown file instead of creating a draft",
-	} {
-		f.add(cmd, name, description)
-	}
-	f.prompts = map[string]string{
-		"title":              "Rule title",
-		"when-to-read":       "When to read",
-		"impact":             "Impact (CRITICAL, HIGH, MEDIUM-HIGH, MEDIUM, LOW-MEDIUM, LOW)",
-		"impact-description": "Why it matters",
-	}
 }
 
 // ruleReadyHeading explains the next action consistently after group and rule creation.
