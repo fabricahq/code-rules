@@ -91,6 +91,29 @@ Inspect the failed run and any existing draft, tag, or published release before 
 
 If a build failed before creating a tag, correct the source or terms in a separate PR, then edit the untagged notes file in a new release PR. Merging those corrected notes approves the new commit. You can also withdraw an untagged request by deleting its notes file. Wait for the earlier run to finish before approving a replacement. If a tag/draft already exists, inspect and explicitly resolve that unpublished attempt first; do not move its tag.
 
+## Testing PR preview builds
+
+After a successful build, PRs opened by a maintainer from a branch in this repository automatically receive preview links. Fork PRs and other contributors need a maintainer to approve the exact commit before the bot posts links.
+
+**Warning: These executables run code from the PR. Use a disposable test environment without credentials or private files. Even `--help` executes the program.**
+
+The PR comment offers direct executable downloads for macOS (Apple Silicon or Intel) and Linux (ARM or Intel/AMD). Download the file for your computer and rename it to `code-rules`, then run:
+
+```sh
+chmod +x code-rules
+./code-rules --help
+```
+
+Each preview command prints this warning to stderr before command output, including help, version, and JSON commands:
+
+```text
+WARNING: Unreleased preview from commit <full SHA>. For testing only; not for production use.
+```
+
+JSON output on stdout remains unchanged. The warning is a reminder, not proof of authenticity: someone modifying the binary could remove it. Preview binaries are not publisher-signed or attested by Code Rules.
+
+No extraction or installation is needed. These previews have not been released. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, regardless of whether the PR is open, closed, or merged.
+
 ## Candidate archives
 
 For unpublished review builds, commit intended source changes first:

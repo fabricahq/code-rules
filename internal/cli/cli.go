@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 
+	coderules "github.com/fabricahq/code-rules"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/spf13/cobra"
 )
@@ -52,7 +53,15 @@ func Run(ctx context.Context, args []string, streams Streams, options Options) i
 	root.Version = options.Version
 	root.SetVersionTemplate("{{.Version}}\n")
 	root.SetUsageFunc(commandUsage)
-	root.RunE = func(cmd *cobra.Command, _ []string) error { return cmd.Help() }
+	var showLicense bool
+	root.Flags().BoolVar(&showLicense, "license", false, "Print the Code Rules license and copyright notice")
+	root.RunE = func(cmd *cobra.Command, _ []string) error {
+		if showLicense {
+			_, err := io.WriteString(cmd.OutOrStdout(), coderules.License())
+			return err
+		}
+		return cmd.Help()
+	}
 	root.AddCommand(newProjectCommand(options, output))
 	addLibraryCommands(root, options, output)
 	// Discover the output mode even when Cobra stops at an earlier invalid argument.

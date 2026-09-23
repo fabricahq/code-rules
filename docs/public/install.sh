@@ -1,11 +1,12 @@
 #!/bin/sh
-# Install an official Code Rules release without sudo or shell-profile edits.
+# Install an official Code Rules release without sudo; set up PATH unless explicitly disabled.
 # Downloads and checksums come from the same release; they are not independent signatures.
 
 # Keep execution at the end so a truncated piped download cannot start installation.
 main() (
     set -eu
     version=latest
+    update_path=true
     install_dir=${HOME:?HOME must be set}/.local/bin
     repository=https://github.com/fabricahq/code-rules
     temporary=
@@ -18,6 +19,46 @@ main() (
         curl --fail --silent --show-error --location --retry 3 \
             --proto '=https' --proto-redir '=https' --tlsv1.2 "$@"
     }
+    # Append only our PATH entry, preserving user content and avoiding repeated entries.
+    # Do not follow profile symlinks or replace special files; explain manual setup instead.
+    append_path() (
+        profile=$1
+        case "$profile" in /*) ;; *) return 1 ;; esac
+        [ ! -L "$profile" ] || return 1
+        if [ -e "$profile" ]; then
+            [ -f "$profile" ] && [ -r "$profile" ] && [ -w "$profile" ] || return 1
+            if grep -Fqx -- "$path_entry" "$profile"; then
+                printf 'PATH setup already present in %s\n' "$profile"
+                return 0
+            fi
+        fi
+        mkdir -p "${profile%/*}" || return 1
+        printf '\n# Added by the Code Rules installer\n%s\n' "$path_entry" >> "$profile" || return 1
+        printf 'Added PATH setup to %s\n' "$profile"
+    )
+    configure_path() {
+        # SHELL identifies the user's shell, not the sh process running this installer.
+        shell_name=${SHELL:-}
+        case "${shell_name##*/}" in
+            zsh) append_path "${ZDOTDIR:-$HOME}/.zshrc" ;;
+            bash)
+                login_profile=$HOME/.profile
+                for candidate in "$HOME/.bash_profile" "$HOME/.bash_login" "$HOME/.profile"; do
+                    if [ -e "$candidate" ] || [ -L "$candidate" ]; then
+                        login_profile=$candidate
+                        break
+                    fi
+                done
+                append_path "$HOME/.bashrc" && append_path "$login_profile" ;;
+            sh|dash) append_path "$HOME/.profile" ;;
+            fish)
+                # Fish single quotes escape both backslashes and single quotes.
+                fish_quoted=$(printf '%s' "$install_dir" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g")
+                path_entry="contains -- '$fish_quoted' \$PATH; or set -gx PATH '$fish_quoted' \$PATH"
+                append_path "${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish" ;;
+            *) return 1 ;;
+        esac
+    }
     while [ "$#" -gt 0 ]; do
         case "$1" in
             --version|--install-dir)
@@ -27,10 +68,12 @@ main() (
                     --install-dir) install_dir=$2 ;;
                 esac
                 shift 2 ;;
+            --no-update-path) update_path=false; shift ;;
             --help|-h)
-                printf '%s\n' 'Usage: sh install.sh [--version VERSION] [--install-dir DIRECTORY]' \
+                printf '%s\n' 'Usage: sh install.sh [--version VERSION] [--install-dir DIRECTORY] [--no-update-path]' \
                     'Defaults: latest stable release, ~/.local/bin. Rerun to upgrade.' \
-                    'No sudo is used and no shell configuration is changed.'
+                    'No sudo is used. PATH setup for zsh, bash, sh, or fish is automatic.' \
+                    'Use --no-update-path to leave shell configuration unchanged.'
                 exit 0 ;;
             *) fail "unknown option: $1 (see --help)" ;;
         esac
@@ -44,7 +87,7 @@ main() (
         *'
 '*) fail 'installation directory cannot contain a newline' ;;
     esac
-    for command in curl tar mktemp awk uname chmod mv mkdir; do
+    for command in curl tar mktemp awk uname chmod mv mkdir grep sed; do
         command -v "$command" >/dev/null 2>&1 || fail "required command not found: $command"
     done
     if command -v sha256sum >/dev/null 2>&1; then
@@ -99,27 +142,39 @@ main() (
     awk 'substr($0,1,1) != "-" { exit 1 }' "$temporary/types" || fail 'release archive contains a link or non-regular file'
     [ ! -L "$install_dir/code-rules" ] || fail 'destination is a symlink; choose another --install-dir'
     [ ! -d "$install_dir/code-rules" ] || fail 'destination is a directory; choose another --install-dir'
-    [ ! -L "$install_dir/code-rules.LICENSE" ] && [ ! -d "$install_dir/code-rules.LICENSE" ] || fail 'license destination is a symlink or directory'
     mkdir -p "$install_dir" || fail 'cannot create installation directory; choose a writable --install-dir'
     staging=$(mktemp -d "$install_dir/.code-rules-install.XXXXXX")
     tar -xzOf "$temporary/archive.tar.gz" code-rules > "$staging/code-rules"
     tar -xzOf "$temporary/archive.tar.gz" LICENSE.md > "$staging/code-rules.LICENSE"
     [ -s "$staging/code-rules" ] && [ -s "$staging/code-rules.LICENSE" ] || fail 'release executable or license is empty'
     chmod 755 "$staging/code-rules"
-    chmod 644 "$staging/code-rules.LICENSE"
     # Check that the verified executable runs before replacing a working installation.
     "$staging/code-rules" --version || fail 'downloaded executable cannot run; existing installation was not changed'
-    mv -f "$staging/code-rules.LICENSE" "$install_dir/code-rules.LICENSE"
     mv -f "$staging/code-rules" "$install_dir/code-rules"
     printf 'Installed Code Rules %s to %s/code-rules\n' "$version" "$install_dir"
+    quoted=$(printf '%s' "$install_dir" | sed "s/'/'\\\\''/g")
+    path_entry="case \":\$PATH:\" in *:'$quoted':*) ;; *) export PATH='$quoted':\"\$PATH\" ;; esac"
+    if [ "$update_path" = true ]; then
+        if configure_path; then
+            printf '\nOpen a new terminal to use Code Rules.\n'
+        else
+            printf '\nCode Rules is installed, but automatic PATH setup could not be completed for %s.\n' "${SHELL:-an unknown shell}" >&2
+            printf 'Your shell may be unsupported or its startup file may be linked or unwritable. Add the installation directory manually.\n' >&2
+        fi
+    fi
     case ":${PATH:-}:" in
         *:"$install_dir":*) ;;
         *)
-            printf '\nAdd this directory to your PATH: %s\n' "$install_dir"
-            printf '%s\n' 'For sh, bash, or zsh, run the following; add it to your shell profile only if you want it to persist:'
-            quoted=$(printf '%s' "$install_dir" | sed "s/'/'\\\\''/g")
-            printf "export PATH='%s':\"\$PATH\"\n" "$quoted"
-            printf '%s\n' 'For fish, add the directory with fish_add_path. No shell files were changed.' ;;
+            printf '\nFor this terminal, run:\n'
+            case "${SHELL:-}" in
+                */fish)
+                    fish_quoted=$(printf '%s' "$install_dir" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g")
+                    printf "fish_add_path --path '%s'\n" "$fish_quoted" ;;
+                *) printf "export PATH='%s':\"\$PATH\"\n" "$quoted" ;;
+            esac
+            if [ "$update_path" = false ]; then
+                printf '%s\n' 'Shell configuration was left unchanged (--no-update-path).'
+            fi ;;
     esac
     existing=$(command -v code-rules || true)
     if [ -n "$existing" ] && [ "$existing" != "$install_dir/code-rules" ]; then

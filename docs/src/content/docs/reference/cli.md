@@ -209,12 +209,15 @@ Validate the library manifest, all groups and rules, supporting assets, and decl
 
 Reports group and rule counts and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations and missing declared files fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
 
-## Help and version
+<span id="help-and-version"></span>
+
+## Help, version, and license
 
 ```sh
 code-rules --help
 code-rules COMMAND --help
 code-rules --version
+code-rules --license
 ```
 
 Use `-h` or `--help` to inspect command syntax and options. For example, run `code-rules project --help` to find project commands or `code-rules library add rule --help` for rule authoring options.
@@ -223,7 +226,8 @@ Use `-h` or `--help` to inspect command syntax and options. For example, run `co
 | --- | --- |
 | `-h`, `--help` | Show help for the selected command. |
 | `-v`, `--version` | At the root, print the executable's version. |
-| `--json` | Return help or version text in `value.text` inside a JSON response. |
+| `--license` | At the root, print the full embedded MIT license and copyright notice. |
+| `--json` | Return help, version, or license text in `value.text` inside a JSON response. |
 
 Running `code-rules` or a command group such as `code-rules library` without a subcommand displays help. The `project`, `project add`, `library`, and `library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
 
@@ -259,9 +263,9 @@ JSON mode writes one response to stdout:
 
 Project check returns `value.status` as `up_to_date` or `out_of_date`, and a `value.problems` list. Each problem has `kind`, `path`, `message`, and `nextStep`, which contains a suggested repair command. Paths are relative to the Code Rules directory. Both generated guidance and the managed Code Rules guide must be current for success.
 
-Only sync and build report `added`, `changed`, and `removed` file lists. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help and version return their text in `value.text`.
+Only sync and build report `added`, `changed`, and `removed` file lists. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
 
-In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. In JSON mode, errors go in the response; stderr is reserved for failures writing that response.
+In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [testing PR preview builds](https://github.com/fabricahq/code-rules/blob/main/_engineering/releasing.md#testing-pr-preview-builds).
 
 ## Exit codes
 

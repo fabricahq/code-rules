@@ -23,6 +23,7 @@ type installerFixture struct {
 	root, home, commands, releases, destination string
 	binary                                      []byte
 	platform, arch                              string
+	shell, zdotdir, configHome                  string
 }
 
 type installerMember struct {
@@ -34,7 +35,7 @@ type installerMember struct {
 func newInstallerFixture(t *testing.T) *installerFixture {
 	t.Helper()
 	root := t.TempDir()
-	f := &installerFixture{t: t, root: root, home: filepath.Join(root, "home"), commands: filepath.Join(root, "commands"), releases: filepath.Join(root, "releases"), platform: "Linux", arch: "x86_64", binary: []byte("#!/bin/sh\nprintf 'code-rules 1.2.3\\n'\n")}
+	f := &installerFixture{t: t, root: root, home: filepath.Join(root, "home"), commands: filepath.Join(root, "commands"), releases: filepath.Join(root, "releases"), platform: "Linux", arch: "x86_64", shell: "/bin/sh", binary: []byte("#!/bin/sh\nprintf 'code-rules 1.2.3\\n'\n")}
 	f.destination = filepath.Join(f.home, ".local/bin")
 	for _, dir := range []string{f.home, f.commands, f.releases} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -126,7 +127,7 @@ func (f *installerFixture) run(args ...string) (string, error) {
 }
 
 func (f *installerFixture) environment() []string {
-	return append(os.Environ(), "HOME="+f.home, "TMPDIR="+f.root, "FIXTURES="+f.releases, "PATH="+f.commands+string(os.PathListSeparator)+os.Getenv("PATH"), "INSTALLER_OS="+f.platform, "INSTALLER_ARCH="+f.arch)
+	return append(os.Environ(), "HOME="+f.home, "SHELL="+f.shell, "ZDOTDIR="+f.zdotdir, "XDG_CONFIG_HOME="+f.configHome, "TMPDIR="+f.root, "FIXTURES="+f.releases, "PATH="+f.commands+string(os.PathListSeparator)+os.Getenv("PATH"), "INSTALLER_OS="+f.platform, "INSTALLER_ARCH="+f.arch)
 }
 
 func (f *installerFixture) success(args ...string) string {

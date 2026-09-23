@@ -18,9 +18,10 @@ func TestStandaloneInstaller(t *testing.T) {
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
 		t.Skip("standalone installer supports macOS and Linux")
 	}
-	t.Run("piped latest preserves profiles", func(t *testing.T) {
+	t.Run("PATH setup", testInstallerPath)
+	t.Run("piped latest installs and sets up PATH", func(t *testing.T) {
 		f := newInstallerFixture(t)
-		profile := filepath.Join(f.home, ".zshrc")
+		profile := filepath.Join(f.home, ".profile")
 		original := []byte("# keep my configuration\n")
 		f.write(profile, original, 0644)
 		output := f.success()
@@ -30,8 +31,10 @@ func TestStandaloneInstaller(t *testing.T) {
 		if err != nil || info.Mode()&0111 == 0 {
 			t.Fatalf("installed binary is not executable: %v", err)
 		}
-		f.content(filepath.Join(f.destination, "code-rules.LICENSE"), []byte("MIT license"))
-		f.content(profile, original)
+		f.absent(filepath.Join(f.destination, "code-rules.LICENSE"))
+		if !strings.HasPrefix(string(f.read(profile)), string(original)) || !strings.Contains(string(f.read(profile)), "export PATH=") {
+			t.Fatal("default installation must preserve the profile and add PATH setup")
+		}
 		if !strings.Contains(output, "export PATH=") {
 			t.Fatal("missing PATH instructions", output)
 		}
@@ -62,6 +65,17 @@ func TestStandaloneInstaller(t *testing.T) {
 		output, err := help.CombinedOutput()
 		if err != nil || !strings.Contains(string(output), "sync") {
 			t.Fatalf("installed CLI help: %v\n%s", err, output)
+		}
+		license := exec.CommandContext(ctx, filepath.Join(f.destination, "code-rules"), "--license")
+		license.Dir = f.root
+		license.Env = f.environment()
+		output, err = license.CombinedOutput()
+		if err != nil || string(output) != string(f.read(filepath.Join("..", "..", "LICENSE.md"))) {
+			t.Fatalf("installed CLI license: %v\n%s", err, output)
+		}
+		entries, err := os.ReadDir(f.destination)
+		if err != nil || len(entries) != 1 || entries[0].Name() != "code-rules" {
+			t.Fatal("installer must place only the executable", entries, err)
 		}
 	})
 	t.Run("all four platforms", func(t *testing.T) {

@@ -21,7 +21,7 @@ import (
 type commandOutput struct {
 	json   bool
 	report commandReport
-	text   bytes.Buffer // Cobra help and version output, rendered only after command completion.
+	text   bytes.Buffer // Cobra help, version, and license output, rendered only after command completion.
 }
 
 // response is the common JSON envelope; a stale check includes both current problems and an error.
