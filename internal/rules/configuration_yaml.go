@@ -1,4 +1,4 @@
-// Decode and edit project YAML while retaining comments and scalar styles on existing entries.
+// Decode and edit project YAML while retaining comments and existing scalar values.
 
 package rules
 
@@ -19,6 +19,7 @@ func ParseConfigurationYAML(input []byte) (Configuration, error) {
 }
 
 // AppendConfigurationSource adds a source without dropping existing comments or reordering entries.
+// Folded scalars use literal style in the result because the YAML encoder can change their values.
 // The complete resulting configuration is validated before any bytes are returned.
 func AppendConfigurationSource(input []byte, alias string, source Source) ([]byte, error) {
 	document, data, err := authoredYAML(input, "configuration")
@@ -58,6 +59,7 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 	}
 	sources.Content = append(sources.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: alias}, &entry)
 	sources.Style = 0
+	normalizeFoldedScalars(document)
 	var out bytes.Buffer
 	encoder := yaml.NewEncoder(&out)
 	encoder.SetIndent(2)
@@ -71,4 +73,14 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 		return nil, err
 	}
 	return out.Bytes(), nil
+}
+
+// The YAML encoder can change folded scalar values; literal style preserves them.
+func normalizeFoldedScalars(node *yaml.Node) {
+	if node.Style&yaml.FoldedStyle != 0 {
+		node.Style = node.Style&^yaml.FoldedStyle | yaml.LiteralStyle
+	}
+	for _, child := range node.Content {
+		normalizeFoldedScalars(child)
+	}
 }

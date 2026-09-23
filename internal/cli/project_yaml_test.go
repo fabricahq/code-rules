@@ -85,6 +85,56 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 	}
 }
 
+func TestAddingLibrariesPreservesFoldedExclusion(t *testing.T) {
+	binary := buildCLI(t)
+	directory := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		if out, diagnostic, code := runCLI(t, binary, directory, args...); code != 0 {
+			t.Fatal(args, code, out, diagnostic)
+		}
+	}
+	run("project", "init")
+	run("project", "add", "library", "existing", "--repository", "https://example.invalid/existing.git", "--ref", "v1.0.0", "--groups", "*", "--non-interactive")
+	name := filepath.Join(directory, ".code-rules/config.yaml")
+	data, err := os.ReadFile(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = []byte(strings.Replace(string(data), "exclude: {}", "exclude:\n      techs/go/old: > # keep this reason\n        Heading:\n\n          * first item\n          * second item", 1))
+	if err := os.WriteFile(name, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	before, err := rules.ParseConfigurationYAML(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := before.Sources[0].Exclude["techs/go/old"]
+	for _, alias := range []string{"second", "third"} {
+		run("project", "add", "library", alias, "--repository", "https://example.invalid/"+alias+".git", "--ref", "v1.0.0", "--groups", "*", "--non-interactive")
+		data, err = os.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		config, err := rules.ParseConfigurationYAML(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got string
+		for _, source := range config.Sources {
+			if source.Name == "existing" {
+				got = source.Exclude["techs/go/old"]
+			}
+		}
+		if got != want {
+			t.Fatalf("%s changed existing exclusion from %q to %q:\n%s", alias, want, got, data)
+		}
+		if !strings.Contains(string(data), "# keep this reason") {
+			t.Fatalf("%s lost exclusion comment:\n%s", alias, data)
+		}
+	}
+}
+
 func TestLegacyConfigIsNotLoaded(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()

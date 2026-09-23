@@ -108,6 +108,39 @@ sources:
 	}
 }
 
+func TestAppendConfigurationSourcePreservesFoldedExclusions(t *testing.T) {
+	for _, header := range []string{">", ">-", ">+"} {
+		t.Run(header, func(t *testing.T) {
+			input := []byte("schemaVersion: 1\nsources:\n  existing:\n    repository: https://example.invalid/existing.git\n    ref: v1.0.0\n    groups: '*'\n    exclude:\n      techs/go/old: " + header + " # keep this reason\n        Heading:\n\n          * first item\n          * second item\n\n    replace: {}\n")
+			before, err := rules.ParseConfigurationYAML(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := before.Sources[0].Exclude["techs/go/old"]
+			source := rules.Source{Repository: "https://example.invalid/added.git", Ref: "v1.0.0", Groups: rules.GroupSelection{Pattern: "*"}, Exclude: map[string]string{}, Replace: map[string]rules.Replacement{}}
+			for _, alias := range []string{"second", "third"} {
+				source.Repository = "https://example.invalid/" + alias + ".git"
+				input, err = rules.AppendConfigurationSource(input, alias, source)
+				if err != nil {
+					t.Fatal(err)
+				}
+				config, err := rules.ParseConfigurationYAML(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, existing := range config.Sources {
+					if existing.Name == "existing" && existing.Exclude["techs/go/old"] != want {
+						t.Fatalf("%s changed exclusion from %q to %q:\n%s", alias, want, existing.Exclude["techs/go/old"], input)
+					}
+				}
+				if !strings.Contains(string(input), "# keep this reason") {
+					t.Fatalf("%s lost exclusion comment:\n%s", alias, input)
+				}
+			}
+		})
+	}
+}
+
 // TestAppendConfigurationSourceValidatesInputFirst preserves errors from the existing document.
 func TestAppendConfigurationSourceValidatesInputFirst(t *testing.T) {
 	for _, input := range []string{"schemaVersion: 1", "schemaVersion: 1\nsources: []", "schemaVersion: 1\nsources: {}\nsources: {}"} {
