@@ -27,6 +27,8 @@ code-rules library init
 
 `engineering-rules` is an example repository name; you can choose another. `code-rules library init` creates `rule-library.json`, which identifies the library format, and a README for authors at the repository root. You'll publish this repository to your Git host in step 5.
 
+Initialize from the repository root. After that, library commands also work from its subdirectories.
+
 You may see a reminder that the library has no declared license. We'll address that before sharing it.
 
 ## 2. Add your first rule

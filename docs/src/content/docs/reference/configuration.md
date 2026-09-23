@@ -5,7 +5,7 @@ description: "Fields in .code-rules/config.json."
 
 The **project configuration**, `.code-rules/config.json`, records the project's sources, selected groups, and exceptions. The **Code Rules directory**, `.code-rules/`, also holds `local/`, `vendor/`, and `generated/`.
 
-Run project commands from the project root. They look for `.code-rules/config.json` in your current working directory without searching parent directories or discovering the Git root.
+Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.json`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
 A project can import rules directly from multiple canonical libraries, pinning each one independently.
 Sync, build, and check validate the fields below.
 

@@ -47,7 +47,7 @@ Commands print human-readable output by default. Add `--json` when another tool 
 code-rules project check --json
 ```
 
-In human output, sync and build report a concise outcome and suggest running check. JSON output includes sorted lists of added, changed, and removed paths in `added`, `changed`, and `removed`.
+Sync and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`.
 
 - Sync paths start with `vendor/` or `generated/`.
 - Build paths are relative to `generated/`.

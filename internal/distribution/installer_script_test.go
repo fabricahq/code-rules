@@ -59,7 +59,7 @@ func TestStandaloneInstaller(t *testing.T) {
 		f.binary = f.read(binary)
 		f.release("1.2.3", runtime.GOOS+"_"+runtime.GOARCH, nil)
 		f.success()
-		help := exec.CommandContext(ctx, filepath.Join(f.destination, "code-rules"), "--help")
+		help := exec.CommandContext(ctx, filepath.Join(f.destination, "code-rules"), "project", "--help")
 		help.Dir = f.root
 		help.Env = f.environment()
 		output, err := help.CombinedOutput()

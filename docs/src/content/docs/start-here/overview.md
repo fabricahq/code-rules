@@ -5,7 +5,7 @@ description: "The package manager for engineering rules that agents follow when 
 
 Code Rules is the package manager for your engineering rules.
 
-Create a `.code-rules` directory in your repo, then write the rules you want agents to follow, or import rules from a "rule library." From then on, every agent working on your project reads the same guidance.
+Create a `.code-rules` directory in your repo, then write the rules you want agents to follow, or import rules from a "rule library." Agents configured to read your project guidance can then use the same rules.
 
 ## Why we built Code Rules
 

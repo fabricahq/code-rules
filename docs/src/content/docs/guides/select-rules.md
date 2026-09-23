@@ -3,9 +3,9 @@ title: "Import rules"
 description: "Choose groups from rule libraries and adapt their rules to your project."
 ---
 
-**Importing rules** brings guidance from a library into your project. A **library** is an independently maintained collection of rule groups that projects can reuse. You can adopt practices from your team or a third party without maintaining a separate copy by hand.
+You can **import rules** written by your team or others instead of writing every rule yourself. These rules come from **libraries**, collections of rules shared across projects.
 
-In this guide, you'll choose groups to import, record your choices in `.code-rules/config.json`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
+In this guide, you'll choose **groups** to import, record your choices in `.code-rules/config.json`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
 
 Start with a project that already has a `.code-rules/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/).
 
@@ -26,9 +26,15 @@ Agents choose which installed groups apply to each task using the [rule-loading 
 
 ## Select groups from each source
 
-In `.code-rules/config.json`, set `sources.<name>.groups` separately for each library.
-Each source has a `repository`, either an exact `ref` or a semantic `version` constraint, and its own `exclude` and `replace` objects.
-Use the [complete configuration example](/reference/configuration/#complete-example) as your starting point.
+In `.code-rules/config.json`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
+
+- **Where to get it:** `repository` is the library's Git URL.
+- **Which version to use:** `ref` selects a specific tag or commit; `version` allows a range of versions. Use one or the other.
+- **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`.
+
+You can also use `exclude` to leave out individual rules or `replace` to substitute your own. We'll cover both below.
+
+See the [complete configuration example](/reference/configuration/#complete-example) for how these fields fit together.
 
 To adopt an entire library, set `groups` to `"*"` instead of an array.
 Use `"practices/*"` for all practice groups, or `"techs/*"` for all technology groups.

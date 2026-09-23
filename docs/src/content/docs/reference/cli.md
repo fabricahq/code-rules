@@ -7,16 +7,9 @@ Find each command's syntax and options below. Every command also accepts `--json
 
 ## Project commands
 
-In a Git repository, `project init` and `library init` must target the repository root. Running either from a subfolder fails before creating files and shows a command to run from the root. This also applies to the target of `library init --directory`.
+`code-rules project` manages rules for a **project**, the codebase whose rules Code Rules manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
 
-Other project and library commands locate the nearest ancestor containing a `.git` directory or file. This supports normal repositories, worktrees, and submodules without invoking Git. Discovery stops at that boundary: it never uses an outer repository's configuration, even if the nearest repository has not been initialized. A nested `.code-rules` directory does not override the repository root.
-
-Project configuration lives in the repository root's `.code-rules/config.json`; custom configuration locations are not supported. Library commands use the repository root's `rule-library.json`. If the required files are missing, initialize that repository from its root.
-
-Outside Git, commands continue to use the current directory (or the explicit library `--directory`). They do not search parent directories for configuration. Relative input paths such as `--body-file`, `--license-file`, and `--notice-file` always resolve from the directory where you ran the command.
-Keep replacement files within `.code-rules/local/`.
-
-The **Code Rules directory**, `.code-rules/`, holds project configuration in `config.json`, project-only rules, imported library snapshots, and generated guidance. Project commands use `.code-rules/` at the nearest Git root, or in the current directory outside Git. Paths within the configuration are relative to the Code Rules directory; `--body-file` is relative to your working directory.
+Configuration lives in `.code-rules/config.json` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
 
 ### project init
 
@@ -136,7 +129,7 @@ Use check in CI to detect files that need regeneration. It uses recorded commits
 
 ## Library commands
 
-`code-rules library` manages a **library**, an independently maintained collection of rule groups that projects can import. They use the current directory unless you pass `--directory PATH`.
+`code-rules library` manages a **library**, an independently maintained collection of rule groups that projects can import. Initialize from the library repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
 
 ### library init
 
@@ -148,7 +141,7 @@ Create `rule-library.json` and an authoring README without overwriting existing 
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Library root. Default: your working directory. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
 | `--spdx EXPRESSION` | Library SPDX expression. Must be supplied together with `--license-file`. |
 | `--license-file PATH` | UTF-8 license text to copy to `LICENSE.md`. Relative to your working directory, even with `--directory`. |
 | `--notice-file PATH` | Optional UTF-8 notice text to copy to `NOTICE.md`. Requires both license options. Relative to your working directory. |
@@ -166,7 +159,7 @@ Create a group with `_group.json` metadata and an authoring README in the librar
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Library root. Default: your working directory. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
 | `--name TEXT` | Required. Group display name. |
 | `--description TEXT` | Required. What the group covers. |
 | `--when-to-read TEXT` | Required. When an agent should read the group. |
@@ -184,7 +177,7 @@ Create a rule in an existing library group. `ID` includes the group path and rul
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Library root. Default: your working directory. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
 | `--title TEXT` | Required. Action-oriented rule title. |
 | `--when-to-read TEXT` | Required. When an agent should read the rule. |
 | `--impact LEVEL` | Required. One of `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`. |
@@ -204,7 +197,7 @@ Validate the library manifest, all groups and rules, supporting assets, and decl
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Library root. Default: your working directory. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
 | `--non-interactive` | Accepted; library check does not prompt. |
 
 Reports group and rule counts and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations and missing declared files fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
@@ -233,11 +226,23 @@ Running `code-rules` or a command group such as `code-rules library` without a s
 
 The root `--version` flag prints the tool version. To select a library revision, use `project add library --ref` instead.
 
+## Working directories
+
+In Git repositories, run `code-rules project init` or `code-rules library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `library init --directory`.
+
+Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project commands use that root's `.code-rules/config.json`; library commands use its `rule-library.json`. They stop at that repository boundary, even if its configuration is missing. A nested `.code-rules/` does not override the root's configuration.
+
+Outside Git, commands use the current directory, or the directory selected by `--directory` for library commands. They do not search parent directories for configuration. Custom project configuration locations are not supported.
+
+Relative input paths such as `--body-file`, `--license-file`, and `--notice-file` resolve from the directory where you run the command. Paths inside project configuration remain relative to `.code-rules/`.
+
 ## Shared options and prompts
 
 Every command accepts `--json`, which prints one JSON response and disables prompts. Every command also accepts `-h` / `--help`.
 
 Authoring commands accept `--non-interactive`. Without it, commands can prompt for missing required metadata or source selections when running in a terminal. With `--non-interactive`, `--json`, or no terminal, missing required inputs cause an error. Positional arguments such as `ID` and `ALIAS` must always be supplied.
+
+Invalid interactive answers repeat the same question while retaining earlier answers. Explicit flags are validated without prompting for replacement values. Existing groups, rules, and library aliases fail before prompts.
 
 Both init commands and both check commands run without prompts. Only `library check` accepts `--non-interactive`; project `check`, `sync`, and `build` do not need or accept it.
 
@@ -259,9 +264,11 @@ JSON mode writes one response to stdout:
 | --- | --- |
 | `ok` | `true` for success; `false` for failure or an out-of-date project check. |
 | `value` | The command's result, when available. An out-of-date check still includes its report here. |
-| `error` | On failure, an object with `kind` and `message`, plus `location` for validation errors when available. |
+| `error` | On failure, an object with `kind` and `message`, plus `location` when available. Domain failures include a stable `code`, such as `needs-init`, `missing-group`, or `guide-edited`. |
 
 Project check returns `value.status` as `up_to_date` or `out_of_date`, and a `value.problems` list. Each problem has `kind`, `path`, `message`, and `nextStep`, which contains a suggested repair command. Paths are relative to the Code Rules directory. Both generated guidance and the managed Code Rules guide must be current for success.
+
+Authoring results include `value.nextSteps`, an ordered list of instructions and copyable commands. Human output shows those steps after initialization and rule or group creation.
 
 Only sync and build report `added`, `changed`, and `removed` file lists. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
 
@@ -276,12 +283,6 @@ In human mode, operational errors go to stderr. An out-of-date check prints its 
 | `2` | Invalid command usage, such as an unknown command, unsupported option, or missing required CLI input. |
 
 Usage errors point to the relevant help page. Operational errors identify the affected file or rule when available and describe the problem. For repair commands and interrupted updates, see [Sync and recovery](/reference/sync/).
-
-## Authoring results
-
-Domain failures include `error.code`, such as `needs-init`, `missing-group`, or `guide-edited`. Authoring results include `value.nextSteps` with ordered instructions and copyable commands. Human output shows those next steps after setup, group creation, and rule creation.
-
-Existing groups, rules, and library aliases fail before prompts. Invalid interactive answers repeat the same question while retaining earlier answers. Explicit flags are validated without prompting for replacement values.
 
 ## Migrating from earlier commands
 

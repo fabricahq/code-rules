@@ -17,8 +17,6 @@ In this walkthrough, you'll:
 
 Start in the **project root**, the top-level directory of the codebase you want to work on. You need [Code Rules installed](/start-here/install/), and Git to import the library. To publish rules for other projects to use instead, follow [Create your first library](/start-here/create-library/).
 
-In a Git repository, initialize from its root. Later project commands can run from any subdirectory. Outside Git, run commands from the project root.
-
 ## 1. Set up the project
 
 ```sh
@@ -29,7 +27,7 @@ This creates the **Code Rules directory**, `.code-rules/`, with your **project c
 
 Later, when you import a library, Code Rules saves a copy of its files at the version you selected in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
-Run all project commands below from the project root. They use `.code-rules/` in your current working directory; they do not search parent directories or discover the Git root. See [Project files](/reference/files/) for the layout.
+Run the commands below from the project root. After initialization, you can also run project commands from its Git subdirectories. See [Project files](/reference/files/) for the layout.
 
 ## 2. Add your first local rule
 
@@ -113,6 +111,8 @@ This checks the rule files, not whether your application follows the rules.
 Now let's reuse a rule someone else has written. A **library** is an independently maintained collection of rule groups that projects can import.
 
 The [Fabrica public library](https://github.com/fabricahq/.code-rules-public) includes a code-design group. In `v0.1.0`, that group contains one rule: **Express operations as meaningful steps**. It helps agents keep functions understandable without extracting unnecessary helpers. Read it before deciding to adopt it.
+
+Fabrica's public library is awaiting its first release. Until it is published, skip this optional import and [connect your local rule to your agent](#5-give-the-rules-to-your-agent).
 
 From the same project root, run:
 
