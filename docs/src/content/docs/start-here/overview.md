@@ -5,7 +5,13 @@ description: "The package manager for engineering rules that agents follow when 
 
 Code Rules is the package manager for your engineering rules.
 
-Create a `.code-rules` directory in your repo, then write the rules you want agents to follow, or import rules from a "rule library." Agents configured to read your project guidance can then use the same rules.
+## In a nutshell
+
+To use Code Rules:
+
+1. Use the `code-rules` CLI to initialize a new project at `/.code-rules` with a `config.yaml` file.
+2. Write the rules you want agents to follow, or import existing rules from a rule library.
+3. Run `code-rules project sync` and Code Rules will use your configuration and rules to generate a collection of Markdown documents optimized for agents to read.
 
 ## Why we built Code Rules
 
@@ -25,15 +31,15 @@ We wrote Code Rules to help individuals and teams manage that guidance, whether 
 
 Once you've written good guidance for your agents, you want it in every project. So you copy chunks of your `AGENTS.md` into the next repo, tweak them a little, and move on. Then you do it again. Before long, you run into problems like these:
 
-- **Drift.** Every copy has been tweaked, and each project has its own version of your best practices.
-- **No versioning.** You can't tell which version of a rule a given repo has, or whether it's current.
-- **Improvements don't spread.** When you improve a rule in one project, the other projects never get it unless someone copies it over by hand.
-- **Unclear provenance.** Once a rule is pasted in, there's no record of where it came from, who maintains it, or what license it carries.
-- **Hand-merging.** Combining guidance from several sources means merging it into one file by hand, with no clean way to take only the parts you want.
+- **Drift.** Each project has its own version of your best practices.
+- **No versioning.** You can't tell which version of a rule a given repo has.
+- **Improvements don't spread.** You improve a rule, but only one project gets the update.
+- **Unclear provenance.** Once a rule is pasted in, there's no record of where it came from.
+- **Hand-merging.** Combining guidance from several sources often means merging by hand.
 
 We've seen this before! Teams used to copy third-party code into each project by hand, and ran into every one of these issues. That's exactly the problem **package managers** like `npm` and `go mod` solve: shared code lives in one place, each project declares what it depends on and pins a version, and each project adopts updates on its own schedule.
 
-Code Rules does the same for agent guidance.
+Code Rules does the same, but for agent guidance.
 
 ## How Code Rules works
 
