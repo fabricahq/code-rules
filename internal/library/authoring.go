@@ -247,10 +247,6 @@ func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, option
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	if options.Body == nil {
-		data = append(data, []byte("\n<!-- code-rules:draft -->\n")...)
-	}
-
 	return editLibrary(ctx, options.Options, group, func(root *os.Root) ([]filetxn.File, error) {
 		if err := checkNewRule(ctx, root, id, options.Options); err != nil {
 			return nil, err

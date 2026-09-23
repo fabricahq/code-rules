@@ -67,6 +67,10 @@ func TestLibraryLifecycle(t *testing.T) {
 	if _, err = AddRule(ctx, "techs/go/draft", rule, RuleOptions{Options: options}); err != nil {
 		t.Fatal(err)
 	}
+	draft, err := os.ReadFile(filepath.Join(options.Directory, "techs/go/draft.md"))
+	if err != nil || bytes.Count(draft, []byte(rules.DraftMarker)) != 1 {
+		t.Fatal("expected exactly one draft marker", err)
+	}
 	if _, err = Check(ctx, options); err == nil || !strings.Contains(err.Error(), "draft") {
 		t.Fatal("draft accepted", err)
 	}
