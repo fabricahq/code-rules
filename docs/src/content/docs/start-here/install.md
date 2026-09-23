@@ -43,8 +43,6 @@ brew install fabricahq/tap/code-rules
 code-rules --version
 ```
 
-The Fabrica tap selects the release archive for your operating system and processor and verifies its checksum. Homebrew manages the installed executable and its license.
-
 To upgrade or remove it:
 
 ```sh
