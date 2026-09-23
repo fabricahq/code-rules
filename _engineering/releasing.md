@@ -78,7 +78,7 @@ If dispatch or the tap update fails, fix the reported problem and run the tap's 
 
 After both platform builds pass, the release workflow signs `SHA256SUMS` with a GitHub artifact attestation. The signing job checks out no source and has no Contents write permission. The publisher runs only after signing succeeds. The tap verifies the signature against this repository's release workflow on `main` before accepting the archive checksums.
 
-Configure the `release` and `homebrew-dispatch` environments to allow only the `main` branch, with no reviewers or wait timers. Require pull requests for changes to `main` and protect its history from deletion and force pushes. Enable immutable releases so published assets and tags cannot be replaced. Repository administrators can bypass review requirements through a PR, but not by pushing directly.
+Configure the `release` and `homebrew-dispatch` environments to allow only the `main` branch, with no reviewers or wait timers. Require pull requests for changes to `main` and protect its history from deletion and force pushes. Enable immutable releases so published assets and tags cannot be replaced. If administrators need bypass access, set their ruleset bypass mode to **For pull requests only**, never **Always allow**. They can then bypass review requirements through a PR, but cannot push directly.
 
 Merge the attestation workflow and the tap's verifier before the first release. These controls authenticate the release workflow and preserve published artifacts; they cannot detect malicious code approved into that workflow.
 

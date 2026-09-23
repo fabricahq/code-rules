@@ -52,7 +52,15 @@ Use the same custom directory when upgrading. Pass `--no-update-path` if you pre
 <details id="download-a-release-manually">
 <summary>Download a release manually</summary>
 
-Download the archive for your OS and processor, plus `SHA256SUMS`, from [GitHub Releases](https://github.com/fabricahq/code-rules/releases). Before extracting, compare its checksum with the matching entry using `shasum -a 256 <archive>` on macOS or `sha256sum <archive>` on Linux.
+Download the archive for your OS and processor, plus `SHA256SUMS`, from [GitHub Releases](https://github.com/fabricahq/code-rules/releases). If you have the GitHub CLI, first verify the checksum manifest came from our release workflow:
+
+```sh
+gh attestation verify SHA256SUMS --repo fabricahq/code-rules \
+  --signer-workflow fabricahq/code-rules/.github/workflows/release.yml \
+  --source-ref refs/heads/main
+```
+
+Stop if verification fails. Before extracting, compare the archive checksum with the matching entry using `shasum -a 256 <archive>` on macOS or `sha256sum <archive>` on Linux.
 
 Extract the archive and move the executable into a directory on your `PATH`.
 
