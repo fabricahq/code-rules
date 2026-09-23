@@ -22,13 +22,12 @@ A project should be able to import, exclude, or replace one rule without also ch
 
 ## What a rule contains
 
-The Markdown body states the obligation and its applicability.
-Rationale explains why it matters, examples clarify the intended behavior, and verification guidance tells an agent what evidence to look for.
-Required metadata records the title, `whenToRead`, impact, and the consequence the rule addresses.
-Optional tags supply search terms; they do not select rules.
+A rule is a Markdown file with two parts:
 
-The [rubric and template](/reference/rule-authoring/) define the authoring standard.
-The planned [Code Rules skill](/guides/write-rules/) helps agents draft, revise, and review rules against that standard.
+- **Metadata at the top** gives the rule a title and tells agents when to read it and how important it is.
+- **Guidance in the body** explains what to do, when it applies, and why it matters. Examples show the intended behavior, and validation instructions explain how to check the result.
+
+For the fields and a complete example, see the [rubric and template](/reference/rule-authoring/). To write your own, follow [Write a rule](/guides/write-rules/).
 
 ## Where a rule lives
 
@@ -45,12 +44,14 @@ A project can add local rules or explicitly exclude and replace imported rules.
 
 ## How agents identify and use it
 
-The library-relative path without `.md` identifies a rule within its library.
-Generated files add the configured source name, such as `fabrica:practices/testing/verify-retry-limits`.
-That prefix distinguishes matching paths from different libraries.
+When you build or sync a project, Code Rules combines its local and imported rules into generated group files. Each group file contains the rules in full, or summaries with links to the full rules when the group is large. The project's exclusions and replacements determine which rules appear.
 
-Agents select rules from group pages, which include complete definitions for small groups and link to individual resolved rule files for larger groups. Imported and local choices have already been resolved.
-Each rule keeps its identity and provenance even when several rules share a group applicability index.
-Agents select relevant groups, then apply each individual rule's conditions and exceptions.
+Agents read the generated guidance in this order:
 
-See [Group](/concepts/groups/) for how rules are organized, or [Make a rule](/guides/write-rules/) to create one.
+1. Open `RULES.md` to find the groups relevant to the task.
+2. Read those groups and their rules, following links to full rule files where needed.
+3. Choose which rules apply to the task, using each rule's conditions and exceptions, and follow them.
+
+For example, an agent changing retry behavior would read the Testing group, then apply the rule about verifying retry limits.
+
+See [Group](/concepts/groups/) for how groups guide reading, or [Project files](/reference/files/#example-follow-a-rule-from-the-index) to follow an example from `RULES.md` to a rule.

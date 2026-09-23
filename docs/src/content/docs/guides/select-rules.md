@@ -3,12 +3,11 @@ title: "Import rules"
 description: "Choose groups from rule libraries and adapt their rules to your project."
 ---
 
-Import the technology and practice groups your project needs from one or more libraries.
-Add local rules and declare exceptions as part of that import configuration.
-Code Rules combines those choices into a root group index, group pages, and individual full rule files. Small group pages include complete rules; larger ones contain applicability summaries with explicit reading links.
+You can **import rules** written by your team or others instead of writing every rule yourself. These rules come from **libraries**, collections of rules shared across projects.
 
-These commands are implemented in the Go CLI.
-For a complete setup walkthrough, see [Use rules in a project](/guides/use-rules/).
+In this guide, you'll choose **groups** to import, record your choices in `.code-rules/config.json`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
+
+Start with a project that already has a `.code-rules/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/).
 
 ## Choose groups for your project
 
@@ -23,13 +22,19 @@ For a TypeScript service that makes requests to other services, useful groups mi
 - `practices/error-handling` for how failures reach callers.
 
 Import rules that cover the project's work, including practices that do not correspond to a package or filename.
-Agents will choose which installed groups apply to each task using the [rule-loading process](/for-agents/).
+Agents choose which installed groups apply to each task using the [rule-loading process](/for-agents/).
 
 ## Select groups from each source
 
-In `.code-rules/config.json`, set `sources.<name>.groups` separately for each library.
-Each source has a `repository`, either an exact `ref` or a semantic `version` constraint, and its own `exclude` and `replace` objects.
-Use the [complete configuration example](/reference/configuration/#complete-example) as your starting point.
+In `.code-rules/config.json`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
+
+- **Where to get it:** `repository` is the library's Git URL.
+- **Which version to use:** `ref` selects a specific tag or commit; `version` allows a range of versions. Use one or the other.
+- **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`.
+
+You can also use `exclude` to leave out individual rules or `replace` to substitute your own. We'll cover both below.
+
+See the [complete configuration example](/reference/configuration/#complete-example) for how these fields fit together.
 
 To adopt an entire library, set `groups` to `"*"` instead of an array.
 Use `"practices/*"` for all practice groups, or `"techs/*"` for all technology groups.
@@ -127,7 +132,7 @@ It does not infer overrides from similar wording.
 Rules from different sources remain active even when their paths or titles match.
 If a local rule or another source contradicts an inherited obligation, explicitly replace or exclude the affected rule inside its owning source.
 Source order never resolves the conflict.
-Use [Conflicting guidance](/guides/conflicting-guidance/) to review the combined rules and resolve competing instructions.
+Use [Resolve conflicting rules](/guides/conflicting-guidance/) to review the combined rules and resolve competing instructions.
 
 
 Review `generated/RULES.md`, each relevant group index, and the full resolved definitions. Check exclusions and replacements against configuration and provenance.

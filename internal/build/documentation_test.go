@@ -14,9 +14,11 @@ import (
 
 // TestDocumentationRules rejects documentation drift that would make copied examples fail a real build.
 func TestDocumentationRules(t *testing.T) {
+	// The homepage illustration is explicitly abbreviated; only complete walkthrough rules are copyable.
 	for _, tc := range []struct{ file, pattern, title string }{
-		{"../../docs/src/examples/make-errors-actionable.md", "", "Make error messages actionable"},
 		{"../../docs/src/content/docs/guides/write-rules.md", "(?s)```md\\n(---.*?)\\n```", "Verify retry limits"},
+		{"../../docs/src/content/docs/start-here/set-up-project.md", "(?s)```md\\n(---.*?)\\n```", "Test changed behavior"},
+		{"../../docs/src/content/docs/start-here/create-library.md", "(?s)```md\\n(---.*?)\\n```", "Make errors actionable"},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			data, err := os.ReadFile(tc.file)

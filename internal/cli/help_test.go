@@ -16,7 +16,7 @@ func TestCommandOptionSections(t *testing.T) {
 		path, title      string
 		specific, common []string
 	}{
-		{"", "", nil, []string{"help", "json", "version"}},
+		{"", "Command options", []string{"license"}, []string{"help", "json", "version"}},
 		{"project", "", nil, []string{"help", "json"}},
 		{"project add", "", nil, []string{"help", "json"}},
 		{"project init", "", nil, []string{"help", "json", "non-interactive"}},

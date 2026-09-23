@@ -62,6 +62,7 @@ Choose it by purpose, not by its current hex value. Equal values alone do not ju
 | --- | --- |
 | `paper` | Page background and surfaces that match the page |
 | `surface` | Subtle background for grouped content and hover states |
+| `surface-header` | Stronger background for illustration title bars, distinct from their content surfaces |
 | `ink` | Primary foreground, including text and icons |
 | `muted` | Secondary foreground, including captions and metadata |
 | `border` | Normal component boundaries |

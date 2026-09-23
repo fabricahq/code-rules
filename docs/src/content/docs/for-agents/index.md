@@ -5,7 +5,7 @@ description: "A suggested workflow for agents using the project\u2019s resolved 
 
 This page suggests an agent workflow for using the project's committed resolved rules during planning, implementation, and review.
 Adapt it to your project, or use your own prompts and tooling. Code Rules supplies the rule files; it does not run this workflow or require a particular validation or enforcement method.
-See [product scope](/overview/#scope-rule-management-and-delivery).
+See [product scope](/start-here/overview/#what-code-rules-does-not-do).
 
 ## Project instructions
 
@@ -67,14 +67,13 @@ Separate confirmed failures from hypotheses that need verification.
 
 If a relevant group is missing, report the missing coverage.
 If resolved rules conflict, identify both IDs and ask the project owner to resolve the intended policy.
-Use [Conflicting guidance](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
+Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
 Keep the pinned ruleset during ordinary work; adopting upstream changes is a separate project update.
 
 ## Write or review rules themselves
 
 When the task changes a rule, use the [authoring rubric and template](/reference/rule-authoring/).
-The planned [Code Rules authoring skill](/guides/write-rules/#write-with-the-skill) guides this workflow.
-Until the skill ships, follow those documents directly.
+Follow those documents directly. The [Code Rules authoring skill](/guides/write-rules/#write-with-the-skill) is planned and is not available yet.
 
 Read the target library's conventions and evaluate each rule against every rubric criterion.
 Report unmet criteria with the relevant passage and a concrete revision.

@@ -1,11 +1,13 @@
 ---
-title: "Make a rule"
+title: "Write a rule"
 description: "Author a focused engineering obligation with applicability, examples, and verification guidance."
 ---
 
-Write each rule in Markdown with a rubric that helps agents make it clear, scoped, and verifiable.
-Use the shared template and rubric with any agent or editor. The planned Code Rules skill will guide that process.
-To set up a shared library and create groups before adding rules, follow [Create a rule library](/guides/create-library/).
+A **rule** is a Markdown file that tells an agent how to apply one engineering practice. Writing a rule turns a recurring expectation or review comment into guidance you can reuse across tasks. A useful rule explains when it applies, what to do, and how to verify the result.
+
+This guide explains how to draft and review a rule using the shared template and quality criteria. You'll choose a group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
+
+You can write rules with any agent or editor. For the CLI steps to create your first rule, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
 ## Rubric, template, and skill
 
@@ -18,8 +20,8 @@ The skill references it rather than maintaining a separate copy of the authoring
 You can also use the rubric and template without a skill, with any agent or editor.
 
 :::note[Skill availability]
-The installable authoring skill is planned and has not shipped.
-The rubric and template are available here as part of the design preview.
+The installable authoring skill is not available yet.
+Use the rubric and template with any agent or editor.
 The workflow below describes how the skill is intended to work.
 :::
 
@@ -40,7 +42,7 @@ Use a technology group when the obligation depends on a named technology.
 Use a practice group when it transfers across technologies.
 Place project-specific contracts in the applicable project's local rules.
 
-For a new group, add [group metadata](/reference/files/#group-metadata) that helps agents recognize relevant work.
+For a new group, add [group metadata](/reference/rule-library-format/#group-metadata) that helps agents recognize relevant work.
 
 ## Example rule
 
@@ -90,7 +92,7 @@ The test should fail.
 
 A rule's library ID is its relative path without `.md`.
 Consuming projects qualify it with their configured source name, such as `fabrica:practices/testing/verify-retry-limits`.
-Renaming or moving the file changes its ID in the first release.
+Renaming or moving the file changes its ID.
 Consumers must update exclusions and replacements that referenced the old path.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.
@@ -110,7 +112,7 @@ For an existing compatible Code Rules library, use the normal import workflow. F
 1. Identify the exact source revision and establish permission to copy, adapt, and redistribute the material for your intended use. Preserve the applicable license and notices.
 2. Create an adapted definition in a compatible library, which may contain just this one rule. Preserve the original separately when useful for reviewing future updates.
 3. Add the required metadata and an activity-based `whenToRead` cue. Preserve the obligation, important conditions, exceptions, and examples; explain deliberate changes. A detector's analysis limitations do not automatically become exceptions to a written rule.
-4. Declare the library-wide license and notice files in `rule-library.json`. Record per-rule [attribution](/reference/files/#rule-attribution) with a commit-pinned source URL and describe the adaptation.
+4. Declare the library-wide license and notice files in `rule-library.json`. Record per-rule [attribution](/reference/rule-library-format/#rule-attribution) with a commit-pinned source URL and describe the adaptation.
 5. Review the adaptation against the [authoring rubric](/reference/rule-authoring/), then generate and inspect the resolved rule, license links, and provenance. Commit the adapted source and retained notices together.
 
 An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the upstream commit. The adapted library has its own repository and version while retaining the earlier attribution chain. Local rules are for guidance you author for your project.

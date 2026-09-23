@@ -1,127 +1,165 @@
 ---
 title: "How imports work"
-description: "From pinned library snapshots to one resolved ruleset per group."
+description: "How library rules become project guidance, what happens during updates, and what imports support."
 ---
 
-The Go importer fetches library revisions and retains their original files.
-The `sync` command coordinates import, resolution, generation, and installation. See [Sync and recovery](/reference/sync/).
+An **import** copies selected rules from a shared library into your project.
 
-An import resolves each configured exact ref or version constraint and combines the resulting upstream snapshots with explicit project decisions.
-It produces ordinary files that agents can read without running the importer.
-This checkout implements fetching, offline generation, digest checks, and safe file updates; see [Project status](/status/).
+Imports let you reuse your team's engineering practices across projects without writing and maintaining the same rules in each one. You can also import rules from third-party libraries whose engineering practices you want to adopt. Each project can choose which rules to use, add its own rules, and replace imported rules to fit its needs.
 
-## What a vendored library contains
+This page explains which files Code Rules imports and how it combines imported rules with your local rules and exceptions. It also covers the checks that protect your project during an update and the limits on what you can import. For step-by-step instructions, see [Import rules](/guides/select-rules/).
 
-`vendor/<source>/` is a selected copy of original files from one resolved Git commit, not a clone.
-It contains selected groups, their assets, the manifest, and declared license and notice files. It contains no Git history or `.git` directory.
-Imports reads these files through temporary Git storage, then removes that storage. The importer returns parsed catalogs and original retained bytes; sync persists those bytes into `vendor/`.
+## From library rules to project guidance
 
-With unchanged configuration and the same resolved commit, Imports returns the same paths and bytes.
-With unchanged snapshots, local files, tool version, and rendering options, Builds returns the same generated content.
-Re-importing a tag can change the result if that tag moves. Re-importing a version constraint can select a newer matching tag. A full commit pin continues selecting the original content.
-Safe replacement of existing project folders, including removal of stale files, belongs to the sync workflow.
+When you run `code-rules project sync`, Code Rules:
 
-## Resolve the active rules
+1. Reads your configuration to find the libraries, versions, and groups you selected. A **group** collects related rules, such as testing practices or TypeScript conventions.
+2. Copies the selected library files into your project. Each copy comes from one Git commit and is called a **snapshot**.
+3. Combines the imported rules with your local rules and configured exceptions, then generates files for your agents to read.
 
-The builder receives configuration, supplied library snapshots, and local rules. It selects and resolves rules without network access.
+These files live in the **Code Rules directory**, `.code-rules/` at the project root:
 
-For `groups: "*"`, discover every technology and practice group at the resolved revision before applying project exceptions.
-For `"practices/*"` or `"techs/*"`, discover every group of that kind.
-Record the original selector and concrete group IDs in a snapshot complete for that scope.
-Reject malformed groups and orphan rule files rather than silently dropping them.
+| Directory | What it contains |
+| --- | --- |
+| `vendor/` | Original files copied from the libraries you selected. |
+| `local/` | Rules you author for this project, including replacements for imported rules. |
+| `generated/` | The rules and reading indexes your agents use. |
 
-1. Load each resolved source's selected groups and assign source-qualified IDs, then discover local `_group.json` files.
-2. Resolve each source's library-relative exclusions to qualified IDs and remove those rules.
-3. Remove each replaced source rule and include its complete local definition under the local rule ID.
-4. Add the remaining local rules.
-5. Render the root index, group pages, individual resolved definitions, library summaries and license copies, and provenance.
+For the complete layout, see [Project files](/reference/files/). Once the library files are stored, `code-rules project build` can regenerate guidance without network access.
 
-Sort sources, groups, and rule IDs consistently so reordering configuration does not change the result.
-Preserve source-labeled group metadata and rule provenance; source order does not establish precedence.
+## What gets copied
 
-Each local rule appears once, including when referenced by a replacement.
-Generated guidance uses the local ID, title, metadata, body, attribution, and asset references.
-Replacement targets and reasons remain in configuration and provenance, outside the rule guidance.
-Replacements stay within their target group in the first release.
+Each library has a **source name** in your configuration, such as `team`. Code Rules stores that library's imported files under `vendor/team/`.
 
-Record the requested ref or version constraint and resolved commit for every snapshot. Version selections also record the chosen tag and normalized version.
-Use resolved commits for remote source links so a moved tag does not change what a link points to.
-GitHub.com and GitLab.com have recognized file and image URL formats.
-Other hosts use relative links to the retained source files; their repository address and resolved revision remain in provenance.
+The copy includes:
 
-## Validate before writing
+- Rules from the selected groups, including rules your project excludes or replaces.
+- Supporting files, such as images and examples, from the library's designated asset directories.
+- Group metadata, which describes each group and when to read it.
+- The library manifest, `rule-library.json`, and its declared license and notice files.
 
-Reject invalid or reserved source names, repeated repositories, missing groups or targets, and duplicate qualified IDs.
-Reject rules that are both excluded and replaced, and replacement files reused for multiple targets.
-The builder rejects malformed metadata and unsafe relative paths. It validates selected source rules even when exclusions or replacements make them inactive.
-The file-handling helpers check filesystem containment and reject symlinks. An in-memory text map cannot establish those properties.
-Treat library contents as data rather than executing their scripts.
+Keeping the original rules lets you review library changes even when your project uses a replacement. Make project-specific changes in `local/`; syncing replaces the imported files.
 
-Sync stages and validates the complete result across all sources before writing project files.
-If any source cannot be fetched or validated, preserve the previous complete ruleset.
-Detect concurrent writes and interrupted installations so mixed output cannot pass a consistency check.
+The snapshot contains no Git history or `.git` directory. Code Rules reads the original files through temporary Git storage and removes that temporary storage afterward.
 
-## Keep sources reviewable
+## How Code Rules selects the rules your agents read
 
-Sync reports changed files, including group metadata and source records. A semantic report identifying added and removed groups remains planned.
+Your configuration selects groups from each library. You can name groups individually or use one of these selectors:
 
-Copy selected upstream group source files into `vendor/<source-name>/`, including rules hidden by project exceptions.
-That retained text lets an update report expose upstream changes that a replacement would otherwise hide.
+| Selection | Groups to import |
+| --- | --- |
+| `"*"` | Every technology and practice group. |
+| `"practices/*"` | Every practice group. |
+| `"techs/*"` | Every technology group. |
 
-Preserve each rule's attribution from its metadata or body in the vendored source and generated rule file.
-Library authors must declare the applicable license and notice files in the library manifest. The builder verifies their presence and preserves their text.
-Sync includes those files in snapshot digests and reports changed files during updates.
-Generated rules link to copies under `generated/libraries/<source-name>/licenses/`; see [License rules](/guides/license-rules/).
-Keep attribution links valid after relocation.
-Code Rules rejects filesystem links to other rule documents, whether selected, excluded, or unselected. Rules must remain independently selectable. Supporting assets must be retained at their conventional paths on every host; generation rejects missing assets.
+Code Rules finds the matching groups at the selected library revision before applying your exceptions. It records both your selection and the groups actually imported. Invalid groups and rules without group metadata cause an error instead of being silently skipped.
 
-## Fetch through Git, independently of the host
+Code Rules then decides which rules are **active**, meaning included in the generated guidance:
 
-The repository field accepts explicit HTTPS and SSH Git addresses, including scp-style SSH and nested namespaces.
-See [Repository addresses](/reference/configuration/#repository-addresses) for the grammar and credential boundary.
-Shared configuration validates addresses before Imports fetches them. Builds uses the same address parser for source links.
+1. Starts with the imported rules from your selected groups and discovers local groups from their `_group.json` files.
+2. Removes rules you explicitly excluded.
+3. Substitutes your local rules for imported rules you explicitly replaced.
+4. Adds your remaining local rules.
 
-Imports invokes Git with separate arguments and permits HTTPS and SSH by default.
-Git URL rewrites still apply. Other rewritten protocols require an explicit protocol-specific allowance in the caller's Git configuration; executable `ext` helpers are always disabled.
-Imports retains the caller's certificate and host-key verification settings.
-Use the caller's credentials without storing secrets in configuration or provenance.
-Do not recurse into submodules or execute library scripts, hooks, or checkout filters while creating snapshots.
-Apply resource limits and the existing path and installation checks to all hosts.
-Address validation alone does not establish that a remote is reachable or safe for a particular network environment.
+Each rule's ID includes its source name. For example, `team:practices/testing/check-retries` identifies the `check-retries` rule from the `team` library. This keeps rules from different libraries distinct, even when their filenames match.
 
-## Resolve declared exceptions
+A replacement contributes its complete local definition: ID, title, metadata, body, attribution, and links to supporting files. It must belong to the same group as the rule it replaces. Each local rule appears only once, even when used as a replacement.
 
-The importer uses IDs and configuration to decide which rules are active.
-It does not interpret prose to discover undeclared contradictions.
-Rules with matching paths from different sources are distinct and remain active.
-Authors and reviewers still need to identify conflicting obligations and declare the intended exclusion or replacement explicitly.
+Code Rules does not read rule text to detect contradictory instructions. Two libraries can supply conflicting rules, and both remain active unless you configure an exclusion or replacement. The order of libraries in your configuration does not establish priority. See [Resolve conflicting rules](/guides/conflicting-guidance/).
 
-## Read the result
+## Where agents read the result
 
-Agents start at the generated index, choose relevant groups, and apply each rule within its scope.
-The same files support both writing and review.
-Projects choose their own review and enforcement workflow; the import format does not prescribe one.
+Code Rules writes the active rules and reading indexes to `generated/`. Agents start at `generated/RULES.md`, open relevant groups, and read the applicable rules in full.
 
-## Fetching implementation limits
+The generated files also include library summaries, retained license files, and **provenance**: records of where rules came from and which rules they replaced. Replacement targets and reasons stay in configuration and provenance, outside the rule guidance. Group descriptions remain labeled by source so you can see which library supplied them.
 
-Imports requires Git 2.30 or later on macOS or Linux.
-It reads original blobs without checking out a library or running checkout filters.
-Selected symlinks, submodules, and Git LFS pointers are unsupported.
-Imports rejects ambiguous retained paths, including case-insensitive NFC-normalized collisions in directory names.
+The same files support implementation and review. Your project chooses how to check that agents follow the rules; importing does not enforce compliance.
 
-Each library has a 120-second deadline and may contain at most 10,000 tree entries.
-The tree listing may occupy up to 8 MiB; retained files may occupy up to 8 MiB each and 64 MiB in total.
-Those file limits apply after fetching and do not cap network traffic or Git's temporary disk use.
+## What changes when you update
 
-Imports preserves supporting material only from [the two asset locations](/reference/files/#supporting-assets): each selected rule's adjacent `assets/<rule-name>/` directory and the library-root `assets/` directory.
-Owned directories are copied completely. Shared assets are copied completely only when a selected rule or a retained Markdown asset references them.
-Imports validates standard Markdown links, images, and reference definitions against these boundaries; it does not follow arbitrary repository documents.
-Missing destinations and links into another rule's private assets fail import. Links from rules or Markdown attachments to other rule documents fail import. External URLs are not fetched.
+Running `code-rules project sync` again fetches the library revisions allowed by your configuration:
 
-Markdown assets and declared license and notice files must be UTF-8. Binary assets retain their original bytes, but binary license and notice files are unsupported.
-Within a selected group, Markdown outside asset directories defines rules, including nested rule files. Declared license and notice files are exempt.
-Move supporting files such as `_README.md` into the owning rule's assets directory or the shared root directory.
+| Version choice | What a later sync can fetch |
+| --- | --- |
+| Full Git commit | The same content from that commit. |
+| Exact tag | The content the tag points to. If the publisher moves the tag, the content can change. |
+| Version range | A newer matching version, if one is available. |
 
-Version discovery uses the same deadline and Git transport policy as fetching. The tag advertisement is limited to 8 MiB and 20,000 records, including annotated-tag peel records.
-`version-not-found` means no eligible tag satisfies the range. `ambiguous-version` identifies conflicting tags at the highest matching precedence.
-`ref-changed` means the selected tag moved between discovery and fetch. Correct the tags, adjust the constraint, pin an exact ref, or retry as appropriate.
+With the same configuration and commit, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
+
+Sync reports changed files, including group metadata and revision records. It does not provide a separate summary of added or removed groups. Review the file changes to understand the update.
+
+### Tracing rules to their source
+
+Code Rules records both the revision you requested and the exact commit it imported. For a version range, it also records the selected tag and version number. See [Provenance](/reference/provenance/) for these records.
+
+Links to original files on GitHub.com and GitLab.com use the imported commit, so moving a tag does not change their destination. For other Git hosts, links point to the stored files; provenance retains the repository address and commit.
+
+Code Rules preserves rule attribution in both imported and generated files and keeps attribution links valid. It verifies and retains the license and notice files declared in the library manifest, includes them in integrity checks, and reports their changes during updates.
+
+Generated rules link to retained terms under `generated/libraries/<source-name>/licenses/`. See [License rules](/guides/license-rules/) for how library authors declare those files.
+
+## Checks before updating your files
+
+Code Rules fetches and validates all selected libraries before replacing your project's imported files or generated guidance. If any library cannot be fetched or validated, your previous complete set of rules stays in place.
+
+Validation rejects:
+
+- Invalid or reserved source names, repeated repositories, and duplicate rule IDs that include the same source name.
+- Missing groups or rules named in an exclusion or replacement.
+- A rule that is both excluded and replaced, or a local replacement file used for multiple targets.
+- Invalid metadata, unsafe file paths, and symbolic links.
+
+Selected library rules must pass validation even if you exclude or replace them. File checks also ensure that paths stay within their allowed directories.
+
+Code Rules detects concurrent writes and interrupted updates so a mixture of old and new output cannot pass a consistency check. For file replacement and recovery behavior, see [Sync and recovery](/reference/sync/).
+
+## Git access and supported files
+
+Imports require Git 2.30 or later on macOS or Linux. Code Rules accepts HTTPS and SSH repository addresses, including scp-style SSH addresses and nested repository paths. See [Repository addresses](/reference/configuration/#repository-addresses) for accepted formats.
+
+Code Rules uses your Git credentials and certificate and host-key verification settings. It does not store credentials in configuration or provenance. A valid repository address does not guarantee that the repository is reachable or appropriate for your network.
+
+Git URL rewrites still apply. If a rewrite uses another protocol, your Git configuration must explicitly allow that protocol. Executable `ext` helpers are always disabled. Code Rules passes Git arguments separately and applies the same path checks and resource limits across hosts.
+
+Code Rules reads original Git file contents without checking out the library. It does not run library scripts, Git hooks, or checkout filters. Selected symbolic links, submodules, and Git LFS pointers are unsupported; Code Rules does not fetch submodule contents.
+
+### Supporting files
+
+Code Rules copies supporting material from [two asset locations](/reference/rule-library-format/#supporting-assets):
+
+- **A rule's own assets:** the adjacent `assets/<rule-name>/` directory. Code Rules copies this directory in full when it imports the rule.
+- **Shared assets:** the library-root `assets/` directory. Code Rules copies this directory in full when a selected rule or its Markdown assets link to it.
+
+Markdown links, images, and reference links must point to files within the allowed locations. Missing files and links into another rule's private assets cause an error. Code Rules preserves external URLs as links without downloading their contents.
+
+A rule or Markdown attachment cannot link to another rule document on disk, even if that rule is also selected. Each rule must work independently because projects can exclude or replace it. Put shared supporting explanations in the library's shared assets directory.
+
+Within a selected group, Markdown files outside asset directories count as rules, including files in nested folders. Declared license and notice files and the group-root `README.md` are exceptions. Put other supporting Markdown, such as `_README.md`, in an asset directory.
+
+Markdown assets, license files, and notice files must use UTF-8 text. Other assets can be binary files; Code Rules preserves their original bytes.
+
+## Import limits and version errors
+
+Imports reject paths that become identical when letter case is ignored and Unicode names are normalized to NFC. This includes directory names and prevents ambiguous paths across filesystems.
+
+Each library import has these limits:
+
+| Resource | Limit |
+| --- | --- |
+| Fetching and version discovery | 120 seconds per library. |
+| Entries in the Git file tree | 10,000 entries. |
+| Git file-tree listing | 8 MiB. |
+| Each retained file | 8 MiB. |
+| All retained files combined | 64 MiB. |
+| Git's tag listing during version discovery | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. |
+
+The retained-file limits apply after fetching. They do not cap network traffic or Git's temporary disk use. Version discovery uses the same Git access settings and deadline as fetching.
+
+When selecting a version, Code Rules can report:
+
+| Error | Meaning and next step |
+| --- | --- |
+| `version-not-found` | No eligible tag matches your version range. Check the published tags and configured range. |
+| `ambiguous-version` | Conflicting tags represent the highest matching version. Correct the tags or select an exact revision. |
+| `ref-changed` | The selected tag moved between discovery and fetching. Retry, correct the tags, or select an exact commit. |

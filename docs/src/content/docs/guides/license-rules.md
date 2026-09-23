@@ -3,9 +3,9 @@ title: "License rules"
 description: "Choose clear terms for rule content and preserve them when projects import and aggregate rules."
 ---
 
-A rule library should explain what consumers may do with its text, examples, and adaptations.
-Code Rules preserves those terms through imports; it does not choose a license for the publisher or grant additional rights.
-No particular license, including a Fair Source license, is required by the format.
+A library's **license** states the terms for using, copying, modifying, and sharing its rules. Clear terms help projects understand what they can do with your guidance and what notices they need to keep.
+
+This guide walks through choosing what your terms should cover, declaring them in `rule-library.json`, and checking what Code Rules preserves when projects import rules. Code Rules carries declared license text and notices with the rules; it does not choose a license or grant additional rights.
 
 ## Decide what the license covers
 
@@ -29,6 +29,8 @@ Have the chosen terms reviewed for the rights and restrictions you intend before
 
 ## Declare the library's terms
 
+The Code Rules format does not require a particular license.
+
 Keep the actual license text in `LICENSE.md` at the library root, or another explicitly named file.
 The library metadata identifies the terms for the whole library and any accompanying notice files:
 
@@ -46,12 +48,12 @@ The library metadata identifies the terms for the whole library and any accompan
 Paths resolve from the library root and identify source files only. Code Rules copies the contents unchanged to `generated/libraries/<source-name>/licenses/LICENSE.md` and `generated/libraries/<source-name>/licenses/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
 For example, list `NOTICE.md` in `notices` when the library supplies a notice that must accompany imported content.
 No extra notice file is required when the license and rule files already contain the necessary notices.
-The [file reference](/reference/files/#library-license-metadata) defines these fields.
+The [file reference](/reference/rule-library-format/#library-license-metadata) defines these fields.
 
 Use an SPDX expression for standard terms and a distinct `LicenseRef-…` for custom or modified terms. The [SPDX expression specification](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) defines identifiers and compound expressions. The identifier supplements the retained text. Code Rules validates the `license.spdxExpression` syntax and identifiers and preserves your declaration. It does not verify that the declaration matches the retained terms or grants the permissions you need.
 
 A library has one license declaration covering all its rules and groups. Per-rule and per-group overrides are unsupported.
-Keep attribution with each rule, in its body or [structured attribution](/reference/files/#rule-attribution). List required notices in the library manifest.
+Keep attribution with each rule, in its body or [structured attribution](/reference/rule-library-format/#rule-attribution). List required notices in the library manifest.
 If material requires a different declaration, maintain it in a separate compatible library. Do not relabel third-party material merely to fit a library's license.
 
 A source citation is not a license grant.
@@ -62,7 +64,7 @@ Before adapting material from a book, article, or another library, establish the
 Imports copies license and declared notice files from the same resolved commit as the rules.
 The offline builder accepts preassembled snapshots and checks that declared files are present.
 It returns unchanged license and notice copies at generated paths, but does not fetch source files or write them to disk.
-The consuming workspace will retain them alongside the imported rules:
+The consuming workspace retains them alongside the imported rules:
 
 ```text
 .code-rules/
@@ -85,7 +87,7 @@ The consuming workspace will retain them alongside the imported rules:
 Preserve copyright notices and per-rule attribution in both the vendored source and the generated rule file.
 Keep the library license and declared notices with the snapshot and preserve their links after relocation.
 Project build and check verify snapshot digests to detect changed files. The offline builder checks declared file presence without computing digests.
-The planned update report should include license changes alongside rule changes.
+Sync reports changed license files. A semantic update report that highlights license changes is not available yet.
 
 Each individual resolved rule identifies its source and applicable preserved license.
 For example, `generated/rules/fabrica/practices/testing/verify-retry-limits.md` includes this source footer after its guidance.

@@ -29,6 +29,7 @@
   --sl-sidebar-width: 17rem;
   --cr-paper: #151515;
   --cr-surface: #202020;
+  --cr-surface-header: #2c2c2c;
   --cr-ink: #f2f2f2;
   --cr-muted: #b8b8b8;
   --cr-border: #444444;
@@ -56,6 +57,7 @@
   --sl-color-bg-sidebar: #ffffff;
   --cr-paper: #ffffff;
   --cr-surface: #f6f6f6;
+  --cr-surface-header: #e9e9e9;
   --cr-ink: #1c1c1c;
   --cr-muted: #626262;
   --cr-border: #d5d5d5;
@@ -107,20 +109,24 @@ h1[data-page-title] { color: var(--cr-ink); font-weight: 500; letter-spacing: -.
 
 .content-panel h1#_top { font-weight: 500; letter-spacing: -.045em; line-height: 1.13; }
 
-/* Size configuration keys to their content; keep narrow screens scrollable. */
-.sl-markdown-content .sl-heading-wrapper:has(#fields) + table {
+/* Keep configuration keys and CLI options intact; let narrow tables scroll. */
+.sl-markdown-content .sl-heading-wrapper:has(#fields) + table,
+.sl-markdown-content:has(#project-commands) table {
   width: 100%;
   overflow-x: auto;
 }
-.sl-markdown-content .sl-heading-wrapper:has(#fields) + table :is(th, td):first-child {
+.sl-markdown-content .sl-heading-wrapper:has(#fields) + table :is(th, td):first-child,
+.sl-markdown-content:has(#project-commands) table :is(th, td):first-child {
   width: 1%;
   white-space: nowrap;
 }
-.sl-markdown-content .sl-heading-wrapper:has(#fields) + table td:first-child code {
+.sl-markdown-content .sl-heading-wrapper:has(#fields) + table td:first-child code,
+.sl-markdown-content:has(#project-commands) table td:first-child code {
   overflow-wrap: normal;
   word-break: normal;
 }
-.sl-markdown-content .sl-heading-wrapper:has(#fields) + table :is(th, td):last-child {
+.sl-markdown-content .sl-heading-wrapper:has(#fields) + table :is(th, td):last-child,
+.sl-markdown-content:has(#project-commands) table :is(th, td):last-child {
   min-width: 15rem;
 }
 

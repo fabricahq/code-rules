@@ -2,7 +2,6 @@
 
 Use this file to understand the product we are building and the decisions it should guide.
 The [README](README.md) owns repository setup and validation commands.
-The [project status](docs/src/content/docs/status.md) distinguishes working capabilities from proposed interfaces.
 
 ## Product
 
@@ -101,7 +100,7 @@ Keep Fabrica's private rule corpus separate; public examples must be original or
 Projects retain their product vision, domain knowledge, and architecture context.
 Code Rules manages which versioned rules a codebase adopts and delivers their resolved definitions.
 Projects choose how to apply, validate, and enforce those rules through agent prompts or separate tooling. Code Rules does not prescribe or run that workflow; its agent instructions are a suggested integration.
-Rule-input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/overview.md#scope-rule-management-and-delivery).
+Rule-input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
 
 ## Releases
 
@@ -115,8 +114,8 @@ Apply the portable guidance; identify app-specific assumptions and explain any a
 For comments, use [the local comment rule](_engineering/rules/comment-role-result-and-constraints.md), which supersedes the linked app comment policy.
 For website JavaScript and TypeScript, use `@fileoverview` headers; an Astro component's frontmatter overview also describes its rendered result because its export is implicit.
 
-The Go CLI is implemented; public release publication and the installable authoring skill remain separate work.
-Describe proposed behavior honestly, and consult [project status](docs/src/content/docs/status.md) before claiming availability.
+The Go CLI is released. The installable authoring skill remains separate work.
+Describe proposed behavior honestly, and verify availability against the implementation before claiming support.
 
 When a product decision changes, update the owning concept, guide, or reference and its examples together.
 Keep configuration details and command contracts in those documents rather than duplicating them here.

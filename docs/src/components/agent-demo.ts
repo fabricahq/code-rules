@@ -61,7 +61,8 @@ class AgentDemo extends HTMLElement {
       (event) => {
         if (
           event.target instanceof Element &&
-          event.target.closest('[data-transcript]')
+          event.target.closest('[data-transcript]') &&
+          event.target.matches(':focus-visible')
         )
           this.pause();
       },
@@ -135,10 +136,25 @@ class AgentDemo extends HTMLElement {
   private onClick(event: MouseEvent) {
     if (!(event.target instanceof Element)) return;
     const button = event.target.closest<HTMLButtonElement>('button');
-    if (!button) return;
+    if (!button) {
+      if (
+        !event.target.closest('[data-session-window]') ||
+        event.target.closest('a, input, textarea, select, [contenteditable]') ||
+        this.playback?.view.isPreview ||
+        this.playback?.view.isComplete
+      )
+        return;
+      if (!window.getSelection()?.isCollapsed) {
+        this.pause();
+        return;
+      }
+      this.togglePlayback();
+      return;
+    }
     if (button.hasAttribute('data-tab')) this.selectTab(button);
     else if (button.hasAttribute('data-start')) {
-      this.restart();
+      if (this.playback?.view.isPaused) this.resume();
+      else this.restart();
       this.querySelector<HTMLButtonElement>('[data-play]')?.focus({
         preventScroll: true,
       });
@@ -150,9 +166,7 @@ class AgentDemo extends HTMLElement {
         this.restart();
         return;
       }
-      this.playback?.toggle();
-      this.render();
-      this.schedule();
+      this.togglePlayback();
     }
   }
 
@@ -210,6 +224,17 @@ class AgentDemo extends HTMLElement {
     this.schedule();
   }
 
+  private togglePlayback() {
+    if (this.playback?.view.isPlaying) this.pause();
+    else this.resume();
+  }
+
+  private resume() {
+    this.playback?.resume();
+    this.render();
+    this.schedule();
+  }
+
   private pause() {
     if (!this.playback?.view.isPlaying) return;
     this.playback.pause();
@@ -226,7 +251,8 @@ class AgentDemo extends HTMLElement {
   private render() {
     if (!this.panel || !this.playback) return;
     const entries = this.entries.get(this.panel) ?? [];
-    const { frame, isComplete, isPlaying, isPreview } = this.playback.view;
+    const { frame, isPromptOnly, isComplete, isPlaying, isPaused, isPreview } =
+      this.playback.view;
     if (isComplete) {
       const sessionWindow = this.querySelector<HTMLElement>(
         '[data-session-window]',
@@ -235,7 +261,7 @@ class AgentDemo extends HTMLElement {
     }
     entries.forEach((entry, index) => {
       const isPast = index < frame.index || isComplete;
-      entry.element.hidden = index > frame.index;
+      entry.element.hidden = isPromptOnly || index > frame.index;
       const visibleCharacters = isPast
         ? entry.characters.length
         : index === frame.index
@@ -265,15 +291,39 @@ class AgentDemo extends HTMLElement {
     });
     this.toggleAttribute('data-preview', isPreview);
     const overlay = this.querySelector<HTMLElement>('[data-preview-overlay]');
-    if (overlay) overlay.hidden = !isPreview;
-    // Covered preview content must not contain unreachable keyboard targets.
-    for (const panel of this.entries.keys()) panel.inert = isPreview;
+    if (overlay) {
+      overlay.hidden = !isPreview && !isPaused;
+      overlay.toggleAttribute('data-paused', isPaused);
+    }
+    const start = this.querySelector<HTMLButtonElement>('[data-start]');
+    if (start) {
+      start.setAttribute(
+        'aria-label',
+        isPaused ? 'Resume example session' : 'Play example session',
+      );
+      const label = start.querySelector('[data-start-label]');
+      if (label) label.textContent = isPaused ? 'Resume' : 'Play example';
+      const hint = start.querySelector<HTMLElement>('[data-resume-hint]');
+      if (hint) hint.hidden = !isPaused;
+    }
+    // Move focus out before the overlay makes transcript controls unreachable.
+    const covered = isPreview || isPaused;
+    if (
+      covered &&
+      Array.from(this.entries.keys()).some((panel) =>
+        panel.contains(document.activeElement),
+      )
+    ) {
+      start?.focus({ preventScroll: true });
+    }
+    for (const panel of this.entries.keys()) panel.inert = covered;
     this.toggleAttribute('data-playing', isPlaying);
     this.toggleAttribute('data-complete', isComplete);
     const play = this.querySelector<HTMLButtonElement>('[data-play]');
     if (play) {
       const label = play.querySelector('[data-play-label]');
-      if (label) label.textContent = isPlaying ? 'Pause' : 'Play';
+      if (label)
+        label.textContent = isPlaying ? 'Pause' : isPaused ? 'Resume' : 'Play';
     }
     const finish = this.querySelector<HTMLButtonElement>('[data-finish]');
     if (finish) finish.disabled = isComplete && !isPreview;

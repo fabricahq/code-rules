@@ -1,10 +1,11 @@
 ---
-title: "Conflicting guidance"
+title: "Resolve conflicting rules"
 description: "Find contradictory rules and make the project's intended policy explicit."
 ---
 
-Two rules can have distinct IDs and still give incompatible instructions for the same situation.
-Namespacing identifies each rule; it does not reconcile what the rules say.
+Rules **conflict** when they require incompatible actions in the same situation. For example, one rule might require interfaces where another requires type aliases. An agent cannot follow both, so you need to decide which guidance your project should use.
+
+Code Rules does not detect contradictions in prose or choose which library takes precedence. In this guide, you'll identify conflicting instructions, review them with an agent, and record your decision by excluding or replacing a rule.
 
 ## Recognize a conflict
 
@@ -25,8 +26,8 @@ Repeated guidance may be redundant without being contradictory.
 
 ## Generate a review prompt
 
-`code-rules conflicts --prompt` is planned and is not implemented in the Go CLI.
-For now, run `code-rules project check` and resolve any reported problems before reviewing the adopted rules.
+`code-rules conflicts --prompt` is not implemented.
+Run `code-rules project check` and resolve any reported problems before reviewing the adopted rules.
 Then give a repository-aware agent this prompt:
 
 ```text
@@ -54,8 +55,8 @@ Present proposed changes for review. Do not modify rules or choose an
 unresolved engineering policy on the project's behalf.
 ```
 
-The paths in this prompt are relative to the project root. Project configuration is stored in `.code-rules/config.json`; custom configuration locations are not supported.
-See the [CLI reference](/reference/cli/#conflict-review-prompt) for the planned command.
+The paths in this prompt are relative to the project root. Project configuration is stored in `.code-rules/config.json`.
+Conflict review runs through your agent. The CLI does not provide a `conflicts` command.
 
 ## Resolve the intended policy
 

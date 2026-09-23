@@ -1,0 +1,36 @@
+# Exercise the standalone installer on both supported operating systems.
+name: Installers
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      # Evaluate the emitted PATH setup with each supported shell, not just as text.
+      - name: Install shells for PATH setup tests
+        run: |
+          if [ "${{ runner.os }}" = macOS ]; then
+            brew install fish
+          else
+            sudo apt-get update
+            sudo apt-get install -y zsh fish
+          fi
+      - name: Test installation, upgrades, and failures
+        env:
+          INSTALLER_REQUIRE_SHELLS: '1'
+        run: |
+          sh -n docs/public/install.sh
+          go test -race -count=1 ./internal/distribution -run '^TestStandaloneInstaller$'

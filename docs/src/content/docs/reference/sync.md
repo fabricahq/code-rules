@@ -1,75 +1,133 @@
 ---
 title: "Sync and recovery"
-description: "Import libraries, generate resolved rules, and apply changes safely."
+description: "When to run sync, build, or check, which files they change, and how to recover from problems."
 ---
 
-Sync fetches and validates library snapshots, resolves project rules, and installs the complete vendor and generated output. [Build or install the Go CLI](/guides/install/), then run from your project root:
+The `code-rules project sync` command updates your project's imported library files and regenerates the guidance your agents read. Run it after adding a library, changing its revision or selected groups, or to fetch updates allowed by your configured version range.
+
+This page explains how to run sync, what it changes, and what to do when files are missing, outdated, or left by an interrupted update. It also explains when `code-rules project build` or `code-rules project check` is enough. For how Code Rules selects and combines library rules, see [How imports work](/reference/imports/).
+
+## Choose the right command
+
+- **`code-rules project sync`**: Fetch selected library revisions or restore imported files. Sync validates the library files and regenerates agent guidance.
+- **`code-rules project build`**: Apply local rule changes or exceptions using the library files you already have. Build regenerates guidance without contacting a repository.
+- **`code-rules project check`**: Find out whether generated guidance and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
+
+You do not need to run build after a successful sync; sync already generates the guidance. Run check when you want to verify consistency without making changes.
+
+## Run from your project root
+
+After [installing Code Rules](/start-here/install/) and [setting up your project](/start-here/set-up-project/), run:
 
 ```sh
 code-rules project sync
-code-rules project build
-code-rules project check
 ```
 
-Run `project init` from the Git repository root; other project commands can run from any subdirectory. Outside Git, run commands from the project root. They use `.code-rules/config.json` at the project root.
-The configuration directory contains `local/`, `vendor/`, and `generated/`. The directory and configuration must already exist.
+In a Git repository, project commands find the nearest repository root and use its `.code-rules/config.json`. Outside Git, run commands from the project root. Custom configuration locations are not supported. The paths below are relative to `.code-rules/`.
 
-## Ownership
+## Which files change
 
-Sync replaces all of `vendor/` and `generated/`, including stale rules, assets, libraries, and index parts.
-Keep authored files in `local/` and configuration, which Sync preserves. Files placed manually in managed directories are replaced or removed.
-Build replaces only `generated/` and never contacts a repository. Check reads and compares without changing any files.
+| File or directory | What it contains | What the commands do |
+| --- | --- | --- |
+| `config.json` | Your selected libraries, groups, and exceptions. | Sync, build, and check read it without changing it. |
+| `README.md` | The managed Code Rules guide. | Init, build, and sync refresh an older, unedited guide. Check verifies it without changing it. |
+| `local/` | Rules and replacements you author for this project. | Sync, build, and check preserve these files. |
+| `vendor/` | Original files copied from selected library revisions. | Sync replaces this directory. Build and check validate it without changing it. |
+| `generated/` | Rules and reading indexes for your agents. | Sync and build replace this directory. Check compares it with the expected output. |
 
+Replacement includes removing files that no longer belong in the output, such as removed rules, old index pages, and unused library folders. Files you add or edit inside `vendor/` or `generated/` can be replaced or removed. Keep your changes in configuration and `local/`.
 
-Human-readable output is the default. Use `--json` for one structured response. Sync and build report sorted `added`, `changed`, and `removed` paths for completed changes. Sync paths start with `vendor/` or `generated/`; build paths are relative to `generated/`.
+For the complete directory layout, see [Project files](/reference/files/).
 
-Check reports `status` and `problems`, including each problem's path and repair command. It verifies generated files and the managed project README without writing either. Run `code-rules project build` to refresh an outdated README and repair generated output. In Git repositories, the repair works from any subdirectory. Check exits 1 for differences or invalid inputs, 0 when current; usage errors exit 2.
+## Read the command's result
 
-Structured group-level update summaries remain future work. Review the changed source records and generated provenance for revision changes.
+Commands print human-readable output by default. Add `--json` when another tool needs one structured response:
 
-## Stored snapshots
+```sh
+code-rules project check --json
+```
 
-Sync writes `vendor/<alias>/_source.json` with `formatVersion: 1`, repository, requested `ref` or `version`, resolved commit, concrete groups, and `groupSelection`.
-Version selections additionally record `resolvedTag` and `resolvedVersion`.
+Sync and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`.
 
-The `files` object maps every retained library-relative path to its lowercase SHA-256 hex digest, computed from original bytes.
-It excludes `_source.json` itself. The directory name supplies the source alias; there are no timestamps or machine-specific paths.
+- Sync paths start with `vendor/` or `generated/`.
+- Build paths are relative to `generated/`.
 
+There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
-Offline build and check reject missing, changed, or unexpected vendor files, invalid records, and source selections that differ from configuration.
-Sync deliberately refreshes vendor files, including locally modified snapshots. Put project changes in local rules instead.
+Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies both generated guidance and the managed Code Rules guide without writing either.
 
-Digests detect changes relative to the committed record; they do not authenticate a record that was also modified.
+| Check exit code | Meaning |
+| --- | --- |
+| `0` | The files are current. |
+| `1` | Files differ from the expected result, or an input is invalid. |
+| `2` | The command was used incorrectly, such as with an invalid option. |
 
-## Safe application
+## Repair missing or outdated files
 
-Writers use an exclusive `.code-rules-lock` in the configuration directory.
-They validate configuration, local files, and existing managed directories, prepare all results, and stage complete replacement directories.
-Immediately before applying, they compare the original input and output bytes again and reject concurrent changes.
-All operations reject symlinks and special files in inspected trees; regular files with multiple hard links are also rejected.
-The configuration parent is canonicalized, so ordinary system aliases such as macOS `/tmp` work.
+Use the problem reported by `code-rules project check` to choose a repair:
 
+| Problem | What to do |
+| --- | --- |
+| Generated guidance is missing or outdated, but imported files are valid. | Run `code-rules project build`. |
+| Imported files are missing, modified, or no longer match your configured sources or groups. | Run `code-rules project sync`. Preserve any edits you intended to keep as local rules first. |
+| The managed Code Rules guide is missing or outdated. | Run `code-rules project build` or `code-rules project sync` to refresh it and regenerate guidance. Run `code-rules project init` to refresh only setup files. |
+| Configuration or rule metadata is invalid. | Correct the reported input, then retry the appropriate command. |
 
-A `.code-rules-transaction` journal retains previous output during replacement. If applying fails, the writer restores the previous directories.
-If the process is killed during replacement, the next writer recovers the previous output before starting its operation.
+Run `code-rules project check` again after repairing the problem.
 
-A completed transaction is renamed to `.code-rules-cleanup` before deleting backups. Interrupted cleanup cannot make a committed update appear incomplete; the next writer finishes deletion.
+### How stored imports are checked
 
-If output or backups were edited after interruption, recovery refuses to overwrite them and reports that manual recovery is needed.
+For each library, Code Rules records its imported revision and file checksums in `vendor/<source-name>/_source.json`. A **checksum** detects whether a file's contents differ from the recorded copy.
 
+Build and check work offline. They reject missing, changed, or unexpected imported files, invalid source records, and library selections that no longer match your configuration. Sync fetches the selected library files again, including replacing locally modified copies.
 
-A dead lock owner on the same host can be reclaimed. Active owners, locks from another host, and incomplete ownership records block writes.
+Checksums detect changes relative to the stored record. They cannot establish that files are authentic if someone also changed that record. For record fields and rule origins, see [Provenance](/reference/provenance/).
 
-Unprepared staging without a journal or backups is discarded automatically. For an incomplete lock or damaged journal, verify that no writer is running before manual recovery.
-Preserve backups and journals when the error requests manual recovery. Read-only check reports active writes or pending recovery without repairing anything.
+## Recover from an interrupted update
 
+Sync and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync or build recovers the previous output before starting its own work.
 
-These guarantees apply to cooperating Code Rules writers on a local filesystem with normal rename semantics.
-Replacing two directories is not one atomic filesystem action; unrelated readers can briefly observe mixed output during replacement.
-Check detects an active transaction. Avoid editing the managed directories during sync.
-The implementation does not promise power-loss durability, protection against a hostile process racing filesystem paths, or network-filesystem locking.
-Cancellation is honored before replacement; once replacement starts, it finishes or rolls back before returning.
+If the update completed but cleanup was interrupted, the next sync or build finishes deleting the backups. The completed update remains complete.
 
+| Situation | What to do |
+| --- | --- |
+| Another Code Rules command is still writing files. | Let it finish before starting another update. |
+| A previous writing process stopped on this machine. | Retry sync or build. Code Rules can reclaim its lock and recover the interrupted operation. |
+| Check reports a pending recovery. | Run sync or build after any active writer exits. Check reports the problem but does not repair it. |
+| Recovery reports edited output or backups, an incomplete lock, or a damaged journal. | Stop automatic retries, verify that no writer is running, and inspect the reported files. Preserve backups and the recovery journal for manual recovery. |
 
-Inputs are bounded to 64 MiB per file, 256 MiB per tree, 30,000 entries, and 64 path segments.
-The importer also applies its own stricter limits. Output paths must not collide when normalized for case-insensitive filesystems.
+A lock records which process owns the update. Code Rules only reclaims a lock when it can establish that the process has stopped on the same machine. Active processes, locks from another machine, and incomplete ownership records block writes.
+
+Recovery refuses to overwrite output or backups edited after an interruption. Follow the reported error instead of deleting recovery files to force the command through.
+
+## How updates protect your files
+
+Sync and build prepare and validate the complete replacement before installing it. Immediately before replacement, they check that the original input and output files have not changed. If another process changed them, the update stops.
+
+Code Rules uses these temporary directories beside your configuration:
+
+| Directory | Purpose |
+| --- | --- |
+| `.code-rules-lock` | Allows only one cooperating Code Rules command to write at a time. |
+| `.code-rules-transaction` | Holds the recovery journal and previous output during replacement. The journal records the update's progress. |
+| `.code-rules-cleanup` | Marks a completed update whose backups can be deleted. |
+
+After completing an update, Code Rules renames the transaction directory to the cleanup directory before deleting backups. It also discards abandoned staging files when no journal or backups exist.
+
+Avoid editing managed directories during an update. Replacing `vendor/` and `generated/` takes separate filesystem operations, so another program can briefly see a mixture of old and new files. Check detects an active update instead of accepting mixed output as consistent.
+
+Cancellation can stop work before replacement starts. Once replacement begins, the command finishes or rolls back before returning.
+
+### Filesystem requirements and limits
+
+These protections apply to cooperating Code Rules commands on a local filesystem with normal file-renaming behavior. They do not guarantee recovery from power loss, protection against hostile concurrent file changes, or locking on network filesystems.
+
+All operations reject symbolic links and special files within the directories they inspect. They also reject regular files with multiple hard links. Ordinary aliases in the project's parent path, such as macOS `/tmp`, are supported.
+
+| Input resource | Limit |
+| --- | --- |
+| Each file | 64 MiB. |
+| Each directory tree | 256 MiB and 30,000 entries. |
+| Each path | 64 segments. |
+
+Imports have additional, stricter [limits](/reference/imports/#import-limits-and-version-errors). Output paths must remain distinct after normalization for case-insensitive filesystems.

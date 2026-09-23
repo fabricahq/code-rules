@@ -56,13 +56,31 @@ Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The 
 
 For execution details, read the [release workflow](../.github/workflows/release.yml), [release planner and publisher](../internal/release/), and [packager](../internal/distribution/).
 
+## Standalone installer
+
+The standalone installer downloads the latest stable release or an explicitly selected version, using the four archives and `SHA256SUMS`.
+
+See [installer setup](../_distribution/README.md) for the website endpoint, activation requirements, and validation. Prereleases are available through explicit standalone installation and manual downloads.
+
 ## Homebrew updates
 
 After publishing a stable release, the `update-homebrew` job triggers **Update Code Rules** in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases do not update the formula. The tap validates the published archives and checksums before committing an update.
 
-The job authenticates through **Fabrica Homebrew Releaser**, installed only on the tap with Actions write and Metadata read permissions. The Code Rules repository stores its client ID in the `HOMEBREW_APP_CLIENT_ID` Actions variable and its private key in the `HOMEBREW_APP_PRIVATE_KEY` Actions secret. The job checks out no source and creates a short-lived token restricted to the tap. The tap uses its own token to commit the formula.
+The job authenticates through **Fabrica Homebrew Releaser**, a shared trigger App for trusted Fabrica products. It is installed only on the tap with Actions write and Metadata read permissions. Store `HOMEBREW_APP_PRIVATE_KEY` as a Fabrica organization Actions secret and `HOMEBREW_APP_CLIENT_ID` as an organization variable. Limit both to selected trusted product repositories; initially, only `fabricahq/code-rules` has access. Do not keep repository or environment copies that override these organization values. The job checks out no source and creates a short-lived token restricted to the tap.
 
-If dispatch or the tap update fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure does not modify or unpublish the release. The app can serve other Fabrica tools; add each updater to its tap and grant the app access only to the required tap repositories.
+Organization secrets are available to eligible workflows in allowed repositories, regardless of branch or environment. The `main`-only `homebrew-dispatch` environment constrains this dispatch job, but does not restrict other jobs from reading the organization secret. [CR-7](https://linear.app/ohmygoshjosh/issue/CR-7/replace-shared-homebrew-trigger-keys-with-an-oidc-dispatch-service) tracks replacing shared-key access with an OIDC dispatch service for Fabrica tools.
+
+The tap uses a separate publishing App whose key stays in its protected environment. Product repositories never receive that key. Formula publication runs automatically; no human review is required for routine formula updates.
+
+If dispatch or the tap update fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure does not modify or unpublish the release. Other trusted Fabrica products can use the shared trigger App to dispatch their own updater workflows.
+
+## Release provenance and protection
+
+After both platform builds pass, the release workflow signs `SHA256SUMS` with a GitHub artifact attestation. The signing job checks out no source and has no Contents write permission. The publisher runs only after signing succeeds. The tap verifies the signature against this repository's release workflow on `main` before accepting the archive checksums.
+
+Configure the `release` and `homebrew-dispatch` environments to allow only the `main` branch, with no reviewers or wait timers. Require pull requests for changes to `main` and protect its history from deletion and force pushes. Enable immutable releases so published assets and tags cannot be replaced. If administrators need bypass access, set their ruleset bypass mode to **For pull requests only**, never **Always allow**. They can then bypass review requirements through a PR, but cannot push directly.
+
+Merge the attestation workflow and the tap's verifier before the first release. These controls authenticate the release workflow and preserve published artifacts; they cannot detect malicious code approved into that workflow.
 
 ## Retry a failed release
 
@@ -72,6 +90,29 @@ Preserve the full approved range. A rebase merge can contain several commits; th
 Inspect the failed run and any existing draft, tag, or published release before taking corrective action. If an interrupted upload left an invalid asset, a maintainer can remove that asset from the unpublished draft and retry. Never delete or replace published assets/tags as a retry strategy.
 
 If a build failed before creating a tag, correct the source or terms in a separate PR, then edit the untagged notes file in a new release PR. Merging those corrected notes approves the new commit. You can also withdraw an untagged request by deleting its notes file. Wait for the earlier run to finish before approving a replacement. If a tag/draft already exists, inspect and explicitly resolve that unpublished attempt first; do not move its tag.
+
+## Testing PR preview builds
+
+After a successful build, PRs opened by a maintainer from a branch in this repository automatically receive preview links. Fork PRs and other contributors need a maintainer to approve the exact commit before the bot posts links.
+
+**Warning: These executables run code from the PR. Use a disposable test environment without credentials or private files. Even `--help` executes the program.**
+
+The PR comment offers direct executable downloads for macOS (Apple Silicon or Intel) and Linux (ARM or Intel/AMD). Download the file for your computer and rename it to `code-rules`, then run:
+
+```sh
+chmod +x code-rules
+./code-rules --help
+```
+
+Each preview command prints this warning to stderr before command output, including help, version, and JSON commands:
+
+```text
+WARNING: Unreleased preview from commit <full SHA>. For testing only; not for production use.
+```
+
+JSON output on stdout remains unchanged. The warning is a reminder, not proof of authenticity: someone modifying the binary could remove it. Preview binaries are not publisher-signed or attested by Code Rules.
+
+No extraction or installation is needed. These previews have not been released. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, regardless of whether the PR is open, closed, or merged.
 
 ## Candidate archives
 

@@ -1,73 +1,64 @@
 ---
 title: "Group"
-description: "The two types of rule groups: technologies and engineering practices."
+description: "How groups organize rules and help agents find relevant guidance."
 ---
 
-A **rule group** collects related [rules](/concepts/rule/) and explains when an agent should read them.
-There are two types:
+A **rule group** is a collection of related [rules](/concepts/rule/) and tells agents when to read them.
 
-- **Technology groups**, under `techs/`, cover a named language, framework, tool, platform, or protocol.
-- **Practice groups**, under `practices/`, cover engineering practices that apply across technologies, such as testing or observability.
+Groups can live in a **library** for projects to import, or locally in a **project** for that project alone. Projects can combine imported groups with their own local rules.
 
-Both types use the same rule format and import behavior.
-The distinction helps authors place a rule and agents find the guidance relevant to their work.
+## Group types
 
-## Technologies
+Every group must be either a **technology group** under `techs/` or a **practice group** under `practices/`.
 
-A technology is a named language, framework, tool, platform, or protocol.
-Examples include TypeScript, React, Go, and Playwright.
+### Technologies
 
-Place a rule here when its obligation depends on that technology.
-“Use Playwright's web-first assertions” belongs in `techs/playwright`.
+**Technology groups** live under `techs/` and cover named technologies, such as "TypeScript", "React", "Playwright", or "AWS".
 
-## Practices
+For example, `techs/playwright` holds rules about writing browser tests with Playwright.
 
-A practice describes how to engineer software across technologies.
-Examples include testing, observability, error handling, and architecture.
+### Practices
 
-“Tests assert observable behavior” belongs in `practices/testing`.
-The language used in its example does not determine its home.
+**Practice groups** live under `practices/` and cover practices that apply across technologies, such as "Testing", "Observability", or "Error handling".
 
-For a boundary case, consider infrastructure as code.
-Reviewing destructive infrastructure changes is a practice; declaring Terraform provider constraints is technology-specific.
+For example, `practices/testing` holds rules about testing behavior, regardless of the language or test framework.
 
 ## Group identities
 
-The directory determines the type and identity:
+A group's ID is its path starting with `techs/` or `practices/`. A group named "Automated Tests" might have the ID `practices/testing`.
+
+When a project builds or syncs, local and imported rules with the same group ID appear together in the generated group.
+
+Use `--name` when creating a group to give it a readable title; the title does not change its ID.
+
+## What a group contains
+
+A group is a folder containing:
+
+- **Metadata** in `_group.json`: its name, description, and when agents should read it.
+- **Rules**: one Markdown file per rule.
+
+For example, from a library repository's root:
 
 ```text
-techs/typescript
-techs/playwright
-practices/testing
-practices/observability
+/practices/testing/
+  _group.json
+  verify-retry-limits.md
+  test-changed-behavior.md
 ```
 
-Do not repeat a group's type in metadata.
-A rule has one canonical home. Filesystem links between rule documents are rejected because either rule can be excluded independently. Put shared supporting explanations in `assets/`; keep every rule independently understandable.
-When multiple sources supply the same group ID, their rules share one group page. Small groups include full rules; larger groups provide applicability summaries with explicit links to individual resolved rule files.
-Each rule keeps its source-qualified ID and each source retains its selection guidance.
+For a local group, the same files live in `/.code-rules/local/practices/testing/`, relative to the project root.
+
+You maintain the metadata and rules you author. The CLI supplies group READMEs; you don't need to keep them in sync. Building or syncing creates the guidance agents read.
+
+See [Rule and library format](/reference/rule-library-format/) for the fields and file layout.
+
+## Assets
+
+Rules can optionally link to diagrams, sample data, or longer explanations in `assets/`. You maintain these supporting files; Code Rules includes them in the generated guidance. See [Supporting assets](/reference/rule-library-format/#supporting-assets) for the layout.
 
 ## When to read a group
 
-Each group supplies a name, description, and `whenToRead` guidance.
-The ID, such as `practices/testing`, identifies the group in paths and configuration. The name is a readable title, such as `Testing` or `Testing and quality`, shown in rule indexes and group pages. Use `--name` to supply that title when creating a group.
-For testing, that guidance should include behavior changes even when no test files change.
-Use the canonical [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) to describe intended work, add recognizable examples, and check selection against representative tasks.
+Agents start at the generated `RULES.md`, choose groups using their `whenToRead` descriptions, then read those groups' rules. Each rule's conditions and exceptions determine whether it applies to the task.
 
-Group cues describe the group's intended area of work, even when it contains only one rule.
-An individual rule's cue identifies situations that warrant reading it; its full text defines the obligation and exceptions.
-Reading observability rules does not imply that every function needs a log statement.
-
-See [Import rules](/guides/select-rules/) for selecting and adapting groups, and [Files and formats](/reference/files/#group-metadata) for metadata.
-
-## Local group descriptions
-
-A project defines a local group by creating `.code-rules/local/<group-id>/_group.json`. No `localGroups` declaration or source entry is needed.
-A group can exist before it contains any rules. Local rules join any group whose metadata is supplied locally or by a selected library.
-
-When both define the same group, the complete local metadata record takes precedence. Metadata fields are not merged.
-Both the root index and group page show the selected name, description, and when-to-read cue. Use the cue to decide relevance and the description to understand scope.
-Imported and local rules remain independently active; group metadata does not exclude or replace rules.
-Without local metadata, the index shows each library's name and reading cues with source labels. Provenance retains all contributed group metadata and the sources of effective discovery guidance.
-
-Adding a library never requires moving or deleting a local group. Removing the library also preserves the group when its local metadata remains.
+For the complete reading process, see the [agent workflow](/for-agents/). To choose groups for your project, follow [Import rules](/guides/select-rules/).
