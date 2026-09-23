@@ -58,7 +58,12 @@ func writeTarget(ctx context.Context, root *os.Root, target Target, location str
 // renameManaged publishes guide files without replacing a file created after the last validation.
 // Parent descriptors come from os.Root so the platform rename retains root confinement.
 func renameManaged(root *os.Root, from, to string) error {
-	if !guideTarget(Target(to)) {
+	return renameManagedWith(root, from, to, renameExclusive)
+}
+
+// renameManagedWith supplies the platform boundary for filesystem capability tests.
+func renameManagedWith(root *os.Root, from, to string, exclusive func(int, string, int, string) error) error {
+	if !guideTarget(Target(path.Base(to))) {
 		return root.Rename(from, to)
 	}
 	source, err := root.Open(path.Dir(from))
@@ -66,10 +71,27 @@ func renameManaged(root *os.Root, from, to string) error {
 		return err
 	}
 	defer source.Close()
-	destination, err := root.Open(".")
+	destination, err := root.Open(path.Dir(to))
 	if err != nil {
 		return err
 	}
 	defer destination.Close()
-	return renameExclusive(int(source.Fd()), path.Base(from), int(destination.Fd()), to)
+	return exclusive(int(source.Fd()), path.Base(from), int(destination.Fd()), path.Base(to))
+}
+
+// probeGuideRename checks actual staged bytes on this filesystem before any live output is displaced.
+// Hard-link fallbacks are unsuitable: interrupted link/unlink pairs violate recovery's no-hard-link policy.
+func (w *Writer) probeGuideRename(target Target, staged string) error {
+	directory := path.Join(transactionName, "rename-check")
+	if err := w.root.Mkdir(directory, 0700); err != nil {
+		return err
+	}
+	destination := path.Join(directory, string(target))
+	if err := w.rename(staged, destination); err != nil {
+		return fmt.Errorf("cannot safely publish %s on this filesystem; existing files were not changed: %w", target, err)
+	}
+	if err := w.root.Rename(destination, staged); err != nil {
+		return err
+	}
+	return w.root.Remove(directory)
 }

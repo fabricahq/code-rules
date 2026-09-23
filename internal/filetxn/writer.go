@@ -210,6 +210,11 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		if err := writeTarget(w.ctx, w.root, target, staged, files); err != nil {
 			return err
 		}
+		if guideTarget(target) {
+			if err := w.probeGuideRename(target, staged); err != nil {
+				return err
+			}
+		}
 		after, err := readTarget(w.ctx, w.root, target, staged)
 		if err != nil {
 			return err

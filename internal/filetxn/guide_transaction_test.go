@@ -136,7 +136,7 @@ func TestKilledGuideWriterRecovers(t *testing.T) {
 		})
 		t.Fatalf("child did not stop at rename: %v", err)
 	}
-	for _, stop := range []string{transactionName + "/old-README.md", "README.md"} {
+	for _, stop := range []string{transactionName + "/rename-check/README.md", transactionName + "/old-README.md", "README.md"} {
 		t.Run(stop, func(t *testing.T) {
 			root := openProject(t)
 			writeFixture(t, root, "generated/old", "old output")
