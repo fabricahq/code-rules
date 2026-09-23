@@ -1,4 +1,6 @@
 name: Documentation
+# Run on every pushed commit and PR update: sidebar, template, or build changes
+# can break links even when no Markdown file changed, so do not use path filters.
 on:
   push:
   pull_request:
@@ -19,3 +21,9 @@ jobs:
           node-version: '26.9.0'
       - run: bun install --frozen-lockfile
       - run: bun run check
+      # The local check above catches missing pages/anchors in this build.
+      # External destinations can disappear independently of this repository.
+      # Check them live on every run; never cache success or ignore a failure.
+      - name: Check all documentation links
+        run: bun run docs:links:all
+        timeout-minutes: 10
