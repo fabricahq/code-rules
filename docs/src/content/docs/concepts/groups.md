@@ -35,14 +35,14 @@ Use `--name` when creating a group to give it a readable title; the title does n
 
 A group is a folder containing:
 
-- **Metadata** in `_group.json`: its name, description, and when agents should read it.
+- **Metadata** in `_group.yaml`: its name, description, and when agents should read it.
 - **Rules**: one Markdown file per rule.
 
 For example, from a library repository's root:
 
 ```text
 /practices/testing/
-  _group.json
+  _group.yaml
   verify-retry-limits.md
   test-changed-behavior.md
 ```

@@ -11,16 +11,16 @@ You can publish your team's rules in a library or import libraries from others. 
 
 A library lives in a Git repository. It contains:
 
-- **Library metadata** in `rule-library.json`, which declares the format and any license information.
+- **Library metadata** in `rule-library.yaml`, which declares the format and any license information.
 - **Groups** under `techs/` and `practices/`, each with group metadata and Markdown rule files.
 
 For example, a repository named "engineering-rules" might contain:
 
 ```text
 engineering-rules/
-  rule-library.json
+  rule-library.yaml
   practices/testing/
-    _group.json
+    _group.yaml
     test-changed-behavior.md
 ```
 
@@ -28,7 +28,7 @@ The repository name is your choice. Library groups live at its root; they don't 
 
 ## How projects use a library
 
-Each [project](/concepts/project/) chooses which libraries, versions, and groups to import in `.code-rules/config.json`. A project can use several libraries and add its own local rules.
+Each [project](/concepts/project/) chooses which libraries, versions, and groups to import in `.code-rules/config.yaml`. A project can use several libraries and add its own local rules.
 
 Running `code-rules project sync` downloads the selected rules and generates the guidance agents read. Groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
 

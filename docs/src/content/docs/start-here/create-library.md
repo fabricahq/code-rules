@@ -25,7 +25,7 @@ git init
 code-rules library init
 ```
 
-`engineering-rules` is an example repository name; you can choose another. `code-rules library init` creates `rule-library.json`, which identifies the library format, and a README for authors at the repository root. You'll publish this repository to your Git host in step 5.
+`engineering-rules` is an example repository name; you can choose another. `code-rules library init` creates `rule-library.yaml`, which identifies the library format, and a README for authors at the repository root. You'll publish this repository to your Git host in step 5.
 
 Initialize from the repository root. After that, library commands also work from its subdirectories.
 
@@ -83,10 +83,10 @@ Your library now looks like this:
 ```text
 engineering-rules/
   README.md
-  rule-library.json
+  rule-library.yaml
   practices/
     error-handling/
-      _group.json
+      _group.yaml
       README.md
       make-errors-actionable.md
 ```
@@ -109,17 +109,14 @@ There is no library build step. A library publishes source rules; each consuming
 
 Decide who may use, adapt, and redistribute the library. Public visibility alone does not grant those permissions. Use [License rules](/guides/license-rules/) to choose and record terms, especially when including someone else's material.
 
-For example, if you choose MIT for your own rules, add the complete MIT text with the appropriate copyright notice to `LICENSE.md`, then set `rule-library.json` to:
+For example, if you choose MIT for your own rules, add the complete MIT text with the appropriate copyright notice to `LICENSE.md`, then set `rule-library.yaml` to:
 
-```json
-{
-  "formatVersion": 1,
-  "license": {
-    "spdxExpression": "MIT",
-    "file": "LICENSE.md",
-    "notices": []
-  }
-}
+```yaml
+formatVersion: 1
+license:
+  spdxExpression: MIT
+  file: LICENSE.md
+  notices: []
 ```
 
 This records your choice; Code Rules does not supply or infer the license text. Retain any required notices for adapted material and declare them in `notices`.
@@ -137,7 +134,7 @@ The check verifies that the declared files exist and that the metadata is valid.
 Once the library passes its checks and you've reviewed the rule and license, commit the files and give this version a tag:
 
 ```sh
-git add README.md rule-library.json LICENSE.md practices/
+git add README.md rule-library.yaml LICENSE.md practices/
 git commit -m "Create the first shared rule"
 git tag v0.1.0
 ```
@@ -165,7 +162,7 @@ code-rules project add library acme-rules \
   --groups practices/error-handling
 ```
 
-This adds the library's repository, version constraint, and group to `.code-rules/config.json` under the source name `acme-rules`. The constraint allows updates within the `0.1.x` series.
+This adds the library's repository, version constraint, and group to `.code-rules/config.yaml` under the source name `acme-rules`. The constraint allows updates within the `0.1.x` series.
 
 Download the rules and build the project's agent guidance:
 

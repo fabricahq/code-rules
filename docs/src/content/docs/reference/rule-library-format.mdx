@@ -18,25 +18,29 @@ The tree below shows a library repository named **`engineering-rules/`**. The fo
 <FileTree>
 
 - engineering-rules/
-  - rule-library.json
+  - rule-library.yaml
   - LICENSE.md
   - techs/
     - typescript/
-      - _group.json
+      - _group.yaml
       - README.md
       - prefer-type-aliases.md
   - practices/
     - testing/
-      - _group.json
+      - _group.yaml
       - README.md
       - verify-retry-limits.md
 
 </FileTree>
 
-`rule-library.json` declares the library format:
+`rule-library.yaml` declares the library format:
 
-```json
-{ "formatVersion": 1, "license": { "spdxExpression": "MIT", "file": "LICENSE.md", "notices": [] } }
+```yaml
+formatVersion: 1
+license:
+  spdxExpression: MIT
+  file: LICENSE.md
+  notices: []
 ```
 
 Discover groups only under `techs/` and `practices/`.
@@ -45,18 +49,19 @@ Other supporting files, including `_README.md`, must live in an asset directory.
 Rules and group metadata must use valid paths; wildcard discovery also rejects rules whose group metadata is missing.
 The builder does not inspect the contents of unselected groups.
 
+Library and group metadata use one YAML document per file. Duplicate keys, anchors, aliases, and explicit tags are rejected. Generated snapshot and provenance files remain JSON.
+
 ## Group metadata
 
-Library authors define each group's selection guidance in its `_group.json`, before the group is imported.
+Library authors define each group's selection guidance in its `_group.yaml`, before the group is imported.
 The builder reads that source metadata and renders its `whenToRead` cues in the generated root index; it does not infer them from the current rules.
 Use the existing `whenToRead` field for this guidance rather than adding a separate `whenToUse` field.
 
-```json
-{
-  "name": "Testing",
-  "description": "Verify behavior with meaningful tests.",
-  "whenToRead": "When adding or changing behavior, fixing a bug, or modifying tests, even when no test files are in the diff."
-}
+```yaml
+name: Testing
+description: Verify behavior with meaningful tests.
+whenToRead: When adding or changing behavior, fixing a bug, or modifying tests, even when
+  no test files are in the diff.
 ```
 
 All three group fields are required non-blank strings. Surrounding whitespace is trimmed. Unknown fields are rejected.
@@ -108,7 +113,7 @@ Use two optional locations for supporting files:
 assets/                              # Shared across the library
   retry-lifecycle.svg
 practices/testing/
-  _group.json
+  _group.yaml
   verify-retries.md
   assets/
     verify-retries/                   # Owned by verify-retries.md

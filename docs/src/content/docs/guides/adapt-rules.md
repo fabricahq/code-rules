@@ -25,25 +25,23 @@ The library uses this layout:
 
 ```text
 adapted-rules/
-  rule-library.json
+  rule-library.yaml
   LICENSE.md
   NOTICE.md
   techs/javascript/
-    _group.json
+    _group.yaml
     prefer-for-of.md
 ```
 
-Declare one license covering the whole library in `rule-library.json`:
+Declare one license covering the whole library in `rule-library.yaml`:
 
-```json
-{
-  "formatVersion": 1,
-  "license": {
-    "spdxExpression": "MIT",
-    "file": "LICENSE.md",
-    "notices": ["NOTICE.md"]
-  }
-}
+```yaml
+formatVersion: 1
+license:
+  spdxExpression: MIT
+  file: LICENSE.md
+  notices:
+    - NOTICE.md
 ```
 
 Keep the complete license text and required notices at those paths.

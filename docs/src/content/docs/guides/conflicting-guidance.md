@@ -55,7 +55,7 @@ Present proposed changes for review. Do not modify rules or choose an
 unresolved engineering policy on the project's behalf.
 ```
 
-The paths in this prompt are relative to the project root. Project configuration is stored in `.code-rules/config.json`.
+The paths in this prompt are relative to the project root. Project configuration is stored in `.code-rules/config.yaml`.
 Conflict review runs through your agent. The CLI does not provide a `conflicts` command.
 
 ## Resolve the intended policy
@@ -69,16 +69,11 @@ Then record that choice using the [import configuration](/guides/select-rules/#a
 
 For example, if the project adopts Acme's interface rule, exclude Fabrica's type-alias rule:
 
-```json
-{
-  "sources": {
-    "fabrica": {
-      "exclude": {
-        "techs/typescript/prefer-type-aliases": "This project follows Acme's interface rule for object types."
-      }
-    }
-  }
-}
+```yaml
+sources:
+  fabrica:
+    exclude:
+      techs/typescript/prefer-type-aliases: This project follows Acme's interface rule for object types.
 ```
 
 This is a partial configuration snippet.

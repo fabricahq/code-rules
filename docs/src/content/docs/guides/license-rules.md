@@ -5,7 +5,7 @@ description: "Choose clear terms for rule content and preserve them when project
 
 A library's **license** states the terms for using, copying, modifying, and sharing its rules. Clear terms help projects understand what they can do with your guidance and what notices they need to keep.
 
-This guide walks through choosing what your terms should cover, declaring them in `rule-library.json`, and checking what Code Rules preserves when projects import rules. Code Rules carries declared license text and notices with the rules; it does not choose a license or grant additional rights.
+This guide walks through choosing what your terms should cover, declaring them in `rule-library.yaml`, and checking what Code Rules preserves when projects import rules. Code Rules carries declared license text and notices with the rules; it does not choose a license or grant additional rights.
 
 ## Decide what the license covers
 
@@ -34,15 +34,12 @@ The Code Rules format does not require a particular license.
 Keep the actual license text in `LICENSE.md` at the library root, or another explicitly named file.
 The library metadata identifies the terms for the whole library and any accompanying notice files:
 
-```json
-{
-  "formatVersion": 1,
-  "license": {
-    "spdxExpression": "MIT",
-    "file": "LICENSE.md",
-    "notices": []
-  }
-}
+```yaml
+formatVersion: 1
+license:
+  spdxExpression: MIT
+  file: LICENSE.md
+  notices: []
 ```
 
 Paths resolve from the library root and identify source files only. Code Rules copies the contents unchanged to `generated/libraries/<source-name>/licenses/LICENSE.md` and `generated/libraries/<source-name>/licenses/notices/001.md`, `002.md`, and so on. Notice numbering follows unique declaration order; output destinations are not configurable.
@@ -71,7 +68,7 @@ The consuming workspace retains them alongside the imported rules:
   vendor/
     fabrica/
       LICENSE.md
-      rule-library.json
+      rule-library.yaml
       _source.json
       practices/testing/...
   generated/

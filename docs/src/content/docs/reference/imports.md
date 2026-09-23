@@ -36,7 +36,7 @@ The copy includes:
 - Rules from the selected groups, including rules your project excludes or replaces.
 - Supporting files, such as images and examples, from the library's designated asset directories.
 - Group metadata, which describes each group and when to read it.
-- The library manifest, `rule-library.json`, and its declared license and notice files.
+- The library manifest, `rule-library.yaml`, and its declared license and notice files.
 
 Keeping the original rules lets you review library changes even when your project uses a replacement. Make project-specific changes in `local/`; syncing replaces the imported files.
 
@@ -56,7 +56,7 @@ Code Rules finds the matching groups at the selected library revision before app
 
 Code Rules then decides which rules are **active**, meaning included in the generated guidance:
 
-1. Starts with the imported rules from your selected groups and discovers local groups from their `_group.json` files.
+1. Starts with the imported rules from your selected groups and discovers local groups from their `_group.yaml` files.
 2. Removes rules you explicitly excluded.
 3. Substitutes your local rules for imported rules you explicitly replaced.
 4. Adds your remaining local rules.
