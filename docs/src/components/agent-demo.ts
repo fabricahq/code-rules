@@ -306,8 +306,17 @@ class AgentDemo extends HTMLElement {
       const hint = start.querySelector<HTMLElement>('[data-resume-hint]');
       if (hint) hint.hidden = !isPaused;
     }
-    // Covered preview content must not contain unreachable keyboard targets.
-    for (const panel of this.entries.keys()) panel.inert = isPreview;
+    // Move focus out before the overlay makes transcript controls unreachable.
+    const covered = isPreview || isPaused;
+    if (
+      covered &&
+      Array.from(this.entries.keys()).some((panel) =>
+        panel.contains(document.activeElement),
+      )
+    ) {
+      start?.focus({ preventScroll: true });
+    }
+    for (const panel of this.entries.keys()) panel.inert = covered;
     this.toggleAttribute('data-playing', isPlaying);
     this.toggleAttribute('data-complete', isComplete);
     const play = this.querySelector<HTMLButtonElement>('[data-play]');
