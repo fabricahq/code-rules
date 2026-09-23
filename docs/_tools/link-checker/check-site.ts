@@ -17,9 +17,9 @@ import {
   sep,
 } from 'node:path';
 import { unescape as decodePercentEscapes } from 'node:querystring';
-import { pageLinks } from './doc-link-html';
-import type { PageLinks } from './doc-link-html';
-import { checkExternalLinks } from './external-doc-links';
+import { pageLinks } from './html';
+import type { PageLinks } from './html';
+import { checkExternalLinks } from './external';
 
 /** A local URL's path and fragment, with query parameters omitted. */
 type LocalReference = { readonly path: string; readonly fragment: string };
@@ -126,8 +126,12 @@ function checkLink(
   return undefined;
 }
 
-/** Check every local link and return a success summary; throw with all link diagnostics when any fail. */
-async function checkSite(root: string, external: boolean): Promise<string> {
+/** Check a built site and optionally public HTTP links; return a summary or throw all link diagnostics. */
+export async function checkSite(
+  directory: string,
+  external: boolean,
+): Promise<string> {
+  const root = resolvedPath(resolve(directory));
   const pages = builtPages(root);
   if (pages.size === 0)
     throw new Error('No built pages found. Run bun run docs:build first.');
@@ -141,23 +145,4 @@ async function checkSite(root: string, external: boolean): Promise<string> {
   if (external) errors.push(...(await checkExternalLinks(root, pages)));
   if (errors.length) throw new Error(errors.join('\n'));
   return `Checked ${external ? 'local and external links' : 'local links'} and fragments in ${pages.size} pages.`;
-}
-
-if (import.meta.main) {
-  try {
-    const args = process.argv.slice(2);
-    const external = args.includes('--external');
-    const paths = args.filter((arg) => arg !== '--external');
-    if (paths.length > 1 || paths.some((arg) => arg.startsWith('--')))
-      throw new Error(
-        'Usage: check-doc-links.ts [output-directory] [--external]',
-      );
-    const root = resolvedPath(
-      resolve(paths[0] ?? join(import.meta.dir, '../dist')),
-    );
-    console.log(await checkSite(root, external));
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-  }
 }

@@ -4,8 +4,8 @@ import { expect, test } from 'bun:test';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { checkExternalLinks } from './external-doc-links';
-import { pageLinks } from './doc-link-html';
+import { checkExternalLinks } from './external';
+import { pageLinks } from './html';
 
 test('should check redirects, fragments, failures, retries, and duplicate URLs over HTTP', async () => {
   const requests = new Map<string, number>();
@@ -108,7 +108,7 @@ test('should reject private destinations in the command and succeed after the li
     );
     const command = [
       process.execPath,
-      join(import.meta.dir, 'check-doc-links.ts'),
+      join(import.meta.dir, 'cli.ts'),
       root,
       '--external',
     ];

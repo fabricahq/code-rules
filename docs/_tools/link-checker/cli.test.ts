@@ -36,7 +36,7 @@ function checkSite(
     }
     const result = spawnSync(
       process.execPath,
-      [join(import.meta.dir, 'check-doc-links.ts'), site],
+      [join(import.meta.dir, 'cli.ts'), site],
       { cwd: workspace, encoding: 'utf8' },
     );
     if (result.error !== undefined) throw result.error;

@@ -1,10 +1,10 @@
 /** @fileoverview Checks public HTTP links and static HTML fragments without sending credentials. */
 
-import { readPublicURL } from './public-doc-url';
+import { readPublicURL } from './public-url';
 
 import { relative } from 'node:path';
-import { pageLinks } from './doc-link-html';
-import type { PageLinks } from './doc-link-html';
+import { pageLinks } from './html';
+import type { PageLinks } from './html';
 
 /** An HTTP destination and each built page that links to it. */
 type Destination = {

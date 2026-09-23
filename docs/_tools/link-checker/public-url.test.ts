@@ -1,9 +1,9 @@
 /** @fileoverview Tests public-address boundaries and rejection of private redirect destinations. */
 
 import { expect, test } from 'bun:test';
-import { isPublicAddress, readPublicURL } from './public-doc-url';
-import { checkExternalLinks } from './external-doc-links';
-import { pageLinks } from './doc-link-html';
+import { isPublicAddress, readPublicURL } from './public-url';
+import { checkExternalLinks } from './external';
+import { pageLinks } from './html';
 
 test('should reject private and special-use IPv4 and IPv6 addresses', () => {
   for (const address of [
