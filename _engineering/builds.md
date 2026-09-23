@@ -8,7 +8,7 @@ The generated files include individual resolved rules, discovery indexes, retain
 
 Resolution, rendering, pagination, and their intermediate representations are private. Tests exercise the complete operation through its public interface and cover detailed algorithms inside the package.
 
-Public references own [project files](../docs/src/content/docs/reference/files.mdx), [authoring formats](../docs/src/content/docs/reference/rule-library-format.mdx), and [provenance](../docs/src/content/docs/reference/provenance.md). Tests beside the Go implementation cover rendering, link relocation, deterministic ordering, pagination, and copied documentation examples. Run the [repository validation commands](../README.md#validate-changes).
+Public references own [project files](../docs/src/content/docs/reference/files.mdx), [authoring formats](../docs/src/content/docs/reference/rule-library-format.mdx), and [provenance](../docs/src/content/docs/reference/provenance.md). Tests beside the Go implementation cover rendering, link relocation, deterministic ordering, pagination, and copied documentation examples. Run the [repository validation commands](../CONTRIBUTING.md#validate-changes).
 
 ## API boundary
 

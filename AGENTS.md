@@ -1,7 +1,7 @@
 # Code Rules agent guide
 
 Use this file to understand the product we are building and the decisions it should guide.
-The [README](README.md) owns repository setup and validation commands.
+[CONTRIBUTING.md](CONTRIBUTING.md) owns repository setup and validation commands.
 
 ## Product
 
@@ -119,7 +119,7 @@ Describe proposed behavior honestly, and verify availability against the impleme
 
 When a product decision changes, update the owning concept, guide, or reference and its examples together.
 Keep configuration details and command contracts in those documents rather than duplicating them here.
-After docs changes, run the README's validation command.
+After docs changes, run the validation commands in [CONTRIBUTING.md](CONTRIBUTING.md#validate-changes).
 When layout or interaction changes, inspect the rendered pages.
 
 Keep this file focused on enduring product context and decisions useful to almost every agent session.

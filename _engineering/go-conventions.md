@@ -1,6 +1,6 @@
 # Go conventions
 
-Read these conventions before changing Go code. The [README](../README.md#validate-changes) owns validation commands.
+Read these conventions before changing Go code. [CONTRIBUTING.md](../CONTRIBUTING.md#validate-changes) owns validation commands.
 
 ## Errors and output
 
