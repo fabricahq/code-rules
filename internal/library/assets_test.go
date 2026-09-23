@@ -128,7 +128,7 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 // TestLoadAllowsDeclaredGroupTerms treats declared license Markdown as supporting text, not an independent rule.
 func TestLoadAllowsDeclaredGroupTerms(t *testing.T) {
 	files := validFiles()
-	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/terms.md","notices":[]}}`
+	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"techs/go/terms.md","notices":[]}}`
 	files["techs/go/terms.md"] = "License terms."
 	files["techs/go/errors.md"] += "\n[terms](terms.md)\n"
 	_, root := fixture(t, files)
@@ -151,7 +151,7 @@ func TestLoadAssetTerms(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				files["rule-library.json"] = string(manifest)
+				files["rule-library.yaml"] = string(manifest)
 				files[term], files[term+".notice"] = "License\r\n", "Notice\n"
 				_, root := fixture(t, files)
 				got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: groups})
@@ -169,7 +169,7 @@ func TestLoadAssetTerms(t *testing.T) {
 // TestLoadRejectsUndeclaredFilesBesideAssetTerms keeps the term exemption from hiding ownerless attachments.
 func TestLoadRejectsUndeclaredFilesBesideAssetTerms(t *testing.T) {
 	files := validFiles()
-	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/assets/legal/LICENSE","notices":[]}}`
+	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"techs/go/assets/legal/LICENSE","notices":[]}}`
 	files["techs/go/assets/legal/LICENSE"] = "Terms"
 	files["techs/go/assets/legal/extra.txt"] = "Undeclared attachment"
 	_, root := fixture(t, files)

@@ -22,13 +22,13 @@ import (
 // libraryFiles supplies original rules, complete owned assets, shared dependencies, and exact license bytes.
 func libraryFiles() map[string][]byte {
 	return map[string][]byte{
-		"rule-library.json": []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE"]}}`),
+		"rule-library.yaml": []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE"]}}`),
 		"LICENSE":           []byte("Original license\r\n"), "NOTICE": []byte("Original notice\r\n"),
-		"techs/go/_group.json":             []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}`),
+		"techs/go/_group.yaml":             []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}`),
 		"techs/go/errors.md":               []byte("---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\n[Shared](/assets/guide.md)\n"),
 		"techs/go/assets/errors/image.bin": {0, 255, 1, 128},
 		"assets/guide.md":                  []byte("[More](more.md)\n"), "assets/more.md": []byte("[Guide](guide.md)\n"),
-		"techs/rust/_group.json": []byte(`{"name":"Rust","description":"Rust guidance.","whenToRead":"When editing Rust."}`),
+		"techs/rust/_group.yaml": []byte(`{"name":"Rust","description":"Rust guidance.","whenToRead":"When editing Rust."}`),
 		"techs/rust/bad.md":      []byte("Invalid unselected rule."),
 		"README.md":              []byte("Ignored repository documentation."),
 	}
@@ -107,7 +107,7 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 			case "rule-link":
 				files["assets/guide.md"] = []byte("[Rule](/techs/rust/bad.md)\n")
 			case "missing-manifest":
-				delete(files, "rule-library.json")
+				delete(files, "rule-library.yaml")
 			}
 			f := newLibraryFixture(t, files)
 			if kind == "symlink" {
@@ -147,7 +147,7 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 			}
 			if kind == "missing-manifest" {
 				var validation *rules.ValidationError
-				if !errors.As(err, &validation) || validation.Location != "rule-library.json" {
+				if !errors.As(err, &validation) || validation.Location != "rule-library.yaml" {
 					t.Fatalf("lost manifest error identity: %v", err)
 				}
 				for _, detail := range []string{`import source "team"`, "missing library manifest at the repository root", "declares the library format and optional license", "no libraries were returned because all configured sources must succeed"} {

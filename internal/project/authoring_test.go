@@ -36,7 +36,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 		t.Fatal(result, err)
 	}
 	stored, err := os.ReadFile(result.Files[0])
-	if err != nil || !bytes.Contains(stored, []byte(`"name": "Go"`)) {
+	if err != nil || !bytes.Contains(stored, []byte(`name: Go`)) {
 		t.Fatal(string(stored), err)
 	}
 	body := "# Return errors\n\nReturn failures to the caller.\n"
@@ -127,7 +127,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 			if !bytes.Equal(before, after) {
 				t.Fatal("changed config on failure")
 			}
-			if _, err = os.Lstat(filepath.Join(directory, "local", "techs", "go", "_group.json")); !os.IsNotExist(err) {
+			if _, err = os.Lstat(filepath.Join(directory, "local", "techs", "go", "_group.yaml")); !os.IsNotExist(err) {
 				t.Fatal("created group on failure", err)
 			}
 		})
@@ -150,7 +150,7 @@ func TestRuleRequiresGroup(t *testing.T) {
 	if err == nil {
 		t.Fatal("accepted collision")
 	}
-	if _, err = os.Stat(filepath.Join(directory, "local/techs/go/_group.json")); !os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(directory, "local/techs/go/_group.yaml")); !os.IsNotExist(err) {
 		t.Fatal("published partial group", err)
 	}
 	data, _ := os.ReadFile(target)
@@ -182,7 +182,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1}`), "techs/go/_group.json": []byte(`{"name":"Go","description":"Imported guidance.","whenToRead":"When editing Go."}`)}}})
+	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(`{"name":"Go","description":"Imported guidance.","whenToRead":"When editing Go."}`)}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
-	if _, err := os.Stat(filepath.Join(directory, "local/techs/go/_group.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(directory, "local/techs/go/_group.yaml")); !os.IsNotExist(err) {
 		t.Fatal("rule creation created local override", err)
 	}
 }

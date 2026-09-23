@@ -82,7 +82,7 @@ func generationInputs(t *testing.T) (rules.Configuration, map[string][]byte) {
 		t.Fatal(err)
 	}
 	return config, map[string][]byte{
-		"techs/go/_group.json": []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
+		"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
 		"techs/go/errors.md":   []byte("---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n# Return errors\n\nReturn the error.\r\n\r\nKeep its context.\n"),
 	}
 }

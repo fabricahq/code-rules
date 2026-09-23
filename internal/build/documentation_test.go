@@ -37,7 +37,7 @@ func TestDocumentationRules(t *testing.T) {
 				t.Fatal(err)
 			}
 			output, err := build.Generate(config, nil, map[string][]byte{
-				"practices/testing/_group.json": []byte(`{"name":"Testing","description":"Verify behavior.","whenToRead":"Changing behavior."}`),
+				"practices/testing/_group.yaml": []byte(`{"name":"Testing","description":"Verify behavior.","whenToRead":"Changing behavior."}`),
 				"practices/testing/example.md":  data,
 			}, build.Options{ToolVersion: "documentation-example", IndexMaxLines: 750})
 			if err != nil {

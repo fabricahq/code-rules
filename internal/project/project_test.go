@@ -27,7 +27,7 @@ func localProject(t *testing.T) (*os.Root, Options) {
 		t.Fatal(err)
 	}
 	writeFixture(t, root, "config.yaml", `{"schemaVersion":1,"sources":{}}`)
-	writeFixture(t, root, "local/techs/go/_group.json", projectMetadata)
+	writeFixture(t, root, "local/techs/go/_group.yaml", projectMetadata)
 	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
 	return root, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}
 }
@@ -45,7 +45,7 @@ func importedProject(t *testing.T) (*os.Root, Options) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	imported := snapshot{Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1}`), "techs/go/_group.json": []byte(projectMetadata), "techs/go/errors.md": []byte(projectRule)}}
+	imported := snapshot{Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(projectMetadata), "techs/go/errors.md": []byte(projectRule)}}
 	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": imported})
 	if err != nil {
 		t.Fatal(err)
@@ -209,7 +209,7 @@ func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
 
 // TestOfflineRejectsContentChangedBetweenVerificationAndLoading binds rendered bytes to the verified snapshot.
 func TestOfflineRejectsContentChangedBetweenVerificationAndLoading(t *testing.T) {
-	for _, file := range []string{"techs/go/errors.md", "techs/go/_group.json"} {
+	for _, file := range []string{"techs/go/errors.md", "techs/go/_group.yaml"} {
 		t.Run(file, func(t *testing.T) {
 			root, options := importedProject(t)
 			state, err := readProject(context.Background(), root)
@@ -217,7 +217,7 @@ func TestOfflineRejectsContentChangedBetweenVerificationAndLoading(t *testing.T)
 				t.Fatal(err)
 			}
 			changed := strings.ReplaceAll(projectRule, "Return errors to the caller.", "Unverified body.")
-			if strings.HasSuffix(file, ".json") {
+			if strings.HasSuffix(file, ".yaml") {
 				changed = strings.ReplaceAll(projectMetadata, "Go guidance.", "Unverified description.")
 			}
 			writeFixture(t, root, "vendor/team/"+file, changed)

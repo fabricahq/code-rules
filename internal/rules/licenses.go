@@ -19,20 +19,34 @@ type LicenseDeclaration struct {
 	AttributionFiles []string `json:"attributionFiles"`
 }
 
-// ReadLibraryLicense validates rule-library.json and declared file presence.
+// ReadLibraryLicense validates rule-library.yaml and declared file presence.
 // It never decodes, copies, or mutates license/notice bytes; empty and binary files
 // count as present. Missing licensing returns nil, not an inferred license.
 // Unknown manifest fields retain baseline compatibility; license fields are strict.
 func ReadLibraryLicense(files map[string][]byte, source string) (*LicenseDeclaration, error) {
-	location := source + "/rule-library.json"
-	text, ok := files["rule-library.json"]
+	return readLibraryLicense(files, source, true)
+}
+
+// ParseLibraryLicense validates authored YAML and returns safe declared paths without checking file presence.
+// Callers can then read those paths through their confined filesystem or Git snapshot reader.
+func ParseLibraryLicense(input []byte, source string) (*LicenseDeclaration, error) {
+	return readLibraryLicense(map[string][]byte{"rule-library.yaml": input}, source, false)
+}
+
+func readLibraryLicense(files map[string][]byte, source string, checkPresence bool) (*LicenseDeclaration, error) {
+	location := source + "/rule-library.yaml"
+	text, ok := files["rule-library.yaml"]
 	if !ok {
 		return nil, invalid(location, "missing required file")
 	}
 	if !utf8.Valid(text) {
 		return nil, invalid(location, "expected UTF-8 text")
 	}
-	manifest, err := jsonObject(text, location)
+	_, data, err := authoredYAML(text, location)
+	if err != nil {
+		return nil, err
+	}
+	manifest, err := jsonObject(data, location)
 	if err != nil {
 		return nil, err
 	}
@@ -68,11 +82,11 @@ func ReadLibraryLicense(files map[string][]byte, source string) (*LicenseDeclara
 		}
 		notices[i] = path
 	}
-	if _, ok := files[file]; !ok {
+	if _, ok := files[file]; checkPresence && !ok {
 		return nil, invalid(location+".file", "missing declared file "+quote(file))
 	}
 	for i, path := range notices {
-		if _, ok := files[path]; !ok {
+		if _, ok := files[path]; checkPresence && !ok {
 			return nil, invalid(fmt.Sprintf("%s.notices[%d]", location, i), "missing declared file "+quote(path))
 		}
 	}

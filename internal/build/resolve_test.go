@@ -32,7 +32,7 @@ func fixture(t *testing.T, exclude, replace string) (rules.Configuration, map[st
 	if err != nil {
 		t.Fatal(err)
 	}
-	return config, map[string]Library{"team": {Commit: commit, Catalog: library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, License: nil, SupportingFiles: map[string][]byte{"techs/go/_group.json": []byte(metadata)}}}}
+	return config, map[string]Library{"team": {Commit: commit, Catalog: library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, License: nil, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}}}}
 }
 
 // TestResolveAdoption covers imported definitions, exclusions, replacements, local additions, and guidance precedence.
@@ -77,7 +77,7 @@ func TestResolveAdoption(t *testing.T) {
 		})
 	}
 	config, libraries := fixture(t, `{}`, `{}`)
-	local := map[string][]byte{"techs/go/_group.json": []byte(strings.ReplaceAll(metadata, "Go guidance.", "Local guidance."))}
+	local := map[string][]byte{"techs/go/_group.yaml": []byte(strings.ReplaceAll(metadata, "Go guidance.", "Local guidance."))}
 	got, err := resolve(config, libraries, local)
 	if err != nil {
 		t.Fatal(err)
@@ -121,7 +121,7 @@ func TestResolveLocalOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := resolve(config, nil, map[string][]byte{"techs/go/_group.json": []byte(metadata), "techs/go/errors.md": []byte(document)})
+	got, err := resolve(config, nil, map[string][]byte{"techs/go/_group.yaml": []byte(metadata), "techs/go/errors.md": []byte(document)})
 	if err != nil || len(got.Groups) != 1 || len(got.Groups[0].Rules) != 1 || got.Groups[0].Rules[0].Rule.ID != "local:techs/go/errors" {
 		t.Fatalf("%+v, %v", got, err)
 	}
@@ -130,7 +130,7 @@ func TestResolveLocalOnly(t *testing.T) {
 // TestLocalSupportingFilesRemainSupport accepts inert support while rejecting unsafe names before asset classification.
 func TestLocalSupportingFilesRemainSupport(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	for _, file := range []string{"techs/go/_notes.md", "techs/go/notes.txt", "assets/examples/_group.json", "techs/go/assets/example/_group.json"} {
+	for _, file := range []string{"techs/go/_notes.md", "techs/go/notes.txt", "assets/examples/_group.yaml", "techs/go/assets/example/_group.yaml"} {
 		got, err := resolve(config, libraries, map[string][]byte{file: []byte("support")})
 		if err != nil || string(got.LocalFiles[file]) != "support" || len(got.Groups[0].Rules) != 1 || !reflect.DeepEqual(got.LocalPaths, []string{file}) {
 			t.Fatalf("%s: %+v, %v", file, got, err)
@@ -146,7 +146,7 @@ func TestLocalSupportingFilesRemainSupport(t *testing.T) {
 // TestReservedLocalGroupMetadata cannot hide reserved group names in the asset classification.
 func TestReservedLocalGroupMetadata(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
-	for _, file := range []string{"techs/assets/_group.json", "practices/assets/_group.json"} {
+	for _, file := range []string{"techs/assets/_group.yaml", "practices/assets/_group.yaml"} {
 		if _, err := resolve(config, libraries, map[string][]byte{file: []byte(metadata)}); err == nil {
 			t.Fatalf("accepted %s", file)
 		}
@@ -265,7 +265,7 @@ func TestResolveGroupGuidance(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				local["techs/go/_group.json"] = data
+				local["techs/go/_group.yaml"] = data
 			}
 			got, err := resolve(config, libraries, local)
 			if err != nil {

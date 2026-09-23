@@ -33,7 +33,7 @@ code-rules project add group techs/go \
   --when-to-read 'When writing or reviewing Go code.'
 ```
 
-Read `.code-rules/local/techs/go/README.md` for group authoring instructions. Confirm that `.code-rules/local/techs/go/_group.json` contains the intended metadata. Local group metadata takes precedence over imported metadata for the same group.
+Read `.code-rules/local/techs/go/README.md` for group authoring instructions. Confirm that `.code-rules/local/techs/go/_group.yaml` contains the intended metadata. Local group metadata takes precedence over imported metadata for the same group.
 
 #### Add a rule
 

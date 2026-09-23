@@ -47,7 +47,7 @@ func fixture(t *testing.T, files map[string]string) (string, *os.Root) {
 
 // validFiles provides original authored fixtures rather than production source material.
 func validFiles() map[string]string {
-	return map[string]string{"rule-library.json": `{"formatVersion":1}`, "techs/go/_group.json": metadata, "techs/go/errors.md": document, "practices/testing/_group.json": metadata}
+	return map[string]string{"rule-library.yaml": `{"formatVersion":1}`, "techs/go/_group.yaml": metadata, "techs/go/errors.md": document, "practices/testing/_group.yaml": metadata}
 }
 
 // TestLoadCatalog checks wildcard expansion, empty groups, exact bytes, and explicit empty selection.
@@ -68,7 +68,7 @@ func TestLoadCatalog(t *testing.T) {
 	if _, ok := got.SupportingFiles["techs/go/errors.md"]; ok {
 		t.Fatal("rule document duplicated in supporting files")
 	}
-	if !reflect.DeepEqual(got.Paths(), []string{"practices/testing/_group.json", "rule-library.json", "techs/go/_group.json", "techs/go/assets/errors/image.bin", "techs/go/errors.md"}) {
+	if !reflect.DeepEqual(got.Paths(), []string{"practices/testing/_group.yaml", "rule-library.yaml", "techs/go/_group.yaml", "techs/go/assets/errors/image.bin", "techs/go/errors.md"}) {
 		t.Fatalf("incomplete read inventory: %v", got.Paths())
 	}
 	if string(got.SupportingFiles["techs/go/assets/errors/image.bin"]) != "\xff\x00" {
@@ -79,7 +79,7 @@ func TestLoadCatalog(t *testing.T) {
 		t.Fatalf("techs: %+v, %v", techs, err)
 	}
 	empty, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{}})
-	if err != nil || len(empty.Groups) != 0 || !reflect.DeepEqual(empty.Paths(), []string{"rule-library.json"}) {
+	if err != nil || len(empty.Groups) != 0 || !reflect.DeepEqual(empty.Paths(), []string{"rule-library.yaml"}) {
 		t.Fatalf("empty: %+v, %v", empty, err)
 	}
 }
@@ -90,8 +90,8 @@ func TestLoadRejectsInvalidLibraries(t *testing.T) {
 		name, path, text string
 		remove           bool
 	}{
-		{"missing manifest", "rule-library.json", "", true},
-		{"missing metadata", "techs/go/_group.json", "", true},
+		{"missing manifest", "rule-library.yaml", "", true},
+		{"missing metadata", "techs/go/_group.yaml", "", true},
 		{"invalid rule", "techs/go/errors.md", "no frontmatter", false},
 		{"blank body", "techs/go/errors.md", strings.Split(document, "# Handle")[0], false},
 		{"invalid utf8", "techs/go/errors.md", "\xff", false},
@@ -138,7 +138,7 @@ func TestLoadSymlinksAndCancellation(t *testing.T) {
 // TestLoadTermsAndLimits retains binary licenses and rejects files above the exact byte bound.
 func TestLoadTermsAndLimits(t *testing.T) {
 	files := validFiles()
-	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE"],"spdxExpression":"MIT"}}`
+	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE"],"spdxExpression":"MIT"}}`
 	files["LICENSE"] = "\xff\x00\r\n"
 	files["NOTICE"] = "Notice\r\n"
 	_, root := fixture(t, files)
@@ -147,7 +147,7 @@ func TestLoadTermsAndLimits(t *testing.T) {
 		t.Fatalf("terms changed: %v", err)
 	}
 	for _, size := range []int{8 * 1024 * 1024, 8*1024*1024 + 1} {
-		bounded := map[string]string{"rule-library.json": files["rule-library.json"], "LICENSE": strings.Repeat("x", size), "NOTICE": ""}
+		bounded := map[string]string{"rule-library.yaml": files["rule-library.yaml"], "LICENSE": strings.Repeat("x", size), "NOTICE": ""}
 		_, root := fixture(t, bounded)
 		_, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{}})
 		if (err != nil) != (size > 8*1024*1024) {
@@ -236,7 +236,7 @@ func TestLoadOwnsOriginalDocuments(t *testing.T) {
 			t.Fatalf("original sections unavailable: %+v, %v", sections, err)
 		}
 	}
-	if string(got.SupportingFiles["techs/go/_group.json"]) != metadata {
+	if string(got.SupportingFiles["techs/go/_group.yaml"]) != metadata {
 		t.Fatal("supporting metadata bytes changed")
 	}
 }
@@ -271,7 +271,7 @@ func TestLoadRejectsHardLinks(t *testing.T) {
 // TestLoadTermsDoNotCreateGroups excludes direct and nested declared terms from wildcard discovery.
 func TestLoadTermsDoNotCreateGroups(t *testing.T) {
 	for _, file := range []string{"techs/LICENSE", "techs/legal/LICENSE", "techs/legal/nested/NOTICE"} {
-		files := map[string]string{"rule-library.json": `{"formatVersion":1,"license":{"file":"` + file + `","notices":[]}}`, file: "terms"}
+		files := map[string]string{"rule-library.yaml": `{"formatVersion":1,"license":{"file":"` + file + `","notices":[]}}`, file: "terms"}
 		_, root := fixture(t, files)
 		got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"})
 		if err != nil || len(got.Groups) != 0 || string(got.SupportingFiles[file]) != "terms" {
@@ -279,7 +279,7 @@ func TestLoadTermsDoNotCreateGroups(t *testing.T) {
 		}
 	}
 	files := validFiles()
-	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE","notices":[]}}`
+	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE","notices":[]}}`
 	files["techs/go/LICENSE"] = "terms"
 	_, root := fixture(t, files)
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
@@ -293,7 +293,7 @@ func TestMixedTermsDiscoveryCountsOnce(t *testing.T) {
 	files := validFiles()
 	document := files["techs/go/errors.md"]
 	delete(files, "techs/go/errors.md")
-	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE","notices":[]}}`
+	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE","notices":[]}}`
 	files["techs/go/LICENSE"] = "terms"
 	for i := range 5000 {
 		files[fmt.Sprintf("techs/go/r%d.md", i)] = document
@@ -314,7 +314,7 @@ func TestMixedTermsDiscoveryCountsOnce(t *testing.T) {
 func TestMetadataCanAlsoBeATerm(t *testing.T) {
 	files := validFiles()
 	delete(files, "techs/go/errors.md")
-	files["rule-library.json"] = `{"formatVersion":1,"license":{"file":"techs/go/_group.json","notices":[]}}`
+	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"techs/go/_group.yaml","notices":[]}}`
 	_, root := fixture(t, files)
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
 	if err != nil || len(got.Groups) != 1 {

@@ -61,7 +61,7 @@ func TestInventoryStopsAtOversizedAsset(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(directory, "rule-library.json"), []byte(`{"formatVersion":1}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, "rule-library.yaml"), []byte(`{"formatVersion":1}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	file, err := os.Create(filepath.Join(directory, "assets/large.bin"))
@@ -98,7 +98,7 @@ func TestInventoryPreservesPortablePaths(t *testing.T) {
 		for _, isDir := range []bool{true, false} {
 			t.Run(name, func(t *testing.T) {
 				directory := t.TempDir()
-				if err := os.WriteFile(filepath.Join(directory, "rule-library.json"), []byte(`{"formatVersion":1}`), 0600); err != nil {
+				if err := os.WriteFile(filepath.Join(directory, "rule-library.yaml"), []byte(`{"formatVersion":1}`), 0600); err != nil {
 					t.Fatal(err)
 				}
 				if err := os.Mkdir(filepath.Join(directory, "assets"), 0700); err != nil {

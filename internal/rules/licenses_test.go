@@ -36,7 +36,7 @@ func TestLicenseFixtures(t *testing.T) {
 	for _, test := range cases {
 		// Exercise the supplied file inventory without opening real files.
 		t.Run(test.ID, func(t *testing.T) {
-			files := map[string][]byte{"rule-library.json": []byte(test.Input.Manifest)}
+			files := map[string][]byte{"rule-library.yaml": []byte(test.Input.Manifest)}
 			for _, path := range test.Input.Paths {
 				files[path] = nil
 			}
@@ -66,7 +66,7 @@ func TestLicenseFixtures(t *testing.T) {
 func TestLicenseBytesAndPaths(t *testing.T) {
 	license := []byte{0xff, 0, 13, 10}
 	notice := []byte("Notice\r\n")
-	files := map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE"]}}`), "LICENSE": license, "NOTICE": notice}
+	files := map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE"]}}`), "LICENSE": license, "NOTICE": notice}
 	got, err := rules.ReadLibraryLicense(files, "library")
 	if err != nil || !bytes.Equal(license, []byte{0xff, 0, 13, 10}) || !bytes.Equal(notice, []byte("Notice\r\n")) {
 		t.Fatalf("bytes changed or read failed: %v", err)

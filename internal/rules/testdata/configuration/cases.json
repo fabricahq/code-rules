@@ -346,7 +346,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "localGroups: remove localGroups; local groups are discovered from local/<group>/_group.json",
+        "message": "localGroups: remove localGroups; local groups are discovered from local/<group>/_group.yaml",
         "location": "localGroups"
       }
     }

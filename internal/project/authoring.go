@@ -120,8 +120,8 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 		return false, err
 	}
 	if local != nil {
-		if data, ok := local.Files[id+"/_group.json"]; ok {
-			_, err = rules.ParseGroupMetadata(data, id)
+		if data, ok := local.Files[id+"/_group.yaml"]; ok {
+			_, err = rules.ParseGroupMetadataYAML(data, id)
 			return err == nil, err
 		}
 	}
@@ -138,8 +138,8 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 		if !slices.Contains(snapshot.Groups, id) {
 			continue
 		}
-		if data, ok := snapshot.Files[id+"/_group.json"]; ok {
-			_, err = rules.ParseGroupMetadata(data, id)
+		if data, ok := snapshot.Files[id+"/_group.yaml"]; ok {
+			_, err = rules.ParseGroupMetadataYAML(data, id)
 			return err == nil, err
 		}
 	}
@@ -193,5 +193,5 @@ func failure(code, problem string, cause error) error {
 
 func groupFiles(directory, id string, metadata []byte, projectGuideName string) []filetxn.File {
 	instructions := fmt.Sprintf("## Add or edit rules\n\nFollow [the project guide](../../../%s) for commands to run from the project root.\nUse `code-rules project add rule %s/<rule-name>` to add a rule. Edit existing rule files directly.\nRun code-rules project build and code-rules project check from the project root after local changes, then inspect [the resolved rules](../../../generated/RULES.md).\nUse the resolved rules when working on the project: they include imported guidance and apply exclusions and replacements.\n", projectGuideName, id)
-	return []filetxn.File{{Path: path.Join(directory, "_group.json"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
+	return []filetxn.File{{Path: path.Join(directory, "_group.yaml"), Content: metadata}, {Path: path.Join(directory, "README.md"), Content: rules.GroupGuide(id, instructions)}}
 }

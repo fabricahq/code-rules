@@ -486,8 +486,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: invalid JSON",
-        "location": "library/rule-library.json"
+        "message": "library/rule-library.yaml: expected one YAML document",
+        "location": "library/rule-library.yaml"
       }
     }
   },
@@ -506,8 +506,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: expected an object",
-        "location": "library/rule-library.json"
+        "message": "library/rule-library.yaml: expected an object",
+        "location": "library/rule-library.yaml"
       }
     }
   },
@@ -526,8 +526,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: formatVersion: only library formatVersion 1 is supported",
-        "location": "library/rule-library.json: formatVersion"
+        "message": "library/rule-library.yaml: formatVersion: only library formatVersion 1 is supported",
+        "location": "library/rule-library.yaml: formatVersion"
       }
     }
   },
@@ -546,8 +546,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license: expected an object",
-        "location": "library/rule-library.json: license"
+        "message": "library/rule-library.yaml: license: expected an object",
+        "location": "library/rule-library.yaml: license"
       }
     }
   },
@@ -563,8 +563,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.file: missing declared file \"LICENSE\"",
-        "location": "library/rule-library.json: license.file"
+        "message": "library/rule-library.yaml: license.file: missing declared file \"LICENSE\"",
+        "location": "library/rule-library.yaml: license.file"
       }
     }
   },
@@ -582,8 +582,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.notices[0]: missing declared file \"NOTICE\"",
-        "location": "library/rule-library.json: license.notices[0]"
+        "message": "library/rule-library.yaml: license.notices[0]: missing declared file \"NOTICE\"",
+        "location": "library/rule-library.yaml: license.notices[0]"
       }
     }
   },
@@ -602,8 +602,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.notices: expected an array of notice paths",
-        "location": "library/rule-library.json: license.notices"
+        "message": "library/rule-library.yaml: license.notices: expected an array of notice paths",
+        "location": "library/rule-library.yaml: license.notices"
       }
     }
   },
@@ -622,8 +622,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.file: expected a contained relative path, got \"../LICENSE\"",
-        "location": "library/rule-library.json: license.file"
+        "message": "library/rule-library.yaml: license.file: expected a contained relative path, got \"../LICENSE\"",
+        "location": "library/rule-library.yaml: license.file"
       }
     }
   },
@@ -642,8 +642,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license: unknown field future",
-        "location": "library/rule-library.json: license"
+        "message": "library/rule-library.yaml: license: unknown field future",
+        "location": "library/rule-library.yaml: license"
       }
     }
   },
@@ -662,8 +662,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.expression: renamed to license.spdxExpression; move the declaration to that field",
-        "location": "library/rule-library.json: license.expression"
+        "message": "library/rule-library.yaml: license.expression: renamed to license.spdxExpression; move the declaration to that field",
+        "location": "library/rule-library.yaml: license.expression"
       }
     }
   },
@@ -682,8 +682,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected nonempty text",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected nonempty text",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -702,8 +702,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected a single-line license expression",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected a single-line license expression",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -722,8 +722,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -742,8 +742,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -762,8 +762,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -782,8 +782,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -802,8 +802,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -822,8 +822,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -842,8 +842,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -862,8 +862,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -882,8 +882,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -978,8 +978,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -998,8 +998,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -1018,8 +1018,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -1038,8 +1038,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -1058,8 +1058,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     }
   },
@@ -1090,8 +1090,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     },
     "difference": "User-approved adoption of the SPDX identifier and exception lists bundled with go-spdx v2.7.0 instead of the older TypeScript dependency lists. The reference result remains unchanged."
@@ -1123,8 +1123,8 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "library/rule-library.json: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
-        "location": "library/rule-library.json: license.spdxExpression"
+        "message": "library/rule-library.yaml: license.spdxExpression: expected an SPDX expression using recognized identifiers or LicenseRef- custom terms",
+        "location": "library/rule-library.yaml: license.spdxExpression"
       }
     },
     "difference": "User-approved adoption of the SPDX identifier and exception lists bundled with go-spdx v2.7.0 instead of the older TypeScript dependency lists. The reference result remains unchanged."

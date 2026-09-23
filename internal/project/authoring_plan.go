@@ -105,7 +105,7 @@ func checkLocalGroup(ctx context.Context, root *os.Root, id string) error {
 	if err := rules.ValidateGroupID(id, "group"); err != nil {
 		return err
 	}
-	return filetxn.RequireAbsent(ctx, root, path.Join("local", id, "_group.json"), path.Join("local", id, "README.md"))
+	return filetxn.RequireAbsent(ctx, root, path.Join("local", id, "_group.yaml"), path.Join("local", id, "README.md"))
 }
 
 func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configuration, id string) error {

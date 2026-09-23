@@ -22,9 +22,9 @@ import (
 func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 	t.Helper()
 	f, err := gitfixture.New(context.Background(), map[string][]byte{
-		"rule-library.json":               []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":[]}}`),
+		"rule-library.yaml":               []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":[]}}`),
 		"LICENSE":                         []byte("Original terms\r\n"),
-		"techs/go/_group.json":            []byte(projectMetadata),
+		"techs/go/_group.yaml":            []byte(projectMetadata),
 		"techs/go/errors.md":              []byte(projectRule),
 		"techs/go/assets/errors/data.bin": {0, 255, 128},
 	})

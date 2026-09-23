@@ -37,7 +37,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 		t.Fatal(err)
 	}
 	ruleMetadata := rules.RuleMetadata{Title: "Return errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
-	if err := os.Remove(filepath.Join(options.Directory, ".code-rules/local/techs/go/_group.json")); err != nil {
+	if err := os.Remove(filepath.Join(options.Directory, ".code-rules/local/techs/go/_group.yaml")); err != nil {
 		t.Fatal(err)
 	}
 	_, commitErr = rule.Commit(ctx, ruleMetadata, nil)

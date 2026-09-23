@@ -56,7 +56,7 @@ func readLocalInventory(ctx context.Context, root *os.Root) (inventorySnapshot, 
 // readInventory shares capture logic with bounded sources so tests can verify early read termination.
 func readInventory(ctx context.Context, input FileSource) (inventorySnapshot, error) {
 	r := reader{ctx: ctx, input: portableInventorySource{input}, files: map[string][]byte{}}
-	if _, err := r.read("rule-library.json"); err != nil {
+	if _, err := r.read("rule-library.yaml"); err != nil {
 		return inventorySnapshot{}, err
 	}
 	license, err := r.license("library")

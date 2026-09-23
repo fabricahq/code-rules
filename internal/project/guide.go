@@ -77,7 +77,7 @@ A **library group** comes from a versioned Git repository. The project selects i
 Local and library definitions can contribute to the same group, such as techs/go:
 
 - Their rules are combined. Adding a local rule does not replace an imported rule, even when their filenames match.
-- Local _group.json metadata takes precedence over library metadata for the group's name, description, and reading cue.
+- Local _group.yaml metadata takes precedence over library metadata for the group's name, description, and reading cue.
 - Use explicit exclusions or replacements in the project configuration to remove or override imported rules.
 
 ## Manage local guidance
