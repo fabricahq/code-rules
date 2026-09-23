@@ -35,46 +35,47 @@ export default defineConfig({
       ThemeSelect: './src/components/ThemeSelect.astro',
       Footer: './src/components/Footer.astro',
     },
+    // Open the active section initially; Starlight remembers subsequent toggles in this tab.
     sidebar: [
-      { label: 'Start here', items: [
+      { label: 'Start here', collapsed: true, items: [
         { label: 'What is Code Rules?', slug: 'start-here/overview' },
         { label: 'Install Code Rules', slug: 'start-here/install' },
         { label: 'Set up your first project', slug: 'start-here/set-up-project' },
         { label: 'Create your first library', slug: 'start-here/create-library' },
       ] },
-      { label: 'Concepts', items: [
+      { label: 'Concepts', collapsed: true, items: [
         { label: 'Rule', slug: 'concepts/rule' },
         { label: 'Group', slug: 'concepts/groups' },
         { label: 'Library', slug: 'concepts/libraries' },
         { label: 'Project', slug: 'concepts/project' },
       ] },
-      { label: 'Guides', items: [
-        { label: 'Manage project rules', items: [
+      { label: 'Guides', collapsed: true, items: [
+        { label: 'Manage project rules', collapsed: true, items: [
           { label: 'Import rules', slug: 'guides/select-rules' },
           { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
           { label: 'Update rules', slug: 'guides/update' },
         ] },
-        { label: 'Write and share rules', items: [
+        { label: 'Write and share rules', collapsed: true, items: [
           { label: 'Write a rule', slug: 'guides/write-rules' },
           { label: 'License rules', slug: 'guides/license-rules' },
           { label: 'Adapt a third-party rule', slug: 'guides/adapt-rules' },
         ] },
       ] },
-      { label: 'Reference', items: [
-        { label: 'Projects', items: [
+      { label: 'Reference', collapsed: true, items: [
+        { label: 'Projects', collapsed: true, items: [
           { label: 'Project files', slug: 'reference/files' },
           { label: 'Configuration', slug: 'reference/configuration' },
           { label: 'How imports work', slug: 'reference/imports' },
           { label: 'Sync and recovery', slug: 'reference/sync' },
           { label: 'Provenance', slug: 'reference/provenance' },
         ] },
-        { label: 'Rules and libraries', items: [
+        { label: 'Rules and libraries', collapsed: true, items: [
           { label: 'Rule and library format', slug: 'reference/rule-library-format' },
           { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
         ] },
         { label: 'CLI commands', slug: 'reference/cli' },
       ] },
-      { label: 'For agents', items: [{ label: 'Plan, write, and review', slug: 'for-agents' }] },
+      { label: 'For agents', collapsed: true, items: [{ label: 'Plan, write, and review', slug: 'for-agents' }] },
     ],
     tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
   })],
