@@ -263,6 +263,9 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 		if !strings.HasSuffix(file, ".md") || strings.HasPrefix(path.Base(file), "_") {
 			continue
 		}
+		if rules.HasDraftMarker(files[file]) {
+			return nil, invalid("local/"+file, "complete the draft and remove its code-rules:draft marker")
+		}
 		parsed, err := rules.Parse(string(files[file]), file, "local")
 		if err != nil {
 			return nil, err
