@@ -146,3 +146,19 @@ test('should ignore external links with URL whitespace', () => {
   });
   expect(result.status).toBe(0);
 });
+
+test('should check absolute same-site URLs against the build including fragments', () => {
+  const result = checkSite({
+    'index.html':
+      '<a href="https://code-rules.fabricahq.com/guide/#ok">good</a><a href="//code-rules.fabricahq.com/absent/">missing</a><a href="http://code-rules.fabricahq.com/guide/#missing">anchor</a>',
+    'guide/index.html': '<a name="ok">Named anchor</a>',
+  });
+  expect(result.status).toBe(1);
+  expect(result.stderr).not.toContain('missing anchor: https://');
+  expect(result.stderr).toContain(
+    'missing destination: //code-rules.fabricahq.com/absent/',
+  );
+  expect(result.stderr).toContain(
+    'missing anchor: http://code-rules.fabricahq.com/guide/#missing',
+  );
+});

@@ -9,6 +9,7 @@
     "docs:check": "bun run --cwd docs check",
     "docs:build": "bun run --cwd docs build",
     "docs:preview": "bun run --cwd docs preview",
+    "docs:links:all": "bun docs/_tools/check-doc-links.ts --external",
     "docs:links": "bun run --cwd docs links",
     "check": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run docs:check && bun run docs:build && bun run docs:links",
     "format:check": "prettier --single-quote --check _tools/*.ts docs/_tools/*.ts eslint.config.mjs",
