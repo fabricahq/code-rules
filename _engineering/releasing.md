@@ -64,7 +64,7 @@ See [installer setup](../_distribution/README.md) for the website endpoint, acti
 
 ## Homebrew updates
 
-After publishing a stable release, the `update-homebrew` job triggers **Update Code Rules** in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases do not update the formula. The tap validates the published archives and checksums before committing an update.
+After publishing a stable release, the `update-homebrew` job triggers **Update Code Rules** in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases do not update the formula. The tap validates the published archives and checksums before committing an update directly to `main`. Routine formula updates require no pull request or human approval; changes to updater code and workflows go through review in the tap repository.
 
 The job authenticates through **Fabrica Homebrew Releaser**, a shared trigger App for trusted Fabrica products. It is installed only on the tap with Actions write and Metadata read permissions. Store `HOMEBREW_APP_PRIVATE_KEY` as a Fabrica organization Actions secret and `HOMEBREW_APP_CLIENT_ID` as an organization variable. Limit both to selected trusted product repositories; initially, only `fabricahq/code-rules` has access. Do not keep repository or environment copies that override these organization values. The job checks out no source and creates a short-lived token restricted to the tap.
 
