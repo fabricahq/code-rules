@@ -1,39 +1,38 @@
 ---
 title: "Project"
-description: "A codebase configured to use Code Rules. It owns selected libraries, local rules, exceptions, and generated guidance."
+description: "The codebase that uses rules, and the files Code Rules adds to it."
 ---
 
-A **project** is the codebase whose rules Code Rules manages. Its **project root** is the top-level directory of that codebase. The project selects libraries, authors project-only rules, and chooses exceptions for its agents.
+A **project** is the codebase whose rules Code Rules manages, such as a web application, a service, or a CLI tool. The **project root** is that codebase's top-level directory.
 
-Configuring a project is not the same as installing the CLI. Installing Code Rules makes the `code-rules` command available on your computer. `code-rules project init` sets up a particular project.
+A project can use rules written just for it, rules imported from one or more [libraries](/concepts/libraries/), or both. Each project chooses which rules to use and when to adopt library updates.
 
-## What a project owns
+## What a project includes
 
-The project, not a library, decides what its agents read.
+Your codebase keeps its existing files. Code Rules adds a **Code Rules directory**, `.code-rules/`, at the project root:
 
-- A project can start with only local rules and no imported library.
-- A project can adopt multiple libraries and pin each library's version independently.
-- A project owns exclusions and replacements.
+```text
+my-project/
+  src/
+  README.md
+  .code-rules/
+    config.json
+    local/
+    vendor/
+    generated/
+```
 
-A payments service is a project. The organization's shared Go rules form a library.
+Inside `.code-rules/`:
 
-## Where a project stores files
+- **Configuration** in `config.json` selects libraries, versions, and groups, plus any rules to exclude or replace.
+- **Local rules** in `local/` hold groups and rules you author for this project.
+- **Imported rules** in `vendor/` are copies of the library content your project imports.
+- **Generated guidance** in `generated/` combines your selected rules into `RULES.md`, group pages, and rule files that agents can read.
 
-Code Rules stores this project's configuration and rules in the `.code-rules/` directory at its root. Rules can be project-only, imported from libraries, or both.
+You maintain the configuration and local rules. Code Rules manages the imported copies and generated files. For examples of each file, see [Project files](/reference/files/).
 
-This is the **Code Rules directory**. It contains project configuration, project-only rules in `local/`, imported library snapshots in `vendor/`, and generated guidance in `generated/`. The **project configuration** is `.code-rules/config.json`.
+## Set up a project
 
-Run project commands from the project root. They use `.code-rules/` in your current working directory; Code Rules does not search parent directories or discover a Git root.
+Run `code-rules project init` from your codebase's root to create its `.code-rules/` directory. In a Git repository, subsequent project commands also work from subdirectories. Outside Git, run them from the project root.
 
-A project does not require a Git repository. `code-rules project init` works in an ordinary directory. Sync needs Git later if the project imports a library.
-
-See [Configuration](/reference/configuration/) for the recorded fields.
-
-## How this fits the other concepts
-
-- A [rule](/concepts/rule/) is one engineering expectation.
-- A [group](/concepts/groups/) collects related rules and says when to read them.
-- A [library](/concepts/libraries/) publishes rules for reuse.
-- A project is the codebase that selects and uses rules.
-
-See [Set up your first project](/start-here/set-up-project/) to set up rules for your codebase.
+Follow [Set up your first project](/start-here/set-up-project/) to add rules, generate guidance, and tell your agent to read it.

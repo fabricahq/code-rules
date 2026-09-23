@@ -1,74 +1,43 @@
 ---
 title: "Library"
-description: "Understand who owns shared rules, project exceptions, and the tooling that connects them."
+description: "Share rule groups across projects and choose which rules each project adopts."
 ---
 
-A **library** is an independently maintained collection of rule groups that projects can import. Libraries publish their source files in Git repositories; Code Rules imports their content at a specific commit.
+A **library** is an independently maintained collection of [rule groups](/concepts/groups/) that projects can import. Libraries let you share engineering practices across projects, within your organization, or with third parties.
 
-## Keep tooling and opinions separate
+You can publish your team's rules in a library or import libraries from others. Rules needed by only one project can stay local to that project.
 
-[Code Rules](https://github.com/fabricahq/code-rules) owns the conventions, importer, and documentation.
-A library owns its engineering opinions and their provenance.
-A consuming [project](/concepts/project/) owns the versions and exceptions it adopts.
+## What a library contains
 
-The importer works with compatible libraries independently of who publishes them.
-Sync uses the caller's Git credentials to access private libraries.
+A library lives in a Git repository. It contains:
 
-## Create or adapt a library
+- **Library metadata** in `rule-library.json`, which declares the format and any license information.
+- **Groups** under `techs/` and `practices/`, each with group metadata and Markdown rule files.
 
-The [library authoring commands](/start-here/create-library/) initialize a library, add groups and rules explicitly, and validate the input format.
-Use them in a new or existing repository; a dedicated repository name is not required.
+For example, a repository named "engineering-rules" might contain:
 
-Code Rules imports libraries that follow its format.
-For guidance from other sources, first [author a compatible adaptation](/guides/adapt-rules/) in a compatible library, even when it contains only one rule.
-Agents can assist with authoring; automatic conversion of arbitrary repositories is outside the import workflow.
-The adaptation's author maintains its meaning, attribution, retained terms, and updates from the original source.
+```text
+engineering-rules/
+  rule-library.json
+  practices/testing/
+    _group.json
+    test-changed-behavior.md
+```
 
-## Name an organization library
+The repository name is your choice. Library groups live at its root; they don't need a `.code-rules/` directory. Rules can also include [supporting assets](/reference/rule-library-format/#supporting-assets).
 
-We recommend `<organization>/.code-rules`, such as `acme/.code-rules`.
-The name is a convention, not automatic discovery.
-A project's configuration explicitly names each source repository, exact ref or version constraint, and selected groups.
+## How projects use a library
 
-The consuming project's **Code Rules directory** is `.code-rules/` at the project root. Its name does not depend on the library repository name.
-In Git repositories, initialize from the root; other project commands can run from subdirectories.
+Each [project](/concepts/project/) chooses which libraries, versions, and groups to import in `.code-rules/config.json`. A project can use several libraries and add its own local rules.
 
-## Share only what applies
+Running `code-rules project sync` downloads the selected rules and generates the guidance agents read. Groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
 
-An organization may maintain rules for many projects.
-A rule naming one application's internal packages or contracts does not automatically apply to the rest of the organization.
-Keep that obligation local to the applicable project, or give its group an explicit scope.
+Library authors publish updates as new versions. Each project chooses when to adopt them by syncing with an exact version or a version constraint. See [Import rules](/guides/select-rules/) and [Update rules](/guides/update/) for the steps.
 
-## Private content stays private only if consumers do
+## Sharing a library
 
-Vendoring copies source rules and generated text into the consuming repository's Git history.
-Use a library only in projects authorized to receive and distribute its content.
-Preserve required attribution and license notices during imports.
-See [License rules](/guides/license-rules/) for what library terms should cover and how consumers retain them.
+Libraries can be public or private. Imports copy their content into the consuming project, so use private libraries only in projects allowed to hold and share that content.
 
-## Import multiple canonical sources
+Code Rules preserves declared license text and notices with imported rules. For choosing terms, see [License rules](/guides/license-rules/).
 
-A project can import multiple libraries directly.
-For example, a project can import `fabricahq/.code-rules-example` as `fabrica` and `acme/.code-rules` as `acme`.
-Each source owns its rules, and the project selects each source's exact ref or version constraint independently.
-Sync records each resolved commit so offline work uses the exact imported snapshot.
-The repository names illustrate the configuration; verify available rules before selecting groups.
-
-Rules from sources that share a group combine into one group page, which includes full rules for small groups or links to each resolved rule from applicability summaries.
-Source-qualified IDs keep their origins distinct, and source order grants no override priority.
-Use explicit project exclusions or replacements to resolve competing obligations.
-
-## Inspect an adopted library
-
-Each imported source gets a generated `libraries/<source-name>/README.md`.
-It identifies the repository, requested revision, resolved commit, and declared license, and links to the authoritative provenance.
-Declared license and notice copies live in that folder’s `licenses/` directory; libraries without declarations omit that directory.
-The full resolved rules live separately in `generated/rules/`.
-
-## Nested library inheritance
-
-Code Rules does not import a library that itself inherits and republishes other libraries.
-A project imports each canonical library directly.
-Any later publishing mechanism needs to preserve rule identities and provenance across levels.
-
-See [Project](/concepts/project/) for the codebase that selects and uses a library.
+To publish your own, follow [Create your first library](/start-here/create-library/). For file details, see [Rule and library format](/reference/rule-library-format/).
