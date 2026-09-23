@@ -71,7 +71,7 @@ func Parse(text, path, source string) (Rule, error) {
 	}
 	for _, key := range []string{"license", "licenses"} {
 		if _, exists := fields[key]; exists {
-			return Rule{}, invalid(location+"."+key, "declare one license for the whole library in rule-library.json; rule-level licenses are unsupported")
+			return Rule{}, invalid(location+"."+key, "declare one license for the whole library in rule-library.yaml; rule-level licenses are unsupported")
 		}
 	}
 	if err := ruleKnownFields(fields, location, "title", "impact", "impactDescription", "whenToRead", "tags", "attribution"); err != nil {

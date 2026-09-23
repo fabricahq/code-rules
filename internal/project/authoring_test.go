@@ -5,7 +5,6 @@ package project
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,7 +22,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if err != nil || len(result.Files) != 3 {
 		t.Fatal(result, err)
 	}
-	original, err := os.ReadFile(filepath.Join(directory, "config.json"))
+	original, err := os.ReadFile(filepath.Join(directory, "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +36,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 		t.Fatal(result, err)
 	}
 	stored, err := os.ReadFile(result.Files[0])
-	if err != nil || !bytes.Contains(stored, []byte(`"name": "Go"`)) {
+	if err != nil || !bytes.Contains(stored, []byte(`name: Go`)) {
 		t.Fatal(string(stored), err)
 	}
 	body := "# Return errors\n\nReturn failures to the caller.\n"
@@ -68,16 +67,16 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if !bytes.Contains(draft, []byte("### Validation")) || !bytes.Contains(draft, []byte("<State one concrete obligation.>")) {
 		t.Fatal("canonical draft missing")
 	}
-	source := json.RawMessage(`{"repository":"https://github.com/acme/rules","version":">= 1.2.3, < 2.0.0","groups":"techs/*","exclude":{},"replace":{}}`)
+	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: ">= 1.2.3, < 2.0.0", Groups: []string{"techs/*"}}
 	result, err = AddSource(ctx, "team", source, options)
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
-	updated, _ := os.ReadFile(filepath.Join(directory, "config.json"))
+	updated, _ := os.ReadFile(filepath.Join(directory, "config.yaml"))
 	if bytes.Equal(updated, original) || bytes.Contains(updated, []byte(`\u003e`)) {
 		t.Fatal(string(updated))
 	}
-	if _, err = rules.ParseConfiguration(updated); err != nil {
+	if _, err = rules.ParseConfigurationYAML(updated); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = AddSource(ctx, "team", source, options); err == nil {
@@ -100,7 +99,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 			}
 			switch scenario {
 			case "invalid-config":
-				os.WriteFile(filepath.Join(directory, "config.json"), []byte(`{`), 0600)
+				os.WriteFile(filepath.Join(directory, "config.yaml"), []byte(`{`), 0600)
 			case "linked-local":
 				os.RemoveAll(filepath.Join(directory, "local"))
 				if err := os.Symlink(t.TempDir(), filepath.Join(directory, "local")); err != nil {
@@ -109,7 +108,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 			case "case-alias":
 				os.MkdirAll(filepath.Join(directory, "local", "Techs"), 0700)
 			case "hardlink":
-				if err := os.Link(filepath.Join(directory, "config.json"), filepath.Join(directory, "alias")); err != nil {
+				if err := os.Link(filepath.Join(directory, "config.yaml"), filepath.Join(directory, "alias")); err != nil {
 					t.Fatal(err)
 				}
 			case "pending-recovery":
@@ -119,16 +118,16 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 				ctx, cancel = context.WithCancel(ctx)
 				cancel()
 			}
-			before, _ := os.ReadFile(filepath.Join(directory, "config.json"))
+			before, _ := os.ReadFile(filepath.Join(directory, "config.yaml"))
 			result, err := AddLocalGroup(ctx, "techs/go", rules.GroupMetadata{Name: "Go", Description: "Go.", WhenToRead: "When editing Go."}, options)
 			if err == nil || result.Files != nil {
 				t.Fatal("expected no partial result", result, err)
 			}
-			after, _ := os.ReadFile(filepath.Join(directory, "config.json"))
+			after, _ := os.ReadFile(filepath.Join(directory, "config.yaml"))
 			if !bytes.Equal(before, after) {
 				t.Fatal("changed config on failure")
 			}
-			if _, err = os.Lstat(filepath.Join(directory, "local", "techs", "go", "_group.json")); !os.IsNotExist(err) {
+			if _, err = os.Lstat(filepath.Join(directory, "local", "techs", "go", "_group.yaml")); !os.IsNotExist(err) {
 				t.Fatal("created group on failure", err)
 			}
 		})
@@ -151,7 +150,7 @@ func TestRuleRequiresGroup(t *testing.T) {
 	if err == nil {
 		t.Fatal("accepted collision")
 	}
-	if _, err = os.Stat(filepath.Join(directory, "local/techs/go/_group.json")); !os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(directory, "local/techs/go/_group.yaml")); !os.IsNotExist(err) {
 		t.Fatal("published partial group", err)
 	}
 	data, _ := os.ReadFile(target)
@@ -168,22 +167,22 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	source := json.RawMessage(`{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{},"replace":{}}`)
+	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: "v1.0.0", Groups: []string{"techs/go"}}
 	if _, err := AddSource(ctx, "team", source, options); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := PlanLocalRule(ctx, "techs/go/errors", options); err == nil {
 		t.Fatal("planned rule before imported group was fetched")
 	}
-	data, err := os.ReadFile(filepath.Join(directory, "config.json"))
+	data, err := os.ReadFile(filepath.Join(directory, "config.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	config, err := rules.ParseConfiguration(data)
+	config, err := rules.ParseConfigurationYAML(data)
 	if err != nil {
 		t.Fatal(err)
 	}
-	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1}`), "techs/go/_group.json": []byte(`{"name":"Go","description":"Imported guidance.","whenToRead":"When editing Go."}`)}}})
+	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(`{"name":"Go","description":"Imported guidance.","whenToRead":"When editing Go."}`)}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +200,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
-	if _, err := os.Stat(filepath.Join(directory, "local/techs/go/_group.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(directory, "local/techs/go/_group.yaml")); !os.IsNotExist(err) {
 		t.Fatal("rule creation created local override", err)
 	}
 }

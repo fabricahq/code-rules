@@ -2245,7 +2245,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "lab:techs/go/errors.md.license: declare one license for the whole library in rule-library.json; rule-level licenses are unsupported",
+        "message": "lab:techs/go/errors.md.license: declare one license for the whole library in rule-library.yaml; rule-level licenses are unsupported",
         "location": "lab:techs/go/errors.md.license"
       }
     }
@@ -2263,7 +2263,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "lab:techs/go/errors.md.licenses: declare one license for the whole library in rule-library.json; rule-level licenses are unsupported",
+        "message": "lab:techs/go/errors.md.licenses: declare one license for the whole library in rule-library.yaml; rule-level licenses are unsupported",
         "location": "lab:techs/go/errors.md.licenses"
       }
     }
@@ -4481,7 +4481,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "lab:techs/go/errors.md.license: declare one license for the whole library in rule-library.json; rule-level licenses are unsupported",
+        "message": "lab:techs/go/errors.md.license: declare one license for the whole library in rule-library.yaml; rule-level licenses are unsupported",
         "location": "lab:techs/go/errors.md.license"
       }
     }
@@ -4507,7 +4507,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "lab:techs/go/errors.md.license: declare one license for the whole library in rule-library.json; rule-level licenses are unsupported",
+        "message": "lab:techs/go/errors.md.license: declare one license for the whole library in rule-library.yaml; rule-level licenses are unsupported",
         "location": "lab:techs/go/errors.md.license"
       }
     },
@@ -4534,7 +4534,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "lab:techs/go/errors.md.licenses: declare one license for the whole library in rule-library.json; rule-level licenses are unsupported",
+        "message": "lab:techs/go/errors.md.licenses: declare one license for the whole library in rule-library.yaml; rule-level licenses are unsupported",
         "location": "lab:techs/go/errors.md.licenses"
       }
     },

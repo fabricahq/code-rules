@@ -178,7 +178,7 @@ func TestCompletedAuthoringReportSurvivesSeparatorFailure(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), "terminal output unavailable") {
 				t.Fatal("expected post-commit output failure", err)
 			}
-			if _, err := os.Stat(filepath.Join(directory, ".code-rules", "config.json")); err != nil {
+			if _, err := os.Stat(filepath.Join(directory, ".code-rules", "config.yaml")); err != nil {
 				t.Fatal("initialization did not commit", err)
 			}
 			var out, diagnostic bytes.Buffer
@@ -190,7 +190,7 @@ func TestCompletedAuthoringReportSurvivesSeparatorFailure(t *testing.T) {
 				if err := json.Unmarshal(out.Bytes(), &result); err != nil || result.OK || result.Value == nil || result.Error == nil {
 					t.Fatal("lost completed result or failure", out.String(), err)
 				}
-			} else if !strings.Contains(out.String(), "config.json") || !strings.Contains(diagnostic.String(), "terminal output unavailable") {
+			} else if !strings.Contains(out.String(), "config.yaml") || !strings.Contains(diagnostic.String(), "terminal output unavailable") {
 				t.Fatal("lost completed result or failure", out.String(), diagnostic.String())
 			}
 		})

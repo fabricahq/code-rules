@@ -16,7 +16,7 @@ my-project/
   src/
   README.md
   .code-rules/
-    config.json
+    config.yaml
     local/
     vendor/
     generated/
@@ -24,7 +24,7 @@ my-project/
 
 Inside `.code-rules/`:
 
-- **Configuration** in `config.json` selects libraries, versions, and groups, plus any rules to exclude or replace.
+- **Configuration** in `config.yaml` selects libraries, versions, and groups, plus any rules to exclude or replace.
 - **Local rules** in `local/` hold groups and rules you author for this project.
 - **Imported rules** in `vendor/` are copies of the library content your project imports.
 - **Generated guidance** in `generated/` combines your selected rules into `RULES.md`, group pages, and rule files that agents can read.

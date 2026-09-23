@@ -5,7 +5,7 @@ description: "Choose groups from rule libraries and adapt their rules to your pr
 
 You can **import rules** written by your team or others instead of writing every rule yourself. These rules come from **libraries**, collections of rules shared across projects.
 
-In this guide, you'll choose **groups** to import, record your choices in `.code-rules/config.json`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
+In this guide, you'll choose **groups** to import, record your choices in `.code-rules/config.yaml`, and add any project-specific rules or exceptions. Then you'll generate and review the files your agent will read.
 
 Start with a project that already has a `.code-rules/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/).
 
@@ -26,7 +26,7 @@ Agents choose which installed groups apply to each task using the [rule-loading 
 
 ## Select groups from each source
 
-In `.code-rules/config.json`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
+In `.code-rules/config.yaml`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
 
 - **Where to get it:** `repository` is the library's Git URL.
 - **Which version to use:** `ref` selects a specific tag or commit; `version` allows a range of versions. Use one or the other.
@@ -46,7 +46,7 @@ If two sources supply `practices/testing`, their rules combine into one generate
 Source-prefixed IDs keep matching rule paths distinct.
 Neither source automatically overrides the other.
 
-Define local groups with `_group.json` under `local/`; a separate configuration declaration is unnecessary.
+Define local groups with `_group.yaml` under `local/`; a separate configuration declaration is unnecessary.
 The [Group concept](/concepts/groups/) explains the distinction between technology and practice groups.
 
 ## Adapt the import to your project
@@ -63,11 +63,11 @@ Write a Markdown rule under the matching local group:
 .code-rules/local/practices/testing/test-project-contracts.md
 ```
 
-The group needs `_group.json` metadata from a selected library or from `local/<group-id>/`.
+The group needs `_group.yaml` metadata from a selected library or from `local/<group-id>/`.
 The rule joins the inherited rules and receives a `local:`-prefixed ID.
 Use the [authoring format](/guides/write-rules/) for its metadata and body.
 
-For a local-only group, include its own `_group.json`. It is discovered automatically.
+For a local-only group, include its own `_group.yaml`. It is discovered automatically.
 When a library later supplies that group, the local metadata and rules stay in place. Local metadata supplies the project's group description; imported rules join the group.
 Imported groups retain source-labeled metadata from every contributing library.
 
@@ -75,16 +75,11 @@ Imported groups retain source-labeled metadata from every contributing library.
 
 Add its library-relative ID and a reason to `sources.<name>.exclude`:
 
-```json
-{
-  "sources": {
-    "acme": {
-      "exclude": {
-        "practices/testing/avoid-snapshot-tests": "Contract snapshots follow our separate review policy."
-      }
-    }
-  }
-}
+```yaml
+sources:
+  acme:
+    exclude:
+      practices/testing/avoid-snapshot-tests: Contract snapshots follow our separate review policy.
 ```
 
 These are partial snippets, not complete source definitions.
@@ -98,19 +93,13 @@ The exclusion reason stays in project configuration; the generated files contain
 
 Write a complete local definition, then reference it from `sources.<name>.replace`:
 
-```json
-{
-  "sources": {
-    "fabrica": {
-      "replace": {
-        "techs/typescript/prefer-type-aliases": {
-          "file": "local/techs/typescript/prefer-interfaces.md",
-          "reason": "Our public extension API relies on declaration merging."
-        }
-      }
-    }
-  }
-}
+```yaml
+sources:
+  fabrica:
+    replace:
+      techs/typescript/prefer-type-aliases:
+        file: local/techs/typescript/prefer-interfaces.md
+        reason: Our public extension API relies on declaration merging.
 ```
 
 The resolved rule uses the complete local definition, including its local ID, title, reading cue, impact, body, attribution, and asset references.

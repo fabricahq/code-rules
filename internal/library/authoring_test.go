@@ -101,7 +101,7 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 			case "cross-rule":
 				write("assets/shared.md", "[rule](/techs/go/errors.md)")
 			case "malformed-rule":
-				write("techs/go/_group.json", `{"name":"Go","description":"Go.","whenToRead":"Go."}`)
+				write("techs/go/_group.yaml", `{"name":"Go","description":"Go.","whenToRead":"Go."}`)
 				write("techs/go/errors.md", "Missing frontmatter")
 			case "symlink":
 				if err := os.Symlink(t.TempDir(), filepath.Join(options.Directory, "assets")); err != nil {
@@ -131,7 +131,7 @@ func TestLibraryInitializationPreservesConflicts(t *testing.T) {
 	if err == nil {
 		t.Fatal("accepted terms collision")
 	}
-	if _, err = os.Stat(filepath.Join(directory, "rule-library.json")); !os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(directory, "rule-library.yaml")); !os.IsNotExist(err) {
 		t.Fatal("partial manifest", err)
 	}
 	data, _ := os.ReadFile(filepath.Join(directory, "LICENSE.md"))
@@ -142,7 +142,7 @@ func TestLibraryInitializationPreservesConflicts(t *testing.T) {
 
 // TestLibraryCheckRejectsConcurrentEdits covers files that the selected catalog does not reread.
 func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
-	for _, name := range []string{"assets/guide.md", "assets/new.md", "rule-library.json", "LICENSE.md"} {
+	for _, name := range []string{"assets/guide.md", "assets/new.md", "rule-library.yaml", "LICENSE.md"} {
 		t.Run(name, func(t *testing.T) {
 			directory := t.TempDir()
 			ctx := context.Background()
@@ -194,7 +194,7 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(options.Directory, "techs/go"), 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(options.Directory, "techs/go/_group.json"), []byte(`{"name":"Go","description":"Go guidance","whenToRead":"When editing Go"}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(options.Directory, "techs/go/_group.yaml"), []byte(`{"name":"Go","description":"Go guidance","whenToRead":"When editing Go"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	catalog, err := LoadSource(ctx, capturedLibrary{snapshot}, "library", rules.GroupSelection{Pattern: "*"})
@@ -204,7 +204,7 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err := requireLibraryUnchanged(ctx, root, snapshot); err == nil {
 		t.Fatal("missed new group")
 	}
-	if err := os.Remove(filepath.Join(options.Directory, "techs/go/_group.json")); err != nil {
+	if err := os.Remove(filepath.Join(options.Directory, "techs/go/_group.yaml")); err != nil {
 		t.Fatal(err)
 	}
 	empty, _, err := libraryCheckInput(ctx, root)
@@ -250,7 +250,7 @@ func TestLibraryRulePreservesGroup(t *testing.T) {
 	if _, err := AddGroup(ctx, "techs/go", existing, options); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(options.Directory, "techs/go/_group.json")
+	path := filepath.Join(options.Directory, "techs/go/_group.yaml")
 	before, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

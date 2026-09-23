@@ -48,7 +48,7 @@ func TestGroupGuides(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, text := range []string{"techs/go", "_group.json", "Instructions for agents", "code-rules " + prefix + " add rule"} {
+			for _, text := range []string{"techs/go", "_group.yaml", "Instructions for agents", "code-rules " + prefix + " add rule"} {
 				if !strings.Contains(string(guide), text) {
 					t.Fatalf("guide missing %q", text)
 				}

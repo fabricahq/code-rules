@@ -33,7 +33,7 @@ code-rules library add group techs/go \
   --when-to-read 'When writing or reviewing Go code.'
 ```
 
-Confirm the metadata in `techs/go/_group.json`. Read `techs/go/README.md` before authoring rules in that group.
+Confirm the metadata in `techs/go/_group.yaml`. Read `techs/go/README.md` before authoring rules in that group.
 
 #### Add a rule
 
@@ -65,7 +65,7 @@ code-rules library check
 
 Exit 0 means the library passes input validation; it does not prove that application code follows its rules.
 An undeclared license produces a warning. Confirm the publisher's license terms before sharing.
-Use one license declaration for the library in `rule-library.json`, with the actual license text and any notice files.
+Use one license declaration for the library in `rule-library.yaml`, with the actual license text and any notice files.
 
 Review the diff, commit the library, and publish a Git tag using the repository's release process.
 Give consumers the repository address, tag or version constraint, and group IDs.

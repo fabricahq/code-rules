@@ -40,11 +40,20 @@ func RenderGroup(metadata GroupMetadata) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	normalized, err := ParseGroupMetadata(data, "_group.json")
+	normalized, err := ParseGroupMetadata(data, "_group.yaml")
 	if err != nil {
 		return nil, err
 	}
-	return encodeAuthoredJSON(normalized)
+	var out bytes.Buffer
+	encoder := yaml.NewEncoder(&out)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(normalized); err != nil {
+		return nil, err
+	}
+	if err := encoder.Close(); err != nil {
+		return nil, err
+	}
+	return out.Bytes(), nil
 }
 
 // RenderRule validates YAML-safe metadata and either the supplied body or an explicitly unfinished canonical draft.

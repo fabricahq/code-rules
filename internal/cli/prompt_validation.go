@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -45,7 +46,7 @@ func validateAnswer(name, value string) error {
 		_, err = rules.ParseRepository(data, "--repository")
 		return err
 	case "ref":
-		_, _, err := libraryRef(value)
+		_, _, err := project.ParseSourceRef(value)
 		return err
 	}
 	return nil

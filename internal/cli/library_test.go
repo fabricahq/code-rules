@@ -69,7 +69,7 @@ func TestLibraryGuideExamples(t *testing.T) {
 			t.Fatalf("README example %d failed: %v\n%s", index+1, err, output)
 		}
 	}
-	for _, path := range []string{"techs/go/_group.json", "techs/go/README.md", "techs/go/return-errors.md"} {
+	for _, path := range []string{"techs/go/_group.yaml", "techs/go/README.md", "techs/go/return-errors.md"} {
 		if _, err := os.Stat(filepath.Join(directory, path)); err != nil {
 			t.Fatal(err)
 		}

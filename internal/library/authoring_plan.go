@@ -80,7 +80,7 @@ func checkNewGroup(ctx context.Context, root *os.Root, id string) error {
 	if err := rules.ValidateGroupID(id, "group"); err != nil {
 		return err
 	}
-	return filetxn.RequireAbsent(ctx, root, id+"/_group.json", id+"/README.md")
+	return filetxn.RequireAbsent(ctx, root, id+"/_group.yaml", id+"/README.md")
 }
 
 func checkNewRule(ctx context.Context, root *os.Root, id string, options Options) error {

@@ -4,7 +4,6 @@ package project
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,7 +37,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 		t.Fatal(err)
 	}
 	ruleMetadata := rules.RuleMetadata{Title: "Return errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
-	if err := os.Remove(filepath.Join(options.Directory, ".code-rules/local/techs/go/_group.json")); err != nil {
+	if err := os.Remove(filepath.Join(options.Directory, ".code-rules/local/techs/go/_group.yaml")); err != nil {
 		t.Fatal(err)
 	}
 	_, commitErr = rule.Commit(ctx, ruleMetadata, nil)
@@ -54,7 +53,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	declaration := json.RawMessage(`{"repository":"https://example.invalid/rules.git","ref":"v1.0.0","groups":"*","exclude":{},"replace":{}}`)
+	declaration := SourceInput{Repository: "https://example.invalid/rules.git", Ref: "v1.0.0", Groups: []string{"*"}}
 	if _, err := AddSource(ctx, "team", declaration, options); err != nil {
 		t.Fatal(err)
 	}

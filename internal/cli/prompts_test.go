@@ -59,12 +59,12 @@ func TestInteractiveAuthoring(t *testing.T) {
 			if result.ExitCode != tc.code {
 				t.Fatal(result)
 			}
-			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.json"))
+			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.yaml"))
 			if tc.created {
 				if !strings.HasSuffix(strings.ReplaceAll(result.Transcript, "\r\n", "\n"), "\n\n") {
 					t.Fatal("missing blank line after prompts", result.Transcript)
 				}
-				if err != nil || !strings.Contains(string(data), `"name": "Go"`) {
+				if err != nil || !strings.Contains(string(data), `name: Go`) {
 					t.Fatal(string(data), err)
 				}
 			} else if !os.IsNotExist(err) {
@@ -104,7 +104,7 @@ func TestLongTerminalPaste(t *testing.T) {
 	if err != nil || result.ExitCode != 0 {
 		t.Fatal(err, result)
 	}
-	data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.json"))
+	data, err := os.ReadFile(filepath.Join(directory, ".code-rules/local/techs/go/_group.yaml"))
 	if err != nil || !strings.Contains(string(data), description) {
 		t.Fatal("long paste was lost", err)
 	}

@@ -3,7 +3,7 @@ title: "Update rules"
 description: "Adopt upstream changes deliberately while preserving local decisions."
 ---
 
-Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, or add rules. Your project adopts those changes when you run `code-rules project sync`, using the version choices in `.code-rules/config.json`.
+Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, or add rules. Your project adopts those changes when you run `code-rules project sync`, using the version choices in `.code-rules/config.yaml`.
 
 Reviewing an update lets you check that the changed guidance still fits your project, including any rules you've excluded or replaced. In this guide, you'll select a library version, sync the rules, review the changes, and commit the result. You'll also learn how to change your selection of groups and recover from a failed update.
 
@@ -57,7 +57,7 @@ Update the affected exclusion or replacement deliberately.
 Edit the relevant `sources.<name>.groups` and sync again when the imported selection changes.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
-Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.json` exists.
+Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.yaml` exists.
 If it already exists, keep the local files unchanged. Otherwise author group metadata, or move or remove the local rules.
 
 ## Recover from a failed update

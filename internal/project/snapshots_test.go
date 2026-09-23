@@ -21,8 +21,8 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 		t.Fatal(err)
 	}
 	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{
-		"rule-library.json":    []byte(`{"formatVersion":1}`),
-		"techs/go/_group.json": []byte(`{"name":"Go","description":"Go rules","whenToRead":"When editing Go."}`),
+		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+		"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Go rules","whenToRead":"When editing Go."}`),
 		"assets/image.bin":     {0, 255, 10, 128}, "LICENSE": []byte("Terms\r\nPreserved\r\n"), "empty.txt": {},
 	}}}
 }
@@ -128,8 +128,8 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 		{"bad hash", func(r map[string]any) { r["files"].(map[string]any)["LICENSE"] = "123" }},
 		{"reserved", func(r map[string]any) { r["files"].(map[string]any)["_source.json"] = strings.Repeat("a", 64) }},
 		{"traversal", func(r map[string]any) { r["files"].(map[string]any)["../outside"] = strings.Repeat("a", 64) }},
-		{"missing manifest", func(r map[string]any) { delete(r["files"].(map[string]any), "rule-library.json") }},
-		{"missing metadata", func(r map[string]any) { delete(r["files"].(map[string]any), "techs/go/_group.json") }},
+		{"missing manifest", func(r map[string]any) { delete(r["files"].(map[string]any), "rule-library.yaml") }},
+		{"missing metadata", func(r map[string]any) { delete(r["files"].(map[string]any), "techs/go/_group.yaml") }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

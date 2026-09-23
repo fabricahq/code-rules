@@ -9,7 +9,7 @@ import (
 // GroupGuide identifies a group and appends the owner's authoring workflow without copying metadata.
 func GroupGuide(id, instructions string) []byte {
 	guide := fmt.Sprintf("# Group `%s`\n\n", id) + `This folder contains the source rules for one technology or engineering practice.
-Read [_group.json](_group.json) first: its name and description define the group's scope, and whenToRead tells agents when to consider its rules.
+Read [_group.yaml](_group.yaml) first: its name and description define the group's scope, and whenToRead tells agents when to consider its rules.
 Keep that metadata current when the group's scope changes.
 
 ## Instructions for agents
@@ -20,5 +20,5 @@ Keep that metadata current when the group's scope changes.
 4. Complete unfinished drafts, validate the result, and inspect the changed files before reporting completion.
 
 `
-	return []byte(guide + instructions + "\nThis README explains authoring; it is not an engineering rule and is not included in generated guidance. Keep group descriptions in _group.json.\n")
+	return []byte(guide + instructions + "\nThis README explains authoring; it is not an engineering rule and is not included in generated guidance. Keep group descriptions in _group.yaml.\n")
 }

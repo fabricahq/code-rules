@@ -1,48 +1,41 @@
 ---
 title: "Configuration"
-description: "Fields in .code-rules/config.json."
+description: "Fields in .code-rules/config.yaml."
 ---
 
-The **project configuration**, `.code-rules/config.json`, records the project's sources, selected groups, and exceptions. The **Code Rules directory**, `.code-rules/`, also holds `local/`, `vendor/`, and `generated/`.
+The **project configuration**, `.code-rules/config.yaml`, records the project's sources, selected groups, and exceptions. The **Code Rules directory**, `.code-rules/`, also holds `local/`, `vendor/`, and `generated/`.
 
-Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.json`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
+Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
 A project can import rules directly from multiple canonical libraries, pinning each one independently.
 Sync, build, and check validate the fields below.
 
+Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are rejected. Quote wildcard selectors, such as `groups: "*"`.
+
 ## Complete example
 
-```json
-{
-  "schemaVersion": 1,
-  "sources": {
-    "fabrica": {
-      "repository": "https://github.com/fabricahq/.code-rules-example.git",
-      "ref": "v1.0.0",
-      "groups": [
-        "techs/typescript",
-        "practices/testing"
-      ],
-      "exclude": {},
-      "replace": {
-        "techs/typescript/prefer-type-aliases": {
-          "file": "local/techs/typescript/prefer-interfaces.md",
-          "reason": "Our public extension API relies on declaration merging."
-        }
-      }
-    },
-    "acme": {
-      "repository": "https://github.com/acme/.code-rules.git",
-      "ref": "<full Git commit SHA>",
-      "groups": [
-        "techs/react",
-        "practices/testing",
-        "practices/observability"
-      ],
-      "exclude": {},
-      "replace": {}
-    }
-  }
-}
+```yaml
+schemaVersion: 1
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/.code-rules-example.git
+    ref: v1.0.0
+    groups:
+      - techs/typescript
+      - practices/testing
+    exclude: {}
+    replace:
+      techs/typescript/prefer-type-aliases:
+        file: local/techs/typescript/prefer-interfaces.md
+        reason: Our public extension API relies on declaration merging.
+  acme:
+    repository: https://github.com/acme/.code-rules.git
+    ref: <full Git commit SHA>
+    groups:
+      - techs/react
+      - practices/testing
+      - practices/observability
+    exclude: {}
+    replace: {}
 ```
 
 Repository names, groups, and rule IDs in examples are illustrative.
@@ -62,7 +55,7 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
 
 Unknown configuration fields are rejected, including unknown source and replacement fields.
-Local groups are discovered from `local/<group-id>/_group.json`; no source entry or separate group list is required.
+Local groups are discovered from `local/<group-id>/_group.yaml`; no source entry or separate group list is required.
 The former `localGroups` field is rejected with migration guidance. Remove it and keep the group metadata files.
 Each source includes its own `exclude` and `replace` objects, empty when unused.
 Replacement paths resolve relative to the Code Rules directory and must stay under its `local/` directory.
@@ -75,19 +68,15 @@ The schema version is `1`.
 
 Set `groups` to the string `"*"` to adopt the whole library:
 
-```json
-{
-  "schemaVersion": 1,
-  "sources": {
-    "team": {
-      "repository": "https://github.com/my-team/rules.git",
-      "ref": "v1.0.0",
-      "groups": "*",
-      "exclude": {},
-      "replace": {}
-    }
-  }
-}
+```yaml
+schemaVersion: 1
+sources:
+  team:
+    repository: https://github.com/my-team/rules.git
+    ref: v1.0.0
+    groups: "*"
+    exclude: {}
+    replace: {}
 ```
 
 Choose one of three supported selectors:
@@ -118,8 +107,8 @@ This completeness declaration comes from the snapshot supplier; offline checks d
 
 Use a complete Git address so the host is explicit:
 
-```json
-"repository": "https://gitlab.com/my-team/engineering/rules.git"
+```yaml
+repository: https://gitlab.com/my-team/engineering/rules.git
 ```
 
 Supported forms include:
@@ -197,14 +186,12 @@ Use a commit SHA when the configured reference itself must be immutable.
 
 Use `version` instead of `ref` to select the highest matching semantic version tag:
 
-```json
-{
-  "repository": "https://github.com/example/rules.git",
-  "version": ">= 1.2.0, < 2.0.0",
-  "groups": "*",
-  "exclude": {},
-  "replace": {}
-}
+```yaml
+repository: https://github.com/example/rules.git
+version: ">= 1.2.0, < 2.0.0"
+groups: "*"
+exclude: {}
+replace: {}
 ```
 
 Constraints use [HashiCorp go-version syntax](https://github.com/hashicorp/go-version). Surrounding whitespace is trimmed; comma-separated comparisons must all match.
@@ -258,11 +245,11 @@ Every valid rule file under `local/` automatically joins its adopted group; indi
 Local rules can join any imported group. A matching filename does not override an imported rule.
 A local file referenced by `replace` appears once under its local ID; the target is removed from active output.
 The complete local definition supplies the metadata, guidance, attribution, and assets. Configuration and provenance retain the replacement relationship.
-A local `_group.json` defines a group, including an empty group, without any configuration entry.
+A local `_group.yaml` defines a group, including an empty group, without any configuration entry.
 If local metadata exists for an imported group, its complete description and reading cues take precedence for project discovery.
 Otherwise, descriptions from every contributing library remain source-labeled.
 Provenance retains all group metadata and identifies the sources supplying the effective discovery guidance.
-Local rules without either local or imported group metadata are errors, with the missing `_group.json` path in the diagnostic.
+Local rules without either local or imported group metadata are errors, with the missing `_group.yaml` path in the diagnostic.
 The root `local/README.md` and each group-root `README.md` are authoring documentation, not rules; other misplaced Markdown files are still validated.
 
 The generated index shows group names, applicability guidance, and explicit **Open group** links. Without local metadata, guidance from multiple libraries remains labeled by source.

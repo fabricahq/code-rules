@@ -14,7 +14,7 @@ func TestRequireAbsent(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	if err := RequireAbsent(context.Background(), root, "missing/group/_group.json"); err != nil {
+	if err := RequireAbsent(context.Background(), root, "missing/group/_group.yaml"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := root.Stat("missing"); !os.IsNotExist(err) {

@@ -1,15 +1,15 @@
-// Check library declarations, exact diagnostics, and preservation of binary term files.
+// Check pure manifest parsing, exact diagnostics, and deterministic retained-path ordering.
 
 package rules_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/fabricahq/code-rules/internal/rules"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // TestLicenseFixtures checks complete manifest declarations against independent expectations.
@@ -22,7 +22,6 @@ func TestLicenseFixtures(t *testing.T) {
 		ID, Location string
 		Input        struct {
 			Manifest string
-			Paths    []string
 		}
 		Expected struct {
 			OK    bool
@@ -34,13 +33,8 @@ func TestLicenseFixtures(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, test := range cases {
-		// Exercise the supplied file inventory without opening real files.
 		t.Run(test.ID, func(t *testing.T) {
-			files := map[string][]byte{"rule-library.json": []byte(test.Input.Manifest)}
-			for _, path := range test.Input.Paths {
-				files[path] = nil
-			}
-			got, err := rules.ReadLibraryLicense(files, test.Location)
+			got, err := rules.ParseLibraryLicense([]byte(test.Input.Manifest), test.Location)
 			if !test.Expected.OK {
 				var validation *rules.ValidationError
 				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location || got != nil {
@@ -62,23 +56,17 @@ func TestLicenseFixtures(t *testing.T) {
 	}
 }
 
-// TestLicenseBytesAndPaths checks binary presence, exact CRLF preservation, and Unicode sorting.
-func TestLicenseBytesAndPaths(t *testing.T) {
-	license := []byte{0xff, 0, 13, 10}
-	notice := []byte("Notice\r\n")
-	files := map[string][]byte{"rule-library.json": []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":["NOTICE"]}}`), "LICENSE": license, "NOTICE": notice}
-	got, err := rules.ReadLibraryLicense(files, "library")
-	if err != nil || !bytes.Equal(license, []byte{0xff, 0, 13, 10}) || !bytes.Equal(notice, []byte("Notice\r\n")) {
-		t.Fatalf("bytes changed or read failed: %v", err)
-	}
-	if paths := rules.LicensePaths(got); !reflect.DeepEqual(paths, []string{"LICENSE", "NOTICE"}) {
-		t.Fatal(paths)
-	}
-	paths := rules.LicensePaths(&rules.LicenseDeclaration{Files: []string{"\ue000", "😀", "😀"}, AttributionFiles: []string{"a"}})
+// TestLicensePaths checks unique paths and Unicode sorting without modifying the declaration.
+func TestLicensePaths(t *testing.T) {
+	declaration := &rules.LicenseDeclaration{Files: []string{"\ue000", "😀", "😀"}, AttributionFiles: []string{"a"}}
+	paths := rules.LicensePaths(declaration)
 	if !reflect.DeepEqual(paths, []string{"a", "😀", "\ue000"}) {
 		t.Fatal(paths)
 	}
-	if _, err := rules.ReadLibraryLicense(nil, "missing"); err == nil {
-		t.Fatal("accepted missing manifest")
+	if !reflect.DeepEqual(declaration.Files, []string{"\ue000", "😀", "😀"}) {
+		t.Fatal("modified license declaration")
+	}
+	if paths := rules.LicensePaths(nil); len(paths) != 0 {
+		t.Fatalf("absent license paths: %v", paths)
 	}
 }
