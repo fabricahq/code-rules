@@ -41,11 +41,7 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 		case project.OutdatedGuide:
 			message = "Code Rules guide is missing or outdated; preserve any manual edits before refreshing"
 		}
-		command := "build"
-		if problem.Repair == project.RefreshGuide {
-			command = "init"
-		}
-		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextStep: "code-rules project " + command})
+		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextStep: "code-rules project build"})
 	}
 	if !report.Current() {
 		result.Status = "out_of_date"
