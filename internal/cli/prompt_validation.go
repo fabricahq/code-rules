@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -50,21 +49,4 @@ func validateAnswer(name, value string) error {
 		return err
 	}
 	return nil
-}
-
-// sourceGroupSelection keeps prompt validation and the saved declaration on the same wildcard representation.
-func sourceGroupSelection(groups []string) any {
-	if len(groups) == 1 && (groups[0] == "*" || groups[0] == "techs/*" || groups[0] == "practices/*") {
-		return groups[0]
-	}
-	return groups
-}
-
-// splitPromptGroups trims each comma-separated path before domain validation.
-func splitPromptGroups(answer string) []string {
-	groups := strings.Split(answer, ",")
-	for i := range groups {
-		groups[i] = strings.TrimSpace(groups[i])
-	}
-	return groups
 }

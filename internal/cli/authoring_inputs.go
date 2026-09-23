@@ -1,10 +1,9 @@
-// Register authoring commands and collect missing terminal inputs before filesystem operations.
+// Define shared authoring fields and collect metadata and body inputs before filesystem operations.
 
 package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -110,109 +109,24 @@ func (f *authoringFlags) addGroupFlags(cmd *cobra.Command, prefix string) {
 	cmd.Long = cmd.Short + "\n\nGROUP_PATH combines a category and group slug (e.g. practices/testing).\nThe name is its readable title (e.g. Testing or Testing and quality)."
 }
 
-// addProjectAuthoringCommands installs project initialization, source configuration, and local authoring.
-func addProjectAuthoringCommands(root *cobra.Command, options Options, output *commandOutput) {
-	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", cobra.NoArgs, options.Directory)
-	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
-		target, err := f.options(cmd.Context(), true)
-		if err != nil {
-			return err
-		}
-		result, err := project.Initialize(cmd.Context(), target)
-		if err != nil {
-			return err
-		}
-		output.report = projectInitializedReport(result)
-		return nil
+// addRuleFlags keeps the two authoring scopes' field labels and body instructions consistent.
+func (f *authoringFlags) addRuleFlags(cmd *cobra.Command) {
+	cmd.Long = cmd.Short + "\n\nA rule is a Markdown file that gives agents guidance for a specific task or situation.\n\nRULE_PATH includes the group path and rule slug, without .md (e.g. practices/testing/my-rule).\nThe title is the rule's readable name. Enter metadata here, then edit the created\nMarkdown file to write the instructions and examples. Use --body-file to supply\nexisting rule text instead of creating a draft." + documentationHelp
+	for name, description := range map[string]string{
+		"title":              "Readable, action-oriented rule title",
+		"when-to-read":       "When an agent should read this rule",
+		"impact":             "Consequence level: CRITICAL, HIGH, MEDIUM-HIGH, MEDIUM, LOW-MEDIUM, or LOW",
+		"impact-description": "Why this rule matters",
+		"body-file":          "Read rule text from this UTF-8 Markdown file instead of creating a draft",
+	} {
+		f.add(cmd, name, description)
 	}
-	root.AddCommand(initialize)
-	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or library"}
-	root.AddCommand(add)
-	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project configuration."), options.Directory)
-	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag, full commit SHA, or version range (e.g. >= 1.2.0, < 2.0.0)"} {
-		sf.add(source, name, description)
+	f.prompts = map[string]string{
+		"title":              "Rule title",
+		"when-to-read":       "When to read",
+		"impact":             "Impact (CRITICAL, HIGH, MEDIUM-HIGH, MEDIUM, LOW-MEDIUM, LOW)",
+		"impact-description": "Why it matters",
 	}
-	source.Long = librarySelectionHelp + documentationHelp
-	sf.prompts = map[string]string{"repository": "Git repository URL", "ref": "Ref (tag, full commit SHA, or version range)"}
-	var groups []string
-	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
-	source.RunE = func(cmd *cobra.Command, args []string) error {
-		target, err := sf.options(cmd.Context(), false)
-		if err != nil {
-			return err
-		}
-		plan, err := project.PlanSource(cmd.Context(), args[0], target)
-		if err != nil {
-			return err
-		}
-		sf.introduction = librarySelectionIntroduction(args[0])
-		if err := sf.collectSource(&groups); err != nil {
-			return err
-		}
-		declaration := map[string]any{"repository": sf.value("repository"), "groups": sourceGroupSelection(groups), "exclude": map[string]string{}, "replace": map[string]any{}}
-		field, value, err := libraryRef(sf.value("ref"))
-		if err != nil {
-			return usage(err)
-		}
-		declaration[field] = value
-		data, err := json.Marshal(declaration)
-		if err != nil {
-			return err
-		}
-		result, err := plan.Commit(cmd.Context(), data)
-		if err != nil {
-			return err
-		}
-		output.report = sourceAddedReport(result)
-		return nil
-	}
-	add.AddCommand(source)
-	group, gf := newAuthoringCommand("group GROUP_PATH", "Create a project-only rule group", requiredArgument("group path", "practices/testing", "Use a category and group slug, such as practices/testing or techs/go."), options.Directory)
-	gf.addGroupFlags(group, "")
-	group.RunE = func(cmd *cobra.Command, args []string) error {
-		target, err := gf.options(cmd.Context(), false)
-		if err != nil {
-			return err
-		}
-		plan, err := project.PlanLocalGroup(cmd.Context(), args[0], target)
-		if err != nil {
-			return err
-		}
-		gf.introduction = groupIntroduction(args[0], false)
-		if err := gf.require("name", "description", "when-to-read"); err != nil {
-			return err
-		}
-		result, err := plan.Commit(cmd.Context(), gf.group(""))
-		if err != nil {
-			return err
-		}
-		output.report = groupCreatedReport(result.Files, result.Warnings, args[0], authoringScope{})
-		return nil
-	}
-	add.AddCommand(group)
-	rule, rf := newAuthoringCommand("rule RULE_PATH", "Create a project-only rule or unfinished draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
-	rf.addRuleFlags(rule)
-	rule.RunE = func(cmd *cobra.Command, args []string) error {
-		target, err := rf.options(cmd.Context(), false)
-		if err != nil {
-			return err
-		}
-		plan, err := project.PlanLocalRule(cmd.Context(), args[0], target)
-		if err != nil {
-			return err
-		}
-		metadata, body, err := rf.collectRule(cmd.Context(), args[0], false)
-		if err != nil {
-			return err
-		}
-		result, err := plan.Commit(cmd.Context(), metadata, body)
-		if err != nil {
-			return err
-		}
-		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{})
-		return nil
-	}
-	add.AddCommand(rule)
 }
 
 // collectRule collects metadata and body after the domain has planned the target.
