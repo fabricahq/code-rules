@@ -15,10 +15,10 @@ import (
 // TestDocumentationRules rejects documentation drift that would make copied examples fail a real build.
 func TestDocumentationRules(t *testing.T) {
 	// The homepage illustration is explicitly abbreviated; only complete walkthrough rules are copyable.
-	for _, tc := range []struct{ file, pattern, title string }{
-		{"../../docs/src/content/docs/guides/write-rules.md", "(?s)```md\\n(---.*?)\\n```", "Verify retry limits"},
-		{"../../docs/src/content/docs/start-here/set-up-project.md", "(?s)```md\\n(---.*?)\\n```", "Test changed behavior"},
-		{"../../docs/src/content/docs/start-here/create-library.md", "(?s)```md\\n(---.*?)\\n```", "Make errors actionable"},
+	for _, tc := range []struct{ file, pattern, title, group string }{
+		{"../../docs/src/content/docs/guides/adding-rules/write-a-rule.md", "(?s)```md\\n(---.*?)\\n```", "Make errors actionable", "practices/error-handling"},
+		{"../../docs/src/content/docs/start-here/set-up-project.md", "(?s)```md\\n(---.*?)\\n```", "Test changed behavior", "practices/testing"},
+		{"../../docs/src/content/docs/guides/publishing-libraries/create-a-library.md", "(?s)```md\\n(---.*?)\\n```", "Make errors actionable", "practices/error-handling"},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			data, err := os.ReadFile(tc.file)
@@ -37,13 +37,13 @@ func TestDocumentationRules(t *testing.T) {
 				t.Fatal(err)
 			}
 			output, err := build.Generate(config, nil, map[string][]byte{
-				"practices/testing/_group.yaml": []byte(`{"name":"Testing","description":"Verify behavior.","whenToRead":"Changing behavior."}`),
-				"practices/testing/example.md":  data,
+				tc.group + "/_group.yaml": []byte(`{"name":"Example","description":"Example guidance.","whenToRead":"When this guidance applies."}`),
+				tc.group + "/example.md":  data,
 			}, build.Options{ToolVersion: "documentation-example", IndexMaxLines: 750})
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !strings.Contains(string(output.Files["rules/local/practices/testing/example.md"]), tc.title) {
+			if !strings.Contains(string(output.Files["rules/local/"+tc.group+"/example.md"]), tc.title) {
 				t.Fatal("missing rendered rule")
 			}
 		})

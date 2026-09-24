@@ -275,4 +275,4 @@ Vendored provenance records the resolved commit used by offline commands; it is 
 A project imports multiple sources directly.
 Libraries that themselves inherit and republish other libraries are not supported.
 
-See [Rule and library format](/reference/rule-library-format/) for library metadata and [Adapt rules](/guides/select-rules/#adapt-the-import-to-your-project) for examples of exceptions.
+See [Rule and library format](/reference/rule-library-format/) for library metadata and [Customize imported rules](/guides/customize/) for examples of exceptions.

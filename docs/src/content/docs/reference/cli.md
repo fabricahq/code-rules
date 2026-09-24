@@ -31,7 +31,7 @@ Init does not fetch libraries or generate rule guidance. It refuses to overwrite
 code-rules project add library ALIAS [options]
 ```
 
-Record a library in project configuration without fetching it. `ALIAS` is the source name, such as `team`. Run `code-rules project sync` afterward to import the selected rules.
+Record a library in project configuration without fetching it. `ALIAS` is the source name, such as `acme-rules`. Run `code-rules project sync` afterward to import the selected rules.
 
 | Option | Meaning |
 | --- | --- |
@@ -45,7 +45,7 @@ Bare versions supplied to `--ref`, such as `v1.2.3`, select literal tags. Ranges
 Library addition preserves existing source exceptions and local files. Pass each group ID as a separate option, rather than a comma-separated flag value:
 
 ```sh
-code-rules project add library team \
+code-rules project add library acme-rules \
   --repository https://github.com/example/rules.git \
   --ref '>= 1.2.0, < 2.0.0' \
   --groups practices/testing \
@@ -248,7 +248,7 @@ Both init commands and both check commands run without prompts. Only `library ch
 
 String options accept one value and cannot be repeated, except `--groups`, which accepts repeated group IDs. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 
-Scaffolding commands validate paths and detect collisions before writing. They preserve existing authored files and roll back failed creation attempts. They do not publish content or convert arbitrary third-party material. For the authoring workflow, see [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
+Scaffolding commands validate paths and detect collisions before writing. They preserve existing authored files and roll back failed creation attempts. They do not publish content or convert arbitrary third-party material. For the authoring workflow, see [Set up your first project](/start-here/set-up-project/) or [Create a library](/start-here/create-library/).
 
 ## Command output
 

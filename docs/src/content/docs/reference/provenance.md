@@ -19,7 +19,7 @@ Code Rules keeps three related records:
 | `vendor/<source-name>/_source.json` | Which commit and original files were imported from one library. |
 | `generated/libraries/<source-name>/README.md` | A readable summary of one library's revision and declared license terms. |
 
-These paths are relative to the Code Rules directory, `.code-rules/`. The **source name** is the name you gave a library in your configuration, such as `team`.
+These paths are relative to the Code Rules directory, `.code-rules/`. The **source name** is the name you gave a library in your configuration, such as `acme-rules`.
 
 Code Rules writes these files. To change the information they describe, edit your configuration or local rules and run the appropriate [sync or build command](/reference/sync/).
 
@@ -35,7 +35,7 @@ These files describe the current result, rather than a running history of every 
 
 ## Trace a rule to its source
 
-Open `generated/provenance.json` and find the rule's ID in the `rules` array. A rule ID includes its source name, such as `team:practices/testing/check-retries`.
+Open `generated/provenance.json` and find the rule's ID in the `rules` array. A rule ID includes its source name, such as `acme-rules:practices/testing/check-retries`.
 
 Each rule entry includes:
 
@@ -51,7 +51,7 @@ Local origins use `source: "local"`. Their repository, revision, and commit fiel
 
 ### Example: explain a local replacement
 
-Suppose your project imports the `team` library but replaces its `check-retries` rule with `local/practices/testing/service-retries.md`. You record the reason in configuration: “Use the retry limits required by this service.”
+Suppose your project imports the `acme-rules` library but replaces its `check-retries` rule with `local/practices/testing/service-retries.md`. You record the reason in configuration: “Use the retry limits required by this service.”
 
 The replacement's entry contains these fields. This excerpt omits the other origin and license fields:
 
@@ -64,14 +64,14 @@ The replacement's entry contains these fields. This excerpt omits the other orig
     "file": "practices/testing/service-retries.md"
   },
   "upstream": {
-    "source": "team",
+    "source": "acme-rules",
     "file": "practices/testing/check-retries.md"
   },
   "replacementReason": "Use the retry limits required by this service."
 }
 ```
 
-Read this as: agents receive the local `service-retries` rule, it replaces `team`'s `check-retries` rule, and the reason comes from your project configuration. The imported rule's full origin also records its repository and exact commit.
+Read this as: agents receive the local `service-retries` rule, it replaces `acme-rules`'s `check-retries` rule, and the reason comes from your project configuration. The imported rule's full origin also records its repository and exact commit.
 
 ## Inspect library versions and group guidance
 
@@ -135,7 +135,7 @@ The license record distinguishes original files from the copies retained with ge
 | `generatedFiles` | Retained license copies, relative to `generated/`. | The same generated license copies. |
 | `generatedAttributionFiles` | Retained notice copies, relative to `generated/`. | The same generated notice copies. |
 
-For example, a rule's `files` entry might be `vendor/team/LICENSE.md`, with `libraries/team/licenses/LICENSE.md` at the same position in `generatedFiles`. Generated rule links point to the retained copy. Notice paths correspond in the same way.
+For example, a rule's `files` entry might be `vendor/acme-rules/LICENSE.md`, with `libraries/acme-rules/licenses/LICENSE.md` at the same position in `generatedFiles`. Generated rule links point to the retained copy. Notice paths correspond in the same way.
 
 The source record also has a `licenseFiles` list of the library-relative files belonging to its declaration. These lists describe files for one library-wide license declaration.
 

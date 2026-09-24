@@ -70,10 +70,25 @@ If resolved rules conflict, identify both IDs and ask the project owner to resol
 Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
 Keep the pinned ruleset during ordinary work; adopting upstream changes is a separate project update.
 
-## Write or review rules themselves
+<span id="write-or-review-rules-themselves"></span>
+
+## Manage and author rules
+
+When the task changes rules or their configuration, use the matching guide below. The guides provide the working directory, commands, files to edit, and checks for each task.
+
+| Task | Guide |
+| --- | --- |
+| Add an original rule to an existing project | [Write a rule](/guides/write-rules/#add-a-rule-to-an-existing-project) |
+| Declare terms for rules you publish | [License a library](/guides/license-rules/) |
+| Turn external guidance into a rule with retained attribution and terms | [Import rules from another source](/guides/select-rules/#from-another-source) |
+| Import groups from an existing library | [Import rules](/guides/select-rules/) |
+| Add project guidance or exclude and replace imported rules | [Customize imported rules](/guides/customize/) |
+| Publish a collection of rules for projects to import | [Create a library](/start-here/create-library/) |
+| Adopt newer library versions or change imported groups | [Update rules](/guides/update/) |
+| Investigate incompatible instructions and record the owner's decision | [Resolve conflicting rules](/guides/conflicting-guidance/) |
 
 When the task changes a rule, follow the target library or project's authoring conventions and the [required file format](/reference/rule-library-format/).
-The [rubric and template](/reference/rule-authoring/) offer writing advice, not a pass/fail checklist. The [Code Rules authoring skill](/guides/write-rules/#write-with-the-skill) is planned and is not available yet.
+The [rubric and template](/reference/rule-authoring/) offer writing advice, not a pass/fail checklist.
 
 Use relevant rubric criteria to suggest improvements with a concrete passage and revision. A valid short rule does not need every template section.
 Separate unclear wording from unresolved engineering policy; ask the owner to resolve the latter.

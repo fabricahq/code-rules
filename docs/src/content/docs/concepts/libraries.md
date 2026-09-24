@@ -38,6 +38,6 @@ Library authors publish updates as new versions. Each project chooses when to ad
 
 Libraries can be public or private. Imports copy their content into the consuming project, so use private libraries only in projects allowed to hold and share that content.
 
-Code Rules preserves declared license text and notices with imported rules. For choosing terms, see [License rules](/guides/license-rules/).
+Code Rules preserves declared license text and notices with imported rules. For choosing terms, see [License a library](/guides/license-rules/).
 
-To publish your own, follow [Create your first library](/start-here/create-library/). For file details, see [Rule and library format](/reference/rule-library-format/).
+To publish your own, follow [Create a library](/start-here/create-library/). For file details, see [Rule and library format](/reference/rule-library-format/).

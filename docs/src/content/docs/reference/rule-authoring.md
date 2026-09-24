@@ -220,7 +220,7 @@ Each rule must remain independently selectable. Do not link to another rule docu
 
 See [Supporting assets](/reference/rule-library-format/#supporting-assets) for the required layout and examples.
 
-When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; rule-level and group-level license overrides are unsupported. Use optional [structured attribution](/reference/rule-library-format/#rule-attribution) for source credits. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Code Rules format.
+When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; rule-level and group-level license overrides are unsupported. Use optional [structured attribution](/reference/rule-library-format/#rule-attribution) for source credits. Follow [Import rules from another source](/guides/select-rules/#from-another-source) for material that does not already use the Code Rules format.
 
 ## Authoring rubric
 

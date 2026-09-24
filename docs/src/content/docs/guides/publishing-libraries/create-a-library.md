@@ -1,6 +1,7 @@
 ---
-title: "Create your first library"
+title: "Create a library"
 description: "Write and validate one shared rule, then publish it for projects to import."
+slug: start-here/create-library
 ---
 
 Let's publish rules that other projects can use. A **library** is a collection of rule groups you maintain independently of the projects that import it. A **rule** is a Markdown file that explains one practice you want agents to follow.
@@ -107,7 +108,7 @@ There is no library build step. A library publishes source rules; each consuming
 
 ## 4. Choose terms before sharing
 
-Decide who may use, adapt, and redistribute the library. Public visibility alone does not grant those permissions. Use [License rules](/guides/license-rules/) to choose and record terms, especially when including someone else's material.
+Decide who may use, adapt, and redistribute the library. Public visibility alone does not grant those permissions. Use [License a library](/guides/license-rules/) to choose and record terms, especially when including someone else's material.
 
 For example, if you choose MIT for your own rules, add the complete MIT text with the appropriate copyright notice to `LICENSE.md`, then set `rule-library.yaml` to:
 

@@ -12,7 +12,7 @@ export default defineConfig({
   // Satteri's installed index.js resolves platform binaries relative to its package.
   vite: { plugins: [tailwindcss()], ssr: { external: ['satteri'] } },
   redirects: {
-    '/guides/customize/': '/guides/select-rules/',
+    '/guides/adapt-rules/': '/guides/select-rules/#from-another-source',
     '/overview/': '/start-here/overview/',
     '/status/': '/start-here/install/',
     '/guides/install/': '/start-here/install/',
@@ -41,7 +41,6 @@ export default defineConfig({
         { label: 'What is Code Rules?', slug: 'start-here/overview' },
         { label: 'Install Code Rules', slug: 'start-here/install' },
         { label: 'Set up your first project', slug: 'start-here/set-up-project' },
-        { label: 'Create your first library', slug: 'start-here/create-library' },
       ] },
       { label: 'Concepts', collapsed: true, items: [
         { label: 'Rule', slug: 'concepts/rule' },
@@ -50,15 +49,18 @@ export default defineConfig({
         { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', collapsed: true, items: [
-        { label: 'Manage project rules', collapsed: true, items: [
+        { label: 'Adding rules', collapsed: true, items: [
+          { label: 'Write a rule', slug: 'guides/write-rules' },
           { label: 'Import rules', slug: 'guides/select-rules' },
+        ] },
+        { label: 'Managing rules', collapsed: true, items: [
+          { label: 'Customize imported rules', slug: 'guides/customize' },
           { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
           { label: 'Update rules', slug: 'guides/update' },
         ] },
-        { label: 'Write and share rules', collapsed: true, items: [
-          { label: 'Write a rule', slug: 'guides/write-rules' },
-          { label: 'License rules', slug: 'guides/license-rules' },
-          { label: 'Adapt a third-party rule', slug: 'guides/adapt-rules' },
+        { label: 'Publishing libraries', collapsed: true, items: [
+          { label: 'Create a library', slug: 'start-here/create-library' },
+          { label: 'License a library', slug: 'guides/license-rules' },
         ] },
       ] },
       { label: 'Reference', collapsed: true, items: [

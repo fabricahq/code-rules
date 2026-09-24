@@ -97,7 +97,7 @@ Links to original files on GitHub.com and GitLab.com use the imported commit, so
 
 Code Rules preserves rule attribution in both imported and generated files and keeps attribution links valid. It verifies and retains the license and notice files declared in the library manifest, includes them in integrity checks, and reports their changes during updates.
 
-Generated rules link to retained terms under `generated/libraries/<source-name>/licenses/`. See [License rules](/guides/license-rules/) for how library authors declare those files.
+Generated rules link to retained terms under `generated/libraries/<source-name>/licenses/`. See [License a library](/guides/license-rules/) for how library authors declare those files.
 
 ## Checks before updating your files
 

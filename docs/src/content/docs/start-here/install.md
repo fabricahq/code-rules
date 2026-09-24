@@ -23,7 +23,7 @@ code-rules --version
 
 To use your current terminal, run the command the installer prints instead.
 
-**Next:** [Set up your first project](/start-here/set-up-project/) or [create your first library](/start-here/create-library/).
+**Next:** [Set up your first project](/start-here/set-up-project/) or [create a library](/start-here/create-library/).
 
 ## Upgrade
 

@@ -3,19 +3,21 @@ title: "Set up your first project"
 description: "Write a rule for your coding agent, then reuse rules written by others."
 ---
 
-We're going to enable your coding agent to get consistent instructions for how to write and review code in your codebase. In Code Rules, that codebase is your **project**.
+Let's give your coding agent guidance for working in your codebase. In Code Rules, that codebase is your **project**.
 
-We will declare guidance in a **rule,** which is a Markdown file that explains one practice you want your agent to follow, such as testing changes to your code.
+You'll start with one **rule**: a Markdown file that describes a practice you want your agent to follow. Our example asks the agent to test changes to your code.
 
 In this walkthrough, you'll:
 
-1. Write a rule just for your project. We call this a **local rule**.
-2. Build the files your agent will read from that rule.
-3. Add a rule written by someone else. You'll get it from a **library**, a collection of rules maintained separately for projects to reuse. We'll use Fabrica's public library as an example.
-4. Tell your coding agent where to find and read both rules, then try a task.
+1. Write that rule for your project as a **local rule**.
+2. Build the files that organize the rule for your agent to read.
+3. Import another rule from a **library**, a collection of rules that projects can reuse. We'll use [Fabrica's public rule library](https://github.com/fabricahq/.code-rules-public/).
+4. Tell your agent where to read both rules, then try a task to see them in use.
 5. Commit the guidance so everyone working on the project can use it.
 
-Start in the **project root**, the top-level directory of the codebase you want to work on. You need [Code Rules installed](/start-here/install/), and Git to import the library. To publish rules for other projects to use instead, follow [Create your first library](/start-here/create-library/).
+Before you begin, [install Code Rules](/start-here/install/) and make sure Git is available to import the library. Open a terminal at your **project root**, the top-level directory of your codebase.
+
+To publish rules for other projects to use, follow [Create a library](/start-here/create-library/).
 
 ## 1. Set up the project
 
@@ -23,15 +25,15 @@ Start in the **project root**, the top-level directory of the codebase you want 
 code-rules project init
 ```
 
-This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `local/`. Initializing Code Rules does not change your project's `README.md` or agent instructions.
+This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `local/`. Initializing Code Rules does not change any files outside of `/.code-rules`.
 
-Later, when you import a library, Code Rules saves a copy of its files at the version you selected in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
+Later, when you import rules from a library, Code Rules saves the selected groups and their supporting files at the version you selected in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
-Run the commands below from the project root. After initialization, you can also run project commands from its Git subdirectories. See [Project files](/reference/files/) for the layout.
+Run the commands below from the project root. After initialization, project commands also work from any subdirectory in your Git repository. Outside Git, continue using the project root. See [Project files](/reference/files/) for the layout.
 
 ## 2. Add your first local rule
 
-A **local rule** belongs to this project. Let's add one about testing changed behavior.
+A **local rule** is a rule that will belong solely to this project. Let's add one about testing changed behavior.
 
 First create its group. A group collects related rules and tells agents when to read them:
 
@@ -42,7 +44,11 @@ code-rules project add group practices/testing \
   --when-to-read 'When adding or changing behavior, fixing bugs, or reviewing tests.'
 ```
 
-Use the CLI to create a draft rule in that group:
+Here we just created a group named "practices/testing" that will describe general practices around automated testing across programming languages or technologies.
+
+If we had wanted to create a rule for a specific technology like, say, Playwright, we would have named the group something like "techs/playwright". All group names must be prefixed by either "practices/" or "techs/".
+
+Now that our group exists, we can use the CLI to create a draft rule in that group:
 
 ```sh
 code-rules project add rule practices/testing/test-changed-behavior \
@@ -72,7 +78,9 @@ For example, if a discount changes an order's total, assert the resulting total 
 Run the relevant tests before considering the change complete. Changes that do not alter behavior do not need a new test solely to accompany the edit.
 ```
 
-The fields at the top describe the rule; the Markdown below tells the agent what to do. Replacing the draft also removes its unfinished-draft marker, so the rule is ready to build.
+To keep things simple, this is a short rule. The [rubric and template](/reference/rule-authoring/) offer optional advice for writing more detailed rules; you don't need every section.
+
+Still, this rule has the core structure. The fields at the top describe the rule; the Markdown below that tells the agent what to do. Replacing the draft also removes its unfinished-draft marker, so the rule is ready to build.
 
 ## 3. Build the guidance your agent will read
 
@@ -174,6 +182,6 @@ Anyone who checks out the repository will then have the same rules and instructi
 
 ## Next steps
 
-When you're ready, [import and customize more rules](/guides/select-rules/) or [update the rules you use](/guides/update/).
+When you're ready, [import more rules](/guides/select-rules/), [customize imported rules](/guides/customize/) or [update the rules you use](/guides/update/).
 
-To share rules of your own, continue with [Create your first library](/start-here/create-library/).
+To share rules of your own, continue with [Create a library](/start-here/create-library/).
