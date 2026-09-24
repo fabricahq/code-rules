@@ -32,8 +32,13 @@ The root TypeScript, lint, and test commands include these Bun scripts; Astro ch
 `bun run docs:links` uses Bun and parse5 to check local destinations and fragments in the built HTML.
 For a different build directory, run `bun docs/_tools/link-checker/cli.ts <directory>` from the repository root.
 The production build includes the search index.
-Hosting is not configured, and these commands do not publish the site.
-Set Astro's `site` option after selecting a production URL; sitemap generation is skipped until then.
+These commands do not publish the site.
+
+## Publishing
+
+The Documentation workflow publishes the site, including `install.sh`, to GitHub Pages at <https://code-rules.fabricahq.com> after a push to `main` passes every docs check, including the external link check. Pull requests and other branches only run the checks.
+The site is served at the domain root, and page links are root-relative; do not set Astro's `base`.
+GitHub Pages settings, the custom domain, and its DNS record are managed in Fabrica's infrastructure repository, not here.
 
 ## Maintain the docs
 
