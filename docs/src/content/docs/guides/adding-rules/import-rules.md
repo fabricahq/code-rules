@@ -11,7 +11,7 @@ A **library** shares rules across projects. Let's say your team has already writ
 Before you begin:
 
 - [Install Code Rules](/start-here/install/) and [initialize your project](/start-here/set-up-project/#1-set-up-the-project).
-- Choose a Code Rules library your project can access. If you don't have one, explore [Fabrica's public rule library](https://github.com/fabricahq/.code-rules-public/) or [create your own library](/start-here/create-library/). Find the library's Git URL, a published tag or version range, and the group paths it provides.
+- Choose a Code Rules library your project can access. If you don't have one, explore [Fabrica's public rule library](https://github.com/fabricahq/public-rules/) or [create your own library](/start-here/create-library/). Find the library's Git URL, a published tag or version range, and the group paths it provides.
 - Run project commands from anywhere in your Git repository. Outside Git, run them from the project root. All file paths below are relative to the project root.
 
 ## Import from a Code Rules library

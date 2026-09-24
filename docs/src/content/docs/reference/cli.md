@@ -159,7 +159,7 @@ Create a group with `_group.yaml` metadata and an authoring README in the librar
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--name TEXT` | Required. Group display name. |
 | `--description TEXT` | Required. What the group covers. |
 | `--when-to-read TEXT` | Required. When an agent should read the group. |
@@ -177,7 +177,7 @@ Create a rule in an existing library group. `ID` includes the group path and rul
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--title TEXT` | Required. Action-oriented rule title. |
 | `--when-to-read TEXT` | Required. When an agent should read the rule. |
 | `--impact LEVEL` | Required. One of `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`. |
@@ -197,7 +197,7 @@ Validate the library manifest, all groups and rules, supporting assets, and decl
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--non-interactive` | Accepted; library check does not prompt. |
 
 Reports group and rule counts and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations and missing declared files fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
@@ -299,4 +299,4 @@ Update existing scripts to use the scoped commands below. Use `-h` or `--help` f
 | `code-rules build` | `code-rules project build` |
 | `code-rules check` | `code-rules project check` |
 
-Library commands and the on-disk configuration and directory layout are unchanged.
+The current project configuration is `.code-rules/config.yaml`, and library metadata uses YAML files. See [Configuration](/reference/configuration/) and [Rule and library format](/reference/rule-library-format/) when updating older scripts.

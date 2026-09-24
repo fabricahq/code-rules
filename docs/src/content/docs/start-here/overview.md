@@ -9,7 +9,7 @@ Code Rules is the package manager for your engineering rules.
 
 To use Code Rules:
 
-1. Use the `code-rules` CLI to initialize a new project at `/.code-rules` with a `config.yaml` file.
+1. Run `code-rules project init` from your project root to create `.code-rules/config.yaml`.
 2. Write the rules you want agents to follow, or import existing rules from a rule library.
 3. Run `code-rules project sync` and Code Rules will use your configuration and rules to generate a collection of Markdown documents optimized for agents to read.
 
@@ -55,11 +55,11 @@ You organize rules into [groups](/concepts/groups/), where a group represents ei
 
 ### Projects
 
-You declare the rules you want in a [project](/concepts/project/), specifically in the `/.code-rules` folder in your project repo. You (or your agent) can use the `code-rules` CLI to initialize a new project, and add local rules and groups. We recommend committing `/.code-rules` to version control.
+Your [project](/concepts/project/) is the codebase whose rules Code Rules manages. Its `.code-rules/` directory holds the configuration and rules. You (or your agent) can use the CLI to set up Code Rules in your project and add local rules and groups. We recommend committing `.code-rules/` to version control.
 
 ### Libraries
 
-Finally, you probably want to import some pre-existing rules from a [library](/concepts/libraries/), which is a collection of rules and groups maintained by a third-party. Libraries can optionally declare license terms, which Code Rules carries into your project.
+Finally, you probably want to import some pre-existing rules from a [library](/concepts/libraries/), a collection of rule groups maintained separately for projects to reuse. Libraries can optionally declare license terms, which Code Rules carries into your project.
 
 ### RULES.md
 

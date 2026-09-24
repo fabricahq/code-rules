@@ -55,7 +55,7 @@ See [Rule and library format](/reference/rule-library-format/) for the fields an
 
 ## Assets
 
-Rules can optionally link to diagrams, sample data, or longer explanations in `assets/`. You maintain these supporting files; Code Rules includes them in the generated guidance. See [Supporting assets](/reference/rule-library-format/#supporting-assets) for the layout.
+Rules can optionally link to diagrams, sample data, or longer explanations in `assets/`. You maintain these supporting files; Code Rules retains them alongside the source rules and updates links in generated guidance. See [Supporting assets](/reference/rule-library-format/#supporting-assets) for the layout.
 
 ## When to read a group
 

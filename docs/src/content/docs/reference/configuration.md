@@ -6,7 +6,7 @@ description: "Fields in .code-rules/config.yaml."
 The **project configuration**, `.code-rules/config.yaml`, records the project's sources, selected groups, and exceptions. The **Code Rules directory**, `.code-rules/`, also holds `local/`, `vendor/`, and `generated/`.
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
-A project can import rules directly from multiple canonical libraries, pinning each one independently.
+A project can import rules directly from multiple libraries, choosing each source's revision independently.
 Sync, build, and check validate the fields below.
 
 Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are rejected. Quote wildcard selectors, such as `groups: "*"`.
@@ -71,8 +71,8 @@ Set `groups` to the string `"*"` to adopt the whole library:
 ```yaml
 schemaVersion: 1
 sources:
-  team:
-    repository: https://github.com/my-team/rules.git
+  acme-rules:
+    repository: https://github.com/acme/rules.git
     ref: v1.0.0
     groups: "*"
     exclude: {}
@@ -214,15 +214,15 @@ Partial tags such as `v1`, names such as `release-1.2.3`, and branches are ignor
 Lightweight and annotated tags are supported, but the selected tag must resolve to a commit.
 Use `ref` to select an exact tag outside this naming convention.
 
-Imports selects by semantic version precedence, not tag date or Git listing order.
+Code Rules selects by semantic version precedence, not tag date or Git listing order.
 If tags at the highest matching precedence point to different objects, import fails as ambiguous. Build metadata does not affect precedence.
 Aliases pointing to the same commit are allowed; the lexicographically first tag spelling is selected deterministically.
 If the selected tag changes between discovery and fetching, import fails rather than silently accepting a different revision.
-No matching tag is an error; Imports does not fall back to a branch or unrelated release.
+No matching tag is an error; Code Rules does not fall back to a branch or unrelated release.
 
 Snapshots and generated provenance record the requested `version`, `resolvedTag`, `resolvedVersion`, and `resolvedCommit`.
 The normalized version retains any SemVer build metadata and omits the leading `v`.
-A new explicit import resolves the constraint again. Offline Builds checks the recorded tag and version against the constraint, then uses the stored commit without querying Git.
+A new `code-rules project sync` resolves the constraint again. Offline build and check verify the recorded tag and version against the constraint, then use the stored commit without querying Git.
 The `sync` command combines re-importing and safe file updates. See [Sync and recovery](/reference/sync/).
 
 ## Source-scoped exceptions
@@ -259,7 +259,7 @@ The importer does not silently choose one library's description over another's.
 ## Conflicting rules
 
 Source-qualified IDs prevent naming collisions, but distinct rules can still require incompatible behavior in the same situation.
-Both remain active unless the project explicitly excludes or replaces a rule under its owning source.
+Both remain active until the project adopts corrected library guidance or explicitly excludes or replaces a rule under its owning source.
 The importer does not infer priority from source order or interpret prose to resolve contradictions.
 
 See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an agent review prompt, and ways to resolve competing instructions.

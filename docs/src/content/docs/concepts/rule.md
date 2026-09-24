@@ -25,9 +25,9 @@ A project should be able to import, exclude, or replace one rule without also ch
 A rule is a Markdown file with two parts:
 
 - **Metadata at the top** gives the rule a title and tells agents when to read it and how important it is.
-- **Guidance in the body** explains what to do, when it applies, and why it matters. Examples show the intended behavior, and validation instructions explain how to check the result.
+- **Guidance in the body** explains what to do and when it applies. Add rationale, examples, and ways to check the result when they help make the rule clear.
 
-For the fields and a complete example, see the [rubric and template](/reference/rule-authoring/). To write your own, follow [Write a rule](/guides/write-rules/).
+For the required fields, see [Rule and library format](/reference/rule-library-format/#rule-metadata). The [rubric and template](/reference/rule-authoring/) offer writing advice. To write your own, follow [Write a rule](/guides/write-rules/).
 
 ## Where a rule lives
 

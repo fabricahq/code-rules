@@ -11,7 +11,7 @@ Code Rules is a standalone binary for macOS and Linux. [Using Windows?](#install
 curl -fsSL https://code-rules.fabricahq.com/install.sh | sh
 ```
 
-This installs the latest stable release into `~/.local/bin` and sets up your shell's `PATH`. No `sudo` needed. [View the installer script](/install.sh).
+This installs the latest stable release into `~/.local/bin` and sets up `PATH` for supported shells. No `sudo` needed. [View the installer script](/install.sh).
 
 <span id="set-up-your-path"></span>
 

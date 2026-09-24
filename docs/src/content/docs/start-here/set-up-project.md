@@ -11,8 +11,8 @@ In this walkthrough, you'll:
 
 1. Write that rule for your project as a **local rule**.
 2. Build the files that organize the rule for your agent to read.
-3. Import another rule from a **library**, a collection of rules that projects can reuse. We'll use [Fabrica's public rule library](https://github.com/fabricahq/.code-rules-public/).
-4. Tell your agent where to read both rules, then try a task to see them in use.
+3. Import rules from a **library**, a collection of rules that projects can reuse. We'll use [Fabrica's public rule library](https://github.com/fabricahq/public-rules/).
+4. Tell your agent where to read the rules, then try a task to see them in use.
 5. Commit the guidance so everyone working on the project can use it.
 
 Before you begin, [install Code Rules](/start-here/install/) and make sure Git is available to import the library. Open a terminal at your **project root**, the top-level directory of your codebase.
@@ -25,7 +25,7 @@ To publish rules for other projects to use, follow [Create a library](/start-her
 code-rules project init
 ```
 
-This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `local/`. Initializing Code Rules does not change any files outside of `/.code-rules`.
+This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `local/`. Initializing Code Rules does not change any files outside `.code-rules/`.
 
 Later, when you import rules from a library, Code Rules saves the selected groups and their supporting files at the version you selected in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
@@ -114,26 +114,24 @@ code-rules project check
 
 This checks the rule files, not whether your application follows the rules.
 
-## 4. Import a rule from the public library
+## 4. Import rules from the public library
 
-Now let's reuse a rule someone else has written. A **library** is an independently maintained collection of rule groups that projects can import.
+Now let's reuse guidance someone else has written. A **library** is an independently maintained collection of rule groups that projects can import.
 
-The [Fabrica public library](https://github.com/fabricahq/.code-rules-public) includes a code-design group. In `v0.1.0`, that group contains one rule: **Express operations as meaningful steps**. It helps agents keep functions understandable without extracting unnecessary helpers. Read it before deciding to adopt it.
-
-Fabrica's public library is awaiting its first release. Until it is published, skip this optional import and [connect your local rule to your agent](#5-give-the-rules-to-your-agent).
+The [Fabrica public library](https://github.com/fabricahq/public-rules) includes a code-design group. In `v1.0.0`, that group contains **Express operations as meaningful steps**, **Organize code by feature**, and **Separate pure computation from effects**. Read them before deciding to adopt the group.
 
 From the same project root, run:
 
 ```sh
 code-rules project add library fabrica \
-  --repository https://github.com/fabricahq/.code-rules-public.git \
-  --ref '>= 0.1.0, < 0.2.0' \
+  --repository https://github.com/fabricahq/public-rules.git \
+  --ref '>= 1.0.0, < 2.0.0' \
   --groups practices/code-design
 ```
 
 This adds the library's repository, version constraint, and selected group to `.code-rules/config.yaml` under the source name `fabrica`.
 
-The version constraint `>= 0.1.0, < 0.2.0` allows updates within the `0.1.x` series. Each time you run `code-rules project sync`, Code Rules automatically selects the newest release that matches.
+The version constraint `>= 1.0.0, < 2.0.0` allows updates within the `1.x` series. Each time you run `code-rules project sync`, Code Rules selects the highest matching version tag.
 
 Now run `code-rules project sync` to download the selected rules and build the agent guidance. You don't need to run `code-rules project build` separately.
 
@@ -142,7 +140,7 @@ code-rules project sync
 code-rules project check
 ```
 
-Open `.code-rules/generated/RULES.md` again. You'll now see your local Testing group and the imported "Code design" group. Your local rule remains yours to edit. The imported rule retains its source and license information.
+Open `.code-rules/generated/RULES.md` again. You'll now see your local Testing group and the imported "Code design" group. Your local rule remains yours to edit. The imported rules retain their source and license information.
 
 ## 5. Give the rules to your agent
 

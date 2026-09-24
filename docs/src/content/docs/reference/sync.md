@@ -54,7 +54,7 @@ Sync and build report counts and sorted lists of added, changed, and removed pat
 
 There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
-Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies both generated guidance and the managed Code Rules guide without writing either.
+For missing or stale managed output, check reports `status` and `problems`, including each problem's path and suggested repair command. Invalid configuration, rule files, or imported snapshots cause an error instead of a `problems` list. Check verifies generated guidance and the managed Code Rules guide without writing either.
 
 | Check exit code | Meaning |
 | --- | --- |
@@ -64,7 +64,7 @@ Check reports `status` and `problems`, including each problem's path and suggest
 
 ## Repair missing or outdated files
 
-Use the problem reported by `code-rules project check` to choose a repair:
+Use the problem or error reported by `code-rules project check` to choose a repair:
 
 | Problem | What to do |
 | --- | --- |

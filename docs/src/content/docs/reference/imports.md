@@ -29,7 +29,7 @@ For the complete layout, see [Project files](/reference/files/). Once the librar
 
 ## What gets copied
 
-Each library has a **source name** in your configuration, such as `team`. Code Rules stores that library's imported files under `vendor/team/`.
+Each library has a **source name** in your configuration, such as `acme-rules`. Code Rules stores that library's imported files under `vendor/acme-rules/`.
 
 The copy includes:
 
@@ -61,17 +61,17 @@ Code Rules then decides which rules are **active**, meaning included in the gene
 3. Substitutes your local rules for imported rules you explicitly replaced.
 4. Adds your remaining local rules.
 
-Each rule's ID includes its source name. For example, `team:practices/testing/check-retries` identifies the `check-retries` rule from the `team` library. This keeps rules from different libraries distinct, even when their filenames match.
+Each rule's ID includes its source name. For example, `acme-rules:practices/testing/check-retries` identifies the `check-retries` rule from the `acme-rules` library. This keeps rules from different libraries distinct, even when their filenames match.
 
 A replacement contributes its complete local definition: ID, title, metadata, body, attribution, and links to supporting files. It must belong to the same group as the rule it replaces. Each local rule appears only once, even when used as a replacement.
 
-Code Rules does not read rule text to detect contradictory instructions. Two libraries can supply conflicting rules, and both remain active unless you configure an exclusion or replacement. The order of libraries in your configuration does not establish priority. See [Resolve conflicting rules](/guides/conflicting-guidance/).
+Code Rules does not read rule text to detect contradictory instructions. Two libraries can supply conflicting rules, and both remain active until your project adopts corrected library guidance or configures an exclusion or replacement. The order of libraries in your configuration does not establish priority. See [Resolve conflicting rules](/guides/conflicting-guidance/).
 
 ## Where agents read the result
 
 Code Rules writes the active rules and reading indexes to `generated/`. Agents start at `generated/RULES.md`, open relevant groups, and read the applicable rules in full.
 
-The generated files also include library summaries, retained license files, and **provenance**: records of where rules came from and which rules they replaced. Replacement targets and reasons stay in configuration and provenance, outside the rule guidance. Group descriptions remain labeled by source so you can see which library supplied them.
+The generated files also include library summaries, retained license files, and **provenance**: records of where rules came from and which rules they replaced. Replacement targets and reasons stay in configuration and provenance, outside the rule guidance. When several libraries supply a group, their descriptions remain labeled by source; local group metadata can supply the project's effective description.
 
 The same files support implementation and review. Your project chooses how to check that agents follow the rules; importing does not enforce compliance.
 
@@ -137,7 +137,7 @@ A rule or Markdown attachment cannot link to another rule document on disk, even
 
 Within a selected group, Markdown files outside asset directories count as rules, including files in nested folders. Declared license and notice files and the group-root `README.md` are exceptions. Put other supporting Markdown, such as `_README.md`, in an asset directory.
 
-Markdown assets, license files, and notice files must use UTF-8 text. Other assets can be binary files; Code Rules preserves their original bytes.
+Markdown assets must use UTF-8 text. Declared license and notice files can contain other bytes, which Code Rules retains unchanged. Other assets can also be binary files.
 
 ## Import limits and version errors
 
@@ -147,7 +147,7 @@ Each library import has these limits:
 
 | Resource | Limit |
 | --- | --- |
-| Fetching and version discovery | 120 seconds per library. |
+| Fetching, validation, and snapshot creation | 120 seconds per library. |
 | Entries in the Git file tree | 10,000 entries. |
 | Git file-tree listing | 8 MiB. |
 | Each retained file | 8 MiB. |
