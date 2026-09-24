@@ -51,6 +51,10 @@ Use the docs to explain the product experience and its contracts.
 Keep implementation tasks in the internal planning material.
 Keep release availability accurate in the installation guide.
 
+Reference pages explain user decisions, supported file formats, and recovery steps, with copyable examples. Keep the details needed to use Code Rules without reading its source.
+Use CLI `--help` for exhaustive option lists. Link implementation questions to the package map in [For agents](src/content/docs/for-agents/index.md#inspect-implementation-and-tests), rather than duplicating algorithms or internal record schemas.
+Keep that map at package-directory level and explain how to select the matching release tag. Package links reduce sensitivity to file renames; the docs link checks still need to verify them.
+
 Before handing off visual changes, inspect desktop and narrow layouts, light and dark themes, keyboard navigation, and search in a production preview.
 Run `bun run check` to verify website/tooling formatting, lint, types, tests, the static build, and links between built pages. The Go build tests also compile the copyable rule examples through the current resolver and renderer.
 

@@ -1,302 +1,91 @@
 ---
 title: "CLI commands"
-description: "Syntax, arguments, options, and results for every supported Code Rules command."
+description: "Choose a Code Rules command and find its current options."
 ---
 
-Find each command's syntax and options below. Every command also accepts `--json` and `-h` / `--help`; [shared behavior](#shared-options-and-prompts) and [output formats](#command-output) are documented at the end.
+Code Rules has two command trees: `project` manages the rules a codebase uses, and `library` manages rules published for other projects. For current arguments and flags, run a command with `--help`.
 
 ## Project commands
 
-`code-rules project` manages rules for a **project**, the codebase whose rules Code Rules manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
-
-Configuration lives in `.code-rules/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
-
-### project init
-
-```sh
-code-rules project init [options]
-```
-
-Create project configuration, the local rules directory, and the managed Code Rules guide. Rerunning init preserves valid configuration and local rules and refreshes an unmodified guide.
-
-| Option | Meaning |
+| Command | What it does |
 | --- | --- |
-| `--non-interactive` | Accepted; init runs without prompts even when this flag is omitted. |
+| `code-rules project init` | Create `.code-rules/config.yaml`, `local/`, and the managed project guide. It does not fetch libraries or generate agent guidance. |
+| `code-rules project add library ALIAS` | Record a Git library, revision choice, and selected groups in configuration. Run `project sync` afterward to fetch its rules. |
+| `code-rules project add group GROUP_PATH` | Create a local group, such as `practices/testing`, with metadata and an authoring guide. |
+| `code-rules project add rule RULE_PATH` | Create a rule in an existing local group. The path omits `.md`, for example `practices/testing/check-retries`. Without `--body-file`, it creates a draft you must finish before building. |
+| `code-rules project sync` | Fetch every configured library revision, then regenerate `vendor/` and `generated/`. Use it after changing a source, revision, or selected groups. |
+| `code-rules project build` | Regenerate `generated/` from local rules and verified vendor snapshots without contacting Git. Use it after changing local rules or exceptions. |
+| `code-rules project check` | Report stale or invalid inputs and output without writing files or contacting Git. Use it in CI after installing the intended CLI version. |
 
-Init does not fetch libraries or generate rule guidance. It refuses to overwrite a manually edited Code Rules guide. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
+`project init` must run from a Git repository root. The other project commands also work from its subdirectories. For a project outside Git, run all project commands from its root. See [Working directories](#working-directories).
 
-### project add library
-
-```sh
-code-rules project add library ALIAS [options]
-```
-
-Record a library in project configuration without fetching it. `ALIAS` is the source name, such as `acme-rules`. Run `code-rules project sync` afterward to import the selected rules.
-
-| Option | Meaning |
-| --- | --- |
-| `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
-| `--ref REF` | Required. Exact tag name, full Git commit, or version range such as `>= 1.2.0, < 2.0.0`. Uses the [configuration version syntax](/reference/configuration/). |
-| `--groups GROUP` | Required. Repeat for multiple group IDs, or supply one selector: `*`, `practices/*`, or `techs/*`. Quote wildcard values so your shell does not expand them. |
-| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
-
-Bare versions supplied to `--ref`, such as `v1.2.3`, select literal tags. Ranges use operators such as `>=` or `~>`. The CLI records exact selections in the configuration's `ref` field and ranges in its `version` field.
-
-Library addition preserves existing source exceptions and local files. Pass each group ID as a separate option, rather than a comma-separated flag value:
-
-```sh
-code-rules project add library acme-rules \
-  --repository https://github.com/example/rules.git \
-  --ref '>= 1.2.0, < 2.0.0' \
-  --groups practices/testing \
-  --groups techs/typescript \
-  --non-interactive
-```
-
-The repository address and groups are illustrative; replace them with a library you can access.
-
-### project add group
-
-```sh
-code-rules project add group ID [options]
-```
-
-Create a local group with `_group.yaml` metadata and an authoring README. `ID` is a group path such as `practices/testing` or `techs/typescript`.
-
-| Option | Meaning |
-| --- | --- |
-| `--name TEXT` | Required. Group display name. |
-| `--description TEXT` | Required. What the group covers. |
-| `--when-to-read TEXT` | Required. When an agent should read the group. |
-| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
-
-A group can exist before it has rules. Local groups do not need a library source declaration. Existing group files are preserved.
-
-### project add rule
-
-```sh
-code-rules project add rule ID [options]
-```
-
-Create a rule in an existing local group. `ID` includes the group path and rule name, such as `practices/testing/check-retries`, without `.md`.
-
-| Option | Meaning |
-| --- | --- |
-| `--title TEXT` | Required. Action-oriented rule title. |
-| `--when-to-read TEXT` | Required. When an agent should read the rule. |
-| `--impact LEVEL` | Required. One of `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`. |
-| `--impact-description TEXT` | Required. The consequence the rule helps prevent. |
-| `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
-| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
-
-Create the group first with `project add group`. A missing group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `code-rules:draft` marker before building. Existing rules are not overwritten.
-
-### project sync
-
-```sh
-code-rules project sync [options]
-```
-
-Fetch the configured library revisions, validate their files, and replace `vendor/` and `generated/` in the Code Rules directory with the complete updated result. Sync also refreshes an older, unedited managed Code Rules guide.
-
-Accepts the [shared options](#shared-options-and-prompts) only.
-
-Sync needs access to every configured repository and uses your existing Git credentials. It resolves exact tags again and selects the highest matching version for a version range. If a source fails, the previous complete output is preserved. For update and recovery behavior, see [Sync and recovery](/reference/sync/).
-
-### project build
-
-```sh
-code-rules project build [options]
-```
-
-Regenerate `generated/` from project configuration, verified imported files, and local rules. Build works offline and does not change imported revisions. It also creates a missing managed Code Rules guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
-
-Accepts the [shared options](#shared-options-and-prompts) only.
-
-Run sync first if the imported repository, revision selection, or groups no longer match configuration, or if the stored library files need repair.
-
-### project check
-
-```sh
-code-rules project check [options]
-```
-
-Check generated guidance and the managed Code Rules guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs.
-
-Accepts the [shared options](#shared-options-and-prompts) only.
-
-Use check in CI to detect files that need regeneration. It uses recorded commits and does not check whether remote tags moved. Success means the managed files agree with their inputs; it does not establish that application code follows the rules.
+For the full add-library workflow, follow [Import rules](/guides/select-rules/). To write a local rule, follow [Write a rule](/guides/write-rules/). For sync, build, and repair steps, see [Sync and recovery](/reference/sync/).
 
 ## Library commands
 
-`code-rules library` manages a **library**, an independently maintained collection of rule groups that projects can import. Initialize from the library repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
-
-### library init
-
-```sh
-code-rules library init [options]
-```
-
-Create `rule-library.yaml` and an authoring README without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library.
-
-| Option | Meaning |
+| Command | What it does |
 | --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
-| `--spdx EXPRESSION` | Library SPDX expression. Must be supplied together with `--license-file`. |
-| `--license-file PATH` | UTF-8 license text to copy to `LICENSE.md`. Relative to your working directory, even with `--directory`. |
-| `--notice-file PATH` | Optional UTF-8 notice text to copy to `NOTICE.md`. Requires both license options. Relative to your working directory. |
-| `--non-interactive` | Accepted; library init runs without prompts even when this flag is omitted. |
+| `code-rules library init` | Create `rule-library.yaml` and an authoring README. You can supply license text with `--spdx` and `--license-file`; init does not infer or publish terms. |
+| `code-rules library add group GROUP_PATH` | Create group metadata and an authoring guide in the library. |
+| `code-rules library add rule RULE_PATH` | Create a rule in an existing library group. Without `--body-file`, it creates a draft you must finish before checking the library. |
+| `code-rules library check` | Validate the manifest, groups, rules, assets, and declared terms without changing files. It checks format, not writing quality or legal permission. |
 
-If you omit the license options, the manifest leaves the license undeclared. Init does not infer license terms, create a Git repository, commit, or publish the library.
-
-### library add group
-
-```sh
-code-rules library add group ID [options]
-```
-
-Create a group with `_group.yaml` metadata and an authoring README in the library. `ID` is a group path such as `practices/testing` or `techs/typescript`.
-
-| Option | Meaning |
-| --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
-| `--name TEXT` | Required. Group display name. |
-| `--description TEXT` | Required. What the group covers. |
-| `--when-to-read TEXT` | Required. When an agent should read the group. |
-| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
-
-Empty groups are valid. Existing group files are preserved.
-
-### library add rule
-
-```sh
-code-rules library add rule ID [options]
-```
-
-Create a rule in an existing library group. `ID` includes the group path and rule name, such as `techs/javascript/prefer-for-of`, without `.md`.
-
-| Option | Meaning |
-| --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
-| `--title TEXT` | Required. Action-oriented rule title. |
-| `--when-to-read TEXT` | Required. When an agent should read the rule. |
-| `--impact LEVEL` | Required. One of `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`. |
-| `--impact-description TEXT` | Required. The consequence the rule helps prevent. |
-| `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
-| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
-
-Create the group first with `library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `code-rules:draft` marker before validation. Existing rules are not overwritten.
-
-### library check
-
-```sh
-code-rules library check [options]
-```
-
-Validate the library manifest, all groups and rules, supporting assets, and declared license and notice files. Works offline and does not change files.
-
-| Option | Meaning |
-| --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
-| `--non-interactive` | Accepted; library check does not prompt. |
-
-Reports group and rule counts and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations and missing declared files fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
+`library init` must run from the Git repository root. Other library commands work from its subdirectories. Use `--directory PATH` to target another library. Outside Git, run from the library root or supply that directory. For the publishing workflow, see [Create your first library](/start-here/create-library/).
 
 <span id="help-and-version"></span>
 
 ## Help, version, and license
 
+These commands show the current options and tool information:
+
 ```sh
 code-rules --help
-code-rules COMMAND --help
+code-rules project add library --help
+code-rules project add rule --help
+code-rules library init --help
+code-rules library add rule --help
 code-rules --version
 code-rules --license
 ```
 
-Use `-h` or `--help` to inspect command syntax and options. For example, run `code-rules project --help` to find project commands or `code-rules library add rule --help` for rule authoring options.
-
-| Option | Meaning |
-| --- | --- |
-| `-h`, `--help` | Show help for the selected command. |
-| `-v`, `--version` | At the root, print the executable's version. |
-| `--license` | At the root, print the full embedded MIT license and copyright notice. |
-| `--json` | Return help, version, or license text in `value.text` inside a JSON response. |
-
-Running `code-rules` or a command group such as `code-rules library` without a subcommand displays help. The `project`, `project add`, `library`, and `library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
-
-The root `--version` flag prints the tool version. To select a library revision, use `project add library --ref` instead.
+Use `-h` or `--help` with any command. Run `code-rules project --help` or `code-rules library --help` to list their subcommands. There is no `help` subcommand. The root `--version` reports the CLI version; `project add library --ref` selects a library revision.
 
 ## Working directories
 
-In Git repositories, run `code-rules project init` or `code-rules library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `library init --directory`.
+In a Git repository, init must target the nearest repository root. Other commands find the nearest ancestor with a `.git` directory or file, including worktrees and submodules. They stop there even if that repository has no Code Rules configuration. A nested `.code-rules/` does not override the Git root's configuration.
 
-Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project commands use that root's `.code-rules/config.yaml`; library commands use its `rule-library.yaml`. They stop at that repository boundary, even if its configuration is missing. A nested `.code-rules/` does not override the root's configuration.
+Outside Git, commands use the current directory. Library commands can target another directory with `--directory PATH`. Project commands have no custom configuration path.
 
-Outside Git, commands use the current directory, or the directory selected by `--directory` for library commands. They do not search parent directories for configuration. Custom project configuration locations are not supported.
-
-Relative input paths such as `--body-file`, `--license-file`, and `--notice-file` resolve from the directory where you run the command. Paths inside project configuration remain relative to `.code-rules/`.
+Relative `--body-file`, `--license-file`, and `--notice-file` paths start where you run the command, even when you use `--directory`. Paths in project configuration are relative to `.code-rules/`.
 
 ## Shared options and prompts
 
-Every command accepts `--json`, which prints one JSON response and disables prompts. Every command also accepts `-h` / `--help`.
+Every command accepts `--json`, `-h`, and `--help`. Authoring commands also accept `--non-interactive`. Without `--non-interactive`, an authoring command can prompt for missing inputs in a terminal. With `--json`, `--non-interactive`, or no terminal, the command errors if inputs are missing. Positional paths and library aliases are always required.
 
-Authoring commands accept `--non-interactive`. Without it, commands can prompt for missing required metadata or source selections when running in a terminal. With `--non-interactive`, `--json`, or no terminal, missing required inputs cause an error. Positional arguments such as `ID` and `ALIAS` must always be supplied.
-
-Invalid interactive answers repeat the same question while retaining earlier answers. Explicit flags are validated without prompting for replacement values. Existing groups, rules, and library aliases fail before prompts.
-
-Both init commands and both check commands run without prompts. Only `library check` accepts `--non-interactive`; project `check`, `sync`, and `build` do not need or accept it.
-
-String options accept one value and cannot be repeated, except `--groups`, which accepts repeated group IDs. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
-
-Scaffolding commands validate paths and detect collisions before writing. They preserve existing authored files and roll back failed creation attempts. They do not publish content or convert arbitrary third-party material. For the authoring workflow, see [Set up your first project](/start-here/set-up-project/) or [Create a library](/start-here/create-library/).
+To select several groups with `project add library`, repeat `--groups` once for each path. Quote a wildcard selector such as `--groups '*'` so the shell does not expand it. The CLI's `--ref` option accepts an exact tag, a full commit SHA, or a version range. It writes exact choices under `ref` and ranges under `version` in configuration. See [Configuration](/reference/configuration/) for the stored fields.
 
 ## Command output
 
-Human-readable output is the default. Add `--json` for scripts:
+Human-readable output is the default. For scripts, add `--json`:
 
 ```sh
 code-rules project check --json
 ```
 
-JSON mode writes one response to stdout:
+JSON mode writes one response to stdout with `ok`, a `value` when a result is available, and an `error` on failure. An out-of-date check returns `ok: false` with `value.status: "out_of_date"` and a `value.problems` list. Invalid configuration or unreadable inputs instead return an error without that report. Sync and build results include `added`, `changed`, and `removed` file paths.
 
-| Field | Meaning |
-| --- | --- |
-| `ok` | `true` for success; `false` for failure or an out-of-date project check. |
-| `value` | The command's result, when available. An out-of-date check still includes its report here. |
-| `error` | On failure, an object with `kind` and `message`, plus `location` when available. Domain failures include a stable `code`, such as `needs-init`, `missing-group`, or `guide-edited`. |
-
-Project check returns `value.status` as `up_to_date` or `out_of_date`, and a `value.problems` list. Each problem has `kind`, `path`, `message`, and `nextStep`, which contains a suggested repair command. Paths are relative to the Code Rules directory. Both generated guidance and the managed Code Rules guide must be current for success.
-
-Authoring results include `value.nextSteps`, an ordered list of instructions and copyable commands. Human output shows those steps after initialization and rule or group creation.
-
-Only sync and build report `added`, `changed`, and `removed` file lists. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
-
-In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [testing PR preview builds](https://github.com/fabricahq/code-rules/blob/main/_engineering/releasing.md).
+In human mode, operational errors go to stderr. A stale check prints its problems on stdout. Check confirms that managed files match their inputs; it does not check whether application code follows the rules. For output details and repair commands, see [Sync and recovery](/reference/sync/).
 
 ## Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | `0` | Success. |
-| `1` | An operation failed, inputs are invalid, or a project check found stale output. |
-| `2` | Invalid command usage, such as an unknown command, unsupported option, or missing required CLI input. |
-
-Usage errors point to the relevant help page. Operational errors identify the affected file or rule when available and describe the problem. For repair commands and interrupted updates, see [Sync and recovery](/reference/sync/).
+| `1` | Operation failed, input is invalid, or project output is stale. |
+| `2` | Invalid command usage, such as an unknown command, unsupported flag, or missing required CLI argument. |
 
 ## Migrating from earlier commands
 
-Only the `project` and `library` command trees are supported. Earlier command paths now fail with an unknown-command error.
-Update existing scripts to use the scoped commands below. Use `-h` or `--help` for help; there is no `help` subcommand.
+Older unscoped commands such as `code-rules sync` and `code-rules add source` are unsupported. Use `code-rules project sync` and `code-rules project add library`. Current project configuration lives in `.code-rules/config.yaml`; library metadata uses YAML files.
 
-| Earlier command | Canonical command |
-| --- | --- |
-| `code-rules init` | `code-rules project init` |
-| `code-rules add source` | `code-rules project add library` |
-| `code-rules local add group` | `code-rules project add group` |
-| `code-rules local add rule` | `code-rules project add rule` |
-| `code-rules sync` | `code-rules project sync` |
-| `code-rules build` | `code-rules project build` |
-| `code-rules check` | `code-rules project check` |
-
-The current project configuration is `.code-rules/config.yaml`, and library metadata uses YAML files. See [Configuration](/reference/configuration/) and [Rule and library format](/reference/rule-library-format/) when updating older scripts.
+For the implementation and tests behind these command contracts, see [Inspect implementation and tests](/for-agents/#inspect-implementation-and-tests).

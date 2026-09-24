@@ -1,19 +1,13 @@
 ---
 title: "Rule and library format"
-description: "File layout, metadata, and supporting assets for authors of rules and libraries."
+description: "The files and fields needed to author a valid rule library."
 ---
 
 import { FileTree } from '@astrojs/starlight/components';
 
-This page describes how libraries are structured, including their folders, rule files, and metadata.
-
-A **library** is an independently maintained collection of rule groups that projects can import. A **project** is the codebase whose engineering **rules** Code Rules manages. Projects can use project-only rules, rules imported from libraries, or both.
-
-Libraries live in Git repositories. Each rule is a Markdown file, and related rules belong to groups.
+A library is a Git repository of groups and rules that projects can import. Use the `code-rules library` commands to create its files, or write them directly using the format below. Run `code-rules library check` before publishing.
 
 ## Library layout
-
-The tree below shows a library repository named **`engineering-rules/`**. The folder name is an example; you can name your library repository anything you like. These are the library's source files. A consuming project stores imported copies under `vendor/` in its Code Rules directory (`.code-rules/vendor/`); see [Project files](/reference/files/).
 
 <FileTree>
 
@@ -33,7 +27,11 @@ The tree below shows a library repository named **`engineering-rules/`**. The fo
 
 </FileTree>
 
-`rule-library.yaml` declares the library format:
+The repository name is your choice. Put groups under `techs/` or `practices/`. Each group needs `_group.yaml`; each rule is a Markdown file in a group. A group's `README.md` helps authors but is not a rule. The rule's path without `.md` is its stable ID, such as `practices/testing/verify-retry-limits`.
+
+Use lowercase letters, digits, and hyphens for group names, starting with a letter. Use lowercase letters, digits, dots, and hyphens for rule filenames and any subdirectories beneath a group. Rule paths must end in `.md`. Keep `assets` for supporting files, not group or rule names. Use forward slashes and paths inside the library; Code Rules rejects symlinks and path spelling collisions.
+
+Declare the format and any library-wide license in `rule-library.yaml`:
 
 ```yaml
 formatVersion: 1
@@ -43,140 +41,108 @@ license:
   notices: []
 ```
 
-Discover groups only under `techs/` and `practices/`.
-Within selected groups, Markdown files outside reserved asset directories are rules. Declared license and notice files and the group-root `README.md` are exempt. Group READMEs are authoring documentation, not generated rule guidance.
-Other supporting files, including `_README.md`, must live in an asset directory.
-Rules and group metadata must use valid paths; wildcard discovery also rejects rules whose group metadata is missing.
-The builder does not inspect the contents of unselected groups.
-
-Library and group metadata use one YAML document per file. Duplicate keys, anchors, aliases, and explicit tags are rejected. Generated snapshot and provenance files remain JSON.
+A [library license declaration](#library-license-metadata) is optional in the file format. Choose and record terms before sharing the rules. A consuming project stores imported files in `.code-rules/vendor/` and prepares agent-readable files in `.code-rules/generated/`. See [Project files](/reference/files/).
 
 ## Group metadata
 
-Library authors define each group's selection guidance in its `_group.yaml`, before the group is imported.
-The builder reads that source metadata and renders its `whenToRead` cues in the generated root index; it does not infer them from the current rules.
-Use the existing `whenToRead` field for this guidance rather than adding a separate `whenToUse` field.
+Put `_group.yaml` in each group directory. All three fields are required, non-blank strings. `whenToRead` tells agents when to open the group, including when no files in that group have changed.
 
 ```yaml
 name: Testing
 description: Verify behavior with meaningful tests.
-whenToRead: When adding or changing behavior, fixing a bug, or modifying tests, even when
-  no test files are in the diff.
+whenToRead: When adding or changing behavior, fixing bugs, or reviewing tests.
 ```
 
-All three group fields are required non-blank strings. Surrounding whitespace is trimmed. Unknown fields are rejected.
-The directory supplies the group's ID and type.
-Both `RULES.md` and the group page include its name, description, and when-to-read guidance. Local metadata takes precedence as a complete record; otherwise each contributing library remains source-labeled.
-Follow the shared [whenToRead authoring guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection) when filling in the group's reading cues.
+The directory, such as `practices/testing`, supplies the group ID and type. Do not add other fields. YAML metadata must use one document without duplicate keys, anchors, aliases, or explicit tags. For advice on writing useful cues, see [When to read guidance](/reference/rule-authoring/#write-whentoread-guidance-that-helps-selection).
 
 ## Rule metadata
 
-Each rule requires YAML frontmatter containing `title`, `whenToRead`, `impact`, and `impactDescription`, followed by a non-blank Markdown body.
-The builder rejects duplicate YAML keys and aliases. Unknown frontmatter fields are rejected. Accepted fields are `title`, `whenToRead`, `impact`, `impactDescription`, `tags`, and `attribution`.
-`tags` is optional: use a non-blank string of comma-separated topics or an array of unique, non-blank strings. An empty array is also accepted.
-Tags provide search terms, such as `testing` on a Go rule. Code Rules preserves supplied tags but does not use them for selection, grouping, or enforcement. Use `whenToRead` to describe applicability.
-Use the existing impact vocabulary: `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`.
-Impact describes the significance of the consequence a rule helps prevent.
-Follow the canonical [impact authoring guidance](/reference/rule-authoring/#describe-impact-through-consequences) for level definitions and examples.
-Agents select rules using `whenToRead`, follow the full guidance and exceptions, and assess finding severity from concrete evidence.
-All applicable rules matter regardless of impact.
+Each rule needs YAML frontmatter between `---` lines and a non-blank Markdown body. Here is a complete rule:
 
-`whenToRead` is a required non-empty string describing work that should trigger reading, including before code exists.
-The group field of the same name is also one string, describing the group’s scope of applicability.
-The full body defines obligations, implementation guidance, exceptions, and validation guidance.
-Existing snapshots and local replacements must add rule-level `whenToRead` before building with this format.
+```md
+---
+title: Test changed behavior
+whenToRead: When adding or changing externally visible behavior.
+impact: HIGH
+impactDescription: Prevents behavior changes from silently breaking existing use cases.
+tags: testing
+---
 
-See [Write a rule](/guides/write-rules/) for a complete example.
+## Test changed behavior
+
+When a change alters behavior that a caller or user relies on, add or update a test for that outcome.
+
+For example, when a discount changes an order total, assert the resulting total.
+Run the relevant tests before considering the change complete.
+```
+
+| Field | Requirement |
+| --- | --- |
+| `title` | Required, non-blank text. |
+| `whenToRead` | Required, non-blank text describing when to read this rule. |
+| `impact` | Required. Use `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`. |
+| `impactDescription` | Required, non-blank text explaining the consequence the rule addresses. |
+| `tags` | Optional non-blank text or an array of unique, non-blank strings. Tags aid search; they do not select rules. |
+| `attribution` | Optional list of source credits; see [Rule attribution](#rule-attribution). |
+
+Do not add other frontmatter fields. The group and rule fields named `whenToRead` both guide selection; the body gives the actual instruction and any exceptions. The [authoring rubric](/reference/rule-authoring/) offers writing advice, not extra format requirements. For a step-by-step example, see [Write a rule](/guides/write-rules/).
 
 ## Rule attribution
 
-A rule may record the source of an adaptation independently of the library's license:
+If you adapt someone else's material, you can record its source in the rule:
 
 ```yaml
 attribution:
-  - url: https://github.com/sindresorhus/eslint-plugin-unicorn/blob/5d9d745c5365b6fdb824db1122ff982dd824b11a/docs/rules/no-for-each.md
-    description: Adapted from Sindre Sorhus's ESLint Unicorn rule; added task guidance.
+  - url: https://github.com/example/rules/blob/0123456789abcdef/source.md
+    description: Adapted the error-handling example for this library.
 ```
 
-Each optional `attribution` entry requires an absolute HTTP(S) `url` without credentials and a non-blank `description`.
-Use a commit-pinned URL and describe the adaptation. These citations identify source material; they do not override the library license.
-Attribution in the Markdown body remains preserved. Unknown attribution-object fields are rejected.
-
-Keep attribution with the rule in metadata or prose; a separate attribution file is not required by the format.
-Declare accompanying license and notice files in the library manifest so Code Rules can retain them and their links.
+Each entry needs an absolute HTTP(S) `url` without credentials and a non-blank `description`. A commit-pinned URL makes the source easier to verify. Attribution does not grant permission to use the material or change the library's license. You may also keep a source credit in the rule body.
 
 ## Supporting assets
 
-Use two optional locations for supporting files:
+Keep each rule's obligations and exceptions in its Markdown file. Put longer explanations, images, or sample data in one of these locations:
 
 ```text
-assets/                              # Shared across the library
+assets/                                 # Shared by the library
   retry-lifecycle.svg
 practices/testing/
-  _group.yaml
   verify-retries.md
   assets/
-    verify-retries/                   # Owned by verify-retries.md
+    verify-retries/                    # Belongs to verify-retries.md
       explanation.md
       example-response.json
 ```
 
-A rule owns `assets/<filename-without-.md>/` beside its Markdown file.
-For example, `practices/testing/nested/retry.md` owns `practices/testing/nested/assets/retry/`.
-Each owned directory must have an adjacent rule. The directory name `assets` is reserved and cannot contain active rules or group metadata.
-Markdown within assets is supporting text and does not need rule frontmatter.
+A rule's asset directory has the same name as its file without `.md`. An asset directory needs its owning rule. Supporting Markdown needs UTF-8 text but no rule frontmatter. Link from a rule with Markdown, for example `[Explanation](assets/verify-retries/explanation.md)`. You may also link to root `assets/` or declared license and notice files.
 
-Keep the rule's obligations and exceptions in the rule itself. Use assets for explanations, images, sample data, and other supporting material.
-Link from the rule with ordinary Markdown, such as `[Explanation](assets/verify-retries/explanation.md)`.
-Use `../../assets/retry-lifecycle.svg` from this rule to reference a shared image.
+Local links must point to files in the same rule's assets, shared root assets, declared terms, or the same document. Do not link to another rule or its private assets; move shared material to root `assets/`. Use Markdown links for local files instead of relative `href` or `src` attributes in raw HTML. You may link to external URLs; Code Rules does not download them.
 
-Code Rules preserves each selected rule's complete asset directory, including files that are not individually linked.
-If a selected rule or one of its Markdown assets references root `assets/`, Code Rules preserves that entire directory.
-Otherwise shared assets are omitted. Nested folders and binary files are allowed within these directories, subject to the import size and file-type limits.
-No asset is executed. Markdown assets must be UTF-8 so their standard Markdown references can be checked.
-
-A rule or its assets may link to its own assets, shared assets, and declared library license or notice files.
-Shared assets may link to other shared assets and declared license files, but cannot depend on one rule's private assets.
-A link into another rule's assets is invalid: move that material to the shared directory.
-Missing local destinations and supporting references elsewhere in the repository fail import.
-Filesystem links to another rule document are invalid, even when the target is selected or retained. This also applies to Markdown attachments, including HTML `href` and `src` attributes. Rules must remain independently selectable; move shared supporting explanations into `assets/`. Self-links and anchors within the same document remain valid. External URLs remain links and are not downloaded.
-
-Files elsewhere in the repository can still hold project documentation or tooling, but cannot serve as local supporting dependencies for rules.
-Relative links in raw HTML are rejected during generation. Use Markdown links, images, or reference definitions instead.
+`library check` verifies that local link destinations exist. It rejects symlinks, unsafe paths, and supporting files outside the allowed asset locations. For import limits, see [How imports work](/reference/imports/).
 
 ## Library license metadata
 
-The optional `license` object declares the library-wide terms. Authors should use root-level `LICENSE.md` and optional `NOTICE.md`; the manifest can identify other source locations:
+Declare one license for the whole library in `rule-library.yaml`. For example:
 
-| Field | Meaning |
-| --- | --- |
-| `license.spdxExpression` | Declared SPDX expression, such as `MIT` or `MIT OR Apache-2.0`, or a `LicenseRef-…` for custom terms. Optional for compatibility with existing manifests. |
-| `license.file` | Path to the actual license text, relative to the library root. |
-| `license.notices` | Paths to accompanying notices, relative to the library root; use an empty array when none apply. |
-
-When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
-Unknown fields in the license declaration are rejected so misspellings cannot silently discard intended metadata.
-Code Rules retains the declared files from the resolved source commit and links generated rules to unchanged copies. Offline builds require those files in the stored snapshot.
-If the declaration is absent, provenance records `license: null`. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
-
-Every imported library has a generated `libraries/<source-name>/README.md` with its repository, requested revision, resolved commit, declared SPDX expression when supplied, and links to retained terms and provenance. Libraries without a license declaration omit the `licenses/` directory. [Provenance](/reference/provenance/) documents the machine-readable records.
-
-The manifest paths select **source files**, not output locations. For declared terms, Code Rules uses these fixed destinations:
-
-```text
-generated/libraries/<source-name>/licenses/LICENSE.md
-generated/libraries/<source-name>/licenses/notices/001.md
-generated/libraries/<source-name>/licenses/notices/002.md
+```yaml
+formatVersion: 1
+license:
+  spdxExpression: MIT
+  file: LICENSE.md
+  notices:
+    - NOTICE.md
 ```
 
-`<source-name>` is the configured library alias. Unique notice files are numbered in declaration order; repeated paths and a notice path identical to the license path are copied only once. No notice files are generated when none are declared. Contents, including whitespace and line endings, are preserved. Output paths are not configurable. Vendored snapshots retain the original names for traceability. Declared terms are retained even when exclusions or replacements leave no active rules from that library.
+| Field | Requirement |
+| --- | --- |
+| `license.file` | Required when `license` is present. Path to the license text, relative to the library root. |
+| `license.notices` | Required when `license` is present. Array of notice paths; use `[]` when there are none. |
+| `license.spdxExpression` | Optional SPDX expression, such as `MIT`, or a `LicenseRef-` identifier for custom terms. |
 
-One library-wide license declaration covers every group and rule. Rule- and group-level `license` or `licenses` fields are rejected.
-Keep original attribution with each rule and include required notices in the library manifest. Material requiring a different declaration belongs in a separate library.
-See [License a library](/guides/license-rules/) for publisher guidance and the boundary with the consuming project's license.
+Declared files must exist in the library. Code Rules retains them when a project imports the library and links generated rules to them. Rule- and group-level license fields are unsupported. Code Rules validates the declaration's format; it cannot decide whether you own the material or have permission to share it. For publishing guidance, see [License a library](/guides/license-rules/).
 
 ## Related guides
 
-- [Write a rule](/guides/write-rules/) walks through writing an individual rule.
-- [Create a library](/start-here/create-library/) walks through organizing and sharing a library.
-- [Configuration](/reference/configuration/) explains how a project selects libraries and rules to import.
+- [Create a library](/start-here/create-library/) walks through publishing and importing one.
+- [Configuration](/reference/configuration/) explains how projects select libraries and groups.
+- [Inspect the implementation and tests](/for-agents/#inspect-implementation-and-tests) maps behavior to source code.

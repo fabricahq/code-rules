@@ -92,3 +92,22 @@ The [rubric and template](/reference/rule-authoring/) offer writing advice, not 
 
 Use relevant rubric criteria to suggest improvements with a concrete passage and revision. A valid short rule does not need every template section.
 Separate unclear wording from unresolved engineering policy; ask the owner to resolve the latter.
+
+## Inspect implementation and tests
+
+For normal rule management, use the guides and reference pages. Inspect the implementation when diagnosing an error or answering a question those pages don't cover.
+
+Start with `code-rules --version` and the relevant command's `--help`. The package links below open `main`; select the matching release tag when investigating an installed version.
+
+| Question | Package to inspect |
+| --- | --- |
+| Which commands, flags, prompts, and output formats are supported? | [`internal/cli`](https://github.com/fabricahq/code-rules/tree/main/internal/cli) |
+| Which configuration fields, metadata, paths, and version constraints are valid? | [`internal/rules`](https://github.com/fabricahq/code-rules/tree/main/internal/rules) |
+| How are library files and supporting assets validated? | [`internal/library`](https://github.com/fabricahq/code-rules/tree/main/internal/library) |
+| How are Git revisions selected and library snapshots imported? | [`internal/imports`](https://github.com/fabricahq/code-rules/tree/main/internal/imports) |
+| How are rules selected, replaced, rendered, and recorded in provenance? | [`internal/build`](https://github.com/fabricahq/code-rules/tree/main/internal/build) |
+| How do project commands update files and detect stale output? | [`internal/project`](https://github.com/fabricahq/code-rules/tree/main/internal/project) |
+| How do interrupted updates recover without discarding user edits? | [`internal/filetxn`](https://github.com/fabricahq/code-rules/tree/main/internal/filetxn) |
+
+Read the relevant implementation and its `*_test.go` files together. Verify reported behavior with the matching CLI in a temporary project before recommending changes.
+Treat generated files as output to inspect, not configuration to edit. If packages move, search the repository for the command or field in question.

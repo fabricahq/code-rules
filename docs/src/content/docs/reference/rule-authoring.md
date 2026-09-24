@@ -3,22 +3,15 @@ title: "Rule rubric and template"
 description: "Recommended guidance for writing and reviewing clear, useful rules."
 ---
 
-A **rule** is a Markdown file that tells an agent what to do, when the instruction applies, and how to check its work. A useful rule gives enough context and examples for the agent to follow it without guessing what you meant.
+A useful rule tells an agent what to do, when it applies, and how to check its work. Use the template and rubric below to make that guidance clear.
 
-Use this page when writing a new rule, improving an existing one, or reviewing a proposed rule. The **template** gives you a starting structure. The **rubric** is a checklist for deciding whether the rule is clear, useful, and verifiable.
-
-The template and rubric can help with rules in shared libraries or one project. They are recommendations, not a pass/fail checklist.
-Code Rules checks the [required file format](/reference/rule-library-format/), including metadata and a nonempty body. Library and project owners may set their own authoring conventions.
-For the steps to create a rule, see [Write a rule](/guides/write-rules/).
+These are **writing recommendations, not format requirements**. Keep the parts that help explain your rule. Your project or library can set its own conventions.
+Code Rules validates [metadata and file structure](/reference/rule-library-format/), not writing quality. For the creation commands, follow [Write a rule](/guides/write-rules/).
 
 ## What goes in a rule
 
-A rule file has two parts:
-
-- **Metadata:** the fields between the opening `---` lines, also called YAML frontmatter. They give the rule a title, explain when to read it, and describe why it matters.
-- **Body:** the Markdown below those fields. A useful body states the instruction and gives enough context to apply it. Scope, exceptions, examples, and checks help when the rule needs them.
-
-The metadata helps agents find relevant guidance. The body tells them what following that guidance means.
+- **Metadata:** YAML fields at the top give the rule a title, a reading cue, and an impact level.
+- **Body:** Markdown states the instruction. Add scope, exceptions, rationale, examples, and checks when they help someone apply it.
 
 ## When to read, implement, and validate
 
@@ -26,19 +19,16 @@ Before writing, answer three questions:
 
 | Question | Where to answer it |
 | --- | --- |
-| When should an agent read this? | Use the required `whenToRead` field to describe relevant work, including planning before any code exists. |
-| What should the agent do? | State the instruction in the body. Add implementation steps or decisions when they help the agent follow it. |
-| How can someone check the result? | Describe observable evidence, checks, and exceptions in the body. Add a Validation section when it contributes useful detail. |
+| When should an agent read this? | Describe recognizable work in `whenToRead`, including planning before code exists. |
+| What should the agent do? | State the instruction and its exceptions in the body. |
+| How can someone check the result? | Name observable evidence or a specific check. |
 
-Agents should read the complete rule, including its exceptions, before applying it. Implementation guidance helps with planning and changes; validation guidance helps with review, testing, and diagnosis. A task may need both.
-
-A relevant rule is not evidence of a violation. Its full instruction and exceptions determine whether anything needs to change.
+Reading a relevant rule does not mean the code violates it. The full instruction, conditions, and exceptions determine whether a change is needed.
 
 ## Markdown template
 
-Use the template below as a starting point if it helps. The [local rule command](/start-here/set-up-project/) uses this same starting structure.
-
-Keep sections that add useful information and remove unused prompts. You do not need a separate Implementation or Validation section if the instruction and examples already answer those questions.
+The CLI creates a draft from this structure. Replace the prompts with your guidance and remove sections that add no useful information.
+Finish the draft and remove its `<!-- code-rules:draft -->` marker before building or checking it.
 
 ````md
 ---
@@ -90,65 +80,32 @@ impactDescription: <Specific consequence the rule helps prevent, supporting the 
 <Name any surrounding code or contracts the reviewer must inspect before deciding.>
 ````
 
-The [rule metadata reference](/reference/rule-library-format/#rule-metadata) defines the required fields and accepted values. For a filled-in template, see the [complete rule example](/guides/write-rules/#example-rule).
 
-You can add optional `tags` for search terms, such as `tags: [testing, cancellation]`. Tags do not determine whether a rule applies, and Code Rules does not use them to filter rules. Omit tags that add no useful search terms.
+For accepted fields and values, see [Rule metadata](/reference/rule-library-format/#rule-metadata). For a filled-in example, see [Write a rule](/guides/write-rules/#example-rule).
 
 ## Write whenToRead guidance that helps selection
 
-The `whenToRead` field helps an agent decide whether to open a rule before it knows the rule's full contents. Describe work the agent can recognize from its task, rather than a defect it must first discover.
+Describe work an agent can recognize **before reading the rule**. Avoid cues that require discovering the problem first.
 
-For example, this cue requires the agent to spot a problem before reading the advice:
+**Too dependent on knowing the problem:**
 
 > When orchestration is obscured by parsing.
 
-A more useful cue describes the work itself:
+**Names the work:**
 
-> Before planning, writing, changing, or reviewing a function that coordinates multiple steps, such as parsing input, validating it, calling another operation, or constructing a result.
+> Before planning, writing, or reviewing a function that coordinates multiple steps, such as parsing input, validating it, or calling another operation.
 
-The second cue also applies to a function that is already well structured. Reading the full rule determines whether the agent should make a change.
+A group's cue describes an area of work; a rule's cue identifies more specific situations. Practice rules can apply even when no related file changes.
+For example, testing guidance matters when planning a behavior change, before anyone edits a test.
 
-### Distinguish group guidance from rule guidance
+Try the cue against a relevant task, the same task phrased differently, and a nearby task outside its scope. Revise missed or unnecessary selections.
+Keep detailed obligations and exceptions in the body.
 
-A group's `whenToRead` field describes an area of work. A rule's field describes the specific situations that warrant reading that rule.
-
-For example, a code-design group could say:
-
-> Before planning, writing, changing, or reviewing how code is organized, how responsibilities are divided, or how functions and modules work together.
-
-Describe the group's intended scope even if it contains only one rule. After opening a group, agents use each rule's cue to decide what to read next. Opening the group does not mean every rule applies.
-
-### Make the cue recognizable
-
-- **Name the work and its subject.** Identify the behavior, artifact, interface, or technology involved. “When coding” is too broad to distinguish relevant work.
-- **Include work before implementation.** Mention planning or writing when relevant. Do not require existing code or a known defect before the cue can match.
-- **Use examples to clarify scope.** “Such as parsing input or validating it” makes “multiple steps” concrete without turning the examples into an exhaustive list.
-- **Cover distinct situations.** Include review and diagnosis when relevant. Describe behavior as well as files: testing guidance can matter even when no test files change.
-- **Name important boundaries.** Mention a technology or context restriction when it prevents a likely selection mistake. Put detailed obligations and exceptions in the body.
-- **Keep useful detail and remove repetition.** Prefer a focused sentence or two. There is no fixed word limit; the cue needs to distinguish relevant tasks.
-
-Replace the template's activity and scope placeholders. Omit the “such as” clause when examples would add nothing.
-
-### Check the cue against real tasks
-
-Try representative tasks before accepting a cue:
-
-1. A planned change within scope, with no code written yet, should lead to reading the rule.
-2. A relevant review or diagnosis should also match, even when an expected test or other artifact is missing.
-3. A relevant task phrased differently should still match. Examples should not become an exhaustive checklist.
-4. A nearby task outside the rule's scope should be distinguishable. Changing only a color token would not match the function-design cue above.
-
-Check rule selection separately from compliance. A well-structured function with several steps can warrant reading the rule without warranting a review finding.
-
-When trying cues with an agent, record both missed relevant rules and unnecessary selections. Revise the cue using those cases. This is an authoring practice, not another metadata field or proof that every agent will select correctly.
-
-We adapted these recommendations from the [Agent Skills specification](https://agentskills.io/specification#description-field) and Anthropic's [authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices#writing-effective-descriptions) and [evaluation](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise#evaluating-skills-before-deployment) guidance. Those sources discuss skill discovery. Applying them to rule selection is a design inference, not a measured improvement in Code Rules compliance.
+These recommendations adapt the [Agent Skills description guidance](https://agentskills.io/specification#description-field) and Anthropic's [authoring](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices#writing-effective-descriptions) and [evaluation](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise#evaluating-skills-before-deployment) guidance to rule discovery. They are authoring advice, not a guarantee that agents select every relevant rule.
 
 ## Describe impact through consequences
 
-The `impact` field describes how significant the consequence is that a rule helps prevent. Choose a level based on credible consequences within the rule's scope, rather than an imaginable worst case.
-
-Use `impactDescription` to explain that consequence in a focused sentence. Generated pages show it as **Why it matters**.
+Choose `impact` based on a credible consequence within the rule's scope. Use `impactDescription` to explain that consequence in a sentence.
 
 | Impact | Consequence the rule addresses |
 | --- | --- |
@@ -157,99 +114,60 @@ Use `impactDescription` to explain that consequence in a focused sentence. Gener
 | MEDIUM | Meaningful but bounded defects or recurring development friction. |
 | LOW | Local clarity or consistency improvements with limited consequences. |
 
-`MEDIUM-HIGH` and `LOW-MEDIUM` sit between the adjacent levels.
+`MEDIUM-HIGH` and `LOW-MEDIUM` sit between adjacent levels.
 
-The description must support the chosen level. “Important for quality” does not explain a consequence. For a rule about expressing operations as meaningful steps, a useful description is:
+“Important for quality” is too vague. “Hidden failures prevent callers from recovering” explains why an error-handling rule matters.
 
-> Mixing orchestration with low-level details can hide important decisions and make behavior harder to verify or change.
-
-Impact is not a filter for which rules to follow. Agents should follow every applicable rule, including its exceptions, regardless of impact.
-
-Impact also does not resolve conflicting rules or set the severity of a review finding. Judge a finding using the evidence and consequences of that specific violation. A high-impact design rule does not make every readability issue severe or require extracting every function that performs several steps.
+Agents should follow every applicable rule regardless of impact. Impact does not resolve conflicts or set review severity; assess each finding from its actual consequences.
 
 ## Write examples that explain the difference
 
-Examples should help an agent recognize both a plausible mistake and the preferred approach. Use code consistent with the relevant technology and project conventions.
+Show a plausible mistake beside the preferred approach. Keep unrelated details consistent and explain the decisive difference.
 
-### Cover distinct applications
+Add examples when different contexts change how to follow the rule or which exception matters. One pair is enough when it explains the rule fully.
+If readers might overapply the rule, show a similar-looking case that needs no change.
 
-Identify the situations the rule covers before choosing examples. For each distinct known application, aim to show an incorrect/correct pair addressing the same situation.
-
-Add another pair when a different context changes how to follow the rule, what can go wrong, or which exception matters. For example, preserving errors in return values and preserving them across asynchronous callbacks may need different examples.
-
-One pair is enough when it explains multiple applications without hiding meaningful differences. Renaming variables or repeating the same lesson in another language does not by itself require another pair.
-
-There is no fixed example count, and you do not need to invent every possible future use. Unlisted situations can still fall within the rule's stated scope. Add coverage when a new application reveals a gap.
-
-### Make counterexamples useful
-
-A **counterexample** shows a plausible violation and explains what goes wrong. Put the corrected approach nearby and keep unrelated details consistent so the important difference is clear.
-
-Label choices that are only illustrative. For example, a testing practice demonstrated in Go does not automatically apply only to Go.
-
-When a rule is easy to overapply, also show a similar-looking case that is already valid. Explain why it needs no change; not every rule needs this third example.
-
-For a rule about meaningful operation steps, a short, cohesive function can remain inline while performing several steps. The issue is whether low-level details hide the operation, not the number of actions or lines.
+Label illustrative choices. A practice rule demonstrated in Go does not automatically apply only to Go.
 
 ## Explain how to check the rule
 
-Name observable evidence or a specific check command. “Verify that this rule is followed” and “review the code” do not tell a reviewer what to inspect.
+Name evidence a reviewer can inspect. “Send an oversized upload and check that the error names the size limit” is more useful than “review the code.”
 
-A rule can govern plans, code, tests, documentation, or another engineering artifact. Match the check to the instruction; not every rule needs an automated test.
+State prerequisites that affect the advice, such as a runtime version or caller contract. Identify surrounding code a reviewer must inspect before reporting a violation.
+Distinguish a permitted exception from a case where the evidence is insufficient.
 
-### Check the advice and its prerequisites
-
-Use these questions to find missing context. They do not require additional metadata or separate body sections.
-
-- **Why does the advice work?** Explain how the recommended action prevents the stated consequence. Distinguish a team's preference from a general correctness claim.
-- **When is the advice true?** State relevant versions, runtime modes, framework behavior, and caller contracts. A dependency elsewhere in the repository does not prove those conditions hold here.
-- **What else must a reviewer inspect?** Identify surrounding code, configuration, or contracts needed before deciding that a rule was violated.
-- **What similar-looking case is valid?** Explain the boundary that prevents an unnecessary change.
-
-Keep exceptions separate from uncertainty. “This case is allowed” differs from “the available evidence cannot establish a violation.” A tool's inability to inspect a wrapper or file does not make the code exempt from the written rule.
-
-Put prerequisites and instructions in the body. Mention them in `whenToRead` only when they help agents decide to read the rule.
+Not every rule needs an automated test. Rules can govern plans, code, documentation, or other work; choose a check that matches the instruction.
 
 ## Supporting material
 
-Keep the instruction and its exceptions in the rule itself. Put optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory. Put material shared by several rules in the library-root `assets/` directory.
+Keep obligations and exceptions in the rule itself. Put optional diagrams, sample data, and longer explanations in [supporting assets](/reference/rule-library-format/#supporting-assets).
+Rules must remain independently selectable, so don't depend on another rule document or its private assets.
 
-Link to supporting files using ordinary Markdown. Markdown in an asset directory is supporting text, not another rule.
-
-Each rule must remain independently selectable. Do not link to another rule document on disk, another rule's private assets, or arbitrary repository documents. This restriction also applies to links inside attachments, regardless of which rules a project selects or excludes. Move shared supporting explanations into shared assets.
-
-See [Supporting assets](/reference/rule-library-format/#supporting-assets) for the required layout and examples.
-
-When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; rule-level and group-level license overrides are unsupported. Use optional [structured attribution](/reference/rule-library-format/#rule-attribution) for source credits. Follow [Import rules from another source](/guides/select-rules/#from-another-source) for material that does not already use the Code Rules format.
+When adapting external material, preserve its source credits and required notices. Follow [Import rules from another source](/guides/select-rules/#from-another-source).
 
 ## Authoring rubric
 
-Use these criteria to spot unclear or incomplete guidance. They are review prompts, not file-format requirements. A short rule can be complete without every example or template section.
+Use the questions that fit your rule. A short rule can be complete without every template section.
 
-| Criterion | What to look for |
+| Criterion | Question |
 | --- | --- |
-| One obligation | State one expectation a project can adopt, review, or replace independently. Split unrelated obligations into separate rules. |
-| Clear action | Tell the agent what to do. Replace vague advice such as “use good error handling” with observable behavior. |
-| Discoverable relevance | Use [recognizable selection guidance](#write-whentoread-guidance-that-helps-selection), with useful examples and checks against relevant and out-of-scope tasks. |
-| Explicit scope | State conditions and exceptions in the body. An example's language does not silently restrict a practice rule to that language. |
-| Supported impact | Choose a level and name a [credible consequence](#describe-impact-through-consequences). Keep review-finding severity dependent on evidence. |
-| Useful rationale | Explain the failure or tradeoff the instruction addresses. Keep background context from introducing hidden requirements. |
-| Concrete examples | Cover distinct known applications with incorrect/correct pairs. Explain the situation and decisive difference, and label illustrative choices. |
-| Counterexamples | Show plausible mistakes and explain what goes wrong. Pair each with a clearly labeled correct approach to the same situation. |
-| Verifiable compliance | Name the code, behavior, test, or other evidence that demonstrates compliance. Match the check to the instruction. |
-| Honest claims | Support factual claims and retain source attribution where needed. Distinguish team preferences from universal requirements. |
-| Complete meaning | Make the instruction understandable with its stated context. Keep the obligation, scope, and checks visible instead of hiding them behind unexplained references. |
-
-Consider the criteria that fit the rule. Suggest changes when they make the instruction clearer or easier to apply; add headings only when they help.
+| One obligation | Can a project adopt or replace this expectation independently? |
+| Clear action | Does the rule say what to do, rather than only “use good practices”? |
+| Discoverable relevance | Can an agent recognize relevant work from `whenToRead`? |
+| Explicit scope | Are the conditions and exceptions clear? |
+| Supported impact | Does the description justify the impact level? |
+| Useful rationale | Does the explanation connect the instruction to a real consequence? |
+| Concrete examples | Do examples show the important difference and cover distinct applications? |
+| Verifiable compliance | Does the rule name evidence someone can check? |
+| Honest claims | Are technical claims supported and team preferences identified as preferences? |
+| Complete meaning | Can someone apply the rule without guessing at missing context? |
 
 ## Review a proposed rule
 
-When a relevant criterion reveals a problem:
+When you find unclear or incomplete guidance:
 
-1. Identify the passage that needs work.
+1. Identify the passage.
 2. Explain what is ambiguous, missing, or unsupported.
 3. Suggest a concrete revision.
 
-For example, if a Validation section only says “review the code,” identify the behavior or surrounding contract the reviewer should check.
-
-The rubric helps assess writing quality. Library and project owners choose their engineering policies and may set stricter authoring conventions. Keep writing suggestions separate from policy disagreements, and ask the owner when the intended policy is unclear.
+Keep writing improvements separate from policy disagreements. The project or library owner decides which engineering practices to require.

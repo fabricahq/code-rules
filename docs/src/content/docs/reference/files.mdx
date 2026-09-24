@@ -1,27 +1,27 @@
 ---
 title: "Project files"
-description: "What to edit, what Code Rules manages, and where your agent starts reading."
+description: "Where to write rules and where agents read the result."
 ---
 
 import { FileTree } from '@astrojs/starlight/components';
 
-A **project** is the codebase whose rules Code Rules manages. Its **Code Rules directory**, `.code-rules/` at the project root, contains project configuration, project-only rules, imported library snapshots, and generated guidance. These files define which rules the project uses and give your agents a shared place to read them.
+Code Rules keeps a project's rule configuration, authored rules, imported libraries, and generated guidance in `.code-rules/` at the project root. Your agent starts with `.code-rules/generated/RULES.md`.
 
 ## Project layout
 
-The tree below shows **`/.code-rules/` at the project root**, the top-level directory of your codebase. The leading `/` refers to the project root, not your computer's filesystem root.
-
 <FileTree>
 
-- /.code-rules/
+- .code-rules/
   - config.yaml
   - README.md
   - local/
     - README.md
     - practices/testing/
-      - test-failure-paths.md
+      - _group.yaml
+      - README.md
+      - test-changed-behavior.md
   - vendor/
-    - fabrica/
+    - acme-rules/
       - _source.json
       - rule-library.yaml
       - practices/testing/
@@ -38,124 +38,79 @@ The tree below shows **`/.code-rules/` at the project root**, the top-level dire
 
 </FileTree>
 
-Your `AGENTS.md` stays outside the Code Rules directory, at the project root. The **project configuration** is `.code-rules/config.yaml`.
-
-Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/` directory. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
-
-## Local, imported, and resolved rules
-
-The three directories serve different purposes:
-
-- **`local/`: rules you author for this project.** Add your own rules here, or write replacements for imported rules and select those replacements in `config.yaml`. You maintain these files; syncing libraries preserves them.
-- **`vendor/`: source files imported from libraries.** Code Rules keeps a snapshot of the selected library content at a specific Git commit. These files let you rebuild offline and trace rules back to their source. Do not customize them here; put your changes in `local/` instead.
-- **`generated/`: the resolved rules your agents read.** Code Rules combines the imported and local rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
-
-Think of `local/` and `vendor/` as inputs, and `generated/` as the output for your agent.
-For example, when you replace a library rule, its imported source stays in `vendor/`, your replacement lives in `local/`, and `generated/` presents the replacement to your agent.
+Your project may also have an `AGENTS.md` at its root. That file tells your agent to read the generated rules; Code Rules does not create it. For a sample instruction, see [Set up your first project](/start-here/set-up-project/#5-give-the-rules-to-your-agent).
 
 ## What to edit
 
-| File or directory | Who maintains it | Purpose |
-| --- | --- | --- |
-| `AGENTS.md` | You | Tell your agent to read the generated rules. |
-| `.code-rules/config.yaml` | You | Choose libraries, revisions, groups, and exceptions. |
-| `.code-rules/local/` | You, after initialization | Add project rules, replacements, and local group metadata. |
-| `.code-rules/README.md` | `code-rules project init`, `project build`, and `project sync` | Explain the project's rule setup and commands. |
-| `.code-rules/vendor/` | `code-rules project sync` | Store imported source files and their revision records. |
-| `.code-rules/generated/` | `code-rules project sync` and `code-rules project build` | Provide resolved rules and indexes for your agent. |
+| Path | What you do |
+| --- | --- |
+| `.code-rules/config.yaml` | Select libraries, revisions, groups, exclusions, and replacements. |
+| `.code-rules/local/` | Write rules for this project, including replacements for imported rules. |
+| `.code-rules/vendor/` | Review imported library files. `project sync` updates this snapshot; do not edit it. |
+| `.code-rules/generated/` | Give these resolved rules and indexes to agents. `project build` or `project sync` regenerates them; do not edit them. |
 
-Keep authored changes in configuration and `local/`. Edits in `vendor/` or `generated/` will be replaced or removed.
-Commit configuration, local rules, and both managed directories so your team and agents can use the same rules offline.
-Commit the project instructions and README as well.
+An imported rule remains in `vendor/` when you replace it. Write the replacement in `local/` and name it in `config.yaml`. The replacement then appears in `generated/`. For the configuration fields, see [Configuration](/reference/configuration/).
 
-Use `code-rules project build` to regenerate guidance from stored inputs, and `code-rules project check` to verify consistency without changing files.
-Missing or mismatched imported snapshots require `code-rules project sync`.
-For recovery and file ownership details, see [Sync and recovery](/reference/sync/).
-
-Generated Markdown and the managed Code Rules guide include a "Generated by Code Rules" notice and regeneration instructions. `generated/provenance.json` stores that notice in `generatedNotice`. Copied license and notice files retain their original bytes.
+After changing local rules or exceptions, run `code-rules project build` and `code-rules project check`. After changing a library, revision, or group selection, run `code-rules project sync` and `code-rules project check`. Commit `.code-rules/` with your project instructions so teammates can use the same rules offline.
 
 ## Project and group guides
 
-`code-rules project init` creates `.code-rules/README.md` with definitions and commands for managing rules. It preserves the project's own `README.md` at the project root.
+`project init` creates `.code-rules/README.md` with setup and authoring instructions. Your project's root `README.md` stays as it was. Adding a local group creates a `README.md` beside its `_group.yaml`; the group guide is for authors and does not become a rule.
 
-After upgrading Code Rules, run `code-rules project build` to refresh an older guide and regenerate guidance, or rerun `project init` to refresh only the guide and setup files. Build, sync, and init preserve valid configuration and local rules but refuse to overwrite a manually edited guide. Preserve those notes separately before refreshing it. `code-rules project check` reports a missing or outdated managed guide without changing it.
-
-Managed guide format changes are breaking changes under the [release policy](https://github.com/fabricahq/code-rules/blob/main/_engineering/releasing.md#version-policy): a minor release before 1.0 and a major release after 1.0. This guide is separate from your project's own README.
-
-Local and library group creation also writes a `README.md` beside `_group.yaml`. Group guides explain how to add, edit, and validate rules. These are authoring documents, excluded from rule loading and generated guidance. Existing group files are preserved.
+Code Rules manages the `.code-rules/README.md` guide. If you edit it, build, sync, and init refuse to replace your changes. Keep your project notes elsewhere, then regenerate the guide. `project check` reports an outdated or missing guide without changing it. For recovery details, see [Sync and recovery](/reference/sync/).
 
 ## Where agents start
 
-Point your agent to `.code-rules/generated/RULES.md`. It lists the groups and explains when to read each one.
-Agents then open relevant groups and read the applicable rules in full.
-See [Plan, write, and review](/for-agents/) for instructions you can add to `AGENTS.md`.
+Point your agent to `.code-rules/generated/RULES.md`. It lists the groups and tells the agent when to open each one. The agent should read every relevant group and each applicable rule in full. A large group index may have several pages.
 
-| Generated path | Contents |
+| Generated path | Purpose |
 | --- | --- |
-| `RULES.md` | The entry point for discovering relevant groups. |
-| `groups/` | Group pages containing full rules or summaries with links to full definitions. |
-| `rules/` | Individual resolved rules, available even when a group also includes them inline. |
+| `RULES.md` | Starting point for choosing groups. |
+| `groups/` | Group indexes, with full rules or links to them. |
+| `rules/` | Full resolved rules, including local replacements. |
 | `libraries/` | Source summaries and retained license and notice files. |
-| `provenance.json` | Machine-readable source versions, origins, and replacement decisions. |
+| `provenance.json` | Source revisions and rule origins for auditing. |
 
-Large indexes can span multiple pages. Follow the page directory and navigation links before selecting rules, and complete any truncated reads.
-Full rule definitions are never shortened to fit an index.
-
-A rule's source name appears in its generated path. For example, `fabrica:practices/testing/test-failure-paths` lives at `rules/fabrica/practices/testing/test-failure-paths.md` under `generated/`.
-Local rules and replacements use `local/` in place of the imported source name. Excluded rules and replaced upstream bodies have no generated rule file.
-
-For source revisions, replacement history, and retained license records, see [Provenance](/reference/provenance/).
+For agent instructions, see [Plan, write, and review](/for-agents/). For source and replacement records, see [Provenance](/reference/provenance/).
 
 ## Example: follow a rule from the index
 
-These abbreviated excerpts show how an agent finds a local rule. The full generated files also include reading instructions, metadata, and source information.
+These excerpts show the path from an index to a local rule. The generated files include more reading guidance and source details.
 
-### RULES.md: choose a group
+1. Open `.code-rules/generated/RULES.md` and use its **When to read** cue:
 
-`.code-rules/generated/RULES.md` is the starting point. Each entry tells the agent when to open a group:
+   ```md
+   ### Testing
 
-```md
-### Testing
+   **When to read this group:** When adding or changing behavior, fixing bugs, or reviewing tests.
 
-**When to read this group:** When adding or changing behavior, fixing bugs, or reviewing tests.
+   **Open group:** [Testing](groups/practices/testing.md)
+   ```
 
-**Open group:** [Testing](groups/practices/testing.md)
-```
+2. Open the Testing group. A large group's index links to each full rule:
 
-### Group page: find the rules
+   ```md
+   ### Test changed behavior
 
-`.code-rules/generated/groups/practices/testing.md` contains the group's rules. Small groups include full rule text; larger groups use summaries like this, linking to each full definition:
+   Rule ID: `local:practices/testing/test-changed-behavior`
 
-```md
-### Test changed behavior
+   **When to read:** When adding or changing externally visible behavior.
 
-Rule ID: `local:practices/testing/test-changed-behavior`
+   **Read full rule:** [Test changed behavior](../../rules/local/practices/testing/test-changed-behavior.md)
+   ```
 
-**When to read:** When adding or changing externally visible behavior.
+3. Read `.code-rules/generated/rules/local/practices/testing/test-changed-behavior.md`:
 
-**Read full rule:** [Test changed behavior](../../rules/local/practices/testing/test-changed-behavior.md)
-```
+   ```md
+   # Test changed behavior
 
-### Rule file: read the guidance
+   Rule ID: `local:practices/testing/test-changed-behavior`
 
-`.code-rules/generated/rules/local/practices/testing/test-changed-behavior.md` contains the rule the agent follows:
+   ## Guidance
 
-```md
-# Test changed behavior
+   When a change alters behavior that a caller or user relies on, add or update a test for that outcome.
+   ```
 
-Rule ID: `local:practices/testing/test-changed-behavior`
+Edit the authored rule in `.code-rules/local/practices/testing/test-changed-behavior.md`, then build again. The generated copy reflects your edit.
 
-## Guidance
-
-When a change alters behavior that a caller or user relies on, add or update a test for that outcome.
-```
-
-The authored version stays in `.code-rules/local/practices/testing/test-changed-behavior.md`. Edit that source file and rebuild to update the generated copy.
-
-### Examples of other project files
-
-- [Project configuration](/reference/configuration/#complete-example): the libraries, groups, exclusions, and replacements declared in `config.yaml`.
-- [Group metadata](/reference/rule-library-format/#group-metadata): the name and reading cues in `_group.yaml`.
-- [Authored rule](/reference/rule-authoring/#markdown-template): the Markdown and metadata you write before building.
-- [Imported source record](/reference/provenance/#inspect-the-original-imported-files): the library revision stored in `vendor/<source>/_source.json`.
-- [Provenance](/reference/provenance/#trace-a-rule-to-its-source): how `generated/provenance.json` records a rule's origin.
+For the package-by-package implementation and test map, see [Inspect the implementation and tests](/for-agents/#inspect-implementation-and-tests).

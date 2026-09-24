@@ -1,64 +1,37 @@
 ---
 title: "Provenance"
-description: "Where to find a rule's source, imported version, replacement reason, and declared license."
+description: "Find a rule's source, imported version, replacement reason, and declared license."
 ---
 
-**Provenance** records where your project's rules came from. The main file is `generated/provenance.json` in the **Code Rules directory**, so its path from the project root is `.code-rules/generated/provenance.json`. It identifies the libraries and versions your project uses, the source of each active rule, and any local replacements.
-
-Read it when you want to understand why a rule is present, investigate a library update, or find out why your project replaced a rule. Tools can also read the JSON to report this information. To find and follow the rules themselves, agents start with [the generated rule index](/reference/files/#where-agents-start).
-
-This page shows where the records live, how Code Rules creates them, and how to trace a rule back to its source.
+**Provenance** tells you why a rule appears in your project's guidance and where it came from. To trace an imported rule, review a library update, or understand a local replacement, open `.code-rules/generated/provenance.json`. To read the rules themselves, start at [the generated rule index](/reference/files/#where-agents-start).
 
 ## Where to look
 
-Code Rules keeps three related records:
-
-| File | What it tells you |
+| File under `.code-rules/` | What it answers |
 | --- | --- |
-| `generated/provenance.json` | Where active rules came from, which library versions are in use, and why rules were replaced. |
-| `vendor/<source-name>/_source.json` | Which commit and original files were imported from one library. |
-| `generated/libraries/<source-name>/README.md` | A readable summary of one library's revision and declared license terms. |
+| `generated/provenance.json` | Which rules are active, where they came from, and which imported rules were replaced. |
+| `vendor/<source-name>/_source.json` | Which commit and original files were copied from one library. |
+| `generated/libraries/<source-name>/README.md` | A readable summary of that library's revision and declared terms. |
 
-These paths are relative to the Code Rules directory, `.code-rules/`. The **source name** is the name you gave a library in your configuration, such as `acme-rules`.
-
-Code Rules writes these files. To change the information they describe, edit your configuration or local rules and run the appropriate [sync or build command](/reference/sync/).
+The source name is the name you gave a library in configuration, such as `acme-rules`. Code Rules writes these files. Change configuration or local rules, then [sync or build](/reference/sync/) to update them.
 
 ## How the records are created
 
-1. **You select libraries and rules.** Configuration records the library versions, groups, exclusions, and replacements your project wants to use.
-2. **Sync records what it imports.** `code-rules project sync` copies each library's selected files and writes its `_source.json` record with the exact Git commit and file checksums.
-3. **Generation records the result.** Sync or build combines the imported and local rules, then writes `generated/provenance.json` alongside the guidance your agents read.
+Configuration names your libraries, revisions, groups, and exceptions. Sync copies the selected library files and records the exact imported commit. Sync or build then writes provenance for the resulting active rules. An excluded rule has no active entry; a local replacement has an entry naming the imported rule it replaced.
 
-An **active rule** is one included in that generated guidance. An excluded rule has no active rule entry. A local replacement has an entry that also identifies the imported rule it replaced.
-
-These files describe the current result, rather than a running history of every update. They contain no changing timestamps or machine-specific paths.
+These records describe the current ruleset, not a history of every update. They contain no changing timestamps or machine-specific paths.
 
 ## Trace a rule to its source
 
-Open `generated/provenance.json` and find the rule's ID in the `rules` array. A rule ID includes its source name, such as `acme-rules:practices/testing/check-retries`.
-
-Each rule entry includes:
-
-| Field | What to look for |
-| --- | --- |
-| `id` and `group` | The active rule's identity and group. |
-| `origin` | The source and file supplying the active rule. Imported origins also identify the repository, requested ref or selected tag, and exact commit. |
-| `upstream` | The imported rule's origin when a local rule replaces it; otherwise `null`. |
-| `replacementReason` | Your configured reason for the replacement; otherwise `null`. |
-| `license`, `licenseBasis`, and `attribution` | Declared terms and source credits, explained below. |
-
-Local origins use `source: "local"`. Their repository, revision, and commit fields are `null` because the rule comes from your project.
+In `generated/provenance.json`, find the rule's ID in the `rules` list. An imported ID includes its source name, such as `acme-rules:practices/testing/check-retries`. Read `origin` for the source file, repository, requested ref or selected tag, and exact commit. A local rule has `source: "local"` and no repository commit.
 
 ### Example: explain a local replacement
 
-Suppose your project imports the `acme-rules` library but replaces its `check-retries` rule with `local/practices/testing/service-retries.md`. You record the reason in configuration: “Use the retry limits required by this service.”
-
-The replacement's entry contains these fields. This excerpt omits the other origin and license fields:
+Suppose `acme-rules` supplies `practices/testing/check-retries.md`, but your project uses `local/practices/testing/service-retries.md` instead. A shortened provenance entry looks like this:
 
 ```json
 {
   "id": "local:practices/testing/service-retries",
-  "group": "practices/testing",
   "origin": {
     "source": "local",
     "file": "practices/testing/service-retries.md"
@@ -71,74 +44,26 @@ The replacement's entry contains these fields. This excerpt omits the other orig
 }
 ```
 
-Read this as: agents receive the local `service-retries` rule, it replaces `acme-rules`'s `check-retries` rule, and the reason comes from your project configuration. The imported rule's full origin also records its repository and exact commit.
+Agents read the local rule. The `upstream` entry and reason show what it replaces and why. The full entry also records the imported rule's repository and exact commit.
 
 ## Inspect library versions and group guidance
 
-The same `generated/provenance.json` file contains three other top-level fields:
+In the `sources` list, find your source name. It records the requested `ref` or version range, the imported commit, and the groups included. For a version range, it also records the selected tag and version. A selector such as `"practices/*"` can include newly published groups on a later sync; compare the recorded groups when reviewing an update.
 
-| Field | What it records |
-| --- | --- |
-| `toolVersion` | The Code Rules version that generated the files. |
-| `sources` | Each named library, its repository, requested revision or version range, exact imported commit, selected groups, and declared terms. |
-| `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
-
-For each source, `groupSelection` records what you asked for, while `groups` lists the groups imported. For example, `"practices/*"` asks for all practice groups; the list records which ones existed at the imported revision.
-
-When you select a version range, the source also records `resolvedTag` and `resolvedVersion`. The source keeps the requested range in `version`; individual imported rule origins use the selected tag as `ref`.
-
-Within each group record, `guidance` keeps the metadata labeled by source. `effectiveGuidanceSources` identifies which sources supply the guidance agents see. Local group metadata takes precedence when present; otherwise the guidance from all contributing libraries remains effective.
+The `groups` list records group descriptions and reading cues by source. Local group metadata supplies the effective description when present. Otherwise, guidance from each contributing library remains available.
 
 ## Inspect the original imported files
 
-Each library has a separate `vendor/<source-name>/_source.json` file. It describes the **snapshot**: the original library files copied from one Git commit. The directory name identifies the source.
-
-| Field | Meaning |
-| --- | --- |
-| `formatVersion` | The snapshot format version, `1`. |
-| `repository` | The library's repository address. |
-| `ref` or `version` | The exact revision or version range you requested. |
-| `resolvedCommit` | The full Git commit SHA imported. |
-| `resolvedTag` and `resolvedVersion` | The tag and version selected for a version range. Omitted for an exact ref. |
-| `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
-| `groups` | The groups included in the snapshot. |
-| `files` | Each retained library-relative path and its SHA-256 checksum, written as lowercase hexadecimal text. |
-
-A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
-
-For a wildcard selection, the snapshot must contain every group in the selected scope at that revision and record the exact selector. Older records without `groupSelection` imply the explicit `groups` list; they cannot satisfy a wildcard selection.
+Open `vendor/<source-name>/_source.json` to see the original files copied from one Git commit. The record lists your requested group selection, the groups found at that revision, and the imported file paths. The files remain under `vendor/<source-name>/`, even if your project excludes or replaces their rules.
 
 ### What offline checks can verify
 
-`code-rules project build` and `code-rules project check` compare the recorded library selection with configuration and compare stored files with their checksums. Revision checks depend on how you selected the library:
-
-| Selection | What Code Rules verifies offline |
-| --- | --- |
-| Exact commit | `resolvedCommit` equals the requested commit. |
-| Exact tag | Uses the recorded commit without checking where the remote tag points now. |
-| Version range | The recorded tag represents `resolvedVersion`, and that version satisfies your configured range. |
-
-Offline checks cannot prove that a selected version was the highest available or that a remote tag points to the recorded commit. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
+`code-rules project build` and `code-rules project check` work from stored imports. They detect missing or changed imported files and a selection that no longer matches configuration. They cannot tell whether a remote tag moved or whether a newer matching version exists. The stored records also cannot authenticate a remote source if someone changes both the files and their records. Run [sync](/reference/sync/) to fetch the selected revision again.
 
 ## Find declared licenses and source credits
 
-Provenance keeps license declarations and attribution alongside rule origins. Each source and rule has one `license` object, or `null` when no license was declared.
+For an imported rule, provenance records the library's license declaration when present and keeps the rule's authored attribution. Generated rules link to retained copies of declared license and notice files under `generated/libraries/<source-name>/licenses/`.
 
-An imported rule from a library with a declared license records that declaration and `licenseBasis: "library"`. Within the license object, `spdxExpression` records a declared license expression, such as `MIT`. The rule's `attribution` field preserves source credits as URLs and descriptions.
+A local addition or replacement does not inherit the imported library's license. Its rule entry has `license: null` and `licenseBasis: "undeclared"`, while the library's declaration remains in the source record. An absent declaration does not imply public-domain status or permission to redistribute. For authoring fields and retained terms, see [Rule and library format](/reference/rule-library-format/).
 
-The license record distinguishes original files from the copies retained with generated guidance:
-
-| Field inside `license` | Paths in a source record | Paths in a rule record |
-| --- | --- | --- |
-| `files` | Original license files, relative to the library root. | Original license files under `vendor/<source-name>/`, relative to the Code Rules directory. |
-| `attributionFiles` | Original notice files, relative to the library root. | Original notice files under `vendor/<source-name>/`, relative to the Code Rules directory. |
-| `generatedFiles` | Retained license copies, relative to `generated/`. | The same generated license copies. |
-| `generatedAttributionFiles` | Retained notice copies, relative to `generated/`. | The same generated notice copies. |
-
-For example, a rule's `files` entry might be `vendor/acme-rules/LICENSE.md`, with `libraries/acme-rules/licenses/LICENSE.md` at the same position in `generatedFiles`. Generated rule links point to the retained copy. Notice paths correspond in the same way.
-
-The source record also has a `licenseFiles` list of the library-relative files belonging to its declaration. These lists describe files for one library-wide license declaration.
-
-Local additions and original local replacements have `license: null` and `licenseBasis: "undeclared"`. Replacing an imported rule does not automatically assign its library's license to the local replacement. The library's declaration remains in its source record.
-
-These fields preserve declarations; they are not a legal verification status. `"undeclared"` does not mean public domain or permission to redistribute. For how authors declare terms and credits, see [Rule and library format](/reference/rule-library-format/).
+For the code paths and tests behind provenance, [inspect the implementation](/for-agents/#inspect-implementation-and-tests).
