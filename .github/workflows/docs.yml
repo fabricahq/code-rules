@@ -1,4 +1,5 @@
 name: Documentation
+# Publish checked builds from main to https://code-rules.fabricahq.com, including /install.sh.
 # Run on every pushed commit and PR update: sidebar, template, or build changes
 # can break links even when no Markdown file changed, so do not use path filters.
 on:
@@ -8,6 +9,10 @@ permissions:
   contents: read
 jobs:
   check:
+    # Cancel superseded main checks so an older build can't deploy after a newer one.
+    concurrency:
+      group: docs-check-${{ github.ref }}
+      cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -27,3 +32,29 @@ jobs:
       - name: Check all documentation links
         run: bun run docs:links:all
         timeout-minutes: 10
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: docs/dist
+
+  # Only this job can publish, and only a build that passed every check above.
+  # Pages settings and the custom domain are managed in infra-live.
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    # Publish one build at a time, and let an in-progress deployment finish.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      # Fails early if Pages is not enabled with GitHub Actions as its source.
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
