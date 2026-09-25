@@ -32,44 +32,44 @@ That means you can:
 - Organize and version them in a central Git repo
 - Configure your projects to pull down just the right rules automatically when your agents write or validate code
 
+Your agents then follow the same rules whether they're writing code or reviewing it.
+
 ## How is it useful?
 
 Agents are capable of writing testable, maintainable, and well-organized code. But they don't do it by default. They only do it when you tell them how.
 
 ### Traditional approaches to giving agents guidance
 
-To solve the problem of "how," many teams use static methods to deliver guidance to their agents like **skills.** Skills are an excellent way to repeat the same guidance in the same situation, but the skills themselves rarely evolve with you based on the real-world feedback you give to agents. Skills are also coarsely-grained, making it hard to extract a subset of guidance from a skill to be used on a specific project.
+To solve the problem of "how," most teams start by writing guidance into an instruction file like `AGENTS.md` or `CLAUDE.md`. That works for one repository, but the file keeps growing, and when you copy it into the next repo and tweak it, the copies drift apart until nobody knows which one is current.
+
+Many teams also deliver guidance through **skills**. Skills are an excellent way to repeat the same guidance in the same situation, but the skills themselves rarely evolve with you based on the real-world feedback you give to agents. Skills are also coarse-grained, making it hard to use a subset of a skill's guidance on a specific project.
 
 ### The Code Rules approach
 
-The Code Rules philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)** and they are represented as Markdown files that optionally follow the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/).
+The Code Rules philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)**, and they are represented as Markdown files that optionally follow the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules can give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs.
 
-You can write your own project-specific rules, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/),** which are collections of rules meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
+You can write your own project-specific rules, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/)**, which are collections of rules meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
 
-Code Rules is agent- and harness-agnostic, so it will work with Claude Code, Codex, Grok, and everything else.
+That's where the package manager comes in. As with packages for code, you can:
 
-### Rules can cover anything
+- **Pin versions.** Pin each library to an exact tag or commit, or accept compatible releases with ranges like `>= 1.0.0, < 2.0.0`.
+- **Customize without forking.** Exclude an imported rule or replace it with your own, with the decision recorded in config.
+- **Build reproducibly.** Libraries are vendored at an exact commit, and every imported rule keeps its source and license terms.
+- **Catch drift in CI.** `code-rules project check` fails when generated files are out of date.
 
-Rules can give guidance on **technologies** like Go or Typescript, or on **practices** like testing, observability, or even writing good READMEs. 
+Agents don't read every rule on every task. Code Rules generates an index with a "when to read" cue for each group of rules, so agents open only the rules that matter for the work at hand. It works with any agent that reads a project instruction file, such as Claude Code, Codex, Cursor, or Gemini CLI.
 
 ### Rules can evolve
 
 As you work, you will find that some rules consistently deliver value, while others start to get in the way or no longer represent your preferred way of working. Or you may be repeatedly giving the same guidance to agents, in which case, it may be time to create a rule for it.
 
-Ideally, you can ask your agent to automatically introspect your sessions and modify rules as needed, opening up the possibility for version-controlled, evolving guidance.
-
-### Key use cases
-
-Ultimately, Code Rules is useful for:
-
-- **Implementation.** Your agents will write code according to your team's guidance.
-- **Validation.** Your agents will review code against your team's guidance.
+Because rules are files in Git, you can ask your agent to review a session and propose a rule change, then review that change like any other code. Your guidance improves in version-controlled steps, and every project that uses the rule picks up the improvement on its next sync.
 
 ## Quick start
 
 ### Set up Code Rules
 
-**1. Install** the standalone binary (macOS and Linux; no Go, Node.js, or Bun required):
+Install the standalone binary (macOS and Linux; no Go, Node.js, or Bun required):
 
 ```sh
 curl -fsSL https://code-rules.fabricahq.com/install.sh | sh
@@ -81,9 +81,15 @@ Or install with [Homebrew](https://brew.sh/):
 brew install fabricahq/tap/code-rules
 ```
 
+Then set up Code Rules from your repository root:
+
+```sh
+code-rules project init
+```
+
 ### Write your first rule
 
-**2. Write a rule.** A rule is one practice, written in plain Markdown. Save this abbreviated rule as `test-changed-behavior.md`:
+A rule is one practice, written in plain Markdown. Save this abbreviated rule as `test-changed-behavior.md`:
 
 ```md
 ## Test changed behavior
@@ -92,10 +98,9 @@ When a change alters behavior that a caller or user relies on, add or update a t
 Assert the observable result, such as an order's new total, rather than which private helper was called.
 ```
 
-Then, from your repository root, set up Code Rules and add the rule to a group:
+Then add the rule to a group:
 
 ```sh
-code-rules project init
 code-rules project add group practices/testing \
   --name Testing \
   --description 'Tests for the behavior this project provides.' \
@@ -112,7 +117,7 @@ Leave out `--body-file` to start from a template instead. Either way, the rule l
 
 ### Tell your agents to follow your rule
 
-**3. Build the guidance your agent reads:**
+Build the guidance your agent reads:
 
 ```console
 $ code-rules project build
@@ -138,7 +143,7 @@ Paths relative to .code-rules/generated:
 **Open group:** [Testing](groups/practices/testing.md)
 ```
 
-**4. Point your agent at it.** Add this to `AGENTS.md`, `CLAUDE.md`, or whichever instruction file your agent reads:
+Then point your agent at it. Add this to `AGENTS.md`, `CLAUDE.md`, or whichever instruction file your agent reads:
 
 ```markdown
 ## Engineering rules
@@ -162,7 +167,7 @@ Commit `.code-rules/` and you're done. Now ask your agent for a change as you no
 
 ## Share rules across projects
 
-Once a rule proves itself, you may want move it into a **library**: a Git repository of rule groups that any project can import. 
+Once a rule proves itself, you may want to move it into a **library**: a Git repository of rule groups that any project can import.
 
 We recommend publishing your team's default rules in a repository such as `acme/.code-rules`, or starting from an existing library like the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules):
 
