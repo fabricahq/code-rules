@@ -121,19 +121,19 @@ When layout or interaction changes, inspect the rendered pages.
 Keep this file focused on enduring product context and decisions useful to almost every agent session.
 Revise or remove stale guidance instead of accumulating a history of decisions.
 
-<!-- release-planner:begin v0.4.1 sha256:8f0b1e552597943f -->
+<!-- release-planner:begin v0.4.2 sha256:f74237bf322373e5 -->
 ## Releases
 
-This repository publishes releases with [Release Planner](https://github.com/fabricahq/release-planner) v0.4.1. When asked to make a release, draft, revise, or correct release notes, or retry a failed release, print the release procedure and follow it:
+This repository publishes releases with [Release Planner](https://github.com/fabricahq/release-planner) v0.4.2. When asked to make a release, draft, revise, or correct release notes, or retry a failed release, print the release procedure and follow it:
 
 ```sh
 release-planner guide
 ```
 
-First check that `release-planner version` prints `v0.4.1`. If it doesn't, or `release-planner` isn't installed, install that version:
+First check that `release-planner version` prints `v0.4.2`. If it doesn't, or `release-planner` isn't installed, install that version:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/fabricahq/release-planner/v0.4.1/install.sh | sh -s -- --version v0.4.1
+curl -fsSL https://raw.githubusercontent.com/fabricahq/release-planner/v0.4.2/install.sh | sh -s -- --version v0.4.2
 ```
 
 Read `.release-planner/policy.md` first for this repository's release policy. You prepare the release pull request; the maintainer approves the release by merging it. Never tag, publish, or merge.
