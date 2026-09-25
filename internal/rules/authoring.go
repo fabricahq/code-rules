@@ -76,5 +76,8 @@ func RenderRule(id string, metadata RuleMetadata, body *string) ([]byte, error) 
 	if !strings.HasSuffix(text, "\n") {
 		text += "\n"
 	}
+	if body == nil {
+		text += "\n" + DraftMarker + "\n"
+	}
 	return []byte(text), nil
 }

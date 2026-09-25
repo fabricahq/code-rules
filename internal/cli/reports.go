@@ -9,6 +9,7 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/project"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // commandReport owns a completed command's data, human rendering, and optional reported failure.
@@ -122,9 +123,7 @@ func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScop
 	instruction := "Review the Markdown file above. Make future edits directly in that file."
 	if draft {
 		instruction = "Next: Open the Markdown file above in your editor.\nKeep the metadata between the --- lines at the top. Below it:\n  - State the instructions and explain why they matter.\n  - Add correct and incorrect examples, then describe how to check compliance.\n  - Replace <...> placeholders and remove unused template sections."
-		if scope.library {
-			instruction += "\n  - Remove the <!-- code-rules:draft --> marker when the rule is complete."
-		}
+		instruction += "\n  - Remove the " + rules.DraftMarker + " marker when the rule is complete."
 	}
 	commands := []string{scope.command("build"), scope.command("check")}
 	if scope.library {

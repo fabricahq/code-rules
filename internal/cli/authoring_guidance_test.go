@@ -103,7 +103,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 						t.Fatalf("missing completion step %q: %s", text, result.Stdout)
 					}
 				}
-				if scope == "library" && !strings.Contains(result.Stdout, "Remove the <!-- code-rules:draft --> marker") {
+				if !strings.Contains(result.Stdout, "Remove the <!-- code-rules:draft --> marker") {
 					t.Fatal(result.Stdout)
 				}
 				header, _, found := strings.Cut(string(data), "\n---\n")
