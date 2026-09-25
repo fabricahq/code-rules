@@ -92,6 +92,12 @@ The [rule metadata reference](/reference/rule-library-format/#rule-metadata) def
 
 You can add optional `tags` for search terms, such as `tags: [testing, cancellation]`. Tags do not determine whether a rule applies, and Code Rules does not use them to filter rules. Omit tags that add no useful search terms.
 
+### Keep narrow rules short
+
+Size a rule to its obligation. A narrow rule, such as one API choice or one performance technique, can be complete with a sentence or two stating the obligation, a sentence on when it does not apply, one counterexample paired with the correct approach, and a short check. It does not need every template heading or several applications.
+
+Add sections and applications when they carry information an agent would otherwise miss: a rationale that is not obvious, a context that changes how to follow the rule, or an exception that is easy to overlook. Length is not evidence of quality. A rule that repeats the same lesson in more words is harder to apply, and large groups are summarized in generated guidance, so each rule's title and `whenToRead` cue must stand on their own.
+
 ## Write whenToRead guidance that helps selection
 
 The `whenToRead` field helps an agent decide whether to open a rule before it knows the rule's full contents. Describe work the agent can recognize from its task, rather than a defect it must first discover.
