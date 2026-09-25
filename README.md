@@ -34,22 +34,40 @@ That means you can:
 
 ## How is it useful?
 
-Agents are capable of writing tested, maintainable, well-organized code. They just don't do it by default. They do it when you tell them how.
+Agents are capable of writing testable, maintainable, and well-organized code. But they don't do it by default. They only do it when you tell them how.
 
-So every time your agent departs from your expectations, you write new guidance into `AGENTS.md`. Then you copy it into the next repo, tweak it, and copy it again. A few months later, every repository has its own slightly different version of your best practices, and nobody knows which one is current.
+### Traditional approaches to giving agents guidance
 
-We solved this problem for code a long time ago with package managers. **Code Rules does the same for agent guidance.**
+To solve the problem of "how," many teams use static methods to deliver guidance to their agents like **skills.** Skills are an excellent way to repeat the same guidance in the same situation, but the skills themselves rarely evolve with you based on the real-world feedback you give to agents. Skills are also coarsely-grained, making it hard to extract a subset of guidance from a skill to be used on a specific project.
 
-|                          | Copying `AGENTS.md` by hand            | Code Rules                                                        |
-| ------------------------ | -------------------------------------- | ----------------------------------------------------------------- |
-| **Sharing**              | Copy, paste, tweak, repeat             | Import versioned rule libraries from any Git repository           |
-| **Versioning**           | No idea which copy a repo has          | Each library is pinned to a commit, with version constraints      |
-| **Improvements**         | Stay in the repo where they were made  | Release once; projects pick them up on their next `sync`          |
-| **Customizing**          | Edit the copy and hope nobody notices  | Exclude or replace individual rules in config, with a reason      |
-| **Provenance & license** | Lost the moment you paste              | Source, resolved commit, and license terms travel with every rule |
-| **Agent context**        | One ever-growing file                  | A generated index, so agents read only the rule groups they need  |
+### The Code Rules approach
+
+The Code Rules philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)** and they are represented as Markdown files that optionally follow the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/).
+
+You can write your own project-specific rules, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/),** which are collections of rules meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
+
+Code Rules is agent- and harness-agnostic, so it will work with Claude Code, Codex, Grok, and everything else.
+
+### Rules can cover anything
+
+Rules can give guidance on **technologies** like Go or Typescript, or on **practices** like testing, observability, or even writing good READMEs. 
+
+### Rules can evolve
+
+As you work, you will find that some rules consistently deliver value, while others start to get in the way or no longer represent your preferred way of working. Or you may be repeatedly giving the same guidance to agents, in which case, it may be time to create a rule for it.
+
+Ideally, you can ask your agent to automatically introspect your sessions and modify rules as needed, opening up the possibility for version-controlled, evolving guidance.
+
+### Key use cases
+
+Ultimately, Code Rules is useful for:
+
+- **Implementation.** Your agents will write code according to your team's guidance.
+- **Validation.** Your agents will review code against your team's guidance.
 
 ## Quick start
+
+### Set up Code Rules
 
 **1. Install** the standalone binary (macOS and Linux; no Go, Node.js, or Bun required):
 
@@ -63,10 +81,9 @@ Or install with [Homebrew](https://brew.sh/):
 brew install fabricahq/tap/code-rules
 ```
 
-> [!NOTE]
-> The first release, `v0.1.0`, is being prepared. Until it's published, install from source with Go 1.27.1 or later: `go install github.com/fabricahq/code-rules/cmd/code-rules@latest`
+### Write your first rule
 
-**2. Write a rule.** A rule is one practice, written in plain Markdown. Save this as `test-changed-behavior.md`:
+**2. Write a rule.** A rule is one practice, written in plain Markdown. Save this abbreviated rule as `test-changed-behavior.md`:
 
 ```md
 ## Test changed behavior
@@ -92,6 +109,8 @@ code-rules project add rule practices/testing/test-changed-behavior \
 ```
 
 Leave out `--body-file` to start from a template instead. Either way, the rule lives in `.code-rules/local/`, where you keep editing it.
+
+### Tell your agents to follow your rule
 
 **3. Build the guidance your agent reads:**
 
@@ -143,7 +162,9 @@ Commit `.code-rules/` and you're done. Now ask your agent for a change as you no
 
 ## Share rules across projects
 
-Once a rule proves itself, move it into a **library**: a Git repository of rule groups that any project can import. Publish your team's defaults in a repository such as `acme/.code-rules`, or start from an existing library. For example, to adopt the testing and Go rules from [Fabrica's public library](https://github.com/fabricahq/public-rules) in a project:
+Once a rule proves itself, you may want move it into a **library**: a Git repository of rule groups that any project can import. 
+
+We recommend publishing your team's default rules in a repository such as `acme/.code-rules`, or starting from an existing library like the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules):
 
 ```sh
 code-rules project add library fabrica \
@@ -172,23 +193,6 @@ sources:
 `sync` picks the newest release that satisfies the constraint, snapshots it into `.code-rules/vendor/`, and rebuilds. Improve a rule in the library and tag a release: every project whose range allows it picks up the improvement on its next sync, on its own schedule.
 
 ➡️ [Create your first library](https://code-rules.fabricahq.com/start-here/create-library/) · [Import rules](https://code-rules.fabricahq.com/guides/select-rules/) · [Update rules](https://code-rules.fabricahq.com/guides/update/)
-
-## Features
-
-- **Local rules and shared libraries.** Start with project-only rules; import libraries from any Git host, public or private, when you're ready.
-- **Semantic version constraints.** Pin an exact tag or commit, or accept compatible releases with ranges like `>= 1.0.0, < 2.0.0`.
-- **Customize without forking.** Exclude an imported rule or replace it with your own local definition, with the decision recorded in config.
-- **Offline, reproducible builds.** Libraries are vendored at an exact commit, so `build` needs no network and every checkout sees the same rules.
-- **Provenance and licenses included.** Every imported rule keeps its source, resolved commit, and declared license terms.
-- **Guidance sized for agent context.** Groups carry "when to read" cues, so agents open only the rules that matter for the task.
-- **CI-ready.** `code-rules project check` exits non-zero when generated files are stale, and `--json` gives structured output with no prompts.
-- **Works with any agent.** Output is plain Markdown in your repository. If your agent reads a project instruction file, it can use Code Rules.
-
-## What Code Rules doesn't do
-
-- **It doesn't enforce your rules.** Code Rules delivers the same resolved rules to implementation and review, but giving an agent a rule doesn't guarantee that it follows it. `project check` verifies your rule files, not your application code. For a suggested plan, write, and review loop, see [For agents](https://code-rules.fabricahq.com/for-agents/).
-- **It doesn't resolve contradictions for you.** If two rules disagree, you decide which to exclude or replace. See [Resolve conflicting rules](https://code-rules.fabricahq.com/guides/conflicting-guidance/).
-- **It doesn't run on native Windows yet.** The Linux build is expected to work in WSL 2, but hasn't been tested end to end.
 
 ## Learn more
 
