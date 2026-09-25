@@ -59,7 +59,7 @@ The Dependency Dashboard shows pending updates. Renovate's schedule limits when 
 Renovate may refresh existing update branches outside that window.
 
 Renovate manages Go modules, Bun workspaces and their lockfile, workflow actions, and supported runtime inputs.
-A custom manager finds versioned `go run` tools in workflows and README commands so those pins receive update PRs too.
+A custom manager finds versioned `go run` tools in workflows and CONTRIBUTING.md commands so those pins receive update PRs too.
 Renovate includes indirect Go requirements. We disable broad lockfile-maintenance runs; dependency PRs regenerate the affected lockfile through the package manager.
 Review transitive changes in each lockfile diff: the cooldown does not establish the safety or age of every dependency a package manager resolves.
 
@@ -71,7 +71,7 @@ Revisit that constraint when both tools support a newer API. If the constraint b
 [Dependency security](../.github/workflows/security.yml) runs `govulncheck` on pushes, pull requests, daily at 14:23 UTC, and manual dispatch.
 The scan includes tests on Linux and macOS and uses the current Go vulnerability database. Findings and scan errors fail the job.
 The [release build](../.github/workflows/build-release.yml) repeats the scan against the exact release source on the release PR, and again if the release is rebuilt after the merge.
-The [README](../README.md#validate-changes) owns the local command and pinned scanner version.
+[CONTRIBUTING.md](../CONTRIBUTING.md#validate-changes) owns the local command and pinned scanner version.
 
 Scheduled scans run from the default branch after a maintainer merges the workflow. Maintainers must monitor failed runs and GitHub vulnerability alerts.
 Scans identify known vulnerabilities in the code they analyze. Passing scans and tests cannot prove that a dependency is free of malicious code or undisclosed vulnerabilities.
@@ -137,4 +137,4 @@ Record dated evidence in the repository security audit instead of relying on a s
 - [Renovate: vulnerability alerts](https://docs.renovatebot.com/configuration-options/#vulnerabilityalerts)
 - [Renovate: OSV alerts and coverage limits](https://docs.renovatebot.com/configuration-options/#osvvulnerabilityalerts)
 
-When changing this policy, validate `renovate.json` with Renovate's `renovate-config-validator --strict` command and run the README validation commands.
+When changing this policy, validate `renovate.json` with Renovate's `renovate-config-validator --strict` command and run the [validation commands](../CONTRIBUTING.md#validate-changes).

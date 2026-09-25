@@ -1,73 +1,224 @@
-# Code Rules
+<h1 align="center">Code Rules</h1>
 
-[Fabrica Code Rules](https://code-rules.fabricahq.com) is the package manager for your engineering rules. Author project rules, adopt versioned Git libraries, and generate Markdown that agents can read before they work.
+<h3 align="center">The package manager for your engineering&nbsp;rules.</h3>
 
-The Go CLI is available. The installable authoring skill remains separate work.
+<p align="center">
+  Write your best practices once. Version them, share them across repositories,
+  and give every coding agent the same guidance <em>before</em> it writes&nbsp;code.
+</p>
 
-## Installation
+<p align="center">
+  <a href="https://github.com/fabricahq/code-rules/actions/workflows/go.yml"><img alt="Go checks" src="https://github.com/fabricahq/code-rules/actions/workflows/go.yml/badge.svg"></a>
+  <a href="LICENSE.md"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <img alt="Platform: macOS | Linux" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey">
+</p>
 
-See [Install Code Rules](docs/src/content/docs/start-here/install.md) for the standalone installer, Homebrew, and manual downloads. These methods use native executables and require no Go, Node.js, or Bun. Maintainers can find channel activation and tests in [installation distribution](_distribution/README.md).
+<p align="center">
+  <a href="https://code-rules.fabricahq.com">Docs</a> ·
+  <a href="#quick-start">Quick start</a> ·
+  <a href="https://code-rules.fabricahq.com/start-here/overview/">Why Code Rules</a> ·
+  <a href="https://code-rules.fabricahq.com/reference/cli/">CLI reference</a>
+</p>
 
-## Build the CLI
+---
 
-Install the Go version declared in [go.mod](go.mod). Git is required to sync remote libraries.
+## What is Code Rules?
+
+Code Rules is a **package manager** for engineering practices.
+
+That means you can:
+
+- Capture engineering best practices as individual Markdown files
+- Organize and version them in a central Git repo
+- Configure your projects to pull down just the right rules automatically when your agents write or validate code
+
+Your agents then follow the same rules whether they're writing code or reviewing it.
+
+## How is it useful?
+
+Agents are capable of writing testable, maintainable, and well-organized code. But they don't do it by default. They only do it when you tell them how.
+
+### Traditional approaches to giving agents guidance
+
+To solve the problem of "how," most teams start by writing guidance into an instruction file like `AGENTS.md` or `CLAUDE.md`. That works for one repository, but the file keeps growing, and when you copy it into the next repo and tweak it, the copies drift apart until nobody knows which one is current.
+
+Many teams also deliver guidance through **skills**. Skills are an excellent way to repeat the same guidance in the same situation, but the skills themselves rarely evolve with you based on the real-world feedback you give to agents. Skills are also coarse-grained, making it hard to use a subset of a skill's guidance on a specific project.
+
+### The Code Rules approach
+
+The Code Rules philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)**, and they are represented as Markdown files that optionally follow the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules can give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs.
+
+You can write your own project-specific rules, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/)**, which are collections of rules meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
+
+Pulling many files from versioned libraries into a project, and keeping them up to date, is a familiar problem. Programming languages have solved it for more than 20 years with the humble package manager. Code Rules applies that same approach, not to reusable code, but to agent guidance.
+
+As with packages for code, you can:
+
+- **Pin versions.** Pin each library to an exact tag or commit, or accept compatible releases with ranges like `>= 1.0.0, < 2.0.0`.
+- **Customize without forking.** Exclude an imported rule or replace it with your own, with the decision recorded in config.
+- **Build reproducibly.** Libraries are vendored at an exact commit, and every imported rule keeps its source and license terms.
+- **Catch drift in CI.** `code-rules project check` fails when generated files are out of date.
+
+Agents don't read every rule on every task. Code Rules generates an index with a "when to read" cue for each group of rules, so agents open only the rules that matter for the work at hand. It works with any agent that reads a project instruction file, such as Claude Code, Codex, Cursor, or Gemini CLI.
+
+### Rules can evolve
+
+As you work, you will find that some rules consistently deliver value, while others start to get in the way or no longer represent your preferred way of working. Or you may be repeatedly giving the same guidance to agents, in which case, it may be time to create a rule for it.
+
+Because rules are files in Git, you can ask your agent to review a session and propose a rule change, then review that change like any other code. Your guidance improves in version-controlled steps, and every project that uses the rule picks up the improvement on its next sync.
+
+## Quick start
+
+### Set up Code Rules
+
+Install the standalone binary (macOS and Linux; no Go, Node.js, or Bun required):
 
 ```sh
-go build -o ./dist/code-rules ./cmd/code-rules
-./dist/code-rules --help
+curl -fsSL https://code-rules.fabricahq.com/install.sh | sh
 ```
 
-The executable runs without Node.js or Bun. From a consuming project's root, run `code-rules project init`, create a local group and rule, then `code-rules project build`. To adopt a library, use `code-rules project add library` with its repository, revision, and groups, then run `code-rules project sync`.
-
-Read [project setup](docs/src/content/docs/start-here/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `project check` reports status and problems without writing files.
-
-## Validate changes
+Or install with [Homebrew](https://brew.sh/):
 
 ```sh
-gofmt -w cmd internal
-go vet ./...
-go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
-go test -race ./...
-go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -test ./...
-go build ./cmd/code-rules ./cmd/package-binaries
+brew install fabricahq/tap/code-rules
 ```
 
-Tests exercise parsers, filesystem safety, Git imports, real CLI processes, generated agent instructions, and installation/upgrade/rollback. Parser regression fixtures live beside their Go tests. [Go conventions](_engineering/go-conventions.md) cover error ownership and comments.
-
-[Security practices](_engineering/security-practices.md) define dependency pins, Renovate updates, vulnerability scans, and review requirements.
-
-## Documentation website
-
-The Astro website and its JavaScript tooling are independent of the Go executable. Install the Bun version declared in [package.json](package.json), then run:
+Then set up Code Rules from your repository root:
 
 ```sh
-bun install --frozen-lockfile
-bun run check
-bun run docs:dev
+code-rules project init
 ```
 
-`bun run check` validates website/tooling formatting, lint, types, tests, the Astro build, and rendered links. It does not replace Go validation. See [docs/README.md](docs/README.md) for site development and the [CSS and Tailwind guidelines](docs/_internal/css.md) for styling conventions.
+### Write your first rule
 
-TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser require its compiler API. [TypeScript 7 does not yet provide that API](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0); revisit this pin when both tools support it.
+A rule is one practice, written in plain Markdown. Save this abbreviated rule as `test-changed-behavior.md`:
 
-## Package binaries
+```md
+## Test changed behavior
 
-[Release instructions](_engineering/releasing.md) explain release assets, candidate archives, and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. [Release Planner](https://release-planner.fabricahq.com) publishes releases: a release PR supplies editable notes and the version in `releases/v<version>.md`, and builds and tests the release assets; merging it publishes them. The first release is `v0.1.0`; the tool uses the [MIT license](LICENSE.md).
+When a change alters behavior that a caller or user relies on, add or update a test for that outcome.
+Assert the observable result, such as an order's new total, rather than which private helper was called.
+```
 
-## Implementation map
+Then add the rule to a group:
 
-- `internal/rules`: validated configuration, identities, documents, links, and versions.
-- `internal/library`: initialize, author, check, and load rule libraries.
-- `internal/imports`: import complete libraries with verified Git provenance.
-- `internal/build`: generate complete output from validated inputs through `Generate`.
-- `internal/project`: initialize and author consuming projects, sync libraries, build offline, and check complete project freshness.
-- `internal/filetxn`: bounded filesystem reads, writer ownership, safe publication, and recovery shared by both owners.
-- `internal/cli`: collect inputs and present operation results.
-- `internal/distribution`: package and verify executable archives.
-- `internal/test/acceptance`: exercise complete CLI workflows through real processes.
-- `internal/test/gitfixture`: supply disposable Git repositories for tests.
-- `internal/test/terminalfixture`: exercise interactive CLI prompts in isolated terminals.
+```sh
+code-rules project add group practices/testing \
+  --name Testing \
+  --description 'Tests for the behavior this project provides.' \
+  --when-to-read 'When adding or changing behavior, fixing bugs, or reviewing tests.'
+code-rules project add rule practices/testing/test-changed-behavior \
+  --title 'Test changed behavior' \
+  --when-to-read 'When adding or changing externally visible behavior.' \
+  --impact HIGH \
+  --impact-description 'Prevents behavior changes from silently breaking existing use cases.' \
+  --body-file test-changed-behavior.md
+```
 
-`internal/test/` groups these three independent packages; it contains no Go package of its own. Unit tests remain beside the code they test.
+Leave out `--body-file` to start from a template instead. Either way, the rule lives in `.code-rules/local/`, where you keep editing it.
 
-Engineering policies belong to independently owned libraries. This repository supplies the formats, tools, and public authoring guidance.
+### Tell your agents to follow your rule
+
+Build the guidance your agent reads:
+
+```console
+$ code-rules project build
+Build complete: 6 added, 0 changed, 0 removed.
+Paths relative to .code-rules/generated:
+  Add: RULES.md
+  Add: groups/README.md
+  Add: groups/practices/testing.md
+  Add: provenance.json
+  Add: rules/README.md
+  Add: rules/local/practices/testing/test-changed-behavior.md
+```
+
+`RULES.md` is an index that tells agents which groups to open for the task at hand:
+
+```md
+### Testing
+
+**Description:** Tests for the behavior this project provides.
+
+**When to read this group:** When adding or changing behavior, fixing bugs, or reviewing tests.
+
+**Open group:** [Testing](groups/practices/testing.md)
+```
+
+Then point your agent at it. Add this to `AGENTS.md`, `CLAUDE.md`, or whichever instruction file your agent reads:
+
+```markdown
+## Engineering rules
+
+Before planning, implementing, reviewing, testing, or debugging a change:
+
+1. Read `.code-rules/generated/RULES.md` and follow its instructions to
+   select relevant groups and read their rules in full, including linked
+   files and additional index pages.
+2. Follow the applicable rules and their exceptions while doing the work.
+3. Before finishing, check your work against those rules and run the
+   relevant validation. Briefly report what you verified and any gaps.
+
+If required rule files are unavailable or give conflicting instructions,
+report the issue rather than silently skipping them or choosing a policy.
+```
+
+Commit `.code-rules/` and you're done. Now ask your agent for a change as you normally would; you don't need to mention Code Rules in each request.
+
+➡️ The full walkthrough is in [Set up your first project](https://code-rules.fabricahq.com/start-here/set-up-project/).
+
+## Share rules across projects
+
+Once a rule proves itself, you may want to move it into a **library**: a Git repository of rule groups that any project can import.
+
+We recommend publishing your team's default rules in a repository such as `acme/.code-rules`, or starting from an existing library like the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules):
+
+```sh
+code-rules project add library fabrica \
+  --repository https://github.com/fabricahq/public-rules.git \
+  --ref '>= 1.0.0, < 2.0.0' \
+  --groups practices/testing \
+  --groups techs/go
+code-rules project sync
+```
+
+The dependency lands in `.code-rules/config.yaml`, the file you review and commit:
+
+```yaml
+schemaVersion: 1
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/public-rules.git
+    version: '>= 1.0.0, < 2.0.0'
+    groups:
+      - practices/testing
+      - techs/go
+    exclude: {}
+    replace: {}
+```
+
+`sync` picks the newest release that satisfies the constraint, snapshots it into `.code-rules/vendor/`, and rebuilds. Improve a rule in the library and tag a release: every project whose range allows it picks up the improvement on its next sync, on its own schedule.
+
+➡️ [Create your first library](https://code-rules.fabricahq.com/start-here/create-library/) · [Import rules](https://code-rules.fabricahq.com/guides/select-rules/) · [Update rules](https://code-rules.fabricahq.com/guides/update/)
+
+## What Code Rules doesn't do
+
+- **It doesn't enforce your rules.** Code Rules gives your agents the same rules for writing and reviewing code, but giving an agent a rule doesn't guarantee that it follows it. `project check` verifies your rule files, not your application code.
+- **It doesn't resolve contradictions automatically.** If two rules disagree, you decide which to exclude or replace. [Resolve conflicting rules](https://code-rules.fabricahq.com/guides/conflicting-guidance/) gives you a prompt that has your agent find the conflicts and propose fixes for you to review.
+- **It doesn't run on native Windows yet.** The Linux build is expected to work in WSL 2, but hasn't been tested end to end.
+
+## Learn more
+
+- → [**What is Code Rules?**](https://code-rules.fabricahq.com/start-here/overview/) The problem, and how rules, groups, projects, and libraries fit together
+- → [**Install**](https://code-rules.fabricahq.com/start-here/install/) Versions, custom directories, checksum verification, and upgrades
+- → [**Write a rule**](https://code-rules.fabricahq.com/guides/write-rules/) Write rules agents can actually follow
+- → [**Configuration**](https://code-rules.fabricahq.com/reference/configuration/) Every field in `config.yaml`
+- → [**CLI reference**](https://code-rules.fabricahq.com/reference/cli/) Every command and flag
+
+## Contributing
+
+Bug reports and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers building from source, running the validation suite, and working on the documentation site.
+
+## License
+
+Code Rules is [MIT licensed](LICENSE.md). Rule libraries carry their own license terms, which Code Rules preserves in each project that imports them.
