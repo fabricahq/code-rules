@@ -80,7 +80,7 @@ Stop if verification fails. Before extracting, compare the archive checksum with
 
 Extract the archive and move the executable into a directory on your `PATH`.
 
-To build from source instead, follow the [contributing guide](https://github.com/fabricahq/code-rules/blob/main/CONTRIBUTING.md#build-the-cli).
+To build from source instead, follow the contributing guide in the [Code Rules repository](https://github.com/fabricahq/code-rules).
 
 </details>
 
