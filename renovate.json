@@ -31,6 +31,11 @@
       "pinDigests": true
     },
     {
+      "description": "Release Planner generates its workflow; upgrade it with release-planner install.",
+      "matchFileNames": [".github/workflows/release-planner.yml"],
+      "enabled": false
+    },
+    {
       "description": "Include indirect Go requirements in reviewed updates.",
       "matchManagers": ["gomod"],
       "matchDepTypes": ["indirect"],
