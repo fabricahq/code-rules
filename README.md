@@ -203,8 +203,8 @@ sources:
 
 ## What Code Rules doesn't do
 
-- **It doesn't enforce your rules.** Code Rules gives your agents the same rules for writing and reviewing code, but giving an agent a rule doesn't guarantee that it follows it. `project check` verifies your rule files, not your application code. For a suggested plan, write, and review loop, see [For agents](https://code-rules.fabricahq.com/for-agents/).
-- **It doesn't resolve contradictions for you.** If two rules disagree, you decide which to exclude or replace. See [Resolve conflicting rules](https://code-rules.fabricahq.com/guides/conflicting-guidance/).
+- **It doesn't enforce your rules.** Code Rules gives your agents the same rules for writing and reviewing code, but giving an agent a rule doesn't guarantee that it follows it. `project check` verifies your rule files, not your application code.
+- **It doesn't resolve contradictions automatically.** If two rules disagree, you decide which to exclude or replace. [Resolve conflicting rules](https://code-rules.fabricahq.com/guides/conflicting-guidance/) gives you a prompt that has your agent find the conflicts and propose fixes for you to review.
 - **It doesn't run on native Windows yet.** The Linux build is expected to work in WSL 2, but hasn't been tested end to end.
 
 ## Learn more
