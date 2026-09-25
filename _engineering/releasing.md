@@ -6,6 +6,10 @@ Release Planner owns the procedure, the release notes style, and retries; see [M
 
 This document covers what is specific to Code Rules.
 
+## Version policy
+
+Code Rules follows [Semantic Versioning](https://semver.org/). [.release-planner/policy.md](../.release-planner/policy.md) defines what counts as a breaking change, including changes to the managed project guide, and which version each kind of change gets.
+
 ## Release assets
 
 On the release PR, Release Planner calls [build-release.yml](../.github/workflows/build-release.yml) with the release commit. It runs gofmt, `go vet`, staticcheck, `go test -race`, and a fresh govulncheck scan on Linux and macOS, and builds the release files with the [packager](../cmd/package-binaries/) on Linux:
