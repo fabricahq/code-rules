@@ -102,10 +102,6 @@ Code Rules manages which versioned rules a codebase adopts and delivers their re
 Projects choose how to apply, validate, and enforce those rules through agent prompts or separate tooling. Code Rules does not prescribe or run that workflow; its agent instructions are a suggested integration.
 Rule-input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
 
-## Releases
-
-When asked to make a release, draft or revise release notes, or retry a failed release, follow [the release workflow](_engineering/releasing.md). The agent prepares the release PR; the maintainer approves publication by merging it.
-
 ## Working in this repository
 
 Before implementing or reviewing code, consult [Fabrica's engineering rules](https://github.com/fabricahq/app/tree/main/_rules) and read the individual rules relevant to the change.
@@ -124,3 +120,21 @@ When layout or interaction changes, inspect the rendered pages.
 
 Keep this file focused on enduring product context and decisions useful to almost every agent session.
 Revise or remove stale guidance instead of accumulating a history of decisions.
+
+<!-- release-planner:begin 01690470fb0eb439a279ffeac57e583226a5fd72 sha256:acfbc7f5bdd28a69 -->
+## Releases
+
+This repository publishes releases with [Release Planner](https://github.com/fabricahq/release-planner) 01690470fb0eb439a279ffeac57e583226a5fd72. When asked to make a release, draft, revise, or correct release notes, or retry a failed release, print the release procedure and follow it:
+
+```sh
+release-planner guide
+```
+
+First check that `release-planner version` prints `01690470fb0eb439a279ffeac57e583226a5fd72`. If it doesn't, or `release-planner` isn't installed, install that version:
+
+```sh
+go install github.com/fabricahq/release-planner/cmd/release-planner@01690470fb0eb439a279ffeac57e583226a5fd72
+```
+
+Read `.release-planner/policy.md` first for this repository's release policy. You prepare the release pull request; the maintainer approves the release by merging it. Never tag, publish, or merge.
+<!-- release-planner:end -->
