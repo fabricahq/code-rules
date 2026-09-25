@@ -143,11 +143,11 @@ Commit `.code-rules/` and you're done. Now ask your agent for a change as you no
 
 ## Share rules across projects
 
-Once a rule proves itself, move it into a **library**: a Git repository of rule groups that any project can import. Publish your team's defaults in a repository such as `acme/.code-rules`, then adopt them in each project:
+Once a rule proves itself, move it into a **library**: a Git repository of rule groups that any project can import. Publish your team's defaults in a repository such as `acme/.code-rules`, or start from an existing library. For example, to adopt the testing and Go rules from [Fabrica's public library](https://github.com/fabricahq/public-rules) in a project:
 
 ```sh
-code-rules project add library acme \
-  --repository https://github.com/acme/.code-rules.git \
+code-rules project add library fabrica \
+  --repository https://github.com/fabricahq/public-rules.git \
   --ref '>= 1.0.0, < 2.0.0' \
   --groups practices/testing \
   --groups techs/go
@@ -159,8 +159,8 @@ The dependency lands in `.code-rules/config.yaml`, the file you review and commi
 ```yaml
 schemaVersion: 1
 sources:
-  acme:
-    repository: https://github.com/acme/.code-rules.git
+  fabrica:
+    repository: https://github.com/fabricahq/public-rules.git
     version: '>= 1.0.0, < 2.0.0'
     groups:
       - practices/testing
