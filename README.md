@@ -50,7 +50,9 @@ The Code Rules philosophy is that the best approach to scaling agent guidance is
 
 You can write your own project-specific rules, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/)**, which are collections of rules meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
 
-That's where the package manager comes in. As with packages for code, you can:
+Pulling many files from versioned libraries into a project, and keeping them up to date, is a familiar problem. Programming languages have solved it for more than 20 years with the humble package manager. Code Rules applies that same approach, not to reusable code, but to agent guidance.
+
+As with packages for code, you can:
 
 - **Pin versions.** Pin each library to an exact tag or commit, or accept compatible releases with ranges like `>= 1.0.0, < 2.0.0`.
 - **Customize without forking.** Exclude an imported rule or replace it with your own, with the decision recorded in config.
