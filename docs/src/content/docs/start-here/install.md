@@ -72,8 +72,7 @@ Download the archive for your OS and processor, plus `SHA256SUMS`, from [GitHub 
 
 ```sh
 gh attestation verify SHA256SUMS --repo fabricahq/code-rules \
-  --signer-workflow fabricahq/code-rules/.github/workflows/release.yml \
-  --source-ref refs/heads/main
+  --signer-workflow fabricahq/code-rules/.github/workflows/release-planner.yml
 ```
 
 Stop if verification fails. Before extracting, compare the archive checksum with the matching entry using `shasum -a 256 <archive>` on macOS or `sha256sum <archive>` on Linux.
@@ -102,4 +101,4 @@ Adjust the path if you chose a custom installation directory. Your project's rul
 
 </details>
 
-For version compatibility and managed guide changes, see the [release version policy](https://github.com/fabricahq/code-rules/blob/main/_engineering/releasing.md#version-policy).
+For version compatibility and managed guide changes, see the [release version policy](https://github.com/fabricahq/code-rules/blob/main/.release-planner/policy.md#choosing-a-version).

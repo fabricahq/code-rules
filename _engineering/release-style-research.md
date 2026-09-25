@@ -35,7 +35,7 @@ GitHub Actions does **not** trigger for draft-release `created`, `edited`, or `d
 
 Build assets first, attach them to a draft, then publish. GitHub recommends this sequence for immutable releases, because publication freezes their assets and tag. Notes remain editable afterward. [GitHub release management](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
 
-The selected implementation uses a release-note Markdown file: the maintainer edits it in a release PR, and merging approves publication. A push to the default branch triggers the build. This adds a merge step, but gives versioned notes and familiar review history. See [the release procedure](releasing.md) for the authoritative workflow.
+The selected implementation, [Release Planner](https://release-planner.fabricahq.com), uses a release-note Markdown file: the maintainer edits it in a release PR, and merging approves publication. The release PR tests and builds the assets; the push to the default branch publishes them. This adds a merge step, but gives versioned notes and familiar review history. See [Releases](releasing.md) for how Code Rules uses it.
 
 If Actions creates tags or publishes releases using `GITHUB_TOKEN`, do not expect those events to trigger another workflow. Keep the build/upload/publish sequence in one workflow, or dispatch the next workflow explicitly. [GitHub workflow-trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)
 
