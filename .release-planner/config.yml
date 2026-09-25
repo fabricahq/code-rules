@@ -6,7 +6,7 @@ schema-version: 1
 # The Release Planner version to use. Bumping it upgrades the GitHub Actions workflow
 # (.github/workflows/release-planner.yml) and the agent guide together; run
 # release-planner install after changing it.
-version: v0.4.1
+version: v0.4.2
 
 # The version your first release must use.
 first-version: v0.1.0
