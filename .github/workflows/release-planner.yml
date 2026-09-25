@@ -1,4 +1,4 @@
-# release-planner:generated v0.4.2 sha256:d5449534f6c33b32. Do not edit; change .release-planner/config.yml and run release-planner install.
+# release-planner:generated v0.4.3 sha256:2b26c14f616592c4. Do not edit; change .release-planner/config.yml and run release-planner install.
 name: Release
 # A pull request that adds or edits release notes is validated, checked, and built before it
 # merges, and blocks at the start and end of its description report the release's status. Merging it
@@ -19,7 +19,7 @@ on:
 permissions:
   contents: read
 env:
-  RELEASE_PLANNER_VERSION: v0.4.2
+  RELEASE_PLANNER_VERSION: v0.4.3
 jobs:
   # Check the generated files, then validate the release pull request and bind it to one
   # release commit: the newest commit the pull request shares with main. Release notes
@@ -44,9 +44,12 @@ jobs:
         with:
           # Version ordering and the release commit need the full history and tags.
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha || inputs.merged-commit || github.sha }}
+          # A manual retry checks out the workflow's own commit, not the merged one, so check compares
+          # the generated files with the Release Planner version that runs, even after an upgrade;
+          # validate reads the merged commit from the history.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Install Release Planner v0.4.2
+      - name: Install Release Planner v0.4.3
         env:
           GH_TOKEN: ${{ github.token }}
         # Verify the build attestation of the checksum manifest, then the archive against it.
@@ -133,7 +136,7 @@ jobs:
       group: release-publication
       cancel-in-progress: false
     steps:
-      - name: Install Release Planner v0.4.2
+      - name: Install Release Planner v0.4.3
         env:
           GH_TOKEN: ${{ github.token }}
         # Verify the build attestation of the checksum manifest, then the archive against it.
@@ -229,7 +232,7 @@ jobs:
           owner: 'fabricahq'
           repositories: 'homebrew-tap'
           permission-actions: write
-      - name: Install Release Planner v0.4.2
+      - name: Install Release Planner v0.4.3
         env:
           GH_TOKEN: ${{ github.token }}
         # Verify the build attestation of the checksum manifest, then the archive against it.
@@ -262,7 +265,7 @@ jobs:
       actions: read # to download and link the build run's assets and link each job and read each downstream job's result
       pull-requests: write # to edit the description's release status and comment on a failure
     steps:
-      - name: Install Release Planner v0.4.2
+      - name: Install Release Planner v0.4.3
         env:
           GH_TOKEN: ${{ github.token }}
         # Verify the build attestation of the checksum manifest, then the archive against it.
