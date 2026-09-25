@@ -22,9 +22,21 @@
 
 ---
 
-Agents are _capable_ of writing tested, maintainable, well-organized code. They just don't do it by default. They do it when you tell them how.
+## What is Code Rules?
 
-So you write good guidance into `AGENTS.md`. Then you copy it into the next repo, tweak it, and copy it again. A few months later, every repository has its own slightly different version of your best practices, and nobody knows which one is current.
+Code Rules is a **package manager** for engineering practices.
+
+That means you can:
+
+- Capture engineering best practices as individual Markdown files
+- Organize and version them in a central Git repo
+- Configure your projects to pull down just the right rules automatically when your agents write or validate code
+
+## How is it useful?
+
+Agents are capable of writing tested, maintainable, well-organized code. They just don't do it by default. They do it when you tell them how.
+
+So every time your agent departs from your expectations, you write new guidance into `AGENTS.md`. Then you copy it into the next repo, tweak it, and copy it again. A few months later, every repository has its own slightly different version of your best practices, and nobody knows which one is current.
 
 We solved this problem for code a long time ago with package managers. **Code Rules does the same for agent guidance.**
 
