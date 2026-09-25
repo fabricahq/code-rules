@@ -199,6 +199,12 @@ sources:
 
 ➡️ [Create your first library](https://code-rules.fabricahq.com/start-here/create-library/) · [Import rules](https://code-rules.fabricahq.com/guides/select-rules/) · [Update rules](https://code-rules.fabricahq.com/guides/update/)
 
+## What Code Rules doesn't do
+
+- **It doesn't enforce your rules.** Code Rules gives your agents the same rules for writing and reviewing code, but giving an agent a rule doesn't guarantee that it follows it. `project check` verifies your rule files, not your application code. For a suggested plan, write, and review loop, see [For agents](https://code-rules.fabricahq.com/for-agents/).
+- **It doesn't resolve contradictions for you.** If two rules disagree, you decide which to exclude or replace. See [Resolve conflicting rules](https://code-rules.fabricahq.com/guides/conflicting-guidance/).
+- **It doesn't run on native Windows yet.** The Linux build is expected to work in WSL 2, but hasn't been tested end to end.
+
 ## Learn more
 
 - → [**What is Code Rules?**](https://code-rules.fabricahq.com/start-here/overview/) The problem, and how rules, groups, projects, and libraries fit together
