@@ -72,7 +72,7 @@ Download the archive for your OS and processor, plus `SHA256SUMS`, from [GitHub 
 
 ```sh
 gh attestation verify SHA256SUMS --repo fabricahq/code-rules \
-  --signer-workflow fabricahq/code-rules/.github/workflows/release.yml \
+  --signer-workflow fabricahq/code-rules/.github/workflows/release-planner.yml \
   --source-ref refs/heads/main
 ```
 

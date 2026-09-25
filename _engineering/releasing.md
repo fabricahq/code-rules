@@ -1,95 +1,40 @@
 # Releases
 
-This document owns release policy and the agent procedure. Read the linked implementation for workflow mechanics and command options.
+[Release Planner](https://release-planner.fabricahq.com) publishes Code Rules releases. Say **"let's release"** to an agent working in this repository: it follows the Releases section of [AGENTS.md](../AGENTS.md) and prepares a release PR that adds `releases/v<version>.md`. Edit the notes in the PR, then **merge it to approve publication**. The merged file becomes the GitHub release description.
 
-Say **“let's release”** to an agent working in this repository. The agent prepares a release PR containing `releases/v<version>.md`. Edit that Markdown file in the PR, save your changes, then **merge the PR to approve publication**.
+Release Planner owns the procedure, the release notes style, and retries; see [Make a release](https://release-planner.fabricahq.com/start-here/release/). [.release-planner/policy.md](../.release-planner/policy.md) owns the version policy and what counts as a breaking change. [.release-planner/config.yml](../.release-planner/config.yml) holds the settings. After changing the config or upgrading Release Planner, run `release-planner install` and commit the result; never edit the generated [release workflow](../.github/workflows/release-planner.yml) by hand. [Research notes](release-style-research.md) record the release note examples that shaped the style.
 
-**The merged Markdown file becomes the GitHub release description verbatim, including your manual edits.** The PR description and review comments are separate review context. Saving an intermediate edit does not publish anything; after merge, the workflow publishes your approved notes once the assets pass verification.
-
-## Agent procedure
-
-1. **Establish the range.** Fetch `main` and tags. List published releases, including prereleases, and resolve the most recent version's tag to a commit. Verify it is an ancestor of the intended `main` commit. A draft or a tag without a published release is unfinished work: inspect that attempt before preparing another. With no published releases, use `v0.1.0` and review the repository's full history plus its current capabilities.
-2. **Account for all changes.** Read every commit since the previous released tag and its associated PR, including direct commits. Read relevant diffs, tests, and owning documentation. In the PR description, record the base tag, analyzed source SHA, and an inventory mapping every commit/PR to a release-note entry or a reason for omission. Account for reverts and superseded work. Internal refactors, CI changes, and website-only changes may belong only in the inventory; do not present them as new CLI features.
-3. **Choose the version.** Apply the policy below and explain the proposed increment in the PR description. Treat command names, flags, configuration, generated file formats, and supported platforms as the public contract. Flag uncertainty instead of inventing compatibility guarantees.
-4. **Draft the notes.** Create exactly one `releases/v<version>.md` file on a release branch. Its filename owns the version; its contents become the GitHub release body verbatim. Follow the editorial format below. Include PR/documentation links and actionable migration steps. For the initial release, describe the supported product rather than the sequence of internal migration commits.
-5. **Validate and present.** Confirm approved tool terms exist. Run `go run ./cmd/plan-release --base origin/main --head HEAD` after committing the notes. Open a PR titled `Release v<version>` and link directly to the Markdown file's GitHub editor. State that saving edits updates the draft and merging authorizes automated publication. Leave the PR for the maintainer; the release request author does not merge it on the maintainer's behalf.
-6. **Preserve edits and refresh the range.** When asked to revise the draft, fetch its branch and retain manual edits. If `main` advanced, account for the new commits, update the inventory and notes, and bring the release branch up to date before approval. Keep feature development outside the release PR. Finish only when every change through the reviewed source is accounted for and CI is green.
-
-**After the agent finishes, the maintainer merges the release PR to approve publication.** Automation takes over: it validates the merged commit, builds and verifies the release assets, and publishes the GitHub release with the approved notes verbatim. No separate publish action is needed. If a check or upload fails, the release stays unpublished; follow [Retry a failed release](#retry-a-failed-release).
-
-For a second agent reviewing the draft, provide the previous tag, analyzed SHA, release-note file, and inventory. Ask it to identify omitted user-visible changes, unsupported claims, missing migration instructions, and an incorrect version increment. It should report evidence and propose edits without replacing the maintainer's wording or publishing.
-
-## Editorial format
-
-Follow the structure demonstrated by Runbooks [beta-v0.9.0](https://github.com/gruntwork-io/runbooks/releases/tag/beta-v0.9.0), [beta-v0.8.3](https://github.com/gruntwork-io/runbooks/releases/tag/beta-v0.8.3), and [beta-v0.5.0](https://github.com/gruntwork-io/runbooks/releases/tag/beta-v0.5.0). [Research notes](release-style-research.md) record more examples.
-
-Use these headings when they have content:
-
-- `## ✨ New Features`: capabilities users could not perform before.
-- `## ⬆️ Improvements`: better behavior, performance, or usability of an existing capability.
-- `## 🐛 Squashed Bugs`: the trigger, previous incorrect behavior, and corrected result.
-- `## ⛓️‍💥 Breaking Changes`: affected users, the old/new contract, and required migration commands or examples. Also call out a breaking change near the start so readers cannot miss it.
-- `## What's Changed`: linked PR/commit inventory for readers who want implementation detail.
-- `## New Contributors`: only verified first contributions, with credit.
-
-Give significant changes a descriptive `###` heading and a short explanation of why the change matters. Use bullets for small changes, code for commands, and before/after examples when they make an upgrade clearer. Omit empty categories. Group related commits into one coherent entry. Preserve the human's final wording.
-
-End subsequent releases with one **Full Changelog** link using the actual previous and new tags. For `v0.1.0`, link to the tagged source/history and say it is the first release. Check all links; do not copy sample versions or comparison URLs from the reference notes.
+This document covers what is specific to Code Rules.
 
 ## Version policy
 
-Use [SemVer 2.0.0](https://semver.org/) with Git tags `vMAJOR.MINOR.PATCH`. The CLI must report the same version without `v`. Use a suffix such as `v0.2.0-rc.1` for prereleases and mark them as prereleases on GitHub. Omit build metadata from release tags.
+Code Rules follows [Semantic Versioning](https://semver.org/). [.release-planner/policy.md](../.release-planner/policy.md) defines what counts as a breaking change, including changes to the managed project guide, and which version each kind of change gets.
 
-- Start at `v0.1.0`.
-- Before `1.0.0`, increment patch for compatible fixes and minor for features or breaking changes. Always document breaking changes; `0.x` is not permission to hide them.
-- From `1.0.0`, increment major for incompatible public-contract changes, minor for compatible features, and patch for compatible fixes.
-- Changes to the managed project README format are breaking changes. Before `1.0.0`, release them in a new minor version; from `1.0.0`, use a new major version. Describe the format change and automatic guide refresh in the release notes. Build and sync replace an older, unedited guide with the template bundled in the selected CLI version; they refuse to overwrite manual edits.
-- Each requested version must be newer than existing version tags. Publish one release before requesting the next.
-- Published versions and tagged request files are immutable. Correct later behavior in a new release. If only published prose needs correction, edit the GitHub release description deliberately; do not rerun publication to overwrite it.
+## Release assets
 
-## Publication policy
+On the release PR, Release Planner calls [build-release.yml](../.github/workflows/build-release.yml) with the release commit. It runs gofmt, `go vet`, staticcheck, `go test -race`, and a fresh govulncheck scan on Linux and macOS, and builds the release files with the [packager](../cmd/package-binaries/) on Linux:
 
-- Publish only the source and notes approved by merging the release PR. Do not substitute a newer `main` commit during publication or a retry.
-- Keep the GitHub release as a draft until validation passes and all release assets are attached and verified. Never publish an incomplete release.
-- Include the approved [MIT license](../LICENSE.md) in release packages.
-- Follow [security practices](security-practices.md) for credentials, dependency updates, and review protections. Resolve repository permission restrictions before releasing; do not work around them with a personal token.
+- `code-rules_<version>_<os>_<arch>.tar.gz` for `darwin` and `linux` on `amd64` and `arm64`, each with the executable, `README.txt`, and the [MIT license](../LICENSE.md)
+- `manifest.json`, which records the version, source commit, and each archive's checksum
+- `SHA256SUMS`
 
-For execution details, read the [release workflow](../.github/workflows/release.yml), [release planner and publisher](../internal/release/), and [packager](../internal/distribution/).
-
-## Standalone installer
-
-The standalone installer downloads the latest stable release or an explicitly selected version, using the four archives and `SHA256SUMS`.
-
-See [installer setup](../_distribution/README.md) for the website endpoint, activation requirements, and validation. Prereleases are available through explicit standalone installation and manual downloads.
+The [standalone installer](../_distribution/README.md) and the Homebrew formula download these files by name, so keep the names stable. The build is reproducible: rebuilding the same commit produces identical files. The workflow runs with read-only permissions and no secrets. Release Planner attests each file's build provenance on the PR, and merging publishes exactly the files the PR built. After publishing, it attests the published files again from `main`; the Homebrew tap and the [manual install instructions](../docs/src/content/docs/start-here/install.md) require that attestation, so only approved, published files pass.
 
 ## Homebrew updates
 
-After publishing a stable release, the `update-homebrew` job triggers **Update Code Rules** in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases do not update the formula. The tap validates the published archives and checksums before committing an update directly to `main`. Routine formula updates require no pull request or human approval; changes to updater code and workflows go through review in the tap repository.
+After a stable release publishes, Release Planner's `downstream` job runs **Update Code Rules** (`update-code-rules.yml`) in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap) with the release's `tag` and `version`. Prereleases do not update the formula. The tap verifies that `SHA256SUMS` was attested by `release-planner.yml` on `main`, and validates the published archives and checksums, before committing an update directly to `main`. Routine formula updates require no pull request or human approval; changes to updater code and workflows go through review in the tap repository.
 
-The job authenticates through **Fabrica Homebrew Releaser**, a shared trigger App for trusted Fabrica products. It is installed only on the tap with Actions write and Metadata read permissions. Store `HOMEBREW_APP_PRIVATE_KEY` as a Fabrica organization Actions secret and `HOMEBREW_APP_CLIENT_ID` as an organization variable. Limit both to selected trusted product repositories; initially, only `fabricahq/code-rules` has access. Do not keep repository or environment copies that override these organization values. The job checks out no source and creates a short-lived token restricted to the tap.
+The job authenticates through **Fabrica Homebrew Releaser**, a shared trigger App for trusted Fabrica products. It is installed only on the tap with Actions write and Metadata read permissions. Its credentials live in this repository's `downstream` environment, which allows only the `main` branch: the `DOWNSTREAM_APP_CLIENT_ID` variable and the `DOWNSTREAM_APP_PRIVATE_KEY` secret. The job checks out no source and creates a short-lived token restricted to the tap. [CR-7](https://linear.app/ohmygoshjosh/issue/CR-7/replace-shared-homebrew-trigger-keys-with-an-oidc-dispatch-service) tracks replacing shared-key access with an OIDC dispatch service for Fabrica tools.
 
-Organization secrets are available to eligible workflows in allowed repositories, regardless of branch or environment. The `main`-only `homebrew-dispatch` environment constrains this dispatch job, but does not restrict other jobs from reading the organization secret. [CR-7](https://linear.app/ohmygoshjosh/issue/CR-7/replace-shared-homebrew-trigger-keys-with-an-oidc-dispatch-service) tracks replacing shared-key access with an OIDC dispatch service for Fabrica tools.
+The tap uses a separate publishing App whose key stays in its protected environment. Product repositories never receive that key.
 
-The tap uses a separate publishing App whose key stays in its protected environment. Product repositories never receive that key. Formula publication runs automatically; no human review is required for routine formula updates.
+If the dispatch fails, use **Re-run failed jobs** on the Release run. If the tap update itself fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure does not modify or unpublish the release.
 
-If dispatch or the tap update fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure does not modify or unpublish the release. Other trusted Fabrica products can use the shared trigger App to dispatch their own updater workflows.
+## Repository protection
 
-## Release provenance and protection
+Configure the `release` and `downstream` environments to allow only the `main` branch, with no reviewers or wait timers. Require pull requests for changes to `main` and protect its history from deletion and force pushes. Enable immutable releases so published assets and tags cannot be replaced. If administrators need bypass access, set their ruleset bypass mode to **For pull requests only**, never **Always allow**. They can then bypass review requirements through a PR, but cannot push directly.
 
-After both platform builds pass, the release workflow signs `SHA256SUMS` with a GitHub artifact attestation. The signing job checks out no source and has no Contents write permission. The publisher runs only after signing succeeds. The tap verifies the signature against this repository's release workflow on `main` before accepting the archive checksums.
-
-Configure the `release` and `homebrew-dispatch` environments to allow only the `main` branch, with no reviewers or wait timers. Require pull requests for changes to `main` and protect its history from deletion and force pushes. Enable immutable releases so published assets and tags cannot be replaced. If administrators need bypass access, set their ruleset bypass mode to **For pull requests only**, never **Always allow**. They can then bypass review requirements through a PR, but cannot push directly.
-
-Merge the attestation workflow and the tap's verifier before the first release. These controls authenticate the release workflow and preserve published artifacts; they cannot detect malicious code approved into that workflow.
-
-## Retry a failed release
-
-Prefer **Re-run all jobs** on the original failed Release run. To start a manual retry, use **Actions → Release → Run workflow**, select `main`, and copy both **Base SHA** and **Approved head SHA** from the original run summary into the corresponding inputs.
-Preserve the full approved range. A rebase merge can contain several commits; the commit that first added the notes may omit later approved edits or source changes. Never substitute the latest `main` or guess the base from the head's parent.
-
-Inspect the failed run and any existing draft, tag, or published release before taking corrective action. If an interrupted upload left an invalid asset, a maintainer can remove that asset from the unpublished draft and retry. Never delete or replace published assets/tags as a retry strategy.
-
-If a build failed before creating a tag, correct the source or terms in a separate PR, then edit the untagged notes file in a new release PR. Merging those corrected notes approves the new commit. You can also withdraw an untagged request by deleting its notes file. Wait for the earlier run to finish before approving a replacement. If a tag/draft already exists, inspect and explicitly resolve that unpublished attempt first; do not move its tag.
+Follow [security practices](security-practices.md) for credentials, dependency updates, and review protections. Resolve repository permission restrictions before releasing; do not work around them with a personal token. These controls authenticate the release workflow and preserve published artifacts; they cannot detect malicious code approved into that workflow.
 
 ## Testing PR preview builds
 

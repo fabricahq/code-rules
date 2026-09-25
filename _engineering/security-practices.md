@@ -70,7 +70,7 @@ Revisit that constraint when both tools support a newer API. If the constraint b
 
 [Dependency security](../.github/workflows/security.yml) runs `govulncheck` on pushes, pull requests, daily at 14:23 UTC, and manual dispatch.
 The scan includes tests on Linux and macOS and uses the current Go vulnerability database. Findings and scan errors fail the job.
-The release workflow repeats the scan against the exact release source before publication, including retries.
+The [release build](../.github/workflows/build-release.yml) repeats the scan against the exact release source on the release PR, and again if the release is rebuilt after the merge.
 [CONTRIBUTING.md](../CONTRIBUTING.md#validate-changes) owns the local command and pinned scanner version.
 
 Scheduled scans run from the default branch after a maintainer merges the workflow. Maintainers must monitor failed runs and GitHub vulnerability alerts.
@@ -87,11 +87,11 @@ Confirm all applicable CI checks passed on the current commit. A patch version i
 For security fixes, verify that the selected version addresses the advisory. Do not bypass failed checks to accelerate a merge.
 
 Workflow permissions default to read-only. Pull request jobs do not receive publication credentials.
-The release build compiles and tests the publisher without write access. Only the final publication job receives permission to write release data.
+The release build tests the release source and builds its assets without write access or secrets. Only Release Planner's publication job receives permission to write release data, and it runs no repository code.
 Actions in that job can access its job token; step-level environment variables do not isolate the token from other actions in the job.
 SHA pins and minimal permissions protect against compromised actions as well as compromised publication code.
 
-Dependency updates do not publish releases. A maintainer approves a release by merging its release-note PR, as described in [the release procedure](releasing.md).
+Dependency updates do not publish releases. A maintainer approves a release by merging its release-note PR, as described in [Releases](releasing.md).
 
 ### PR preview downloads
 

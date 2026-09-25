@@ -102,10 +102,6 @@ Code Rules manages which versioned rules a codebase adopts and delivers their re
 Projects choose how to apply, validate, and enforce those rules through agent prompts or separate tooling. Code Rules does not prescribe or run that workflow; its agent instructions are a suggested integration.
 Rule-input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
 
-## Releases
-
-When asked to make a release, draft or revise release notes, or retry a failed release, follow [the release workflow](_engineering/releasing.md). The agent prepares the release PR; the maintainer approves publication by merging it.
-
 ## Working in this repository
 
 Before implementing or reviewing code, consult [Fabrica's engineering rules](https://github.com/fabricahq/app/tree/main/_rules) and read the individual rules relevant to the change.
@@ -124,3 +120,21 @@ When layout or interaction changes, inspect the rendered pages.
 
 Keep this file focused on enduring product context and decisions useful to almost every agent session.
 Revise or remove stale guidance instead of accumulating a history of decisions.
+
+<!-- release-planner:begin v0.4.3 sha256:3d7c63eae9a8c94d -->
+## Releases
+
+This repository publishes releases with [Release Planner](https://github.com/fabricahq/release-planner) v0.4.3. When asked to make a release, draft, revise, or correct release notes, or retry a failed release, print the release procedure and follow it:
+
+```sh
+release-planner guide
+```
+
+First check that `release-planner version` prints `v0.4.3`. If it doesn't, or `release-planner` isn't installed, install that version:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/fabricahq/release-planner/v0.4.3/install.sh | sh -s -- --version v0.4.3
+```
+
+Read `.release-planner/policy.md` first for this repository's release policy. You prepare the release pull request; the maintainer approves the release by merging it. Never tag, publish, or merge.
+<!-- release-planner:end -->

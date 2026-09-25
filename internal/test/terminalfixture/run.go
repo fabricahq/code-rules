@@ -65,16 +65,22 @@ func Run(ctx context.Context, binary, directory string, args []string, steps []S
 	if err := command.Start(); err != nil {
 		return Result{}, err
 	}
-	slave.Close()
-	done := make(chan error, 1)
-	go func() { done <- command.Wait() }()
+	// Keep the parent's slave open until capture has drained the master: macOS can discard
+	// unread output when the last slave descriptor closes, which loses a quick child's output.
+	// See https://github.com/fabricahq/code-rules/pull/65.
+	exited := make(chan struct{})
+	var waitErr error
+	go func() {
+		waitErr = command.Wait()
+		close(exited)
+	}()
 	var transcript strings.Builder
 	sent, offset := 0, 0
-	readErr := capture(ctx, master, command, steps, &transcript, &sent, &offset)
+	readErr := capture(ctx, master, command, exited, steps, &transcript, &sent, &offset)
 	if readErr != nil {
 		cancel()
 	}
-	waitErr := <-done
+	<-exited
 	result := Result{Stdout: stdout.String(), Transcript: transcript.String(), AnswersSent: sent}
 	if readErr != nil {
 		return result, readErr
@@ -96,13 +102,20 @@ func Run(ctx context.Context, binary, directory string, args []string, steps []S
 }
 
 // capture drains terminal bytes and sends a step only after its expected prompt appears.
-func capture(ctx context.Context, master *os.File, command *exec.Cmd, steps []Step, transcript *strings.Builder, sent, offset *int) error {
+// It ends once a poll that began after the process exited finds no more output.
+func capture(ctx context.Context, master *os.File, command *exec.Cmd, exited <-chan struct{}, steps []Step, transcript *strings.Builder, sent, offset *int) error {
 	fd := int(master.Fd())
 	buffer := make([]byte, 4096)
 	var pending []byte
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
+		}
+		finished := false
+		select {
+		case <-exited:
+			finished, pending = true, nil
+		default:
 		}
 		ready := []unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN}}
 		if len(pending) > 0 {
@@ -116,6 +129,9 @@ func capture(ctx context.Context, master *os.File, command *exec.Cmd, steps []St
 			return err
 		}
 		if n == 0 {
+			if finished {
+				return nil
+			}
 			continue
 		}
 		if ready[0].Revents&unix.POLLOUT != 0 && len(pending) > 0 {

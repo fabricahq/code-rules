@@ -24,7 +24,7 @@ go vet ./...
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go test -race ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -test ./...
-go build ./cmd/code-rules ./cmd/package-binaries ./cmd/plan-release ./cmd/publish-release
+go build ./cmd/code-rules ./cmd/package-binaries
 ```
 
 Tests exercise parsers, filesystem safety, Git imports, real CLI processes, generated agent instructions, and installation/upgrade/rollback. Parser regression fixtures live beside their Go tests. [Go conventions](_engineering/go-conventions.md) cover error ownership and comments.
@@ -47,7 +47,7 @@ TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser re
 
 ## Package binaries
 
-[Release instructions](_engineering/releasing.md) explain candidate archives and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. A release PR supplies editable notes and the version in `releases/v<version>.md`; merging it starts testing, packaging, and publication. Assets are verified on a draft before publication. The first release is `v0.1.0`. Maintainers can find installer channel activation and tests in [installation distribution](_distribution/README.md).
+[Release instructions](_engineering/releasing.md) explain release assets, candidate archives, and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. [Release Planner](https://release-planner.fabricahq.com) publishes releases: a release PR supplies editable notes and the version in `releases/v<version>.md`, and builds and tests the release assets; merging it publishes them. The first release is `v0.1.0`. Maintainers can find installer channel activation and tests in [installation distribution](_distribution/README.md).
 
 ## Implementation map
 
@@ -59,7 +59,6 @@ TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser re
 - `internal/filetxn`: bounded filesystem reads, writer ownership, safe publication, and recovery shared by both owners.
 - `internal/cli`: collect inputs and present operation results.
 - `internal/distribution`: package and verify executable archives.
-- `internal/release`: validate release requests and publish verified assets through the GitHub API.
 - `internal/test/acceptance`: exercise complete CLI workflows through real processes.
 - `internal/test/gitfixture`: supply disposable Git repositories for tests.
 - `internal/test/terminalfixture`: exercise interactive CLI prompts in isolated terminals.
