@@ -1,6 +1,6 @@
 ---
 title: "Install Code Rules"
-description: "Install Code Rules on macOS or Linux with one command."
+description: "Install Code Rules with the shell script or Homebrew."
 ---
 
 Code Rules is a standalone binary for macOS and Linux. [Using Windows?](#installing-on-windows)
@@ -32,6 +32,22 @@ Rerun the installer. Then, from each existing project root, refresh and check it
 ```sh
 code-rules project build
 code-rules project check
+```
+
+## Install with Homebrew
+
+With [Homebrew](https://brew.sh/) installed on macOS or Linux:
+
+```sh
+brew install fabricahq/tap/code-rules
+code-rules --version
+```
+
+To upgrade or remove it:
+
+```sh
+brew upgrade code-rules
+brew uninstall code-rules
 ```
 
 ## Other options

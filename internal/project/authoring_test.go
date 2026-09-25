@@ -59,12 +59,15 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if err != nil || parsed.Title != ruleMeta.Title {
 		t.Fatal(parsed, err)
 	}
+	if rules.HasDraftMarker(document) {
+		t.Fatal("complete body-file rule was marked as draft")
+	}
 	result, err = AddLocalRule(ctx, "techs/go/draft", ruleMeta, RuleOptions{Options: options})
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)
 	}
 	draft, _ := os.ReadFile(result.Files[0])
-	if !bytes.Contains(draft, []byte("### Validation")) || !bytes.Contains(draft, []byte("<State one concrete obligation.>")) {
+	if !bytes.Contains(draft, []byte("### Validation")) || !bytes.Contains(draft, []byte("<State one concrete obligation.>")) || bytes.Count(draft, []byte(rules.DraftMarker)) != 1 {
 		t.Fatal("canonical draft missing")
 	}
 	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: ">= 1.2.3, < 2.0.0", Groups: []string{"techs/*"}}

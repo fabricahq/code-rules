@@ -45,6 +45,12 @@ We solved this problem for code a long time ago with package managers. **Code Ru
 curl -fsSL https://code-rules.fabricahq.com/install.sh | sh
 ```
 
+Or install with [Homebrew](https://brew.sh/):
+
+```sh
+brew install fabricahq/tap/code-rules
+```
+
 > [!NOTE]
 > The first release, `v0.1.0`, is being prepared. Until it's published, install from source with Go 1.27.1 or later: `go install github.com/fabricahq/code-rules/cmd/code-rules@latest`
 
