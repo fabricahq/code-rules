@@ -1,4 +1,4 @@
-# release-planner:generated 01690470fb0eb439a279ffeac57e583226a5fd72 sha256:bc0751e0dbe22160. Do not edit; change .release-planner/config.yml and run release-planner install.
+# release-planner:generated v0.4.1 sha256:cfaf79bac82ecec3. Do not edit; change .release-planner/config.yml and run release-planner install.
 name: Release
 # A pull request that adds or edits release notes is validated, checked, and built before it
 # merges, and blocks at the start and end of its description report the release's status. Merging it
@@ -19,7 +19,7 @@ on:
 permissions:
   contents: read
 env:
-  RELEASE_PLANNER_VERSION: 01690470fb0eb439a279ffeac57e583226a5fd72
+  RELEASE_PLANNER_VERSION: v0.4.1
 jobs:
   # Check the generated files, then validate the release pull request and bind it to one
   # release commit: the newest commit the pull request shares with main. Release notes
@@ -46,14 +46,19 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || inputs.merged-commit || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: stable
-          cache: false
-      - name: Install Release Planner at commit 01690470fb0eb439a279ffeac57e583226a5fd72
+      - name: Install Release Planner v0.4.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Verify the build attestation of the checksum manifest, then the archive against it.
         run: |
-          go install "github.com/fabricahq/release-planner/cmd/release-planner@$RELEASE_PLANNER_VERSION"
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          dir="$RUNNER_TEMP/release-planner"
+          mkdir -p "$dir" && cd "$dir"
+          archive="release-planner_${RELEASE_PLANNER_VERSION#v}_linux_amd64.tar.gz"
+          gh release download "$RELEASE_PLANNER_VERSION" --repo fabricahq/release-planner --pattern SHA256SUMS --pattern "$archive"
+          gh attestation verify SHA256SUMS --repo fabricahq/release-planner
+          sha256sum --check --ignore-missing SHA256SUMS
+          tar -xzf "$archive" release-planner
+          echo "$dir" >> "$GITHUB_PATH"
       - name: Check the generated release files
         run: release-planner check
       - name: Validate the release pull request
@@ -128,14 +133,19 @@ jobs:
       group: release-publication
       cancel-in-progress: false
     steps:
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: stable
-          cache: false
-      - name: Install Release Planner at commit 01690470fb0eb439a279ffeac57e583226a5fd72
+      - name: Install Release Planner v0.4.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Verify the build attestation of the checksum manifest, then the archive against it.
         run: |
-          go install "github.com/fabricahq/release-planner/cmd/release-planner@$RELEASE_PLANNER_VERSION"
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          dir="$RUNNER_TEMP/release-planner"
+          mkdir -p "$dir" && cd "$dir"
+          archive="release-planner_${RELEASE_PLANNER_VERSION#v}_linux_amd64.tar.gz"
+          gh release download "$RELEASE_PLANNER_VERSION" --repo fabricahq/release-planner --pattern SHA256SUMS --pattern "$archive"
+          gh attestation verify SHA256SUMS --repo fabricahq/release-planner
+          sha256sum --check --ignore-missing SHA256SUMS
+          tar -xzf "$archive" release-planner
+          echo "$dir" >> "$GITHUB_PATH"
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-plan
@@ -160,13 +170,35 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: release-planner publish --plan "$RUNNER_TEMP/plan/release-plan.json" --built-plan "$RUNNER_TEMP/built/release-plan.json" --branch main --assets "$RUNNER_TEMP/release-assets" --signer-workflow .github/workflows/release-planner.yml
 
+  # Attest the published assets again, from the release branch. The attest job ran on the
+  # pull request; this attestation exists only for files that were approved, verified, and
+  # published, so downstream consumers can require one signed on main. This job runs no
+  # repository code.
+  attest-release:
+    needs: [validate, publish]
+    if: needs.publish.result == 'success' && needs.validate.outputs.tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download the published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+        run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/published"
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: '${{ runner.temp }}/published/*'
+
   # After a new stable release, run the workflows that depend on it in other repositories,
   # with a GitHub App token limited to them. Nothing here can change the release. One job
   # per target, so Re-run failed jobs runs only the targets that failed.
   downstream:
     name: downstream (${{ matrix.target }})
-    needs: [validate, publish]
-    if: needs.publish.result == 'success' && needs.validate.outputs.tag != '' && !contains(needs.validate.outputs.version, '-')
+    needs: [validate, publish, attest-release]
+    if: needs.publish.result == 'success' && needs.attest-release.result == 'success' && needs.validate.outputs.tag != '' && !contains(needs.validate.outputs.version, '-')
     strategy:
       fail-fast: false
       matrix:
@@ -193,14 +225,19 @@ jobs:
           owner: 'fabricahq'
           repositories: 'homebrew-tap'
           permission-actions: write
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: stable
-          cache: false
-      - name: Install Release Planner at commit 01690470fb0eb439a279ffeac57e583226a5fd72
+      - name: Install Release Planner v0.4.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Verify the build attestation of the checksum manifest, then the archive against it.
         run: |
-          go install "github.com/fabricahq/release-planner/cmd/release-planner@$RELEASE_PLANNER_VERSION"
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          dir="$RUNNER_TEMP/release-planner"
+          mkdir -p "$dir" && cd "$dir"
+          archive="release-planner_${RELEASE_PLANNER_VERSION#v}_linux_amd64.tar.gz"
+          gh release download "$RELEASE_PLANNER_VERSION" --repo fabricahq/release-planner --pattern SHA256SUMS --pattern "$archive"
+          gh attestation verify SHA256SUMS --repo fabricahq/release-planner
+          sha256sum --check --ignore-missing SHA256SUMS
+          tar -xzf "$archive" release-planner
+          echo "$dir" >> "$GITHUB_PATH"
       - name: Run the downstream workflow
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
@@ -213,7 +250,7 @@ jobs:
   # failure also gets a comment that mentions whoever merged, since editing a description
   # notifies no one.
   report:
-    needs: [validate, release-assets, attest, publish, downstream]
+    needs: [validate, release-assets, attest, publish, attest-release, downstream]
     if: always() && needs.validate.result != 'skipped'
     runs-on: ubuntu-latest
     permissions:
@@ -221,14 +258,19 @@ jobs:
       actions: read # to download and link the build run's assets and link each job and read each downstream job's result
       pull-requests: write # to edit the description's release status and comment on a failure
     steps:
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version: stable
-          cache: false
-      - name: Install Release Planner at commit 01690470fb0eb439a279ffeac57e583226a5fd72
+      - name: Install Release Planner v0.4.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Verify the build attestation of the checksum manifest, then the archive against it.
         run: |
-          go install "github.com/fabricahq/release-planner/cmd/release-planner@$RELEASE_PLANNER_VERSION"
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          dir="$RUNNER_TEMP/release-planner"
+          mkdir -p "$dir" && cd "$dir"
+          archive="release-planner_${RELEASE_PLANNER_VERSION#v}_linux_amd64.tar.gz"
+          gh release download "$RELEASE_PLANNER_VERSION" --repo fabricahq/release-planner --pattern SHA256SUMS --pattern "$archive"
+          gh attestation verify SHA256SUMS --repo fabricahq/release-planner
+          sha256sum --check --ignore-missing SHA256SUMS
+          tar -xzf "$archive" release-planner
+          echo "$dir" >> "$GITHUB_PATH"
       # Missing when validation failed; the report says which job did.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
