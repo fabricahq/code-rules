@@ -1,0 +1,79 @@
+# Test the release commit on Linux and macOS and build its four archives, manifest, and checksums.
+# Release Planner calls this workflow on the release pull request, then attests and publishes what it uploads.
+name: Build release
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+      tag:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  # Validate the exact release source on both supported operating systems.
+  check:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Validate the release source
+        run: |
+          test -z "$(git ls-files -z '*.go' | xargs -0 gofmt -l)"
+          go vet ./...
+          go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+          go test -race ./...
+          # Recheck current advisories, which can appear after the code merged.
+          go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -test ./...
+
+  # One Linux runner cross-compiles all four OS/architecture archives into a single bundle.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build the four release archives
+        env:
+          VERSION: ${{ inputs.version }}
+        run: go run ./cmd/package-binaries --version "$VERSION" --output "$RUNNER_TEMP/release-assets"
+      # The installers and the Homebrew tap rely on these names and on a clean, licensed build.
+      - name: Check the bundle describes the release commit
+        env:
+          REF: ${{ inputs.ref }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          cd "$RUNNER_TEMP/release-assets"
+          jq -e --arg ref "$REF" --arg version "$VERSION" '
+            .sourceRevision == $ref and .version == $version and .candidate == false
+            and .sourceDirty == false and .license == "SEE LICENSE.md"
+            and ([.artifacts[].target] | sort) == ["darwin/amd64", "darwin/arm64", "linux/amd64", "linux/arm64"]
+            and all(.artifacts[]; .file == "code-rules_\($version)_\(.target | sub("/"; "_")).tar.gz")
+          ' manifest.json > /dev/null
+          sha256sum --check --strict SHA256SUMS
+          ls -1 | sort > "$RUNNER_TEMP/files"
+          printf '%s\n' SHA256SUMS manifest.json "code-rules_${VERSION}_"{darwin_amd64,darwin_arm64,linux_amd64,linux_arm64}.tar.gz | sort | diff - "$RUNNER_TEMP/files"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/release-assets/
+          if-no-files-found: error
