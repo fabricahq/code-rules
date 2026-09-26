@@ -177,8 +177,51 @@ The rules are now in the project, but its agent needs instructions to read them.
 
 Other projects can import the same library. You maintain the shared rule in the library, and each project chooses when to adopt your updates.
 
+## Check changes automatically
+
+Once other people contribute to your library, run `code-rules library check` on every change so a broken rule can't merge. The command exits with an error when the library is invalid, so any CI system can run it.
+
+If your library is on GitHub, add this workflow as `.github/workflows/check.yml`:
+
+```yaml
+name: Check
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Code Rules
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dir="$RUNNER_TEMP/code-rules"
+          mkdir -p "$dir" && cd "$dir"
+          gh release download --repo fabricahq/code-rules \
+            --pattern SHA256SUMS --pattern 'code-rules_*_linux_amd64.tar.gz'
+          gh attestation verify SHA256SUMS --repo fabricahq/code-rules \
+            --signer-workflow fabricahq/code-rules/.github/workflows/release-planner.yml \
+            --source-ref refs/heads/main
+          sha256sum --check --ignore-missing SHA256SUMS
+          tar -xzf code-rules_*_linux_amd64.tar.gz code-rules
+          echo "$dir" >> "$GITHUB_PATH"
+      - name: Check the library
+        run: code-rules library check
+```
+
+The install step downloads the latest Code Rules release and checks it the way the [manual installation](/start-here/install/#download-a-release-manually) does: it confirms that Code Rules' release workflow built the checksum file, then checks the archive against it. To pin a version instead, name its tag after `download`, such as `gh release download v0.1.0`.
+
+Then make the `check` job a required status check for your default branch in the repository's branch protection or ruleset settings. Until it's required, a failing check doesn't block merging.
+
 ## Next steps
 
-As your library grows, [write focused rules](/guides/write-rules/), run `code-rules library check`, and publish new version tags. Projects [choose when to adopt updates](/guides/update/).
+As your library grows, [write focused rules](/guides/write-rules/), let CI [check every change](#check-changes-automatically), and publish new version tags. Projects [choose when to adopt updates](/guides/update/).
 
 For metadata and supporting files, see [Rule and library format](/reference/rule-library-format/).
