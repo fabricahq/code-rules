@@ -106,7 +106,7 @@ code-rules library change practices/testing/verify-retry-limits \
   --summary 'Clarify the incorrect example.'
 ```
 
-Omit `--bump` for a new rule. [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule) explains how to choose between `major`, `minor`, and `patch`, and [Release rules](/guides/release-rules/) covers publishing. Local project rules have no versions and need no notes.
+Omit `--bump` for a new rule. [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule) explains how to choose between `major`, `minor`, and `patch`, and [Version your rules](/guides/version-rules/) covers publishing. Local project rules have no versions and need no notes.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.
 Builds carries that attribution into the individual generated rule file; no separate attribution file is required.

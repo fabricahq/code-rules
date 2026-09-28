@@ -40,9 +40,9 @@ A library doesn't have one version for all of its rules. Each rule has [its own 
 
 When an author changes a rule, they add a change note saying how large the change is and what changed. A release turns the pending notes into new rule versions, all tagged on one **release commit**. Projects import release commits, so they never see changes that haven't been released.
 
-Releases usually go through a pull request that the release workflow opens and keeps up to date. Merging it publishes the new versions. See [Release rules](/guides/release-rules/).
+Releases usually go through a pull request that the release workflow opens and keeps up to date. Merging it publishes the new versions. See [Version your rules](/guides/version-rules/).
 
-Libraries created before rule versions were available can keep publishing ordinary tags, such as `v1.2.0`, for the whole library. Projects select those releases with an exact tag or a version range until the library [adopts rule versions](/guides/release-rules/#adopt-rule-versions-in-an-existing-library).
+Libraries created before rule versions were available can keep publishing ordinary tags, such as `v1.2.0`, for the whole library. Projects select those releases with an exact tag or a version range until the library [adopts rule versions](/guides/version-rules/#adopt-rule-versions-in-an-existing-library).
 
 ## Sharing a library
 

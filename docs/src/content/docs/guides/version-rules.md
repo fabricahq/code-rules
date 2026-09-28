@@ -1,6 +1,6 @@
 ---
-title: "Release rules"
-description: "Record each rule change, then publish new rule versions through a release pull request."
+title: "Version your rules"
+description: "Give each rule its own version: record every change, then publish new versions through a release pull request."
 ---
 
 In a library that versions rules, each rule has its own version. A project that updates can then see exactly which rules changed and whether a change could break work that followed the rule before.

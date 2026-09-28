@@ -173,7 +173,7 @@ Release turns the change note into a version. It deletes the note, commits `Rele
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 
-From now on, change rules through pull requests, each with a change note. The workflow in `.github/workflows/code-rules.yml` opens a "Release rules" pull request, and merging it publishes the new versions. See [Release rules](/guides/release-rules/) to finish setting it up.
+From now on, change rules through pull requests, each with a change note. The workflow in `.github/workflows/code-rules.yml` opens a "Release rules" pull request, and merging it publishes the new versions. See [Version your rules](/guides/version-rules/) to finish setting it up.
 
 ## 6. Try the library in a project
 
@@ -202,6 +202,6 @@ Other projects can import the same library. You maintain the shared rule in the 
 
 ## Next steps
 
-As your library grows, [write focused rules](/guides/write-rules/), record each change with `code-rules library change`, and [release them](/guides/release-rules/). Projects [choose when to adopt updates](/guides/update/).
+As your library grows, [write focused rules](/guides/write-rules/), record each change with `code-rules library change`, and [release them](/guides/version-rules/). Projects [choose when to adopt updates](/guides/update/).
 
 For metadata and supporting files, see [Rule and library format](/reference/rule-library-format/).

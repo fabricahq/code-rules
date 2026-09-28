@@ -59,7 +59,7 @@ export default defineConfig({
           { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
         ] },
         { label: 'Libraries', collapsed: true, items: [
-          { label: 'Release rules', slug: 'guides/release-rules' },
+          { label: 'Version your rules', slug: 'guides/version-rules' },
           { label: 'License rules', slug: 'guides/license-rules' },
           { label: 'Adapt a third-party rule', slug: 'guides/adapt-rules' },
         ] },

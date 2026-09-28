@@ -192,7 +192,7 @@ code-rules library init [options]
 
 Create `rule-library.yaml`, an authoring README, and a GitHub Actions workflow without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library.
 
-A new manifest declares `versioning: rules`, so each rule gets its own version. Init preserves an existing manifest; to move an existing library to rule versions, use [`library release --init`](#library-release). The workflow, `.github/workflows/code-rules.yml`, checks pull requests and releases rules from `main`, and installs the Code Rules version that created it. Init writes it only when the library versions rules. See [Release rules](/guides/release-rules/#automate-releases-with-github-actions).
+A new manifest declares `versioning: rules`, so each rule gets its own version. Init preserves an existing manifest; to move an existing library to rule versions, use [`library release --init`](#library-release). The workflow, `.github/workflows/code-rules.yml`, checks pull requests and releases rules from `main`, and installs the Code Rules version that created it. Init writes it only when the library versions rules. See [Version your rules](/guides/version-rules/#automate-releases-with-github-actions).
 
 | Option | Meaning |
 | --- | --- |
@@ -302,7 +302,7 @@ In a library versioned as a whole, change notes are errors, and check warns that
 code-rules library release [options]
 ```
 
-Publish rule versions from the pending change notes. Requires a library that versions rules and a Git remote. See [Release rules](/guides/release-rules/) for the workflow.
+Publish rule versions from the pending change notes. Requires a library that versions rules and a Git remote. See [Version your rules](/guides/version-rules/) for the workflow.
 
 | Option | Meaning |
 | --- | --- |
