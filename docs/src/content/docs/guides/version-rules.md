@@ -1,38 +1,58 @@
 ---
 title: "Version your rules"
-description: "Give each rule its own version: record every change, then publish new versions through a release pull request."
+description: "Why each rule has its own semantic version, and how to record changes and publish new versions from your library."
 ---
 
-In a library that versions rules, each rule has its own version. A project that updates can then see exactly which rules changed and whether a change could break work that followed the rule before.
+Rules change over time. Authors clarify wording, add examples, cover new cases, make obligations stricter, and retire rules that no longer help. A project that imports a rule needs to know when it changed, and whether the change could make code that followed the old rule fail the new one.
 
-In this guide, you'll record a rule change with a change note, check it, and publish it. You'll set up the GitHub Actions workflow that opens a release pull request, and learn to release from your own machine, adopt rule versions in an existing library, and recover from a failed release.
+Code Rules answers those questions by giving **each rule its own version**. When a project updates, it sees which rules changed, how much, and why. It adopts small improvements freely and reviews breaking changes before accepting them.
 
-Start with a library that declares `versioning: rules` in `rule-library.yaml`. Libraries created with `code-rules library init` do. For an older library, see [Adopt rule versions in an existing library](#adopt-rule-versions-in-an-existing-library).
+This guide first explains how rule versions work, then shows how to record changes and publish new versions from your library.
+
+## Why each rule has its own version
+
+A library can hold hundreds of rules. If one version number covered the whole library, a project couldn't tell which rules a release changed, or whether a breaking change touched a rule it uses. A version per rule answers both. A library release can then change any number of rules, each with its own new version.
+
+## Semantic versioning for rules
+
+Rule versions use [semantic versioning](https://semver.org/): three numbers, `MAJOR.MINOR.PATCH`, such as `1.3.0`. Software uses these numbers to describe changes to an API. For rules, they describe changes to the rule's **obligation**: what work must do to follow it.
+
+| Change | What it means | Example |
+| --- | --- | --- |
+| **Major**, such as `1.3.0` to `2.0.0` | A breaking change: the obligation became stricter or different, so work that followed the previous version could fail this one. | Lower the required retry limit, or require a test the rule previously only recommended. |
+| **Minor**, such as `1.3.0` to `1.4.0` | New guidance that no previously compliant work can fail. | Add a Python example of the same test. |
+| **Patch**, such as `1.3.0` to `1.3.1` | Clearer wording or fixed examples, with the same obligation. | Fix a misleading sentence or a typo in an example. |
+
+To decide, ask one question: could work that followed the previous version fail this one? If yes, the change is major. Watch for changes that only add text but widen where the rule applies: code in the newly covered situation may not follow it, which makes the change major. When unsure, choose the larger change.
+
+A few more conventions:
+
+- A new rule starts at `1.0.0`.
+- Removing a rule ends its history at its last version. Projects must accept a removal like a major change.
+- Renaming or moving a rule changes its ID, so it counts as removing the old rule and adding a new one.
+
+Projects see each imported rule's version in their generated guidance, and agents cite it in reviews. When a project runs `code-rules project update`, it applies patch and minor changes directly and stops for major changes and removals until someone accepts them. See [Update rules](/guides/update/).
+
+## Where versions live
+
+A rule's version isn't written in the rule file. Each version is a Git tag in the library named `<rule-id>@<version>`, such as `practices/testing/verify-retry-limits@1.3.0`. The tag's message summarizes the change, and on GitHub each tag also gets a GitHub Release.
+
+Code Rules creates these tags for you. As an author, you describe each change in a **change note**, and releasing turns the notes into tags. For the exact formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
+
+A library opts in to rule versions with `versioning: rules` in `rule-library.yaml`. Libraries created with `code-rules library init` do. For an older library, see [Adopt rule versions in an existing library](#adopt-rule-versions-in-an-existing-library).
 
 ## How releases work
 
-1. You change a rule and add a **change note** beside it, in the same pull request.
+1. You change a rule and add a change note beside it, in the same pull request.
 2. `code-rules library check` confirms that every changed rule has a note.
 3. After the pull request merges, notes wait on `main`. The release workflow keeps one "Release rules" pull request up to date. It deletes every pending note and lists the versions the release will publish.
 4. Merging the release pull request approves the release. The workflow tags a new version for each rule on that merge commit and creates a GitHub Release for each tag.
 
 The merge commit is a **release commit**. It contains no pending notes, so each rule's content matches its newest version. Projects import only release commits, so unreleased changes on `main` never reach them.
 
-For file formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
-
 ## Record a change
 
-Edit the rule as usual. Then decide how much the change affects projects that use it:
-
-| Change | Use it when |
-| --- | --- |
-| `major` | Work that followed the previous version could fail this one, because the obligation became stricter or different. |
-| `minor` | You added guidance that no previously compliant work can fail, such as another example. |
-| `patch` | You clarified wording or fixed an example without changing the obligation. |
-
-If you're unsure, choose the larger change. See [Choose a version change](/reference/rule-library-format/#choose-a-version-change) for examples.
-
-Record the change with `library change`:
+Edit the rule as usual. Then choose its change level, as described in [Semantic versioning for rules](#semantic-versioning-for-rules), and record it with `library change`:
 
 ```sh
 code-rules library change practices/testing/verify-retry-limits \
