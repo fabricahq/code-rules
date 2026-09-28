@@ -3,7 +3,7 @@ title: "Version your rules"
 description: "How rules change, how rule versions describe those changes, and how to publish new versions from your library."
 ---
 
-Rules change over time. Some changes are small: an author fixes a typo, rewords a confusing sentence, or adds an example. Others are large: a rule becomes stricter, starts requiring something it only recommended, or is retired entirely.
+Rules change over time. Some changes are small: an author fixes a typo, rewords a confusing sentence, or adds an example. Others are large: a rule becomes stricter, starts requiring something it previously only recommended, or is retired entirely.
 
 Just as with code, you can track these changes by versioning your rules. This guide explains how rule versions work, then shows how to record changes and publish new versions from your library.
 
