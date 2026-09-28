@@ -52,16 +52,16 @@ export default defineConfig({
         { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', collapsed: true, items: [
-        { label: 'Manage project rules', collapsed: true, items: [
+        { label: 'Write a rule', slug: 'guides/write-rules' },
+        { label: 'Projects', collapsed: true, items: [
           { label: 'Import rules', slug: 'guides/select-rules' },
-          { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
           { label: 'Update rules', slug: 'guides/update' },
+          { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
         ] },
-        { label: 'Write and share rules', collapsed: true, items: [
-          { label: 'Write a rule', slug: 'guides/write-rules' },
+        { label: 'Libraries', collapsed: true, items: [
+          { label: 'Release rules', slug: 'guides/release-rules' },
           { label: 'License rules', slug: 'guides/license-rules' },
           { label: 'Adapt a third-party rule', slug: 'guides/adapt-rules' },
-          { label: 'Release rules', slug: 'guides/release-rules' },
         ] },
       ] },
       { label: 'Reference', collapsed: true, items: [
