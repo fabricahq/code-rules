@@ -9,9 +9,9 @@ Just as with code, you can track these changes by versioning your rules. This gu
 
 ## Rule versions
 
-A **rule version** identifies one released state of a rule, such as `1.3.0`. Each time you change a rule and release it, the rule gets a new version, along with a summary of what changed.
+A **rule version** identifies one state of a rule, such as `1.3.0`. When a rule changes, it gets a new version, along with a summary of what changed.
 
-Each rule has its own version. A library can hold hundreds of rules, and a release usually changes only a few of them. The rules that changed get new versions, and the rest keep theirs. So anyone can tell exactly which rules a release changed, and how.
+Each rule has its own version, even though one library repository holds many rules. Code Rules defines a scheme that gives each rule version its own Git tag, named after the rule: `<rule-id>@<version>`, such as `practices/testing/verify-retry-limits@1.3.0`. The tag's message summarizes the change, and on GitHub each tag also gets a GitHub Release. The rule file itself contains no version.
 
 ## Semantic versions
 
@@ -37,15 +37,13 @@ Projects import rules from your library. Each imported rule's version appears in
 
 A project keeps the versions it imported until someone runs `code-rules project update`. Update lists each rule that changed, with its old and new versions and your summaries. It applies patch and minor changes directly. It stops for major changes and removals until someone on the project accepts them, because those can require changes to the project's code. See [Update rules](/guides/update/).
 
-## Where versions live
+## How releases work
 
-A rule's version isn't written in the rule file. Each version is a Git tag in the library named `<rule-id>@<version>`, such as `practices/testing/verify-retry-limits@1.3.0`. The tag's message summarizes the change, and on GitHub each tag also gets a GitHub Release.
-
-Code Rules creates these tags for you. As an author, you describe each change in a **change note**, and releasing turns the notes into tags. For the exact formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
+You don't create version tags by hand. Instead, you describe each change in a **change note** beside the rule, and a **release** turns the pending notes into new versions, all tagged on one commit. For the exact formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
 
 A library opts in to rule versions with `versioning: rules` in `rule-library.yaml`. Libraries created with `code-rules library init` do. For an older library, see [Adopt rule versions in an existing library](#adopt-rule-versions-in-an-existing-library).
 
-## How releases work
+A typical release goes like this:
 
 1. You change a rule and add a change note beside it, in the same pull request.
 2. `code-rules library check` confirms that every changed rule has a note.
