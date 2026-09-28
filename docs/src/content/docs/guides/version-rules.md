@@ -5,9 +5,7 @@ description: "How rules change, how rule versions describe those changes, and ho
 
 Rules change over time. Some changes are small: an author fixes a typo, rewords a confusing sentence, or adds an example. Others are large: a rule becomes stricter, starts requiring something it only recommended, or is retired entirely.
 
-The difference matters. After a small change, code that followed the rule still follows it. After a large change, code that followed the rule before might not follow it anymore.
-
-This guide explains how Code Rules versions rules to capture that difference, then shows how to record changes and publish new versions from your library.
+Just as with code, you can track these changes by versioning your rules. This guide explains how rule versions work, then shows how to record changes and publish new versions from your library.
 
 ## Rule versions
 
