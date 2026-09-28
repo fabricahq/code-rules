@@ -49,18 +49,22 @@ A project keeps the versions it imported until someone runs `code-rules project 
 
 ## How releases work
 
-You don't create version tags by hand. Instead, you describe each change in a **change note** beside the rule, and a **release** turns the pending notes into new versions, all tagged on one commit. For the exact formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
+You manage rule versions with two Code Rules commands. You never create version tags by hand.
 
-A library opts in to rule versions with `versioning: rules` in `rule-library.yaml`. Libraries created with `code-rules library init` do. For an older library, see [Adopt rule versions in an existing library](#adopt-rule-versions-in-an-existing-library).
+- **`code-rules library change`** records a change to one rule. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file beside the rule.
+- **`code-rules library release`** publishes a **release**: it turns every pending change note into a new rule version. It works out each rule's next version number, removes the notes, and commits. It then creates a Git tag for each new version, pushes the commit and tags, and creates a GitHub Release for each version.
 
-A typical release goes like this:
+A third command, `code-rules library check`, confirms that every changed rule has a change note, and previews the versions the next release will publish.
 
-1. You change a rule and add a change note beside it, in the same pull request.
-2. `code-rules library check` confirms that every changed rule has a note.
-3. After the pull request merges, notes wait on `main`. The release workflow keeps one "Release rules" pull request up to date. It deletes every pending note and lists the versions the release will publish.
-4. Merging the release pull request approves the release. The workflow tags a new version for each rule on that merge commit and creates a GitHub Release for each tag.
+You can run `library release` yourself, or let a GitHub Actions workflow run it for you. With the workflow, a typical cycle looks like this:
 
-The merge commit is a **release commit**. It contains no pending notes, so each rule's content matches its newest version. Projects import only release commits, so unreleased changes on `main` never reach them.
+1. You edit a rule and run `library change` in the same pull request. The workflow runs `library check` on the pull request.
+2. After the pull request merges, the workflow runs `library release --pr`. It opens a "Release rules" pull request, or updates the open one, listing the versions the release will publish.
+3. When you merge the release pull request, the workflow runs `library release --publish`, which creates the tags and GitHub Releases.
+
+Each release is tagged on a single **release commit**. It contains no pending notes, so each rule's content matches its newest version. Projects import only release commits, so unreleased changes on `main` never reach them.
+
+A library opts in to rule versions with `versioning: rules` in `rule-library.yaml`. Libraries created with `code-rules library init` do. For an older library, see [Adopt rule versions in an existing library](#adopt-rule-versions-in-an-existing-library). For the exact tag and note formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
 
 ## Record a change
 
