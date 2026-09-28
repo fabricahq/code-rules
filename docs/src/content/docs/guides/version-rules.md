@@ -1,21 +1,23 @@
 ---
 title: "Version your rules"
-description: "Why each rule has its own semantic version, and how to record changes and publish new versions from your library."
+description: "How rules change, how rule versions describe those changes, and how to publish new versions from your library."
 ---
 
-Rules change over time. Authors clarify wording, add examples, cover new cases, make obligations stricter, and retire rules that no longer help. A project that imports a rule needs to know when it changed, and whether the change could make code that followed the old rule fail the new one.
+Rules change over time. Some changes are small: an author fixes a typo, rewords a confusing sentence, or adds an example. Others are large: a rule becomes stricter, starts requiring something it only recommended, or is retired entirely.
 
-Code Rules answers those questions by giving **each rule its own version**. When a project updates, it sees which rules changed, how much, and why. It adopts small improvements freely and reviews breaking changes before accepting them.
+The difference matters. After a small change, code that followed the rule still follows it. After a large change, code that followed the rule before might not follow it anymore.
 
-This guide first explains how rule versions work, then shows how to record changes and publish new versions from your library.
+This guide explains how Code Rules versions rules to capture that difference, then shows how to record changes and publish new versions from your library.
 
-## Why each rule has its own version
+## Rule versions
 
-A library can hold hundreds of rules. If one version number covered the whole library, a project couldn't tell which rules a release changed, or whether a breaking change touched a rule it uses. A version per rule answers both. A library release can then change any number of rules, each with its own new version.
+A **rule version** identifies one released state of a rule, such as `1.3.0`. Each time you change a rule and release it, the rule gets a new version, along with a summary of what changed.
 
-## Semantic versioning for rules
+Each rule has its own version. A library can hold hundreds of rules, and a release usually changes only a few of them. The rules that changed get new versions, and the rest keep theirs. So anyone can tell exactly which rules a release changed, and how.
 
-Rule versions use [semantic versioning](https://semver.org/): three numbers, `MAJOR.MINOR.PATCH`, such as `1.3.0`. Software uses these numbers to describe changes to an API. For rules, they describe changes to the rule's **obligation**: what work must do to follow it.
+## Semantic versions
+
+Rule versions are [semantic versions](https://semver.org/): three numbers, `MAJOR.MINOR.PATCH`. Which number increases tells you how large the change was. Software uses these numbers to describe changes to an API. For rules, they describe changes to the rule's **obligation**: what work must do to follow it.
 
 | Change | What it means | Example |
 | --- | --- | --- |
@@ -28,10 +30,14 @@ To decide, ask one question: could work that followed the previous version fail 
 A few more conventions:
 
 - A new rule starts at `1.0.0`.
-- Removing a rule ends its history at its last version. Projects must accept a removal like a major change.
+- Removing a rule ends its history at its last version.
 - Renaming or moving a rule changes its ID, so it counts as removing the old rule and adding a new one.
 
-Projects see each imported rule's version in their generated guidance, and agents cite it in reviews. When a project runs `code-rules project update`, it applies patch and minor changes directly and stops for major changes and removals until someone accepts them. See [Update rules](/guides/update/).
+## How projects use rule versions
+
+Projects import rules from your library. Each imported rule's version appears in the project's generated guidance, so agents and reviewers can cite the exact version they followed.
+
+A project keeps the versions it imported until someone runs `code-rules project update`. Update lists each rule that changed, with its old and new versions and your summaries. It applies patch and minor changes directly. It stops for major changes and removals until someone on the project accepts them, because those can require changes to the project's code. See [Update rules](/guides/update/).
 
 ## Where versions live
 
@@ -52,7 +58,7 @@ The merge commit is a **release commit**. It contains no pending notes, so each 
 
 ## Record a change
 
-Edit the rule as usual. Then choose its change level, as described in [Semantic versioning for rules](#semantic-versioning-for-rules), and record it with `library change`:
+Edit the rule as usual. Then choose its change level, as described in [Semantic versions](#semantic-versions), and record it with `library change`:
 
 ```sh
 code-rules library change practices/testing/verify-retry-limits \
