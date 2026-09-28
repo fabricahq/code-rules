@@ -51,9 +51,9 @@ Each line shows the change, the rule, and its old and new versions, followed by 
 
 | Change | What it means for your project |
 | --- | --- |
-| `patch` | Clearer wording or examples. The obligation is unchanged. |
-| `minor` | New guidance that work following the previous version still satisfies. |
-| `major` | A stricter or different obligation. Code that followed the previous version could fail it. |
+| `patch` | Work that complied with the previous version still complies. The rule adds no new guidance. |
+| `minor` | Work that complied with the previous version still complies. The rule adds new guidance. |
+| `major` | Work that complied with the previous version could fail this one. |
 | `new` | A rule added to a group you import. |
 | `retired` | The library stopped publishing the rule, so your agents will stop reading it. `superseded` means a named rule replaces it. `withdrawn` means the author no longer recommends the practice. |
 

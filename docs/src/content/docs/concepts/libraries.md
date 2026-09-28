@@ -36,7 +36,7 @@ A project pins each library to one release. Running `code-rules project update` 
 
 ## How a library releases rules
 
-A library doesn't have one version for all of its rules. Each rule has [its own version](/concepts/rule/#how-a-rule-is-versioned), so a project can see exactly which rules changed in a release and whether a change could break work that followed the rule before.
+A library doesn't have one version for all of its rules. Each rule has [its own version](/concepts/rule/#how-a-rule-is-versioned), so a project can see exactly which rules changed in a release and whether work that complied with the previous version could fail the new one.
 
 When an author changes a rule, they add a change note saying how large the change is and what changed. A release turns the pending notes into new rule versions, all tagged on one **release commit**. Projects import release commits, so they never see changes that haven't been released.
 

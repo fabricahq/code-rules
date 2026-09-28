@@ -45,9 +45,9 @@ A project can add local rules or explicitly exclude and replace imported rules.
 
 A library rule has its own [semantic version](https://semver.org/), such as `1.3.0`. The version tells a project how much the rule's obligation changed:
 
-- **Major:** the obligation became stricter or different, so work that followed the previous version could fail this one.
-- **Minor:** new guidance that no previously compliant work can fail, such as another example.
-- **Patch:** clearer wording or fixed examples, with the same obligation.
+- **Major:** work that complied with the previous version could fail this one.
+- **Minor:** work that complied with the previous version still complies, and this version adds new guidance.
+- **Patch:** work that complied with the previous version still complies, and this version adds no new guidance.
 
 A rule can also be **retired**: superseded by a better rule, or withdrawn because the practice is no longer recommended.
 

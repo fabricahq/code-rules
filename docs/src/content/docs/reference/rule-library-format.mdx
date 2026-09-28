@@ -200,15 +200,15 @@ Renaming or moving a rule changes its ID. Record it as retiring the old ID as `s
 
 ### Choose a version change
 
-Rule versions describe the rule's **obligation**: what work must do to follow it.
+Rule versions describe the rule's **obligation**: what work must do to comply with it.
 
-| Change | When to use it | Example |
+| Change | Definition | Example |
 | --- | --- | --- |
-| `major` | The obligation becomes stricter or different, so work that followed the previous version could fail this one. | Lower the required retry limit, or require a test the rule previously only recommended. |
-| `minor` | New guidance that no previously compliant work can fail, such as another language example or advice for a case the rule already allowed. | Add a Python example of the same test. |
-| `patch` | Wording, clarity, or example fixes with the same obligation. | Fix a misleading sentence or a typo in an example. |
+| `major` | Work that complied with the previous version could fail this one. | Lower the required retry limit, or require a test the rule previously only recommended. |
+| `minor` | Work that complied with the previous version still complies, and this version adds new guidance. | Add a Python example of the same test. |
+| `patch` | Work that complied with the previous version still complies, and this version adds no new guidance. | Fix a misleading sentence or a typo in an example. |
 
-To decide, ask: could work that followed the previous version fail this one? If yes, the change is major. When unsure, choose the larger change.
+To decide, ask two questions in order. First, could work that complied with the previous version fail this one? If yes, the change is major. If no, does this version add new guidance, such as a new example or advice for a new situation? If yes, the change is minor; if no, it's a patch. When unsure, choose the larger change.
 
 ## Change notes
 

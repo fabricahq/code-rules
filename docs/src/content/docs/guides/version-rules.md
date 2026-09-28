@@ -15,15 +15,15 @@ Each rule has its own version, even though one library repository holds many rul
 
 ## Semantic versions
 
-Rule versions are [semantic versions](https://semver.org/): three numbers, `MAJOR.MINOR.PATCH`. Which number increases tells you how large the change was. Software uses these numbers to describe changes to an API. For rules, they describe changes to the rule's **obligation**: what work must do to follow it.
+Rule versions are [semantic versions](https://semver.org/): three numbers, `MAJOR.MINOR.PATCH`. Which number increases tells you how large the change was. Software uses these numbers to describe changes to an API. For rules, they describe changes to the rule's **obligation**: what work must do to comply with it.
 
-| Change | What it means | Example |
+| Change | Definition | Example |
 | --- | --- | --- |
-| **Major**, such as `1.3.0` to `2.0.0` | A breaking change: the obligation became stricter or different, so work that followed the previous version could fail this one. | Lower the required retry limit, or require a test the rule previously only recommended. |
-| **Minor**, such as `1.3.0` to `1.4.0` | New guidance that no previously compliant work can fail. | Add a Python example of the same test. |
-| **Patch**, such as `1.3.0` to `1.3.1` | Clearer wording or fixed examples, with the same obligation. | Fix a misleading sentence or a typo in an example. |
+| **Major**, such as `1.3.0` to `2.0.0` | Work that complied with the previous version could fail this one. | Lower the required retry limit, or require a test the rule previously only recommended. |
+| **Minor**, such as `1.3.0` to `1.4.0` | Work that complied with the previous version still complies, and this version adds new guidance. | Add a Python example of the same test. |
+| **Patch**, such as `1.3.0` to `1.3.1` | Work that complied with the previous version still complies, and this version adds no new guidance. | Fix a misleading sentence or a typo in an example. |
 
-To decide, ask one question: could work that followed the previous version fail this one? If yes, the change is major. Watch for changes that only add text but widen where the rule applies: code in the newly covered situation may not follow it, which makes the change major. When unsure, choose the larger change.
+To decide, ask two questions in order. First, could work that complied with the previous version fail this one? If yes, the change is major. If no, does this version add new guidance, such as a new example or advice for a new situation? If yes, the change is minor; if no, it's a patch. Watch for changes that only add text but widen where the rule applies: code in the newly covered situation may not comply, which makes the change major. When unsure, choose the larger change.
 
 A few more conventions:
 
