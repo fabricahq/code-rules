@@ -96,7 +96,7 @@ For a library that versions rules, update reports each changed rule with its cha
 
 A library that versions rules keeps the branch `code-rules/released` pointed at its newest [release commit](/reference/rule-library-format/#release-commits). When a source has no `ref`, Code Rules reads that branch to find the newest release.
 
-A rule's version at a release commit is its highest version tag on that commit or an earlier release commit. Every release commit contains exactly the released content, so this version describes the imported file. A rule absent from the release commit was removed; its last version remains in the library's history but isn't imported.
+A rule's version at a release commit is its highest version tag on that commit or an earlier release commit. Every release commit contains exactly the released content, so this version describes the imported file. A rule absent from the release commit was retired, and its `<rule-id>@retired` tag records why; its last version remains in the library's history but isn't imported.
 
 To find these versions, Code Rules lists only tags under `techs/` and `practices/` and fetches the release history without file contents it doesn't need. It records each imported rule's version in `_source.json` and generated provenance, and shows it in generated guidance.
 

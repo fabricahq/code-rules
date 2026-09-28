@@ -137,7 +137,7 @@ Move sources to the newest revisions their configuration allows, report what cha
 
 | Option | Meaning |
 | --- | --- |
-| `--accept-major` | Apply the update even when rules the project uses have major changes or were removed. |
+| `--accept-major` | Apply the update even when rules the project uses have major changes or were retired. |
 
 How far each source moves depends on its `ref`:
 
@@ -148,11 +148,11 @@ How far each source moves depends on its `ref`:
 | Tag name | The tag's current commit, if the tag moved. |
 | Commit | Nowhere. The source stays pinned. |
 
-For a library that versions rules, update reports each rule that changed between the recorded release and the new one: its change (`new`, `major`, `minor`, `patch`, or `removed`), its old and new versions, and each version's summary. It also lists rules that joined or left the selected groups.
+For a library that versions rules, update reports each rule that changed between the recorded release and the new one: its change (`new`, `major`, `minor`, `patch`, or `retired`), its old and new versions, and each version's summary. A retired rule shows its reason, `superseded` or `withdrawn`, and any replacement. It also lists rules that joined or left the selected groups.
 
-Update refuses to write anything, and exits with status `1`, when a rule the project uses has a major change or was removed. Excluded and replaced rules don't need consent; update lists their changes so you can review your exceptions. Review the reported changes, then rerun with `--accept-major`. To stay on a rule's older major version instead, [fork it](#fork-a-library-rule) first.
+Update refuses to write anything, and exits with status `1`, when a rule the project uses has a major change or was retired. Excluded and replaced rules don't need consent; update lists their changes so you can review your exceptions. Review the reported changes, then rerun with `--accept-major`. To stay on a rule's older major version instead, [fork it](#fork-a-library-rule) first.
 
-A removed rule that the configuration still excludes or replaces makes the configuration invalid at the new revision. Update names the entry to delete and changes nothing.
+A retired rule that the configuration still excludes or replaces makes the configuration invalid at the new revision. Update names the entry to delete and changes nothing.
 
 For libraries versioned as a whole, update reports the old and new commit and tag. Review the file changes to see what changed. See [Update rules](/guides/update/) for the workflow.
 
@@ -253,12 +253,13 @@ Create or update the [change note](/reference/rule-library-format/#change-notes)
 | Option | Meaning |
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
-| `--bump LEVEL` | `major`, `minor`, or `patch`. Required for a rule that has a version. Not accepted for a new or removed rule. |
+| `--bump LEVEL` | `major`, `minor`, or `patch`. Required for a rule that has a version. Not accepted for a new or retired rule. |
 | `--summary TEXT` | Required. One line describing the change. |
-| `--removed` | Record that the rule was deleted. The rule's Markdown file must already be gone. |
+| `--retire REASON` | Record that the rule is [retired](/reference/rule-library-format/#retired-rules): `superseded` or `withdrawn`. The rule's Markdown file must already be gone. |
+| `--replaced-by ID` | The rule that replaces a `superseded` rule. Required with `--retire superseded`, and rejected otherwise. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-A rule without any version is new, and its note omits `bump`. When a note already exists, the command keeps the larger of the two bumps and appends the new summary line. It rejects an ID that isn't a rule in the library, unless `--removed` is supplied for a rule that has a version. A rule that was never released needs no removal note: delete its Markdown file and its note together.
+A rule without any version is new, and its note omits `bump`. When a note already exists, the command keeps the larger of the two bumps and appends the new summary line. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. A rule that was never released can't be retired: delete its Markdown file and its note together.
 
 See [Choose a version change](/reference/rule-library-format/#choose-a-version-change) for picking `LEVEL`.
 
@@ -284,9 +285,11 @@ For a library that versions rules, check compares each rule's Markdown file and 
 | A rule changed and has a valid note. | Passes. |
 | A rule changed and has no note. | Error naming the rule and its latest version, with the `library change` command to run. |
 | A new rule has no note. | Error. |
-| A released rule was deleted without a `removed: true` note. | Error. |
+| A released rule was deleted without a `retired` note. | Error. |
+| A superseded rule's `replacedBy` isn't a rule in the library. | Error. |
+| A rule reuses the ID of a retired rule. | Error. |
 | A note's rule is unchanged since the last release. | Error: the note is stale. |
-| A note has no matching rule and isn't a removal. | Error: the note is orphaned. |
+| A note has no matching rule and isn't a retirement. | Error: the note is orphaned. |
 | A note is invalid, such as an unknown `bump` or a blank summary. | Error. |
 | A tag is named like a group or folder that contains rules. | Error. |
 
@@ -320,9 +323,9 @@ Publish rule versions from the pending change notes. Requires a library that ver
 
 **Without a mode**, release runs locally, for maintainers who push directly to the default branch. It refuses when the working tree has uncommitted changes, the branch is behind its upstream, or `library check` fails. Then it:
 
-1. Computes each rule's next version from its note.
+1. Computes each rule's next version from its note, or its retirement.
 2. Deletes every note and commits the result as `Release N rules`.
-3. Creates an annotated tag for each new version on that commit.
+3. Creates an annotated tag for each new version, and a `<rule-id>@retired` tag for each retirement, on that commit.
 4. Pushes the commit, the tags, and the `code-rules/released` branch in one atomic push, so either all of them arrive or none do.
 5. Creates a GitHub Release for each tag.
 

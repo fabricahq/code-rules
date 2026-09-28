@@ -36,15 +36,18 @@ fabrica  4f1c2a9 -> 9e07b3d
            Require a test at the limit for every retry policy.
   minor    practices/code-design/organize-code-by-feature  1.0.0 -> 1.1.0
            Add a Go example.
-  new      practices/testing/verify-backoff                1.0.0
+  new      practices/testing/verify-retries                1.0.0
            Add the rule.
-  removed  practices/testing/check-timeouts                last version 1.2.0
+  retired  practices/testing/check-retry-backoff           1.2.0, superseded by practices/testing/verify-retries
+           Covered by the broader rule about testing retries.
+  retired  practices/code-design/comment-intent            2.1.0, withdrawn
+           Withdrawn after feedback that agents shouldn't add explanatory comments.
 
-Nothing was updated: 1 major change and 1 removal affect rules this project uses.
+Nothing was updated: 1 major change and 2 retirements affect rules this project uses.
 Review them, then run: code-rules project update --accept-major
 ```
 
-Each line shows the change, the rule, and its old and new versions, followed by the summaries of every version in between.
+Each line shows the change, the rule, and its old and new versions, followed by the summaries of every version in between. A retired rule shows its last version, the reason it was retired, and any replacement.
 
 | Change | What it means for your project |
 | --- | --- |
@@ -52,16 +55,16 @@ Each line shows the change, the rule, and its old and new versions, followed by 
 | `minor` | New guidance that work following the previous version still satisfies. |
 | `major` | A stricter or different obligation. Code that followed the previous version could fail it. |
 | `new` | A rule added to a group you import. |
-| `removed` | The library no longer has the rule, so your agents will stop reading it. |
+| `retired` | The library stopped publishing the rule, so your agents will stop reading it. `superseded` means a named rule replaces it. `withdrawn` means the author no longer recommends the practice. |
 
-When no rule your project uses has a major change or removal, update applies the new release right away. Otherwise it changes nothing and exits with status `1`.
+When no rule your project uses has a major change or retirement, update applies the new release right away. Otherwise it changes nothing and exits with status `1`.
 
 ## Accept major changes
 
-For each major change and removal, read the new rule and decide whether your project should follow it. Compare the old and new text in `.code-rules/vendor/<source-name>/` after updating, or in the library's GitHub Releases. Then choose one of these for each rule:
+For each major change and retirement, read the new rule, or the reason for the retirement, and decide what your project should do. Compare the old and new text in `.code-rules/vendor/<source-name>/` after updating, or in the library's GitHub Releases. Then choose one of these for each rule:
 
-- **Adopt it.** Plan any work your code needs to follow the new obligation.
-- **Keep the older version.** [Fork the rule](#keep-an-older-version-of-a-rule) before updating.
+- **Adopt it.** Plan any work your code needs to follow the new obligation. For a superseded rule, read its replacement, and check that you import the replacement's group.
+- **Keep the older version.** [Fork the rule](#keep-an-older-version-of-a-rule) before updating. This also keeps a retired rule you still want to follow.
 - **Stop using it.** Add an [exclusion](/guides/select-rules/#exclude-a-rule) with your reason.
 
 When you've decided, apply the update:
@@ -70,7 +73,7 @@ When you've decided, apply the update:
 code-rules project update --accept-major
 ```
 
-Major changes to rules you exclude or replace don't need consent, because your agents don't read them. Update still lists them so you can check that your exception still makes sense. If a removed rule is still named in an exclusion or replacement, update stops and tells you which entry to delete.
+Major changes to rules you exclude or replace don't need consent, because your agents don't read them. Update still lists them so you can check that your exception still makes sense. If a retired rule is still named in an exclusion or replacement, update stops and tells you which entry to delete.
 
 ## Keep an older version of a rule
 

@@ -28,14 +28,24 @@ To decide, ask one question: could work that followed the previous version fail 
 A few more conventions:
 
 - A new rule starts at `1.0.0`.
-- Removing a rule ends its history at its last version.
-- Renaming or moving a rule changes its ID, so it counts as removing the old rule and adding a new one.
+- Renaming or moving a rule changes its ID, so the old ID is retired and the new ID starts at `1.0.0`. See [Retired rules](#retired-rules).
+
+## Retired rules
+
+Sometimes a rule shouldn't change; it should stop. **Retiring** a rule ends its history: the library stops publishing it, and its last version stays its final version. A retirement always says why, and there are two reasons:
+
+- **Superseded:** a better rule replaces it. For example, you fold a narrow rule about retry limits into a broader rule about testing retries. The retirement names the replacement, so projects know what to adopt instead.
+- **Withdrawn:** the practice is no longer recommended. For example, you published a rule about how agents should comment code, then concluded from feedback that agents shouldn't add those comments at all. There's no replacement; the summary explains why the advice was withdrawn.
+
+Code Rules records a retirement with a `<rule-id>@retired` tag, whose message gives the reason, the summary, and any replacement. A retired rule's ID is never reused.
+
+Retiring a rule a project uses is as disruptive as a major change, because its agents stop following the rule. So projects accept retirements the same way they accept major changes.
 
 ## How projects use rule versions
 
 Projects import rules from your library. Each imported rule's version appears in the project's generated guidance, so agents and reviewers can cite the exact version they followed.
 
-A project keeps the versions it imported until someone runs `code-rules project update`. Update lists each rule that changed, with its old and new versions and your summaries. It applies patch and minor changes directly. It stops for major changes and removals until someone on the project accepts them, because those can require changes to the project's code. See [Update rules](/guides/update/).
+A project keeps the versions it imported until someone runs `code-rules project update`. Update lists each rule that changed, with its old and new versions and your summaries. It applies patch and minor changes directly. It stops for major changes and retirements until someone on the project accepts them, because those can change what the project's code must do. See [Update rules](/guides/update/).
 
 ## How releases work
 
@@ -100,19 +110,34 @@ code-rules library change practices/testing/verify-backoff \
   --summary 'Add the rule.'
 ```
 
-### Remove or rename a rule
+### Retire a rule
 
-Delete the rule's Markdown file and its asset directory, then record the removal:
+Delete the rule's Markdown file and its asset directory, then record the retirement with its reason.
+
+When a better rule replaces it, retire it as superseded and name the replacement:
 
 ```sh
 code-rules library change practices/testing/verify-retry-limits \
-  --removed \
-  --summary 'Replaced by practices/testing/verify-retries.'
+  --retire superseded \
+  --replaced-by practices/testing/verify-retries \
+  --summary 'Covered by the broader rule about testing retries.'
 ```
 
-Removals create no tag; the rule's last version stays its final version. Projects that update past the release see the rule reported as removed, and must accept the removal like a major change.
+The replacement must exist in the library by the time the retirement is released. It can be a new rule in the same release.
 
-A rename changes the rule's ID. Record it as a removal of the old ID and a new rule at the new ID. A rule that was never released needs no removal note; delete it and its note together.
+When the practice itself is no longer recommended, retire it as withdrawn, and explain why in the summary:
+
+```sh
+code-rules library change practices/code-design/comment-intent \
+  --retire withdrawn \
+  --summary "Withdrawn after feedback that agents shouldn't add explanatory comments."
+```
+
+The release creates the rule's `@retired` tag. A rule that was never released can't be retired; delete it and its note together.
+
+### Rename a rule
+
+A rename changes the rule's ID. Move the file, add a new-rule note for the new ID, and retire the old ID as superseded by the new one. Projects see the old rule retired, with the new rule as its replacement.
 
 ## Automate releases with GitHub Actions
 
