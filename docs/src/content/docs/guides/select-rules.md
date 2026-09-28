@@ -29,7 +29,7 @@ Agents choose which installed groups apply to each task using the [rule-loading 
 In `.code-rules/config.yaml`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
 
 - **Where to get it:** `repository` is the library's Git URL.
-- **Which version to use:** `ref` selects a specific tag or commit; `version` allows a range of versions. Use one or the other.
+- **Which revision to use:** for a library that versions rules, omit `ref` to follow its releases. Otherwise, `ref` selects a tag, a commit, or a range of library versions. See [Select a revision](/reference/configuration/#select-a-revision).
 - **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`.
 
 You can also use `exclude` to leave out individual rules or `replace` to substitute your own. We'll cover both below.
@@ -126,4 +126,4 @@ Use [Resolve conflicting rules](/guides/conflicting-guidance/) to review the com
 
 Review `generated/RULES.md`, each relevant group index, and the full resolved definitions. Check exclusions and replacements against configuration and provenance.
 Commit configuration, local rules, vendor snapshots, and generated files together.
-Use [Update rules](/guides/update/) when you adopt new library versions or change the selected groups later.
+Use [Update rules](/guides/update/) when you adopt new library releases or change the selected groups later.

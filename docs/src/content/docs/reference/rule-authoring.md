@@ -226,6 +226,23 @@ See [Supporting assets](/reference/rule-library-format/#supporting-assets) for t
 
 When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; rule-level and group-level license overrides are unsupported. Use optional [structured attribution](/reference/rule-library-format/#rule-attribution) for source credits. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Code Rules format.
 
+## Record changes to a library rule
+
+In a library that versions rules, every edit to a rule needs a [change note](/reference/rule-library-format/#change-notes) that says how much the obligation changed. Projects use it to decide whether they can update without changing their code.
+
+Judge the change by its effect on work that followed the previous version:
+
+| Edit | Change |
+| --- | --- |
+| Narrow an exception, lower a limit, or turn a recommendation into a requirement. | `major` |
+| Replace the obligation with a different one, even when it seems equally strict. | `major` |
+| Add an example in another language, or advice for a situation the rule already allowed. | `minor` |
+| Reword a sentence, fix a typo, or correct an example that contradicted the rule's own text. | `patch` |
+
+Widening where a rule applies can be major, even though it only adds text: code in the newly covered situation may not follow it. Adding a new case is minor only when no previously compliant work can fail it. When unsure, choose the larger change.
+
+Write the summary for a project maintainer deciding whether to update. Name what changed in the obligation or guidance, such as "Require a test at the limit for every retry policy." Avoid describing the edit itself, such as "Update the rule." See [Release rules](/guides/release-rules/#record-a-change) for the commands.
+
 ## Authoring rubric
 
 Use this checklist to review every rule. A completed template is a starting point; headings alone do not establish that the guidance is useful.

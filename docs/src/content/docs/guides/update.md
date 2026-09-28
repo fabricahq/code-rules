@@ -1,60 +1,123 @@
 ---
 title: "Update rules"
-description: "Adopt upstream changes deliberately while preserving local decisions."
+description: "Review each rule change, accept major changes deliberately, and preserve local decisions."
 ---
 
-Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, or add rules. Your project adopts those changes when you run `code-rules project sync`, using the version choices in `.code-rules/config.yaml`.
+Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, or make rules stricter. Your project adopts those changes only when you run `code-rules project update`.
 
-Reviewing an update lets you check that the changed guidance still fits your project, including any rules you've excluded or replaced. In this guide, you'll select a library version, sync the rules, review the changes, and commit the result. You'll also learn how to change your selection of groups and recover from a failed update.
+Reviewing an update lets you check that the changed guidance still fits your project, including any rules you've excluded or replaced. In this guide, you'll update your libraries, review each rule change, accept major changes or keep an older version of a rule, and commit the result. You'll also learn how to change your selection of groups and recover from a failed update.
 
-Start with a project that already [imports rules](/guides/select-rules/). For details about how sync changes files, see [Sync and recovery](/reference/sync/).
+Start with a project that already [imports rules](/guides/select-rules/). For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
-## Update a library
+## Sync and update
 
-1. Choose an exact tag or commit, or a HashiCorp version constraint such as `>= 1.2.0, < 2.0.0`.
-2. Set `sources.<name>.ref` for an exact revision, or `sources.<name>.version` for a constraint. Specify exactly one.
-3. From the project root, run:
+Two commands import library rules, and they do different things:
 
-   ```sh
-   code-rules project sync
-   ```
+- **`code-rules project sync`** imports the commits already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. Sync resolves a revision only for a new source, or after you change a source's repository or `ref`.
+- **`code-rules project update`** moves sources to newer revisions, reports every rule change, and asks you to accept major changes before it writes anything.
 
-4. Review and commit the configuration, refreshed vendor snapshots, and regenerated files together.
+Neither command runs during ordinary coding, review, or `project check`, so rules never change underneath your agents.
 
-For an exact `ref`, sync follows that ref. For a `version` constraint, it selects the highest matching semantic version tag.
-A commit SHA stays fixed, and a tag resolves to its current target.
-To move from `v1.0.0` to `v1.1.0`, change the ref before syncing.
+## Update your libraries
 
-## What sync refreshes
+From the project root, run:
 
-A single sync performs the download and regeneration together:
+```sh
+code-rules project update
+```
 
-1. Resolve each source's exact ref or version constraint to a commit.
-2. Download its selected rule groups into `.code-rules/vendor/<source-name>/` and record the resolved commit.
-3. Apply source-specific exclusions and replacements, then include the project's local rules.
-4. Regenerate the group indexes and individual resolved rule files under `.code-rules/generated/`.
-5. Regenerate `RULES.md`, library READMEs, declared license copies, and provenance under `.code-rules/generated/`, then install the complete validated result.
+To update only some libraries, name their sources, such as `code-rules project update fabrica`.
 
-For example, `.code-rules/generated/groups/practices/testing.md` lists the active testing rules from all selected sources and the project. Small groups include full definitions; larger groups link to them.
-After sync, that index reflects the downloaded versions and the project's local choices.
-You do not need to run `build` separately after sync.
+For a library that [versions rules](/concepts/rule/#how-a-rule-is-versioned), update moves to its newest release and reports each rule that changed:
 
-## Review the update
+```text
+fabrica  4f1c2a9 -> 9e07b3d
+  major    practices/testing/verify-retry-limits           1.3.0 -> 2.0.0
+           Require a test at the limit for every retry policy.
+  minor    practices/code-design/organize-code-by-feature  1.0.0 -> 1.1.0
+           Add a Go example.
+  new      practices/testing/verify-backoff                1.0.0
+           Add the rule.
+  removed  practices/testing/check-timeouts                last version 1.2.0
 
-Other configured refs remain unchanged.
-Sync resolves every configured tag and version constraint again, so also review changes to other sources' resolved commits if their tags have moved.
-The command reports added, changed, and removed file paths. Inspect the Git diff of configuration, vendor source records, and generated provenance to compare requested revisions, selected tags, and resolved commits.
-Inspect the vendor diff for upstream changes hidden by exclusions or replacements, and changes to retained licenses and notices.
-When a replacement target changes, compare its old and new text before deciding whether the local exception still makes sense.
+Nothing was updated: 1 major change and 1 removal affect rules this project uses.
+Review them, then run: code-rules project update --accept-major
+```
 
-When updated rules introduce competing obligations, use the [conflict-review prompt](/guides/conflicting-guidance/#generate-a-review-prompt) to inspect the combined guidance.
+Each line shows the change, the rule, and its old and new versions, followed by the summaries of every version in between.
 
-A removed or renamed target causes a configuration error.
-Update the affected exclusion or replacement deliberately.
+| Change | What it means for your project |
+| --- | --- |
+| `patch` | Clearer wording or examples. The obligation is unchanged. |
+| `minor` | New guidance that work following the previous version still satisfies. |
+| `major` | A stricter or different obligation. Code that followed the previous version could fail it. |
+| `new` | A rule added to a group you import. |
+| `removed` | The library no longer has the rule, so your agents will stop reading it. |
+
+When no rule your project uses has a major change or removal, update applies the new release right away. Otherwise it changes nothing and exits with status `1`.
+
+## Accept major changes
+
+For each major change and removal, read the new rule and decide whether your project should follow it. Compare the old and new text in `.code-rules/vendor/<source-name>/` after updating, or in the library's GitHub Releases. Then choose one of these for each rule:
+
+- **Adopt it.** Plan any work your code needs to follow the new obligation.
+- **Keep the older version.** [Fork the rule](#keep-an-older-version-of-a-rule) before updating.
+- **Stop using it.** Add an [exclusion](/guides/select-rules/#exclude-a-rule) with your reason.
+
+When you've decided, apply the update:
+
+```sh
+code-rules project update --accept-major
+```
+
+Major changes to rules you exclude or replace don't need consent, because your agents don't read them. Update still lists them so you can check that your exception still makes sense. If a removed rule is still named in an exclusion or replacement, update stops and tells you which entry to delete.
+
+## Keep an older version of a rule
+
+To stay on a rule's older major version while updating the rest of the library, fork it into your project:
+
+```sh
+code-rules project add rule practices/testing/verify-retry-limits \
+  --from fabrica@1.3.0 \
+  --reason 'Our batch jobs keep the 1.x retry policy until the queue migration.'
+```
+
+This copies version `1.3.0` into `.code-rules/local/`, adds attribution that links to the original, and replaces the imported rule with your copy. Your fork no longer receives updates. Revisit it when you're ready to adopt the newer version, then remove the replacement and the local file.
+
+Then update the library:
+
+```sh
+code-rules project update
+```
+
+## Libraries versioned as a whole
+
+Some libraries publish one tag, such as `v1.2.0`, for all of their rules. For those sources, what update can do depends on the configured `ref`:
+
+| `ref` | What update does |
+| --- | --- |
+| Version range, such as `>= 1.2.0, < 2.0.0` | Moves to the highest matching version tag. |
+| Exact tag, such as `v1.2.0` | Moves only if the publisher moved the tag. |
+| Full commit | Nothing. |
+
+To move to a version outside the range, or to another tag, edit `ref` and run `code-rules project sync`. These libraries don't report individual rule changes, so review the diff of `.code-rules/vendor/<source-name>/` to see what changed.
+
+If a library you use starts versioning rules, remove the source's `ref` and run `code-rules project sync` to follow its releases. Review the diff as you would any update.
+
+## Review and commit the update
+
+Update reports added, changed, and removed file paths. Before committing:
+
+- Inspect the diff of `.code-rules/vendor/` for upstream changes, including rules hidden by your exclusions and replacements, and changes to retained licenses and notices.
+- When a replacement's target changed, compare its old and new text before deciding whether your local rule still makes sense.
+- When updated rules introduce competing obligations, use the [conflict-review prompt](/guides/conflicting-guidance/#generate-a-review-prompt) to inspect the combined guidance.
+
+Commit the configuration, vendor snapshots, and generated files together.
 
 ## Change selected groups
 
-Edit the relevant `sources.<name>.groups` and sync again when the imported selection changes.
+Edit the relevant `sources.<name>.groups` and run `code-rules project sync`.
+Sync imports the new groups from the release already recorded for that source, so the rest of your rules don't change.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
 Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.yaml` exists.
@@ -62,10 +125,10 @@ If it already exists, keep the local files unchanged. Otherwise author group met
 
 ## Recover from a failed update
 
-Sync validates and renders before installing output.
-A failed import preserves the previous working ruleset.
+Update and sync validate and render before installing output.
+A failed import, or an update that needs your consent, preserves the previous working ruleset.
 Interrupted installations must be detected and recovered before another operation can claim success.
 
 Moved tags never update rules automatically during coding, review, or offline checks.
-To adopt a moved tag deliberately, run sync and review the new resolved commit.
-To retain its previous content through future syncs, set `ref` to the previously recorded full commit SHA.
+`project update` resolves tags again and reports a moved tag's new commit for review.
+To keep a tag's previous content regardless, set `ref` to the previously recorded full commit SHA.

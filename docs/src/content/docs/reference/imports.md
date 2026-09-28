@@ -13,7 +13,7 @@ This page explains which files Code Rules imports and how it combines imported r
 
 When you run `code-rules project sync`, Code Rules:
 
-1. Reads your configuration to find the libraries, versions, and groups you selected. A **group** collects related rules, such as testing practices or TypeScript conventions.
+1. Reads your configuration to find the libraries, revisions, and groups you selected. A **group** collects related rules, such as testing practices or TypeScript conventions.
 2. Copies the selected library files into your project. Each copy comes from one Git commit and is called a **snapshot**.
 3. Combines the imported rules with your local rules and configured exceptions, then generates files for your agents to read.
 
@@ -77,21 +77,32 @@ The same files support implementation and review. Your project chooses how to ch
 
 ## What changes when you update
 
-Running `code-rules project sync` again fetches the library revisions allowed by your configuration:
+Each source's `vendor/<source-name>/_source.json` records the commit it imported. Running `code-rules project sync` again imports that same commit, so every checkout of the project gets the same rules. Sync resolves a source's revision again only when the source is new or you changed its repository or `ref`.
 
-| Version choice | What a later sync can fetch |
+`code-rules project update` moves sources forward, as far as each `ref` allows:
+
+| `ref` | What update can move to |
 | --- | --- |
-| Full Git commit | The same content from that commit. |
-| Exact tag | The content the tag points to. If the publisher moves the tag, the content can change. |
+| Omitted | The library's newest release. |
 | Version range | A newer matching version, if one is available. |
+| Exact tag | The content the tag points to now. If the publisher moved the tag, the content can change. |
+| Full Git commit | Nothing. The source stays on that commit. |
 
 With the same configuration and commit, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
 
-Sync reports changed files, including group metadata and revision records. It does not provide a separate summary of added or removed groups. Review the file changes to understand the update.
+For a library that versions rules, update reports each changed rule with its change, versions, and summary, and asks you to accept major changes to rules the project uses. For a library versioned as a whole, it reports the old and new revision; review the file changes to understand the update. Sync and update both report changed files, including group metadata and revision records.
+
+### How rule versions are resolved
+
+A library that versions rules keeps the branch `code-rules/released` pointed at its newest [release commit](/reference/rule-library-format/#release-commits). When a source has no `ref`, Code Rules reads that branch to find the newest release.
+
+A rule's version at a release commit is its highest version tag on that commit or an earlier release commit. Every release commit contains exactly the released content, so this version describes the imported file. A rule absent from the release commit was removed; its last version remains in the library's history but isn't imported.
+
+To find these versions, Code Rules lists only tags under `techs/` and `practices/` and fetches the release history without file contents it doesn't need. It records each imported rule's version in `_source.json` and generated provenance, and shows it in generated guidance.
 
 ### Tracing rules to their source
 
-Code Rules records both the revision you requested and the exact commit it imported. For a version range, it also records the selected tag and version number. See [Provenance](/reference/provenance/) for these records.
+Code Rules records both the revision you requested and the exact commit it imported. For a version range, it also records the selected tag and version number. For a library that versions rules, it records each rule's version. See [Provenance](/reference/provenance/) for these records.
 
 Links to original files on GitHub.com and GitLab.com use the imported commit, so moving a tag does not change their destination. For other Git hosts, links point to the stored files; provenance retains the repository address and commit.
 
@@ -152,7 +163,7 @@ Each library import has these limits:
 | Git file-tree listing | 8 MiB. |
 | Each retained file | 8 MiB. |
 | All retained files combined | 64 MiB. |
-| Git's tag listing during version discovery | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. |
+| Git's tag listing during version discovery | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. For a library that versions rules, the limit applies to the listing of rule tags. |
 
 The retained-file limits apply after fetching. They do not cap network traffic or Git's temporary disk use. Version discovery uses the same Git access settings and deadline as fetching.
 
@@ -163,3 +174,5 @@ When selecting a version, Code Rules can report:
 | `version-not-found` | No eligible tag matches your version range. Check the published tags and configured range. |
 | `ambiguous-version` | Conflicting tags represent the highest matching version. Correct the tags or select an exact revision. |
 | `ref-changed` | The selected tag moved between discovery and fetching. Retry, correct the tags, or select an exact commit. |
+| `releases-not-found` | The source has no `ref`, but the library has no `code-rules/released` branch, so it doesn't version rules. Set `ref` to a tag, commit, or version range. |
+| `range-unsupported` | The source's `ref` is a version range, but the library versions rules. Remove `ref` to follow its releases, or pin a commit or rule tag. |

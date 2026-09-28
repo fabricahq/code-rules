@@ -61,8 +61,8 @@ For example, when you replace a library rule, its imported source stays in `vend
 | `.code-rules/config.yaml` | You | Choose libraries, revisions, groups, and exceptions. |
 | `.code-rules/local/` | You, after initialization | Add project rules, replacements, and local group metadata. |
 | `.code-rules/README.md` | `code-rules project init`, `project build`, and `project sync` | Explain the project's rule setup and commands. |
-| `.code-rules/vendor/` | `code-rules project sync` | Store imported source files and their revision records. |
-| `.code-rules/generated/` | `code-rules project sync` and `code-rules project build` | Provide resolved rules and indexes for your agent. |
+| `.code-rules/vendor/` | `code-rules project sync` and `project update` | Store imported source files and their revision records, including rule versions. |
+| `.code-rules/generated/` | `code-rules project sync`, `project update`, and `project build` | Provide resolved rules and indexes for your agent. |
 
 Keep authored changes in configuration and `local/`. Edits in `vendor/` or `generated/` will be replaced or removed.
 Commit configuration, local rules, and both managed directories so your team and agents can use the same rules offline.
@@ -135,6 +135,16 @@ Rule ID: `local:practices/testing/test-changed-behavior`
 
 **Read full rule:** [Test changed behavior](../../rules/local/practices/testing/test-changed-behavior.md)
 ```
+
+A rule imported from a library that versions rules also shows its version below its ID, so agents and reviewers can cite it:
+
+```md
+Rule ID: `fabrica:practices/testing/verify-retry-limits`
+
+Version: 1.3.0
+```
+
+Local rules have no version.
 
 ### Rule file: read the guidance
 

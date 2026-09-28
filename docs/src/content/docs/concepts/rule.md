@@ -39,8 +39,21 @@ practices/testing/verify-retry-limits.md
 ```
 
 Keep a rule local to a project, or publish it in a library that other projects import.
-Library rules are versioned with their repository; a project's exact ref or version constraint selects the version it imports.
 A project can add local rules or explicitly exclude and replace imported rules.
+
+## How a rule is versioned
+
+A library rule has its own [semantic version](https://semver.org/), such as `1.3.0`. The version tells a project how much the rule's obligation changed:
+
+- **Major:** the obligation became stricter or different, so work that followed the previous version could fail this one.
+- **Minor:** new guidance that no previously compliant work can fail, such as another example.
+- **Patch:** clearer wording or fixed examples, with the same obligation.
+
+Each version is a Git tag in the library, such as `practices/testing/verify-retry-limits@1.3.0`, with a summary of what changed. The rule file itself has no version field. Library authors record each change in a change note, and releasing turns the notes into new versions.
+
+Projects see each imported rule's version in their generated guidance. Before a project adopts a major change to a rule it uses, someone on the project accepts it. Local rules have no versions.
+
+See [Rule versions](/reference/rule-library-format/#rule-versions) for the tag format, [Release rules](/guides/release-rules/) for authors, and [Update rules](/guides/update/) for projects.
 
 ## How agents identify and use it
 

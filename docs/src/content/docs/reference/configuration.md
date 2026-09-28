@@ -17,8 +17,7 @@ Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are r
 schemaVersion: 1
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/.code-rules-example.git
-    ref: v1.0.0
+    repository: https://github.com/fabricahq/public-rules.git
     groups:
       - techs/typescript
       - practices/testing
@@ -48,8 +47,7 @@ Replace them with libraries and rules your project can access.
 | `schemaVersion` | Configuration format version; the builder accepts `1`. |
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
-| `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. Mutually exclusive with `version`. |
-| `sources.<name>.version` | HashiCorp version constraint, such as `>= 1.2.0, < 2.0.0`. Mutually exclusive with `ref`. |
+| `sources.<name>.ref` | Optional revision: a full Git commit SHA, an exact tag name such as `v1.0.0`, or a version range such as `>= 1.2.0, < 2.0.0`. Omit it to follow the releases of a library that versions rules. See [Select a revision](#select-a-revision). |
 | `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
 | `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
 | `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
@@ -60,8 +58,9 @@ The former `localGroups` field is rejected with migration guidance. Remove it an
 Each source includes its own `exclude` and `replace` objects, empty when unused.
 Replacement paths resolve relative to the Code Rules directory and must stay under its `local/` directory.
 
-Each source specifies exactly one of `ref` or `version` and owns its groups and exceptions.
+Each source owns its revision, groups, and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.
+The former `version` field is rejected with migration guidance. Move its value to `ref`, which now accepts version ranges.
 The schema version is `1`.
 
 ## Import every group
@@ -73,7 +72,6 @@ schemaVersion: 1
 sources:
   team:
     repository: https://github.com/my-team/rules.git
-    ref: v1.0.0
     groups: "*"
     exclude: {}
     replace: {}
@@ -89,7 +87,7 @@ Choose one of three supported selectors:
 
 Each selector includes all groups in its scope at the selected revision, including empty groups with valid metadata.
 Rule exclusions and replacements still apply. Agents still select relevant rules for each task.
-When you adopt a newer revision, newly added groups join the selection. Review those additions in the changed source records and generated provenance.
+When you update to a newer revision, newly added groups join the selection. Review those additions in the changed source records and generated provenance.
 Offline builds do not discover changes on the remote repository.
 
 Keep `groups` required. Use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
@@ -125,7 +123,7 @@ Nested GitLab namespaces, private hosts, and explicit ports are supported.
 The `.git` suffix is optional. Git uses the caller's credentials; do not embed HTTPS credentials or SSH passwords in configuration.
 SSH usernames are allowed.
 
-Keep exact revisions in `ref`, version constraints in `version`, and selected groups in `groups`.
+Keep the revision in `ref` and selected groups in `groups`.
 Repository addresses do not accept query strings, fragments, `git::` prefixes, getter options, or `//subdirectory` selection.
 Local paths, `file:`, unauthenticated `git:`, plain HTTP, and remote-helper protocols are outside this format.
 The earlier `owner/name` shorthand is no longer accepted; use `https://github.com/owner/name.git` instead.
@@ -165,65 +163,107 @@ Renaming a source changes its generated project rule IDs and any external refere
 Its nested exclusion and replacement keys remain library-relative.
 Replacing a repository under an existing source name also requires reviewing those targets.
 
-## Commit or tag references
+## Select a revision
 
-Set `ref` to either a full commit SHA or an exact tag name.
+A source's `ref` says which revision of the library to import:
+
+| `ref` | Example | Imports |
+| --- | --- | --- |
+| Omitted | | The newest release of a library that [versions rules](/reference/rule-library-format/#rule-versions). |
+| Full commit SHA | `0c9f3e…` (40 hex digits) | That commit. |
+| Exact tag name | `v1.0.0` or `practices/testing/verify-retry-limits@1.3.0` | The commit the tag points to. |
+| Version range | `>= 1.2.0, < 2.0.0` | The highest semantic version tag that matches, in a library versioned as a whole. |
+
+Configuration records what the project asked for. The source's `vendor/<source-name>/_source.json` records the exact commit it imported, like a lockfile. [`project sync`](/reference/cli/#project-sync) keeps that recorded commit while the source's repository and `ref` are unchanged, so every checkout imports the same content. [`project update`](/reference/cli/#project-update) moves to a newer revision when the `ref` allows one. Changing `ref` and running sync imports the revision it now names.
+
+### Follow a library's releases
+
+Omit `ref` for a library that versions rules:
+
+```yaml
+repository: https://github.com/fabricahq/public-rules.git
+groups:
+  - practices/testing
+exclude: {}
+replace: {}
+```
+
+The first sync imports the library's newest release commit and records each rule's version. Later syncs keep that commit. `project update` moves to the newest release and asks you to accept major changes to rules the project uses. See [Update rules](/guides/update/).
+
+Omitting `ref` for a library versioned as a whole fails, because it has no releases to follow. Set `ref` to one of its tags, commits, or a version range instead.
+
+### Pin a commit or tag
+
+Set `ref` to a full commit SHA or an exact tag name.
 A tag may also use the explicit `refs/tags/<name>` form.
-Branch names and abbreviated commit SHAs are unsupported. Put version ranges in `version`, not `ref`.
+Branch names and abbreviated commit SHAs are unsupported.
 A plain name resolves only as a tag, even when a branch has the same name.
 Both lightweight and annotated tags must resolve to a commit.
 
-In the `sync` workflow, resolve each configured ref and record its full `resolvedCommit` in that source's vendored provenance.
-Fetch rule content and construct source links using the resolved commit.
-Configuration records what the project requested; provenance records the exact content it imported.
+In a library that versions rules, any rule tag, such as `practices/testing/verify-retry-limits@1.3.0`, names the release commit that published it. The project imports every selected rule as it was at that release, not only the named rule. `project update` doesn't move a pinned source; change or remove `ref` to move it.
 
 Tags can move.
-An explicit `sync` resolves tags again and reports any change from the previously recorded commit for review.
+Sync keeps the recorded commit, and `project update` resolves tags again and reports any change for review.
 Offline `build`, `check`, and ordinary agent work use the committed snapshot without resolving tags again.
 Use a commit SHA when the configured reference itself must be immutable.
 
-## Semantic version constraints
+### Version ranges
 
-Use `version` instead of `ref` to select the highest matching semantic version tag:
+For a library versioned as a whole, set `ref` to a version range to accept its compatible releases:
 
 ```yaml
 repository: https://github.com/example/rules.git
-version: ">= 1.2.0, < 2.0.0"
+ref: ">= 1.2.0, < 2.0.0"
 groups: "*"
 exclude: {}
 replace: {}
 ```
 
-Constraints use [HashiCorp go-version syntax](https://github.com/hashicorp/go-version). Surrounding whitespace is trimmed; comma-separated comparisons must all match.
+Code Rules treats `ref` as a range when it starts with a comparison operator, such as `>=`, `<`, `!=`, `=`, or `~>`, or contains a comma. A bare version such as `v1.2.3` or `1.2.3` names a literal tag. To name a tag that looks like a range, use the `refs/tags/<name>` form.
+Ranges use [HashiCorp go-version syntax](https://github.com/hashicorp/go-version). Surrounding whitespace is trimmed; comma-separated comparisons must all match.
 
 | Constraint | Eligible stable versions |
 | --- | --- |
-| `1.2.3` or `= 1.2.3` | Exactly 1.2.3 |
+| `= 1.2.3` | Exactly 1.2.3 |
 | `!= 1.2.3` | Any version except 1.2.3 |
 | `>= 1.2.3, < 2.0.0` | Explicit lower and upper bounds |
 | `~> 1.2.3` | At least 1.2.3, below 1.3.0 |
 | `~> 1.2` | At least 1.2.0, below 2.0.0 |
 
-Partial constraint versions are accepted by go-version; for example, `1.2` means an exact 1.2.0 constraint. Release tags still require complete versions.
+Partial constraint versions are accepted by go-version; for example, `= 1.2` means an exact 1.2.0 constraint. Release tags still require complete versions.
 Caret ranges (`^`), npm tilde ranges (`~`), wildcard versions (`1.2.x`), OR (`||`), and space-separated comparator chains are not supported. Use commas for AND.
 
 Prerelease matching follows go-version. A prerelease must be explicitly admitted by the comparisons; an ordinary stable bound does not admit prereleases. Use exact prerelease constraints when selecting one particular prerelease, and check the combined comparisons when defining a prerelease range.
 
 Only complete version tags such as `1.2.3` or `v1.2.3` participate. The optional prefix is lowercase `v`.
-Partial tags such as `v1`, names such as `release-1.2.3`, and branches are ignored during version selection.
+Partial tags such as `v1`, names such as `release-1.2.3`, rule tags, and branches are ignored during version selection.
 Lightweight and annotated tags are supported, but the selected tag must resolve to a commit.
-Use `ref` to select an exact tag outside this naming convention.
+Use an exact tag name to select a tag outside this naming convention.
 
-Imports selects by semantic version precedence, not tag date or Git listing order.
+Code Rules selects by semantic version precedence, not tag date or Git listing order.
 If tags at the highest matching precedence point to different objects, import fails as ambiguous. Build metadata does not affect precedence.
 Aliases pointing to the same commit are allowed; the lexicographically first tag spelling is selected deterministically.
 If the selected tag changes between discovery and fetching, import fails rather than silently accepting a different revision.
-No matching tag is an error; Imports does not fall back to a branch or unrelated release.
+No matching tag is an error; Code Rules does not fall back to a branch or unrelated release.
 
-Snapshots and generated provenance record the requested `version`, `resolvedTag`, `resolvedVersion`, and `resolvedCommit`.
+A library that versions rules has no library versions, so a range fails with instructions to omit `ref` and follow its releases.
+
+Snapshots and generated provenance record the requested `ref`, `resolvedTag`, `resolvedVersion`, and `resolvedCommit`.
 The normalized version retains any SemVer build metadata and omits the leading `v`.
-A new explicit import resolves the constraint again. Offline Builds checks the recorded tag and version against the constraint, then uses the stored commit without querying Git.
-The `sync` command combines re-importing and safe file updates. See [Sync and recovery](/reference/sync/).
+Offline builds check the recorded tag and version against the range, then use the stored commit without querying Git.
+
+### Migrate from the version field
+
+Earlier configurations stored ranges in a separate `version` field. Code Rules now rejects that field and tells you to rename it. Move its value to `ref`, then run `code-rules project sync`:
+
+```yaml
+# Before
+version: ">= 1.2.0, < 2.0.0"
+# After
+ref: ">= 1.2.0, < 2.0.0"
+```
+
+Sync imports the commit already recorded for the source, because the requested range is unchanged.
 
 ## Source-scoped exceptions
 
@@ -270,8 +310,9 @@ See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an 
 Each library's `formatVersion` describes its authoring format.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
-Each source's `ref` or `version` selects the requested revision.
-Vendored provenance records the resolved commit used by offline commands; it is importer-owned output, not a second user-selected version.
+Each source's `ref`, or its absence, selects the requested revision.
+Vendored provenance records the resolved commit, and for a library that versions rules each rule's version, used by offline commands. It is importer-owned output, not a second user-selected version.
+A library's `versioning` field says whether its rules or the library as a whole carry versions.
 A project imports multiple sources directly.
 Libraries that themselves inherit and republish other libraries are not supported.
 

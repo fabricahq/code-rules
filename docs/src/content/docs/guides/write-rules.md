@@ -94,6 +94,19 @@ A rule's library ID is its relative path without `.md`.
 Consuming projects qualify it with their configured source name, such as `fabrica:practices/testing/verify-retry-limits`.
 Renaming or moving the file changes its ID.
 Consumers must update exclusions and replacements that referenced the old path.
+In a library that versions rules, a rename is released as a removal of the old rule and a new rule, and projects must accept it like a major change.
+
+## Record the change
+
+In a library that versions rules, add a change note with every rule you write or edit, in the same commit:
+
+```sh
+code-rules library change practices/testing/verify-retry-limits \
+  --bump patch \
+  --summary 'Clarify the incorrect example.'
+```
+
+Omit `--bump` for a new rule. [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule) explains how to choose between `major`, `minor`, and `patch`, and [Release rules](/guides/release-rules/) covers publishing. Local project rules have no versions and need no notes.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.
 Builds carries that attribution into the individual generated rule file; no separate attribution file is required.

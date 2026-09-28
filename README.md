@@ -54,7 +54,7 @@ Pulling many files from versioned libraries into a project, and keeping them up 
 
 As with packages for code, you can:
 
-- **Pin versions.** Pin each library to an exact tag or commit, or accept compatible releases with ranges like `>= 1.0.0, < 2.0.0`.
+- **Version every rule.** Each rule has its own semantic version, so an update shows exactly which rules changed and whether a change could break code that followed them. Projects pin each library to a release and accept major changes explicitly.
 - **Customize without forking.** Exclude an imported rule or replace it with your own, with the decision recorded in config.
 - **Build reproducibly.** Libraries are vendored at an exact commit, and every imported rule keeps its source and license terms.
 - **Catch drift in CI.** `code-rules project check` fails when generated files are out of date.
@@ -65,7 +65,7 @@ Agents don't read every rule on every task. Code Rules generates an index with a
 
 As you work, you will find that some rules consistently deliver value, while others start to get in the way or no longer represent your preferred way of working. Or you may be repeatedly giving the same guidance to agents, in which case, it may be time to create a rule for it.
 
-Because rules are files in Git, you can ask your agent to review a session and propose a rule change, then review that change like any other code. Your guidance improves in version-controlled steps, and every project that uses the rule picks up the improvement on its next sync.
+Because rules are files in Git, you can ask your agent to review a session and propose a rule change, then review that change like any other code. Your guidance improves in version-controlled steps, and every project that uses the rule picks up the improvement on its next `project update`.
 
 ## Quick start
 
@@ -176,7 +176,6 @@ We recommend publishing your team's default rules in a repository such as `acme/
 ```sh
 code-rules project add library fabrica \
   --repository https://github.com/fabricahq/public-rules.git \
-  --ref '>= 1.0.0, < 2.0.0' \
   --groups practices/testing \
   --groups techs/go
 code-rules project sync
@@ -189,7 +188,6 @@ schemaVersion: 1
 sources:
   fabrica:
     repository: https://github.com/fabricahq/public-rules.git
-    version: '>= 1.0.0, < 2.0.0'
     groups:
       - practices/testing
       - techs/go
@@ -197,7 +195,7 @@ sources:
     replace: {}
 ```
 
-`sync` picks the newest release that satisfies the constraint, snapshots it into `.code-rules/vendor/`, and rebuilds. Improve a rule in the library and tag a release: every project whose range allows it picks up the improvement on its next sync, on its own schedule.
+`sync` imports the library's newest release, snapshots it into `.code-rules/vendor/` with each rule's version, and rebuilds. Improve a rule in the library and release it: each project picks up the improvement when it runs `code-rules project update`, on its own schedule. Update lists every changed rule and stops for major changes until you accept them.
 
 ➡️ [Create your first library](https://code-rules.fabricahq.com/start-here/create-library/) · [Import rules](https://code-rules.fabricahq.com/guides/select-rules/) · [Update rules](https://code-rules.fabricahq.com/guides/update/)
 

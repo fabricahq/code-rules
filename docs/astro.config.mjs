@@ -61,6 +61,7 @@ export default defineConfig({
           { label: 'Write a rule', slug: 'guides/write-rules' },
           { label: 'License rules', slug: 'guides/license-rules' },
           { label: 'Adapt a third-party rule', slug: 'guides/adapt-rules' },
+          { label: 'Release rules', slug: 'guides/release-rules' },
         ] },
       ] },
       { label: 'Reference', collapsed: true, items: [

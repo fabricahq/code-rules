@@ -11,7 +11,7 @@ You can publish your team's rules in a library or import libraries from others. 
 
 A library lives in a Git repository. It contains:
 
-- **Library metadata** in `rule-library.yaml`, which declares the format and any license information.
+- **Library metadata** in `rule-library.yaml`, which declares the format, how the library is versioned, and any license information.
 - **Groups** under `techs/` and `practices/`, each with group metadata and Markdown rule files.
 
 For example, a repository named "engineering-rules" might contain:
@@ -28,11 +28,21 @@ The repository name is your choice. Library groups live at its root; they don't 
 
 ## How projects use a library
 
-Each [project](/concepts/project/) chooses which libraries, versions, and groups to import in `.code-rules/config.yaml`. A project can use several libraries and add its own local rules.
+Each [project](/concepts/project/) chooses which libraries and groups to import in `.code-rules/config.yaml`. A project can use several libraries and add its own local rules.
 
 Running `code-rules project sync` downloads the selected rules and generates the guidance agents read. Groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
 
-Library authors publish updates as new versions. Each project chooses when to adopt them by syncing with an exact version or a version constraint. See [Import rules](/guides/select-rules/) and [Update rules](/guides/update/) for the steps.
+A project pins each library to one release. Running `code-rules project update` moves it to a newer release and reports every rule that changed, so each project adopts updates on its own schedule. See [Import rules](/guides/select-rules/) and [Update rules](/guides/update/) for the steps.
+
+## How a library releases rules
+
+A library doesn't have one version for all of its rules. Each rule has [its own version](/concepts/rule/#how-a-rule-is-versioned), so a project can see exactly which rules changed in a release and whether a change could break work that followed the rule before.
+
+When an author changes a rule, they add a change note saying how large the change is and what changed. A release turns the pending notes into new rule versions, all tagged on one **release commit**. Projects import release commits, so they never see changes that haven't been released.
+
+Releases usually go through a pull request that the release workflow opens and keeps up to date. Merging it publishes the new versions. See [Release rules](/guides/release-rules/).
+
+Libraries created before rule versions were available can keep publishing ordinary tags, such as `v1.2.0`, for the whole library. Projects select those releases with an exact tag or a version range until the library [adopts rule versions](/guides/release-rules/#adopt-rule-versions-in-an-existing-library).
 
 ## Sharing a library
 
