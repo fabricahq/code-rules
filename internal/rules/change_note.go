@@ -41,6 +41,10 @@ func ParseChangeNote(input []byte, location string) (ChangeNote, error) {
 	if err != nil {
 		return ChangeNote{}, err
 	}
+	// A release record lists one summary line per note, so a note's summary must be one line.
+	if strings.ContainsAny(summary, "\n\r") {
+		return ChangeNote{}, invalid(location+".summary", "expected one line")
+	}
 	entries, err := jsonObject(fields["rules"], location+".rules")
 	if err != nil {
 		return ChangeNote{}, err

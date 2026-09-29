@@ -255,5 +255,33 @@
         "message": "changes/2026-09-29-verify-retry-limits.yaml: expected one YAML document"
       }
     }
+  },
+  {
+    "id": "multi-line-summary",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: |\n  Require a test at the limit.\n  Also cover backoff.\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected one line"
+      }
+    }
+  },
+  {
+    "id": "folded-summary-is-one-line",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: >-\n  Require a test at the limit\n  for every retry policy.\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": true,
+      "value": {
+        "summary": "Require a test at the limit for every retry policy.",
+        "rules": {
+          "practices/testing/verify-retry-limits": {
+            "change": "major"
+          }
+        }
+      }
+    }
   }
 ]

@@ -124,7 +124,7 @@ rules:
 
 | Field | Meaning |
 | --- | --- |
-| `summary` | Required non-blank text describing the change for project maintainers. For a retirement, explain why. |
+| `summary` | Required non-blank line of text describing the change for project maintainers. For a retirement, explain why. |
 | `rules` | Required map of the rules the note covers to their change: `major`, `minor`, or `patch` for a rule that has a version; `new` for a rule that doesn't; or `retired`. A retired rule can instead map to an object with `change: retired` and a `replacedBy` rule ID. |
 
 Change notes use one YAML document. Duplicate keys, anchors, aliases, explicit tags, and unknown fields are rejected.
