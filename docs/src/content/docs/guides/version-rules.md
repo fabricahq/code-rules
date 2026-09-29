@@ -52,7 +52,7 @@ A project keeps the versions it imported until someone runs `code-rules project 
 You manage rule versions with two Code Rules commands. You never create version tags by hand.
 
 - **`code-rules library change`** records a change to one rule. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file beside the rule.
-- **`code-rules library release`** publishes a **release**: it turns every pending change note into a new rule version. It works out each rule's next version number, removes the notes, and commits. It then creates a Git tag for each new version, pushes the commit and tags, and creates a GitHub Release for each version.
+- **`code-rules library release`** turns every pending change note into a new rule version and publishes each version as a **GitHub Release**. It works out each rule's next version number, removes the notes, and commits. It then creates a Git tag for each new version, pushes the commit and tags, and creates the GitHub Releases.
 
 A third command, `code-rules library check`, confirms that every changed rule has a change note, and previews the versions the next release will publish.
 
@@ -62,7 +62,7 @@ You can run `library release` yourself, or let a GitHub Actions workflow run it 
 2. After the pull request merges, the workflow runs `library release --pr`. It opens a "Release rules" pull request, or updates the open one, listing the versions the release will publish.
 3. When you merge the release pull request, the workflow runs `library release --publish`, which creates the tags and GitHub Releases.
 
-Each release is tagged on a single **release commit**. It contains no pending notes, so each rule's content matches its newest version. Projects import only release commits, so unreleased changes on `main` never reach them.
+Each run of `library release` tags its new versions on a single **release commit**. It contains no pending notes, so each rule's content matches its newest version. Projects import only release commits, so unreleased changes on `main` never reach them.
 
 A library opts in to rule versions with `versioning: rules` in `rule-library.yaml`. Libraries created with `code-rules library init` do. For an older library, see [Adopt rule versions in an existing library](#adopt-rule-versions-in-an-existing-library). For the exact tag and note formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
 
