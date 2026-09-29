@@ -24,6 +24,9 @@
     "prCreation": "immediate",
     "labels": ["security"]
   },
+  "github-actions": {
+    "managerFilePatterns": ["/(^|/)internal/library/check-workflow\\.yml$/"]
+  },
   "packageRules": [
     {
       "description": "Keep Actions immutable, with readable release comments.",

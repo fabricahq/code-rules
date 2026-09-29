@@ -60,6 +60,7 @@ Renovate may refresh existing update branches outside that window.
 
 Renovate manages Go modules, Bun workspaces and their lockfile, workflow actions, and supported runtime inputs.
 A custom manager finds versioned `go run` tools in workflows and CONTRIBUTING.md commands so those pins receive update PRs too.
+The GitHub Actions manager also reads `internal/library/check-workflow.yml`, the workflow `code-rules library init` writes, so its action pins receive update PRs; apply the same update to the guide's copy, which a test compares.
 Renovate includes indirect Go requirements. We disable broad lockfile-maintenance runs; dependency PRs regenerate the affected lockfile through the package manager.
 Review transitive changes in each lockfile diff: the cooldown does not establish the safety or age of every dependency a package manager resolves.
 

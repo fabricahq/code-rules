@@ -14,7 +14,7 @@ Both use `internal/filetxn` for contained reads and protected publication. Its `
 
 Project init preserves valid configuration and local rules while refreshing an unmodified managed project guide. The guide carries a body digest to distinguish older generated text from manual edits; this is an ownership check, not authentication. Project commands use `.code-rules/config.yaml` from the project root. The managed guide lives at `.code-rules/README.md`; the project's root README is outside its ownership.
 
-`library.Initialize` also writes the check workflow, `.github/workflows/code-rules.yml`, from the embedded `check-workflow.yml`, pinned to the running Code Rules version, or to the latest release for a development build. A test keeps it equal to the workflow in the version rules guide outside its install step, so update both together.
+`library.Initialize` also writes the check workflow, `.github/workflows/code-rules.yml`, from the embedded `check-workflow.yml`, pinned to the running Code Rules version, or to the latest release for a development build. Renovate updates its action pins. A test keeps it equal to the workflow in the version rules guide outside its install step, so update both together.
 
 Library and group READMEs explain authoring and remain user-owned after creation. Group-root READMEs are excluded from rule loading. The templates link to the canonical [rule authoring rubric](../docs/src/content/docs/reference/rule-authoring.md).
 
