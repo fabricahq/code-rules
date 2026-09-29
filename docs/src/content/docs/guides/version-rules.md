@@ -53,9 +53,11 @@ Projects can also choose versions rule by rule: hold one rule at its current ver
 
 ## Library releases
 
-New rule versions don't reach projects one at a time. A **library release** publishes all of a library's pending rule changes together: every rule that changed since the last release gets its new version at the same moment. A release can hold one change or dozens.
+New rule versions reach projects through releases. A **library release** publishes all of a library's pending rule changes together: every rule that changed since the last release gets its new version at the same moment.
 
-Each release has a number, starting at 1. The number only identifies the release. It isn't a version of the library, and it says nothing about compatibility; each rule's own version does that.
+A release can be as small as a single rule change, published as soon as it's ready. It can also be a larger, meaningful collection of rule updates that you announce together and point users to as a snapshot of the library.
+
+Releases are numbered 1, 2, 3, and so on. They don't use semantic versioning. One release contains many rules, each with its own version, so no single version number could describe the release: the same release might carry a patch to one rule and a major change to another. The release number only identifies the release. Compatibility is described rule by rule, by each rule's own version.
 
 A release produces:
 

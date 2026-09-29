@@ -3,7 +3,7 @@ title: "Rule versions"
 description: "What a rule version covers, tag and release formats, change levels, change notes, and retired rules."
 ---
 
-Each rule in a library has its own [semantic version](https://semver.org/). A rule's version is a Git tag, not a field in the rule file, so frontmatter has no `version` field. A **release** publishes new versions of one or more rules at once.
+Each rule in a library has its own [semantic version](https://semver.org/). A rule's version is a Git tag, not a field in the rule file, so frontmatter has no `version` field. A **release** publishes new versions of one or more rules at once, from a single rule change to a large collection of updates.
 
 This page is the exact specification. [Version your rules](/guides/version-rules/) explains the concepts and walks through the workflow.
 
@@ -62,7 +62,7 @@ retired:
 
 | Field | Meaning |
 | --- | --- |
-| `release` | The release number. The first release is `1`, and each release adds one. |
+| `release` | The release number. The first release is `1`, and each release adds one. Release numbers aren't semantic versions: a release can hold changes of every size to different rules, and each rule's version describes its own change. |
 | `rules` | Every current rule's ID and version. |
 | `retired` | Every retired rule's ID and reason, kept permanently so retired IDs aren't reused. |
 
