@@ -46,6 +46,25 @@ func TestInitialize_WritesTheDocumentedCheckWorkflow(t *testing.T) {
 	}
 }
 
+// TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds, which no release published.
+func TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds(t *testing.T) {
+	for version, download := range map[string]string{
+		"0.2.0":                   "gh release download v0.2.0 --repo fabricahq/code-rules",
+		"0.3.0-rc.1":              "gh release download v0.3.0-rc.1 --repo fabricahq/code-rules",
+		"0.0.0-development":       "gh release download --repo fabricahq/code-rules",
+		"0.0.0-dev.g0123456789ab": "gh release download --repo fabricahq/code-rules",
+	} {
+		options := Options{Directory: t.TempDir()}
+		if _, err := Initialize(context.Background(), options, nil, version); err != nil {
+			t.Fatal(version, err)
+		}
+		data, err := os.ReadFile(filepath.Join(options.Directory, ".github/workflows/code-rules.yml"))
+		if err != nil || !strings.Contains(string(data), "\n          "+download+" \\\n") {
+			t.Fatalf("%s: want %q in:\n%s", version, download, data)
+		}
+	}
+}
+
 // TestInitialize_KeepsAnExistingWorkflow never overwrites a workflow at the same path.
 func TestInitialize_KeepsAnExistingWorkflow(t *testing.T) {
 	options := Options{Directory: t.TempDir()}

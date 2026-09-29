@@ -88,15 +88,18 @@ func TestLibraryGuideExamples(t *testing.T) {
 	}
 }
 
-// TestLibraryInit_PinsTheRunningVersionInTheCheckWorkflow installs the Code Rules release that created the workflow.
+// TestLibraryInit_PinsTheRunningVersionInTheCheckWorkflow installs the Code Rules release that created the
+// workflow, or the latest release when a development build, with the default version, created it.
 func TestLibraryInit_PinsTheRunningVersionInTheCheckWorkflow(t *testing.T) {
-	directory := t.TempDir()
-	var out, diagnostic strings.Builder
-	if code := Run(context.Background(), []string{"library", "init"}, Streams{Out: &out, Err: &diagnostic}, Options{Directory: directory, Version: "1.2.3"}); code != 0 {
-		t.Fatal(code, out.String(), diagnostic.String())
-	}
-	data, err := os.ReadFile(filepath.Join(directory, ".github", "workflows", "code-rules.yml"))
-	if err != nil || !strings.Contains(string(data), "gh release download v1.2.3 ") {
-		t.Fatalf("%s %v", data, err)
+	for version, download := range map[string]string{"1.2.3": "gh release download v1.2.3 --repo", "": "gh release download --repo"} {
+		directory := t.TempDir()
+		var out, diagnostic strings.Builder
+		if code := Run(context.Background(), []string{"library", "init"}, Streams{Out: &out, Err: &diagnostic}, Options{Directory: directory, Version: version}); code != 0 {
+			t.Fatal(code, out.String(), diagnostic.String())
+		}
+		data, err := os.ReadFile(filepath.Join(directory, ".github", "workflows", "code-rules.yml"))
+		if err != nil || !strings.Contains(string(data), download) {
+			t.Fatalf("%q: %s %v", version, data, err)
+		}
 	}
 }

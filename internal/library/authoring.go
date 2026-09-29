@@ -53,13 +53,17 @@ type RuleOptions struct {
 //go:embed library-guide.md
 var libraryReadme string
 
-// checkWorkflow runs code-rules library check on pull requests; the version tag replaces checkWorkflowTag.
+// checkWorkflow runs code-rules library check on pull requests; checkWorkflowFor fills in checkWorkflowTag.
 //
 //go:embed check-workflow.yml
 var checkWorkflow string
 
-// checkWorkflowTag marks where the Code Rules release tag goes in checkWorkflow.
+// checkWorkflowTag marks the release tag argument of gh release download in checkWorkflow, after a space.
 const checkWorkflowTag = "CODE_RULES_TAG"
+
+// developmentVersion prefixes the versions of builds that no release published: development builds and
+// unpublished candidates, such as 0.0.0-development and 0.0.0-dev.g0123456789ab.
+const developmentVersion = "0.0.0-"
 
 // checkWorkflowPath is the GitHub Actions workflow library init writes.
 const checkWorkflowPath = ".github/workflows/code-rules.yml"
@@ -136,7 +140,7 @@ func libraryManifest(ctx context.Context, root *os.Root) (map[string][]byte, *ru
 
 // Initialize creates missing scaffolding and explicit terms without overwriting an existing manifest, terms,
 // README, or check workflow. The workflow installs codeRulesVersion, an unprefixed version such as 0.2.0,
-// from the Code Rules release tagged with it.
+// from the Code Rules release tagged with it, or the latest release for a 0.0.0- development build.
 func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVersion string) (AuthoringResult, error) {
 	workflow, err := checkWorkflowFor(codeRulesVersion)
 	if err != nil {
@@ -211,12 +215,17 @@ func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVer
 }
 
 // checkWorkflowFor returns the check workflow pinned to the release tag of version, which must be a complete
-// semantic version without a v prefix, so the tag can't change the workflow's structure.
+// semantic version without a v prefix, so the tag can't change the workflow's structure. A development build
+// has no release to pin, so its workflow installs the latest release instead.
 func checkWorkflowFor(version string) ([]byte, error) {
 	if canonical, err := rules.TagVersion(version, "version"); err != nil || canonical != version {
 		return nil, failure("invalid-version", "Code Rules version "+strconv.Quote(version)+" is not a complete semantic version", err)
 	}
-	return []byte(strings.ReplaceAll(checkWorkflow, checkWorkflowTag, "v"+version)), nil
+	tag := " v" + version
+	if strings.HasPrefix(version, developmentVersion) {
+		tag = ""
+	}
+	return []byte(strings.ReplaceAll(checkWorkflow, " "+checkWorkflowTag, tag)), nil
 }
 
 // readOptionalBelow reads a file whose parent directories may be missing; nil means the file is absent.
