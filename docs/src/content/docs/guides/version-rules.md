@@ -175,7 +175,7 @@ Commit each rule and its note together.
 
 Each release command does nothing when it has nothing to do. `code-rules library release --publish` acts only on the merge of the release pull request. `code-rules library release --pr` opens or updates the release pull request while notes are pending, and closes it when none are.
 
-The workflow uses the built-in `GITHUB_TOKEN`; you don't need to create a token. GitHub doesn't start workflows for a pull request that this token opens or updates, so the release job starts the check itself, with a manual run (`workflow_dispatch`) on the release pull request's branch. That run reports its result on the pull request like any other check. The release commands commit and tag as Code Rules Bot. The release job looks like this, with the install step shortened:
+The workflow uses the built-in `GITHUB_TOKEN`; you don't need to create a token. GitHub doesn't start workflows for a pull request that this token opens or updates, so the release job starts the check itself, with a manual run (`workflow_dispatch`) on the release pull request's branch. That run reports its result on the pull request like any other check. The job sets Git's identity variables so releases are committed and tagged as Code Rules Bot; change them to use another name. The release job looks like this, with the install step shortened:
 
 ```yaml
 release:
@@ -187,6 +187,11 @@ release:
     pull-requests: write
   env:
     GH_TOKEN: ${{ github.token }}
+    # Commit and tag releases as Code Rules Bot.
+    GIT_AUTHOR_NAME: Code Rules Bot
+    GIT_AUTHOR_EMAIL: code-rules-bot@noreply.invalid
+    GIT_COMMITTER_NAME: Code Rules Bot
+    GIT_COMMITTER_EMAIL: code-rules-bot@noreply.invalid
   steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
