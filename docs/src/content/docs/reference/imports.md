@@ -89,7 +89,7 @@ With the same configuration and recorded versions, an import produces the same p
 
 The newest library release is the one with the highest `release/<number>` tag. Each [library release](/reference/rule-versions/#library-releases) tag's message records every rule's version and the changes that library release published.
 
-To choose a rule's version, Code Rules reads the rule's history from the release records in the `release/<number>` tags, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from the tagged commit of the library release that published that version. Library-wide files, including the shared files rules link to, come from the newest library release among the imported rule versions.
+To choose a rule's version, Code Rules reads the rule's history from the release records in the `release/<number>` tags, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from the tagged commit of the library release that published that version. Library-wide files, including the shared files rules link to, come from the newest library release among the imported rule versions, or from the newest library release when the source imports no rules.
 
 A rule absent from a library release was retired, and the release record's `retired` entry records why. A rule the project pinned before its retirement keeps importing its pinned version.
 

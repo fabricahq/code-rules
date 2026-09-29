@@ -116,7 +116,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | `formatVersion` | The snapshot format version, `2`. |
 | `repository` | The library's repository address. |
 | `pins` and `ref` | The source's pins and `ref` from configuration when the snapshot was recorded. Each is omitted when configuration has none. |
-| `release` | The newest library release among the imported rule versions, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
+| `release` | The newest library release among the imported rule versions, the newest library release when the source imports no rules, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
 | `rules` | Each imported rule's ID, whether imported through a group or individually selected, its `version`, the `release` that published it, and that library release's full `commit`. |
 | `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
@@ -128,7 +128,7 @@ A **checksum** detects whether a file's contents differ from the recorded copy. 
 
 A rule's `version` and `release` are `null` when the imported file isn't a published version, which can happen only when your `ref` names a revision other than a library release. Generated guidance shows no version for it.
 
-For a wildcard selection, the snapshot must contain every group in the selected scope and record the exact selector. Older records without `groupSelection` imply the explicit `groups` list; they cannot satisfy a wildcard selection.
+For a wildcard selection, the snapshot must contain every group in the selected scope and record the exact selector.
 
 ### What offline checks can verify
 
