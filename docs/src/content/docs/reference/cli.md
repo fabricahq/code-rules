@@ -137,13 +137,13 @@ Move each source that follows its library's releases to the newest release, repo
 
 | Option | Meaning |
 | --- | --- |
-| `--accept-major` | Apply the update even when rules the project uses have major changes or were retired. |
+| `--accept-major[=RULE]` | Accept major changes and retirements of rules the project uses. On its own, accepts all of them. With a source-qualified rule ID, such as `--accept-major=fabrica:practices/testing/verify-retry-limits`, accepts only that rule's; repeat it to accept several. Use the `=` form to give a rule ID. |
 
 A source pinned with `ref` doesn't move; change or remove its `ref` and run `code-rules project sync` instead.
 
 Update reports each rule that changed between the recorded release and the new one: its change (`new`, `major`, `minor`, `patch`, or `retired`), its old and new versions, and each version's summary. A retired rule shows its reason, `superseded` or `withdrawn`, and any replacement. It also lists rules that joined or left the selected groups.
 
-Update refuses to write anything, and exits with status `1`, when a rule the project uses has a major change or was retired. Excluded and replaced rules don't need consent; update lists their changes so you can review your exceptions. Review the reported changes, then rerun with `--accept-major`. To stay on a rule's older major version instead, [fork it](#fork-a-library-rule) first.
+`code-rules project update` writes nothing, and exits with status `1`, while any rule the project uses has a major change or retirement that you haven't accepted. It lists each such rule with the option that accepts it. Review the reported changes, then rerun with `--accept-major` to accept them all, or with `--accept-major=RULE` for each rule you accept. Excluded and replaced rules don't need consent; the command lists their changes so you can review your exceptions. To stay on a rule's older major version instead, [fork it](#fork-a-library-rule) first.
 
 A retired rule that the configuration still excludes or replaces makes the configuration invalid at the new revision. Update names the entry to delete and changes nothing.
 

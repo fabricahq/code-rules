@@ -70,11 +70,21 @@ For each major change and retirement, read the new rule, or the reason for the r
 - **Keep the older version.** [Fork the rule](#keep-an-older-version-of-a-rule) before updating. This also keeps a retired rule you still want to follow.
 - **Stop using it.** Add an [exclusion](/guides/select-rules/#exclude-a-rule) with your reason.
 
-When you've decided, apply the update:
+When you've decided to adopt every major change and retirement, accept them all:
 
 ```sh
 code-rules project update --accept-major
 ```
+
+To accept only some, name each rule you accept. Use the rule's full ID, including its source name, after `=`:
+
+```sh
+code-rules project update \
+  --accept-major=fabrica:practices/testing/verify-retry-limits \
+  --accept-major=fabrica:practices/code-design/comment-intent
+```
+
+The update applies only when every major change and retirement of a rule you use is accepted. Fork or exclude the rest first, then run the command again.
 
 Major changes to rules you exclude or replace don't need consent, because your agents don't read them. `code-rules project update` still lists them so you can check that your exception still makes sense. If a retired rule is still named in an exclusion or replacement, the command stops and tells you which entry to delete.
 
