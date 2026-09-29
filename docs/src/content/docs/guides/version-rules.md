@@ -68,16 +68,13 @@ Change notes start with the second release. Your library's [first release](#publ
 
 ## Publish the first release
 
-Until your library's first release, its rules have no versions, and you can write and revise them without change notes. When the rules are ready for projects to use, push the library to its Git host and release it from your machine:
+Before your library's first release, its rules have no versions, so you don't need change notes. When the rules are ready for projects to use, run:
 
 ```sh
-code-rules library release --dry-run
 code-rules library release
 ```
 
-The first release tags every rule at `1.0.0` and creates the `code-rules/released` branch that projects follow. It runs from your machine even if you use the release workflow, because the workflow's release pull request only publishes change notes. Because it pushes to `main`, run it as someone allowed to push there.
-
-If the repository already holds rules but has no `rule-library.yaml` or workflow, run `code-rules library init` first. It keeps your existing files and adds what's missing.
+This gives every rule version `1.0.0`. Run this first release yourself, even if you use the release workflow; the workflow handles every release after it.
 
 From then on, record every change with a note.
 
