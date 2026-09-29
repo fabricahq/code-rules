@@ -80,7 +80,7 @@ From then on, record every change with a note.
 
 ## Record a change
 
-Edit the rule as usual. Then choose its change level, as described in [Semantic versions](#semantic-versions), and record it with `code-rules library change`:
+Suppose you want to update a rule, such as adding a Python example to `practices/testing/verify-retry-limits`. First, edit the rule's Markdown file as usual. Then choose the change level, as described in [Semantic versions](#semantic-versions), and record it with `code-rules library change`:
 
 ```sh
 code-rules library change practices/testing/verify-retry-limits \
