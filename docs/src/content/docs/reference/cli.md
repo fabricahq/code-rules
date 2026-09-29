@@ -329,6 +329,8 @@ With no pending notes, release reports that there is nothing to release.
 
 **`--bump-all major`** marks a clean break: it adds a major change with your summary to every rule's note, then releases locally as above.
 
+**Commit and tag author.** A local release commits and tags with your Git identity. `--pr` and `--publish` run in CI, so they commit and tag as `Code Rules Bot <code-rules-bot@noreply.invalid>`, regardless of Git configuration.
+
 **GitHub Releases** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each release is named after its tag and uses the change summary as its body. Before changing anything, release checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. Repositories hosted elsewhere get tags only.
 
 <span id="help-and-version"></span>

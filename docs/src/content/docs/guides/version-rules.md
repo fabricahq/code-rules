@@ -171,35 +171,38 @@ Commit each rule and its note together.
 `code-rules library init` creates `.github/workflows/code-rules.yml`. It installs the Code Rules version that created it, then:
 
 - **On pull requests,** runs `code-rules library check` with the repository's full history.
-- **On pushes to `main`,** runs `code-rules library release --publish`, then `code-rules library release --pr`.
+- **On pushes to `main`,** runs `code-rules library release --publish`, then `code-rules library release --pr`, then starts the check on the release pull request.
 
-Each release command does nothing when it has nothing to do. `code-rules library release --publish` acts only on the merge of the release pull request. `code-rules library release --pr` opens or updates the release pull request while notes are pending, and closes it when none are. The release job looks like this, with the install step shortened:
+Each release command does nothing when it has nothing to do. `code-rules library release --publish` acts only on the merge of the release pull request. `code-rules library release --pr` opens or updates the release pull request while notes are pending, and closes it when none are.
+
+The workflow uses the built-in `GITHUB_TOKEN`; you don't need to create a token. GitHub doesn't start workflows for a pull request that this token opens or updates, so the release job starts the check itself, with a manual run (`workflow_dispatch`) on the release pull request's branch. That run reports its result on the pull request like any other check. The release commands commit and tag as Code Rules Bot. The release job looks like this, with the install step shortened:
 
 ```yaml
 release:
   if: github.event_name == 'push'
   runs-on: ubuntu-latest
   permissions:
+    actions: write
     contents: write
     pull-requests: write
   env:
-    GH_TOKEN: ${{ secrets.CODE_RULES_RELEASE_TOKEN || github.token }}
+    GH_TOKEN: ${{ github.token }}
   steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
-        token: ${{ secrets.CODE_RULES_RELEASE_TOKEN || github.token }}
     # Download Code Rules, verify its attestation and checksum, and add it to PATH.
     - name: Install Code Rules
       run: ...
-    - name: Set the commit author
-      run: |
-        git config user.name 'github-actions[bot]'
-        git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
     - name: Publish a merged release
       run: code-rules library release --publish
     - name: Open or update the release pull request
       run: code-rules library release --pr
+    - name: Check the release pull request
+      run: |
+        if [ "$(gh pr view code-rules/release-pr --json state --jq .state)" = OPEN ]; then
+          gh workflow run code-rules.yml --ref code-rules/release-pr
+        fi
 ```
 
 `code-rules library check` needs every tag and the full history to compare rules with their last release, so the workflow checks out with `fetch-depth: 0`.
@@ -209,10 +212,8 @@ release:
 In the repository's settings on GitHub:
 
 1. **Require branches to be up to date before merging** on `main`. Then the release pull request always includes every pending note. If a newer note reaches `main` first, the release pull request must be updated before it can merge.
-2. **Let the workflow open pull requests.** Either enable **Allow GitHub Actions to create and approve pull requests**, or add a token as described next.
+2. **Let the workflow open pull requests.** Enable **Allow GitHub Actions to create and approve pull requests** under **Settings > Actions > General**.
 3. **Let the workflow push tags and the `code-rules/released` branch.** Exempt the workflow from any rulesets that protect tags under `techs/` and `practices/`, or that branch.
-
-Pull requests opened with the workflow's default token don't start other workflows, so required checks never run on the release pull request. If `main` requires status checks, create a [GitHub App](https://docs.github.com/en/apps/creating-github-apps) or a fine-grained personal access token with write access to contents and pull requests. Save it as the repository secret `CODE_RULES_RELEASE_TOKEN`; the workflow uses it when present.
 
 ### Review and merge the release pull request
 
