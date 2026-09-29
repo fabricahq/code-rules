@@ -77,6 +77,7 @@ func PlanChange(ctx context.Context, request ChangeRequest, options Options) (*C
 // Commit writes a new, uniquely named note, such as changes/2026-09-29-verify-retry-limits-7f3a9c.yaml, named
 // by date's calendar day, the first rule, and a random suffix, so notes written on different branches don't
 // collide. It never edits or deletes an existing note, and revalidates the complete request under writer ownership.
+// A retirement whose replacement isn't a rule yet succeeds with a warning.
 func (p *ChangePlan) Commit(ctx context.Context, bump rules.Change, summary string, date time.Time) (AuthoringResult, error) {
 	if p == nil || len(p.request.IDs) == 0 {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned change note", nil)
@@ -91,6 +92,7 @@ func (p *ChangePlan) Commit(ctx context.Context, bump rules.Change, summary stri
 		return AuthoringResult{}, err
 	}
 	defer root.Close()
+	missingReplacement := false
 	changes, err := filetxn.Edit(ctx, root, func() ([]filetxn.File, error) {
 		versioned, published, err := checkChange(ctx, root, p.options, request)
 		if err != nil {
@@ -107,9 +109,26 @@ func (p *ChangePlan) Commit(ctx context.Context, bump rules.Change, summary stri
 		if err != nil {
 			return nil, err
 		}
+		if missingReplacement, err = replacementMissing(root, request.ReplacedBy); err != nil {
+			return nil, err
+		}
 		return []filetxn.File{{Path: name, Content: note}}, nil
 	})
-	return authoringResult(changes, err)
+	result, err := authoringResult(changes, err)
+	if err == nil && missingReplacement {
+		result.Warnings = append(result.Warnings, request.ReplacedBy+" isn't a rule in the library yet. Add it before the next library release.")
+	}
+	return result, err
+}
+
+// replacementMissing reports whether a retirement names a replacement that isn't a rule in the library yet. The
+// note is still valid: the replacement only has to exist by the time a library release publishes the retirement.
+func replacementMissing(root *os.Root, replacement string) (bool, error) {
+	if replacement == "" {
+		return false, nil
+	}
+	exists, err := ruleExists(root, replacement)
+	return !exists, err
 }
 
 // checkChange validates a request against the working tree and the latest library release reachable from HEAD.

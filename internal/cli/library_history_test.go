@@ -270,6 +270,19 @@ func TestLibraryChange_PromptsForMissingInputs(t *testing.T) {
 	}
 }
 
+// TestLibraryChange_WarnsAboutAMissingReplacement in its output, after recording the retirement.
+func TestLibraryChange_WarnsAboutAMissingReplacement(t *testing.T) {
+	binary := buildCLI(t)
+	fixture, dir := releasedLibrary(t)
+	if err := os.Remove(filepath.Join(dir, "practices/testing/b.md")); err != nil {
+		t.Fatal(err)
+	}
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "change", "practices/testing/b", "--retire", "--replaced-by", "practices/testing/retries", "--summary", "Covered by the broader rule about testing retries.")
+	if code != 0 || diagnostic != "" || !strings.Contains(out, "Warning: practices/testing/retries isn't a rule in the library yet. Add it before the next library release.\n") || len(changeNotes(t, dir)) != 1 {
+		t.Fatal(code, out, diagnostic)
+	}
+}
+
 // TestLibraryAddRule_NextStepsIncludeTheChangeNote after the first library release, and following them passes check.
 func TestLibraryAddRule_NextStepsIncludeTheChangeNote(t *testing.T) {
 	binary := buildCLI(t)

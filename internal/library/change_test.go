@@ -250,6 +250,28 @@ func TestChange_RefusesAnUnchangedPublishedRule(t *testing.T) {
 	}
 }
 
+// TestChange_WarnsWhenTheReplacementIsntARuleYet but still records the retirement, since the replacement only has
+// to exist by the time a library release publishes it.
+func TestChange_WarnsWhenTheReplacementIsntARuleYet(t *testing.T) {
+	ctx := context.Background()
+	_, options := authorClone(t, libraryFiles(), releaseOne)
+	edit(t, options.Directory, map[string]string{"practices/testing/b.md": ""})
+	warning := "practices/testing/c isn't a rule in the library yet. Add it before the next library release."
+	for _, test := range []struct {
+		replacement string
+		warned      bool
+	}{{"practices/testing/c", true}, {"practices/testing/a", false}} {
+		plan, err := PlanChange(ctx, ChangeRequest{IDs: []string{"practices/testing/b"}, Retire: true, ReplacedBy: test.replacement}, options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, err := plan.Commit(ctx, "", "Replace b.", noteDay)
+		if err != nil || len(result.Files) != 1 || slices.Contains(result.Warnings, warning) != test.warned || len(result.Warnings) > 1 {
+			t.Fatalf("%s: %+v %v", test.replacement, result, err)
+		}
+	}
+}
+
 // TestChange_RequiresABumpAndSummaryToCommit lets prompts supply them, then requires them when writing.
 func TestChange_RequiresABumpAndSummaryToCommit(t *testing.T) {
 	ctx := context.Background()
