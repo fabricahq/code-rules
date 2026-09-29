@@ -9,8 +9,10 @@ import (
 	"errors"
 	"fmt"
 	"go.yaml.in/yaml/v4"
+	"io/fs"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
@@ -50,6 +52,17 @@ type RuleOptions struct {
 //
 //go:embed library-guide.md
 var libraryReadme string
+
+// checkWorkflow runs code-rules library check on pull requests; the version tag replaces checkWorkflowTag.
+//
+//go:embed check-workflow.yml
+var checkWorkflow string
+
+// checkWorkflowTag marks where the Code Rules release tag goes in checkWorkflow.
+const checkWorkflowTag = "CODE_RULES_TAG"
+
+// checkWorkflowPath is the GitHub Actions workflow library init writes.
+const checkWorkflowPath = ".github/workflows/code-rules.yml"
 
 // openLibrary enforces the same final-root no-link policy as project authoring.
 func openLibrary(ctx context.Context, options Options, create bool) (*os.Root, error) {
@@ -121,8 +134,14 @@ func libraryManifest(ctx context.Context, root *os.Root) (map[string][]byte, *ru
 	return declaredTerms(ctx, root, data, nil)
 }
 
-// Initialize creates missing scaffolding and explicit terms without overwriting an existing manifest or terms.
-func Initialize(ctx context.Context, options Options, terms *Terms) (AuthoringResult, error) {
+// Initialize creates missing scaffolding and explicit terms without overwriting an existing manifest, terms,
+// README, or check workflow. The workflow installs codeRulesVersion, an unprefixed version such as 0.2.0,
+// from the Code Rules release tagged with it.
+func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVersion string) (AuthoringResult, error) {
+	workflow, err := checkWorkflowFor(codeRulesVersion)
+	if err != nil {
+		return AuthoringResult{}, err
+	}
 	root, err := openLibrary(ctx, options, true)
 	if err != nil {
 		return AuthoringResult{}, err
@@ -174,6 +193,13 @@ func Initialize(ctx context.Context, options Options, terms *Terms) (AuthoringRe
 		if readme == nil {
 			files = append(files, filetxn.File{Path: "README.md", Content: []byte(libraryReadme)})
 		}
+		existingWorkflow, err := readOptionalBelow(ctx, root, checkWorkflowPath)
+		if err != nil {
+			return nil, err
+		}
+		if existingWorkflow == nil {
+			files = append(files, filetxn.File{Path: checkWorkflowPath, Content: workflow})
+		}
 		return files, nil
 	})
 	if err != nil {
@@ -182,6 +208,26 @@ func Initialize(ctx context.Context, options Options, terms *Terms) (AuthoringRe
 	result, err := authoringResult(changes, err)
 	result.LicenseDeclared = license != nil
 	return result, err
+}
+
+// checkWorkflowFor returns the check workflow pinned to the release tag of version, which must be a complete
+// semantic version without a v prefix, so the tag can't change the workflow's structure.
+func checkWorkflowFor(version string) ([]byte, error) {
+	if canonical, err := rules.TagVersion(version, "version"); err != nil || canonical != version {
+		return nil, failure("invalid-version", "Code Rules version "+strconv.Quote(version)+" is not a complete semantic version", err)
+	}
+	return []byte(strings.ReplaceAll(checkWorkflow, checkWorkflowTag, "v"+version)), nil
+}
+
+// readOptionalBelow reads a file whose parent directories may be missing; nil means the file is absent.
+// Observed symlinks in its parents fail.
+func readOptionalBelow(ctx context.Context, root *os.Root, name string) ([]byte, error) {
+	if err := checkParents(root, name); errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	return filetxn.ReadOptional(ctx, root, name)
 }
 
 // editLibrary revalidates manifest and the target category under exclusive ownership before publication.

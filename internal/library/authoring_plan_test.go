@@ -15,7 +15,7 @@ import (
 func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	ctx := context.Background()
 	options := Options{Directory: filepath.Join(t.TempDir(), "team's library")}
-	if _, err := Initialize(ctx, options, nil); err != nil {
+	if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
 	metadata := rules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}

@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -84,5 +85,18 @@ func TestLibraryGuideExamples(t *testing.T) {
 	after, err := os.ReadFile(guidePath)
 	if err != nil || string(after) != string(customized) {
 		t.Fatal("repeat init changed publisher README", err)
+	}
+}
+
+// TestLibraryInit_PinsTheRunningVersionInTheCheckWorkflow installs the Code Rules release that created the workflow.
+func TestLibraryInit_PinsTheRunningVersionInTheCheckWorkflow(t *testing.T) {
+	directory := t.TempDir()
+	var out, diagnostic strings.Builder
+	if code := Run(context.Background(), []string{"library", "init"}, Streams{Out: &out, Err: &diagnostic}, Options{Directory: directory, Version: "1.2.3"}); code != 0 {
+		t.Fatal(code, out.String(), diagnostic.String())
+	}
+	data, err := os.ReadFile(filepath.Join(directory, ".github", "workflows", "code-rules.yml"))
+	if err != nil || !strings.Contains(string(data), "gh release download v1.2.3 ") {
+		t.Fatalf("%s %v", data, err)
 	}
 }

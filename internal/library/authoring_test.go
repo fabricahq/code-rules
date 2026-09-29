@@ -58,19 +58,19 @@ func TestLibraryLifecycle(t *testing.T) {
 	options := Options{Directory: t.TempDir()}
 	notice := "Notice\r\n"
 	terms := &Terms{SPDXExpression: "MIT", License: "Original terms\r\n", Notice: &notice}
-	result, err := Initialize(ctx, options, terms)
-	if err != nil || len(result.Files) != 4 {
+	result, err := Initialize(ctx, options, terms, "1.2.3")
+	if err != nil || len(result.Files) != 5 {
 		t.Fatal(result, err)
 	}
 	data, _ := os.ReadFile(filepath.Join(options.Directory, "LICENSE.md"))
 	if string(data) != terms.License {
 		t.Fatal("changed terms")
 	}
-	result, err = Initialize(ctx, options, nil)
+	result, err = Initialize(ctx, options, nil, "1.2.3")
 	if err != nil || len(result.Files) != 0 {
 		t.Fatal(result, err)
 	}
-	if _, err = Initialize(ctx, options, terms); err == nil {
+	if _, err = Initialize(ctx, options, terms, "1.2.3"); err == nil {
 		t.Fatal("overwrote terms")
 	}
 	metadata := rules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
@@ -119,7 +119,7 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			ctx := context.Background()
 			options := Options{Directory: t.TempDir()}
-			if _, err := Initialize(ctx, options, nil); err != nil {
+			if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 				t.Fatal(err)
 			}
 			write := func(name, content string) {
@@ -170,7 +170,7 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 func TestLibraryInitializationPreservesConflicts(t *testing.T) {
 	directory := t.TempDir()
 	os.WriteFile(filepath.Join(directory, "LICENSE.md"), []byte("existing terms"), 0600)
-	_, err := Initialize(context.Background(), Options{Directory: directory}, &Terms{SPDXExpression: "MIT", License: "different"})
+	_, err := Initialize(context.Background(), Options{Directory: directory}, &Terms{SPDXExpression: "MIT", License: "different"}, "1.2.3")
 	if err == nil {
 		t.Fatal("accepted terms collision")
 	}
@@ -189,7 +189,7 @@ func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			directory := t.TempDir()
 			ctx := context.Background()
-			_, err := Initialize(ctx, Options{Directory: directory}, &Terms{SPDXExpression: "MIT", License: "Original terms"})
+			_, err := Initialize(ctx, Options{Directory: directory}, &Terms{SPDXExpression: "MIT", License: "Original terms"}, "1.2.3")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -222,7 +222,7 @@ func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
 func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	ctx := context.Background()
 	options := Options{Directory: t.TempDir()}
-	if _, err := Initialize(ctx, options, nil); err != nil {
+	if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
 	root, err := os.OpenRoot(options.Directory)
@@ -262,7 +262,7 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 // TestLibraryCheckBoundsUnusedAssets rejects oversized unreferenced content without modifying it.
 func TestLibraryCheckBoundsUnusedAssets(t *testing.T) {
 	options := Options{Directory: t.TempDir()}
-	if _, err := Initialize(context.Background(), options, nil); err != nil {
+	if _, err := Initialize(context.Background(), options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Mkdir(filepath.Join(options.Directory, "assets"), 0700); err != nil {
@@ -286,7 +286,7 @@ func TestLibraryCheckBoundsUnusedAssets(t *testing.T) {
 func TestLibraryRulePreservesGroup(t *testing.T) {
 	ctx := context.Background()
 	options := Options{Directory: t.TempDir()}
-	if _, err := Initialize(ctx, options, nil); err != nil {
+	if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
 	existing := rules.GroupMetadata{Name: "Go", Description: "Concurrent guidance.", WhenToRead: "When editing Go."}

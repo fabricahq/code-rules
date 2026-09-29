@@ -74,7 +74,7 @@ func libraryInitCommand(options Options, output *commandOutput) *cobra.Command {
 				terms.Notice = &notice
 			}
 		}
-		result, err := library.Initialize(cmd.Context(), target, terms)
+		result, err := library.Initialize(cmd.Context(), target, terms, options.Version)
 		if err != nil {
 			return err
 		}

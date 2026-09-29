@@ -14,6 +14,8 @@ Both use `internal/filetxn` for contained reads and protected publication. Its `
 
 Project init preserves valid configuration and local rules while refreshing an unmodified managed project guide. The guide carries a body digest to distinguish older generated text from manual edits; this is an ownership check, not authentication. Project commands use `.code-rules/config.yaml` from the project root. The managed guide lives at `.code-rules/README.md`; the project's root README is outside its ownership.
 
+`library.Initialize` also writes the check workflow, `.github/workflows/code-rules.yml`, from the embedded `check-workflow.yml`, pinned to the running Code Rules version. A test keeps it equal to the workflow in the version rules guide outside its install step, so update both together.
+
 Library and group READMEs explain authoring and remain user-owned after creation. Group-root READMEs are excluded from rule loading. The templates link to the canonical [rule authoring rubric](../docs/src/content/docs/reference/rule-authoring.md).
 
 Test command behavior through `internal/cli`, including real terminals and generated guide examples. Test project status and authoring through their owning package operations. Storage tests exercise publication refusal, rollback, and interrupted-write recovery. See [Go conventions](go-conventions.md) and the [CLI reference](../docs/src/content/docs/reference/cli.md).
