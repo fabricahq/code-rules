@@ -1,0 +1,184 @@
+# Implement per-rule versioning in Code Rules
+
+You're implementing per-rule versioning in the `code-rules` CLI (`fabricahq/code-rules`), on the branch `claude/rule-versioning-handoff-d5bbf3`. The user-facing docs on this branch are already written and reviewed by Josh, the maintainer. **They are the specification.** This document tells you where to find it, what's settled, how the current code is laid out, and the order to build in.
+
+This file lives on the branch only while the work is in progress. Delete it in the final commit before the branch merges.
+
+## Ground rules
+
+- Read `AGENTS.md`, `CONTRIBUTING.md`, `_engineering/go-conventions.md`, and `_engineering/rules/comment-role-result-and-constraints.md` before writing code. If `.code-rules/generated/RULES.md` exists on `main`, read the relevant Fabrica public rules too.
+- The docs describe the finished behavior. When code and docs disagree, the docs win, unless implementing them exposes a real problem. Then stop and raise it with Josh, and change the docs and code together once he decides. Never quietly implement something different from what the docs say.
+- Don't use the em dash character anywhere. Don't add a Co-Authored-By or agent line to commit messages. Make atomic commits that each build and pass tests.
+- Write full command names in docs and messages: `code-rules library release`, never `library release` or a bare flag. Say "library release" or "GitHub Release page", never a bare "release".
+- Don't tag, publish, or merge. Don't open a pull request until Josh asks. The docs and code merge together, in one pull request, when the whole feature works.
+- This is a breaking change to a released CLI (`v0.1.0`). It ships as `v0.2.0`, following `.release-planner/policy.md`: every old field and format fails with a clear migration message, and the release notes give the migration steps. Libraries don't need backward compatibility: nobody uses one yet, so a library without `release/<number>` tags simply has no versions until its first library release.
+- Prefer quality, simplicity, and long-term maintainability over development cost. Avoid gold plating: build what the docs describe, nothing more.
+
+## The specification
+
+Everything is under `docs/src/content/docs/`. Read these first, in this order:
+
+| Page | What it specifies |
+| --- | --- |
+| `reference/rule-versions.md` | What a version covers, library releases as `release/<number>` tags, the release record YAML in the tag message, GitHub Release pages, change levels, the change note format in `changes/`, retired rules. |
+| `guides/version-rules.md` | The library author's workflow end to end, including the generated GitHub Release page, CI, and recovery. |
+| `reference/cli.md` | Every command contract: `project add library`, `project add rule --from` (fork), `project sync`, `project update`, `library init`, `library add rule`, `library change`, `library check`, `library release`. |
+| `reference/configuration.md` | Project config: `groups`, `rules`, `pins`, `ref`, `exclude` with `reason` and `replacedBy`; rejected fields; how versions are chosen; where each rule's files come from. |
+| `guides/update.md` | The update preview, confirmation, pins, scoped updates, retirements, `ref`. |
+| `reference/provenance.md` | `_source.json` format version 2 and `generated/provenance.json` fields, and what offline checks verify. |
+| `reference/imports.md` | Active-rule resolution, how rule versions are resolved from release tags, validation, limits, error codes. |
+| `reference/sync.md`, `reference/files.mdx`, `reference/library-format.mdx` | Sync behavior and records, project file layout, library layout including `changes/`. |
+| `guides/select-rules.md`, `for-agents/index.md` | Selection and exceptions; what agents are told about pins and versions. |
+
+To see everything that changed from `main`, run `git diff main -- docs/`.
+
+## Settled design, in brief
+
+This summary is for orientation. The docs are authoritative.
+
+**Library side**
+
+- Every rule has its own semantic version (`major.minor.patch`, no prerelease or build). A version covers the rule's Markdown file and its `assets/<rule-name>/` directory only. Everything else (group metadata, shared `assets/`, `rule-library.yaml`, license and notice files) is a library-wide file: unversioned, needing no change note.
+- Change levels are defined by compliance: major means work that complied with the previous version could fail this one; minor means it still complies and the version adds guidance; patch means it still complies and adds no guidance.
+- After the first library release, every rule change needs a change note: a uniquely named YAML file in the library-root `changes/` directory with `summary` and a `rules` map from rule ID to `major`, `minor`, `patch`, `new`, `retired`, or `{change: retired, replacedBy: ID}`. Notes are never deleted. Pending notes are the ones added since the latest `release/<number>` tag. Several pending notes on one rule: the largest change wins and every summary is listed.
+- A library release is one annotated tag, `release/<number>`, on the current default-branch commit. The message is Markdown release notes, a line containing only `---`, then a YAML release record: `release`, `rules` (every current rule's version), `changes`, `retired`, `libraryFiles`. Publishing creates no commit and changes no files. The first library release needs no notes and gives every rule `1.0.0`.
+- `code-rules library release` fetches, requires the remote default branch with no local or remote difference, requires `code-rules library check` to pass, creates and pushes the tag, then creates the GitHub Release page with `gh`. Rerunning finishes a partial run. `--dry-run` and `--no-github-release` exist. There is no release pull request, no `--pr`, no `--publish`, no `--init`, no `--bump-all`.
+- `code-rules library change ID...` writes a new note (`--bump`, `--summary`, `--retire`, `--replaced-by`). `code-rules library check` enforces notes against changes since the latest library release and previews the pending library release. `code-rules library init` also writes a check-only GitHub Actions workflow.
+- Retired rule IDs are never reused. A rename is one note that retires the old ID with `replacedBy` and adds the new ID as `new`.
+
+**Project side**
+
+- Per source: `repository`, `groups` (IDs or `"*"`, `"practices/*"`, `"techs/*"`), `rules` (individual rule IDs, unioned with groups), `pins` (rule ID to `{version, reason}`, both required), `ref` (a tag or full commit SHA; not with `pins`), `exclude` (rule ID to `{reason, replacedBy?}`). `version` and `replace` are rejected with migration guidance.
+- `_source.json` (format version 2) is the lockfile: each rule's version, the library release that published it, and that release's commit. Rule files from other library releases live under `_releases/<number>/`. Library-wide files come from the newest library release among the imported rule versions, or from `ref`.
+- `code-rules project sync` restores recorded versions. It chooses versions only for new sources, changed repositories, newly selected rules, added or changed pins, and added, changed, or removed `ref`.
+- `code-rules project update [SOURCE | SOURCE:RULE ...]` previews `major`, `minor`, `patch`, `new`, `retired`, `replaced`, and `pinned` rows, then applies after confirmation. In a terminal it asks per major change and retirement whether to keep the current version (writes a pin with a reason) and per new rule whether to add or exclude it (writes an exclusion). Without a terminal, or with `--json`, it only previews unless `--yes`. `--keep`, `--exclude`, and `--reason` do the same non-interactively.
+- `code-rules project add rule ID --from LIBRARY@VERSION` forks one rule version into `local/`, copying linked shared assets, and writes an exclusion with the fork as `replacedBy`.
+- Generated guidance shows each imported rule's version. Stale `exclude` or `rules` entries for retired rules warn; unknown IDs fail.
+
+**Rejected, don't build:** library versions or version ranges, per-rule constraints, `hold` or `track` modes, `updates: manual`, an `include` list, branch refs, a manifest file on the default branch, per-rule tags, release pull requests, approval environments, draft releases.
+
+## How the code works today
+
+The Go code still implements the old model: one revision per source, chosen by `ref` or a `version` constraint, plus `exclude` and `replace`. Line numbers are approximate, as of commit `d366227`.
+
+**Configuration** (`internal/rules/`)
+
+- `configuration.go`: `Source` (:20) has `Ref`, `Version`, `Exclude map[string]string`, and `Replace map[string]Replacement`. `ParseConfiguration` (:43) shows the migration-error pattern to copy for `version` and `replace`: the `localGroups` error at :48. `parseSource` (:75) lists allowed fields (:84), enforces `ref` XOR `version` (:99), requires both `exclude` and `replace`, and rejects a rule both excluded and replaced (:163).
+- `authored_yaml.go` and `json_fields.go` provide the strict YAML handling (single document, no anchors, aliases, tags, or duplicate keys; unknown fields rejected). Reuse them for change notes and release records.
+- `configuration_yaml.go`: `AppendConfigurationSource` (:24) appends a source while preserving comments. Nothing edits an existing source, which `code-rules project update --keep` and `--exclude` need.
+- `refs.go`: `ParseGitRef` (:38) already accepts a full SHA or an exact tag (`release/4` parses as a tag) and rejects branches and short SHAs. `version_constraint.go` and `version_selection.go` implement semver constraints over `ls-remote --tags`; the constraint path becomes dead, but `tagRecords` (:103), the 20,000-tag limit, and the `^{}` peel checks are reusable for listing `release/*` tags.
+- Fixtures: `internal/rules/testdata/<parser>/cases.json`, run by table tests. There are no golden files.
+
+**Fetching** (`internal/imports/`)
+
+- `revision.go` `fetchRevision` (:55): Git 2.30 check, temporary bare repository, `git fetch --depth=1 --no-tags` of exactly one ref (:145), moved-tag check (:159).
+- `tree.go`: reads files from Git objects without a checkout (`ls-tree`, `cat-file --batch`), with the limits documented in `reference/imports.md`.
+- `libraries.go` `ImportLibraries` (:25): all-or-nothing across sources.
+- `process.go`: the hardened, unexported `gitRunner` (hooks disabled, protocol allow-list, output budgets, process-group kill) and `imports.Error{Code, Problem, Cause}`.
+
+**Snapshots and offline checks** (`internal/project/`, `internal/library/snapshot.go`)
+
+- `snapshots.go`: `sourceRecord` (:24) is `_source.json` format version 1. `encodeSnapshots` (:39) and `decodeSnapshots` (:86) write and verify it. `parseSourceRecord` (:128) re-validates identity by synthesizing a config that hard-codes `exclude: {}` and `replace: {}` (:155), which breaks as soon as `replace` is rejected. `matchSnapshotSource` (:197) checks the constraint again.
+- `project.go`: `prepareProject` (:180) loads one tree per source (`library.Load`) and `verifyLoadedSnapshot` (:268) compares it with the inventory. Rules from several library releases (`_releases/<number>/`) need a new loading path.
+
+**Resolution, provenance, and rendering** (`internal/build/`)
+
+- `resolve.go` `resolve` (:79): exclusion and replacement targets must exist (:161, :166); replacement file reuse (:192) and same-group (:195) errors; `Upstream` and `Reason` for provenance.
+- `output.go`: `libraryReadme` (:73), `provenanceSource` (:108), `provenanceRule` (:130), `provenanceOrigin` (:212). `build.Library{Catalog, Commit, Tag}` (`build.go` :11) assumes one commit per source.
+- `render.go` `renderRule` (:57, header lines at :79) and `indexes.go` (rule summary entries at :151) are where rule versions appear in generated guidance.
+
+**CLI** (`internal/cli/`)
+
+- `cli.go` `Run` (:30), persistent `--json`. `project_commands.go` builds sync, build, and check in one loop (:18); `projectLibraryCommand` (:82) has `--repository`, `--ref`, `--groups`. `library_commands.go` has init, check, add group, add rule; there's no `change`, `release`, or `project update`.
+- Prompts: `prompts.go` `interactive()` (:18) and `ask` (:27); `authoring_inputs.go` collects flags and prompts. `project_library_selection.go` `collectSource` (:12) requires `ref` today. `project_library_guidance.go` describes version ranges.
+- Output: `output.go` `response` (:28), `responseError` (:35), `classifyError` (:101). `classifyError` surfaces `code` only for `*filetxn.Error`; `*imports.Error` codes such as the documented `releases-not-found` and `version-not-found` don't reach JSON yet.
+
+**Library** (`internal/library/`)
+
+- `check.go` `Check` (:29) runs no Git. `validateLibraryInventory` (:71) rejects non-rule files in groups (:110).
+- `inventory.go` `readInventory` (:57) walks only `assets/`, `practices/`, and `techs/` (:104), so a root `changes/` directory is invisible today: good for catalogs and snapshots, but `code-rules library check` must now read it.
+- `catalog.go` `rulePaths` (:320) and `rules.GroupFromPath` (`internal/rules/groups.go` :42) define what counts as a rule.
+- `authoring.go` `Initialize` (:120) writes `rule-library.yaml`, license files, and `README.md` from `library-guide.md`. No workflow yet.
+- `rules.ParseLibraryLicense` (`internal/rules/licenses.go` :25) is the only manifest parser; `formatVersion` must be `1`.
+
+**Transactions** (`internal/filetxn/`)
+
+- `writer.go` `WithWriter` (:79) and `Writer.Apply` (:153) replace `vendor/`, `generated/`, and the managed guide atomically, with a journal and recovery. `Apply` doesn't accept `config.yaml`. `publication.go` `Edit` (:396) publishes authored files separately.
+- `internal/project/sync.go` `Sync` (:16) never reads the existing `_source.json`; it imports purely from configuration (:35).
+
+**Managed guides**
+
+- `internal/project/project-guide.md` (embedded, digest-stamped, refreshed by init, build, and sync; examples executed by `internal/cli/project_guide_test.go` :63) still describes `ref` and version constraints (:20, :65-83).
+- `internal/library/library-guide.md` (written once by `code-rules library init`, never refreshed; examples executed by `internal/cli/library_test.go` :49) says to publish a Git tag.
+
+**Tests**
+
+- `internal/test/gitfixture/fixture.go` builds a real repository with `v1.0.0` and `v1.2.0` tags, served over an SSH shim that runs only `git upload-pack`: fetches work, pushes don't.
+- `internal/test/acceptance/` runs end-to-end scenarios through the built binary (`scenarios_test.go` `Run` :41). The consumer scenario uses `--ref ">= 1.0.0, < 2.0.0"` (:165).
+- `internal/test/terminalfixture/run.go` drives interactive prompts in a pseudo-terminal.
+- `_tools/fake-github-cli.ts` fakes `gh` for the TypeScript tests only.
+
+## Implementation decisions
+
+These follow from the docs and the current code. They are recommendations; items marked **Ask Josh** need his decision before you build that part.
+
+1. **Share one Git runner.** Move the hardened runner out of `internal/imports/process.go` into its own internal package, used by imports and by the new library-history code. Update `_engineering/sync.md`, which says Git stays private to imports (and mentions a `HasLocalRuleGroup` that no longer exists).
+2. **Git in the library author's own repository.** **Ask Josh.** `code-rules library check` and `code-rules library release` run Git in the author's repository, and `code-rules library release` pushes to their remote. Recommendation: use the author's Git configuration, credentials, and hooks for these commands (so a `pre-push` hook runs as it would for `git push`), with prompts disabled and the same output budgets. Keep the hardened, hook-free configuration for fetching libraries into projects, where the repository isn't the user's.
+3. **Listing and reading library releases.** List `refs/tags/release/*` with `git ls-remote`, applying the existing listing limits and peel checks. Fetch the release tags that are needed with `--depth=1 --filter=blob:none`, read tag messages with `git cat-file tag`, and read only the blobs of imported files. Parse the YAML part of each message with a strict parser in `internal/rules`, with fixtures in `testdata/release-records/`. Servers that ignore the filter still work, just with more data. Enable `uploadpack.allowFilter` in the fixture's shim.
+4. **Finding a rule version's files.** A rule's version `V` was published by the library release whose record has a `changes` entry setting it to `V`. In the first library release every rule is `new` at `1.0.0`, so its record lists every rule under `changes`. Read the rule's files at that tag's commit.
+5. **Snapshots with several library releases.** `_source.json` format version 2, exactly as in `reference/provenance.md`. Rule files from a library release other than `release` go under `_releases/<number>/`. Replace the one-tree-per-source loading in `prepareProject` with a loader that assembles a catalog from the main tree plus each rule's files from its own tree. Fix `parseSourceRecord` so it no longer synthesizes a configuration with `replace`.
+6. **Sync reads the lockfile.** `Sync` must read the existing `_source.json` and apply the table in `reference/cli.md#project-sync`, fetching only what it needs. Configurations with `version` or `replace` fail before any fetch, with migration messages.
+7. **Format version 1 snapshots.** **Ask Josh.** A project upgrading from `v0.1.0` has a format 1 `_source.json` with no rule versions. Recommendation: after the user fixes `version` in configuration, `code-rules project sync` treats a format 1 record as absent and chooses each rule's newest version (or follows `ref`), and says so in its output. The `v0.2.0` release notes explain this.
+8. **Update writes configuration and output together.** `code-rules project update --keep`, `--exclude`, and the interactive answers write pins and exclusions to `config.yaml` in the same operation that replaces `vendor/` and `generated/`. Recommendation: extend the `filetxn` journal so one transaction can also replace `config.yaml`, preserving comments through a new source-editing function beside `AppendConfigurationSource`. Recovery must then restore or finish all three together. Collect every prompt answer before taking the writer lock, per `_engineering/project-authoring.md`.
+9. **Library check reads `changes/`.** Keep `changes/` out of catalogs and snapshots, as today. Check reads it separately: pending notes are files under `changes/` that don't exist at the latest `release/<number>` tag reachable from `HEAD`; a note that exists at that tag with different content produces the "edited published note" warning. "Changed since the latest library release" compares the working tree's rule file and asset directory with the tag's tree, so check works before committing. A shallow clone fails with instructions (`git rev-parse --is-shallow-repository`).
+10. **Library release.** Implement as documented: fetch the upstream, require the remote default branch with no ahead or behind commits, run check, compute versions, render the notes and record, create the annotated tag, push only that tag, then create the GitHub Release page with `gh release create release/<n> --verify-tag --title ... --notes-file -`. On a rerun, find an existing `release/<n>` tag on `HEAD` and create only what's missing (`gh release view` to detect the page). The release number is one more than the highest `release/<n>` tag on the remote; a rejected tag push means someone else published first, so report it and stop.
+11. **Rendering release notes.** A pure function from the pending notes and the release record to Markdown, matching the example in `guides/version-rules.md` exactly, including section order, the opening count line, the major-section sentence, and the collapsed version table. Test it with inline expected output. The same function renders `--dry-run` output.
+12. **Error codes in JSON.** Make `classifyError` surface codes from `imports.Error` (and any new library-release error type) so `releases-not-found`, `version-not-found`, and new codes appear in `--json` output as documented.
+13. **The check workflow.** `code-rules library init` writes `.github/workflows/code-rules.yml`, matching `guides/version-rules.md#check-changes-in-ci`, with the verified install step from the closed [fabricahq/code-rules#67](https://github.com/fabricahq/code-rules/pull/67) (`gh pr diff 67`): verify the `SHA256SUMS` attestation, check the archive, and install the Code Rules version running `init`. Pin actions by SHA with a version comment, as the docs show.
+14. **Exit status of a preview-only update.** Decide and document: recommendation is exit `0` for a preview without `--yes`, with the preview in `value` for `--json`, since "updates are available" isn't an error. Add it to `reference/cli.md` when you implement it.
+
+## Implementation order
+
+Build in slices. Each slice ends with passing validation, atomic commits, and a short summary to Josh, so he can review before the next one starts. Update the managed guides, help text, and `_engineering/` notes in the slice that changes the behavior they describe.
+
+1. **Shared foundations.**
+   - Extract the Git runner (decision 1).
+   - Surface error codes in JSON (decision 12).
+   - Add parsers with fixtures for change notes and release records (strict YAML, all documented validation).
+   - Extend `gitfixture` to create `release/<n>` annotated tags with release records, and add a push-capable remote (a local bare repository served over the same shim with `receive-pack`).
+   - Add a Go fake for `gh` that records calls.
+2. **Library authoring.**
+   - `code-rules library change` (decision 9's layout, unique file names).
+   - `code-rules library check` with Git history: the full failure list in `reference/cli.md#library-check`, the published-note warning, the shallow-clone failure, and the pending library release preview (`value.pendingRelease`).
+   - `code-rules library add rule` next steps.
+   - `code-rules library init` writes the check workflow (decision 13). Update `library-guide.md`.
+3. **Library releases.** `code-rules library release` with `--dry-run`, `--no-github-release`, the first library release, reruns, and the GitHub Release page (decisions 2, 10, 11).
+4. **Project configuration.** New fields (`rules`, `pins`, `exclude` objects with `replacedBy`), removal of `version` and `replace` with migration messages, `ref` limited to tags and full SHAs, `pins` and `ref` exclusive, stale-entry warnings versus unknown-ID failures. Rewrite the configuration fixtures. `code-rules project add library` gets `--rules` and an optional `--ref`.
+5. **Project resolution.** Release listing and version resolution (decisions 3, 4), `_source.json` format version 2 and `_releases/<number>/` (decision 5), `code-rules project sync` reading the lockfile (decisions 6, 7), offline verification in build and check, rule versions in generated guidance and provenance, the unreleased-`ref` warning and generated README note, and `replacedBy` in resolution. Update `project-guide.md` and `for-agents/index.md` if its text changed.
+6. **`code-rules project update`.** Preview rows (`major`, `minor`, `patch`, `new`, `retired`, `replaced`, `pinned`), scoped updates, confirmation and prompts, `--yes`, `--keep`, `--exclude`, `--reason`, `--json`, and the atomic configuration write (decisions 8, 14).
+7. **Forking.** `code-rules project add rule ID --from LIBRARY@VERSION`: find the version's library release, copy the rule, its assets, and linked shared assets with rewritten links, add attribution, and write the exclusion with `replacedBy`.
+8. **Finish.** Rewrite the acceptance scenarios around the new lifecycle, verify every command example in the docs against the built binary, run an independent review of the docs against the implementation, and fix any drift. Delete this file.
+
+## Testing
+
+- **Parsers:** table fixtures under `internal/rules/testdata/` for configuration, change notes, and release records, covering every documented rejection.
+- **Library lifecycle:** check fails without a note, passes with one; the first library release gives every rule `1.0.0`; a later library release computes major, minor, patch, new, and retired correctly, using the largest change per rule and listing every summary; reruns create only what's missing; a behind or ahead branch is refused; a shallow clone fails with instructions; a rejected tag push stops cleanly.
+- **Project lifecycle** (acceptance): add a library, sync, and check; publish a new library release in the fixture; preview and apply an update; keep a major change with `--keep`; exclude a new rule; pin a rule down and back up; retire a pinned rule; `ref` to a library release and to an unreleased commit (warning, `null` versions); a scoped `SOURCE:RULE` update; a `replaced` row; forking.
+- **Interactive:** `terminalfixture` tests for the update prompts, including cancelling, which writes nothing.
+- **Recovery:** interrupting an update that writes `config.yaml` recovers all three targets together.
+- **Limits:** a fixture with many `release/<n>` tags stays within the listing limits.
+- **Validation:** the commands in `CONTRIBUTING.md`, including `gofmt`, `go vet`, Staticcheck, `go test -race ./...`, govulncheck, the build, and `bun run check` after docs changes.
+
+## After the CLI ships: `fabricahq/public-rules`
+
+Plan this as its own pull request in that repository, after the `v0.2.0` CLI release. Nobody depends on the library yet, so its old `v1.0.0` and `v1.1.0` tags and release-planner setup can go.
+
+1. Replace the release-planner workflow and files with the check workflow from `code-rules library init`, and upgrade the pinned Code Rules version.
+2. Publish its first library release with `code-rules library release`, so every rule starts at `1.0.0`. Josh approves the tag.
+3. Update its `README.md`, `AGENTS.md`, and any `.claude` or `.agents` instructions that describe releases.
+4. Migrate this repository's own `.code-rules/config.yaml`, if it imports public-rules by then, as a real test of the upgrade path.
+
+## Out of scope
+
+- Rulemart, Fabrica's catalog of public libraries. It will read the release tags and GitHub Release pages.
+- Checking application code for compliance with rules. See the product scope in `AGENTS.md`.
