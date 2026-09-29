@@ -60,8 +60,7 @@ The former `localGroups` field is rejected with migration guidance. Remove it an
 
 Each source owns its selection, pins, and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.
-The former `sources.<name>.replace` field is rejected with migration guidance. Move each entry into `exclude`, with its `file` as `replacedBy`.
-The former `version` field is rejected with migration guidance. Rule versions are chosen rule by rule; use `pins` to keep individual rules at exact versions.
+Sources have no `version` or `replace` field. Rule versions are chosen rule by rule; use `pins` to keep individual rules at exact versions, and `exclude` with `replacedBy` to replace a rule.
 The schema version is `1`.
 
 ## Import every group
