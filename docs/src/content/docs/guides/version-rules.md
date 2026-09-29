@@ -216,7 +216,9 @@ release:
 
 Configure three settings on GitHub. Each step shows the setting's place in the repository's settings, and a [GitHub CLI](https://cli.github.com/) command that applies it. Run the commands from your library's checkout; `gh api` fills in `{owner}` and `{repo}` from it.
 
-1. **Require the check, on an up-to-date branch, before merging to `main`.** Then the release pull request always includes every pending note: if a newer note reaches `main` first, the release pull request must be updated before it can merge. In **Settings > Rules > Rulesets**, add a branch ruleset for the default branch that requires the `check` status check and requires branches to be up to date. Or run:
+1. **Require the check, on an up-to-date branch, before merging to `main`.** Then the release pull request always includes every pending note: if a newer note reaches `main` first, the release pull request must be updated before it can merge. In **Settings > Rules > Rulesets**, add a branch ruleset for the default branch that requires the `check` status check and requires branches to be up to date.
+
+   To do this with the GitHub CLI, run:
 
    ```sh
    gh api --method POST 'repos/{owner}/{repo}/rulesets' --input - <<'EOF'
@@ -238,7 +240,9 @@ Configure three settings on GitHub. Each step shows the setting's place in the r
 
    `check` is the name of the workflow's check job. `15368` is the ID of the GitHub Actions app, so only the workflow can report that check.
 
-2. **Let the workflow open pull requests.** In **Settings > Actions > General**, enable **Allow GitHub Actions to create and approve pull requests**. Or run:
+2. **Let the workflow open pull requests.** In **Settings > Actions > General**, enable **Allow GitHub Actions to create and approve pull requests**.
+
+   To do this with the GitHub CLI, run:
 
    ```sh
    gh api --method PUT 'repos/{owner}/{repo}/actions/permissions/workflow' \
@@ -248,7 +252,9 @@ Configure three settings on GitHub. Each step shows the setting's place in the r
 
    The workflow asks for the write permissions it needs itself, so the default can stay read-only. If your organization disables this setting, an organization owner must allow it first.
 
-3. **Let the workflow push tags and the `code-rules/released` branch.** Check that no ruleset covers tags under `techs/` or `practices/`, or branches under `code-rules/`. List the repository's rulesets:
+3. **Let the workflow push tags and the `code-rules/released` branch.** Check that no ruleset covers tags under `techs/` or `practices/`, or branches under `code-rules/`. Review them in **Settings > Rules > Rulesets**.
+
+   To list them with the GitHub CLI, run:
 
    ```sh
    gh api 'repos/{owner}/{repo}/rulesets' --jq '.[] | {id, name, target}'
