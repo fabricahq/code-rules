@@ -32,28 +32,34 @@ type CheckResult struct {
 // before its first library release, needs no notes, and its first library release gives every rule 1.0.0.
 // A final comparison rejects observed changes; ordinary editors are not locked out.
 func Check(ctx context.Context, options Options) (CheckResult, error) {
+	result, _, err := checkLibrary(ctx, options)
+	return result, err
+}
+
+// checkLibrary is Check, also returning the plan of the next library release its preview shows.
+func checkLibrary(ctx context.Context, options Options) (CheckResult, releasePlan, error) {
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	defer root.Close()
 	if err = filetxn.RequireIdle(root); err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	input, err := libraryCheckInput(ctx, root)
 	if err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	if err = validateLibraryInventory(ctx, input.tree.Files, rules.LicensePaths(input.license)); err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"})
 	if err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	notes, err := parseChangeNotes(input.notes)
 	if err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	result := CheckResult{Groups: len(catalog.Groups), Warnings: []string{}}
 	current := []string{}
@@ -66,18 +72,18 @@ func Check(ctx context.Context, options Options) (CheckResult, error) {
 	slices.Sort(current)
 	git, err := openLibraryGit(ctx, root.Name(), options.Git)
 	if err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	changes, warnings, err := git.compare(ctx, input.tree.Files, current, notes)
 	if err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	if problems := changes.review(); len(problems) > 0 {
-		return CheckResult{}, failure("change-notes", "change notes don't match the rule changes since "+changes.history.latest.tagName()+":\n  - "+strings.Join(problems, "\n  - "), nil)
+		return CheckResult{}, releasePlan{}, failure("change-notes", "change notes don't match the rule changes since "+changes.history.latest.tagName()+":\n  - "+strings.Join(problems, "\n  - "), nil)
 	}
 	plan, err := changes.plan()
 	if err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	result.PendingRelease = plan.preview()
 	if input.license == nil {
@@ -87,15 +93,15 @@ func Check(ctx context.Context, options Options) (CheckResult, error) {
 	}
 	result.Warnings = append(result.Warnings, warnings...)
 	if err = ctx.Err(); err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	if err = requireLibraryUnchanged(ctx, root, input); err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
 	if err = filetxn.RequireIdle(root); err != nil {
-		return CheckResult{}, err
+		return CheckResult{}, releasePlan{}, err
 	}
-	return result, nil
+	return result, plan, nil
 }
 
 // parseChangeNotes validates every note's format, including notes that library releases already published.

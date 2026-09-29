@@ -122,6 +122,8 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 		// problems are the expected failures' distinctive text; empty means the check passes with rows.
 		problems []string
 		rows     []string
+		// retired maps each rule the plan retires to its expected summary, one line per note in note order.
+		retired map[string]string
 	}{
 		{name: "unchanged library", rows: []string{}},
 		{name: "changed rule without a note", files: map[string]string{"practices/testing/a.md": changedA},
@@ -145,7 +147,8 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 		{name: "rename", files: map[string]string{"practices/testing/b.md": "", "practices/testing/c.md": ruleC, "changes/rename.yaml": "summary: Rename b.\nrules:\n  practices/testing/b:\n    change: retired\n    replacedBy: practices/testing/c\n  practices/testing/c: new\n"},
 			rows: []string{"practices/testing/b retired 1.0.0 - replacedBy practices/testing/c", "practices/testing/c new - 1.0.0"}},
 		{name: "retirement outweighs a change", files: map[string]string{"practices/testing/b.md": "", "changes/one.yaml": "summary: Fix b.\nrules:\n  practices/testing/b: patch\n", "changes/two.yaml": "summary: Stop testing backoff.\nrules:\n  practices/testing/b: retired\n"},
-			rows: []string{"practices/testing/b retired 1.0.0 -"}},
+			rows:    []string{"practices/testing/b retired 1.0.0 -"},
+			retired: map[string]string{"practices/testing/b": "Fix b.\nStop testing backoff."}},
 		{name: "replacement isn't a rule", files: map[string]string{"practices/testing/b.md": "", "changes/retire.yaml": "summary: Replace b.\nrules:\n  practices/testing/b:\n    change: retired\n    replacedBy: practices/testing/missing\n"},
 			problems: []string{"changes/retire.yaml retires practices/testing/b in favor of practices/testing/missing, which isn't a rule in the library."}},
 		{name: "different replacements", files: map[string]string{"practices/testing/b.md": "", "practices/testing/c.md": ruleC, "changes/c.yaml": "summary: Add c.\nrules:\n  practices/testing/c: new\n", "changes/one.yaml": "summary: Replace b.\nrules:\n  practices/testing/b:\n    change: retired\n    replacedBy: practices/testing/c\n", "changes/two.yaml": "summary: Retire b.\nrules:\n  practices/testing/b: retired\n"},
@@ -169,7 +172,7 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 			t.Parallel()
 			_, options := authorClone(t, libraryFiles(), releaseOne)
 			edit(t, options.Directory, test.files)
-			result, err := Check(context.Background(), options)
+			result, plan, err := checkLibrary(context.Background(), options)
 			if len(test.problems) > 0 {
 				if errorCode(err) != "change-notes" || !strings.Contains(err.Error(), "change notes don't match the rule changes since release/1:") {
 					t.Fatalf("expected a change-notes failure, got %v", err)
@@ -189,6 +192,11 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 			}
 			if result.PendingRelease.Release != 2 || !slices.Equal(previewRows(result.PendingRelease), test.rows) {
 				t.Fatalf("pending release %d %q, want 2 %q", result.PendingRelease.Release, previewRows(result.PendingRelease), test.rows)
+			}
+			for id, summary := range test.retired {
+				if plan.retired[id].Summary != summary {
+					t.Fatalf("retired %s with summary %q, want %q", id, plan.retired[id].Summary, summary)
+				}
 			}
 		})
 	}

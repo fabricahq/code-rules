@@ -179,25 +179,21 @@ func (c libraryChanges) plan() (releasePlan, error) {
 	}
 	changes := map[string]rules.Change{}
 	summaries := map[string][]string{}
-	retirements := map[string][]string{}
+	// Every pending note's summary is listed, in note order, wherever its rule ends up.
 	for _, pending := range c.pending {
 		for id, change := range pending.note.Rules {
+			summaries[id] = append(summaries[id], pending.note.Summary)
 			if change.Change == rules.ChangeRetired {
-				retirements[id] = append(retirements[id], pending.note.Summary)
 				plan.retired[id] = rules.RetiredRule{LastVersion: latest.record.Rules[id], ReplacedBy: change.ReplacedBy}
-				continue
-			}
-			if previous, ok := changes[id]; ok {
+			} else if previous, ok := changes[id]; ok {
 				changes[id] = rules.LargerChange(previous, change.Change)
 			} else {
 				changes[id] = change.Change
 			}
-			summaries[id] = append(summaries[id], pending.note.Summary)
 		}
 	}
-	for id, summary := range retirements {
-		retired := plan.retired[id]
-		retired.Summary = strings.Join(summary, "\n")
+	for id, retired := range plan.retired {
+		retired.Summary = strings.Join(summaries[id], "\n")
 		plan.retired[id] = retired
 		delete(changes, id)
 	}
