@@ -117,7 +117,7 @@ code-rules library add rule practices/testing/verify-backoff \
   --title 'Verify retry backoff' \
   --when-to-read 'When adding or changing retry delays.' \
   --impact MEDIUM \
-  --impact-description 'Prevents retries from overloading a struggling service.'
+  --impact-description 'Prevents retries from overloading a service.'
 ```
 
 Then record it. A new rule always starts at version `1.0.0`, so leave out `--bump`:
@@ -147,7 +147,7 @@ When the practice itself is no longer recommended, leave out `--replaced-by`, an
 ```sh
 code-rules library change practices/code-design/comment-intent \
   --retire \
-  --summary "Withdrawn after feedback that agents shouldn't add explanatory comments."
+  --summary "Agents shouldn't add explanatory comments."
 ```
 
 A rule that was never published can't be retired; just delete it.
@@ -219,11 +219,13 @@ If you don't want a GitHub Release page, or the library isn't hosted on GitHub.c
 For a library release that changes four rules, the generated page, titled `release/4`, looks like this:
 
 ```md
-Library release 4 changes 4 rules: 1 major, 1 minor, 1 new, and 1 retired.
+Library release 4 changes 4 rules:
+1 major, 1 minor, 1 new, and 1 retired.
 
 ## Major changes
 
-Code that complied with the previous rule version could fail the new one, so review these before updating.
+Code that complied with the previous rule version could fail
+the new one, so review these before updating.
 
 - **practices/testing/verify-retry-limits** `1.3.0` → `2.0.0`
   Require a test at the limit for every retry policy.
@@ -284,10 +286,11 @@ jobs:
       GIT_COMMITTER_NAME: Code Rules Bot
       GIT_COMMITTER_EMAIL: code-rules-bot@noreply.invalid
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # actions/checkout v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-      # Download Code Rules, verify its attestation and checksum, and add it to PATH.
+      # Download and verify Code Rules, then add it to PATH.
       - name: Install Code Rules
         run: ...
       - run: code-rules library release
@@ -308,11 +311,12 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # actions/checkout v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
           persist-credentials: false
-      # Download Code Rules, verify its attestation and checksum, and add it to PATH.
+      # Download and verify Code Rules, then add it to PATH.
       - name: Install Code Rules
         run: ...
       - run: code-rules library check
