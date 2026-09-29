@@ -9,22 +9,25 @@ See [product scope](/start-here/overview/#what-code-rules-does-not-do).
 
 ## Project instructions
 
-To use this workflow, add the following section to the project's existing `AGENTS.md`, or use it as a starting point for a direct agent prompt:
+To use this workflow, add the following section to the project's existing `AGENTS.md`, `CLAUDE.md`, or the instruction file your agent reads, or use it as a starting point for a direct agent prompt. `code-rules project init` also writes it into the project's `.code-rules/README.md`.
 
 ```markdown
-Before planning, implementing, or reviewing a change, read `.code-rules/generated/RULES.md`.
-Compare each group's When to read this group cue with your task, the affected behavior, and the code. Use its Description to understand the scope.
-Open every relevant or plausibly relevant group.
-Read every rule in each opened group completely, including every page of a split index. Read full definitions inline or follow every Read full rule link.
-Then use each rule's When to read cue, guidance, and exceptions to determine whether it applies.
-Complete truncated reads. Revisit rule selection when scope changes and reload needed rules after compaction.
-Follow every applicable rule regardless of impact, including its exceptions.
-After reading the complete rule, use Implementation guidance when planning or changing code and Validation guidance when reviewing, testing, or diagnosing behavior, when those sections are present.
-Use both when the task includes both activities. These sections support the rule’s guidance; they do not replace it.
-When reviewing, select groups independently and cite rule IDs with evidence for findings. Assess finding severity from concrete consequences.
-Report missing relevant groups as coverage gaps.
+## Engineering rules
+
+Before planning, implementing, reviewing, testing, or debugging a change:
+
+1. Read `.code-rules/generated/RULES.md` and follow its instructions to
+   select relevant groups and read their rules in full, including linked
+   files and additional index pages.
+2. Follow the applicable rules and their exceptions while doing the work.
+3. Before finishing, check your work against those rules and run the
+   relevant validation. Briefly report what you verified and any gaps.
+
+If required rule files are unavailable or give conflicting instructions,
+report the issue rather than silently skipping them or choosing a policy.
 ```
 
+`.code-rules/generated/RULES.md` then tells the agent how to select groups, read rules, and report findings, so these instructions stay short.
 The generated index is an explicit entry point.
 Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules.
 
