@@ -100,6 +100,8 @@ h1[data-page-title] { color: var(--cr-ink); font-weight: 500; letter-spacing: -.
 .sl-markdown-content table { font-size: .86rem; }
 .sl-markdown-content :is(th, td) { padding: .8rem .85rem; }
 .sl-markdown-content code { overflow-wrap: anywhere; }
+/* A table's first column names keys, options, or values; keep them whole and let narrow tables scroll. */
+.sl-markdown-content td:first-child code { overflow-wrap: normal; }
 .sl-markdown-content .starlight-aside { background: var(--cr-surface); border-color: var(--cr-border); color: var(--cr-ink); border-radius: 0 var(--cr-radius-card) var(--cr-radius-card) 0; }
 .sl-markdown-content .starlight-aside a, .starlight-aside__title { color: var(--cr-ink); }
 
@@ -119,11 +121,6 @@ h1[data-page-title] { color: var(--cr-ink); font-weight: 500; letter-spacing: -.
 .sl-markdown-content:has(#project-commands) table :is(th, td):first-child {
   width: 1%;
   white-space: nowrap;
-}
-.sl-markdown-content .sl-heading-wrapper:has(#fields) + table td:first-child code,
-.sl-markdown-content:has(#project-commands) table td:first-child code {
-  overflow-wrap: normal;
-  word-break: normal;
 }
 .sl-markdown-content .sl-heading-wrapper:has(#fields) + table :is(th, td):last-child,
 .sl-markdown-content:has(#project-commands) table :is(th, td):last-child {
