@@ -6,8 +6,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"maps"
+	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 )
 
 // ReleaseRecord is the permanent record of one library release, read from its release/<number> tag.
@@ -42,19 +44,43 @@ type RetiredRule struct {
 // releaseSeparator divides a release tag's Markdown notes from its YAML record.
 const releaseSeparator = "---"
 
-// ParseReleaseMessage splits a release tag's message at its last line containing only ---, returning the
-// Markdown release notes before it and the parsed record after it. The notes may contain --- lines themselves.
-func ParseReleaseMessage(message []byte, location string) (string, ReleaseRecord, error) {
+var releaseTagPattern = regexp.MustCompile(`^release/([1-9][0-9]{0,8})$`)
+
+// ParseReleaseTag returns the library release number of a tag named release/<number>, such as release/4.
+// It rejects other tag names, including leading zeros, so each library release has exactly one tag name.
+func ParseReleaseTag(name string) (int, error) {
+	parts := releaseTagPattern.FindStringSubmatch(name)
+	if parts == nil {
+		return 0, invalid(name, "expected a library release tag named release/<number>, such as release/4")
+	}
+	number, _ := strconv.Atoi(parts[1])
+	return number, nil
+}
+
+// ParseReleaseMessage parses the message of the library release tag named tag. It splits the message at its last
+// line containing only ---, returning the Markdown release notes before it and the parsed record after it; the
+// notes may contain --- lines themselves. The record's release number must match the tag's.
+func ParseReleaseMessage(tag string, message []byte) (string, ReleaseRecord, error) {
+	number, err := ParseReleaseTag(tag)
+	if err != nil {
+		return "", ReleaseRecord{}, err
+	}
 	lines := bytes.Split(message, []byte("\n"))
 	for i := len(lines) - 1; i >= 0; i-- {
 		if string(bytes.TrimRight(lines[i], "\r")) != releaseSeparator {
 			continue
 		}
 		notes := string(bytes.TrimRight(bytes.Join(lines[:i], []byte("\n")), "\r\n"))
-		record, err := ParseReleaseRecord(bytes.Join(lines[i+1:], []byte("\n")), location)
-		return notes, record, err
+		record, err := ParseReleaseRecord(bytes.Join(lines[i+1:], []byte("\n")), tag)
+		if err != nil {
+			return "", ReleaseRecord{}, err
+		}
+		if record.Release != number {
+			return "", ReleaseRecord{}, invalid(tag+".release", "the record is for library release "+strconv.Itoa(record.Release)+", but its tag is "+tag)
+		}
+		return notes, record, nil
 	}
-	return "", ReleaseRecord{}, invalid(location, "expected release notes, a line containing only ---, and a release record")
+	return "", ReleaseRecord{}, invalid(tag, "expected release notes, a line containing only ---, and a release record")
 }
 
 // ParseReleaseRecord validates a release record's YAML, including that each change leads to the version in rules.
@@ -250,7 +276,8 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 	return retired, nil
 }
 
-// libraryFiles reads contained relative paths, keeping their order and rejecting duplicates.
+// libraryFiles reads contained relative paths, keeping their order and rejecting duplicates and files that
+// belong to a rule's version.
 func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 	var items []json.RawMessage
 	if json.Unmarshal(input, &items) != nil || items == nil {
@@ -265,9 +292,29 @@ func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 		if slices.Contains(paths, path) {
 			return nil, invalid(location+"["+strconv.Itoa(i)+"]", "duplicate path "+quote(path))
 		}
+		if isRuleContent(path) {
+			return nil, invalid(location+"["+strconv.Itoa(i)+"]", quote(path)+" belongs to a rule's version, not the library-wide files")
+		}
 		paths = append(paths, path)
 	}
 	return paths, nil
+}
+
+// isRuleContent reports whether path is part of some rule's version: a rule's Markdown file, or a file in an asset
+// directory inside a technology or practice group, since every such directory belongs to a rule. Group metadata,
+// group READMEs, and the library-root assets/ directory are library-wide.
+func isRuleContent(path string) bool {
+	parts := strings.Split(path, "/")
+	if parts[0] != "techs" && parts[0] != "practices" {
+		return false
+	}
+	if slices.Contains(parts[1:], "assets") {
+		return true
+	}
+	if _, err := GroupFromPath(path, path); err == nil {
+		return !IsGroupReadme(path)
+	}
+	return false
 }
 
 // versionField reads a rule version from YAML text. 1.3.0 is text in YAML; a number such as 1.0 is rejected.

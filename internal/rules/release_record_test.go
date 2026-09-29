@@ -19,8 +19,8 @@ func TestReleaseMessageFixtures(t *testing.T) {
 		t.Fatal(err)
 	}
 	var cases []struct {
-		ID, Location, Message string
-		Expected              struct {
+		ID, Tag, Message string
+		Expected         struct {
 			OK    bool
 			Notes string
 			Value json.RawMessage
@@ -32,7 +32,7 @@ func TestReleaseMessageFixtures(t *testing.T) {
 	}
 	for _, test := range cases {
 		t.Run(test.ID, func(t *testing.T) {
-			notes, got, err := rules.ParseReleaseMessage([]byte(test.Message), test.Location)
+			notes, got, err := rules.ParseReleaseMessage(test.Tag, []byte(test.Message))
 			if !test.Expected.OK {
 				var validation *rules.ValidationError
 				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
