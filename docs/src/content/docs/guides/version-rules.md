@@ -209,11 +209,47 @@ release:
 
 ### Configure the repository
 
-In the repository's settings on GitHub:
+Configure three settings on GitHub. Each step shows the setting's place in the repository's settings, and a [GitHub CLI](https://cli.github.com/) command that applies it. Run the commands from your library's checkout; `gh api` fills in `{owner}` and `{repo}` from it.
 
-1. **Require branches to be up to date before merging** on `main`. Then the release pull request always includes every pending note. If a newer note reaches `main` first, the release pull request must be updated before it can merge.
-2. **Let the workflow open pull requests.** Enable **Allow GitHub Actions to create and approve pull requests** under **Settings > Actions > General**.
-3. **Let the workflow push tags and the `code-rules/released` branch.** Exempt the workflow from any rulesets that protect tags under `techs/` and `practices/`, or that branch.
+1. **Require the check, on an up-to-date branch, before merging to `main`.** Then the release pull request always includes every pending note: if a newer note reaches `main` first, the release pull request must be updated before it can merge. In **Settings > Rules > Rulesets**, add a branch ruleset for the default branch that requires the `check` status check and requires branches to be up to date. Or run:
+
+   ```sh
+   gh api --method POST 'repos/{owner}/{repo}/rulesets' --input - <<'EOF'
+   {
+     "name": "Code Rules checks",
+     "target": "branch",
+     "enforcement": "active",
+     "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+     "rules": [{
+       "type": "required_status_checks",
+       "parameters": {
+         "strict_required_status_checks_policy": true,
+         "required_status_checks": [{"context": "check", "integration_id": 15368}]
+       }
+     }]
+   }
+   EOF
+   ```
+
+   `check` is the name of the workflow's check job. `15368` is the ID of the GitHub Actions app, so only the workflow can report that check.
+
+2. **Let the workflow open pull requests.** In **Settings > Actions > General**, enable **Allow GitHub Actions to create and approve pull requests**. Or run:
+
+   ```sh
+   gh api --method PUT 'repos/{owner}/{repo}/actions/permissions/workflow' \
+     -f default_workflow_permissions=read \
+     -F can_approve_pull_request_reviews=true
+   ```
+
+   The workflow asks for the write permissions it needs itself, so the default can stay read-only. If your organization disables this setting, an organization owner must allow it first.
+
+3. **Let the workflow push tags and the `code-rules/released` branch.** Check that no ruleset covers tags under `techs/` or `practices/`, or branches under `code-rules/`. List the repository's rulesets:
+
+   ```sh
+   gh api 'repos/{owner}/{repo}/rulesets' --jq '.[] | {id, name, target}'
+   ```
+
+   Show one ruleset's conditions with `gh api 'repos/{owner}/{repo}/rulesets/ID' --jq .conditions`, replacing `ID`. If a ruleset covers those tags or branches, exclude them from it in **Settings > Rules > Rulesets**.
 
 ### Review and merge the release pull request
 
