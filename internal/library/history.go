@@ -229,32 +229,12 @@ func batchObject(output []byte, object, kind string, size int) ([]byte, []byte, 
 	return rest[:size], rest[size+1:], nil
 }
 
-// signatureHeaders begin a signature that Git appends to a signed tag's message.
-var signatureHeaders = []string{"-----BEGIN PGP SIGNATURE-----", "-----BEGIN PGP MESSAGE-----", "-----BEGIN SSH SIGNATURE-----", "-----BEGIN SIGNED MESSAGE-----"}
-
 // parseReleaseTag reads the release notes and record from a raw tag object, ignoring any signature. An invalid
 // record, including one whose number differs from the tag's, fails with code invalid-release-tag and keeps the
 // parser's validation error, with its location, as the cause.
 func parseReleaseTag(object []byte, number int) (string, rules.ReleaseRecord, error) {
 	name := "release/" + strconv.Itoa(number)
-	_, message, ok := bytes.Cut(object, []byte("\n\n"))
-	if !ok {
-		message = nil
-	}
-	// Git treats the last line starting a signature as its start.
-	end := len(message)
-	for offset := 0; offset < len(message); {
-		line := message[offset:]
-		if slices.ContainsFunc(signatureHeaders, func(header string) bool { return bytes.HasPrefix(line, []byte(header)) }) {
-			end = offset
-		}
-		next := bytes.IndexByte(line, '\n')
-		if next < 0 {
-			break
-		}
-		offset += next + 1
-	}
-	notes, record, err := rules.ParseReleaseMessage(name, message[:end])
+	notes, record, err := rules.ParseReleaseTagObject(name, object)
 	if err != nil {
 		return "", rules.ReleaseRecord{}, failure("invalid-release-tag", "invalid release record in "+name+": "+err.Error()+". Don't create or move release tags by hand", err)
 	}

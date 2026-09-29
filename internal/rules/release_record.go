@@ -83,6 +83,33 @@ func ParseReleaseMessage(tag string, message []byte) (string, ReleaseRecord, err
 	return "", ReleaseRecord{}, invalid(tag, "expected release notes, a line containing only ---, and a release record")
 }
 
+// signatureHeaders begin a signature that Git appends to a signed tag's message.
+var signatureHeaders = []string{"-----BEGIN PGP SIGNATURE-----", "-----BEGIN PGP MESSAGE-----", "-----BEGIN SSH SIGNATURE-----", "-----BEGIN SIGNED MESSAGE-----"}
+
+// ParseReleaseTagObject parses the release notes and record in a raw annotated tag object, as git cat-file
+// prints it, of the library release tag named tag, like ParseReleaseMessage. It skips the object's headers and
+// ignores a signature after the message.
+func ParseReleaseTagObject(tag string, object []byte) (string, ReleaseRecord, error) {
+	_, message, ok := bytes.Cut(object, []byte("\n\n"))
+	if !ok {
+		message = nil
+	}
+	// Git treats the last line starting a signature as its start.
+	end := len(message)
+	for offset := 0; offset < len(message); {
+		line := message[offset:]
+		if slices.ContainsFunc(signatureHeaders, func(header string) bool { return bytes.HasPrefix(line, []byte(header)) }) {
+			end = offset
+		}
+		next := bytes.IndexByte(line, '\n')
+		if next < 0 {
+			break
+		}
+		offset += next + 1
+	}
+	return ParseReleaseMessage(tag, message[:end])
+}
+
 // ParseReleaseRecord validates a release record's YAML, including that each change leads to the version in rules.
 func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
 	_, data, err := authoredYAML(input, location)
