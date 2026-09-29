@@ -30,20 +30,23 @@ The command previews every change in each library, with each [rule version](/con
 
 ```text
 team
-  major    practices/testing/verify-retry-limits     1.3.0 -> 2.0.0
-           Require a test at the limit for every retry policy.
-  major    techs/react/prefer-server-components      1.4.0 -> 2.0.0
-           Require server components for all data fetching.
-  minor    techs/react/test-hooks-in-isolation       2.1.0 -> 2.2.0
-           Add an example for custom hooks.
-  new      practices/testing/verify-retries          1.0.0
-           Add the rule.
-  retired  practices/testing/check-retry-backoff     1.2.0
-           Replaced by practices/testing/verify-retries.
-           Covered by the broader rule about testing retries.
-  pinned   practices/testing/verify-backoff          1.3.0
-           Newest version: 2.0.0.
-           Reason: Waiting on the author's response to #45.
+  major     practices/testing/verify-retry-limits     1.3.0 -> 2.0.0
+            Require a test at the limit for every retry policy.
+  major     techs/react/prefer-server-components      1.4.0 -> 2.0.0
+            Require server components for all data fetching.
+  minor     techs/react/test-hooks-in-isolation       2.1.0 -> 2.2.0
+            Add an example for custom hooks.
+  new       practices/testing/verify-retries          1.0.0
+            Add the rule.
+  retired   practices/testing/check-retry-backoff     1.2.0
+            Replaced by practices/testing/verify-retries.
+            Covered by the broader rule about testing retries.
+  replaced  techs/react/use-query-hooks               1.1.0 -> 1.2.0
+            Add an example for paginated queries.
+            Your rule: local/techs/react/use-data-loaders.md.
+  pinned    practices/testing/verify-backoff          1.3.0
+            Newest version: 2.0.0.
+            Reason: Waiting on the author's response to #45.
 ```
 
 | Change | What it means for your project |
@@ -53,9 +56,10 @@ team
 | `major` | Work that complied with the previous version could fail this one. |
 | `new` | A rule the library added to a group you import. |
 | `retired` | The library stopped publishing the rule, so your agents will stop reading it. The preview names its replacement when there is one. |
+| `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule). Your rule doesn't change. |
 | `pinned` | A newer version exists, but your [pin](#keep-a-rule-at-its-current-version) keeps the rule where it is. |
 
-Read the major changes, new rules, and retirements closely: each can change what your code must do. Then confirm, and the update applies exactly the changes the preview showed.
+Read the major changes, new rules, and retirements closely: each can change what your code must do. For each replaced rule, check whether your own rule needs the same change. Then confirm, and the update applies exactly the changes the preview showed.
 
 In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` to do the same.
 
@@ -143,7 +147,7 @@ sources:
 `code-rules project update` reports added, changed, and removed file paths. Before committing:
 
 - Inspect the diff of `.code-rules/vendor/` for upstream changes, including rules hidden by your exclusions and replacements, and changes to retained licenses and notices.
-- When a replacement's target changed, compare its old and new text before deciding whether your local rule still makes sense.
+- For each `replaced` rule in the preview, compare the library's old and new text before deciding whether your local rule still makes sense.
 - When updated rules introduce competing obligations, use the [conflict-review prompt](/guides/conflicting-guidance/#generate-a-review-prompt) to inspect the combined guidance.
 
 Commit the configuration, vendor snapshots, and generated files together.

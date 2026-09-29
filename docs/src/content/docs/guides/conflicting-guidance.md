@@ -73,7 +73,8 @@ For example, if the project adopts Acme's interface rule, exclude Fabrica's type
 sources:
   fabrica:
     exclude:
-      techs/typescript/prefer-type-aliases: This project follows Acme's interface rule for object types.
+      techs/typescript/prefer-type-aliases:
+        reason: This project follows Acme's interface rule for object types.
 ```
 
 This is a partial configuration snippet.

@@ -58,7 +58,7 @@ Code Rules then decides which rules are **active**, meaning included in the gene
 
 1. Starts with the imported rules, from your selected groups and your individually selected rules, and discovers local groups from their `_group.yaml` files.
 2. Removes rules you explicitly excluded.
-3. Substitutes your local rules for imported rules you explicitly replaced.
+3. Adds the local rules your exclusions name as `replacedBy`, in place of the rules they exclude.
 4. Adds your remaining local rules.
 
 Each rule's ID includes its source name. For example, `team:practices/testing/check-retries` identifies the `check-retries` rule from the `team` library. This keeps rules from different libraries distinct, even when their filenames match.
@@ -91,7 +91,7 @@ The newest library release is the one with the highest `release/<number>` tag. E
 
 To choose a rule's version, Code Rules reads the rule's history from the release records in the `release/<number>` tags, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from the tagged commit of the library release that published that version. Library-wide files, including the shared files rules link to, come from the newest library release among the imported rule versions.
 
-A rule absent from a library release was retired, and the manifest's `retired` entry records why. A rule the project pinned before its retirement keeps importing its pinned version.
+A rule absent from a library release was retired, and the release record's `retired` entry records why. A rule the project pinned before its retirement keeps importing its pinned version.
 
 To find versions, Code Rules lists only `release/` tags, fetches their messages without the library's history, and fetches only the files it imports. It records each imported rule's version, library release, and commit in `_source.json` and generated provenance, and shows the version in generated guidance.
 
@@ -112,8 +112,8 @@ Code Rules fetches and validates all selected libraries before replacing your pr
 Validation rejects:
 
 - Invalid or reserved source names, repeated repositories, and duplicate rule IDs that include the same source name.
-- Missing groups, or rules named in an exclusion, replacement, pin, or `rules` entry that the source doesn't import. Entries naming a rule the library retired produce a warning instead.
-- A rule that is both excluded and replaced, or a local replacement file used for multiple targets.
+- Missing groups, or rules named in an exclusion, pin, or `rules` entry that the source doesn't import. Entries naming a rule the library retired produce a warning instead.
+- A missing `replacedBy` file, or one local file named as the replacement for more than one rule.
 - Invalid metadata, unsafe file paths, and symbolic links.
 
 Selected library rules must pass validation even if you exclude or replace them. File checks also ensure that paths stay within their allowed directories.

@@ -102,7 +102,7 @@ Copy one version of a library rule into `local/` so the project controls its tex
 | Option | Meaning |
 | --- | --- |
 | `--from LIBRARY@VERSION` | Required for a fork. `LIBRARY` is a configured source name, such as `team`, or a [repository address](/reference/configuration/#repository-addresses). `VERSION` is one of the rule's versions, such as `1.3.0`. |
-| `--reason TEXT` | Why the project replaces the imported rule. Required when the project imports this rule from `LIBRARY`. |
+| `--reason TEXT` | Why the project uses the fork instead of the imported rule. Required when the project imports this rule from `LIBRARY`. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
 Metadata options and `--body-file` don't apply to a fork. The command:
@@ -110,7 +110,7 @@ Metadata options and `--body-file` don't apply to a fork. The command:
 1. Finds the library release that published `<VERSION>` from the release records in the library's `release/<number>` tags, and reads the rule and its asset directory at that tag's commit.
 2. Writes them under `local/` and creates the local group from the library's group metadata if it doesn't exist.
 3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL.
-4. When the project imports the rule from `LIBRARY`, adds a `replace` entry for it with your reason, so agents read only the fork.
+4. When the project imports the rule from `LIBRARY`, adds an `exclude` entry for it with your reason and the fork as `replacedBy`, so agents read only the fork.
 
 If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. Existing local rules are never overwritten. A forked rule has no version; it changes only when you edit it. Run `code-rules project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
 
@@ -136,7 +136,7 @@ Sync needs access to every configured repository and uses your existing Git cred
 
 These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
-When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion, replacement, or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything.
+When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything.
 
 ### project update
 
@@ -160,11 +160,12 @@ The preview lists, for each source:
 | `major`, `minor`, or `patch` | The rule's old and new versions, and the summary of every version in between. |
 | `new` | A rule the library added to a selected group, at its newest version. |
 | `retired` | A rule the library retired, with its last version, its summary, and its replacement when there is one. Applying the update drops it. |
+| `replaced` | A rule you [replaced with a local rule](/reference/configuration/#exclude-or-replace-a-rule) that has a newer version, with the summary of every version in between and your local rule's path. Your local rule doesn't change; compare the two to decide whether it needs the same change. |
 | `pinned` | A pinned rule that has a newer version. It doesn't move; the preview shows the pin's reason. |
 
 In a terminal, `code-rules project update` shows the preview and asks for confirmation. For each major change and retirement, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. For each new rule, you can choose to add it or exclude it; excluding asks for a reason and writes an exclusion. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed.
 
-`--keep` and pins in configuration never change which rules are imported. When a rule you exclude, replace, or select individually is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update.
+The preview doesn't list changes to rules you excluded without a replacement. `--keep` and pins in configuration never change which rules are imported. When a rule you exclude or select individually is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update.
 
 Sources that use `ref` don't move; change `ref` and run `code-rules project sync` instead. Group metadata and the library's license files come from the newest library release among the rule versions the project imports.
 

@@ -21,10 +21,10 @@ sources:
     groups:
       - techs/typescript
       - practices/testing
-    replace:
+    exclude:
       techs/typescript/prefer-type-aliases:
-        file: local/techs/typescript/prefer-interfaces.md
         reason: Our public extension API relies on declaration merging.
+        replacedBy: local/techs/typescript/prefer-interfaces.md
   acme:
     repository: https://github.com/acme/.code-rules.git
     groups:
@@ -49,19 +49,18 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
 | `sources.<name>.groups` | Groups to import in full: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. Required unless `rules` selects individual rules. |
 | `sources.<name>.rules` | Optional individual rules to import without the rest of their group: an array of library rule IDs. See [Select individual rules](#select-individual-rules). |
-| `sources.<name>.exclude` | Optional map of this library's rule IDs to exclusion reasons. |
-| `sources.<name>.replace` | Optional map of this library's rule IDs to a local `file` and a `reason`. |
+| `sources.<name>.exclude` | Optional map of this library's rule IDs to a `reason` and, optionally, a local rule that `replacedBy` names to use instead. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
 | `sources.<name>.pins` | Optional map of this library's rule IDs to an exact `version` and a `reason`. See [Pin a rule](#pin-a-rule). |
 | `sources.<name>.ref` | Optional and advanced. Import the library exactly as it was at one tag or commit. Can't be combined with `pins`. See [Import one revision](#import-one-revision). |
 
-Unknown configuration fields are rejected, including unknown source and replacement fields.
+Unknown configuration fields are rejected, including unknown source and exclusion fields.
 Local groups are discovered from `local/<group-id>/_group.yaml`; no source entry or separate group list is required.
 The former `localGroups` field is rejected with migration guidance. Remove it and keep the group metadata files.
-`exclude` and `replace` are optional; omit them when a source has no exceptions.
-Replacement paths resolve relative to the Code Rules directory and must stay under its `local/` directory.
+`exclude` is optional; omit it when a source has no exceptions.
 
 Each source owns its selection, pins, and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.
+The former `sources.<name>.replace` field is rejected with migration guidance. Move each entry into `exclude`, with its `file` as `replacedBy`.
 The former `version` field is rejected with migration guidance. Rule versions are chosen rule by rule; use `pins` to keep individual rules at exact versions.
 The schema version is `1`.
 
@@ -160,8 +159,8 @@ local:practices/testing/test-project-contracts
 A library rule ID is its path without `.md`.
 The source prefix keeps identical paths from different libraries distinct.
 Renaming a source changes its generated project rule IDs and any external references to those IDs.
-Its nested exclusion and replacement keys remain library-relative.
-Replacing a repository under an existing source name also requires reviewing those targets.
+Its nested `exclude` and `pins` keys remain library-relative.
+Replacing a repository under an existing source name also requires reviewing those keys.
 
 ## Choose versions
 
@@ -232,16 +231,36 @@ Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a
 
 Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
 
-## Source-scoped exceptions
+## Exclude or replace a rule
 
-Keys inside a source's `exclude` and `replace` use the library-relative rule ID, without a source prefix.
+A source's `exclude` map leaves rules out of the generated guidance. Each entry records why, and can name a local rule for agents to read instead:
+
+```yaml
+exclude:
+  practices/testing/avoid-snapshot-tests:
+    reason: Contract snapshots follow our separate review policy.
+  techs/typescript/prefer-type-aliases:
+    reason: Our public extension API relies on declaration merging.
+    replacedBy: local/techs/typescript/prefer-interfaces.md
+```
+
+| Field | Meaning |
+| --- | --- |
+| `reason` | Required non-blank text explaining why the project leaves the rule out. |
+| `replacedBy` | Optional. A local rule file that agents read in place of the excluded rule. The path is relative to the Code Rules directory, must stay under `local/`, and must be in the same group as the rule it replaces. Each local file can replace only one rule. |
+
+An excluded rule is still imported into `vendor/`, so you can review its changes. When the library publishes a newer version of a rule that has a `replacedBy`, the `code-rules project update` preview lists it as `replaced`, so you can decide whether your local rule needs the same change.
+
+### Source-scoped exceptions
+
+Keys inside a source's `exclude` use the library-relative rule ID, without a source prefix.
 For example, `sources.fabrica.exclude["practices/testing/verify-retry-limits"]` affects only Fabrica's rule.
 An identically named rule from `acme` remains active.
 Full paths distinguish matching filenames in different groups of the same library.
 
 Generated files and review findings retain source-qualified IDs because they appear outside the configuration's source nesting.
 
-An `exclude`, `replace`, or `pins` key must name a rule this source imports, through its groups or its `rules` list; any other ID fails validation. When the library retires a rule that an exclusion or replacement names, the entry no longer does anything. `code-rules project sync` and `code-rules project update` warn about it so you can delete it; nothing else is blocked.
+An `exclude` or `pins` key must name a rule this source imports, through its groups or its `rules` list; any other ID fails validation. When the library retires a rule that an exclusion names, the entry no longer does anything. `code-rules project sync` and `code-rules project update` warn about it so you can delete it; nothing else is blocked.
 
 ## Group selection
 
@@ -253,7 +272,7 @@ Source order never establishes precedence.
 
 Every valid rule file under `local/` automatically joins its adopted group; individual local rules do not need source entries.
 Local rules can join any imported group. A matching filename does not override an imported rule.
-A local file referenced by `replace` appears once under its local ID; the target is removed from active output.
+A local file that an exclusion names as `replacedBy` appears once under its local ID; the excluded rule is removed from active output.
 The complete local definition supplies the metadata, guidance, attribution, and assets. Configuration and provenance retain the replacement relationship.
 A local `_group.yaml` defines a group, including an empty group, without any configuration entry.
 If local metadata exists for an imported group, its complete description and reading cues take precedence for project discovery.
@@ -286,7 +305,7 @@ This imports every rule in `techs/react`, including rules added to it later, plu
 - Each entry is a library-relative rule ID that must exist in the library.
 - An individually selected rule brings its group's metadata, so its group appears in the generated index with only the selected rules.
 - The imported rules are the union of both lists: every rule in the selected groups, plus every listed rule. Listing a rule whose group is also selected is allowed and changes nothing.
-- `exclude` and `replace` apply to every imported rule, however it was selected.
+- `exclude` applies to every imported rule, however it was selected.
 - When the library retires an individually selected rule, `code-rules project update` shows the retirement in its preview. After you confirm, the entry no longer does anything, and later syncs and updates warn about it so you can delete it. To keep the rule instead, pin it to its last version.
 
 Individually selected rules follow updates and pins like any other imported rule.

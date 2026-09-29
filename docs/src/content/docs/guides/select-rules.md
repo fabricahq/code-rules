@@ -33,7 +33,7 @@ In `.code-rules/config.yaml`, each library you import gets a named entry under `
 - **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`. A selected group includes rules the library adds to it later.
 - **Which individual rules to import:** optionally, `rules` lists single rules to import without the rest of their group, such as `techs/go/wrap-errors-with-operation`. Rules added to that group later don't join. See [Select individual rules](/reference/configuration/#select-individual-rules).
 
-You can also use `exclude` to leave out individual rules or `replace` to substitute your own. We'll cover both below.
+You can also use `exclude` to leave out individual rules, optionally replacing them with your own. We'll cover both below.
 
 See the [complete configuration example](/reference/configuration/#complete-example) for how these fields fit together.
 
@@ -80,7 +80,8 @@ Add its library-relative ID and a reason to `sources.<name>.exclude`:
 sources:
   acme:
     exclude:
-      practices/testing/avoid-snapshot-tests: Contract snapshots follow our separate review policy.
+      practices/testing/avoid-snapshot-tests:
+        reason: Contract snapshots follow our separate review policy.
 ```
 
 These are partial snippets, not complete source definitions.
@@ -92,16 +93,18 @@ The exclusion reason stays in project configuration; the generated files contain
 
 ### Replace a rule
 
-Write a complete local definition, then reference it from `sources.<name>.replace`:
+Write a complete local definition, then exclude the imported rule and name your file as its `replacedBy`:
 
 ```yaml
 sources:
   fabrica:
-    replace:
+    exclude:
       techs/typescript/prefer-type-aliases:
-        file: local/techs/typescript/prefer-interfaces.md
         reason: Our public extension API relies on declaration merging.
+        replacedBy: local/techs/typescript/prefer-interfaces.md
 ```
+
+To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `local/` and writes the exclusion for you.
 
 The resolved rule uses the complete local definition, including its local ID, title, reading cue, impact, body, attribution, and asset references.
 In this example, the generated ID is `local:techs/typescript/prefer-interfaces`.
@@ -117,7 +120,7 @@ When sources, pins, or selected groups or rules change, run `code-rules project 
 For changes limited to local rules or exceptions, run `code-rules project build` against the existing vendor snapshots.
 Review and commit the updated generated files with their inputs.
 
-The importer rejects missing targets, a rule both excluded and replaced, and replacement files reused for multiple rules.
+The importer rejects exclusions of rules the source doesn't import, missing replacement files, and a local file that replaces more than one rule.
 It does not infer overrides from similar wording.
 Rules from different sources remain active even when their paths or titles match.
 If a local rule or another source contradicts an inherited obligation, explicitly replace or exclude the affected rule inside its owning source.
