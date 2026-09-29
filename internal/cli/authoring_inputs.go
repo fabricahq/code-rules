@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
@@ -17,10 +18,12 @@ import (
 
 // authoringFlags owns one command's scalar flags and resolves paths against the caller's directory.
 type authoringFlags struct {
-	command      *cobra.Command
-	values       map[string]*singleString
-	prompts      map[string]string
-	directory    string
+	command   *cobra.Command
+	values    map[string]*singleString
+	prompts   map[string]string
+	directory string
+	// git runs Git in a library's own repository; project commands don't use it.
+	git          gitexec.Options
 	introduction string
 	prompted     bool
 }

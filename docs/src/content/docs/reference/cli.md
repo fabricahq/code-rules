@@ -305,7 +305,7 @@ After the first library release, check compares each rule's [versioned content](
 
 Check warns when a note that a library release already published was edited, because the edit has no effect.
 
-This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone; in CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else.
+This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone; in CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
 When checks pass, the result previews the pending library release: each rule, its change, and its current and next version. JSON output includes this preview in `value.pendingRelease`.
 

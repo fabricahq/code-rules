@@ -5,6 +5,7 @@ package library
 import (
 	"bytes"
 	"context"
+	"iter"
 	"maps"
 	"os"
 	"path"
@@ -17,14 +18,18 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// CheckResult reports complete adoption counts and explicit licensing caveats.
+// CheckResult reports complete adoption counts, explicit licensing and change note caveats, and the next library release.
 type CheckResult struct {
-	Groups   int      `json:"groups"`
-	Rules    int      `json:"rules"`
-	Warnings []string `json:"warnings"`
+	Groups         int            `json:"groups"`
+	Rules          int            `json:"rules"`
+	Warnings       []string       `json:"warnings"`
+	PendingRelease PendingRelease `json:"pendingRelease"`
 }
 
 // Check validates a captured library snapshot, ignoring unrelated files such as .git.
+// In a Git repository, it also compares rules with the latest library release reachable from HEAD and
+// requires a pending change note for each difference; a shallow clone fails. A library outside Git, or
+// before its first library release, needs no notes, and its first library release gives every rule 1.0.0.
 // A final comparison rejects observed changes; ordinary editors are not locked out.
 func Check(ctx context.Context, options Options) (CheckResult, error) {
 	root, err := openLibrary(ctx, options, false)
@@ -35,36 +40,133 @@ func Check(ctx context.Context, options Options) (CheckResult, error) {
 	if err = filetxn.RequireIdle(root); err != nil {
 		return CheckResult{}, err
 	}
-	snapshot, license, err := libraryCheckInput(ctx, root)
+	input, err := libraryCheckInput(ctx, root)
 	if err != nil {
 		return CheckResult{}, err
 	}
-	if err = validateLibraryInventory(ctx, snapshot.Files, rules.LicensePaths(license)); err != nil {
+	if err = validateLibraryInventory(ctx, input.tree.Files, rules.LicensePaths(input.license)); err != nil {
 		return CheckResult{}, err
 	}
-	catalog, err := LoadSource(ctx, capturedLibrary{snapshot}, "library", rules.GroupSelection{Pattern: "*"})
+	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"})
+	if err != nil {
+		return CheckResult{}, err
+	}
+	notes, err := parseChangeNotes(input.notes)
 	if err != nil {
 		return CheckResult{}, err
 	}
 	result := CheckResult{Groups: len(catalog.Groups), Warnings: []string{}}
+	current := []string{}
 	for _, group := range catalog.Groups {
 		result.Rules += len(group.Rules)
+		for _, rule := range group.Rules {
+			current = append(current, strings.TrimSuffix(rule.Path, ".md"))
+		}
 	}
-	if license == nil {
+	slices.Sort(current)
+	git, err := openLibraryGit(ctx, root.Name(), options.Git)
+	if err != nil {
+		return CheckResult{}, err
+	}
+	changes, warnings, err := git.compare(ctx, input.tree.Files, current, notes)
+	if err != nil {
+		return CheckResult{}, err
+	}
+	if problems := changes.review(); len(problems) > 0 {
+		return CheckResult{}, failure("change-notes", "change notes don't match the rule changes since "+changes.history.latest.tagName()+":\n  - "+strings.Join(problems, "\n  - "), nil)
+	}
+	plan, err := changes.plan()
+	if err != nil {
+		return CheckResult{}, err
+	}
+	result.PendingRelease = plan.preview()
+	if input.license == nil {
 		result.Warnings = append(result.Warnings, "License is undeclared. Decide terms before sharing this library.")
-	} else if license.SPDXExpression == nil {
+	} else if input.license.SPDXExpression == nil {
 		result.Warnings = append(result.Warnings, "The license has no SPDX expression. Declare the library terms explicitly.")
 	}
+	result.Warnings = append(result.Warnings, warnings...)
 	if err = ctx.Err(); err != nil {
 		return CheckResult{}, err
 	}
-	if err = requireLibraryUnchanged(ctx, root, snapshot); err != nil {
+	if err = requireLibraryUnchanged(ctx, root, input); err != nil {
 		return CheckResult{}, err
 	}
 	if err = filetxn.RequireIdle(root); err != nil {
 		return CheckResult{}, err
 	}
 	return result, nil
+}
+
+// parseChangeNotes validates every note's format, including notes that library releases already published.
+func parseChangeNotes(files map[string][]byte) (map[string]rules.ChangeNote, error) {
+	notes := map[string]rules.ChangeNote{}
+	for _, name := range slices.Sorted(maps.Keys(files)) {
+		note, err := rules.ParseChangeNote(files[name], name)
+		if err != nil {
+			return nil, err
+		}
+		notes[name] = note
+	}
+	return notes, nil
+}
+
+// compare finds the notes added since the latest library release and the rules whose versioned content
+// differs from it, with a warning for each published note that was edited. A nil receiver has no history.
+func (g *libraryGit) compare(ctx context.Context, files map[string][]byte, current []string, notes map[string]rules.ChangeNote) (libraryChanges, []string, error) {
+	history, err := g.history(ctx)
+	if err != nil {
+		return libraryChanges{}, nil, err
+	}
+	changes := libraryChanges{history: history, current: current, changed: map[string]bool{}}
+	latest := history.latest
+	if latest == nil {
+		return changes, nil, nil
+	}
+	versioned := map[string][]string{}
+	paths := []string{}
+	for _, id := range current {
+		if _, published := latest.record.Rules[id]; published {
+			versioned[id] = ruleFiles(id, maps.Keys(files))
+			paths = append(paths, versioned[id]...)
+		}
+	}
+	for name := range notes {
+		if _, published := latest.files[name]; published {
+			paths = append(paths, name)
+		}
+	}
+	hashes, err := g.hashFiles(ctx, paths)
+	if err != nil {
+		return libraryChanges{}, nil, err
+	}
+	for id, names := range versioned {
+		released := ruleFiles(id, maps.Keys(latest.files))
+		changes.changed[id] = !slices.Equal(names, released) || slices.ContainsFunc(names, func(name string) bool { return hashes[name] != latest.files[name] })
+	}
+	var warnings []string
+	for _, name := range slices.Sorted(maps.Keys(notes)) {
+		switch published, ok := latest.files[name]; {
+		case !ok:
+			changes.pending = append(changes.pending, pendingNote{path: name, note: notes[name]})
+		case hashes[name] != published:
+			warnings = append(warnings, name+" changed after a library release published it. Editing a published note has no effect.")
+		}
+	}
+	return changes, warnings, nil
+}
+
+// ruleFiles returns a rule's versioned files among names, in sorted order: its Markdown file and its asset directory's files.
+func ruleFiles(id string, names iter.Seq[string]) []string {
+	assets := rules.RuleAssetDirectory(id + ".md")
+	var files []string
+	for name := range names {
+		if name == id+".md" || strings.HasPrefix(name, assets) {
+			files = append(files, name)
+		}
+	}
+	slices.Sort(files)
+	return files
 }
 
 // validateLibraryInventory catches malformed unused assets, invalid files, draft markers, and missing local destinations.
@@ -140,22 +242,34 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 	return nil
 }
 
-// libraryCheckInput captures every manifest, term, and library-owned file considered by a complete check.
-func libraryCheckInput(ctx context.Context, root *os.Root) (*filetxn.Tree, *rules.LicenseDeclaration, error) {
+// checkInput is a bounded snapshot of every library-owned file and change note a complete check considers.
+type checkInput struct {
+	tree    *filetxn.Tree
+	license *rules.LicenseDeclaration
+	// notes maps each file under changes/ to its bytes; notes stay out of catalogs and snapshots.
+	notes map[string][]byte
+}
+
+// libraryCheckInput captures every manifest, term, library-owned file, and change note considered by a complete check.
+func libraryCheckInput(ctx context.Context, root *os.Root) (checkInput, error) {
 	inventory, err := readLocalInventory(ctx, root)
 	if err != nil {
-		return nil, nil, err
+		return checkInput{}, err
 	}
-	return &filetxn.Tree{Files: inventory.Files, Directories: inventory.Directories}, inventory.License, nil
+	notes, err := readChangeNotes(ctx, rootFiles{ctx: ctx, root: root})
+	if err != nil {
+		return checkInput{}, err
+	}
+	return checkInput{tree: &filetxn.Tree{Files: inventory.Files, Directories: inventory.Directories}, license: inventory.License, notes: notes}, nil
 }
 
 // requireLibraryUnchanged rejects differences observed after validating the captured snapshot.
-func requireLibraryUnchanged(ctx context.Context, root *os.Root, before *filetxn.Tree) error {
-	after, _, err := libraryCheckInput(ctx, root)
+func requireLibraryUnchanged(ctx context.Context, root *os.Root, before checkInput) error {
+	after, err := libraryCheckInput(ctx, root)
 	if err != nil {
 		return failure("changed-input", "library changed during validation; retry library check", err)
 	}
-	if !maps.EqualFunc(before.Files, after.Files, bytes.Equal) || !slices.Equal(before.Directories, after.Directories) {
+	if !maps.EqualFunc(before.tree.Files, after.tree.Files, bytes.Equal) || !slices.Equal(before.tree.Directories, after.tree.Directories) || !maps.EqualFunc(before.notes, after.notes, bytes.Equal) {
 		return failure("changed-input", "library changed during validation; retry library check", nil)
 	}
 	return nil

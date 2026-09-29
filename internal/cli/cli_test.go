@@ -26,9 +26,42 @@ func buildCLI(t *testing.T) string {
 // runCLI runs the compiled command in an isolated project without any runtime binaries on PATH.
 func runCLI(t *testing.T, binary, dir string, args ...string) (string, string, int) {
 	t.Helper()
+	return runCLIWithEnvironment(t, binary, dir, append(os.Environ(), "PATH="+filepath.Join(dir, "empty-path")), args...)
+}
+
+// runCLIWithGit runs the compiled command with only Git on PATH and no user or system Git configuration,
+// as library commands in a repository need.
+func runCLIWithGit(t *testing.T, binary, dir string, args ...string) (string, string, int) {
+	t.Helper()
+	return runCLIWithEnvironment(t, binary, dir, gitOnlyEnvironment(t), args...)
+}
+
+// gitOnlyEnvironment returns the test's environment with a PATH that holds only Git, without Git configuration.
+func gitOnlyEnvironment(t *testing.T) []string {
+	t.Helper()
+	git, err := exec.LookPath("git")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := t.TempDir()
+	if err := os.Symlink(git, filepath.Join(path, "git")); err != nil {
+		t.Fatal(err)
+	}
+	environment := []string{}
+	for _, item := range os.Environ() {
+		if !strings.HasPrefix(item, "GIT_") && !strings.HasPrefix(item, "PATH=") {
+			environment = append(environment, item)
+		}
+	}
+	return append(environment, "PATH="+path, "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL=/dev/null")
+}
+
+// runCLIWithEnvironment runs the compiled command with exactly the given environment.
+func runCLIWithEnvironment(t *testing.T, binary, dir string, environment []string, args ...string) (string, string, int) {
+	t.Helper()
 	command := exec.Command(binary, args...)
 	command.Dir = dir
-	command.Env = append(os.Environ(), "PATH="+filepath.Join(dir, "empty-path"))
+	command.Env = environment
 	var out, diagnostic bytes.Buffer
 	command.Stdout = &out
 	command.Stderr = &diagnostic

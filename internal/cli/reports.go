@@ -180,7 +180,31 @@ func libraryCheckedReport(result library.CheckResult) commandReport {
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
+	fmt.Fprintf(&out, "\nPending library release %d\n", result.PendingRelease.Release)
+	if len(result.PendingRelease.Rules) == 0 {
+		out.WriteString("  No rule changes are pending.\n")
+	}
+	idWidth, changeWidth := 0, 0
+	for _, rule := range result.PendingRelease.Rules {
+		idWidth, changeWidth = max(idWidth, len(rule.ID)), max(changeWidth, len(rule.Change))
+	}
+	for _, rule := range result.PendingRelease.Rules {
+		fmt.Fprintf(&out, "  %-*s  %-*s  %s\n", idWidth, rule.ID, changeWidth, rule.Change, pendingVersions(rule))
+	}
 	return commandReport{value: result, human: out.String()}
+}
+
+// pendingVersions shows a pending rule's current and next version, or the only one it has.
+func pendingVersions(rule library.PendingRule) string {
+	switch {
+	case rule.CurrentVersion == nil:
+		return rule.NextVersion.String()
+	case rule.NextVersion == nil && rule.ReplacedBy != "":
+		return rule.CurrentVersion.String() + ", replaced by " + rule.ReplacedBy
+	case rule.NextVersion == nil:
+		return rule.CurrentVersion.String()
+	}
+	return rule.CurrentVersion.String() + " -> " + rule.NextVersion.String()
 }
 
 func projectCheckedReport(result projectCheckResult) commandReport {

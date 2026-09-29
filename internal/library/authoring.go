@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -26,7 +27,11 @@ type AuthoringResult struct {
 }
 
 // Options locates the library itself, independently of any consumer project.
-type Options struct{ Directory string }
+type Options struct {
+	Directory string
+	// Git runs Git in the library's own repository, to read its library releases; zero values use Git from PATH.
+	Git gitexec.Options
+}
 
 // Terms contains publisher-supplied text; nil Notice omits a notice while an empty value preserves an empty file.
 type Terms struct {

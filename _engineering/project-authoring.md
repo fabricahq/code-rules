@@ -6,6 +6,8 @@
 
 `library.Initialize`, `AddGroup`, `AddRule`, and `Check` operate on the library root. `Load` and `LoadSource` validate selected catalogs for consumers; full-library checks also validate unused content. Inventory capture and its filesystem adapter remain private.
 
+`Check` also compares the working tree with the latest `release/<number>` tag reachable from `HEAD`. It reads the library's own repository through `internal/gitexec`'s owned mode, which honors the author's Git configuration, and compares content as Git would store it, so line-ending conversion is not a change. Change notes in `changes/` are read separately from the inventory, so catalogs and snapshots never include them. A library whose root has no `.git` has no library releases.
+
 Both use `internal/filetxn` for contained reads and protected publication. Its `Edit` operation acquires ownership, prepares changes against current input, publishes them, and reports post-commit cleanup warnings. Shared rule templates and format validation live in `internal/rules`.
 
 Project init preserves valid configuration and local rules while refreshing an unmodified managed project guide. The guide carries a body digest to distinguish older generated text from manual edits; this is an ownership check, not authentication. Project commands use `.code-rules/config.yaml` from the project root. The managed guide lives at `.code-rules/README.md`; the project's root README is outside its ownership.

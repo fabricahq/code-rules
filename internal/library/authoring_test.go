@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,6 +15,42 @@ import (
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
+
+// initRepository creates an empty Git repository in dir. It scrubs every inherited GIT_ variable and ignores
+// user and system configuration, so a GIT_DIR set by a Git hook or rebase can't redirect it to another repository.
+func initRepository(t *testing.T, dir string) {
+	t.Helper()
+	command := exec.Command("git", "init", "--quiet", "--template=", dir)
+	for _, item := range os.Environ() {
+		if !strings.HasPrefix(item, "GIT_") {
+			command.Env = append(command.Env, item)
+		}
+	}
+	command.Env = append(command.Env, "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL=/dev/null")
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatal(err, string(output))
+	}
+}
+
+// TestInitRepository_IgnoresAnInheritedGitDir keeps tests run from a Git hook or rebase out of the enclosing repository.
+func TestInitRepository_IgnoresAnInheritedGitDir(t *testing.T) {
+	enclosing := t.TempDir()
+	initRepository(t, enclosing)
+	config := filepath.Join(enclosing, ".git", "config")
+	before, err := os.ReadFile(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GIT_DIR", filepath.Join(enclosing, ".git"))
+	target := t.TempDir()
+	initRepository(t, target)
+	if after, err := os.ReadFile(config); err != nil || !bytes.Equal(after, before) {
+		t.Fatalf("changed the enclosing repository's configuration:\n%s", after)
+	}
+	if _, err := os.Stat(filepath.Join(target, ".git", "HEAD")); err != nil {
+		t.Fatal(err)
+	}
+}
 
 // TestLibraryLifecycle authors a licensed library, validates counts without writes, and rejects marked drafts.
 func TestLibraryLifecycle(t *testing.T) {
@@ -100,6 +137,8 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 			case "missing-link":
 				write("assets/unreferenced.md", "[missing](absent.md)")
 			case "unrelated":
+				// An unborn branch has no library release, so check needs no change notes.
+				initRepository(t, options.Directory)
 				write(".git/objects/example", "arbitrary repository bytes")
 				write("docs/design.txt", "unrelated documentation")
 			case "cross-rule":
@@ -165,7 +204,7 @@ func TestLibraryCheckRejectsConcurrentEdits(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer root.Close()
-			before, _, err := libraryCheckInput(ctx, root)
+			before, err := libraryCheckInput(ctx, root)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -191,7 +230,7 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	snapshot, _, err := libraryCheckInput(ctx, root)
+	snapshot, err := libraryCheckInput(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +240,7 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(options.Directory, "techs/go/_group.yaml"), []byte(`{"name":"Go","description":"Go guidance","whenToRead":"When editing Go"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	catalog, err := LoadSource(ctx, capturedLibrary{snapshot}, "library", rules.GroupSelection{Pattern: "*"})
+	catalog, err := LoadSource(ctx, capturedLibrary{snapshot.tree}, "library", rules.GroupSelection{Pattern: "*"})
 	if err != nil || len(catalog.Groups) != 0 {
 		t.Fatal(catalog, err)
 	}
@@ -211,11 +250,11 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err := os.Remove(filepath.Join(options.Directory, "techs/go/_group.yaml")); err != nil {
 		t.Fatal(err)
 	}
-	empty, _, err := libraryCheckInput(ctx, root)
+	empty, err := libraryCheckInput(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LoadSource(ctx, capturedLibrary{empty}, "library", rules.GroupSelection{Pattern: "*"}); err == nil {
+	if _, err := LoadSource(ctx, capturedLibrary{empty.tree}, "library", rules.GroupSelection{Pattern: "*"}); err == nil {
 		t.Fatal("empty group without metadata accepted")
 	}
 }
