@@ -263,7 +263,7 @@ Create the group first with `code-rules library add group`; rule creation does n
 code-rules library change ID... [options]
 ```
 
-Write a new [change note](/reference/rule-versions/#change-notes) for one or more rules. `ID` is a rule ID, such as `practices/testing/verify-retry-limits`; name several rules to cover related changes in one note. Before the first library release, rules need no notes.
+Write a new [change note](/reference/rule-versions/#change-notes) for one or more rules. `ID` is a rule ID, such as `practices/testing/verify-retry-limits`; name several rules to cover related changes in one note. Before the first library release, rules need no notes, so the command fails and says so.
 
 | Option | Meaning |
 | --- | --- |
