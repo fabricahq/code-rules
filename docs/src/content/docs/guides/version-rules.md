@@ -52,7 +52,7 @@ A project keeps the versions it imported until someone runs `code-rules project 
 You manage rule versions with two Code Rules commands. You never create version tags by hand.
 
 - **`code-rules library change`** records a change to one rule. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file beside the rule.
-- **`code-rules library release`** turns every pending change note into a new rule version and publishes each version as a **GitHub Release**. It works out each rule's next version number, removes the notes, and commits. It then creates a Git tag for each new version, pushes the commit and tags, and creates the GitHub Releases.
+- **`code-rules library release`** turns every pending change note into a new rule version. It commits the removal of the notes, tags each new version, pushes, and publishes each version as a **GitHub Release**.
 
 A third command, `code-rules library check`, confirms that every changed rule has a change note, and previews the versions the next release will publish.
 
