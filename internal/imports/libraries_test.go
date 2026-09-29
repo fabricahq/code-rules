@@ -53,7 +53,7 @@ func newLibraryFixture(t *testing.T, files map[string][]byte) *gitfixture.Fixtur
 // libraryConfig parses the same configuration boundary used by the application.
 func libraryConfig(t *testing.T, repository string) rules.Configuration {
 	t.Helper()
-	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": repository, "ref": "v1.2.0", "groups": []string{"techs/go"}, "exclude": map[string]string{}, "replace": map[string]any{}}}})
+	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": repository, "ref": "v1.2.0", "groups": []string{"techs/go"}}}})
 	config, err := rules.ParseConfiguration(raw)
 	if err != nil {
 		t.Fatal(err)

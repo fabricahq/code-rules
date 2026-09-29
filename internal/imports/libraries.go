@@ -23,9 +23,15 @@ type Library struct {
 
 // ImportLibraries imports every configured source or returns no partial result.
 // It never installs files in a consuming project. Source temporary state is closed on every path.
+// A source without ref, or with individually selected rules, fails with code not-yet-supported before any fetch.
 func ImportLibraries(ctx context.Context, configuration rules.Configuration, options Options) (map[string]Library, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, gitexec.ContextFailure(err)
+	}
+	for _, source := range configuration.Sources {
+		if err := requireImportable(source); err != nil {
+			return nil, err
+		}
 	}
 	result := make(map[string]Library, len(configuration.Sources))
 	for _, source := range configuration.Sources {
@@ -39,6 +45,19 @@ func ImportLibraries(ctx context.Context, configuration rules.Configuration, opt
 		result[source.Name] = imported
 	}
 	return result, nil
+}
+
+// requireImportable refuses a source this importer can't satisfy yet: following rule versions and
+// selecting individual rules both need rule versions resolved from release/<number> tags, which
+// replace this check (slice 5 of _engineering/rule-versioning-handoff.md).
+func requireImportable(source rules.Source) error {
+	if source.Ref == "" {
+		return fail("not-yet-supported", fmt.Sprintf("Source %q has no ref. Importing rule versions from library releases arrives in a later step of per-rule versioning; until then, set sources.%s.ref to a tag or full commit SHA.", source.Name, source.Name), nil)
+	}
+	if len(source.Rules) > 0 {
+		return fail("not-yet-supported", fmt.Sprintf("Source %q selects individual rules. Importing individual rules arrives in a later step of per-rule versioning; until then, select their groups in sources.%s.groups instead.", source.Name, source.Name), nil)
+	}
+	return nil
 }
 
 // importLibrary applies one deadline across fetch, blob reads, validation, and snapshot construction.

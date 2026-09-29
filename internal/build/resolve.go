@@ -151,15 +151,8 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 				return resolution{}, invalid(source.Name, "loaded group outside configured selection")
 			}
 		}
-		for _, target := range slices.Sorted(maps.Keys(source.Exclude)) {
-			if _, ok := candidates[target]; !ok {
-				return resolution{}, invalid(source.Name+":"+target, "exception target is missing from selected groups")
-			}
-		}
-		for _, target := range slices.Sorted(maps.Keys(source.Replace)) {
-			if _, ok := candidates[target]; !ok {
-				return resolution{}, invalid(source.Name+":"+target, "replacement target is missing from selected groups")
-			}
+		if err := requireImported(source, candidates); err != nil {
+			return resolution{}, err
 		}
 		retained := maps.Clone(supplied.Catalog.SupportingFiles)
 		if retained == nil {
@@ -167,27 +160,28 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		}
 		for _, id := range slices.Sorted(maps.Keys(candidates)) {
 			parsed := candidates[id]
-			if _, excluded := source.Exclude[id]; excluded {
+			exclusion, excluded := source.Exclude[id]
+			if excluded && exclusion.ReplacedBy == "" {
 				retained[parsed.Path] = []byte(parsed.Document)
 				continue
 			}
 			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref, Commit: ref.SHA}
 			active := resolvedRule{Rule: parsed, Origin: origin, License: supplied.Catalog.License}
-			if replacement, ok := source.Replace[id]; ok {
-				file := strings.TrimPrefix(replacement.File, "local/")
+			if excluded {
+				file := strings.TrimPrefix(exclusion.ReplacedBy, "local/")
 				replacementRule, ok := localRules[file]
 				if !ok {
-					return resolution{}, invalid(replacement.File, "missing local replacement rule")
+					return resolution{}, invalid(exclusion.ReplacedBy, "missing local replacement rule")
 				}
 				if used[file] {
-					return resolution{}, invalid(replacement.File, "replacement file is reused for multiple targets")
+					return resolution{}, invalid(exclusion.ReplacedBy, "replacement file is reused for multiple targets")
 				}
 				if replacementRule.Group != parsed.Group {
-					return resolution{}, invalid(replacement.File, "replacement must stay within the target group")
+					return resolution{}, invalid(exclusion.ReplacedBy, "replacement must stay within the target group")
 				}
 				retained[parsed.Path] = []byte(parsed.Document)
 				used[file] = true
-				active = resolvedRule{Rule: replacementRule, Origin: ruleOrigin{Source: "local", File: file}, Upstream: &origin, Reason: replacement.Reason, License: nil}
+				active = resolvedRule{Rule: replacementRule, Origin: ruleOrigin{Source: "local", File: file}, Upstream: &origin, Reason: exclusion.Reason, License: nil}
 			}
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
@@ -213,6 +207,23 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		result.Groups = append(result.Groups, *group)
 	}
 	return result, nil
+}
+
+// requireImported rejects an exclusion or pin that names a rule the source doesn't import.
+// Candidates are keyed by library rule ID. Retired rules, which only warn, aren't distinguished yet;
+// that needs the library's release history.
+func requireImported(source rules.Source, candidates map[string]rules.Rule) error {
+	for _, entries := range []struct {
+		field   string
+		targets []string
+	}{{"exclude", slices.Sorted(maps.Keys(source.Exclude))}, {"pins", slices.Sorted(maps.Keys(source.Pins))}} {
+		for _, target := range entries.targets {
+			if _, ok := candidates[target]; !ok {
+				return invalid("sources."+source.Name+"."+entries.field+"."+target, "rule is not imported by this source; name a rule that its groups or rules select")
+			}
+		}
+	}
+	return nil
 }
 
 // ensureGroup returns a group accumulator with explicit empty collections.

@@ -72,7 +72,7 @@ func TestIndexPagesRejectsUnboundedDirectory(t *testing.T) {
 
 // TestRenderIndexesLinksToEffectiveDefinitions includes replacements and excludes full bodies.
 func TestRenderIndexesLinksToEffectiveDefinitions(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -104,7 +104,7 @@ func TestIndexPagesRejectsMalformedUTF8(t *testing.T) {
 
 // TestRenderEmptyGroup explains why an adopted group has no rule summaries.
 func TestRenderEmptyGroup(t *testing.T) {
-	config, libraries := fixture(t, `{"techs/go/errors":"Not applicable"}`, `{}`)
+	config, libraries := fixture(t, `{"techs/go/errors":{"reason":"Not applicable"}}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -125,7 +125,7 @@ func TestRenderEmptyGroup(t *testing.T) {
 func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 	for _, local := range []bool{false, true} {
 		t.Run(fmt.Sprint("local=", local), func(t *testing.T) {
-			config, libraries := fixture(t, `{}`, `{}`)
+			config, libraries := fixture(t, `{}`)
 			var files map[string][]byte
 			want, unwanted := "When editing Go.", ""
 			description, unwantedDescription := "Go guidance.", ""
@@ -179,7 +179,7 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 
 // TestGroupPagesKeepMultipleSourceCues labels each imported definition when no local override applies.
 func TestGroupPagesKeepMultipleSourceCues(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -253,7 +253,7 @@ func TestIndexPagesDefaultBoundary(t *testing.T) {
 
 // TestOrdinarySummaryStaysTogether prevents premature part directories for small groups.
 func TestOrdinarySummaryStaysTogether(t *testing.T) {
-	config, libraries := fixture(t, "{}", "{}")
+	config, libraries := fixture(t, "{}")
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -269,7 +269,7 @@ func TestOrdinarySummaryStaysTogether(t *testing.T) {
 
 // TestGroupDescriptionsEscapeMarkdown keeps authored descriptions from adding links or headings.
 func TestGroupDescriptionsEscapeMarkdown(t *testing.T) {
-	config, libraries := fixture(t, "{}", "{}")
+	config, libraries := fixture(t, "{}")
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -288,7 +288,7 @@ func TestGroupDescriptionsEscapeMarkdown(t *testing.T) {
 
 // TestGroupDescriptionsRemainLiteral prevents descriptions from becoming Markdown block syntax.
 func TestGroupDescriptionsRemainLiteral(t *testing.T) {
-	config, libraries := fixture(t, "{}", "{}")
+	config, libraries := fixture(t, "{}")
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)

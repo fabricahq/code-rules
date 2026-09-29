@@ -201,8 +201,9 @@ func recordedSource(name string, repository json.RawMessage, ref string, selecti
 }
 
 // matchSnapshotSource rejects stale selectors and inconsistent resolved revisions without fetching Git.
+// A format 1 record can't hold individually selected rules, so configuration that selects any never matches.
 func matchSnapshotSource(want, got rules.Source, record sourceRecord, where string) error {
-	if want.Repository != got.Repository || want.Ref != got.Ref || want.Groups.Pattern != got.Groups.Pattern || !slices.Equal(want.Groups.Groups, got.Groups.Groups) {
+	if want.Repository != got.Repository || want.Ref != got.Ref || len(want.Rules) > 0 || want.Groups.Pattern != got.Groups.Pattern || !slices.Equal(want.Groups.Groups, got.Groups.Groups) {
 		return invalidSnapshot(where, "source identity or group selection changed; run code-rules project sync")
 	}
 	commit, err := rules.ParseGitRef(record.Commit, where+".resolvedCommit")

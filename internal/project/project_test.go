@@ -39,7 +39,7 @@ func importedProject(t *testing.T) (*os.Root, Options) {
 	if err := root.RemoveAll("local"); err != nil {
 		t.Fatal(err)
 	}
-	configJSON := []byte(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{},"replace":{}}}}`)
+	configJSON := []byte(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"]}}}`)
 	writeFixture(t, root, "config.yaml", string(configJSON))
 	config, err := rules.ParseConfiguration(configJSON)
 	if err != nil {

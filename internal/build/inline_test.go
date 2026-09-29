@@ -15,7 +15,7 @@ import (
 
 // TestPrepareInlineBoundaries includes whole UTF-8 groups only when the inline byte limit and index line limit allow them.
 func TestPrepareInlineBoundaries(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func TestPrepareInlineLinks(t *testing.T) {
 		"[full][multi\n line] [multi\nline][] ![multi\n line]",
 	} {
 		t.Run(links, func(t *testing.T) {
-			config, libraries := fixture(t, `{}`, `{}`)
+			config, libraries := fixture(t, `{}`)
 			lib := libraries["team"]
 			lib.Catalog.Groups[0].Rules = nil
 			for i := range 2 {
@@ -149,7 +149,7 @@ func TestPrepareInlineLinks(t *testing.T) {
 
 // TestPrepareInlineFallbackNeverHidesInvalidRules validates later rules even after an earlier body exceeds the inline budget.
 func TestPrepareInlineFallbackNeverHidesInvalidRules(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -167,7 +167,7 @@ func TestPrepareInlineFallbackNeverHidesInvalidRules(t *testing.T) {
 // TestInlineMultilineHeadingReference preserves link destinations when a reference label crosses heading lines.
 func TestInlineMultilineHeadingReference(t *testing.T) {
 	for _, heading := range []string{"[full][multi\nline]\n======", "> [full][multi\n> line]\n> ======", "![full][multi\nline]\n======", "> ![full][multi\n> line]\n> ======"} {
-		config, libraries := fixture(t, `{}`, `{}`)
+		config, libraries := fixture(t, `{}`)
 		resolved, err := resolve(config, libraries, nil)
 		if err != nil {
 			t.Fatal(err)

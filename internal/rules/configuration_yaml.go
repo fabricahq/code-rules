@@ -19,6 +19,7 @@ func ParseConfigurationYAML(input []byte) (Configuration, error) {
 }
 
 // AppendConfigurationSource adds a source without dropping existing comments or reordering entries.
+// Empty optional fields are omitted, and groups is omitted when only individual rules are selected.
 // Folded scalars use literal style in the result because the YAML encoder can change their values.
 // The complete resulting configuration is validated before any bytes are returned.
 func AppendConfigurationSource(input []byte, alias string, source Source) ([]byte, error) {
@@ -41,17 +42,20 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 			return nil, invalid("sources."+alias, "source already exists")
 		}
 	}
-	var groups any = source.Groups.Groups
+	var groups any
 	if source.Groups.Pattern != "" {
 		groups = source.Groups.Pattern
+	} else if len(source.Groups.Groups) > 0 {
+		groups = source.Groups.Groups
 	}
 	declaration := struct {
-		Repository string                 `yaml:"repository"`
-		Ref        string                 `yaml:"ref,omitempty"`
-		Groups     any                    `yaml:"groups"`
-		Exclude    map[string]string      `yaml:"exclude"`
-		Replace    map[string]Replacement `yaml:"replace"`
-	}{source.Repository, source.Ref, groups, source.Exclude, source.Replace}
+		Repository string               `yaml:"repository"`
+		Groups     any                  `yaml:"groups,omitempty"`
+		Rules      []string             `yaml:"rules,omitempty"`
+		Ref        string               `yaml:"ref,omitempty"`
+		Pins       map[string]Pin       `yaml:"pins,omitempty"`
+		Exclude    map[string]Exclusion `yaml:"exclude,omitempty"`
+	}{source.Repository, groups, source.Rules, source.Ref, source.Pins, source.Exclude}
 	var entry yaml.Node
 	if err := entry.Encode(declaration); err != nil {
 		return nil, err

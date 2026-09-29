@@ -40,9 +40,46 @@ func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 	if _, err := Initialize(context.Background(), Options{Directory: filepath.Dir(root.Name())}); err != nil {
 		t.Fatal(err)
 	}
-	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "ref": "v1.0.0", "groups": []string{"techs/go"}, "exclude": map[string]any{}, "replace": map[string]any{}}}})
+	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "ref": "v1.0.0", "groups": []string{"techs/go"}}}})
 	writeFixture(t, root, "config.yaml", string(raw))
 	return f, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}, imports.Options{GitPath: f.GitPath, Environment: f.Environment}
+}
+
+// TestSyncRefusesSourcesWithoutResolvableVersions fails before fetching or writing when a source has no ref
+// or selects individual rules, which need rule versions from release tags.
+func TestSyncRefusesSourcesWithoutResolvableVersions(t *testing.T) {
+	for name, fields := range map[string]map[string]any{
+		"no ref":           {"groups": []string{"techs/go"}},
+		"individual rules": {"ref": "v1.0.0", "rules": []string{"techs/go/errors"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			f, options, git := syncProject(t)
+			fields["repository"] = f.Repository
+			raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": fields}})
+			root, err := openProject(context.Background(), options, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			writeFixture(t, root, "config.yaml", string(raw))
+			before, err := filetxn.ReadTree(context.Background(), root, ".")
+			if err != nil {
+				t.Fatal(err)
+			}
+			changes, err := Sync(context.Background(), options, git)
+			var refused *imports.Error
+			if !errors.As(err, &refused) || refused.Code != "not-yet-supported" || !strings.Contains(err.Error(), "arrives in a later step") || changes.Added != nil {
+				t.Fatalf("got %+v, %v", changes, err)
+			}
+			after, err := filetxn.ReadTree(context.Background(), root, ".")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(before.Files, after.Files) {
+				t.Fatal("refused sync changed project files")
+			}
+		})
+	}
 }
 
 // TestSyncRoundTripAndRetirement preserves original bytes, produces clean offline output, and removes retired sources.

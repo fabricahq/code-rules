@@ -15,7 +15,7 @@ import (
 // snapshotFixture supplies one empty group with original binary and CRLF files.
 func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
-	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{},"replace":{}}}}`))
+	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"]}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,6 +71,29 @@ func TestSnapshotRepositoryAddressChangeRequiresSync(t *testing.T) {
 			}
 			if validation.Location != "team/_source.json" || !strings.Contains(validation.Problem, "run code-rules project sync") {
 				t.Fatalf("missing source location or recovery instruction: %v", err)
+			}
+		})
+	}
+}
+
+// TestSnapshotUnrecordedSelectionRequiresSync rejects configuration a format 1 record can't satisfy:
+// a source without ref, or one that selects individual rules.
+func TestSnapshotUnrecordedSelectionRequiresSync(t *testing.T) {
+	for name, alter := range map[string]func(*rules.Source){
+		"no ref":           func(s *rules.Source) { s.Ref, s.ParsedRef = "", nil },
+		"individual rules": func(s *rules.Source) { s.Rules = []string{"techs/go/errors"} },
+	} {
+		t.Run(name, func(t *testing.T) {
+			config, snapshots := snapshotFixture(t)
+			vendor, err := encodeSnapshots(config, snapshots)
+			if err != nil {
+				t.Fatal(err)
+			}
+			alter(&config.Sources[0])
+			got, err := decodeSnapshots(config, vendor)
+			var validation *rules.ValidationError
+			if got != nil || !errors.As(err, &validation) || validation.Location != "team/_source.json" || !strings.Contains(validation.Problem, "run code-rules project sync") {
+				t.Fatalf("got %v, %v", got, err)
 			}
 		})
 	}

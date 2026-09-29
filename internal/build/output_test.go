@@ -15,7 +15,7 @@ import (
 
 // TestPrepareReadableProvenance keeps HTML-significant characters readable while preserving JSON string contents.
 func TestPrepareReadableProvenance(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -81,7 +81,7 @@ func TestPrepareToolVersionWhitespace(t *testing.T) {
 
 // TestPrepareRetainsTermsWithoutActiveRules copies binary terms unchanged even after every upstream rule is excluded.
 func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
-	config, libraries := fixture(t, `{"techs/go/errors":"Use local policy"}`, `{}`)
+	config, libraries := fixture(t, `{"techs/go/errors":{"reason":"Use local policy"}}`)
 	supplied := libraries["team"]
 	terms := []byte{'x', '\r', '\n', 0, 255}
 	supplied.Catalog.License = &rules.LicenseDeclaration{Files: []string{"LICENSE"}, AttributionFiles: []string{"NOTICE"}}
@@ -129,7 +129,7 @@ func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
 
 // TestPrepareReplacementProvenance retains upstream identity but assigns only the local definition's license basis.
 func TestPrepareReplacementProvenance(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{"techs/go/errors":{"file":"local/techs/go/custom.md","reason":"Project policy"}}`)
+	config, libraries := fixture(t, `{"techs/go/errors":{"reason":"Project policy","replacedBy":"local/techs/go/custom.md"}}`)
 	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/custom.md": []byte(document)})
 	if err != nil {
 		t.Fatal(err)
@@ -164,7 +164,7 @@ func TestPrepareReplacementProvenance(t *testing.T) {
 
 // TestPrepareNoPartialOutput rejects missing term bytes and invalid budgets after resolution.
 func TestPrepareNoPartialOutput(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -184,7 +184,7 @@ func TestPrepareNoPartialOutput(t *testing.T) {
 
 // TestProvenanceCompatibility keeps source-relative terms and explicit absent identity fields.
 func TestProvenanceCompatibility(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	lib := libraries["team"]
 	lib.Catalog.License = &rules.LicenseDeclaration{Files: []string{"LICENSE"}, AttributionFiles: []string{"NOTICE"}}
 	lib.Catalog.SupportingFiles["LICENSE"] = []byte("Terms")
@@ -256,7 +256,7 @@ func TestProvenanceCompatibility(t *testing.T) {
 
 // TestProvenanceGuidanceOrder retains library-first provenance without changing effective local priority.
 func TestProvenanceGuidanceOrder(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/_group.yaml": []byte(`{"name":"Local Go","description":"Local policy","whenToRead":"When editing Go"}`)})
 	if err != nil {
 		t.Fatal(err)

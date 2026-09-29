@@ -49,5 +49,5 @@ func parseSourceInput(input SourceInput) (rules.Source, error) {
 	if err != nil {
 		return rules.Source{}, err
 	}
-	return rules.Source{Repository: input.Repository, Ref: ref, Groups: groups, Exclude: map[string]string{}, Replace: map[string]rules.Replacement{}}, nil
+	return rules.Source{Repository: input.Repository, Ref: ref, Groups: groups}, nil
 }
