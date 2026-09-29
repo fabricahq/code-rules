@@ -107,7 +107,8 @@ func libraryInitializedReport(result library.AuthoringResult, scope authoringSco
 	return authoredReport(&out, result.Files, result.Warnings, steps)
 }
 
-func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScope) commandReport {
+// ruleCreatedReport explains how to finish the rule; changeNote adds recording id's change note in a released library.
+func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScope, id string, changeNote bool) commandReport {
 	var out strings.Builder
 	if draft {
 		out.WriteString("Rule draft created:\n")
@@ -129,7 +130,15 @@ func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScop
 	if scope.library {
 		commands = []string{scope.command("check")}
 	}
-	return authoredReport(&out, files, warnings, []nextStep{{Instruction: instruction}, {Instruction: ruleReadyHeading(scope.library), Commands: commands}})
+	steps := []nextStep{{Instruction: instruction}, {Instruction: ruleReadyHeading(scope.library), Commands: commands}}
+	if changeNote {
+		steps = []nextStep{
+			{Instruction: instruction},
+			{Instruction: "After the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:", Commands: []string{scope.command("change " + id)}},
+			{Instruction: "Then validate the library:", Commands: commands},
+		}
+	}
+	return authoredReport(&out, files, warnings, steps)
 }
 
 func groupCreatedReport(files, warnings []string, groupPath string, scope authoringScope) commandReport {

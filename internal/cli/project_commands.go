@@ -157,7 +157,7 @@ func projectRuleCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{})
+		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{}, args[0], false)
 		return nil
 	}
 	return rule

@@ -268,3 +268,37 @@ func TestLibraryChange_PromptsForMissingInputs(t *testing.T) {
 		t.Fatalf("%q %v", data, err)
 	}
 }
+
+// TestLibraryAddRule_NextStepsIncludeTheChangeNote after the first library release, and following them passes check.
+func TestLibraryAddRule_NextStepsIncludeTheChangeNote(t *testing.T) {
+	binary := buildCLI(t)
+	fixture, dir := releasedLibrary(t)
+	writeFiles(t, dir, map[string]string{"body.md": "Test every retry.\n"})
+	add := []string{"library", "add", "rule", "practices/testing/retries", "--title", "Test retries", "--when-to-read", "When changing retries.", "--impact", "HIGH", "--impact-description", "Catch retry bugs.", "--body-file", "body.md"}
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, add...)
+	want := "\nAfter the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:\n  code-rules library change practices/testing/retries\n\nThen validate the library:\n  code-rules library check\n"
+	if code != 0 || diagnostic != "" || !strings.HasSuffix(out, want) {
+		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
+	}
+	if out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check"); code != 1 || !strings.Contains(diagnostic, "practices/testing/retries is a new rule") {
+		t.Fatal(code, out, diagnostic)
+	}
+	if out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "change", "practices/testing/retries", "--summary", "Add a rule about testing retries."); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	if out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check"); code != 0 || !strings.Contains(out, "practices/testing/retries  new  1.0.0") {
+		t.Fatal(code, out, diagnostic)
+	}
+	unreleased, err := fixture.Clone(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.CommandIn(context.Background(), unreleased, "tag", "--delete", "release/1"); err != nil {
+		t.Fatal(err)
+	}
+	writeFiles(t, unreleased, map[string]string{"body.md": "Test every retry.\n"})
+	out, diagnostic, code = runCLIWithEnvironment(t, binary, unreleased, fixture.Environment, add...)
+	if code != 0 || strings.Contains(out, "library change") || !strings.HasSuffix(out, "After writing the rule text, run:\n  code-rules library check\n") {
+		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
+	}
+}

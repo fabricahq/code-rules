@@ -150,7 +150,7 @@ func libraryRuleCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{library: true, directory: f.value("directory")})
+		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{library: true, directory: f.value("directory")}, args[0], plan.NeedsChangeNote())
 		return nil
 	}
 	return cmd
