@@ -26,7 +26,7 @@ func TestNativeLifecycle(t *testing.T) {
 	if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
-	for _, scenario := range []string{"lifecycle", "update", "changed-vendor", "failed-sync"} {
+	for _, scenario := range []string{"lifecycle", "versions", "changed-vendor", "failed-sync"} {
 		t.Run(scenario, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 			defer cancel()

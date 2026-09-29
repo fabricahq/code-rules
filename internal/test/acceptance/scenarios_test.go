@@ -40,7 +40,7 @@ type Report struct {
 // All writes and Git history belong to disposable directories; no external network or global install is used.
 func Run(ctx context.Context, binary, scenario string) (report Report, err error) {
 	report = Report{Scenario: scenario, Steps: []Step{}, Verified: []string{}}
-	if scenario != "lifecycle" && scenario != "update" && scenario != "changed-vendor" && scenario != "failed-sync" {
+	if scenario != "lifecycle" && scenario != "versions" && scenario != "changed-vendor" && scenario != "failed-sync" {
 		return report, fmt.Errorf("unknown acceptance scenario")
 	}
 	directory, err := os.MkdirTemp("", "code-rules-acceptance-")
@@ -113,7 +113,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	}
 	terms := []byte("Original library terms.\r\nPreserve these bytes.\r\n")
 	notice := []byte("Original notice.\r\n")
-	for name, data := range map[string][]byte{"terms.txt": terms, "notice.txt": notice, "body.md": []byte("Return every failure.\n\n![diagram](assets/errors/diagram.bin)\n")} {
+	for name, data := range map[string][]byte{"terms.txt": terms, "notice.txt": notice, "body.md": []byte("Return every failure.\n\n![diagram](assets/errors/diagram.bin)\n"), "naming.md": []byte("Name errors after the failed operation.\n")} {
 		if err := os.WriteFile(filepath.Join(libraryDir, name), data, 0600); err != nil {
 			return report, err
 		}
@@ -122,6 +122,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		{"library", "init", "--spdx", "MIT", "--license-file", "terms.txt", "--notice-file", "notice.txt"},
 		{"library", "add", "group", "techs/go", "--name", "Go", "--description", "Shared Go guidance.", "--when-to-read", "When editing Go."},
 		{"library", "add", "rule", "techs/go/errors", "--title", "Return errors", "--impact", "HIGH", "--impact-description", "Preserve failures.", "--when-to-read", "When calling functions.", "--body-file", "body.md"},
+		{"library", "add", "rule", "techs/go/naming", "--title", "Name errors", "--impact", "LOW", "--impact-description", "Find failures.", "--when-to-read", "When creating errors.", "--body-file", "naming.md"},
 	}
 	for _, args := range commands {
 		if err := invoke("Author library", libraryDir, offline, 0, args...); err != nil {
@@ -148,6 +149,11 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		return report, err
 	}
 	defer func() { err = errors.Join(err, fixture.Close()) }()
+	firstRelease := "release: 1\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n  techs/go/naming: {change: new, summary: Add the rule.}\n"
+	if err := fixture.Release(ctx, 1, firstRelease); err != nil {
+		return report, err
+	}
+	report.Steps = append(report.Steps, Step{Label: "Fixture edit: publish library release release/1 with every rule at 1.0.0"})
 	gitBin := filepath.Join(directory, "git-only")
 	if err := os.Mkdir(gitBin, 0700); err != nil {
 		return report, err
@@ -162,7 +168,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			online = append(online, value)
 		}
 	}
-	for _, args := range [][]string{{"project", "init"}, {"project", "add", "library", "team", "--repository", fixture.Repository, "--ref", "v1.2.0", "--groups", "techs/go"}} {
+	for _, args := range [][]string{{"project", "init"}, {"project", "add", "library", "team", "--repository", fixture.Repository, "--groups", "techs/go"}} {
 		if err := invoke("Configure consumer", consumer, offline, 0, args...); err != nil {
 			return report, err
 		}
@@ -180,10 +186,13 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		}
 	}
 	provenance := string(files.Files[".code-rules/generated/provenance.json"])
-	if !strings.Contains(provenance, fixture.LatestCommit) || !strings.Contains(provenance, "v1.2.0") {
-		return report, fmt.Errorf("selected revision missing from provenance")
+	if !strings.Contains(provenance, fixture.LatestCommit) || !strings.Contains(provenance, `"release": 1,`) || !strings.Contains(provenance, `"version": "1.0.0"`) {
+		return report, fmt.Errorf("library release or rule versions missing from provenance")
 	}
-	report.Verified = append(report.Verified, "Annotated tag v1.2.0 imported at its commit", "License, notice, and binary asset bytes preserved exactly")
+	if !strings.Contains(string(files.Files[".code-rules/generated/rules/team/techs/go/errors.md"]), "Version: 1.0.0") {
+		return report, fmt.Errorf("rule version missing from generated guidance")
+	}
+	report.Verified = append(report.Verified, "Library release release/1 imported at its commit, with each rule's version in provenance and guidance", "License, notice, and binary asset bytes preserved exactly")
 	if err := invoke("Local group overrides imported guidance", consumer, offline, 0, "project", "add", "group", "techs/go", "--name", "Project Go", "--description", "Project-specific Go guidance.", "--when-to-read", "When changing this project."); err != nil {
 		return report, err
 	}
@@ -249,67 +258,121 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			return report, fmt.Errorf("failed build changed files")
 		}
 		report.Verified = append(report.Verified, "Changed vendor bytes produce an error and preserve all project files")
-	case "update", "failed-sync":
-		rulePath := filepath.Join(fixture.Directory, "repository/techs/go/errors.md")
+	case "versions", "failed-sync":
 		document := libraryTree.Files["techs/go/errors.md"]
-		if scenario == "update" {
+		if scenario == "versions" {
 			document = bytes.ReplaceAll(document, []byte("Return every failure."), []byte("Return updated failures."))
 		} else {
 			document = []byte("Invalid rule without metadata")
 		}
-		if err := os.WriteFile(rulePath, document, 0600); err != nil {
+		if _, err := fixture.Commit(ctx, fixture.Worktree(), "Change the errors rule", map[string][]byte{"techs/go/errors.md": document}); err != nil {
 			return report, err
 		}
-		for _, args := range [][]string{{"add", "--all"}, {"-c", "commit.gpgsign=false", "commit", "--quiet", "-m", "Next fixture revision"}, {"tag", "v1.3.0"}} {
-			if _, err := fixture.Command(ctx, args...); err != nil {
-				return report, err
-			}
-		}
-		report.Steps = append(report.Steps, Step{Label: "Fixture edit: publish local Git tag v1.3.0 with " + scenario + " content"})
-		configPath := filepath.Join(consumer, ".code-rules/config.yaml")
-		config, err := os.ReadFile(configPath)
-		if err != nil {
+		secondRelease := "release: 2\nrules:\n  techs/go/errors: 1.1.0\n  techs/go/naming: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add updated wording.}\n"
+		if err := fixture.Release(ctx, 2, secondRelease); err != nil {
 			return report, err
 		}
-		if !bytes.Contains(config, []byte("ref: v1.2.0")) {
-			return report, fmt.Errorf("configuration does not record ref v1.2.0")
-		}
-		if err := os.WriteFile(configPath, bytes.Replace(config, []byte("ref: v1.2.0"), []byte("ref: v1.3.0"), 1), 0600); err != nil {
-			return report, err
-		}
-		report.Steps = append(report.Steps, Step{Label: "Configuration edit: change the source ref to v1.3.0"})
+		report.Steps = append(report.Steps, Step{Label: "Fixture edit: publish library release release/2 with techs/go/errors at 1.1.0 and " + scenario + " content"})
 		before, err = readTree(ctx, consumer)
 		if err != nil {
 			return report, err
 		}
-		want := 0
-		if scenario == "failed-sync" {
-			want = 1
-		}
-		if err := invoke("Sync the changed ref", consumer, online, want, "project", "sync"); err != nil {
+		if err := invoke("Sync after a new library release", consumer, online, 0, "project", "sync"); err != nil {
 			return report, err
 		}
 		after, err = readTree(ctx, consumer)
 		if err != nil {
 			return report, err
 		}
-		if want == 1 {
+		if !equalTrees(before, after) {
+			return report, fmt.Errorf("sync adopted a newer version on its own")
+		}
+		report.Verified = append(report.Verified, "Sync restores the recorded versions after a new library release")
+		configure := func(label, fields string) error {
+			config := "schemaVersion: 1\nsources:\n  team:\n    repository: " + fixture.Repository + "\n    groups:\n      - techs/go\n" + fields
+			if err := os.WriteFile(filepath.Join(consumer, ".code-rules/config.yaml"), []byte(config), 0600); err != nil {
+				return err
+			}
+			report.Steps = append(report.Steps, Step{Label: "Configuration edit: " + label})
+			return nil
+		}
+		if err := configure("pin techs/go/errors to 1.1.0", "    pins:\n      techs/go/errors:\n        version: \"1.1.0\"\n        reason: Adopt the updated wording.\n"); err != nil {
+			return report, err
+		}
+		if scenario == "failed-sync" {
+			before, err = readTree(ctx, consumer)
+			if err != nil {
+				return report, err
+			}
+			if err := invoke("Sync the pin to an invalid version", consumer, online, 1, "project", "sync"); err != nil {
+				return report, err
+			}
+			after, err = readTree(ctx, consumer)
+			if err != nil {
+				return report, err
+			}
 			if !equalTrees(before, after) {
 				return report, fmt.Errorf("failed sync changed project")
 			}
 			report.Verified = append(report.Verified, "Failed import preserves vendor and generated bytes")
-		} else {
-			if !bytes.Equal(after.Files[".code-rules/vendor/team/techs/go/errors.md"], document) {
-				return report, fmt.Errorf("sync did not retain new rule")
-			}
-			if !strings.Contains(string(after.Files[".code-rules/generated/provenance.json"]), "v1.3.0") {
-				return report, fmt.Errorf("new tag missing from provenance")
-			}
-			if err := invoke("Check updated release offline", consumer, offline, 0, "project", "check"); err != nil {
-				return report, err
-			}
-			report.Verified = append(report.Verified, "New release updates retained bytes and provenance, then checks offline")
+			return report, nil
 		}
+		if err := invoke("Sync moves the pinned rule up", consumer, online, 0, "project", "sync"); err != nil {
+			return report, err
+		}
+		after, err = readTree(ctx, consumer)
+		if err != nil {
+			return report, err
+		}
+		if !bytes.Equal(after.Files[".code-rules/vendor/team/techs/go/errors.md"], document) || after.Files[".code-rules/vendor/team/_releases/1/techs/go/naming.md"] == nil {
+			return report, fmt.Errorf("sync did not import the pinned version with the older rule under _releases/1/")
+		}
+		if !strings.Contains(string(after.Files[".code-rules/generated/rules/team/techs/go/errors.md"]), "Version: 1.1.0") {
+			return report, fmt.Errorf("pinned version missing from generated guidance")
+		}
+		if err := invoke("Check the pinned version offline", consumer, offline, 0, "project", "check"); err != nil {
+			return report, err
+		}
+		report.Verified = append(report.Verified, "A pin moves one rule up, storing rules from the older library release under _releases/1/, and checks offline")
+		if err := configure("pin techs/go/errors back to 1.0.0", "    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Keep the original wording.\n"); err != nil {
+			return report, err
+		}
+		if err := invoke("Sync moves the pinned rule down", consumer, online, 0, "project", "sync"); err != nil {
+			return report, err
+		}
+		after, err = readTree(ctx, consumer)
+		if err != nil {
+			return report, err
+		}
+		if !bytes.Equal(after.Files[".code-rules/vendor/team/techs/go/errors.md"], libraryTree.Files["techs/go/errors.md"]) || after.Files[".code-rules/vendor/team/_releases/1/techs/go/naming.md"] != nil {
+			return report, fmt.Errorf("sync did not return the pinned rule to version 1.0.0")
+		}
+		report.Verified = append(report.Verified, "A pin moves one rule back down")
+		unreleased, err := fixture.Commit(ctx, fixture.Worktree(), "Unreleased change", map[string][]byte{"techs/go/naming.md": bytes.ReplaceAll(libraryTree.Files["techs/go/naming.md"], []byte("failed operation"), []byte("failed operation and its input"))})
+		if err != nil {
+			return report, err
+		}
+		if err := configure("import the unreleased commit with ref", "    ref: "+unreleased+"\n"); err != nil {
+			return report, err
+		}
+		if err := invoke("Sync an unreleased commit", consumer, online, 0, "project", "sync"); err != nil {
+			return report, err
+		}
+		output := report.Steps[len(report.Steps)-1].Stdout
+		if !strings.Contains(output, "Warning: Source team imports "+unreleased) || !strings.Contains(output, "Unreleased rules: techs/go/naming.") {
+			return report, fmt.Errorf("sync did not warn about unreleased rules: %s", output)
+		}
+		after, err = readTree(ctx, consumer)
+		if err != nil {
+			return report, err
+		}
+		if !strings.Contains(string(after.Files[".code-rules/generated/libraries/team/README.md"]), "Imported from unreleased changes.") {
+			return report, fmt.Errorf("library summary does not mention unreleased changes")
+		}
+		if err := invoke("Check the unreleased import offline", consumer, offline, 0, "project", "check"); err != nil {
+			return report, err
+		}
+		report.Verified = append(report.Verified, "An unreleased ref warns, is summarized as unreleased, and still checks offline")
 	}
 	return report, nil
 }
