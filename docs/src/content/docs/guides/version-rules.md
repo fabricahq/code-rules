@@ -3,8 +3,6 @@ title: "Version your rules"
 description: "How rules change, how rule versions describe those changes, and how to publish new versions from your library."
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
-
 Rules change over time. Some changes are small: an author fixes a typo, rewords a confusing sentence, or adds an example. Others are large: a rule becomes stricter, starts requiring something it previously only recommended, or is retired entirely.
 
 Just as with code, you can track these changes by versioning your rules. This guide explains how rule versions work, then shows how to record changes and publish new versions from your library.
@@ -216,86 +214,47 @@ release:
 
 ### Configure the repository
 
-The workflow needs three repository settings:
+Configure three settings on GitHub. Each step shows the setting's place in the repository's settings, and a [GitHub CLI](https://cli.github.com/) command that applies it. Run the commands from your library's checkout; `gh api` fills in `{owner}` and `{repo}` from it.
 
-1. **Require an up-to-date check before merging.** Pull requests into `main` must pass the workflow's `check` job and include the latest `main`. That way, the release pull request always contains every pending note: if a newer note reaches `main` first, the release pull request must be updated before it can merge.
-2. **Let the workflow open pull requests.** GitHub Actions needs permission to create the release pull request.
-3. **Let the workflow push release tags and branches.** No ruleset may block the workflow from pushing tags under `techs/` and `practices/`, or the `code-rules/released` branch.
-
-Apply them on the GitHub website, or with the [GitHub CLI](https://cli.github.com/):
-
-<Tabs syncKey="github-setup">
-<TabItem label="GitHub website">
-
-1. **Require an up-to-date check.** In **Settings > Rules > Rulesets**, choose **New ruleset > New branch ruleset**. Name it `Code Rules checks`, set **Enforcement status** to **Active**, and under **Target branches**, add **Include default branch**. Turn on **Require status checks to pass**, select **Require branches to be up to date before merging**, and add the `check` status check from **GitHub Actions**. Then choose **Create**.
-2. **Let the workflow open pull requests.** In **Settings > Actions > General**, under **Workflow permissions**, select **Allow GitHub Actions to create and approve pull requests**, then choose **Save**. If the option is unavailable, an organization owner must allow it in the organization's settings first.
-3. **Check your rulesets.** In **Settings > Rules > Rulesets**, open each ruleset and check that none targets tags under `techs/` or `practices/`, or branches under `code-rules/`. Remove those targets from any ruleset that does.
-
-</TabItem>
-<TabItem label="GitHub CLI">
-
-Run these commands from your library's checkout. `gh api` fills in `{owner}` and `{repo}` from it.
-
-1. **Require an up-to-date check.** Create a ruleset for the default branch:
+1. **Require the check, on an up-to-date branch, before merging to `main`.** Then the release pull request always includes every pending note: if a newer note reaches `main` first, the release pull request must be updated before it can merge. In **Settings > Rules > Rulesets**, add a branch ruleset for the default branch that requires the `check` status check and requires branches to be up to date. Or run:
 
    ```sh
-   gh api --method POST 'repos/{owner}/{repo}/rulesets' \
-     --input - <<'EOF'
+   gh api --method POST 'repos/{owner}/{repo}/rulesets' --input - <<'EOF'
    {
      "name": "Code Rules checks",
      "target": "branch",
      "enforcement": "active",
-     "conditions": {
-       "ref_name": {
-         "include": ["~DEFAULT_BRANCH"],
-         "exclude": []
+     "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+     "rules": [{
+       "type": "required_status_checks",
+       "parameters": {
+         "strict_required_status_checks_policy": true,
+         "required_status_checks": [{"context": "check", "integration_id": 15368}]
        }
-     },
-     "rules": [
-       {
-         "type": "required_status_checks",
-         "parameters": {
-           "strict_required_status_checks_policy": true,
-           "required_status_checks": [
-             { "context": "check", "integration_id": 15368 }
-           ]
-         }
-       }
-     ]
+     }]
    }
    EOF
    ```
 
-   `15368` is the ID of the GitHub Actions app, so only the workflow can report the `check` status.
+   `check` is the name of the workflow's check job. `15368` is the ID of the GitHub Actions app, so only the workflow can report that check.
 
-2. **Let the workflow open pull requests.** Keep the default token read-only; the workflow requests the write permissions it needs:
+2. **Let the workflow open pull requests.** In **Settings > Actions > General**, enable **Allow GitHub Actions to create and approve pull requests**. Or run:
 
    ```sh
-   gh api --method PUT \
-     'repos/{owner}/{repo}/actions/permissions/workflow' \
+   gh api --method PUT 'repos/{owner}/{repo}/actions/permissions/workflow' \
      -f default_workflow_permissions=read \
      -F can_approve_pull_request_reviews=true
    ```
 
-   If this fails, an organization owner must allow it in the organization's settings first.
+   The workflow asks for the write permissions it needs itself, so the default can stay read-only. If your organization disables this setting, an organization owner must allow it first.
 
-3. **Check your rulesets.** List them:
-
-   ```sh
-   gh api 'repos/{owner}/{repo}/rulesets' \
-     --jq '.[] | {id, name, target}'
-   ```
-
-   Then show each one's targets, replacing `ID`:
+3. **Let the workflow push tags and the `code-rules/released` branch.** Check that no ruleset covers tags under `techs/` or `practices/`, or branches under `code-rules/`. List the repository's rulesets:
 
    ```sh
-   gh api 'repos/{owner}/{repo}/rulesets/ID' --jq .conditions
+   gh api 'repos/{owner}/{repo}/rulesets' --jq '.[] | {id, name, target}'
    ```
 
-   If a ruleset targets tags under `techs/` or `practices/`, or branches under `code-rules/`, remove those targets on the GitHub website.
-
-</TabItem>
-</Tabs>
+   Show one ruleset's conditions with `gh api 'repos/{owner}/{repo}/rulesets/ID' --jq .conditions`, replacing `ID`. If a ruleset covers those tags or branches, exclude them from it in **Settings > Rules > Rulesets**.
 
 ### Review and merge the release pull request
 
