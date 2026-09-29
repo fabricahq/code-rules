@@ -40,7 +40,7 @@ A library doesn't have one version for all of its rules. Each rule has [its own 
 
 When an author changes a rule, they add a change note saying how large the change is and what changed. A **library release** turns the pending notes into new rule versions at once, and can hold one rule change or many. Projects import only published versions, unless one deliberately imports an exact commit, so they never see changes that haven't been published.
 
-Library releases usually go through a pull request that the release workflow opens and keeps up to date. Merging it publishes the new versions, along with one GitHub Release page that lists them. A library release has a number for reference, but it isn't a version of the library: projects choose versions rule by rule. See [Version your rules](/guides/version-rules/).
+`code-rules library release` publishes a library release as one Git tag that records every rule's version, along with one GitHub Release page that lists the changes. A library release has a number for reference, but it isn't a version of the library: projects choose versions rule by rule. See [Version your rules](/guides/version-rules/).
 
 ## Sharing a library
 
