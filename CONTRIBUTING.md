@@ -54,6 +54,7 @@ TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser re
 - `internal/rules`: validated configuration, identities, documents, links, and versions.
 - `internal/library`: initialize, author, check, and load rule libraries.
 - `internal/imports`: import complete libraries with verified Git provenance.
+- `internal/gitexec`: run Git with bounded output and cancellation, isolated for other people's repositories or honoring the user's configuration in their own.
 - `internal/build`: generate complete output from validated inputs through `Generate`.
 - `internal/project`: initialize and author consuming projects, sync libraries, build offline, and check complete project freshness.
 - `internal/filetxn`: bounded filesystem reads, writer ownership, safe publication, and recovery shared by both owners.

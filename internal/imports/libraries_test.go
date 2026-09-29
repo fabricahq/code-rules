@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -257,8 +258,12 @@ func TestGitBlobFraming(t *testing.T) {
 		if err := os.WriteFile(script, []byte("#!/bin/sh\nprintf %s "+gitfixture.Quote(output)+"\n"), 0700); err != nil {
 			t.Fatal(err)
 		}
-		g := &gitFiles{ctx: context.Background(), revision: &revision{directory: dir, runner: gitRunner{executable: script, environment: gitEnvironment(os.Environ())}}, entries: map[string]treeEntry{"x": {name: "x", mode: 0644, size: 1, object: oid}}}
-		_, err := g.ReadFile("x")
+		runner, err := gitexec.Isolated(gitexec.Options{GitPath: script})
+		if err != nil {
+			t.Fatal(err)
+		}
+		g := &gitFiles{ctx: context.Background(), revision: &revision{directory: dir, runner: runner}, entries: map[string]treeEntry{"x": {name: "x", mode: 0644, size: 1, object: oid}}}
+		_, err = g.ReadFile("x")
 		requireCode(t, err, "git-failed")
 	}
 }

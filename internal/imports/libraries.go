@@ -10,6 +10,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -24,7 +25,7 @@ type Library struct {
 // It never installs files in a consuming project. Source temporary state is closed on every path.
 func ImportLibraries(ctx context.Context, configuration rules.Configuration, options Options) (map[string]Library, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, contextFailure(err)
+		return nil, gitexec.ContextFailure(err)
 	}
 	result := make(map[string]Library, len(configuration.Sources))
 	for _, source := range configuration.Sources {
@@ -63,7 +64,7 @@ func importLibrary(ctx context.Context, source rules.Source, options Options) (_
 	catalog, err := library.LoadSource(ctx, input, source.Name, source.Groups)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return Library{}, contextFailure(err)
+			return Library{}, gitexec.ContextFailure(err)
 		}
 		return Library{}, err
 	}
@@ -82,7 +83,7 @@ func importLibrary(ctx context.Context, source rules.Source, options Options) (_
 	selection.Groups = slices.Clone(selection.Groups)
 	snapshot := library.Snapshot{Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: revision.Tag, ResolvedVersion: revision.Version, Commit: revision.Commit, Selection: selection, Groups: groups, Files: files}
 	if err := ctx.Err(); err != nil {
-		return Library{}, contextFailure(err)
+		return Library{}, gitexec.ContextFailure(err)
 	}
 	return Library{Catalog: catalog, Snapshot: snapshot}, nil
 }

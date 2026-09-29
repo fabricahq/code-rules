@@ -7,7 +7,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -122,47 +121,6 @@ func TestFetchRejectsAmbiguousAndNonCommitTags(t *testing.T) {
 	requireCode(t, err, "unsupported-content")
 }
 
-// TestProcessLimitsAndCancellation verifies combined output limits, deadlines, and secret-free diagnostics.
-func TestProcessLimitsAndCancellation(t *testing.T) {
-	for _, stream := range []string{"stdout", "stderr"} {
-		t.Run(stream, func(t *testing.T) {
-			script := filepath.Join(t.TempDir(), "git")
-			redirect := ""
-			if stream == "stderr" {
-				redirect = " >&2"
-			}
-			if err := os.WriteFile(script, []byte("#!/bin/sh\nwhile :; do printf secret-token"+redirect+"; done\n"), 0700); err != nil {
-				t.Fatal(err)
-			}
-			_, err := (gitRunner{script, gitEnvironment(os.Environ())}).run(context.Background(), t.TempDir(), nil, 100, nil)
-			requireCode(t, err, "limit-exceeded")
-			if strings.Contains(err.Error(), "secret") {
-				t.Fatal("stderr leaked")
-			}
-		})
-	}
-	script := filepath.Join(t.TempDir(), "git")
-	if err := os.WriteFile(script, []byte("#!/bin/sh\nsleep 30 &\nwait\n"), 0700); err != nil {
-		t.Fatal(err)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
-	start := time.Now()
-	_, err := (gitRunner{script, gitEnvironment(os.Environ())}).run(ctx, t.TempDir(), nil, 100, nil)
-	requireCode(t, err, "timed-out")
-	if !errors.Is(err, context.DeadlineExceeded) || time.Since(start) > 3*time.Second {
-		t.Fatal("deadline or child-pipe cleanup failed", err)
-	}
-	ctx, cancel = context.WithCancel(context.Background())
-	cancel()
-	_, err = fetchRevision(ctx, rules.Source{}, Options{})
-	if !errors.Is(err, context.Canceled) {
-		t.Fatal(err)
-	}
-	_, err = fetchRevision(context.Background(), rules.Source{Repository: "https://example.invalid/rules", Ref: "v1.0.0"}, Options{GitPath: "/missing/git"})
-	requireCode(t, err, "git-unavailable")
-}
-
 // TestEnvironmentIsolation verifies inherited repository state cannot alter the fetched commit.
 func TestEnvironmentIsolation(t *testing.T) {
 	f := fixtureRepository(t)
@@ -242,4 +200,16 @@ func TestFetchSkipsRelativePathEntries(t *testing.T) {
 	if revision.Commit != f.FirstCommit {
 		t.Fatal("wrong fetched revision")
 	}
+}
+
+// TestFetchRevisionFailsBeforeStartingGit reports cancellation and a missing Git executable without partial state.
+func TestFetchRevisionFailsBeforeStartingGit(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := fetchRevision(ctx, rules.Source{}, Options{})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
+	}
+	_, err = fetchRevision(context.Background(), rules.Source{Repository: "https://example.invalid/rules", Ref: "v1.0.0"}, Options{GitPath: "/missing/git"})
+	requireCode(t, err, "git-unavailable")
 }

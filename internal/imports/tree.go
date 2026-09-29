@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/fabricahq/code-rules/internal/gitexec"
 )
 
 const maxTreeBytes = 8 << 20
@@ -60,7 +62,7 @@ func (r *revision) openTree(ctx context.Context) (*gitFiles, error) {
 	if r == nil || r.directory == "" {
 		return nil, fail("closed-revision", "Revision has been closed.", nil)
 	}
-	data, err := r.runner.command(ctx, r.directory, []string{"ls-tree", "-r", "-l", "-z", r.Commit}, maxTreeBytes)
+	data, err := r.runner.Output(ctx, r.directory, []string{"ls-tree", "-r", "-l", "-z", r.Commit}, maxTreeBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +152,7 @@ func parseTree(data []byte) (map[string]treeEntry, error) {
 // Lstat returns immutable object metadata, preserving links as links rather than following them.
 func (g *gitFiles) Lstat(name string) (fs.FileInfo, error) {
 	if err := g.ctx.Err(); err != nil {
-		return nil, contextFailure(err)
+		return nil, gitexec.ContextFailure(err)
 	}
 	entry, ok := g.entries[name]
 	if !ok {
@@ -184,14 +186,14 @@ func (g *gitFiles) ReadFile(name string) ([]byte, error) {
 	if entry.size > maxBlobBytes || int64(g.total)+entry.size > maxRetainedBytes {
 		return nil, fail("limit-exceeded", "Selected library content exceeds import byte limits.", nil)
 	}
-	result, err := g.revision.runner.run(g.ctx, g.revision.directory, []string{"cat-file", "--batch"}, int(entry.size)+4096, []byte(entry.object+"\n"))
+	result, err := g.revision.runner.Run(g.ctx, g.revision.directory, []string{"cat-file", "--batch"}, int(entry.size)+4096, []byte(entry.object+"\n"))
 	if err != nil {
 		return nil, err
 	}
-	if result.status != 0 {
+	if result.Status != 0 {
 		return nil, fail("git-failed", "Could not read library blobs.", nil)
 	}
-	header, body, ok := bytes.Cut(result.output, []byte{'\n'})
+	header, body, ok := bytes.Cut(result.Output, []byte{'\n'})
 	expected := fmt.Sprintf("%s blob %d", entry.object, entry.size)
 	if !ok || string(header) != expected || int64(len(body)) != entry.size+1 || body[len(body)-1] != '\n' {
 		return nil, fail("git-failed", "Git returned inconsistent or incomplete blob contents.", nil)

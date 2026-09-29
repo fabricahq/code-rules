@@ -1,6 +1,6 @@
 // Check subprocess ownership, helper cleanup, and exit observation with actual child processes.
 
-package imports
+package gitexec
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -65,8 +66,8 @@ func TestCompletedGitStopsHelpers(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	result, err := (gitRunner{script, gitEnvironment(os.Environ())}).run(ctx, dir, nil, 100, nil)
-	if err != nil || result.status != 0 || string(result.output) != "done" {
+	result, err := (Runner{executable: script, environment: gitEnvironment(os.Environ())}).Run(ctx, dir, nil, 100, nil)
+	if err != nil || result.Status != 0 || string(result.Output) != "done" {
 		t.Fatalf("completed Git result: %+v, %v", result, err)
 	}
 	// Give an incorrectly retained helper time to expose its observable side effect.
@@ -84,6 +85,48 @@ func TestStoppedGitWaitsForCancellation(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	_, err := (gitRunner{script, gitEnvironment(os.Environ())}).run(ctx, t.TempDir(), nil, 100, nil)
+	_, err := (Runner{executable: script, environment: gitEnvironment(os.Environ())}).Run(ctx, t.TempDir(), nil, 100, nil)
 	requireCode(t, err, "timed-out")
+}
+
+// requireCode checks the stable failure category without matching Git's private diagnostics.
+func requireCode(t *testing.T, err error, code string) {
+	t.Helper()
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Code != code {
+		t.Fatalf("want %s, got %v", code, err)
+	}
+}
+
+// TestProcessLimitsAndDeadlines verifies combined output limits, deadlines, and secret-free diagnostics.
+func TestProcessLimitsAndDeadlines(t *testing.T) {
+	for _, stream := range []string{"stdout", "stderr"} {
+		t.Run(stream, func(t *testing.T) {
+			script := filepath.Join(t.TempDir(), "git")
+			redirect := ""
+			if stream == "stderr" {
+				redirect = " >&2"
+			}
+			if err := os.WriteFile(script, []byte("#!/bin/sh\nwhile :; do printf secret-token"+redirect+"; done\n"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			_, err := (Runner{executable: script, environment: gitEnvironment(os.Environ())}).Run(context.Background(), t.TempDir(), nil, 100, nil)
+			requireCode(t, err, "limit-exceeded")
+			if strings.Contains(err.Error(), "secret") {
+				t.Fatal("stderr leaked")
+			}
+		})
+	}
+	script := filepath.Join(t.TempDir(), "git")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\nsleep 30 &\nwait\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	_, err := (Runner{executable: script, environment: gitEnvironment(os.Environ())}).Run(ctx, t.TempDir(), nil, 100, nil)
+	requireCode(t, err, "timed-out")
+	if !errors.Is(err, context.DeadlineExceeded) || time.Since(start) > 3*time.Second {
+		t.Fatal("deadline or child-pipe cleanup failed", err)
+	}
 }

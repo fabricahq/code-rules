@@ -1,6 +1,6 @@
 // Observe child exit on Linux without releasing its process ID.
 
-package imports
+package gitexec
 
 import (
 	"errors"
