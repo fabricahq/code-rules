@@ -107,12 +107,10 @@ func summaryText(input json.RawMessage, location string) (string, error) {
 	return strings.TrimFunc(text, jsWhitespace), nil
 }
 
-// ValidateRuleID accepts a library rule ID: a rule's contained path without .md, such as practices/testing/verify-retry-limits.
-// It checks syntax only; it does not establish that the rule exists.
+// ValidateRuleID accepts a library rule ID: a rule's contained path without its final .md, such as
+// practices/testing/verify-retry-limits. It accepts exactly the IDs of valid rule paths, so the ID of a rule file
+// named example.md.md is example.md. It checks syntax only; it does not establish that the rule exists.
 func ValidateRuleID(id, location string) error {
-	if strings.HasSuffix(id, ".md") {
-		return invalid(location, "invalid rule ID "+quote(id)+": omit the .md extension")
-	}
 	_, err := GroupFromPath(id+".md", location)
 	return err
 }

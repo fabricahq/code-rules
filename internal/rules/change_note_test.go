@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -50,5 +51,17 @@ func TestChangeNoteFixtures(t *testing.T) {
 				t.Fatalf("got %+v; want %+v", got, expected)
 			}
 		})
+	}
+}
+
+// TestValidateRuleID_AcceptsEveryLoadableRulePath keeps change notes able to name every rule the loader accepts.
+func TestValidateRuleID_AcceptsEveryLoadableRulePath(t *testing.T) {
+	for _, path := range []string{"practices/testing/verify-retry-limits.md", "practices/testing/example.md.md", "techs/react/hooks/test-in-isolation.md"} {
+		if _, err := rules.GroupFromPath(path, "path"); err != nil {
+			t.Fatalf("%s is not a loadable rule path: %v", path, err)
+		}
+		if err := rules.ValidateRuleID(strings.TrimSuffix(path, ".md"), "id"); err != nil {
+			t.Errorf("rule %s has an ID change notes reject: %v", path, err)
+		}
 	}
 }

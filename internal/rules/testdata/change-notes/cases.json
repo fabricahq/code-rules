@@ -145,14 +145,18 @@
     }
   },
   {
-    "id": "rule-id-with-extension",
+    "id": "rule-file-named-with-md-suffix",
     "location": "changes/2026-09-29-verify-retry-limits.yaml",
-    "input": "summary: Change.\nrules:\n  practices/testing/verify-retry-limits.md: major\n",
+    "input": "summary: Change.\nrules:\n  practices/testing/example.md: patch\n",
     "expected": {
-      "ok": false,
-      "error": {
-        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits.md",
-        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits.md: invalid rule ID \"practices/testing/verify-retry-limits.md\": omit the .md extension"
+      "ok": true,
+      "value": {
+        "summary": "Change.",
+        "rules": {
+          "practices/testing/example.md": {
+            "change": "patch"
+          }
+        }
       }
     }
   },
