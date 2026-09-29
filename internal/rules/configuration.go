@@ -15,13 +15,11 @@ type Configuration struct {
 	Sources []Source `json:"sources"`
 }
 
-// Source declares one remote library and its selection and exception policy.
-// Exactly one of Ref and Version is populated. ParsedRef is nil for version selections.
+// Source declares one remote library at an exact ref, and its selection and exception policy.
 type Source struct {
 	Name       string                 `json:"name"`
 	Repository string                 `json:"repository"`
 	Ref        string                 `json:"ref,omitempty"`
-	Version    string                 `json:"version,omitempty"`
 	ParsedRef  *GitRef                `json:"parsedRef,omitempty"`
 	Groups     GroupSelection         `json:"groups"`
 	Exclude    map[string]string      `json:"exclude"`
@@ -38,7 +36,7 @@ var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
 // ParseConfiguration validates schema version 1, rejecting unknown fields and
 // contradictory source declarations. Errors return no partial configuration.
-// Version constraints trim surrounding whitespace; other strings retain authored spacing.
+// Strings retain authored spacing.
 // Group IDs and source aliases are sorted.
 func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	fields, err := jsonObject(input, "configuration")
@@ -81,7 +79,7 @@ func parseSource(name string, input json.RawMessage, repositories map[string]boo
 	if err != nil {
 		return Source{}, err
 	}
-	if err := knownJSONFields(fields, []string{"repository", "ref", "version", "groups", "exclude", "replace"}, where); err != nil {
+	if err := knownJSONFields(fields, []string{"repository", "ref", "groups", "exclude", "replace"}, where); err != nil {
 		return Source{}, err
 	}
 	repository, err := jsonText(fields["repository"], where+".repository")
@@ -96,34 +94,17 @@ func parseSource(name string, input json.RawMessage, repositories map[string]boo
 		return Source{}, invalid(where, "repository "+repository+" is declared more than once")
 	}
 	repositories[address.Identity] = true
-	_, hasRef := fields["ref"]
-	_, hasVersion := fields["version"]
-	if hasRef == hasVersion {
-		return Source{}, invalid(where, "specify exactly one of ref or version")
-	}
 	result := Source{Name: name, Repository: repository}
-	if hasVersion {
-		text, err := jsonText(fields["version"], where+".version")
-		if err != nil {
-			return Source{}, err
-		}
-		constraint, err := ParseVersionConstraint(text, where+".version")
-		if err != nil {
-			return Source{}, err
-		}
-		result.Version = constraint.String()
-	} else {
-		text, err := jsonText(fields["ref"], where+".ref")
-		if err != nil {
-			return Source{}, err
-		}
-		ref, err := ParseGitRef(text, where+".ref")
-		if err != nil {
-			return Source{}, err
-		}
-		result.Ref = text
-		result.ParsedRef = &ref
+	text, err := jsonText(fields["ref"], where+".ref")
+	if err != nil {
+		return Source{}, err
 	}
+	ref, err := ParseGitRef(text, where+".ref")
+	if err != nil {
+		return Source{}, err
+	}
+	result.Ref = text
+	result.ParsedRef = &ref
 	result.Groups, err = ParseGroupSelection(fields["groups"], where+".groups")
 	if err != nil {
 		return Source{}, err

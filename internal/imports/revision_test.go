@@ -38,24 +38,21 @@ func requireCode(t *testing.T, err error, code string) {
 	}
 }
 
-// TestFetchRevision exercises exact commits, lightweight/annotated tags, constraints, and missing refs.
+// TestFetchRevision exercises exact commits, lightweight and annotated tags, and missing refs.
 func TestFetchRevision(t *testing.T) {
 	f := fixtureRepository(t)
 	options := Options{GitPath: f.GitPath, Environment: f.Environment}
-	for _, tc := range []struct{ name, ref, version, want string }{
-		{"commit", f.FirstCommit, "", f.FirstCommit}, {"lightweight", "v1.0.0", "", f.FirstCommit}, {"annotated", "v1.2.0", "", f.LatestCommit}, {"constraint", "", ">= 1.0.0", f.LatestCommit},
+	for _, tc := range []struct{ name, ref, want string }{
+		{"commit", f.FirstCommit, f.FirstCommit}, {"lightweight", "v1.0.0", f.FirstCommit}, {"annotated", "v1.2.0", f.LatestCommit},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			revision, err := fetchRevision(context.Background(), rules.Source{Name: "team", Repository: f.Repository, Ref: tc.ref, Version: tc.version}, options)
+			revision, err := fetchRevision(context.Background(), rules.Source{Name: "team", Repository: f.Repository, Ref: tc.ref}, options)
 			if err != nil {
 				t.Fatal(err)
 			}
 			dir := revision.directory
 			if revision.Commit != tc.want {
 				t.Fatalf("commit %s", revision.Commit)
-			}
-			if tc.version != "" && (revision.Tag != "v1.2.0" || revision.Version != "1.2.0") {
-				t.Fatal("lost selected tag identity")
 			}
 			if _, err := os.Stat(filepath.Join(dir, "README.md")); !errors.Is(err, os.ErrNotExist) {
 				t.Fatal("working files were checked out")
@@ -73,43 +70,18 @@ func TestFetchRevision(t *testing.T) {
 	if revision != nil {
 		t.Fatal("partial result")
 	}
-	_, err = fetchRevision(context.Background(), rules.Source{Repository: f.Repository, Version: ">= 9.0.0"}, options)
-	var selection *rules.VersionSelectionError
-	if !errors.As(err, &selection) || selection.Kind != rules.VersionNotFound {
-		t.Fatal(err)
-	}
-}
-
-// TestFetchRejectsMovedAnnotatedTag moves the tag after discovery but before the actual fetch.
-func TestFetchRejectsMovedAnnotatedTag(t *testing.T) {
-	f := fixtureRepository(t)
-	transport := filepath.Join(f.Directory, "ssh")
-	marker := filepath.Join(f.Directory, "served")
-	repo := filepath.Join(f.Directory, "repository")
-	script := "#!/bin/sh\nif [ -f " + gitfixture.Quote(marker) + " ]; then " + gitfixture.Quote(f.GitPath) + " -C " + gitfixture.Quote(repo) + " tag -f v1.2.0 " + f.FirstCommit + " >/dev/null; fi\ntouch " + gitfixture.Quote(marker) + "\nexec " + gitfixture.Quote(f.GitPath) + " upload-pack " + gitfixture.Quote(repo) + "\n"
-	if err := os.WriteFile(transport, []byte(script), 0700); err != nil {
-		t.Fatal(err)
-	}
-	revision, err := fetchRevision(context.Background(), rules.Source{Repository: f.Repository, Version: ">= 1.0.0"}, Options{GitPath: f.GitPath, Environment: f.Environment})
-	requireCode(t, err, "ref-changed")
+	revision, err = fetchRevision(context.Background(), rules.Source{Repository: f.Repository}, options)
+	requireCode(t, err, "invalid-source")
 	if revision != nil {
 		t.Fatal("partial result")
 	}
 }
 
-// TestFetchRejectsAmbiguousAndNonCommitTags covers ambiguous release aliases and tags of blob objects.
-func TestFetchRejectsAmbiguousAndNonCommitTags(t *testing.T) {
+// TestFetchRejectsNonCommitTags refuses a tag that names a blob instead of a commit.
+func TestFetchRejectsNonCommitTags(t *testing.T) {
 	f := fixtureRepository(t)
 	ctx := context.Background()
 	options := Options{GitPath: f.GitPath, Environment: f.Environment}
-	if _, err := f.Command(ctx, "tag", "1.2.0", f.FirstCommit); err != nil {
-		t.Fatal(err)
-	}
-	_, err := fetchRevision(ctx, rules.Source{Repository: f.Repository, Version: ">= 1.0.0"}, options)
-	var selection *rules.VersionSelectionError
-	if !errors.As(err, &selection) || selection.Kind != rules.VersionAmbiguous {
-		t.Fatal(err)
-	}
 	blob, err := f.Command(ctx, "rev-parse", "HEAD:README.md")
 	if err != nil {
 		t.Fatal(err)

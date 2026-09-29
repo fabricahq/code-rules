@@ -70,7 +70,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if !bytes.Contains(draft, []byte("### Validation")) || !bytes.Contains(draft, []byte("<State one concrete obligation.>")) || bytes.Count(draft, []byte(rules.DraftMarker)) != 1 {
 		t.Fatal("canonical draft missing")
 	}
-	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: ">= 1.2.3, < 2.0.0", Groups: []string{"techs/*"}}
+	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: "refs/tags/a&<b>", Groups: []string{"techs/*"}}
 	result, err = AddSource(ctx, "team", source, options)
 	if err != nil || len(result.Files) != 1 {
 		t.Fatal(result, err)

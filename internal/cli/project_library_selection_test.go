@@ -1,4 +1,4 @@
-// Verify one CLI ref input preserves literal refs and records version ranges without fetching.
+// Verify the CLI ref input records exact refs without fetching and rejects ranges and branches.
 
 package cli
 
@@ -13,10 +13,10 @@ import (
 
 func TestLibraryRefSelection(t *testing.T) {
 	binary := buildCLI(t)
-	for _, tc := range []struct{ input, field, value string }{
-		{"v1.2.3", "ref", "v1.2.3"},
-		{">= 1.2.0, < 2.0.0", "version", ">= 1.2.0, < 2.0.0"},
-		{"refs/heads/main", "", ""},
+	for _, tc := range []struct{ input, want string }{
+		{"v1.2.3", "v1.2.3"},
+		{">= 1.2.0, < 2.0.0", ""},
+		{"refs/heads/main", ""},
 	} {
 		t.Run(tc.input, func(t *testing.T) {
 			dir := t.TempDir()
@@ -29,7 +29,7 @@ func TestLibraryRefSelection(t *testing.T) {
 			if diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil {
 				t.Fatal(code, out, diagnostic)
 			}
-			if tc.field == "" {
+			if tc.want == "" {
 				if code != 2 || result.OK || result.Error == nil || !reflect.DeepEqual(before, projectFileContents(t, dir)) {
 					t.Fatal("invalid ref must fail without writes", code, out)
 				}
@@ -46,12 +46,7 @@ func TestLibraryRefSelection(t *testing.T) {
 			if err := yaml.Unmarshal(data, &config); err != nil {
 				t.Fatal(err)
 			}
-			source := config.Sources["team"]
-			other := "ref"
-			if tc.field == "ref" {
-				other = "version"
-			}
-			if source[tc.field] != tc.value || source[other] != nil {
+			if config.Sources["team"]["ref"] != tc.want {
 				t.Fatal("wrong revision selection", string(data))
 			}
 			if _, err := os.Stat(filepath.Join(dir, ".code-rules/vendor")); !os.IsNotExist(err) {

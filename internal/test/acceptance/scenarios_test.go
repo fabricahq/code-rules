@@ -162,7 +162,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			online = append(online, value)
 		}
 	}
-	for _, args := range [][]string{{"project", "init"}, {"project", "add", "library", "team", "--repository", fixture.Repository, "--ref", ">= 1.0.0, < 2.0.0", "--groups", "techs/go"}} {
+	for _, args := range [][]string{{"project", "init"}, {"project", "add", "library", "team", "--repository", fixture.Repository, "--ref", "v1.2.0", "--groups", "techs/go"}} {
 		if err := invoke("Configure consumer", consumer, offline, 0, args...); err != nil {
 			return report, err
 		}
@@ -183,7 +183,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	if !strings.Contains(provenance, fixture.LatestCommit) || !strings.Contains(provenance, "v1.2.0") {
 		return report, fmt.Errorf("selected revision missing from provenance")
 	}
-	report.Verified = append(report.Verified, "Annotated v1.2.0 selected using HashiCorp constraints", "License, notice, and binary asset bytes preserved exactly")
+	report.Verified = append(report.Verified, "Annotated tag v1.2.0 imported at its commit", "License, notice, and binary asset bytes preserved exactly")
 	if err := invoke("Local group overrides imported guidance", consumer, offline, 0, "project", "add", "group", "techs/go", "--name", "Project Go", "--description", "Project-specific Go guidance.", "--when-to-read", "When changing this project."); err != nil {
 		return report, err
 	}
@@ -266,11 +266,27 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			}
 		}
 		report.Steps = append(report.Steps, Step{Label: "Fixture edit: publish local Git tag v1.3.0 with " + scenario + " content"})
+		configPath := filepath.Join(consumer, ".code-rules/config.yaml")
+		config, err := os.ReadFile(configPath)
+		if err != nil {
+			return report, err
+		}
+		if !bytes.Contains(config, []byte("ref: v1.2.0")) {
+			return report, fmt.Errorf("configuration does not record ref v1.2.0")
+		}
+		if err := os.WriteFile(configPath, bytes.Replace(config, []byte("ref: v1.2.0"), []byte("ref: v1.3.0"), 1), 0600); err != nil {
+			return report, err
+		}
+		report.Steps = append(report.Steps, Step{Label: "Configuration edit: change the source ref to v1.3.0"})
+		before, err = readTree(ctx, consumer)
+		if err != nil {
+			return report, err
+		}
 		want := 0
 		if scenario == "failed-sync" {
 			want = 1
 		}
-		if err := invoke("Sync newer selected release", consumer, online, want, "project", "sync"); err != nil {
+		if err := invoke("Sync the changed ref", consumer, online, want, "project", "sync"); err != nil {
 			return report, err
 		}
 		after, err = readTree(ctx, consumer)

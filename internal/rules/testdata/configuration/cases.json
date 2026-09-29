@@ -143,25 +143,16 @@
     }
   },
   {
-    "id": "configuration-constraint",
+    "id": "configuration-version",
     "operation": "configuration",
     "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"groups\": [\"techs/go\"], \"exclude\": {}, \"replace\": {}, \"version\": \">= 1.2.0\"}}}",
     "location": "configuration",
     "expected": {
-      "ok": true,
-      "value": {
-        "sources": [
-          {
-            "name": "team",
-            "repository": "https://github.com/fixture/team.git",
-            "groups": [
-              "techs/go"
-            ],
-            "exclude": {},
-            "replace": {},
-            "version": ">= 1.2.0"
-          }
-        ]
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team: unknown field version",
+        "location": "sources.team"
       }
     }
   },
@@ -360,7 +351,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team: specify exactly one of ref or version",
+        "message": "sources.team: unknown field version",
         "location": "sources.team"
       }
     }

@@ -40,7 +40,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		libraries := map[string]build.Library{}
 		for alias, item := range imported {
 			snapshots[alias] = item.Snapshot
-			libraries[alias] = build.Library{Catalog: item.Catalog, Commit: item.Snapshot.Commit, Tag: item.Snapshot.Tag}
+			libraries[alias] = build.Library{Catalog: item.Catalog, Commit: item.Snapshot.Commit}
 		}
 		vendor, err := encodeSnapshots(before.config, snapshots)
 		if err != nil {

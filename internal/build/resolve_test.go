@@ -162,32 +162,6 @@ func TestResolveBindsSelection(t *testing.T) {
 	}
 }
 
-// TestResolveVersionProvenance requires a matching release and retains its tag and normalized version.
-func TestResolveVersionProvenance(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
-	config.Sources[0].Ref = ""
-	config.Sources[0].ParsedRef = nil
-	config.Sources[0].Version = ">= 1.0.0, < 2.0.0"
-	supplied := libraries["team"]
-	for _, tag := range []string{"", "v0.9.0", "v1.2.3"} {
-		supplied.Tag = tag
-		libraries["team"] = supplied
-		got, err := resolve(config, libraries, nil)
-		if tag != "v1.2.3" {
-			if err == nil {
-				t.Fatalf("accepted %q", tag)
-			}
-			continue
-		}
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got.Sources[0].Tag != tag || got.Sources[0].ResolvedVersion != "1.2.3" || got.Groups[0].Rules[0].Origin.Ref != tag {
-			t.Fatal("lost selected version")
-		}
-	}
-}
-
 // TestResolveRetainsInactiveDocuments preserves hidden upstream text without duplicating active documents.
 func TestResolveRetainsInactiveDocuments(t *testing.T) {
 	for _, policy := range []struct {

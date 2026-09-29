@@ -20,18 +20,16 @@ import (
 // snapshot is the library-owned value persisted by project snapshot encoding.
 type snapshot = library.Snapshot
 
-// sourceRecord preserves the version-1 TypeScript record layout without embedding file content.
+// sourceRecord is the version-1 record of one source's exact ref, resolved commit, selection,
+// and file digests, without embedding file content.
 type sourceRecord struct {
-	FormatVersion   int               `json:"formatVersion"`
-	Repository      string            `json:"repository"`
-	Ref             string            `json:"ref,omitempty"`
-	Version         string            `json:"version,omitempty"`
-	Tag             string            `json:"resolvedTag,omitempty"`
-	ResolvedVersion string            `json:"resolvedVersion,omitempty"`
-	Commit          string            `json:"resolvedCommit"`
-	Groups          []string          `json:"groups"`
-	Selection       json.RawMessage   `json:"groupSelection,omitempty"`
-	Files           map[string]string `json:"files"`
+	FormatVersion int               `json:"formatVersion"`
+	Repository    string            `json:"repository"`
+	Ref           string            `json:"ref"`
+	Commit        string            `json:"resolvedCommit"`
+	Groups        []string          `json:"groups"`
+	Selection     json.RawMessage   `json:"groupSelection,omitempty"`
+	Files         map[string]string `json:"files"`
 }
 
 // encodeSnapshots prepares complete vendor bytes for parsed configuration, without writing files.
@@ -50,7 +48,7 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		if err != nil {
 			return nil, fmt.Errorf("encode selection for %s: %v", source.Name, err)
 		}
-		record := sourceRecord{1, snapshot.Repository, snapshot.Ref, snapshot.Version, snapshot.Tag, snapshot.ResolvedVersion, snapshot.Commit, snapshot.Groups, selection, map[string]string{}}
+		record := sourceRecord{1, snapshot.Repository, snapshot.Ref, snapshot.Commit, snapshot.Groups, selection, map[string]string{}}
 		if err := rules.ValidatePaths(snapshot.Files, nil); err != nil {
 			return nil, err
 		}
@@ -114,7 +112,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		if err != nil {
 			return nil, err
 		}
-		result[source.Name] = snapshot{Repository: record.Repository, Ref: record.Ref, Version: record.Version, Tag: record.Tag, ResolvedVersion: record.ResolvedVersion, Commit: record.Commit, Groups: record.Groups, Selection: selection, Files: files}
+		result[source.Name] = snapshot{Repository: record.Repository, Ref: record.Ref, Commit: record.Commit, Groups: record.Groups, Selection: selection, Files: files}
 	}
 	for _, file := range slices.Sorted(maps.Keys(vendor)) {
 		if !expected[file] {
@@ -131,7 +129,7 @@ func parseSourceRecord(data []byte, source rules.Source) (sourceRecord, error) {
 	if !utf8.Valid(data) || json.Unmarshal(data, &fields) != nil || fields == nil {
 		return sourceRecord{}, invalidSnapshot(where, "expected a UTF-8 source record object")
 	}
-	allowed := []string{"formatVersion", "repository", "ref", "version", "resolvedTag", "resolvedVersion", "resolvedCommit", "groups", "groupSelection", "files"}
+	allowed := []string{"formatVersion", "repository", "ref", "resolvedCommit", "groups", "groupSelection", "files"}
 	for _, key := range slices.Sorted(maps.Keys(fields)) {
 		if !slices.Contains(allowed, key) || bytes.Equal(bytes.TrimSpace(fields[key]), []byte("null")) {
 			return sourceRecord{}, invalidSnapshot(where+"."+key, "unknown or null source record field")
@@ -152,22 +150,10 @@ func parseSourceRecord(data []byte, source rules.Source) (sourceRecord, error) {
 		return sourceRecord{}, invalidSnapshot(where+".groups", "expected resolved group IDs, not a wildcard")
 	}
 	record.Groups = groups.Groups
-	declaration := map[string]any{"repository": fields["repository"], "groups": record.Selection, "exclude": map[string]string{}, "replace": map[string]string{}}
-	if value, ok := fields["ref"]; ok {
-		declaration["ref"] = value
-	}
-	if value, ok := fields["version"]; ok {
-		declaration["version"] = value
-	}
-	input, err := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{source.Name: declaration}})
+	recorded, err := recordedSource(source.Name, fields["repository"], record.Ref, record.Selection, where)
 	if err != nil {
-		return sourceRecord{}, fmt.Errorf("encode source record declaration: %v", err)
+		return sourceRecord{}, err
 	}
-	parsed, err := rules.ParseConfiguration(input)
-	if err != nil {
-		return sourceRecord{}, fmt.Errorf("%s: %w", where, err)
-	}
-	recorded := parsed.Sources[0]
 	if err := matchSnapshotSource(source, recorded, record, where); err != nil {
 		return sourceRecord{}, err
 	}
@@ -193,36 +179,38 @@ func parseSourceRecord(data []byte, source rules.Source) (sourceRecord, error) {
 	return record, nil
 }
 
+// recordedSource validates the identity a record repeats from configuration: its repository address,
+// exact ref, and requested group selection.
+func recordedSource(name string, repository json.RawMessage, ref string, selection json.RawMessage, where string) (rules.Source, error) {
+	if _, err := rules.ParseRepository(repository, where+".repository"); err != nil {
+		return rules.Source{}, err
+	}
+	parsedRef, err := rules.ParseGitRef(ref, where+".ref")
+	if err != nil {
+		return rules.Source{}, err
+	}
+	groups, err := rules.ParseGroupSelection(selection, where+".groupSelection")
+	if err != nil {
+		return rules.Source{}, err
+	}
+	var address string
+	if err := json.Unmarshal(repository, &address); err != nil {
+		return rules.Source{}, fmt.Errorf("%s: decode validated repository: %v", where, err)
+	}
+	return rules.Source{Name: name, Repository: address, Ref: ref, ParsedRef: &parsedRef, Groups: groups}, nil
+}
+
 // matchSnapshotSource rejects stale selectors and inconsistent resolved revisions without fetching Git.
 func matchSnapshotSource(want, got rules.Source, record sourceRecord, where string) error {
-	if want.Repository != got.Repository || want.Ref != got.Ref || want.Version != got.Version || want.Groups.Pattern != got.Groups.Pattern || !slices.Equal(want.Groups.Groups, got.Groups.Groups) {
+	if want.Repository != got.Repository || want.Ref != got.Ref || want.Groups.Pattern != got.Groups.Pattern || !slices.Equal(want.Groups.Groups, got.Groups.Groups) {
 		return invalidSnapshot(where, "source identity or group selection changed; run code-rules project sync")
 	}
 	commit, err := rules.ParseGitRef(record.Commit, where+".resolvedCommit")
 	if err != nil || commit.Kind != rules.GitRefCommit {
 		return invalidSnapshot(where, "resolvedCommit must be a full commit SHA")
 	}
-	if got.ParsedRef != nil && got.ParsedRef.Kind == rules.GitRefCommit && got.ParsedRef.SHA != commit.SHA {
+	if got.ParsedRef.Kind == rules.GitRefCommit && got.ParsedRef.SHA != commit.SHA {
 		return invalidSnapshot(where, "resolved commit differs from requested commit")
-	}
-	if got.Version != "" {
-		version, err := rules.TagVersion(record.Tag, where+".resolvedTag")
-		if err != nil {
-			return err
-		}
-		constraint, err := rules.ParseVersionConstraint(got.Version, where+".version")
-		if err != nil {
-			return err
-		}
-		matches, err := constraint.Matches(record.Tag, where+".resolvedTag")
-		if err != nil {
-			return err
-		}
-		if !matches || version != record.ResolvedVersion {
-			return invalidSnapshot(where, "resolved release does not satisfy the recorded version constraint")
-		}
-	} else if record.Tag != "" || record.ResolvedVersion != "" {
-		return invalidSnapshot(where, "release fields require a version constraint")
 	}
 	if got.Groups.Pattern == "" && !slices.Equal(record.Groups, got.Groups.Groups) {
 		return invalidSnapshot(where, "resolved groups differ from the explicit selection")

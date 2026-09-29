@@ -66,16 +66,13 @@ func TestInteractiveImpactRetry(t *testing.T) {
 func TestSourceAnswerRetry(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	binary := buildCLI(t)
-	for _, kind := range []string{"ref", "version"} {
-		t.Run(kind, func(t *testing.T) {
+	for _, invalid := range []string{"bad ref", ">= 1.2.3"} {
+		t.Run(invalid, func(t *testing.T) {
 			dir := t.TempDir()
 			if _, stderr, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
 				t.Fatal(stderr)
 			}
-			revisionPrompt, invalid, valid := "Ref (tag, full commit SHA, or version range):", "bad ref", "v1.2.3"
-			if kind == "version" {
-				invalid, valid = ">= not-a-version", ">= 1.2.3"
-			}
+			revisionPrompt, valid := "Ref (tag or full commit SHA):", "v1.2.3"
 			groupPrompt := "Groups (comma-separated paths, *, practices/*, or techs/*):"
 			steps := []terminalfixture.Step{
 				{Prompt: "Git repository URL:", Answer: "acme/rules"},
@@ -98,7 +95,7 @@ func TestSourceAnswerRetry(t *testing.T) {
 				t.Fatal(err)
 			}
 			source := config.Sources["team"]
-			if source["repository"] != "https://github.com/acme/rules" || source[kind] != valid || source["groups"] != "techs/*" {
+			if source["repository"] != "https://github.com/acme/rules" || source["ref"] != valid || source["groups"] != "techs/*" {
 				t.Fatal(string(data))
 			}
 		})

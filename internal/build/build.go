@@ -11,7 +11,6 @@ import (
 type Library struct {
 	Catalog library.Catalog
 	Commit  string
-	Tag     string
 }
 
 // Output owns generated-root-relative file contents, including byte-exact license and notice copies.

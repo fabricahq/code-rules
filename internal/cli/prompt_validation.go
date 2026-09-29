@@ -52,7 +52,7 @@ func validateAnswer(name, value string) error {
 		_, err = rules.ParseRepository(data, "--repository")
 		return err
 	case "ref":
-		_, _, err := project.ParseSourceRef(value)
+		_, err := project.ParseSourceRef(value)
 		return err
 	}
 	return nil

@@ -81,11 +81,11 @@ func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 
 func projectLibraryCommand(options Options, output *commandOutput) *cobra.Command {
 	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project configuration."), options.Directory)
-	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag, full commit SHA, or version range (e.g. >= 1.2.0, < 2.0.0)"} {
+	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag or full commit SHA"} {
 		sf.add(source, name, description)
 	}
 	source.Long = librarySelectionHelp + documentationHelp
-	sf.prompts = map[string]string{"repository": "Git repository URL", "ref": "Ref (tag, full commit SHA, or version range)"}
+	sf.prompts = map[string]string{"repository": "Git repository URL", "ref": "Ref (tag or full commit SHA)"}
 	var groups []string
 	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
 	source.RunE = func(cmd *cobra.Command, args []string) error {

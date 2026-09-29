@@ -77,7 +77,7 @@ schemaVersion: 1
 sources:
   existing:
     repository: 'https://github.com/acme/existing.git' # keep the selected library
-    version: '>= 0.1.0, < 0.2.0'
+    ref: 'v0.0.9'
     groups: '*'
     exclude: {}
     replace: {}
@@ -91,7 +91,7 @@ sources:
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, retained := range []string{"# Project guidance", "'https://github.com/acme/existing.git' # keep the selected library", "version: '>= 0.1.0, < 0.2.0'", "groups: '*'"} {
+	for _, retained := range []string{"# Project guidance", "'https://github.com/acme/existing.git' # keep the selected library", "ref: 'v0.0.9'", "groups: '*'"} {
 		if !strings.Contains(string(out), retained) {
 			t.Fatalf("lost authored presentation %q:\n%s", retained, out)
 		}

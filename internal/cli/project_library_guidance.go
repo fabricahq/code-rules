@@ -5,12 +5,10 @@ package cli
 import "fmt"
 
 const librarySelectionGuidance = `Choose a ref:
-  v1.2.3                Use this exact tag.
+  release/5             Use this exact tag, such as a library release tag.
   <full commit SHA>     Use this exact commit.
-  >= 1.2.0, < 2.0.0     Let sync select the highest matching release tag.
 
-Plain versions such as 1.2.3 are literal tags. Start a range with an operator
-such as >=, =, or ~>. Branch names and abbreviated commits are not supported.
+Branch names and abbreviated commits are not supported.
 
 Choose groups from that library:
   practices/testing, techs/go  Only these groups (example paths).
@@ -24,7 +22,7 @@ Choose explicit paths or one wildcard; do not combine them.
 
 Example library selection:
   Repository: https://github.com/example/rules.git
-  Ref: v1.2.3
+  Ref: release/5
   Groups: practices/testing, techs/go`
 
 func librarySelectionIntroduction(alias string) string {
@@ -52,7 +50,7 @@ Interactive setup:
 For agents and scripts (no prompts):
   code-rules project add library team \
     --repository https://github.com/example/rules.git \
-    --ref '>= 1.2.0, < 2.0.0' \
+    --ref release/5 \
     --groups practices/testing --groups techs/go \
     --non-interactive
 
@@ -61,10 +59,8 @@ Replace the example repository, ref, and group paths with your library's values.
 Add --json for machine-readable output; --json also disables prompts.
 
 Choosing a ref:
-  Use an exact tag (v1.2.3), a full commit SHA, or a range (>= 1.2.0, < 2.0.0).
-  Plain versions are literal tags. For ranges, sync selects the highest matching release tag.
-  Quote ranges in the shell. Branch names and abbreviated commits are not supported.
-  Use refs/tags/<name> for a literal tag that looks like a range.
+  Use an exact tag, such as the library release tag release/5, or a full commit SHA.
+  Branch names and abbreviated commits are not supported.
 
 Choosing groups:
   Specific groups:  --groups practices/testing --groups techs/go

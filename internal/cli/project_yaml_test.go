@@ -47,7 +47,7 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 	if err := os.WriteFile(name, []byte(text), 0600); err != nil {
 		t.Fatal(err)
 	}
-	run("project", "add", "library", "security", "--repository", "https://example.invalid/security.git", "--ref", ">= 1.0.0, < 2.0.0", "--groups", "practices/*", "--non-interactive")
+	run("project", "add", "library", "security", "--repository", "https://example.invalid/security.git", "--ref", "v2.0.0", "--groups", "practices/*", "--non-interactive")
 	data, err = os.ReadFile(name)
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +61,7 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 			t.Fatal("lost authored YAML", marker, string(data))
 		}
 	}
-	if config.Sources[0].Version != ">= 1.0.0, < 2.0.0" || config.Sources[1].Exclude["techs/go/old"] != "Keep our local policy" {
+	if config.Sources[0].Ref != "v2.0.0" || config.Sources[1].Exclude["techs/go/old"] != "Keep our local policy" {
 		t.Fatal(config)
 	}
 	before := projectFileContents(t, directory)

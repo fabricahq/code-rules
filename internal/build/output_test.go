@@ -13,33 +13,32 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// TestPrepareReadableProvenance keeps constraint operators readable while preserving JSON string contents.
+// TestPrepareReadableProvenance keeps HTML-significant characters readable while preserving JSON string contents.
 func TestPrepareReadableProvenance(t *testing.T) {
 	config, libraries := fixture(t, `{}`, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	constraint := ">= 1.0.0, < 2.0.0"
-	resolved.Sources[0].Ref = ""
-	resolved.Sources[0].Version = constraint
+	ref := "rules&<v1>"
+	resolved.Sources[0].Ref = ref
 	version := "review & <test> \"quoted\"\\path\nnext"
 	output, err := prepare(resolved, Options{ToolVersion: version, IndexMaxLines: defaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
 	data := output.Files["provenance.json"]
-	if !bytes.Contains(data, []byte(`"version": ">= 1.0.0, < 2.0.0"`)) {
-		t.Fatalf("constraint is not readable in generated JSON: %s", data)
+	if !bytes.Contains(data, []byte(`"ref": "rules&<v1>"`)) {
+		t.Fatalf("ref is not readable in generated JSON: %s", data)
 	}
 	var parsed struct {
 		ToolVersion string
-		Sources     []struct{ Version string }
+		Sources     []struct{ Ref string }
 	}
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatal(err)
 	}
-	if parsed.ToolVersion != version || len(parsed.Sources) != 1 || parsed.Sources[0].Version != constraint {
+	if parsed.ToolVersion != version || len(parsed.Sources) != 1 || parsed.Sources[0].Ref != ref {
 		t.Fatalf("JSON changed the supplied text: %+v", parsed)
 	}
 	if !bytes.HasSuffix(data, []byte("\n")) || bytes.HasSuffix(data, []byte("\n\n")) {

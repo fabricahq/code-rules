@@ -3,7 +3,6 @@
 package project
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"reflect"
@@ -118,7 +117,8 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 		{"new format", func(r map[string]any) { r["formatVersion"] = 2 }},
 		{"unknown", func(r map[string]any) { r["future"] = true }},
 		{"wrong case", func(r map[string]any) { r["Repository"] = r["repository"]; delete(r, "repository") }},
-		{"null optional", func(r map[string]any) { r["resolvedTag"] = nil }},
+		{"null optional", func(r map[string]any) { r["groupSelection"] = nil }},
+		{"missing ref", func(r map[string]any) { delete(r, "ref") }},
 		{"invalid commit", func(r map[string]any) { r["resolvedCommit"] = "main" }},
 		{"changed repository", func(r map[string]any) { r["repository"] = "https://github.com/acme/other" }},
 		{"changed ref", func(r map[string]any) { r["ref"] = "v2.0.0" }},
@@ -189,41 +189,6 @@ func TestSnapshotLegacySelectionAndEmptySources(t *testing.T) {
 	}
 	if got, e := decodeSnapshots(empty, v); e == nil || got != nil {
 		t.Fatal("accepted retired source")
-	}
-}
-
-// TestSnapshotVersionIdentity preserves readable constraints and verifies the selected release.
-func TestSnapshotVersionIdentity(t *testing.T) {
-	c, s := snapshotFixture(t)
-	c.Sources[0].Ref = ""
-	c.Sources[0].ParsedRef = nil
-	c.Sources[0].Version = ">= 1.0.0, < 2.0.0"
-	item := s["team"]
-	item.Ref = ""
-	item.Version = c.Sources[0].Version
-	item.Tag = "v1.2.3"
-	item.ResolvedVersion = "1.2.3"
-	s["team"] = item
-	v, e := encodeSnapshots(c, s)
-	if e != nil {
-		t.Fatal(e)
-	}
-	if !bytes.Contains(v["team/_source.json"], []byte(`>= 1.0.0, < 2.0.0`)) {
-		t.Fatal("constraint escaped")
-	}
-	if _, e := decodeSnapshots(c, v); e != nil {
-		t.Fatal(e)
-	}
-	item.ResolvedVersion = "1.2.4"
-	s["team"] = item
-	if got, e := encodeSnapshots(c, s); e == nil || got != nil {
-		t.Fatal("accepted different release")
-	}
-	item.ResolvedVersion = "2.0.0"
-	item.Tag = "v2.0.0"
-	s["team"] = item
-	if got, e := encodeSnapshots(c, s); e == nil || got != nil {
-		t.Fatal("accepted release outside constraint")
 	}
 }
 

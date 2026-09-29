@@ -49,18 +49,15 @@ type resolvedGroup struct {
 // resolvedSource records the adopted revision and complete retained inventory, including excluded rules.
 // Files contains supporting bytes and inactive upstream documents; active rules own their original documents.
 type resolvedSource struct {
-	Name            string                    `json:"name"`
-	Repository      string                    `json:"repository"`
-	Ref             string                    `json:"ref,omitempty"`
-	Version         string                    `json:"version,omitempty"`
-	Tag             string                    `json:"resolvedTag,omitempty"`
-	ResolvedVersion string                    `json:"resolvedVersion,omitempty"`
-	Commit          string                    `json:"resolvedCommit"`
-	Selection       rules.GroupSelection      `json:"groupSelection"`
-	Groups          []string                  `json:"groups"`
-	License         *rules.LicenseDeclaration `json:"license"`
-	Paths           []string                  `json:"paths"`
-	Files           map[string][]byte         `json:"retainedFiles"`
+	Name       string                    `json:"name"`
+	Repository string                    `json:"repository"`
+	Ref        string                    `json:"ref,omitempty"`
+	Commit     string                    `json:"resolvedCommit"`
+	Selection  rules.GroupSelection      `json:"groupSelection"`
+	Groups     []string                  `json:"groups"`
+	License    *rules.LicenseDeclaration `json:"license"`
+	Paths      []string                  `json:"paths"`
+	Files      map[string][]byte         `json:"retainedFiles"`
 }
 
 // resolution owns effective rules; supporting bytes are shared read-only with the input catalogs.
@@ -108,10 +105,6 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		}
 		if supplied.Catalog.Selection.Pattern != source.Groups.Pattern || !slices.Equal(supplied.Catalog.Selection.Groups, source.Groups.Groups) {
 			return resolution{}, invalid(source.Name, "loaded group selection differs from configuration; reload the source")
-		}
-		selectedVersion, err := selectedVersion(source, supplied)
-		if err != nil {
-			return resolution{}, err
 		}
 		ref, err := rules.ParseGitRef(supplied.Commit, source.Name+".resolvedCommit")
 		if err != nil || ref.Kind != "commit" {
@@ -179,9 +172,6 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 				continue
 			}
 			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref, Commit: ref.SHA}
-			if source.Version != "" {
-				origin.Ref = supplied.Tag
-			}
 			active := resolvedRule{Rule: parsed, Origin: origin, License: supplied.Catalog.License}
 			if replacement, ok := source.Replace[id]; ok {
 				file := strings.TrimPrefix(replacement.File, "local/")
@@ -202,7 +192,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: supplied.Tag, ResolvedVersion: selectedVersion, Commit: ref.SHA, Selection: source.Groups, Groups: ids, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
+		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Commit: ref.SHA, Selection: source.Groups, Groups: ids, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {
@@ -309,32 +299,6 @@ func resolveGuidance(definitions []groupGuidance) []groupGuidance {
 		}
 	}
 	return slices.Clone(definitions)
-}
-
-// selectedVersion verifies a supplied release tag satisfies its requested constraint and returns its normalized version.
-func selectedVersion(source rules.Source, supplied Library) (string, error) {
-	if source.Version == "" {
-		if supplied.Tag != "" {
-			return "", invalid(source.Name, "supply a selected tag only for version-based sources")
-		}
-		return "", nil
-	}
-	version, err := rules.TagVersion(supplied.Tag, source.Name+".resolvedTag")
-	if err != nil {
-		return "", err
-	}
-	constraint, err := rules.ParseVersionConstraint(source.Version, source.Name+".version")
-	if err != nil {
-		return "", err
-	}
-	matches, err := constraint.Matches(supplied.Tag, source.Name+".resolvedTag")
-	if err != nil {
-		return "", err
-	}
-	if !matches {
-		return "", invalid(source.Name, "selected release does not satisfy the configured version constraint")
-	}
-	return version, nil
 }
 
 // compareRuleIDs compares digit runs numerically and other bytes lexically, without integer overflow.

@@ -48,11 +48,10 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 	declaration := struct {
 		Repository string                 `yaml:"repository"`
 		Ref        string                 `yaml:"ref,omitempty"`
-		Version    string                 `yaml:"version,omitempty"`
 		Groups     any                    `yaml:"groups"`
 		Exclude    map[string]string      `yaml:"exclude"`
 		Replace    map[string]Replacement `yaml:"replace"`
-	}{source.Repository, source.Ref, source.Version, groups, source.Exclude, source.Replace}
+	}{source.Repository, source.Ref, groups, source.Exclude, source.Replace}
 	var entry yaml.Node
 	if err := entry.Encode(declaration); err != nil {
 		return nil, err

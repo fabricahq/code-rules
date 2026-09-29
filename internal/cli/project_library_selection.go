@@ -11,7 +11,7 @@ import (
 // collectSource prompts only for missing source inputs and preserves explicitly supplied flags.
 func (f *authoringFlags) collectSource(groups *[]string) error {
 	if f.value("ref") != "" {
-		if _, _, err := project.ParseSourceRef(f.value("ref")); err != nil {
+		if _, err := project.ParseSourceRef(f.value("ref")); err != nil {
 			return usage(err)
 		}
 	}

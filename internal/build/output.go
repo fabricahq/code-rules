@@ -72,14 +72,7 @@ func prepare(resolved resolution, options Options) (Output, error) {
 // libraryReadme exposes source identity and generated terms without interpreting their legal meaning.
 func libraryReadme(source resolvedSource) string {
 	file := "libraries/" + source.Name + "/README.md"
-	requested := source.Ref
-	if source.Version != "" {
-		requested = source.Version
-	}
-	sections := []string{"# " + escapeText(source.Name), "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.", "**Repository:** " + escapeText(source.Repository), "**Requested revision or version:** " + escapeText(requested), "**Resolved commit:** `" + source.Commit + "`"}
-	if source.Tag != "" {
-		sections = append(sections, "**Selected tag:** "+escapeText(source.Tag), "**Selected version:** "+escapeText(source.ResolvedVersion))
-	}
+	sections := []string{"# " + escapeText(source.Name), "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.", "**Repository:** " + escapeText(source.Repository), "**Requested revision or version:** " + escapeText(source.Ref), "**Resolved commit:** `" + source.Commit + "`"}
 	if source.License == nil {
 		sections = append(sections, "No library license declaration was supplied.")
 	}
@@ -106,17 +99,14 @@ type provenanceLicense struct {
 
 // provenanceSource records supplied revision identity and actual group selection.
 type provenanceSource struct {
-	Name            string               `json:"name"`
-	Repository      string               `json:"repository"`
-	Ref             string               `json:"ref,omitempty"`
-	Version         string               `json:"version,omitempty"`
-	Tag             string               `json:"resolvedTag,omitempty"`
-	ResolvedVersion string               `json:"resolvedVersion,omitempty"`
-	Commit          string               `json:"resolvedCommit"`
-	Groups          []string             `json:"groups"`
-	Selection       rules.GroupSelection `json:"groupSelection"`
-	LicenseFiles    []string             `json:"licenseFiles"`
-	License         *provenanceLicense   `json:"license"`
+	Name         string               `json:"name"`
+	Repository   string               `json:"repository"`
+	Ref          string               `json:"ref,omitempty"`
+	Commit       string               `json:"resolvedCommit"`
+	Groups       []string             `json:"groups"`
+	Selection    rules.GroupSelection `json:"groupSelection"`
+	LicenseFiles []string             `json:"licenseFiles"`
+	License      *provenanceLicense   `json:"license"`
 }
 
 // provenanceGroup retains all guidance plus the sources chosen for display.
@@ -167,7 +157,7 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		Rules           []provenanceRule   `json:"rules"`
 	}{GeneratedNotice: generatedNotice + " Edit source rules or configuration, then regenerate with code-rules project build or code-rules project sync. Run project commands from the project root.", ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
 	for _, source := range resolved.Sources {
-		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: source.Tag, ResolvedVersion: source.ResolvedVersion, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, LicenseFiles: rules.LicensePaths(source.License), License: termProvenance(source.Name, "", source.License)})
+		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, LicenseFiles: rules.LicensePaths(source.License), License: termProvenance(source.Name, "", source.License)})
 	}
 	for _, group := range resolved.Groups {
 		effective := []string{}
@@ -200,7 +190,7 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 	var data bytes.Buffer
 	encoder := json.NewEncoder(&data)
 	encoder.SetIndent("", "  ")
-	// This is a standalone JSON file; preserve readable constraints such as ">= 1.0.0".
+	// This is a standalone JSON file; keep characters such as <, >, and & readable.
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(result); err != nil {
 		return nil, fmt.Errorf("encode provenance: %w", err)

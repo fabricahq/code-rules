@@ -53,7 +53,7 @@ func newLibraryFixture(t *testing.T, files map[string][]byte) *gitfixture.Fixtur
 // libraryConfig parses the same configuration boundary used by the application.
 func libraryConfig(t *testing.T, repository string) rules.Configuration {
 	t.Helper()
-	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": repository, "version": ">= 1.0.0", "groups": []string{"techs/go"}, "exclude": map[string]string{}, "replace": map[string]any{}}}})
+	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": repository, "ref": "v1.2.0", "groups": []string{"techs/go"}, "exclude": map[string]string{}, "replace": map[string]any{}}}})
 	config, err := rules.ParseConfiguration(raw)
 	if err != nil {
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func TestImportLibraryOriginalBytes(t *testing.T) {
 		t.Fatal(err)
 	}
 	item := imported["team"]
-	if item.Snapshot.Commit != f.LatestCommit || item.Snapshot.Tag != "v1.2.0" || item.Catalog.License == nil {
+	if item.Snapshot.Commit != f.LatestCommit || item.Catalog.License == nil {
 		t.Fatal("lost provenance or license")
 	}
 	for name, data := range item.Snapshot.Files {
@@ -290,7 +290,6 @@ func TestCatalogMutationPreservesSnapshot(t *testing.T) {
 func TestImportMissingRefDiagnostic(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())
 	config := libraryConfig(t, f.Repository)
-	config.Sources[0].Version = ""
 	config.Sources[0].Ref = "missing"
 	result, err := ImportLibraries(context.Background(), config, Options{GitPath: f.GitPath, Environment: f.Environment})
 	requireCode(t, err, "ref-not-found")

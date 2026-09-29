@@ -9,7 +9,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// SourceInput selects a repository, one exact ref or version range, and library groups.
+// SourceInput selects a repository, one exact ref, and library groups.
 // A single wildcard selector may replace explicit group paths; exclusions and replacements are configured separately.
 type SourceInput struct {
 	Repository string
@@ -17,22 +17,14 @@ type SourceInput struct {
 	Groups     []string
 }
 
-// ParseSourceRef returns the exact ref or version constraint, with exactly one populated on success.
-// Bare versions are literal tags; refs/tags/ disambiguates tags that resemble constraints.
-func ParseSourceRef(input string) (ref, version string, err error) {
+// ParseSourceRef returns the tag or full commit SHA without surrounding whitespace.
+// Branch names, abbreviated commits, and version ranges are rejected.
+func ParseSourceRef(input string) (string, error) {
 	value := strings.TrimSpace(input)
-	if !strings.HasPrefix(value, "refs/tags/") && value != "" &&
-		(strings.ContainsAny(value[:1], "=!<>~^") || strings.Contains(value, ",")) {
-		constraint, err := rules.ParseVersionConstraint(value, "--ref")
-		if err != nil {
-			return "", "", err
-		}
-		return "", constraint.String(), nil
-	}
 	if _, err := rules.ParseGitRef(value, "--ref"); err != nil {
-		return "", "", err
+		return "", err
 	}
-	return value, "", nil
+	return value, nil
 }
 
 // ParseSourceGroups validates explicit paths or one wildcard without interpreting comma-separated prompt text.
@@ -49,7 +41,7 @@ func ParseSourceGroups(groups []string) (rules.GroupSelection, error) {
 }
 
 func parseSourceInput(input SourceInput) (rules.Source, error) {
-	ref, version, err := ParseSourceRef(input.Ref)
+	ref, err := ParseSourceRef(input.Ref)
 	if err != nil {
 		return rules.Source{}, err
 	}
@@ -57,5 +49,5 @@ func parseSourceInput(input SourceInput) (rules.Source, error) {
 	if err != nil {
 		return rules.Source{}, err
 	}
-	return rules.Source{Repository: input.Repository, Ref: ref, Version: version, Groups: groups, Exclude: map[string]string{}, Replace: map[string]rules.Replacement{}}, nil
+	return rules.Source{Repository: input.Repository, Ref: ref, Groups: groups, Exclude: map[string]string{}, Replace: map[string]rules.Replacement{}}, nil
 }

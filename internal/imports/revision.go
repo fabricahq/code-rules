@@ -26,11 +26,8 @@ type Options struct {
 }
 
 // revision owns a temporary bare repository until Close. It is not safe for concurrent use with Close.
-// Tag and Version are present only for a version-constraint selection.
 type revision struct {
 	Commit    string `json:"commit"`
-	Tag       string `json:"resolvedTag,omitempty"`
-	Version   string `json:"resolvedVersion,omitempty"`
 	directory string
 	runner    gitexec.Runner
 }
@@ -65,26 +62,16 @@ func fetchRevision(ctx context.Context, source rules.Source, options Options) (_
 	if _, err := rules.ParseRepository(address, "sources."+source.Name+".repository"); err != nil {
 		return nil, err
 	}
-	if (source.Ref == "") == (source.Version == "") {
-		return nil, fail("invalid-source", "Specify exactly one ref or version constraint.", nil)
+	if source.Ref == "" {
+		return nil, fail("invalid-source", "Specify an exact ref.", nil)
 	}
-	var ref string
-	var exact rules.GitRef
-	var constraint rules.VersionConstraint
-	if source.Ref != "" {
-		exact, err = rules.ParseGitRef(source.Ref, "sources."+source.Name+".ref")
-		if err != nil {
-			return nil, err
-		}
-		ref = exact.Name
-		if exact.Kind == rules.GitRefCommit {
-			ref = exact.SHA
-		}
-	} else {
-		constraint, err = rules.ParseVersionConstraint(source.Version, "sources."+source.Name+".version")
-		if err != nil {
-			return nil, err
-		}
+	exact, err := rules.ParseGitRef(source.Ref, "sources."+source.Name+".ref")
+	if err != nil {
+		return nil, err
+	}
+	ref := exact.Name
+	if exact.Kind == rules.GitRefCommit {
+		ref = exact.SHA
 	}
 	runner, err := gitexec.Isolated(gitexec.Options{GitPath: options.GitPath, Environment: options.Environment})
 	if err != nil {
@@ -106,21 +93,6 @@ func fetchRevision(ctx context.Context, source rules.Source, options Options) (_
 	if _, err = runner.Output(ctx, dir, []string{"init", "--bare", "--quiet", "--template="}, 4096); err != nil {
 		return nil, err
 	}
-	var selection rules.VersionSelection
-	if source.Version != "" {
-		available, err := runner.Run(ctx, dir, []string{"ls-remote", "--tags", source.Repository}, 8<<20, nil)
-		if err != nil {
-			return nil, err
-		}
-		if available.Status != 0 {
-			return nil, fail("not-found-or-no-access", "Repository not found or no access; check its address and Git credentials.", nil)
-		}
-		selection, err = rules.SelectReleaseTag(string(available.Output), constraint)
-		if err != nil {
-			return nil, err
-		}
-		ref = "refs/tags/" + selection.Tag
-	}
 	fetched, err := runner.Run(ctx, dir, []string{"fetch", "--quiet", "--depth=1", "--no-tags", "--no-auto-gc", "--no-recurse-submodules", source.Repository, ref}, 64<<10, nil)
 	if err != nil {
 		return nil, err
@@ -135,15 +107,6 @@ func fetchRevision(ctx context.Context, source rules.Source, options Options) (_
 		}
 		return nil, fail("not-found-or-no-access", "Repository not found or no access; check its address and Git credentials.", nil)
 	}
-	if selection.Tag != "" {
-		object, err := runner.Output(ctx, dir, []string{"rev-parse", "--verify", "FETCH_HEAD"}, 4096)
-		if err != nil {
-			return nil, err
-		}
-		if strings.TrimSpace(string(object)) != selection.Object {
-			return nil, fail("ref-changed", "Selected version tag changed during import; retry to resolve it again.", nil)
-		}
-	}
 	resolved, err := runner.Run(ctx, dir, []string{"rev-parse", "--verify", "FETCH_HEAD^{commit}"}, 4096, nil)
 	if err != nil {
 		return nil, err
@@ -156,8 +119,6 @@ func fetchRevision(ctx context.Context, source rules.Source, options Options) (_
 		return nil, fail("git-failed", "Git returned a different or unsupported commit identity.", nil)
 	}
 	revision.Commit = commit
-	revision.Tag = selection.Tag
-	revision.Version = selection.Version
 	return revision, nil
 }
 

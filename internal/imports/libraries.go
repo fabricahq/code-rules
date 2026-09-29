@@ -81,7 +81,7 @@ func importLibrary(ctx context.Context, source rules.Source, options Options) (_
 	}
 	selection := catalog.Selection
 	selection.Groups = slices.Clone(selection.Groups)
-	snapshot := library.Snapshot{Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: revision.Tag, ResolvedVersion: revision.Version, Commit: revision.Commit, Selection: selection, Groups: groups, Files: files}
+	snapshot := library.Snapshot{Repository: source.Repository, Ref: source.Ref, Commit: revision.Commit, Selection: selection, Groups: groups, Files: files}
 	if err := ctx.Err(); err != nil {
 		return Library{}, gitexec.ContextFailure(err)
 	}

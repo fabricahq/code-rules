@@ -200,7 +200,7 @@ func prepareProject(ctx context.Context, root *os.Root, state projectState, opti
 		if err := verifyLoadedSnapshot(source.Name, catalog, snapshot); err != nil {
 			return build.Output{}, err
 		}
-		libraries[source.Name] = build.Library{Catalog: catalog, Commit: snapshot.Commit, Tag: snapshot.Tag}
+		libraries[source.Name] = build.Library{Catalog: catalog, Commit: snapshot.Commit}
 	}
 	return renderProject(ctx, state, libraries, options)
 }
