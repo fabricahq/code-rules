@@ -292,7 +292,7 @@ func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 		if slices.Contains(paths, path) {
 			return nil, invalid(location+"["+strconv.Itoa(i)+"]", "duplicate path "+quote(path))
 		}
-		if isRuleContent(path) {
+		if IsRuleContent(path) {
 			return nil, invalid(location+"["+strconv.Itoa(i)+"]", quote(path)+" belongs to a rule's version, not the library-wide files")
 		}
 		paths = append(paths, path)
@@ -300,10 +300,10 @@ func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 	return paths, nil
 }
 
-// isRuleContent reports whether path is part of some rule's version: a rule's Markdown file, or a file in an asset
+// IsRuleContent reports whether path is part of some rule's version: a rule's Markdown file, or a file in an asset
 // directory inside a technology or practice group, since every such directory belongs to a rule. Group metadata,
 // group READMEs, and the library-root assets/ directory are library-wide.
-func isRuleContent(path string) bool {
+func IsRuleContent(path string) bool {
 	parts := strings.Split(path, "/")
 	if parts[0] != "techs" && parts[0] != "practices" {
 		return false

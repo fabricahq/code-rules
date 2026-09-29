@@ -193,13 +193,7 @@ func libraryCheckedReport(result library.CheckResult) commandReport {
 	if len(result.PendingRelease.Rules) == 0 {
 		out.WriteString("  No rule changes are pending.\n")
 	}
-	idWidth, changeWidth := 0, 0
-	for _, rule := range result.PendingRelease.Rules {
-		idWidth, changeWidth = max(idWidth, len(rule.ID)), max(changeWidth, len(rule.Change))
-	}
-	for _, rule := range result.PendingRelease.Rules {
-		fmt.Fprintf(&out, "  %-*s  %-*s  %s\n", idWidth, rule.ID, changeWidth, rule.Change, pendingVersions(rule))
-	}
+	formatPendingRules(&out, result.PendingRelease.Rules)
 	return commandReport{value: result, human: out.String()}
 }
 

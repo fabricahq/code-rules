@@ -334,7 +334,7 @@ It then computes each changed rule's next version from the pending notes, using 
 
 `--dry-run` shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes.
 
-If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. The result reports separately whether the tag and the GitHub Release page were created. With no pending notes and no library-wide changes, the command reports that there is nothing to publish.
+If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. The result reports separately whether the tag and the GitHub Release page were created; JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.libraryFiles`, and `value.notes`. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, and succeeds.
 
 The tag uses Git's configured identity as its tagger, including the `GIT_COMMITTER_*` environment variables.
 

@@ -128,6 +128,16 @@ func gitExecutable(name string, environment []string) (string, error) {
 	if strings.ContainsRune(name, '/') {
 		return filepath.Abs(name)
 	}
+	if executable := LookPath(name, environment); executable != "" {
+		return executable, nil
+	}
+	return "", Fail("git-unavailable", "Cannot find Git; install Git 2.30 or later and check PATH.", nil)
+}
+
+// LookPath returns the first executable file named name in the absolute directories of environment's PATH,
+// or "" when there is none. Unlike exec.LookPath, it reads a child's environment rather than the process's,
+// and never searches the current directory.
+func LookPath(name string, environment []string) string {
 	var search string
 	for _, item := range environment {
 		if value, ok := strings.CutPrefix(item, "PATH="); ok {
@@ -143,9 +153,9 @@ func gitExecutable(name string, environment []string) (string, error) {
 		if err != nil || info.IsDir() || info.Mode()&0111 == 0 {
 			continue
 		}
-		return candidate, nil
+		return candidate
 	}
-	return "", Fail("git-unavailable", "Cannot find Git; install Git 2.30 or later and check PATH.", nil)
+	return ""
 }
 
 // outputBudget counts both streams under one ceiling while retaining stdout only.

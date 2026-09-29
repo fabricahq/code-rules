@@ -36,7 +36,7 @@ func addLibraryCommands(root *cobra.Command, options Options, output *commandOut
 	library := &cobra.Command{Use: "library", Short: "Create and maintain a shared rule library"}
 	library.Long = library.Short + "\n\nLibraries are maintained separately from projects. Projects can define their own rule groups and import groups from libraries.\n\nRun init from the Git repository root. Other library commands can run from any\nsubdirectory. Outside Git, run commands from the library root." + documentationHelp
 	root.AddCommand(library)
-	library.AddCommand(libraryInitCommand(options, output), libraryCheckCommand(options, output), libraryChangeCommand(options, output))
+	library.AddCommand(libraryInitCommand(options, output), libraryCheckCommand(options, output), libraryChangeCommand(options, output), libraryReleaseCommand(options, output))
 	add := &cobra.Command{Use: "add", Short: "Add a library group or rule"}
 	library.AddCommand(add)
 	add.AddCommand(libraryGroupCommand(options, output), libraryRuleCommand(options, output))

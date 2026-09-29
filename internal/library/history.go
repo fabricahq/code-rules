@@ -45,6 +45,8 @@ type releaseTag struct {
 	// object is the tag object's ID; size is its length in bytes.
 	object string
 	size   int
+	// commit is the tagged commit.
+	commit string
 }
 
 // releaseHistory is what the library releases reachable from HEAD record.
@@ -58,6 +60,10 @@ type releaseHistory struct {
 // publishedRelease is the latest library release reachable from HEAD.
 type publishedRelease struct {
 	number int
+	// object is the tag object's ID, and commit the commit it tags.
+	object, commit string
+	// notes are the release notes before the tag message's record, which a GitHub Release page repeats.
+	notes  string
 	record rules.ReleaseRecord
 	// files maps each file under practices/, techs/, and changes/ at the release's commit to its blob ID.
 	files map[string]string
@@ -91,12 +97,8 @@ func (g *libraryGit) releaseTags(ctx context.Context) ([]releaseTag, error) {
 	if g == nil {
 		return nil, nil
 	}
-	shallow, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--is-shallow-repository"}, 4096)
-	if err != nil {
-		return nil, fmt.Errorf("check whether the library is a shallow clone: %w", err)
-	}
-	if strings.TrimSpace(string(shallow)) != "false" {
-		return nil, failure("shallow-clone", shallowClone, nil)
+	if err := g.requireFullHistory(ctx); err != nil {
+		return nil, err
 	}
 	head, err := g.runner.Run(ctx, g.dir, []string{"rev-parse", "--verify", "--quiet", "HEAD^{commit}"}, 4096, nil)
 	if err != nil {
@@ -105,14 +107,14 @@ func (g *libraryGit) releaseTags(ctx context.Context) ([]releaseTag, error) {
 	if head.Status != 0 {
 		return nil, nil
 	}
-	listing, err := g.runner.Output(ctx, g.dir, []string{"for-each-ref", "--merged=HEAD", "--format=%(refname)%00%(objecttype)%00%(objectname)%00%(objectsize)%00%(*objecttype)", "refs/tags/release/"}, 8*1024*1024)
+	listing, err := g.runner.Output(ctx, g.dir, []string{"for-each-ref", "--merged=HEAD", "--format=%(refname)%00%(objecttype)%00%(objectname)%00%(objectsize)%00%(*objecttype)%00%(*objectname)", "refs/tags/release/"}, 8*1024*1024)
 	if err != nil {
 		return nil, fmt.Errorf("list the library's release tags: %w", err)
 	}
 	tags := []releaseTag{}
 	for line := range strings.Lines(string(listing)) {
 		fields := strings.Split(strings.TrimSuffix(line, "\n"), "\x00")
-		if len(fields) != 5 {
+		if len(fields) != 6 {
 			return nil, failure("git-failed", "Git listed release tags in an unexpected format", nil)
 		}
 		// Code Rules ignores other tags under release/, such as release/01 or release/v2.
@@ -125,19 +127,31 @@ func (g *libraryGit) releaseTags(ctx context.Context) ([]releaseTag, error) {
 			return nil, failure("invalid-release-tag", name+": expected an annotated tag on a commit, with a release record; don't create release tags by hand", nil)
 		}
 		size, err := strconv.Atoi(fields[3])
-		if !objectID.MatchString(fields[2]) || err != nil || size < 0 {
+		if !objectID.MatchString(fields[2]) || !objectID.MatchString(fields[5]) || err != nil || size < 0 {
 			return nil, failure("git-failed", "Git listed release tags in an unexpected format", nil)
 		}
 		if size > maxFileBytes {
 			return nil, failure("limit-exceeded", name+": tag message exceeds 8 MiB", nil)
 		}
-		tags = append(tags, releaseTag{number: number, object: fields[2], size: size})
+		tags = append(tags, releaseTag{number: number, object: fields[2], size: size, commit: fields[5]})
 		if len(tags) > maxReleaseTags {
 			return nil, failure("limit-exceeded", "library has more than 20,000 release tags", nil)
 		}
 	}
 	slices.SortFunc(tags, func(a, b releaseTag) int { return a.number - b.number })
 	return tags, nil
+}
+
+// requireFullHistory fails with shallow-clone in a clone that may lack history and tags.
+func (g *libraryGit) requireFullHistory(ctx context.Context) error {
+	shallow, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--is-shallow-repository"}, 4096)
+	if err != nil {
+		return fmt.Errorf("check whether the library is a shallow clone: %w", err)
+	}
+	if strings.TrimSpace(string(shallow)) != "false" {
+		return failure("shallow-clone", shallowClone, nil)
+	}
+	return nil
 }
 
 // history reads every reachable release record and lists the latest release's rule and note files.
@@ -147,7 +161,7 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	if err != nil || len(tags) == 0 {
 		return history, err
 	}
-	records, err := g.releaseRecords(ctx, tags)
+	notes, records, err := g.releaseRecords(ctx, tags)
 	if err != nil {
 		return releaseHistory{}, err
 	}
@@ -163,12 +177,14 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	if err != nil {
 		return releaseHistory{}, err
 	}
-	history.latest = &publishedRelease{number: latest.number, record: records[len(records)-1], files: files}
+	history.latest = &publishedRelease{number: latest.number, object: latest.object, commit: latest.commit, notes: notes, record: records[len(records)-1], files: files}
 	return history, nil
 }
 
 // releaseRecords parses each tag's release record, in tag order, reading messages in bounded batches.
-func (g *libraryGit) releaseRecords(ctx context.Context, tags []releaseTag) ([]rules.ReleaseRecord, error) {
+// It also returns the last tag's release notes.
+func (g *libraryGit) releaseRecords(ctx context.Context, tags []releaseTag) (string, []rules.ReleaseRecord, error) {
+	var notes string
 	records := make([]rules.ReleaseRecord, 0, len(tags))
 	for start := 0; start < len(tags); {
 		end, total := start, 0
@@ -180,27 +196,28 @@ func (g *libraryGit) releaseRecords(ctx context.Context, tags []releaseTag) ([]r
 		}
 		result, err := g.runner.Run(ctx, g.dir, []string{"cat-file", "--batch"}, total+4096, []byte(input.String()))
 		if err != nil {
-			return nil, fmt.Errorf("read the library's release tags: %w", err)
+			return "", nil, fmt.Errorf("read the library's release tags: %w", err)
 		}
 		if result.Status != 0 {
-			return nil, failure("git-failed", "Git could not read the library's release tags", nil)
+			return "", nil, failure("git-failed", "Git could not read the library's release tags", nil)
 		}
 		remaining := result.Output
 		for _, tag := range tags[start:end] {
 			var body []byte
 			body, remaining, err = batchObject(remaining, tag.object, "tag", tag.size)
 			if err != nil {
-				return nil, err
+				return "", nil, err
 			}
-			record, err := parseReleaseTag(body, tag.number)
+			var record rules.ReleaseRecord
+			notes, record, err = parseReleaseTag(body, tag.number)
 			if err != nil {
-				return nil, err
+				return "", nil, err
 			}
 			records = append(records, record)
 		}
 		start = end
 	}
-	return records, nil
+	return notes, records, nil
 }
 
 // batchObject splits one object from git cat-file --batch output, verifying its header, and returns the rest.
@@ -215,10 +232,10 @@ func batchObject(output []byte, object, kind string, size int) ([]byte, []byte, 
 // signatureHeaders begin a signature that Git appends to a signed tag's message.
 var signatureHeaders = []string{"-----BEGIN PGP SIGNATURE-----", "-----BEGIN PGP MESSAGE-----", "-----BEGIN SSH SIGNATURE-----", "-----BEGIN SIGNED MESSAGE-----"}
 
-// parseReleaseTag reads the release record from a raw tag object, ignoring any signature. An invalid record,
-// including one whose number differs from the tag's, fails with code invalid-release-tag and keeps the
+// parseReleaseTag reads the release notes and record from a raw tag object, ignoring any signature. An invalid
+// record, including one whose number differs from the tag's, fails with code invalid-release-tag and keeps the
 // parser's validation error, with its location, as the cause.
-func parseReleaseTag(object []byte, number int) (rules.ReleaseRecord, error) {
+func parseReleaseTag(object []byte, number int) (string, rules.ReleaseRecord, error) {
 	name := "release/" + strconv.Itoa(number)
 	_, message, ok := bytes.Cut(object, []byte("\n\n"))
 	if !ok {
@@ -237,18 +254,28 @@ func parseReleaseTag(object []byte, number int) (rules.ReleaseRecord, error) {
 		}
 		offset += next + 1
 	}
-	_, record, err := rules.ParseReleaseMessage(name, message[:end])
+	notes, record, err := rules.ParseReleaseMessage(name, message[:end])
 	if err != nil {
-		return rules.ReleaseRecord{}, failure("invalid-release-tag", "invalid release record in "+name+": "+err.Error()+". Don't create or move release tags by hand", err)
+		return "", rules.ReleaseRecord{}, failure("invalid-release-tag", "invalid release record in "+name+": "+err.Error()+". Don't create or move release tags by hand", err)
 	}
-	return record, nil
+	return notes, record, nil
 }
 
 // releaseFiles lists the blobs under practices/, techs/, and changes/ at a release tag's commit.
 func (g *libraryGit) releaseFiles(ctx context.Context, tag string) (map[string]string, error) {
-	listing, err := g.runner.Output(ctx, g.dir, []string{"ls-tree", "-r", "-z", "--full-tree", tag, "--", "practices", "techs", "changes"}, 32*1024*1024)
+	files, err := g.treeFiles(ctx, tag, []string{"practices", "techs", "changes"})
 	if err != nil {
 		return nil, fmt.Errorf("list the latest library release's files: %w", err)
+	}
+	return files, nil
+}
+
+// treeFiles maps each file at or under paths in a commit's tree, or a tag's, to its blob ID, leaving out other
+// entries, such as submodules.
+func (g *libraryGit) treeFiles(ctx context.Context, treeish string, paths []string) (map[string]string, error) {
+	listing, err := g.runner.Output(ctx, g.dir, append([]string{"ls-tree", "-r", "-z", "--full-tree", treeish, "--"}, paths...), 32*1024*1024)
+	if err != nil {
+		return nil, err
 	}
 	files := map[string]string{}
 	for record := range bytes.SplitSeq(bytes.TrimSuffix(listing, []byte{0}), []byte{0}) {
@@ -258,13 +285,13 @@ func (g *libraryGit) releaseFiles(ctx context.Context, tag string) (map[string]s
 		header, name, ok := strings.Cut(string(record), "\t")
 		fields := strings.Fields(header)
 		if !ok || len(fields) != 3 || !objectID.MatchString(fields[2]) {
-			return nil, failure("git-failed", "Git listed the library release's files in an unexpected format", nil)
+			return nil, failure("git-failed", "Git listed the library's files in an unexpected format", nil)
 		}
 		if fields[1] == "blob" {
 			files[name] = fields[2]
 		}
 		if len(files) > maxFiles {
-			return nil, failure("limit-exceeded", "library release exceeds 10,000 files", nil)
+			return nil, failure("limit-exceeded", treeish+": library exceeds 10,000 files", nil)
 		}
 	}
 	return files, nil
