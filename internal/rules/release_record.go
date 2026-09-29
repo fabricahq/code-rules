@@ -92,7 +92,26 @@ func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
 			return ReleaseRecord{}, err
 		}
 	}
+	if record.Release == 1 {
+		if err := requireFirstRelease(record, location); err != nil {
+			return ReleaseRecord{}, err
+		}
+	}
 	return record, nil
+}
+
+// requireFirstRelease requires the first library release to publish every rule as new, so each rule's history
+// starts with a changes entry for 1.0.0, and to retire nothing, since no rule had a version before it.
+func requireFirstRelease(record ReleaseRecord, location string) error {
+	if len(record.Retired) > 0 {
+		return invalid(location+".retired", "the first library release can't retire rules")
+	}
+	for _, id := range slices.Sorted(maps.Keys(record.Rules)) {
+		if change, ok := record.Changes[id]; !ok || change.Change != ChangeNew {
+			return invalid(location+".changes."+id, "the first library release must list every rule as new")
+		}
+	}
+	return nil
 }
 
 // releaseNumber accepts a positive integer below one billion.
@@ -173,8 +192,12 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 			if err != nil {
 				return nil, err
 			}
-			if from.Next(change.Change) != current {
-				return nil, invalid(entryLocation, "a "+name+" change from "+from.String()+" leads to "+from.Next(change.Change).String()+", but rules records "+current.String())
+			next, err := from.Next(change.Change)
+			if err != nil {
+				return nil, invalid(entryLocation, err.Error())
+			}
+			if next != current {
+				return nil, invalid(entryLocation, "a "+name+" change from "+from.String()+" leads to "+next.String()+", but rules records "+current.String())
 			}
 			change.From = &from
 		default:

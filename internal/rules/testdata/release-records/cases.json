@@ -354,5 +354,65 @@
         "message": "release/4.libraryFiles[0]: expected a contained relative path, got \"../secrets\""
       }
     }
+  },
+  {
+    "id": "first-release-rule-without-change",
+    "location": "release/4",
+    "message": "Notes.\n---\nrelease: 1\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\n  practices/testing/verify-retries: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: new\n    summary: Add the rule.\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/4.changes.practices/testing/verify-retries",
+        "message": "release/4.changes.practices/testing/verify-retries: the first library release must list every rule as new"
+      }
+    }
+  },
+  {
+    "id": "first-release-without-changes",
+    "location": "release/4",
+    "message": "Notes.\n---\nrelease: 1\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/4.changes.practices/testing/verify-retry-limits",
+        "message": "release/4.changes.practices/testing/verify-retry-limits: the first library release must list every rule as new"
+      }
+    }
+  },
+  {
+    "id": "first-release-version-change",
+    "location": "release/4",
+    "message": "Notes.\n---\nrelease: 1\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.0.0\n    summary: Stricter.\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/4.changes.practices/testing/verify-retry-limits",
+        "message": "release/4.changes.practices/testing/verify-retry-limits: the first library release must list every rule as new"
+      }
+    }
+  },
+  {
+    "id": "first-release-retires",
+    "location": "release/4",
+    "message": "Notes.\n---\nrelease: 1\nrules: {}\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summary: Gone.\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/4.retired",
+        "message": "release/4.retired: the first library release can't retire rules"
+      }
+    }
+  },
+  {
+    "id": "version-change-past-the-largest-number",
+    "location": "release/4",
+    "message": "Notes.\n---\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: patch\n    from: 1.0.999999999\n    summary: Fix.\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/4.changes.practices/testing/verify-retry-limits",
+        "message": "release/4.changes.practices/testing/verify-retry-limits: a patch change from 1.0.999999999 exceeds the largest rule version number, 999999999"
+      }
+    }
   }
 ]
