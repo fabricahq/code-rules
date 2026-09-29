@@ -103,6 +103,21 @@ func previewRows(preview PendingRelease) []string {
 	return rows
 }
 
+// checkWithPlan runs library check on options' library, also returning the plan of the next library release.
+func checkWithPlan(ctx context.Context, options Options) (CheckResult, releasePlan, error) {
+	root, err := openLibrary(ctx, options, false)
+	if err != nil {
+		return CheckResult{}, releasePlan{}, err
+	}
+	defer root.Close()
+	git, err := openLibraryGit(ctx, root.Name(), options.Git)
+	if err != nil {
+		return CheckResult{}, releasePlan{}, err
+	}
+	checked, err := checkLibrary(ctx, root, git)
+	return checked.result, checked.plan, err
+}
+
 // errorCode returns a domain error's stable code, or "" for another error.
 func errorCode(err error) string {
 	var domain *filetxn.Error
@@ -172,7 +187,7 @@ func TestCheck_RequiresNotesThatMatchChangesSinceTheLatestLibraryRelease(t *test
 			t.Parallel()
 			_, options := authorClone(t, libraryFiles(), releaseOne)
 			edit(t, options.Directory, test.files)
-			result, plan, err := checkLibrary(context.Background(), options)
+			result, plan, err := checkWithPlan(context.Background(), options)
 			if len(test.problems) > 0 {
 				if errorCode(err) != "change-notes" || !strings.Contains(err.Error(), "change notes don't match the rule changes since release/1:") {
 					t.Fatalf("expected a change-notes failure, got %v", err)

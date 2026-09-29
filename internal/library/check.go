@@ -32,30 +32,53 @@ type CheckResult struct {
 // before its first library release, needs no notes, and its first library release gives every rule 1.0.0.
 // A final comparison rejects observed changes; ordinary editors are not locked out.
 func Check(ctx context.Context, options Options) (CheckResult, error) {
-	result, _, err := checkLibrary(ctx, options)
-	return result, err
-}
-
-// checkLibrary is Check, also returning the plan of the next library release its preview shows.
-func checkLibrary(ctx context.Context, options Options) (CheckResult, releasePlan, error) {
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return CheckResult{}, err
 	}
 	defer root.Close()
 	if err = filetxn.RequireIdle(root); err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return CheckResult{}, err
 	}
+	git, err := openLibraryGit(ctx, root.Name(), options.Git)
+	if err != nil {
+		return CheckResult{}, err
+	}
+	checked, err := checkLibrary(ctx, root, git)
+	if err != nil {
+		return CheckResult{}, err
+	}
+	if err = requireLibraryUnchanged(ctx, root, checked.input); err != nil {
+		return CheckResult{}, err
+	}
+	if err = filetxn.RequireIdle(root); err != nil {
+		return CheckResult{}, err
+	}
+	return checked.result, nil
+}
+
+// checkedLibrary is a library that passed library check: what check read, how its rules changed since the
+// latest library release, and what the next library release would publish.
+type checkedLibrary struct {
+	result  CheckResult
+	input   checkInput
+	changes libraryChanges
+	plan    releasePlan
+}
+
+// checkLibrary validates the library under root and its change notes against git's library releases; a nil
+// git is a library outside Git. The caller confirms that the library didn't change while it was read.
+func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit) (checkedLibrary, error) {
 	input, err := libraryCheckInput(ctx, root)
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
 	if err = validateLibraryInventory(ctx, input.tree.Files, rules.LicensePaths(input.license)); err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
 	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"})
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
 	result := CheckResult{Groups: len(catalog.Groups), Warnings: []string{}}
 	current := []string{}
@@ -66,20 +89,16 @@ func checkLibrary(ctx context.Context, options Options) (CheckResult, releasePla
 		}
 	}
 	slices.Sort(current)
-	git, err := openLibraryGit(ctx, root.Name(), options.Git)
-	if err != nil {
-		return CheckResult{}, releasePlan{}, err
-	}
 	changes, warnings, err := git.compare(ctx, input.tree.Files, current, input.notes)
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
 	if problems := changes.review(); len(problems) > 0 {
-		return CheckResult{}, releasePlan{}, failure("change-notes", "change notes don't match the rule changes since "+changes.history.latest.tagName()+":\n  - "+strings.Join(problems, "\n  - "), nil)
+		return checkedLibrary{}, failure("change-notes", "change notes don't match the rule changes since "+changes.history.latest.tagName()+":\n  - "+strings.Join(problems, "\n  - "), nil)
 	}
 	plan, err := changes.plan()
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
 	result.PendingRelease = plan.preview()
 	if input.license == nil {
@@ -89,15 +108,9 @@ func checkLibrary(ctx context.Context, options Options) (CheckResult, releasePla
 	}
 	result.Warnings = append(result.Warnings, warnings...)
 	if err = ctx.Err(); err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
-	if err = requireLibraryUnchanged(ctx, root, input); err != nil {
-		return CheckResult{}, releasePlan{}, err
-	}
-	if err = filetxn.RequireIdle(root); err != nil {
-		return CheckResult{}, releasePlan{}, err
-	}
-	return result, plan, nil
+	return checkedLibrary{result: result, input: input, changes: changes, plan: plan}, nil
 }
 
 // parseChangeNote validates one note's format.
