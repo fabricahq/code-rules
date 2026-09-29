@@ -18,7 +18,11 @@ import (
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
-// syncProject initializes a project and a tagged library with exact binary and license content.
+// firstRelease is the release record of the sync fixture's first library release.
+const firstRelease = "release: 1\nrules:\n  techs/go/errors: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n"
+
+// syncProject initializes a project and a library, with exact binary and license content, whose first library
+// release publishes techs/go/errors at 1.0.0. The project selects techs/go.
 func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 	t.Helper()
 	f, err := gitfixture.New(context.Background(), map[string][]byte{
@@ -36,50 +40,16 @@ func syncProject(t *testing.T) (*gitfixture.Fixture, Options, imports.Options) {
 			t.Error(err)
 		}
 	})
+	if err := f.Release(context.Background(), 1, firstRelease); err != nil {
+		t.Fatal(err)
+	}
 	root := openTestProject(t)
 	if _, err := Initialize(context.Background(), Options{Directory: filepath.Dir(root.Name())}); err != nil {
 		t.Fatal(err)
 	}
-	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "ref": "v1.0.0", "groups": []string{"techs/go"}}}})
+	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": f.Repository, "groups": []string{"techs/go"}}}})
 	writeFixture(t, root, "config.yaml", string(raw))
 	return f, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}, imports.Options{GitPath: f.GitPath, Environment: f.Environment}
-}
-
-// TestSyncRefusesSourcesWithoutResolvableVersions fails before fetching or writing when a source has no ref
-// or selects individual rules, which need rule versions from release tags.
-func TestSyncRefusesSourcesWithoutResolvableVersions(t *testing.T) {
-	for name, fields := range map[string]map[string]any{
-		"no ref":           {"groups": []string{"techs/go"}},
-		"individual rules": {"ref": "v1.0.0", "rules": []string{"techs/go/errors"}},
-	} {
-		t.Run(name, func(t *testing.T) {
-			f, options, git := syncProject(t)
-			fields["repository"] = f.Repository
-			raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": fields}})
-			root, err := openProject(context.Background(), options, false)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer root.Close()
-			writeFixture(t, root, "config.yaml", string(raw))
-			before, err := filetxn.ReadTree(context.Background(), root, ".")
-			if err != nil {
-				t.Fatal(err)
-			}
-			changes, err := Sync(context.Background(), options, git)
-			var refused *imports.Error
-			if !errors.As(err, &refused) || refused.Code != "not-yet-supported" || !strings.Contains(err.Error(), "arrives in a later step") || changes.Added != nil {
-				t.Fatalf("got %+v, %v", changes, err)
-			}
-			after, err := filetxn.ReadTree(context.Background(), root, ".")
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !reflect.DeepEqual(before.Files, after.Files) {
-				t.Fatal("refused sync changed project files")
-			}
-		})
-	}
 }
 
 // TestSyncRoundTripAndRetirement preserves original bytes, produces clean offline output, and removes retired sources.
@@ -139,38 +109,9 @@ func TestSyncRoundTripAndRetirement(t *testing.T) {
 	}
 }
 
-// TestSyncUpdatesTag refetches a moved exact tag and updates both vendor bytes and generated content.
-func TestSyncUpdatesTag(t *testing.T) {
-	f, options, git := syncProject(t)
-	ctx := context.Background()
-	if _, err := Sync(ctx, options, git); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := f.Command(ctx, "tag", "-f", "v1.0.0", f.LatestCommit); err != nil {
-		t.Fatal(err)
-	}
-	changes, err := Sync(ctx, options, git)
-	if err != nil || len(changes.Changed) == 0 {
-		t.Fatalf("updated sync: %+v %v", changes, err)
-	}
-	root, err := openProject(ctx, options, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer root.Close()
-	state, err := readProject(ctx, root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	snapshots, err := decodeSnapshots(state.config, state.vendor.Files)
-	if err != nil || snapshots["team"].Commit != f.LatestCommit {
-		t.Fatal("stale identity", err)
-	}
-}
-
 // TestSyncFailurePreservesManagedTrees covers import failures, invalid local rules, and cancellation after a valid sync.
 func TestSyncFailurePreservesManagedTrees(t *testing.T) {
-	for _, scenario := range []string{"missing-ref", "invalid-local", "cancelled"} {
+	for _, scenario := range []string{"missing-version", "invalid-local", "cancelled"} {
 		t.Run(scenario, func(t *testing.T) {
 			_, options, git := syncProject(t)
 			ctx := context.Background()
@@ -182,12 +123,12 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer root.Close()
-			if scenario == "missing-ref" {
+			if scenario == "missing-version" {
 				raw, err := root.ReadFile(configurationFile)
 				if err != nil {
 					t.Fatal(err)
 				}
-				raw = bytes.ReplaceAll(raw, []byte("v1.0.0"), []byte("missing"))
+				raw = bytes.Replace(raw, []byte(`"groups"`), []byte(`"pins":{"techs/go/errors":{"version":"9.0.0","reason":"Typo."}},"groups"`), 1)
 				writeFixture(t, root, configurationFile, string(raw))
 			} else if scenario == "invalid-local" {
 				writeFixture(t, root, "local/techs/go/bad.md", "invalid")

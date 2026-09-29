@@ -6,9 +6,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/filetxn"
@@ -34,6 +36,9 @@ type FileChanges struct {
 	Changed []string     `json:"changed"`
 	Removed []string     `json:"removed"`
 	Guide   *GuideChange `json:"guide,omitempty"`
+	// Warnings explain configuration sync tolerated, in source order: entries naming retired rules, and sources
+	// importing a ref that isn't a library release. Build reports none.
+	Warnings []string `json:"warnings,omitempty"`
 }
 
 // GuideChange reports a managed-guide update separately from generated-relative file paths.
@@ -63,7 +68,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		if err != nil {
 			return err
 		}
-		output, err := prepareProject(ctx, root, before, options)
+		output, err := prepareProject(ctx, before, options)
 		if err != nil {
 			return err
 		}
@@ -108,7 +113,7 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	if err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
-	output, err := prepareProject(ctx, root, before, options)
+	output, err := prepareProject(ctx, before, options)
 	if err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
@@ -176,8 +181,9 @@ func readProject(ctx context.Context, root *os.Root) (projectState, error) {
 	return state, nil
 }
 
-// prepareProject verifies persisted identity, reloads native library semantics, resolves, and renders in memory.
-func prepareProject(ctx context.Context, root *os.Root, state projectState, options Options) (build.Output, error) {
+// prepareProject verifies persisted identity, reloads native library semantics from the verified bytes, resolves,
+// and renders in memory.
+func prepareProject(ctx context.Context, state projectState, options Options) (build.Output, error) {
 	snapshots, err := decodeSnapshots(state.config, treeFiles(state.vendor))
 	if err != nil {
 		return build.Output{}, err
@@ -185,24 +191,37 @@ func prepareProject(ctx context.Context, root *os.Root, state projectState, opti
 	libraries := map[string]build.Library{}
 	for _, source := range state.config.Sources {
 		snapshot := snapshots[source.Name]
-		sourceRoot, err := root.OpenRoot("vendor/" + source.Name)
+		catalog, err := loadSnapshot(ctx, source, snapshot)
 		if err != nil {
 			return build.Output{}, err
 		}
-		catalog, loadErr := library.Load(ctx, sourceRoot, source.Name, source.Groups)
-		closeErr := sourceRoot.Close()
-		if loadErr != nil {
-			return build.Output{}, loadErr
-		}
-		if closeErr != nil {
-			return build.Output{}, closeErr
-		}
-		if err := verifyLoadedSnapshot(source.Name, catalog, snapshot); err != nil {
-			return build.Output{}, err
-		}
-		libraries[source.Name] = build.Library{Catalog: catalog, Commit: snapshot.Commit}
+		libraries[source.Name] = build.Library{Catalog: catalog, Snapshot: snapshot}
 	}
 	return renderProject(ctx, state, libraries, options)
+}
+
+// loadSnapshot validates the library content of a verified snapshot, assembling each rule from the library
+// release that published it, and checks that it holds exactly the recorded rules and files.
+func loadSnapshot(ctx context.Context, source rules.Source, snapshot snapshot) (library.Catalog, error) {
+	input, err := snapshot.Source()
+	if err != nil {
+		return library.Catalog{}, fmt.Errorf("vendor/%s: %w", source.Name, err)
+	}
+	// An individually selected rule the snapshot doesn't import was retired when it was recorded.
+	individual := []string{}
+	for _, id := range source.Rules {
+		if _, ok := snapshot.Rules[id]; ok {
+			individual = append(individual, id)
+		}
+	}
+	catalog, err := library.LoadSource(ctx, input, source.Name, source.Groups, individual)
+	if err != nil {
+		return library.Catalog{}, err
+	}
+	if err := verifyLoadedSnapshot(source, catalog, snapshot); err != nil {
+		return library.Catalog{}, err
+	}
+	return catalog, nil
 }
 
 // renderProject resolves local definitions and renders the same output for offline builds and sync.
@@ -263,26 +282,30 @@ func compareFiles(before, after map[string][]byte) FileChanges {
 	return changes
 }
 
-// verifyLoadedSnapshot ties every parsed document and supporting byte to the immutable verified snapshot.
-// A later filesystem recheck alone cannot detect a transient edit that was reverted after loading.
-func verifyLoadedSnapshot(source string, catalog library.Catalog, snapshot snapshot) error {
-	groups := make([]string, 0, len(catalog.Groups))
-	files := maps.Clone(catalog.SupportingFiles)
-	if files == nil {
-		files = map[string][]byte{}
-	}
+// verifyLoadedSnapshot requires the loaded catalog to hold exactly the snapshot's recorded groups, rules, and
+// files, each stored where the snapshot's rule versions place it, with unchanged bytes.
+func verifyLoadedSnapshot(source rules.Source, catalog library.Catalog, snapshot snapshot) error {
+	groups := []string{}
+	loaded := []string{}
 	for _, group := range catalog.Groups {
-		groups = append(groups, group.ID)
+		if source.Groups.Includes(group.ID) {
+			groups = append(groups, group.ID)
+		}
 		for _, rule := range group.Rules {
-			files[rule.Path] = []byte(rule.Document)
+			loaded = append(loaded, strings.TrimSuffix(rule.Path, ".md"))
 		}
 	}
+	slices.Sort(loaded)
+	if !slices.Equal(loaded, slices.Sorted(maps.Keys(snapshot.Rules))) {
+		return failure("invalid-snapshot", source.Name+": the snapshot's rule files differ from the rules its record lists; run code-rules project sync", nil)
+	}
+	files := snapshot.Store(catalog)
 	if !slices.Equal(groups, snapshot.Groups) || !slices.Equal(slices.Sorted(maps.Keys(files)), slices.Sorted(maps.Keys(snapshot.Files))) {
-		return failure("invalid-snapshot", source+": recorded groups or inventory differ from the selected library; run code-rules project sync", nil)
+		return failure("invalid-snapshot", source.Name+": recorded groups or inventory differ from the selected library; run code-rules project sync", nil)
 	}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !bytes.Equal(files[file], snapshot.Files[file]) {
-			return failure("concurrent-change", source+":"+file+": loaded content differs from verified snapshot bytes; retry after edits finish", nil)
+			return failure("concurrent-change", source.Name+":"+file+": loaded content differs from verified snapshot bytes; retry after edits finish", nil)
 		}
 	}
 	return nil

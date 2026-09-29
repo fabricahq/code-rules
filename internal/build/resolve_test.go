@@ -33,7 +33,19 @@ func fixture(t *testing.T, exclude string) (rules.Configuration, map[string]Libr
 	if err != nil {
 		t.Fatal(err)
 	}
-	return config, map[string]Library{"team": {Commit: commit, Catalog: library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, License: nil, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}}}}
+	return config, map[string]Library{"team": versioned(library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, License: nil, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}})}
+}
+
+// versioned supplies catalog with a snapshot record that imports each of its rules at version 1.0.0 from
+// library release 1, at commit.
+func versioned(catalog library.Catalog) Library {
+	snapshot := library.Snapshot{Release: 1, Commit: commit, Rules: map[string]library.ImportedRule{}}
+	for _, group := range catalog.Groups {
+		for _, rule := range group.Rules {
+			snapshot.Rules[strings.TrimSuffix(rule.Path, ".md")] = library.ImportedRule{Version: &rules.FirstRuleVersion, Release: 1, Commit: commit}
+		}
+	}
+	return Library{Catalog: catalog, Snapshot: snapshot}
 }
 
 // TestResolveAdoption covers imported definitions, exclusions, replacements, local additions, and guidance precedence.
@@ -131,7 +143,7 @@ func TestResolveReplacementFileReuse(t *testing.T) {
 			}
 			group.Rules = append(group.Rules, rule)
 		}
-		return Library{Commit: commit, Catalog: library.Catalog{Selection: rules.GroupSelection{Groups: []string{"techs/go"}}, Groups: []library.Group{group}, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}}}
+		return versioned(library.Catalog{Selection: rules.GroupSelection{Groups: []string{"techs/go"}}, Groups: []library.Group{group}, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}})
 	}
 	replaced := func(file string) string {
 		return `{"reason":"Project policy","replacedBy":"local/techs/go/` + file + `"}`
@@ -171,42 +183,38 @@ func TestResolveReplacementFileReuse(t *testing.T) {
 	}
 }
 
-// TestResolveRequiresImportedExceptionTargets rejects an exclusion or pin naming a rule the source doesn't import,
-// and accepts both for an imported rule.
-func TestResolveRequiresImportedExceptionTargets(t *testing.T) {
-	version, err := rules.ParseRuleVersion("1.0.0", "version")
+// TestResolveToleratesExclusionsOfRulesItDoesntImport leaves validating exclusion targets to sync, which can tell
+// a retired rule from an unknown one; offline builds apply the rest of the configuration.
+func TestResolveToleratesExclusionsOfRulesItDoesntImport(t *testing.T) {
+	config, libraries := fixture(t, `{"techs/go/retired":{"reason":"Not needed"}}`)
+	got, err := resolve(config, libraries, nil)
+	if err != nil || len(got.Groups) != 1 || len(got.Groups[0].Rules) != 1 || got.Groups[0].Rules[0].Rule.ID != "team:techs/go/errors" {
+		t.Fatalf("got %+v, %v", got.Groups, err)
+	}
+}
+
+// TestResolveRecordsEachRulesVersionAndCommit gives each imported rule the version and commit its snapshot records.
+func TestResolveRecordsEachRulesVersionAndCommit(t *testing.T) {
+	config, libraries := fixture(t, `{}`)
+	older, version := strings.Repeat("b", 40), rules.RuleVersion{Major: 1, Minor: 2}
+	team := libraries["team"]
+	team.Snapshot.Release = 3
+	team.Snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 2, Commit: older}
+	libraries["team"] = team
+	got, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, test := range []struct {
-		name, target, location string
-		pin                    bool
-	}{
-		{"excluded", "techs/go/errors", "", false},
-		{"pinned", "techs/go/errors", "", true},
-		{"unknown exclusion", "techs/go/missing", "sources.team.exclude.techs/go/missing", false},
-		{"unknown pin", "techs/go/missing", "sources.team.pins.techs/go/missing", true},
-		{"unselected group", "techs/rust/errors", "sources.team.exclude.techs/rust/errors", false},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			config, libraries := fixture(t, `{}`)
-			if test.pin {
-				config.Sources[0].Pins = map[string]rules.Pin{test.target: {Version: version, Reason: "Keep"}}
-			} else {
-				config.Sources[0].Exclude = map[string]rules.Exclusion{test.target: {Reason: "Not needed"}}
-			}
-			got, err := resolve(config, libraries, nil)
-			if test.location == "" {
-				if err != nil {
-					t.Fatal(err)
-				}
-				return
-			}
-			var validation *rules.ValidationError
-			if !errors.As(err, &validation) || validation.Location != test.location || got.Groups != nil {
-				t.Fatalf("got %+v, %v; want failure at %s", got, err, test.location)
-			}
-		})
+	origin := got.Groups[0].Rules[0].Origin
+	if origin.Commit != older || origin.Version == nil || *origin.Version != version || origin.Release != 2 {
+		t.Fatalf("origin %+v", origin)
+	}
+	if stored := got.Sources[0].Stored["techs/go/errors.md"]; stored != "_releases/2/techs/go/errors.md" {
+		t.Fatalf("stored at %q", stored)
+	}
+	delete(team.Snapshot.Rules, "techs/go/errors")
+	if _, err := resolve(config, libraries, nil); err == nil {
+		t.Fatal("resolved a rule without a version record")
 	}
 }
 
@@ -381,7 +389,7 @@ func TestResolveNumericRuleOrder(t *testing.T) {
 				}
 				lib.Catalog.Groups[0].Rules = append(lib.Catalog.Groups[0].Rules, rule)
 			}
-			libraries["team"] = lib
+			libraries["team"] = versioned(lib.Catalog)
 			resolved, err := resolve(config, libraries, nil)
 			if err != nil {
 				t.Fatal(err)

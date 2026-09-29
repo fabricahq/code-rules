@@ -177,7 +177,7 @@ func renderIndexes(resolved resolution, maxLines, inlineMaxBytes int) (map[strin
 }
 
 // inlineGroupPage returns a whole group or a size miss, without truncation or partial output.
-func inlineGroupPage(group resolvedGroup, paths map[string][]string, file, footer string, maxBytes int) (string, bool, error) {
+func inlineGroupPage(group resolvedGroup, paths map[string]map[string]string, file, footer string, maxBytes int) (string, bool, error) {
 	header := groupIndexHeader(group.ID, groupTitle(group), groupReadingGuidance(group), true)
 	bytes := len(indexDocument(header, nil, footer))
 	entries := []string{}

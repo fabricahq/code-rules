@@ -11,7 +11,8 @@ import (
 	"github.com/fabricahq/code-rules/internal/imports"
 )
 
-// Sync re-resolves configured revisions, validates and renders everything before replacing managed trees.
+// Sync imports the rule versions each source's snapshot records, choosing versions only where configuration asks
+// for something a snapshot doesn't have, then validates and renders everything before replacing managed trees.
 // Git settings are trusted caller options. Any failure returns no change report; authored files stay untouched.
 func Sync(ctx context.Context, options Options, git imports.Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
@@ -32,15 +33,22 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		if err != nil {
 			return err
 		}
-		imported, err := imports.ImportLibraries(ctx, before.config, git)
+		recorded, err := recordedSnapshots(before.config, treeFiles(before.vendor))
+		if err != nil {
+			return err
+		}
+		imported, err := imports.ImportLibraries(ctx, before.config, recorded, git)
 		if err != nil {
 			return err
 		}
 		snapshots := map[string]snapshot{}
 		libraries := map[string]build.Library{}
-		for alias, item := range imported {
-			snapshots[alias] = item.Snapshot
-			libraries[alias] = build.Library{Catalog: item.Catalog, Commit: item.Snapshot.Commit}
+		warnings := []string{}
+		for _, source := range before.config.Sources {
+			item := imported[source.Name]
+			snapshots[source.Name] = item.Snapshot
+			libraries[source.Name] = build.Library{Catalog: item.Catalog, Snapshot: item.Snapshot}
+			warnings = append(warnings, item.Warnings...)
 		}
 		vendor, err := encodeSnapshots(before.config, snapshots)
 		if err != nil {
@@ -51,6 +59,9 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 			return err
 		}
 		changes = compareFiles(managedFiles(treeFiles(before.vendor), treeFiles(before.generated)), managedFiles(vendor, output.Files))
+		if len(warnings) > 0 {
+			changes.Warnings = warnings
+		}
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}
 		includeProjectGuide(targets, guide, &changes)
 		return w.Apply(targets, func() error {

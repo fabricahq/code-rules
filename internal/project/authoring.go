@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -135,7 +136,11 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 	}
 	for _, source := range config.Sources {
 		snapshot := snapshots[source.Name]
-		if !slices.Contains(snapshot.Groups, id) {
+		reached := slices.Contains(snapshot.Groups, id)
+		for rule := range snapshot.Rules {
+			reached = reached || strings.HasPrefix(rule, id+"/")
+		}
+		if !reached {
 			continue
 		}
 		if data, ok := snapshot.Files[id+"/_group.yaml"]; ok {

@@ -180,6 +180,9 @@ func projectChangesReport(action string, result project.FileChanges) commandRepo
 			fmt.Fprintf(&out, "  %s: %s\n", group.label, path)
 		}
 	}
+	for _, warning := range result.Warnings {
+		fmt.Fprintf(&out, "Warning: %s\n", warning)
+	}
 	return commandReport{value: result, human: out.String()}
 }
 
