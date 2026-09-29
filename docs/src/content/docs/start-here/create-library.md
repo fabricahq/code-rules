@@ -171,7 +171,7 @@ The workflow then publishes the library release: it tags the merged commit as `r
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 
-If your library isn't hosted on GitHub, push it to your Git host and run `code-rules library release` from your machine instead. It publishes the same library release, with tags only. See [Publish from your machine](/guides/version-rules/#publish-from-your-machine).
+If your library isn't hosted on GitHub, push it to your Git host and run `code-rules library release` from your machine instead. It publishes the same library release, with tags only. See [Publish a library release](/guides/version-rules/#publish-a-library-release).
 
 Each rule has its own version. From now on, every change to a rule needs a **change note**, recorded with `code-rules library change`, that tells projects what changed. Change rules through pull requests, each with its note. The workflow keeps a "Library release" pull request open with the pending changes, and merging it publishes the next library release, just as you did for the first. See [Version your rules](/guides/version-rules/) for the full workflow and the repository settings teams should add.
 

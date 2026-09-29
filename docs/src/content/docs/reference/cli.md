@@ -150,7 +150,8 @@ Preview newer rule versions, new rules, and retirements, then apply them after y
 | --- | --- |
 | `--yes` | Apply the previewed changes without asking. Required to apply changes without a terminal, or with `--json`. |
 | `--keep SOURCE:RULE` | Pin this rule at its current version before applying the update, so it stays where it is. Repeat for several rules. Requires `--reason`. |
-| `--reason TEXT` | The reason recorded with each pin that `--keep` writes. |
+| `--exclude SOURCE:RULE` | Exclude this new rule before applying the update, so it doesn't join. Repeat for several rules. Requires `--reason`. |
+| `--reason TEXT` | The reason recorded with each pin that `--keep` writes and each exclusion that `--exclude` writes. |
 
 The preview lists, for each source:
 
@@ -161,7 +162,7 @@ The preview lists, for each source:
 | `retired` | A rule the library retired, with its last version, its summary, and its replacement when there is one. Applying the update drops it. |
 | `pinned` | A pinned rule that has a newer version. It doesn't move; the preview shows the pin's reason. |
 
-In a terminal, `code-rules project update` shows the preview and asks for confirmation. For each major change and retirement, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed.
+In a terminal, `code-rules project update` shows the preview and asks for confirmation. For each major change and retirement, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. For each new rule, you can choose to add it or exclude it; excluding asks for a reason and writes an exclusion. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed.
 
 `--keep` and pins in configuration never change which rules are imported. When a rule you exclude, replace, or select individually is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update.
 

@@ -32,7 +32,7 @@ In a Git repository, project commands find the nearest repository root and use i
 
 | File or directory | What it contains | What the commands do |
 | --- | --- | --- |
-| `config.yaml` | Your selected libraries, groups, rules, pins, and exceptions. | Sync, build, and check read it without changing it. Update reads it, and writes a pin when you choose to keep a rule at its current version. |
+| `config.yaml` | Your selected libraries, groups, rules, pins, and exceptions. | Sync, build, and check read it without changing it. Update reads it, and writes a pin when you keep a rule at its current version, or an exclusion when you decline a new rule. |
 | `README.md` | The managed Code Rules guide. | Init, build, and sync refresh an older, unedited guide. Check verifies it without changing it. |
 | `local/` | Rules and replacements you author for this project. | Sync, build, and check preserve these files. |
 | `vendor/` | Original files copied from the selected rule versions. | Sync and update replace this directory. Build and check validate it without changing it. |

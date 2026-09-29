@@ -57,6 +57,8 @@ team
 
 Read the major changes, new rules, and retirements closely: each can change what your code must do. Then confirm, and the update applies exactly the changes the preview showed.
 
+In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` to do the same.
+
 In a script or CI job, where there's no terminal to confirm in, the command only shows the preview. To apply it, pass `--yes`:
 
 ```sh
@@ -78,8 +80,6 @@ sources:
       practices/testing/verify-retry-limits:
         version: "1.3.0"
         reason: Waiting on the author's response to acme/.code-rules#45.
-    exclude: {}
-    replace: {}
 ```
 
 There are three ways to add one:
@@ -132,8 +132,6 @@ sources:
     repository: https://github.com/example/engineering-rules.git
     groups: "*"
     ref: release/5
-    exclude: {}
-    replace: {}
 ```
 
 `code-rules project update` doesn't move this source. To import another library release, change the tag and run `code-rules project sync`. To go back to following rule versions, remove `ref`.

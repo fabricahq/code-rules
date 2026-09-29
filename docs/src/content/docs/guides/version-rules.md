@@ -69,27 +69,27 @@ Publish a library release whenever you want your pending changes to reach projec
 
 ## How library releases work
 
-You manage versions and library releases with two Code Rules commands. You never create tags by hand.
+You manage versions and library releases with three Code Rules commands. You never create tags by hand.
 
 - **`code-rules library change`** records a change to one rule. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file beside the rule.
-- **`code-rules library release`** publishes a [library release](#library-releases). It turns every pending change note into a new rule version, records it in the release manifest, removes the notes, and creates the release tag and the GitHub Release page.
+- **`code-rules library check`** confirms that every changed rule has a change note, and previews the versions the next library release will publish.
+- **`code-rules library release`** publishes a [library release](#library-releases).
 
-A third command, `code-rules library check`, confirms that every changed rule has a change note, and previews the versions the next library release will publish.
+Publishing a library release takes two steps:
 
-You can run `code-rules library release` yourself, or let a GitHub Actions workflow run it for you. With the workflow, a typical cycle looks like this:
+1. **Prepare the release commit.** Turn every pending change note into a new rule version, record the versions in the release manifest, and delete the notes.
+2. **Publish it.** Tag the release commit `release/<number>` and create the GitHub Release page.
 
-1. You edit a rule and run `code-rules library change` in the same pull request. The workflow runs `code-rules library check` on the pull request.
-2. After the pull request merges, the workflow runs `code-rules library release --pr`. It opens a "Library release" pull request, or updates the open one. That pull request updates the release manifest and deletes the notes, so its diff shows exactly what the library release will publish.
-3. When you merge the release pull request, the workflow runs `code-rules library release --publish`, which creates the release tag and the GitHub Release page.
+`code-rules library release` does both from your machine, on any Git host; see [Publish a library release](#publish-a-library-release). On GitHub, a workflow can run the same two steps for you around a pull request, so each library release is reviewed and approved by merging; see [Automate library releases with GitHub Actions](#automate-library-releases-with-github-actions).
 
-Change notes start with the second library release. Your library's [first library release](#publish-the-first-library-release) gives every rule version `1.0.0`, so it needs no notes. For the exact tag and note formats, see [Rule versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
+Change notes start with the second library release. Your library's [first library release](#publish-the-first-library-release) gives every rule version `1.0.0`, so it needs no notes. For the exact manifest and note formats, see [Rule versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
 
 ## Publish the first library release
 
 Before your first library release, its rules have no versions, so you don't need change notes. When the rules are ready for projects to use, publish the first library release the same way as every later one:
 
-- **With the library release [GitHub Actions workflow](#automate-library-releases-with-github-actions),** merge the "Library release" pull request. Before the first library release, the workflow keeps it open, and its only change is creating the release manifest. Leave it unmerged until your rules are ready.
-- **Without the workflow,** run `code-rules library release` from your machine. See [Publish from your machine](#publish-from-your-machine).
+- **From your machine,** run `code-rules library release`. See [Publish a library release](#publish-a-library-release).
+- **With the [GitHub Actions workflow](#automate-library-releases-with-github-actions),** merge the "Library release" pull request. Before the first library release, the workflow keeps it open, and its only change is creating the release manifest. Leave it unmerged until your rules are ready.
 
 The first library release gives every rule version `1.0.0`.
 
@@ -189,7 +189,31 @@ Pending library release
 
 Commit each rule and its note together.
 
+## Publish a library release
+
+To publish a library release yourself, run `code-rules library release` from an up-to-date checkout of `main`. This works on any Git host, and suits maintainers who push directly to `main`. Preview first:
+
+```sh
+code-rules library release --dry-run
+```
+
+The preview shows the repository, branch, commit, release number, and each rule's change and versions. Then publish the library release:
+
+```sh
+code-rules library release
+```
+
+The command fetches from the remote first. It refuses unless you're on the remote's default branch, your branch matches the remote exactly, your working tree has no uncommitted changes, and `code-rules library check` passes. It then creates the release commit, pushes it with the release tag in one atomic push, and creates the GitHub Release page with the [GitHub CLI](https://cli.github.com/). Because it pushes to `main`, run it as someone allowed to push there.
+
+If the command stops partway, such as on a network error, run it again: it finishes publishing the library release it already started. If you don't want a GitHub Release page, or the library isn't hosted on GitHub.com, run `code-rules library release --no-github-release`; repositories hosted elsewhere get tags only.
+
 ## Automate library releases with GitHub Actions
+
+The workflow automates the two publishing steps around a pull request, so every library release is reviewed and approved by merging it. A typical cycle:
+
+1. You edit a rule and run `code-rules library change` in the same pull request. The workflow runs `code-rules library check` on the pull request.
+2. After the pull request merges, the workflow runs `code-rules library release --pr`, which prepares the release commit on a branch and opens a "Library release" pull request, or updates the open one. Its diff updates the release manifest and deletes the notes, so it shows exactly what the library release will publish.
+3. When you merge the release pull request, the workflow runs `code-rules library release --publish`, which creates the release tag and the GitHub Release page.
 
 `code-rules library init` creates `.github/workflows/code-rules.yml`. It installs the Code Rules version that created it, then:
 
@@ -290,24 +314,6 @@ Configure three settings on GitHub. Each step shows the setting's place in the r
 The release pull request, from the branch `code-rules/release-pr`, updates the release manifest and deletes every pending note. The manifest's diff shows every rule's next version. The description lists each rule with its change, its current and next version, its summary, and the pull request that added the note. Review the major changes carefully: every project that uses those rules will see them in its update preview and decide whether to adopt them.
 
 Merge it when you want to publish, using whichever merge method your repository allows. The workflow then tags the new rule versions and the library release, and creates the library release's GitHub Release page. Projects see the new versions the next time they run `code-rules project update`.
-
-## Publish from your machine
-
-If maintainers push directly to `main` instead of using pull requests, publish library releases locally from an up-to-date checkout of `main`. Preview first:
-
-```sh
-code-rules library release --dry-run
-```
-
-The preview shows the repository, branch, commit, release number, and each rule's change and versions. Then publish the library release:
-
-```sh
-code-rules library release
-```
-
-The command fetches from the remote first. It refuses unless you're on the remote's default branch, your branch matches the remote exactly, your working tree has no uncommitted changes, and `code-rules library check` passes. It then creates the release commit, pushes it with the release tag in one atomic push, and creates the GitHub Release page with the [GitHub CLI](https://cli.github.com/). Because it pushes to `main`, run it as someone allowed to push there.
-
-If the command stops partway, such as on a network error, run it again: it finishes publishing the library release it already started. If you don't want a GitHub Release page, or the library isn't hosted on GitHub.com, run `code-rules library release --no-github-release`; repositories hosted elsewhere get tags only.
 
 ## Recover from a failed library release
 

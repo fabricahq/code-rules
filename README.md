@@ -191,8 +191,6 @@ sources:
     groups:
       - practices/testing
       - techs/go
-    exclude: {}
-    replace: {}
 ```
 
 `code-rules project sync` imports each rule's newest version, snapshots them into `.code-rules/vendor/` with their versions, and rebuilds. Improve a rule in the library and publish it in a library release: each project picks up the improvement when it runs `code-rules project update`, on its own schedule. Update previews every changed, new, and retired rule, and applies them only after you confirm.

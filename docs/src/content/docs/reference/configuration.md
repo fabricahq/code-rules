@@ -21,7 +21,6 @@ sources:
     groups:
       - techs/typescript
       - practices/testing
-    exclude: {}
     replace:
       techs/typescript/prefer-type-aliases:
         file: local/techs/typescript/prefer-interfaces.md
@@ -36,8 +35,6 @@ sources:
       practices/testing/verify-retry-limits:
         version: "1.3.0"
         reason: Waiting on the author's response to acme/.code-rules#45.
-    exclude: {}
-    replace: {}
 ```
 
 Repository names, groups, and rule IDs in examples are illustrative.
@@ -52,15 +49,15 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
 | `sources.<name>.groups` | Groups to import in full: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. Required unless `rules` selects individual rules. |
 | `sources.<name>.rules` | Optional individual rules to import without the rest of their group: an array of library rule IDs. See [Select individual rules](#select-individual-rules). |
-| `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
-| `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
+| `sources.<name>.exclude` | Optional map of this library's rule IDs to exclusion reasons. |
+| `sources.<name>.replace` | Optional map of this library's rule IDs to a local `file` and a `reason`. |
 | `sources.<name>.pins` | Optional map of this library's rule IDs to an exact `version` and a `reason`. See [Pin a rule](#pin-a-rule). |
 | `sources.<name>.ref` | Optional and advanced. Import the library exactly as it was at one tag or commit. Can't be combined with `pins`. See [Import one revision](#import-one-revision). |
 
 Unknown configuration fields are rejected, including unknown source and replacement fields.
 Local groups are discovered from `local/<group-id>/_group.yaml`; no source entry or separate group list is required.
 The former `localGroups` field is rejected with migration guidance. Remove it and keep the group metadata files.
-Each source includes its own `exclude` and `replace` objects, empty when unused.
+`exclude` and `replace` are optional; omit them when a source has no exceptions.
 Replacement paths resolve relative to the Code Rules directory and must stay under its `local/` directory.
 
 Each source owns its selection, pins, and exceptions.
@@ -78,8 +75,6 @@ sources:
   team:
     repository: https://github.com/my-team/rules.git
     groups: "*"
-    exclude: {}
-    replace: {}
 ```
 
 Choose one of three supported selectors:
@@ -218,8 +213,6 @@ sources:
     repository: https://github.com/example/engineering-rules.git
     groups: "*"
     ref: release/5
-    exclude: {}
-    replace: {}
 ```
 
 `ref` accepts a tag name, such as the library release tag `release/5`, or a full 40-character commit SHA. A tag may also use the explicit `refs/tags/<name>` form. Branch names and abbreviated SHAs aren't supported, so every import can be reproduced. Code Rules resolves the tag when you add or change `ref`, then keeps the recorded commit even if someone later moves the tag.
@@ -286,8 +279,6 @@ sources:
     rules:
       - practices/testing/verify-retry-limits
       - techs/go/wrap-errors-with-operation
-    exclude: {}
-    replace: {}
 ```
 
 This imports every rule in `techs/react`, including rules added to it later, plus exactly two other rules. Rules the library later adds to `practices/testing` or `techs/go` don't join, because those groups aren't selected.
