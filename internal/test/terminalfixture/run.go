@@ -33,7 +33,13 @@ type Result struct {
 }
 
 // Run owns a child terminal, bounded output, and cancellation, without executing a shell or changing parent streams.
+// The child inherits the test's environment with a PATH that holds no executables.
 func Run(ctx context.Context, binary, directory string, args []string, steps []Step) (Result, error) {
+	return RunWithEnvironment(ctx, binary, directory, append(os.Environ(), "PATH="+directory+"/no-runtime"), args, steps)
+}
+
+// RunWithEnvironment is Run with exactly the given child environment, such as one that puts Git on PATH.
+func RunWithEnvironment(ctx context.Context, binary, directory string, environment, args []string, steps []Step) (Result, error) {
 	if len(steps) > 20 {
 		return Result{}, fmt.Errorf("at most 20 prompt answers are allowed")
 	}
@@ -55,7 +61,7 @@ func Run(ctx context.Context, binary, directory string, args []string, steps []S
 	}
 	command := exec.CommandContext(ctx, binary, args...)
 	command.Dir = directory
-	command.Env = append(os.Environ(), "PATH="+directory+"/no-runtime")
+	command.Env = environment
 	command.Stdin, command.Stderr = slave, slave
 	var stdout bytes.Buffer
 	command.Stdout = &stdout
