@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
 )
@@ -103,8 +104,12 @@ func classifyError(err error) *responseError {
 	var invalid *usageError
 	var validation *rules.ValidationError
 	var domain *filetxn.Error
-	if errors.As(err, &domain) {
+	var git *gitexec.Error
+	switch {
+	case errors.As(err, &domain):
 		result.Code = domain.Code
+	case errors.As(err, &git):
+		result.Code = git.Code
 	}
 	switch {
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
