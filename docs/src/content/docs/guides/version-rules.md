@@ -74,7 +74,7 @@ Before your library's first release, its rules have no versions, so you don't ne
 code-rules library release
 ```
 
-This gives every rule version `1.0.0`. Run this first release yourself, even if you use the release workflow; the workflow handles every release after it.
+This gives every rule version `1.0.0`. Run this first release yourself, even if you use the release [GitHub Actions workflow](#automate-releases-with-github-actions); the workflow handles every release after it.
 
 From then on, record every change with a note.
 
