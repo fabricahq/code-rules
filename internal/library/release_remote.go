@@ -323,14 +323,15 @@ func changedLibraryFiles(head, released map[string]string, terms []string) []str
 	return files
 }
 
-// libraryWide reports whether a library file belongs to no rule's version: the manifest, license and notice
-// files, shared assets, and group files such as _group.yaml.
+// libraryWide reports whether a file is one projects receive outside any rule's version: the manifest, the
+// declared license and notice files, files in the library-root assets/ directory, and group metadata in
+// _group.yaml. Group READMEs are authoring notes that projects never receive, so they're neither.
 func libraryWide(name string, terms []string) bool {
-	if name == "rule-library.yaml" || slices.Contains(terms, name) {
+	if name == "rule-library.yaml" || slices.Contains(terms, name) || strings.HasPrefix(name, "assets/") {
 		return true
 	}
-	top, _, _ := strings.Cut(name, "/")
-	return (top == "assets" || top == "practices" || top == "techs") && !rules.IsRuleContent(name)
+	parts := strings.Split(name, "/")
+	return len(parts) == 3 && (parts[0] == "practices" || parts[0] == "techs") && parts[2] == "_group.yaml"
 }
 
 // createTag writes an annotated tag on commit with exactly message, using the author's tagger identity and

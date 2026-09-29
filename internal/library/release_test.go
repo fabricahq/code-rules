@@ -117,10 +117,13 @@ func requireCalls(t *testing.T, fake *ghfixture.Fake, want []ghfixture.Call) {
 }
 
 // TestRelease_FirstLibraryReleaseGivesEveryRuleOneAndPushesOnlyItsTag tags the commit with every rule at
-// 1.0.0 and every library-wide file, as the configured committer, and pushes no other tag.
+// 1.0.0 and every library-wide file, but not the group README, as the configured committer, and pushes no
+// other tag.
 func TestRelease_FirstLibraryReleaseGivesEveryRuleOneAndPushesOnlyItsTag(t *testing.T) {
 	ctx := context.Background()
-	fixture, options := authorClone(t, libraryFiles())
+	files := libraryFiles()
+	files["practices/testing/README.md"] = []byte("# Testing\n\nHow to author testing rules.\n")
+	fixture, options := authorClone(t, files)
 	options.Git.Environment = append(slices.Clone(options.Git.Environment), "GIT_COMMITTER_NAME=Code Rules Bot", "GIT_COMMITTER_EMAIL=code-rules-bot@noreply.invalid")
 	if _, err := fixture.CommandIn(ctx, options.Directory, "tag", "unrelated"); err != nil {
 		t.Fatal(err)
@@ -202,11 +205,12 @@ func TestRelease_PublishesLibraryWideChangesWithoutRuleChanges(t *testing.T) {
 	}
 }
 
-// TestRelease_ReportsNothingToPublishWithoutNotesOrLibraryWideChanges ignores files outside the library.
+// TestRelease_ReportsNothingToPublishWithoutNotesOrLibraryWideChanges ignores files outside the library and
+// group READMEs, which projects never receive.
 func TestRelease_ReportsNothingToPublishWithoutNotesOrLibraryWideChanges(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
-	commit := commitAndPush(t, fixture, options.Directory, map[string][]byte{"README.md": []byte("About the library.\n")})
+	commit := commitAndPush(t, fixture, options.Directory, map[string][]byte{"README.md": []byte("About the library.\n"), "practices/testing/README.md": []byte("# Testing\n\nHow to author testing rules.\n")})
 	before := tags(t, fixture, remoteDir(fixture))
 	result, err := Release(ctx, ReleaseRequest{Options: options})
 	if err != nil || result.Release != 0 || result.Tag != "" || result.TagCreated || result.Commit != commit || len(result.Rules) != 0 || len(result.LibraryFiles) != 0 {
@@ -539,7 +543,8 @@ func TestRelease_RefusesALibraryOutsideGit(t *testing.T) {
 	}
 }
 
-// TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles leaves out rule content and change notes.
+// TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles leaves out rule content, change notes, and
+// group READMEs.
 func TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles(t *testing.T) {
 	released := map[string]string{
 		"rule-library.yaml":             "1",
@@ -562,11 +567,11 @@ func TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles(t *test
 		"changes/a.yaml":                "2",
 		"techs/go/_group.yaml":          "1",
 	}
-	want := []string{"LICENSE.md", "assets/new.svg", "assets/old.svg", "practices/testing/README.md", "techs/go/_group.yaml"}
+	want := []string{"LICENSE.md", "assets/new.svg", "assets/old.svg", "techs/go/_group.yaml"}
 	if files := changedLibraryFiles(head, released, []string{"LICENSE.md"}); !slices.Equal(files, want) {
 		t.Fatalf("got %q, want %q", files, want)
 	}
-	want = []string{"LICENSE.md", "assets/new.svg", "practices/testing/README.md", "practices/testing/_group.yaml", "rule-library.yaml", "techs/go/_group.yaml"}
+	want = []string{"LICENSE.md", "assets/new.svg", "practices/testing/_group.yaml", "rule-library.yaml", "techs/go/_group.yaml"}
 	if files := changedLibraryFiles(head, map[string]string{}, []string{"LICENSE.md"}); !slices.Equal(files, want) {
 		t.Fatalf("first library release: got %q, want %q", files, want)
 	}
