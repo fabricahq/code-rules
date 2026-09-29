@@ -168,9 +168,11 @@ Code Rules ignores tags that don't start with `techs/` or `practices/`. Git cann
 
 ### Release commits
 
-A **release commit** publishes one or more rule versions. It contains no pending change notes, so at every release commit each rule's content matches its highest version. Projects pin release commits and never import unreleased work.
+A **release commit** is the commit where a release tags its new rule versions. Each release tags all of its versions on a single commit.
 
-The release commands keep a branch named `code-rules/released` pointed at the newest release commit. Projects that follow the library's releases read that branch. Don't push to it or protect it against the release workflow.
+Releasing removes the change notes, so a release commit never contains changes waiting to be released. Every rule in it is exactly one of its published versions. Projects import only release commits, so they never receive unreleased changes.
+
+`code-rules library release` also keeps a branch named `code-rules/released` pointed at the newest release commit. Projects that follow the library's releases use this branch to find the newest one. Don't push to this branch yourself, and don't add branch rules that stop the release workflow from updating it.
 
 ### Retired rules
 
