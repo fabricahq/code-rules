@@ -195,7 +195,7 @@ sources:
     replace: {}
 ```
 
-`code-rules project sync` imports each rule's newest version, snapshots them into `.code-rules/vendor/` with their versions, and rebuilds. Improve a rule in the library and publish it in a library release: each project picks up the improvement when it runs `code-rules project update`, on its own schedule. Update lists every changed rule and stops for major changes until you accept them.
+`code-rules project sync` imports each rule's newest version, snapshots them into `.code-rules/vendor/` with their versions, and rebuilds. Improve a rule in the library and publish it in a library release: each project picks up the improvement when it runs `code-rules project update`, on its own schedule. Update previews every changed, new, and retired rule, and applies them only after you confirm.
 
 ➡️ [Create your first library](https://code-rules.fabricahq.com/start-here/create-library/) · [Import rules](https://code-rules.fabricahq.com/guides/select-rules/) · [Update rules](https://code-rules.fabricahq.com/guides/update/)
 

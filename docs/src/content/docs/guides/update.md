@@ -13,7 +13,7 @@ Start with a project that already [imports rules](/guides/select-rules/). For de
 
 Two commands import library rules, and they do different things:
 
-- **`code-rules project sync`** imports the rule versions already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It chooses a version only for a rule you newly selected, or when you add or change a pin.
+- **`code-rules project sync`** imports the rule versions already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It chooses a version only for a newly added source or selected rule, a changed repository, or when you add or change a pin or `ref`.
 - **`code-rules project update`** looks for newer rule versions, new rules, and retirements, shows you a preview, and applies the changes once you confirm.
 
 Neither command runs during ordinary coding, review, or `code-rules project check`, so rules never change underneath your agents.
@@ -120,7 +120,7 @@ The first updates only the `team` library. The second moves only that rule; noth
 
 A retired rule appears in the preview with its last version, the summary explaining why, and its replacement if it has one. When you confirm, the rule is dropped. For a rule with a replacement, read the replacement, and check that you import its group.
 
-To keep following a retired rule, pin it to its last version. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it.
+To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it.
 
 ## Import one library release
 
@@ -138,7 +138,7 @@ sources:
 
 `code-rules project update` doesn't move this source. To import another library release, change the tag and run `code-rules project sync`. To go back to following rule versions, remove `ref`.
 
-`ref` also accepts any other tag or a full commit SHA, which library authors use to test unreleased changes. Rules imported that way have no version, so Code Rules warns about them every time you sync or update. See [Import one revision](/reference/configuration/#import-one-revision).
+`ref` also accepts any other tag or a full commit SHA, which library authors use to test unreleased changes. Rules with unreleased changes have no version, so Code Rules warns about them every time you sync or update. See [Import one revision](/reference/configuration/#import-one-revision).
 
 ## Review and commit the update
 

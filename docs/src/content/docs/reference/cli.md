@@ -97,7 +97,7 @@ Create the group first with `code-rules project add group`. A missing group fail
 code-rules project add rule ID --from LIBRARY@VERSION [options]
 ```
 
-Copy one version of a library rule into `local/` so the project controls its text. Use a fork to change what a rule says, or to adopt one rule without importing its library. To keep an imported rule at an older version instead, [choose its version](/reference/configuration/#choose-versions); it keeps its identity and update reports. `ID` is the library rule ID, such as `practices/testing/verify-retry-limits`, and the fork keeps it: `local/practices/testing/verify-retry-limits.md`.
+Copy one version of a library rule into `local/` so the project controls its text. Use a fork to change what a rule says. To import one rule without the rest of its group, [select it individually](/reference/configuration/#select-individual-rules) instead, and to keep an imported rule at an older version, [pin it](/reference/configuration/#pin-a-rule); both keep the rule's identity and update reports. `ID` is the library rule ID, such as `practices/testing/verify-retry-limits`, and the fork keeps it: `local/practices/testing/verify-retry-limits.md`.
 
 | Option | Meaning |
 | --- | --- |
@@ -179,7 +179,7 @@ Regenerate `generated/` from project configuration, verified imported files, and
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Run sync first if the imported repository, version selection, or groups no longer match configuration, or if the stored library files need repair.
+Run sync first if the imported repository, selection, pins, or `ref` no longer match configuration, or if the stored library files need repair.
 
 ### project check
 
@@ -272,7 +272,7 @@ Create or update the [change note](/reference/rule-versions/#change-notes) for o
 | `--replaced-by ID` | Optional with `--retire`: the rule that replaces the retired one. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-A rule without any version is new, and its note omits `bump`. When a note already exists, the command keeps the larger of the two bumps and appends the new summary line. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. A rule that was never released can't be retired: delete its Markdown file and its note together.
+A rule without any version is new, and its note omits `bump`. When a note already exists, the command keeps the larger of the two bumps and appends the new summary line. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. A rule that was never published can't be retired: delete its Markdown file and its note together.
 
 See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL`.
 
@@ -296,7 +296,7 @@ After the first library release, check compares each rule's [versioned content](
 - A rule changed and has no note. The error names the rule and its latest version, and gives the `code-rules library change` command to run.
 - A shared file changed, and a rule that links to it has no note.
 - A new rule has no note.
-- A released rule was deleted without a `retired` note.
+- A published rule was deleted without a `retired` note.
 - A retired rule's `replacedBy` isn't a rule in the library.
 - A rule reuses the ID of a retired rule.
 - A note's rule is unchanged since the last library release, so the note is stale.
@@ -400,7 +400,7 @@ Invalid interactive answers repeat the same question while retaining earlier ans
 
 Both init commands, both check commands, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; `code-rules project check`, `code-rules project sync`, `code-rules project update`, and `code-rules project build` do not need or accept it.
 
-String options accept one value and cannot be repeated, except `--groups`, which accepts repeated group IDs. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
+String options accept one value and cannot be repeated, except `--groups`, `--rules`, and `--keep`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 
 Scaffolding commands validate paths and detect collisions before writing. They preserve existing authored files and roll back failed creation attempts. They do not publish content or convert arbitrary third-party material. For the authoring workflow, see [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 

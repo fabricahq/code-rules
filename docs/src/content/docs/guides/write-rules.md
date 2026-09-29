@@ -93,12 +93,12 @@ The test should fail.
 A rule's library ID is its relative path without `.md`.
 Consuming projects qualify it with their configured source name, such as `fabrica:practices/testing/verify-retry-limits`.
 Renaming or moving the file changes its ID.
-Consumers must update exclusions and replacements that referenced the old path.
+Consumers should remove exclusions, replacements, pins, and `rules` entries that referenced the old path; those entries no longer do anything.
 In a library, a rename retires the old ID with the new one as its replacement, and projects see it in their update preview like a major change.
 
 ## Record the change
 
-After the first library release, add a change note with every rule you write or edit, in the same commit:
+After the first library release, add a change note with every rule you write or edit, in the same pull request:
 
 ```sh
 code-rules library change practices/testing/verify-retry-limits \
@@ -128,6 +128,6 @@ For an existing compatible Code Rules library, use the normal import workflow. F
 4. Declare the library-wide license and notice files in `rule-library.yaml`. Record per-rule [attribution](/reference/rule-format/#rule-attribution) with a commit-pinned source URL and describe the adaptation.
 5. Review the adaptation against the [authoring rubric](/reference/rule-authoring/), then generate and inspect the resolved rule, license links, and provenance. Commit the adapted source and retained notices together.
 
-An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the upstream commit. The adapted library has its own repository and version while retaining the earlier attribution chain. Local rules are for guidance you author for your project.
+An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the upstream commit. The adapted library has its own repository and rule versions while retaining the earlier attribution chain. Local rules are for guidance you author for your project.
 
 For later updates, compare the original pinned material with the new source, then deliberately revise the adaptation. Updating a source citation alone does not establish that the adapted rule incorporates the newer guidance.

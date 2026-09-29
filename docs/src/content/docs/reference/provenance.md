@@ -42,7 +42,7 @@ Each rule entry includes:
 | Field | What to look for |
 | --- | --- |
 | `id` and `group` | The active rule's identity and group. |
-| `origin` | The source and file supplying the active rule. Imported origins also identify the repository and the exact commit the rule came from. `version` records the rule's version, such as `"1.3.0"`, and `release` the library release that published it; both are `null` when the imported file isn't a released version. |
+| `origin` | The source and file supplying the active rule. Imported origins also identify the repository and the exact commit the rule came from. `version` records the rule's version, such as `"1.3.0"`, and `release` the library release that published it; both are `null` when the imported file isn't a published version. |
 | `upstream` | The imported rule's origin, including its `version`, when a local rule replaces it; otherwise `null`. |
 | `replacementReason` | Your configured reason for the replacement; otherwise `null`. |
 | `license`, `licenseBasis`, and `attribution` | Declared terms and source credits, explained below. |
@@ -104,7 +104,8 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
   "groups": ["practices/testing"],
   "rules": {
     "practices/testing/verify-backoff": { "version": "1.3.0", "release": 2, "commit": "4f1c2a95…" },
-    "practices/testing/verify-retry-limits": { "version": "2.0.0", "release": 3, "commit": "9e07b3d6…" }
+    "practices/testing/verify-retry-limits": { "version": "2.0.0", "release": 3, "commit": "9e07b3d6…" },
+    "techs/go/wrap-errors-with-operation": { "version": "1.1.0", "release": 3, "commit": "9e07b3d6…" }
   },
   "files": { "practices/testing/verify-retry-limits.md": "4c1f…e9a2", "…": "…" }
 }
@@ -117,15 +118,15 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | `pins` and `ref` | The source's pins and `ref` from configuration when the snapshot was recorded. Each is omitted when configuration has none. |
 | `release` | The newest library release among the imported rule versions, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
-| `rules` | Each imported rule's ID, its `version`, the `release` that published it, and that library release's full `commit`. |
+| `rules` | Each imported rule's ID, whether imported through a group or individually selected, its `version`, the `release` that published it, and that library release's full `commit`. |
 | `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
 | `ruleSelection` | Your configured list of individually selected rules. Omitted when you select none. |
-| `groups` | The groups included in the snapshot. |
+| `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
 | `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Files of rules from a different library release than `release` are stored under `_releases/<number>/`. |
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
 
-A rule's `version` and `release` are `null` when the imported file isn't a released version, which can happen only when your `ref` names a revision other than a library release. Generated guidance shows no version for it.
+A rule's `version` and `release` are `null` when the imported file isn't a published version, which can happen only when your `ref` names a revision other than a library release. Generated guidance shows no version for it.
 
 For a wildcard selection, the snapshot must contain every group in the selected scope and record the exact selector. Older records without `groupSelection` imply the explicit `groups` list; they cannot satisfy a wildcard selection.
 

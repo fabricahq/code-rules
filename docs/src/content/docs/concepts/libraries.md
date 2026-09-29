@@ -34,11 +34,11 @@ Running `code-rules project sync` downloads the selected rules and generates the
 
 A project records the version of every rule it imports. Running `code-rules project update` moves rules to newer versions and reports every rule that changed, so each project adopts updates on its own schedule. A project can also pin a rule to a version, with a reason, or import only specific rules instead of whole groups. See [Import rules](/guides/select-rules/) and [Update rules](/guides/update/) for the steps.
 
-## How a library releases rules
+## How a library publishes rules
 
 A library doesn't have one version for all of its rules. Each rule has [its own version](/concepts/rule/#how-a-rule-is-versioned), so a project can see exactly which rules changed in a library release and whether work that complied with the previous version could fail the new one.
 
-When an author changes a rule, they add a change note saying how large the change is and what changed. A **library release** turns the pending notes into new rule versions at once, and can hold one rule change or many. Projects import only released versions, unless one deliberately imports an exact commit, so they never see changes that haven't been released.
+When an author changes a rule, they add a change note saying how large the change is and what changed. A **library release** turns the pending notes into new rule versions at once, and can hold one rule change or many. Projects import only published versions, unless one deliberately imports an exact commit, so they never see changes that haven't been published.
 
 Library releases usually go through a pull request that the release workflow opens and keeps up to date. Merging it publishes the new versions, along with one GitHub Release page that lists them. A library release has a number for reference, but it isn't a version of the library: projects choose versions rule by rule. See [Version your rules](/guides/version-rules/).
 

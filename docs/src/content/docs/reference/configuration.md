@@ -206,7 +206,7 @@ A pin keeps the rule at exactly that version:
 
 To keep a rule at the version you have, pin it to the version recorded in `_source.json`, which also appears in the rule's generated file. `code-rules project update --keep` writes that pin for you.
 
-A pin must name a rule the source imports. A pinned rule that its library retires stays at its version, and update reports the retirement.
+A pin must name a rule the source imports. A pinned rule that its library retires stays at its version, and update reports the retirement. To keep a rule the library is retiring, pin it before or during the update that retires it; once the retirement is applied, the rule is no longer imported and can't be pinned.
 
 ### Import one revision
 
@@ -248,7 +248,7 @@ Full paths distinguish matching filenames in different groups of the same librar
 
 Generated files and review findings retain source-qualified IDs because they appear outside the configuration's source nesting.
 
-An `exclude`, `replace`, or `pins` key must name a rule in the library; an unknown ID fails validation. When the library retires a rule that an exclusion or replacement names, the entry no longer does anything. `code-rules project sync` and `code-rules project update` warn about it so you can delete it; nothing else is blocked.
+An `exclude`, `replace`, or `pins` key must name a rule this source imports, through its groups or its `rules` list; any other ID fails validation. When the library retires a rule that an exclusion or replacement names, the entry no longer does anything. `code-rules project sync` and `code-rules project update` warn about it so you can delete it; nothing else is blocked.
 
 ## Group selection
 

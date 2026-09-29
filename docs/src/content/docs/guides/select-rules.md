@@ -85,7 +85,7 @@ sources:
 
 These are partial snippets, not complete source definitions.
 Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, pins, and groups.
-Rule IDs are illustrative and must exist in the selected source groups.
+Rule IDs are illustrative and must name rules the source imports, through its groups or its `rules` list.
 An exclusion removes only the named source's rule, without introducing a replacement.
 The same rule path in another source remains active.
 The exclusion reason stays in project configuration; the generated files contain only active rules.

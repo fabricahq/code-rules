@@ -49,7 +49,7 @@ Projects import rules from your library. Each imported rule's version appears in
 
 A project keeps the versions it imported until someone runs `code-rules project update`, which previews each rule that changed, with its old and new versions and your summaries, plus new and retired rules. Nothing applies until someone on the project confirms, so major changes, which can change what the project's code must do, get reviewed first. See [Update rules](/guides/update/).
 
-A project can also pin a rule to a version, with a reason, while the rest moves forward. That's how projects hold back one major change, often while they give you feedback on it. Projects import only released versions, unless one deliberately imports an exact commit, so changes waiting to be released don't reach them.
+A project can also pin a rule to a version, with a reason, while the rest moves forward. That's how projects hold back one major change, often while they give you feedback on it. Projects import only published versions, unless one deliberately imports an exact commit, so changes waiting for a library release don't reach them.
 
 ## Library releases
 
@@ -151,7 +151,7 @@ code-rules library change practices/testing/verify-retry-limits \
   --summary 'Covered by the broader rule about testing retries.'
 ```
 
-The replacement must exist in the library by the time the retirement is released. It can be a new rule in the same library release.
+The replacement must exist in the library by the time the retirement is published. It can be a new rule in the same library release.
 
 When the practice itself is no longer recommended, leave out `--replaced-by`, and explain why in the summary:
 
@@ -161,7 +161,7 @@ code-rules library change practices/code-design/comment-intent \
   --summary "Withdrawn after feedback that agents shouldn't add explanatory comments."
 ```
 
-The library release creates the rule's `@retired` tag. A rule that was never released can't be retired; delete it and its note together.
+The library release creates the rule's `@retired` tag. A rule that was never published can't be retired; delete it and its note together.
 
 ### Rename a rule
 
@@ -182,7 +182,7 @@ code-rules library check
 `code-rules library check` fails if a changed rule has no note, or if a note no longer matches a change. When it passes, it previews the pending library release:
 
 ```text
-Pending release
+Pending library release
   practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
 ```
 
@@ -209,7 +209,7 @@ release:
     pull-requests: write
   env:
     GH_TOKEN: ${{ github.token }}
-    # Commit and tag releases as Code Rules Bot.
+    # Commit and tag library releases as Code Rules Bot.
     GIT_AUTHOR_NAME: Code Rules Bot
     GIT_AUTHOR_EMAIL: code-rules-bot@noreply.invalid
     GIT_COMMITTER_NAME: Code Rules Bot
@@ -221,7 +221,7 @@ release:
     # Download Code Rules, verify its attestation and checksum, and add it to PATH.
     - name: Install Code Rules
       run: ...
-    - name: Publish a merged release
+    - name: Publish a merged library release
       run: code-rules library release --publish
     - name: Open or update the release pull request
       run: code-rules library release --pr
@@ -286,7 +286,7 @@ Configure three settings on GitHub. Each step shows the setting's place in the r
 
 ### Review and merge the release pull request
 
-The release pull request, from the branch `code-rules/release-pr`, updates the release manifest and deletes every pending note. The manifest's diff shows every rule's next version. The description lists each rule with its change, its current and next version, its summary, and the pull request that added the note. Review the major changes carefully: every project that uses those rules has to accept them before updating.
+The release pull request, from the branch `code-rules/release-pr`, updates the release manifest and deletes every pending note. The manifest's diff shows every rule's next version. The description lists each rule with its change, its current and next version, its summary, and the pull request that added the note. Review the major changes carefully: every project that uses those rules will see them in its update preview and decide whether to adopt them.
 
 Merge it when you want to publish, using whichever merge method your repository allows. The workflow then tags the new rule versions and the library release, and creates the library release's GitHub Release page. Projects see the new versions the next time they run `code-rules project update`.
 
