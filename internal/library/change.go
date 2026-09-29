@@ -157,11 +157,17 @@ func checkChange(ctx context.Context, root *os.Root, options Options, request Ch
 		if err != nil {
 			return false, nil, err
 		}
+		assets, err := assetDirectoryExists(root, id)
+		if err != nil {
+			return false, nil, err
+		}
 		_, published := history.latest.record.Rules[id]
 		release, retired := history.retired[id]
 		switch {
 		case request.Retire && exists:
 			return false, nil, failure("invalid-change", id+" still exists. Delete its Markdown file and asset directory before recording its retirement.", nil)
+		case request.Retire && assets:
+			return false, nil, failure("invalid-change", id+"'s asset directory, "+rules.RuleAssetDirectory(id+".md")+", still exists. Delete it before recording the retirement.", nil)
 		case request.Retire && retired:
 			return false, nil, failure("invalid-change", id+" was already retired by release/"+strconv.Itoa(release)+".", nil)
 		case request.Retire && !published:
@@ -288,6 +294,15 @@ func ruleExists(root *os.Root, id string) (bool, error) {
 		return false, err
 	}
 	return info.Mode().IsRegular(), nil
+}
+
+// assetDirectoryExists reports whether id's own asset directory, assets/<rule-name>/ beside its Markdown file, exists.
+func assetDirectoryExists(root *os.Root, id string) (bool, error) {
+	_, err := root.Lstat(strings.TrimSuffix(rules.RuleAssetDirectory(id+".md"), "/"))
+	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // unknownRule explains a missing rule, suggesting a retirement for a published rule.

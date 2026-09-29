@@ -205,6 +205,7 @@ func TestChange_RejectsNotesThatDontMatchTheLibrary(t *testing.T) {
 		{"bump for a new rule", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{c}, Bump: rules.ChangeMinor, Summary: "Add c."}, "invalid-change", "--bump isn't accepted for new rules"},
 		{"new and versioned rules", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{a, c}, Summary: "Add c."}, "invalid-change", "Record them in separate notes."},
 		{"retirement of a rule that exists", nil, ChangeRequest{IDs: []string{a}, Retire: true, Summary: "Retire a."}, "invalid-change", a + " still exists."},
+		{"retirement that keeps the asset directory", map[string]string{"practices/testing/a.md": ""}, ChangeRequest{IDs: []string{a}, Retire: true, Summary: "Retire a."}, "invalid-change", a + "'s asset directory, practices/testing/assets/a/, still exists. Delete it before recording the retirement."},
 		{"retirement of an unpublished rule", nil, ChangeRequest{IDs: []string{c}, Retire: true, Summary: "Retire c."}, "invalid-change", c + " was never published, so it can't be retired."},
 		{"bump for a retirement", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Retire: true, Bump: rules.ChangeMajor, Summary: "Retire b."}, "invalid-change", "--bump isn't accepted for retired rules."},
 		{"replacement without --retire", nil, ChangeRequest{IDs: []string{a}, Bump: rules.ChangeMajor, ReplacedBy: b, Summary: "Replace a."}, "invalid-change", "--replaced-by requires --retire and a single rule"},

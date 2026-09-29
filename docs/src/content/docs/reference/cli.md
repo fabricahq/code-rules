@@ -269,7 +269,7 @@ Write a new [change note](/reference/rule-versions/#change-notes) for one or mor
 | --- | --- |
 | `--bump LEVEL` | `major`, `minor`, or `patch`. Required for rules that have a version. Not accepted for new or retired rules. |
 | `--summary TEXT` | Required. One line describing the change for project maintainers. |
-| `--retire` | Record that the rules are [retired](/reference/rule-versions/#retired-rules). Their Markdown files must already be gone. |
+| `--retire` | Record that the rules are [retired](/reference/rule-versions/#retired-rules). Their Markdown files and asset directories must already be gone. |
 | `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces the retired one. If it isn't a rule in the library yet, the command warns; add it before the next library release. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 

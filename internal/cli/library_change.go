@@ -23,7 +23,7 @@ func libraryChangeCommand(options Options, output *commandOutput) *cobra.Command
 	cmd.Long = cmd.Short + "\n\nAfter the first library release, every rule change needs a change note in changes/.\nThe next library release publishes the notes added since the previous one.\n\nFor rules that have a version, choose --bump:\n" + changeLevels + "\nLeave out --bump for a new rule; it starts at version 1.0.0. To retire a rule,\ndelete its Markdown file and asset directory, then pass --retire.\n\nWrite the summary for project maintainers deciding whether to update." + documentationHelp
 	f.add(cmd, "bump", "Change for rules that have a version: major, minor, or patch")
 	f.add(cmd, "summary", "One line describing the change for project maintainers")
-	cmd.Flags().Bool("retire", false, "Record that the rules are retired; delete their Markdown files first")
+	cmd.Flags().Bool("retire", false, "Record that the rules are retired; delete their Markdown files and asset directories first")
 	f.add(cmd, "replaced-by", "With --retire and one rule: the rule that replaces it")
 	f.prompts = map[string]string{"bump": "Change (major, minor, or patch)", "summary": "Summary"}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
