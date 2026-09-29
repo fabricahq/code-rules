@@ -271,20 +271,17 @@ Validate the library manifest, all groups and rules, supporting assets, and decl
 
 Reports group and rule counts and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations and missing declared files fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
 
-After the first release, check compares each rule's Markdown file and asset directory with the most recent release commit in the current branch's history:
+After the first release, check compares each rule's Markdown file and asset directory with the most recent release commit in the current branch's history. A changed rule passes when it has a valid note. Check fails when:
 
-| Situation | Result |
-| --- | --- |
-| A rule changed and has a valid note. | Passes. |
-| A rule changed and has no note. | Error naming the rule and its latest version, with the `code-rules library change` command to run. |
-| A new rule has no note. | Error. |
-| A released rule was deleted without a `retired` note. | Error. |
-| A superseded rule's `replacedBy` isn't a rule in the library. | Error. |
-| A rule reuses the ID of a retired rule. | Error. |
-| A note's rule is unchanged since the last release. | Error: the note is stale. |
-| A note has no matching rule and isn't a retirement. | Error: the note is orphaned. |
-| A note is invalid, such as an unknown `bump` or a blank summary. | Error. |
-| A tag is named like a group or folder that contains rules. | Error. |
+- A rule changed and has no note. The error names the rule and its latest version, and gives the `code-rules library change` command to run.
+- A new rule has no note.
+- A released rule was deleted without a `retired` note.
+- A superseded rule's `replacedBy` isn't a rule in the library.
+- A rule reuses the ID of a retired rule.
+- A note's rule is unchanged since the last release, so the note is stale.
+- A note has no matching rule and isn't a retirement, so the note is orphaned.
+- A note is invalid, such as an unknown `bump` or a blank summary.
+- A tag is named like a group or folder that contains rules.
 
 This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone; in CI, check out with full history, such as `fetch-depth: 0`. Before the first release, every rule is new.
 

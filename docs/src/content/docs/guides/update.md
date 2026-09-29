@@ -38,13 +38,16 @@ fabrica  4f1c2a9 -> 9e07b3d
            Add a Go example.
   new      practices/testing/verify-retries                1.0.0
            Add the rule.
-  retired  practices/testing/check-retry-backoff           1.2.0, superseded by practices/testing/verify-retries
+  retired  practices/testing/check-retry-backoff           1.2.0 superseded
+           Replaced by practices/testing/verify-retries.
            Covered by the broader rule about testing retries.
-  retired  practices/code-design/comment-intent            2.1.0, withdrawn
-           Withdrawn after feedback that agents shouldn't add explanatory comments.
+  retired  practices/code-design/comment-intent            2.1.0 withdrawn
+           Withdrawn after feedback that agents shouldn't add
+           explanatory comments.
 
-Nothing was updated: 1 major change and 2 retirements affect rules this project uses.
-Review them, then run: code-rules project update --accept-major
+Nothing was updated: 1 major change and 2 retirements affect
+rules this project uses. Review them, then run:
+  code-rules project update --accept-major
 ```
 
 Each line shows the change, the rule, and its old and new versions, followed by the summaries of every version in between. A retired rule shows its last version, the reason it was retired, and any replacement.
@@ -82,7 +85,7 @@ To stay on a rule's older major version while updating the rest of the library, 
 ```sh
 code-rules project add rule practices/testing/verify-retry-limits \
   --from fabrica@1.3.0 \
-  --reason 'Our batch jobs keep the 1.x retry policy until the queue migration.'
+  --reason 'Batch jobs keep the 1.x retry policy until they migrate.'
 ```
 
 This copies version `1.3.0` into `.code-rules/local/`, adds attribution that links to the original, and replaces the imported rule with your copy. Your fork no longer receives updates. Revisit it when you're ready to adopt the newer version, then remove the replacement and the local file.
