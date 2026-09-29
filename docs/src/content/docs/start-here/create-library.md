@@ -158,7 +158,7 @@ Now release the rule:
 code-rules library release
 ```
 
-This is your library's first release, so every rule gets version `1.0.0`. `code-rules library release` tags your commit `practices/error-handling/make-errors-actionable@1.0.0`, pushes the tag, and creates a GitHub Release with the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tag only. To skip GitHub Releases, run `code-rules library release --no-github-release` instead.
+This is your library's first release, so every rule gets version `1.0.0`. `code-rules library release` commits a release manifest, `code-rules-release.yaml`, that lists each rule's version. It tags that commit as `release/1` and as `practices/error-handling/make-errors-actionable@1.0.0`, pushes the commit and tags, and creates a GitHub Release with the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tags only. To skip the GitHub Release, run `code-rules library release --no-github-release` instead.
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 
@@ -174,7 +174,7 @@ code-rules project add library acme-rules \
   --groups practices/error-handling
 ```
 
-This adds the library's repository and group to `.code-rules/config.yaml` under the source name `acme-rules`. Without a `ref`, the project follows the library's releases.
+This adds the library's repository and group to `.code-rules/config.yaml` under the source name `acme-rules`. Without `versions`, the project follows each rule's newest version.
 
 Download the rules and build the project's agent guidance:
 
@@ -183,7 +183,7 @@ code-rules project sync
 code-rules project check
 ```
 
-Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that release, so the project keeps the same rules until someone runs `code-rules project update`.
+Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that version, so the project keeps the same rules until someone runs `code-rules project update`.
 
 The rules are now in the project, but its agent needs instructions to read them. If you haven't already, [connect the rules to your agent and try a task](/start-here/set-up-project/#5-give-the-rules-to-your-agent). Then commit the project's configuration, imported rules, generated guidance, and agent instructions together.
 

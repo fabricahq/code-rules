@@ -122,9 +122,9 @@ code-rules project add library fabrica \
 
 This adds the library's repository and selected group to `.code-rules/config.yaml` under the source name `fabrica`.
 
-Each rule in Fabrica's library has its own version. Without a `ref`, the project follows the library's releases.
+Each rule in Fabrica's library has its own version. Without `versions`, the project follows each rule's newest version.
 
-Now run `code-rules project sync` to download the selected rules and build the agent guidance. You don't need to run `code-rules project build` separately. `code-rules project sync` records the release it imported, so your project keeps the same rules until you choose to [update them](/guides/update/).
+Now run `code-rules project sync` to download the selected rules and build the agent guidance. You don't need to run `code-rules project build` separately. `code-rules project sync` records the version of each rule it imported, so your project keeps the same rules until you choose to [update them](/guides/update/).
 
 ```sh
 code-rules project sync

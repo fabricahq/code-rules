@@ -58,10 +58,10 @@ For example, when you replace a library rule, its imported source stays in `vend
 | File or directory | Who maintains it | Purpose |
 | --- | --- | --- |
 | `AGENTS.md` | You | Tell your agent to read the generated rules. |
-| `.code-rules/config.yaml` | You | Choose libraries, revisions, groups, and exceptions. |
+| `.code-rules/config.yaml` | You | Choose libraries, groups, rule versions, and exceptions. |
 | `.code-rules/local/` | You, after initialization | Add project rules, replacements, and local group metadata. |
 | `.code-rules/README.md` | `code-rules project init`, `code-rules project build`, and `code-rules project sync` | Explain the project's rule setup and commands. |
-| `.code-rules/vendor/` | `code-rules project sync` and `code-rules project update` | Store imported source files and their revision records, including rule versions. |
+| `.code-rules/vendor/` | `code-rules project sync` and `code-rules project update` | Store imported source files and their records of each rule's version. |
 | `.code-rules/generated/` | `code-rules project sync`, `code-rules project update`, and `code-rules project build` | Provide resolved rules and indexes for your agent. |
 
 Keep authored changes in configuration and `local/`. Edits in `vendor/` or `generated/` will be replaced or removed.
@@ -104,7 +104,7 @@ Full rule definitions are never shortened to fit an index.
 A rule's source name appears in its generated path. For example, `fabrica:practices/testing/test-failure-paths` lives at `rules/fabrica/practices/testing/test-failure-paths.md` under `generated/`.
 Local rules and replacements use `local/` in place of the imported source name. Excluded rules and replaced upstream bodies have no generated rule file.
 
-For source revisions, replacement history, and retained license records, see [Provenance](/reference/provenance/).
+For rule versions, replacement history, and retained license records, see [Provenance](/reference/provenance/).
 
 ## Example: follow a rule from the index
 
@@ -167,5 +167,5 @@ The authored version stays in `.code-rules/local/practices/testing/test-changed-
 - [Project configuration](/reference/configuration/#complete-example): the libraries, groups, exclusions, and replacements declared in `config.yaml`.
 - [Group metadata](/reference/rule-format/#group-metadata): the name and reading cues in `_group.yaml`.
 - [Authored rule](/reference/rule-authoring/#markdown-template): the Markdown and metadata you write before building.
-- [Imported source record](/reference/provenance/#inspect-the-original-imported-files): the library revision stored in `vendor/<source>/_source.json`.
+- [Imported source record](/reference/provenance/#inspect-the-original-imported-files): the rule versions stored in `vendor/<source>/_source.json`.
 - [Provenance](/reference/provenance/#trace-a-rule-to-its-source): how `generated/provenance.json` records a rule's origin.

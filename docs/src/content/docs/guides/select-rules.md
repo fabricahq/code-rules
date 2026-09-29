@@ -29,7 +29,7 @@ Agents choose which installed groups apply to each task using the [rule-loading 
 In `.code-rules/config.yaml`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
 
 - **Where to get it:** `repository` is the library's Git URL.
-- **Which revision to use:** omit `ref` to follow the library's releases, or set it to a tag or commit to pin one. See [Select a revision](/reference/configuration/#select-a-revision).
+- **Which versions to use:** omit `versions` to follow each rule's newest version, or choose versions rule by rule. See [Choose versions](/reference/configuration/#choose-versions).
 - **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`.
 
 You can also use `exclude` to leave out individual rules or `replace` to substitute your own. We'll cover both below.
@@ -38,8 +38,8 @@ See the [complete configuration example](/reference/configuration/#complete-exam
 
 To adopt an entire library, set `groups` to `"*"` instead of an array.
 Use `"practices/*"` for all practice groups, or `"techs/*"` for all technology groups.
-All groups within that scope at the selected revision are included, and exclusions and replacements still apply.
-New groups enter when you update the adopted revision. Review them as part of that update.
+All groups within that scope in the imported library are included, and exclusions and replacements still apply.
+New groups enter when `code-rules project update` imports a release that adds them. Review them as part of that update.
 See [Import every group](/reference/configuration/#import-every-group) for an example and snapshot requirements.
 
 If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual resolved rules.
@@ -83,7 +83,7 @@ sources:
 ```
 
 These are partial snippets, not complete source definitions.
-Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, revision selection, and groups.
+Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, version choices, and groups.
 Rule IDs are illustrative and must exist in the selected source groups.
 An exclusion removes only the named source's rule, without introducing a replacement.
 The same rule path in another source remains active.
@@ -112,7 +112,7 @@ Include the intended scope and exceptions in that definition.
 
 ## Generate and review
 
-When sources, revision selections, or selected groups change, run `code-rules project sync`.
+When sources, version choices, or selected groups change, run `code-rules project sync`.
 For changes limited to local rules or exceptions, run `code-rules project build` against the existing vendor snapshots.
 Review and commit the updated generated files with their inputs.
 

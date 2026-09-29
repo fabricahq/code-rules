@@ -77,7 +77,7 @@ sources:
 ```
 
 This is a partial configuration snippet.
-Merge it into the existing source while retaining its repository, revision selection, groups, and other exceptions.
+Merge it into the existing source while retaining its repository, version choices, groups, and other exceptions.
 It affects only Fabrica's rule; Acme's rule stays active.
 
 For a conflicting local addition, edit its authored file under `local/`.
@@ -87,7 +87,7 @@ Do not edit `vendor/` or `generated/` directly.
 ## Rebuild and review again
 
 Run `code-rules project build` after changing local rules or exceptions.
-Run `code-rules project sync` instead if you also change sources, revision selections, or imported groups.
+Run `code-rules project sync` instead if you also change sources, version choices, or imported groups.
 Inspect the regenerated indexes and resolved definitions, then repeat the review against that snapshot.
 
 Commit the configuration, local rules, and generated output together; include vendor changes when sync refreshed them.

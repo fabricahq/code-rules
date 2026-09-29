@@ -3,16 +3,16 @@ title: "Sync and recovery"
 description: "When to run sync, build, or check, which files they change, and how to recover from problems."
 ---
 
-The `code-rules project sync` command imports your project's library files and regenerates the guidance your agents read. Run it after adding a library, changing its revision or selected groups, or to restore imported files.
+The `code-rules project sync` command imports your project's library files and regenerates the guidance your agents read. Run it after adding a library, changing its version choices or selected groups, or to restore imported files.
 
-Sync imports the commit recorded for each source, so it never adopts newer library releases on its own. To move to newer releases, run `code-rules project update`, which reports each rule change and asks you to accept major changes first. See [Update rules](/guides/update/).
+Sync imports the rule versions recorded for each source, so it never adopts newer versions on its own. To move to newer versions, run `code-rules project update`, which reports each rule change and asks you to accept major changes first. See [Update rules](/guides/update/).
 
 This page explains how to run sync, what it changes, and what to do when files are missing, outdated, or left by an interrupted update. It also explains when `code-rules project build` or `code-rules project check` is enough. For how Code Rules selects and combines library rules, see [How imports work](/reference/imports/).
 
 ## Choose the right command
 
-- **`code-rules project sync`**: Import the recorded library revisions, or resolve new and changed sources. Sync validates the library files and regenerates agent guidance.
-- **`code-rules project update`**: Move sources to the newest revisions their configuration allows, and review each rule change. Update then does everything sync does.
+- **`code-rules project sync`**: Import the recorded rule versions, or choose versions for new and changed sources. Sync validates the library files and regenerates agent guidance.
+- **`code-rules project update`**: Move rules to the newest versions their configuration allows, and review each rule change. Update then does everything sync does.
 - **`code-rules project build`**: Apply local rule changes or exceptions using the library files you already have. Build regenerates guidance without contacting a repository.
 - **`code-rules project check`**: Find out whether generated guidance and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 
@@ -35,7 +35,7 @@ In a Git repository, project commands find the nearest repository root and use i
 | `config.yaml` | Your selected libraries, groups, and exceptions. | Sync, update, build, and check read it without changing it. |
 | `README.md` | The managed Code Rules guide. | Init, build, and sync refresh an older, unedited guide. Check verifies it without changing it. |
 | `local/` | Rules and replacements you author for this project. | Sync, build, and check preserve these files. |
-| `vendor/` | Original files copied from selected library revisions. | Sync and update replace this directory. Build and check validate it without changing it. |
+| `vendor/` | Original files copied from the selected rule versions. | Sync and update replace this directory. Build and check validate it without changing it. |
 | `generated/` | Rules and reading indexes for your agents. | Sync, update, and build replace this directory. Check compares it with the expected output. |
 
 Replacement includes removing files that no longer belong in the output, such as removed rules, old index pages, and unused library folders. Files you add or edit inside `vendor/` or `generated/` can be replaced or removed. Keep your changes in configuration and `local/`.
@@ -55,7 +55,7 @@ Sync, update, and build report counts and sorted lists of added, changed, and re
 - Sync and update paths start with `vendor/` or `generated/`.
 - Build paths are relative to `generated/`.
 
-`code-rules project update` also reports each source's old and new revision and each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
+`code-rules project update` also reports each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
 Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies both generated guidance and the managed Code Rules guide without writing either.
 
@@ -80,7 +80,7 @@ Run `code-rules project check` again after repairing the problem.
 
 ### How stored imports are checked
 
-For each library, Code Rules records its imported revision, rule versions, and file checksums in `vendor/<source-name>/_source.json`. A **checksum** detects whether a file's contents differ from the recorded copy.
+For each library, Code Rules records each imported rule's version and file checksums in `vendor/<source-name>/_source.json`. A **checksum** detects whether a file's contents differ from the recorded copy.
 
 Build and check work offline. They reject missing, changed, or unexpected imported files, invalid source records, rule version records that don't cover exactly the imported rules, and library selections that no longer match your configuration. Sync fetches the recorded library files again, including replacing locally modified copies.
 

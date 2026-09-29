@@ -13,8 +13,8 @@ This page explains which files Code Rules imports and how it combines imported r
 
 When you run `code-rules project sync`, Code Rules:
 
-1. Reads your configuration to find the libraries, revisions, and groups you selected. A **group** collects related rules, such as testing practices or TypeScript conventions.
-2. Copies the selected library files into your project. Each copy comes from one Git commit and is called a **snapshot**.
+1. Reads your configuration to find the libraries, groups, and rule versions you selected. A **group** collects related rules, such as testing practices or TypeScript conventions.
+2. Copies the selected library files into your project. The copy of one library is called a **snapshot**; each rule in it comes from the release that published its version.
 3. Combines the imported rules with your local rules and configured exceptions, then generates files for your agents to read.
 
 These files live in the **Code Rules directory**, `.code-rules/` at the project root:
@@ -52,7 +52,7 @@ Your configuration selects groups from each library. You can name groups individ
 | `"practices/*"` | Every practice group. |
 | `"techs/*"` | Every technology group. |
 
-Code Rules finds the matching groups at the selected library revision before applying your exceptions. It records both your selection and the groups actually imported. Invalid groups and rules without group metadata cause an error instead of being silently skipped.
+Code Rules finds the matching groups in the imported library before applying your exceptions. It records both your selection and the groups actually imported. Invalid groups and rules without group metadata cause an error instead of being silently skipped.
 
 Code Rules then decides which rules are **active**, meaning included in the generated guidance:
 
@@ -77,25 +77,27 @@ The same files support implementation and review. Your project chooses how to ch
 
 ## What changes when you update
 
-Each source's `vendor/<source-name>/_source.json` records the commit it imported. Running `code-rules project sync` again imports that same commit, so every checkout of the project gets the same rules. `code-rules project sync` resolves a source's revision again only when the source is new or you changed its repository or `ref`.
+Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `code-rules project sync` again imports those same versions, so every checkout of the project gets the same rules. `code-rules project sync` chooses versions again only for a new source, a changed repository, newly selected groups, or `versions` that no longer match what was recorded.
 
-`code-rules project update` moves each source without a `ref` to the library's newest release. Sources pinned with a `ref` stay where they are.
+`code-rules project update` moves each rule to the newest version its source's [`versions`](/reference/configuration/#choose-versions) allows. Rules set to `hold` or an exact version stay where they are, and sources that import one release or commit don't move.
 
-With the same configuration and commit, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
+With the same configuration and recorded versions, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
 
-`code-rules project update` reports each changed rule with its change, versions, and summary, and asks you to accept major changes and retirements of rules the project uses. Both commands report changed files, including group metadata and revision records.
+`code-rules project update` reports each changed rule with its change, versions, and summary, and asks you to accept major changes and retirements of rules the project uses. Both commands report changed files, including group metadata and version records.
 
 ### How rule versions are resolved
 
-Every library keeps the branch `code-rules/released` pointed at its newest [release commit](/reference/rule-versions/#release-commits). When a source has no `ref`, Code Rules reads that branch to find the newest release.
+A library's newest release is its highest `release/<number>` tag. Each [release](/reference/rule-versions/#releases) commit holds a manifest listing every rule's version at that release, and each rule version has its own tag on the release commit that published it.
 
-A rule's version at a release commit is its highest version tag on that commit or an earlier release commit. Every release commit contains exactly the released content, so this version describes the imported file. A rule absent from the release commit was retired, and its `<rule-id>@retired` tag records why; its last version remains in the library's history but isn't imported.
+To choose a rule's version, Code Rules lists the rule's version tags and picks the newest one its `versions` choice allows. It then imports the rule's [versioned content](/reference/rule-versions/#what-a-version-covers), its Markdown file, its asset directory, and the shared files it links to, from that version's release commit. Rules at different versions keep the shared files they were written with; Code Rules stores each version's copy separately and points each rule's links at its own copy.
 
-To find these versions, Code Rules lists only tags under `techs/` and `practices/` and fetches the release history without file contents it doesn't need. It records each imported rule's version in `_source.json` and generated provenance, and shows it in generated guidance.
+A rule absent from a release was retired, and its `<rule-id>@retired` tag records why. A rule held at an earlier version can still import that version.
+
+To find versions, Code Rules lists only tags under `techs/`, `practices/`, and `release/`, and fetches only the files it imports. It records each imported rule's version and release commit in `_source.json` and generated provenance, and shows the version in generated guidance.
 
 ### Tracing rules to their source
 
-Code Rules records the revision you requested, the exact commit it imported, and each imported rule's version. See [Provenance](/reference/provenance/) for these records.
+Code Rules records the versions you requested, and each imported rule's exact version and commit. See [Provenance](/reference/provenance/) for these records.
 
 Links to original files on GitHub.com and GitLab.com use the imported commit, so moving a tag does not change their destination. For other Git hosts, links point to the stored files; provenance retains the repository address and commit.
 
@@ -164,4 +166,5 @@ When finding a library's newest release, Code Rules can report:
 
 | Error | Meaning and next step |
 | --- | --- |
-| `releases-not-found` | The source has no `ref`, but the library has no `code-rules/released` branch because it hasn't published its first release. Ask the maintainer to release, or pin a commit. |
+| `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first release. Ask the maintainer to release, or import a commit with `versions.commit`. |
+| `version-not-found` | No published version of a rule satisfies its constraint, or the requested release doesn't exist. Check the constraint or release number. |
