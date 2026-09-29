@@ -76,11 +76,15 @@ code-rules library release
 
 This gives every rule version `1.0.0`. Run this first release yourself, even if you use the release [GitHub Actions workflow](#automate-releases-with-github-actions); the workflow handles every release after it.
 
-From then on, record every change with a note.
+From then on, [record every change with a note](#change-rules-after-the-first-release).
 
-## Record a change
+## Change rules after the first release
 
-Suppose you want to update a rule, such as adding a Python example to `practices/testing/verify-retry-limits`. First, edit the rule's Markdown file as usual. Then choose the change level, as described in [Semantic versions](#semantic-versions), and record it with `code-rules library change`:
+After the first release, every change to a rule needs a change note, recorded with `code-rules library change` in the same pull request as the change. The steps differ slightly for each kind of change.
+
+### Update a rule
+
+Suppose you want to add a Python example to `practices/testing/verify-retry-limits`. First, edit the rule's Markdown file as usual. Then choose the change level, as described in [Semantic versions](#semantic-versions), and record it with `code-rules library change`:
 
 ```sh
 code-rules library change practices/testing/verify-retry-limits \
@@ -96,21 +100,6 @@ summary: Add a Python example of the retry-limit test.
 ```
 
 Write the summary for someone deciding whether to update: say what changed in the obligation or guidance, not how you edited the file. If the rule already has a pending note, `code-rules library change` keeps the larger change and adds your summary as another line.
-
-Check the library before opening your pull request:
-
-```sh
-code-rules library check
-```
-
-`code-rules library check` fails if a changed rule has no note, or if a note no longer matches a change. When it passes, it previews the pending release:
-
-```text
-Pending release
-  practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
-```
-
-Commit the rule and its note together.
 
 ### Add a rule
 
@@ -159,6 +148,23 @@ The release creates the rule's `@retired` tag. A rule that was never released ca
 ### Rename a rule
 
 A rename changes the rule's ID. Move the file, add a new-rule note for the new ID, and retire the old ID as superseded by the new one. Projects see the old rule retired, with the new rule as its replacement.
+
+### Check your changes
+
+Whatever you changed, check the library before opening your pull request:
+
+```sh
+code-rules library check
+```
+
+`code-rules library check` fails if a changed rule has no note, or if a note no longer matches a change. When it passes, it previews the pending release:
+
+```text
+Pending release
+  practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
+```
+
+Commit each rule and its note together.
 
 ## Automate releases with GitHub Actions
 

@@ -241,7 +241,7 @@ Judge the change by its effect on work that complied with the previous version. 
 
 Widening where a rule applies can be major, even though it only adds text: code in the newly covered situation may not comply. Adding a new case is minor only when all work that complied with the previous version still complies. When unsure, choose the larger change.
 
-Write the summary for a project maintainer deciding whether to update. Name what changed in the obligation or guidance, such as "Require a test at the limit for every retry policy." Avoid describing the edit itself, such as "Update the rule." See [Version your rules](/guides/version-rules/#record-a-change) for the commands.
+Write the summary for a project maintainer deciding whether to update. Name what changed in the obligation or guidance, such as "Require a test at the limit for every retry policy." Avoid describing the edit itself, such as "Update the rule." See [Version your rules](/guides/version-rules/#change-rules-after-the-first-release) for the commands.
 
 ## Authoring rubric
 
