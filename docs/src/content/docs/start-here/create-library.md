@@ -193,4 +193,4 @@ Other projects can import the same library. You maintain the shared rule in the 
 
 As your library grows, [write focused rules](/guides/write-rules/), record each change with `code-rules library change`, and [release them](/guides/version-rules/). Projects [choose when to adopt updates](/guides/update/).
 
-For metadata and supporting files, see [Rule and library format](/reference/rule-library-format/).
+For metadata and supporting files, see [Rule and group format](/reference/rule-format/) and [Library format](/reference/library-format/).

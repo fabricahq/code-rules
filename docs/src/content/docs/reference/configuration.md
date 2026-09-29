@@ -169,7 +169,7 @@ A source's `ref` says which revision of the library to import:
 
 | `ref` | Example | Imports |
 | --- | --- | --- |
-| Omitted | | The library's newest [release](/reference/rule-library-format/#release-commits). |
+| Omitted | | The library's newest [release](/reference/rule-versions/#release-commits). |
 | Rule version tag | `practices/testing/verify-retry-limits@1.3.0` | The release commit that published that version. |
 | Other tag | `team-approved` | The commit the tag points to. |
 | Full commit SHA | `0c9f3e…` (40 hex digits) | That commit. |
@@ -258,4 +258,4 @@ Vendored provenance records the resolved commit and each rule's version, used by
 A project imports multiple sources directly.
 Libraries that themselves inherit and republish other libraries are not supported.
 
-See [Rule and library format](/reference/rule-library-format/) for library metadata and [Adapt rules](/guides/select-rules/#adapt-the-import-to-your-project) for examples of exceptions.
+See [Library format](/reference/library-format/) for library metadata and [Adapt rules](/guides/select-rules/#adapt-the-import-to-your-project) for examples of exceptions.

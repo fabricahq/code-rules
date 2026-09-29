@@ -87,7 +87,7 @@ With the same configuration and commit, an import produces the same paths and fi
 
 ### How rule versions are resolved
 
-Every library keeps the branch `code-rules/released` pointed at its newest [release commit](/reference/rule-library-format/#release-commits). When a source has no `ref`, Code Rules reads that branch to find the newest release.
+Every library keeps the branch `code-rules/released` pointed at its newest [release commit](/reference/rule-versions/#release-commits). When a source has no `ref`, Code Rules reads that branch to find the newest release.
 
 A rule's version at a release commit is its highest version tag on that commit or an earlier release commit. Every release commit contains exactly the released content, so this version describes the imported file. A rule absent from the release commit was retired, and its `<rule-id>@retired` tag records why; its last version remains in the library's history but isn't imported.
 
@@ -130,7 +130,7 @@ Code Rules reads original Git file contents without checking out the library. It
 
 ### Supporting files
 
-Code Rules copies supporting material from [two asset locations](/reference/rule-library-format/#supporting-assets):
+Code Rules copies supporting material from [two asset locations](/reference/rule-format/#supporting-assets):
 
 - **A rule's own assets:** the adjacent `assets/<rule-name>/` directory. Code Rules copies this directory in full when it imports the rule.
 - **Shared assets:** the library-root `assets/` directory. Code Rules copies this directory in full when a selected rule or its Markdown assets link to it.

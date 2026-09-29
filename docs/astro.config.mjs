@@ -22,6 +22,7 @@ export default defineConfig({
     '/guides/use-rules/': '/start-here/set-up-project/',
     '/start-here/use-rules/': '/start-here/set-up-project/',
     '/guides/create-library/': '/start-here/create-library/',
+    '/reference/rule-library-format/': '/reference/rule-format/',
   },
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
   integrations: [starlight({
@@ -73,8 +74,10 @@ export default defineConfig({
           { label: 'Provenance', slug: 'reference/provenance' },
         ] },
         { label: 'Rules and libraries', collapsed: true, items: [
-          { label: 'Rule and library format', slug: 'reference/rule-library-format' },
+          { label: 'Rule and group format', slug: 'reference/rule-format' },
           { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
+          { label: 'Library format', slug: 'reference/library-format' },
+          { label: 'Rule versions', slug: 'reference/rule-versions' },
         ] },
         { label: 'CLI commands', slug: 'reference/cli' },
       ] },

@@ -24,7 +24,7 @@ engineering-rules/
     test-changed-behavior.md
 ```
 
-The repository name is your choice. Library groups live at its root; they don't need a `.code-rules/` directory. Rules can also include [supporting assets](/reference/rule-library-format/#supporting-assets).
+The repository name is your choice. Library groups live at its root; they don't need a `.code-rules/` directory. Rules can also include [supporting assets](/reference/rule-format/#supporting-assets).
 
 ## How projects use a library
 
@@ -48,4 +48,4 @@ Libraries can be public or private. Imports copy their content into the consumin
 
 Code Rules preserves declared license text and notices with imported rules. For choosing terms, see [License rules](/guides/license-rules/).
 
-To publish your own, follow [Create your first library](/start-here/create-library/). For file details, see [Rule and library format](/reference/rule-library-format/).
+To publish your own, follow [Create your first library](/start-here/create-library/). For file details, see [Library format](/reference/library-format/).

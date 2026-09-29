@@ -55,7 +55,7 @@ Each version is a Git tag in the library, such as `practices/testing/verify-retr
 
 Projects see each imported rule's version in their generated guidance. Before a project adopts a major change or retirement of a rule it uses, someone on the project accepts it. Local rules have no versions.
 
-See [Rule versions](/reference/rule-library-format/#rule-versions) for the tag format, [Version your rules](/guides/version-rules/) for authors, and [Update rules](/guides/update/) for projects.
+See [Rule versions](/reference/rule-versions/) for the tag format, [Version your rules](/guides/version-rules/) for authors, and [Update rules](/guides/update/) for projects.
 
 ## How agents identify and use it
 

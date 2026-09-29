@@ -7,7 +7,7 @@ A **rule** is a Markdown file that tells an agent what to do, when the instructi
 
 Use this page when writing a new rule, improving an existing one, or reviewing a proposed rule. The **template** gives you a starting structure. The **rubric** is a checklist for deciding whether the rule is clear, useful, and verifiable.
 
-The same template and rubric apply to rules in shared libraries and rules written for one project. This page explains how to complete the template and review the result. For the steps to create a rule, see [Write a rule](/guides/write-rules/).
+The same template and rubric apply to rules in shared libraries and rules written for one project. This page explains how to complete the template and review the result. For the steps to create a rule, see [Write a rule](/guides/write-rules/). For the fields and files Code Rules accepts, see [Rule and group format](/reference/rule-format/).
 
 ## What goes in a rule
 
@@ -88,7 +88,7 @@ impactDescription: <Specific consequence the rule helps prevent, supporting the 
 <Name any surrounding code or contracts the reviewer must inspect before deciding.>
 ````
 
-The [rule metadata reference](/reference/rule-library-format/#rule-metadata) defines the required fields and accepted values. For a filled-in template, see the [complete rule example](/guides/write-rules/#example-rule).
+The [rule metadata reference](/reference/rule-format/#rule-metadata) defines the required fields and accepted values. For a filled-in template, see the [complete rule example](/guides/write-rules/#example-rule).
 
 You can add optional `tags` for search terms, such as `tags: [testing, cancellation]`. Tags do not determine whether a rule applies, and Code Rules does not use them to filter rules. Omit tags that add no useful search terms.
 
@@ -222,26 +222,13 @@ Link to supporting files using ordinary Markdown. Markdown in an asset directory
 
 Each rule must remain independently selectable. Do not link to another rule document on disk, another rule's private assets, or arbitrary repository documents. This restriction also applies to links inside attachments, regardless of which rules a project selects or excludes. Move shared supporting explanations into shared assets.
 
-See [Supporting assets](/reference/rule-library-format/#supporting-assets) for the required layout and examples.
+See [Supporting assets](/reference/rule-format/#supporting-assets) for the required layout and examples.
 
-When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; rule-level and group-level license overrides are unsupported. Use optional [structured attribution](/reference/rule-library-format/#rule-attribution) for source credits. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Code Rules format.
+When adapting someone else's material, preserve source attribution and required notices. Declare one license for the whole library in its manifest; rule-level and group-level license overrides are unsupported. Use optional [structured attribution](/reference/rule-format/#rule-attribution) for source credits. Follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules) for material that does not already use the Code Rules format.
 
 ## Record changes to a library rule
 
-After a library's first release, every edit to a rule needs a [change note](/reference/rule-library-format/#change-notes) that says how much the obligation changed. Projects use it to decide whether they can update without changing their code.
-
-Judge the change by its effect on work that complied with the previous version. Major means that work could fail the new version. Minor and patch mean it still complies; minor adds new guidance, and patch doesn't:
-
-| Edit | Change |
-| --- | --- |
-| Narrow an exception, lower a limit, or turn a recommendation into a requirement. | `major` |
-| Replace the obligation with a different one, even when it seems equally strict. | `major` |
-| Add an example in another language, or advice for a situation the rule already allowed. | `minor` |
-| Reword a sentence, fix a typo, or correct an example that contradicted the rule's own text. | `patch` |
-
-Widening where a rule applies can be major, even though it only adds text: code in the newly covered situation may not comply. Adding a new case is minor only when all work that complied with the previous version still complies. When unsure, choose the larger change.
-
-Write the summary for a project maintainer deciding whether to update. Name what changed in the obligation or guidance, such as "Require a test at the limit for every retry policy." Avoid describing the edit itself, such as "Update the rule." See [Version your rules](/guides/version-rules/#change-rules-after-the-first-release) for the commands.
+After a library's first release, every edit to a rule needs a [change note](/reference/rule-versions/#change-notes) that says how much the obligation changed. Projects use it to decide whether they can update without changing their code. See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for choosing major, minor, or patch and writing the summary, and [Version your rules](/guides/version-rules/#change-rules-after-the-first-release) for the commands.
 
 ## Authoring rubric
 

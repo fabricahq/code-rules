@@ -241,20 +241,20 @@ Create the group first with `code-rules library add group`; rule creation does n
 code-rules library change ID [options]
 ```
 
-Create or update the [change note](/reference/rule-library-format/#change-notes) for one rule. `ID` is the rule ID, such as `practices/testing/verify-retry-limits`. Before a library's first release, rules need no notes.
+Create or update the [change note](/reference/rule-versions/#change-notes) for one rule. `ID` is the rule ID, such as `practices/testing/verify-retry-limits`. Before a library's first release, rules need no notes.
 
 | Option | Meaning |
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--bump LEVEL` | `major`, `minor`, or `patch`. Required for a rule that has a version. Not accepted for a new or retired rule. |
 | `--summary TEXT` | Required. One line describing the change. |
-| `--retire REASON` | Record that the rule is [retired](/reference/rule-library-format/#retired-rules): `superseded` or `withdrawn`. The rule's Markdown file must already be gone. |
+| `--retire REASON` | Record that the rule is [retired](/reference/rule-versions/#retired-rules): `superseded` or `withdrawn`. The rule's Markdown file must already be gone. |
 | `--replaced-by ID` | The rule that replaces a `superseded` rule. Required with `--retire superseded`, and rejected otherwise. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
 A rule without any version is new, and its note omits `bump`. When a note already exists, the command keeps the larger of the two bumps and appends the new summary line. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. A rule that was never released can't be retired: delete its Markdown file and its note together.
 
-See [Choose a version change](/reference/rule-library-format/#choose-a-version-change) for picking `LEVEL`.
+See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL`.
 
 ### library check
 

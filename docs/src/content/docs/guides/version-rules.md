@@ -64,7 +64,7 @@ You can run `code-rules library release` yourself, or let a GitHub Actions workf
 2. After the pull request merges, the workflow runs `code-rules library release --pr`. It opens a "Release rules" pull request, or updates the open one, listing the versions the release will publish.
 3. When you merge the release pull request, the workflow runs `code-rules library release --publish`, which creates the tags and GitHub Releases.
 
-Change notes start with the second release. Your library's [first release](#publish-the-first-release) gives every rule version `1.0.0`, so it needs no notes. For the exact tag and note formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
+Change notes start with the second release. Your library's [first release](#publish-the-first-release) gives every rule version `1.0.0`, so it needs no notes. For the exact tag and note formats, see [Rule versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
 
 ## Publish the first release
 
