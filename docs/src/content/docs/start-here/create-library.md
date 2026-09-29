@@ -158,7 +158,9 @@ Now release the rule:
 code-rules library release
 ```
 
-This is your library's first release, so every rule gets version `1.0.0`. `code-rules library release` commits a release manifest, `code-rules-release.yaml`, that lists each rule's version. It tags that commit as `release/1` and as `practices/error-handling/make-errors-actionable@1.0.0`, pushes the commit and tags, and creates a GitHub Release with the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tags only. To skip the GitHub Release, run `code-rules library release --no-github-release` instead.
+This is your library's first release, so every rule gets version `1.0.0`. `code-rules library release` commits a release manifest, `code-rules-release.yaml`, that lists each rule's version. It tags that commit as `release/1` and as `practices/error-handling/make-errors-actionable@1.0.0`, pushes the commit and tags, and creates a GitHub Release page with the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tags only. To skip the GitHub Release page, run `code-rules library release --no-github-release` instead.
+
+The workflow you pushed also opened a "Release rules" pull request for this first release. After you release from your machine, the workflow closes it, because nothing is left to release. From the second release on, you'll release by merging that pull request instead.
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 

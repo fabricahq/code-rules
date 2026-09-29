@@ -13,7 +13,7 @@ Start with a project that already [imports rules](/guides/select-rules/). For de
 
 Two commands import library rules, and they do different things:
 
-- **`code-rules project sync`** imports the rule versions already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It chooses versions again only for a new source or group, or after you change a source's repository or `versions`.
+- **`code-rules project sync`** imports the rule versions already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It chooses a rule's version again only for a new source or group, or after you change that rule's version choice.
 - **`code-rules project update`** moves rules to newer versions, as far as each source's `versions` allows. It reports every rule change and asks you to accept major changes and retirements before it writes anything.
 
 Neither command runs during ordinary coding, review, or `code-rules project check`, so rules never change underneath your agents.
@@ -64,7 +64,7 @@ When no rule your project uses has a major change or retirement, `code-rules pro
 
 ## Accept major changes
 
-For each major change and retirement, read the new rule, or the reason for the retirement, and decide what your project should do. Compare the old and new text in `.code-rules/vendor/<source-name>/` after updating, or in the library's GitHub Releases. Then choose one of these for each rule:
+For each major change and retirement, read the new rule, or the reason for the retirement, and decide what your project should do. Compare the old and new text in `.code-rules/vendor/<source-name>/` after updating, or in the library's GitHub Release pages. Then choose one of these for each rule:
 
 - **Adopt it.** Plan any work your code needs to follow the new obligation. For a superseded rule, read its replacement, and check that you import the replacement's group.
 - **Keep the current version.** [Hold the rule](#choose-versions-rule-by-rule) at the version you have. This also keeps a retired rule you still want to follow.
@@ -86,7 +86,7 @@ code-rules project update \
 
 The update applies only when every major change and retirement of a rule you use is accepted. Hold or exclude the rest first, then run the command again.
 
-Major changes to rules you exclude or replace don't need consent, because your agents don't read them. `code-rules project update` still lists them so you can check that your exception still makes sense. If a retired rule is still named in an exclusion or replacement, the command stops and tells you which entry to delete.
+Major changes to rules you exclude or replace don't need consent, because your agents don't read them. `code-rules project update` still lists them so you can check that your exception still makes sense. If a rule you exclude or replace is retired, your exception no longer points at anything. The command stops and tells you which entry to delete.
 
 ## Choose versions rule by rule
 
@@ -123,7 +123,7 @@ versions:
     practices/testing/verify-retry-limits: latest
 ```
 
-After editing `versions`, run `code-rules project sync`. Sync applies what configuration now says; for example, setting a rule to `"1.3.0"` moves it to 1.3.0. Editing `versions` is itself your consent, so sync doesn't ask for `--accept-major`. See [Choose versions](/reference/configuration/#choose-versions) for every option.
+After editing `versions`, run `code-rules project sync`. For each rule whose choice you changed, sync applies the new choice; for example, setting a rule to `"1.3.0"` moves it to 1.3.0, and changing `hold` to `latest` moves it to its newest version. Editing `versions` is itself your consent, so sync doesn't ask for `--accept-major`. See [Choose versions](/reference/configuration/#choose-versions) for every option.
 
 A held rule keeps its identity: it still appears as the library's rule, with its version, in your generated guidance and provenance. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules.
 

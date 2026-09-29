@@ -90,7 +90,7 @@ Choose one of three supported selectors:
 
 Each selector includes all groups in its scope in the imported library, including empty groups with valid metadata.
 Rule exclusions and replacements still apply. Agents still select relevant rules for each task.
-When `code-rules project update` imports a newer release, groups it added join the selection. Review those additions in the changed source records and generated provenance.
+When a newer release adds groups within the selector's scope, `code-rules project update` adds them and their rules under `default: latest`, and lists them without adding them under `default: hold`. Review those additions in the changed source records and generated provenance.
 Offline builds do not discover changes on the remote repository.
 
 Keep `groups` required. Use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
@@ -208,7 +208,7 @@ Read this as: keep every rule at its current version, let `verify-retry-limits` 
 
 With `default: hold`, update doesn't add rules that newer releases put in the selected groups; it lists them so you can decide. With `latest`, they join and are reported as new.
 
-A `rules` entry must name a rule in the source's selected groups; other IDs are errors. Remove an entry to return the rule to `default`; the next sync or update reports any resulting change. A held rule that its library retires stays at its version, and update reports the retirement. Nothing moves an entry to a replacement rule automatically; add the replacement yourself.
+A `rules` entry must name a rule in the source's selected groups, or a retired rule the project still imports at a held version; other IDs are errors. Remove an entry to return the rule to `default`; the next sync or update reports any resulting change. A held rule that its library retires stays at its version, and update reports the retirement. Nothing moves an entry to a replacement rule automatically; add the replacement yourself.
 
 ### Constraints
 
@@ -294,7 +294,7 @@ Each library's `formatVersion` describes its authoring format.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
 Each source's `versions`, or its absence, states which rule versions the project wants.
-Vendored provenance records each imported rule's version and commit, used by offline commands. It is importer-owned output, not a second user-selected version.
+Vendored provenance records each imported rule's version, release, and commit, used by offline commands. It is importer-owned output, not a second user-selected version.
 A project imports multiple sources directly.
 Libraries that themselves inherit and republish other libraries are not supported.
 

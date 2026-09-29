@@ -37,7 +37,7 @@ Git can't store a tag whose name matches a directory of other tags, so no tag ma
 
 ## Releases
 
-A **release** publishes every pending change note as new rule versions. All of its tags point to one **release commit**, which:
+A **release** publishes every pending change note as new rule versions. All of its tags point to one **release commit**: the first commit on the default branch that contains the release's manifest. If the release pull request is merged with a merge commit, that's the merge commit; with a squash or rebase, it's the commit the pull request became. The release commit:
 
 - deletes the release's change notes, so it never contains changes waiting to be released, and
 - updates the release manifest to list every rule's version.
@@ -70,9 +70,9 @@ The manifest uses one YAML document. Duplicate keys, anchors, aliases, explicit 
 
 The first release creates the manifest. Each later release rewrites it, so the release's diff shows the exact new version of every changed rule.
 
-### Release tags and GitHub Releases
+### Release tags and GitHub Release pages
 
-Each release creates one `release/<number>` tag, such as `release/2`, and, for a repository on GitHub.com, one GitHub Release on that tag. The GitHub Release lists the release's changes, grouped as major, minor, patch, new, and retired, with each rule's old and new version and its summary.
+Each release creates one `release/<number>` tag, such as `release/2`. For a repository on GitHub.com, it also creates one **GitHub Release page** on that tag: the page GitHub uses to announce a release, which people can browse and get notified about. It's an announcement only; Code Rules never reads it. In these docs, a *release* always means the Code Rules release, and a *GitHub Release page* means its announcement on GitHub. The page lists the release's changes, grouped as major, minor, patch, new, and retired, with each rule's old and new version and its summary.
 
 The newest release is the one with the highest release number. A project normally chooses versions rule by rule, but it can also import exactly what one release published; see [Choose versions](/reference/configuration/#choose-versions).
 

@@ -56,7 +56,7 @@ As with packages for code, you can:
 
 - **Version every rule.** Each rule has its own semantic version, so an update shows exactly which rules changed and whether a change could break code that followed them. Projects record the exact version of every rule they import, and accept major changes explicitly.
 - **Customize without forking.** Exclude an imported rule or replace it with your own, with the decision recorded in config.
-- **Build reproducibly.** Libraries are vendored at an exact commit, and every imported rule keeps its source and license terms.
+- **Build reproducibly.** Every imported rule is vendored at its exact version, and keeps its source and license terms.
 - **Catch drift in CI.** `code-rules project check` fails when generated files are out of date.
 
 Agents don't read every rule on every task. Code Rules generates an index with a "when to read" cue for each group of rules, so agents open only the rules that matter for the work at hand. It works with any agent that reads a project instruction file, such as Claude Code, Codex, Cursor, or Gemini CLI.
@@ -195,7 +195,7 @@ sources:
     replace: {}
 ```
 
-`sync` imports each rule's newest version, snapshots them into `.code-rules/vendor/` with their versions, and rebuilds. Improve a rule in the library and release it: each project picks up the improvement when it runs `code-rules project update`, on its own schedule. Update lists every changed rule and stops for major changes until you accept them.
+`code-rules project sync` imports each rule's newest version, snapshots them into `.code-rules/vendor/` with their versions, and rebuilds. Improve a rule in the library and release it: each project picks up the improvement when it runs `code-rules project update`, on its own schedule. Update lists every changed rule and stops for major changes until you accept them.
 
 ➡️ [Create your first library](https://code-rules.fabricahq.com/start-here/create-library/) · [Import rules](https://code-rules.fabricahq.com/guides/select-rules/) · [Update rules](https://code-rules.fabricahq.com/guides/update/)
 

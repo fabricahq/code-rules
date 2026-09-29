@@ -77,7 +77,7 @@ The same files support implementation and review. Your project chooses how to ch
 
 ## What changes when you update
 
-Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `code-rules project sync` again imports those same versions, so every checkout of the project gets the same rules. `code-rules project sync` chooses versions again only for a new source, a changed repository, newly selected groups, or `versions` that no longer match what was recorded.
+Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `code-rules project sync` again imports those same versions, so every checkout of the project gets the same rules. `code-rules project sync` chooses a rule's version again only when the source or its groups are new, or the rule's version choice changed since it was recorded; see [project sync](/reference/cli/#project-sync).
 
 `code-rules project update` moves each rule to the newest version its source's [`versions`](/reference/configuration/#choose-versions) allows. Rules set to `hold` or an exact version stay where they are, and sources that import one release or commit don't move.
 
@@ -135,7 +135,7 @@ Code Rules reads original Git file contents without checking out the library. It
 Code Rules copies supporting material from [two asset locations](/reference/rule-format/#supporting-assets):
 
 - **A rule's own assets:** the adjacent `assets/<rule-name>/` directory. Code Rules copies this directory in full when it imports the rule.
-- **Shared assets:** the library-root `assets/` directory. Code Rules copies this directory in full when a selected rule or its Markdown assets link to it.
+- **Shared assets:** files in the library-root `assets/` directory. Code Rules copies the files a selected rule or its Markdown assets link to, including files they link to in turn, as they were in that rule's version.
 
 Markdown links, images, and reference links must point to files within the allowed locations. Missing files and links into another rule's private assets cause an error. Code Rules preserves external URLs as links without downloading their contents.
 

@@ -25,7 +25,7 @@ code-rules project init
 
 This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `local/`. Initializing Code Rules does not change your project's `README.md` or agent instructions.
 
-Later, when you import a library, Code Rules saves a copy of its files at the release you selected in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
+Later, when you import a library, Code Rules saves a copy of its files, at the rule versions your configuration selects, in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
 Run the commands below from the project root. After initialization, you can also run project commands from its Git subdirectories. See [Project files](/reference/files/) for the layout.
 

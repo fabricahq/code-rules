@@ -49,14 +49,14 @@ Projects import rules from your library. Each imported rule's version appears in
 
 A project keeps the versions it imported until someone runs `code-rules project update`, which lists each rule that changed, with its old and new versions and your summaries. It applies patch and minor changes directly. It stops for major changes and retirements until someone on the project accepts them, because those can change what the project's code must do. See [Update rules](/guides/update/).
 
-Projects can also choose versions rule by rule: hold one rule at its current version, or accept only compatible updates, while the rest moves forward. Projects only ever import released versions. Changes waiting to be released never reach them.
+Projects can also choose versions rule by rule: hold one rule at its current version, or accept only compatible updates, while the rest moves forward. Projects import only released versions, unless one deliberately imports an exact commit, so changes waiting to be released don't reach them.
 
 ## How releases work
 
 You manage rule versions with two Code Rules commands. You never create version tags by hand.
 
 - **`code-rules library change`** records a change to one rule. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file beside the rule.
-- **`code-rules library release`** publishes a **release**: every pending change note becomes a new rule version at once. It updates the library's release manifest, `code-rules-release.yaml`, which lists every rule's current version, and removes the notes. Then it tags each new version and the release itself, such as `release/3`, and publishes one **GitHub Release** that lists the changes.
+- **`code-rules library release`** publishes a **release**: every pending change note becomes a new rule version at once. It updates the library's release manifest, `code-rules-release.yaml`, which lists every rule's current version, and removes the notes. Then it tags each new version and the release itself, such as `release/3`, and publishes one **GitHub Release page**, GitHub's announcement for the release, that lists the changes. The GitHub Release page is only an announcement; the release itself is the new versions and tags.
 
 A release can hold one rule change or many. Release as often as you like: smaller releases are easier for projects to review.
 
@@ -66,7 +66,7 @@ You can run `code-rules library release` yourself, or let a GitHub Actions workf
 
 1. You edit a rule and run `code-rules library change` in the same pull request. The workflow runs `code-rules library check` on the pull request.
 2. After the pull request merges, the workflow runs `code-rules library release --pr`. It opens a "Release rules" pull request, or updates the open one. That pull request updates the release manifest and deletes the notes, so its diff shows exactly what the release will publish.
-3. When you merge the release pull request, the workflow runs `code-rules library release --publish`, which creates the tags and the GitHub Release.
+3. When you merge the release pull request, the workflow runs `code-rules library release --publish`, which creates the tags and the GitHub Release page.
 
 Change notes start with the second release. Your library's [first release](#publish-the-first-release) gives every rule version `1.0.0`, so it needs no notes. For the exact tag and note formats, see [Rule versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
 
@@ -273,7 +273,7 @@ Configure three settings on GitHub. Each step shows the setting's place in the r
 
 The release pull request, from the branch `code-rules/release-pr`, updates the release manifest and deletes every pending note. The manifest's diff shows every rule's next version. The description lists each rule with its change, its current and next version, its summary, and the pull request that added the note. Review the major changes carefully: every project that uses those rules has to accept them before updating.
 
-Merge it when you want to publish, using whichever merge method your repository allows. The workflow then tags the new rule versions and the release, and creates the release's GitHub Release. Projects see the new versions the next time they run `code-rules project update`.
+Merge it when you want to publish, using whichever merge method your repository allows. The workflow then tags the new rule versions and the release, and creates the release's GitHub Release page. Projects see the new versions the next time they run `code-rules project update`.
 
 ## Release from your machine
 
@@ -289,9 +289,9 @@ The preview shows the repository, branch, commit, release number, and each rule'
 code-rules library release
 ```
 
-The command fetches from the remote first. It refuses unless you're on the remote's default branch, your branch matches the remote exactly, your working tree has no uncommitted changes, and `code-rules library check` passes. It then creates the release commit, pushes it with the tags in one atomic push, and creates the GitHub Release with the [GitHub CLI](https://cli.github.com/). Because it pushes to `main`, run it as someone allowed to push there.
+The command fetches from the remote first. It refuses unless you're on the remote's default branch, your branch matches the remote exactly, your working tree has no uncommitted changes, and `code-rules library check` passes. It then creates the release commit, pushes it with the tags in one atomic push, and creates the GitHub Release page with the [GitHub CLI](https://cli.github.com/). Because it pushes to `main`, run it as someone allowed to push there.
 
-If the command stops partway, such as on a network error, run it again: it finishes publishing the release it already started. If you don't want a GitHub Release, or the library isn't hosted on GitHub.com, run `code-rules library release --no-github-release`; repositories hosted elsewhere get tags only.
+If the command stops partway, such as on a network error, run it again: it finishes publishing the release it already started. If you don't want a GitHub Release page, or the library isn't hosted on GitHub.com, run `code-rules library release --no-github-release`; repositories hosted elsewhere get tags only.
 
 ## Recover from a failed release
 
@@ -299,7 +299,7 @@ If the command stops partway, such as on a network error, run it again: it finis
 | --- | --- |
 | `code-rules library release --publish` stopped partway, such as on a network error. | Rerun the workflow job. The command keeps tags it already created and adds anything missing. |
 | `code-rules library release` stopped partway on your machine. | Run it again. It finds the unpublished release commit and finishes publishing it. |
-| Publishing refused because the merge commit still contains notes. | A note reached `main` without being included in the release pull request. Revert the release pull request's merge. The workflow then opens a new release pull request with every pending note. To prevent this, require branches to be up to date before merging. |
+| Publishing refused because the release commit on `main` still contains notes. | A note reached `main` without being included in the release pull request. Revert the release pull request's merge. The workflow then opens a new release pull request with every pending note. To prevent this, require branches to be up to date before merging. |
 | A tag points to a different commit. | Someone created or moved a rule tag by hand. Don't move published tags; projects may have imported them. Ask the tag's author, then restore it to its original commit. |
 | Check fails in a shallow clone. | Fetch the full history and tags, such as with `git fetch --unshallow --tags`, or `fetch-depth: 0` in CI. |
 

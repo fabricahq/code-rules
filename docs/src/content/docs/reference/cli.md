@@ -124,12 +124,22 @@ Import the rule versions recorded for each source, validate their files, and rep
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Sync needs access to every configured repository and uses your existing Git credentials. It never moves a rule to a newer version on its own: each rule keeps the version recorded in `vendor/<source-name>/_source.json` while that version still satisfies the source's configuration. Sync chooses a version again only when:
+Sync needs access to every configured repository and uses your existing Git credentials. It never moves a rule to a newer version on its own: `vendor/<source-name>/_source.json` records each rule's version and the `versions` configuration it was chosen under, and sync restores that version. Sync chooses a rule's version again only when:
 
-- The source is new, or its repository changed. Each selected rule gets the version its `versions` setting allows, and the newest version when nothing else is specified.
-- You changed the source's `versions` so that a recorded version no longer satisfies it. The rule moves to the highest version that does. Editing `versions` is itself consent, so sync doesn't ask for `--accept-major`.
-- You selected new groups. Their rules get the newest version their `versions` setting allows.
-- The source uses `versions.release` or `versions.commit`. Sync imports exactly that release or commit.
+- The source is new, its repository changed, or the rule's group is newly selected.
+- The rule's version choice changed since it was recorded. Its choice is its `rules` entry, the source's `default`, or the source's `release` or `commit`.
+
+A rule's version is then chosen from its current choice:
+
+| Choice | Version chosen |
+| --- | --- |
+| `latest` | The newest version. |
+| `hold` | The recorded version, or the newest if none is recorded. |
+| A constraint or exact version | The recorded version if it satisfies the constraint; otherwise the highest version that does. |
+| `release` | The version that release published. |
+| `commit` | The rule as it was at that commit. |
+
+Editing `versions` is itself consent, so sync doesn't ask for `--accept-major`.
 
 To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
@@ -159,9 +169,9 @@ Update reports each rule that changed: its change (`new`, `major`, `minor`, `pat
 
 New rules in the selected groups join when the source's `versions.default` is `latest`. With `default: hold`, update lists them without adding them.
 
-`code-rules project update` writes nothing, and exits with status `1`, while any rule the project uses would take a major change or retirement that you haven't accepted, even when the rule's constraint allows it. It lists each such rule with the option that accepts it. Review the reported changes, then rerun with `--accept-major` to accept them all, or with `--accept-major=RULE` for each rule you accept. To keep a rule where it is instead, set it to `hold` in `versions`, and the update applies without it. Excluded and replaced rules don't need consent; the command lists their changes so you can review your exceptions.
+`code-rules project update` writes nothing, and exits with status `1`, while any rule the project uses would take a major change or retirement that you haven't accepted, even when the rule's constraint allows it. It lists each such rule with the option that accepts it. Review the reported changes, then rerun with `--accept-major` to accept them all, or with `--accept-major=RULE` for each rule you accept. To keep a rule where it is instead, set it to `hold` in `versions` or exclude it, and the update applies without it. Excluded and replaced rules don't need consent; the command lists their changes so you can review your exceptions.
 
-A rule held by `hold` or an exact version stays at that version after it's retired upstream; update reports the retirement. When update would drop a retired rule that the configuration excludes or replaces, it names the entry to delete and writes nothing.
+A rule held by `hold` or an exact version stays at that version after it's retired upstream; update reports the retirement. When a rule the configuration excludes or replaces is retired and would no longer be imported, the exclusion or replacement points at nothing. Update reports that stale entry, names it for you to delete, and writes nothing. This isn't a consent check.
 
 Group metadata and the library's license files come from the newest release among the rule versions the project imports.
 
@@ -225,7 +235,7 @@ Create a group with `_group.yaml` metadata and an authoring README in the librar
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--name TEXT` | Required. Group display name. |
 | `--description TEXT` | Required. What the group covers. |
 | `--when-to-read TEXT` | Required. When an agent should read the group. |
@@ -243,7 +253,7 @@ Create a rule in an existing library group. `ID` includes the group path and rul
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--title TEXT` | Required. Action-oriented rule title. |
 | `--when-to-read TEXT` | Required. When an agent should read the rule. |
 | `--impact LEVEL` | Required. One of `CRITICAL`, `HIGH`, `MEDIUM-HIGH`, `MEDIUM`, `LOW-MEDIUM`, or `LOW`. |
@@ -284,7 +294,7 @@ Validate `rule-library.yaml`, the release manifest, all groups and rules, suppor
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. Init must target the repository root. |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--non-interactive` | Accepted; library check does not prompt. |
 
 Reports group and rule counts and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations and missing declared files fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
@@ -300,7 +310,7 @@ After the first release, check compares each rule's [versioned content](/referen
 - A note's rule is unchanged since the last release, so the note is stale.
 - A note has no matching rule and isn't a retirement, so the note is orphaned.
 - A note is invalid, such as an unknown `bump` or a blank summary.
-- The release manifest was edited outside a release, or doesn't match the library's tags.
+- The release manifest was edited outside a release, or doesn't match the library's tags. The newest release may still be untagged, as between merging the release pull request and publishing it.
 - A tag is named like a group or folder that contains rules.
 
 A **release candidate** is a commit whose only changes from its parent are deleting change notes and updating the release manifest, such as the release pull request. Check validates it as a release instead: the deleted notes must be valid at the parent, the manifest must list exactly the versions they produce, and no notes may remain.
@@ -323,7 +333,7 @@ Publish the pending change notes as a [release](/reference/rule-versions/#releas
 | `--dry-run` | Report what the release would do without changing files, commits, tags, or GitHub. |
 | `--pr` | Open or update the release pull request instead of releasing. For CI. |
 | `--publish` | Publish a release that has reached the default branch. For CI. |
-| `--no-github-release` | Skip creating the GitHub Release. |
+| `--no-github-release` | Skip creating the GitHub Release page. |
 | `--non-interactive` | Accepted; library release does not prompt. |
 
 `--pr` and `--publish` can't be combined.
@@ -331,7 +341,7 @@ Publish the pending change notes as a [release](/reference/rule-versions/#releas
 Every release does the same work, in two steps:
 
 1. **Create the release commit.** Compute each changed rule's next version, delete the notes, and update the release manifest with the next release number. The first release creates the manifest and gives every rule version `1.0.0`, with the message `new: Initial version.`
-2. **Publish it.** On the release commit, create a tag for each new rule version, a `<rule-id>@retired` tag for each retirement, and the `release/<number>` tag. Push the tags in one atomic push, so either all of them arrive or none do, then create the release's GitHub Release.
+2. **Publish it.** On the release commit, create a tag for each new rule version, a `<rule-id>@retired` tag for each retirement, and the `release/<number>` tag. Push the tags in one atomic push, so either all of them arrive or none do, then create the release's GitHub Release page.
 
 The three ways to run it differ in who creates the release commit.
 
@@ -342,17 +352,17 @@ The three ways to run it differ in who creates the release commit.
 - the working tree has no uncommitted changes, and
 - `code-rules library check` passes.
 
-It then creates the release commit, pushes it together with the tags in one atomic push, and creates the GitHub Release. `--dry-run` shows the repository, branch, commit, release number, and each rule's change and versions.
+It then creates the release commit, pushes it together with the tags in one atomic push, and creates the GitHub Release page. `--dry-run` shows the repository, branch, commit, release number, and each rule's change and versions.
 
-If a run stops partway, run it again. It finds the unpublished release commit at the tip of the branch and finishes publishing it, rather than reporting that there's nothing to release. The result reports separately whether the versions were published and whether the GitHub Release was created. With no pending notes and nothing unpublished, release reports that there is nothing to release.
+If a run stops partway, run it again. It finds the unpublished release commit at the tip of the branch and finishes publishing it, rather than reporting that there's nothing to release. The result reports separately whether the versions were published and whether the GitHub Release page was created. With no pending notes and nothing unpublished, release reports that there is nothing to release.
 
-**`--pr`** keeps one release pull request up to date. It creates the release commit on the branch `code-rules/release-pr`, on top of the default branch's current commit, and opens or updates the pull request "Release rules". The description lists each rule, its change, its current and next version, its summary, and the pull requests that added its note when GitHub can find them. Before the first release, the pull request creates the manifest. When nothing is pending, it closes an open release pull request and exits successfully. It updates the branch only if nobody else has changed it since it was read, and exits without changes if the default branch has moved past the commit that started the run; the newer run takes over. `--pr` never publishes; merging its pull request does, through `--publish`.
+**`--pr`** keeps one release pull request up to date. It creates the release commit on the branch `code-rules/release-pr`, on top of the default branch's current commit, and opens or updates the pull request "Release rules". The description lists each rule, its change, its current and next version, its summary, and the pull requests that added its note when GitHub can find them. Before the first release, the pull request creates the manifest. After the first release, when nothing is pending, it closes an open release pull request and exits successfully. It updates the branch only if nobody else has changed it since it was read, and exits without changes if the default branch has moved past the commit that started the run; the newer run takes over. `--pr` never publishes; merging its pull request does, through `--publish`.
 
-**`--publish`** runs on the default branch's newest commit and publishes any release that commit contains but isn't tagged yet, whether the release pull request was merged with a merge commit, a squash, or a rebase. It finds the release from the manifest, not from how the commit was made. It refuses when a change note remains or the manifest doesn't match the notes the release deleted. Rerunning it is safe: tags that already point to the release commit are kept, missing tags and the GitHub Release are created, and a tag that points elsewhere stops the command.
+**`--publish`** runs on the default branch's newest commit and publishes any release that commit contains but isn't tagged yet, whether the release pull request was merged with a merge commit, a squash, or a rebase. It finds the release from the manifest, not from how the commit was made, and tags the first commit on the default branch that contains that manifest. It refuses when a change note remains or the manifest doesn't match the notes the release deleted. Rerunning it is safe: tags that already point to the release commit are kept, missing tags and the GitHub Release page are created, and a tag that points elsewhere stops the command.
 
 **Commit and tag author.** Every mode commits and tags with Git's configured identity, including the `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables. The workflow created by `code-rules library init` sets them to Code Rules Bot.
 
-**GitHub Releases** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each release gets one GitHub Release on its `release/<number>` tag, named after the release and listing its changes. Before changing anything, release checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. Repositories hosted elsewhere get tags only.
+**GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each release gets one GitHub Release page on its `release/<number>` tag, named after the release and listing its changes. Before changing anything, release checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. Repositories hosted elsewhere get tags only.
 
 <span id="help-and-version"></span>
 
@@ -374,7 +384,7 @@ Use `-h` or `--help` to inspect command syntax and options. For example, run `co
 | `--license` | At the root, print the full embedded MIT license and copyright notice. |
 | `--json` | Return help, version, or license text in `value.text` inside a JSON response. |
 
-Running `code-rules` or a command group such as `code-rules library` without a subcommand displays help. The `project`, `code-rules project add`, `library`, and `code-rules library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
+Running `code-rules` or a command group such as `code-rules library` without a subcommand displays help. The `code-rules project`, `code-rules project add`, `code-rules library`, and `code-rules library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
 
 The root `--version` flag prints the tool version. To choose which versions of a library's rules to import, see [Choose versions](/reference/configuration/#choose-versions).
 
@@ -396,7 +406,7 @@ Authoring commands accept `--non-interactive`. Without it, commands can prompt f
 
 Invalid interactive answers repeat the same question while retaining earlier answers. Explicit flags are validated without prompting for replacement values. Existing groups, rules, and library aliases fail before prompts.
 
-Both init commands, both check commands, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; project `check`, `sync`, `update`, and `build` do not need or accept it.
+Both init commands, both check commands, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; `code-rules project check`, `code-rules project sync`, `code-rules project update`, and `code-rules project build` do not need or accept it.
 
 String options accept one value and cannot be repeated, except `--groups`, which accepts repeated group IDs. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 
@@ -451,4 +461,4 @@ Update existing scripts to use the scoped commands below. Use `-h` or `--help` f
 | `code-rules build` | `code-rules project build` |
 | `code-rules check` | `code-rules project check` |
 
-Library commands and the on-disk configuration and directory layout are unchanged.
+Library command paths are unchanged. For configuration fields that changed, see [Configuration](/reference/configuration/#fields).

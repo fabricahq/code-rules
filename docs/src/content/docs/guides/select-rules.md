@@ -39,7 +39,7 @@ See the [complete configuration example](/reference/configuration/#complete-exam
 To adopt an entire library, set `groups` to `"*"` instead of an array.
 Use `"practices/*"` for all practice groups, or `"techs/*"` for all technology groups.
 All groups within that scope in the imported library are included, and exclusions and replacements still apply.
-New groups enter when `code-rules project update` imports a release that adds them. Review them as part of that update.
+When a library adds groups within your selector, `code-rules project update` adds them, unless the source's `versions.default` is `hold`, which lists them instead. Review them as part of that update.
 See [Import every group](/reference/configuration/#import-every-group) for an example and snapshot requirements.
 
 If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual resolved rules.

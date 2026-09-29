@@ -47,7 +47,7 @@ Initialize from the project root. In Git repositories, other project commands fi
 The three directories serve different purposes:
 
 - **`local/`: rules you author for this project.** Add your own rules here, or write replacements for imported rules and select those replacements in `config.yaml`. You maintain these files; syncing libraries preserves them.
-- **`vendor/`: source files imported from libraries.** Code Rules keeps a snapshot of the selected library content at a specific Git commit. These files let you rebuild offline and trace rules back to their source. Do not customize them here; put your changes in `local/` instead.
+- **`vendor/`: source files imported from libraries.** Code Rules keeps a snapshot of each selected rule at its recorded version, along with the library files it needs. These files let you rebuild offline and trace rules back to their source. Do not customize them here; put your changes in `local/` instead.
 - **`generated/`: the resolved rules your agents read.** Code Rules combines the imported and local rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
 
 Think of `local/` and `vendor/` as inputs, and `generated/` as the output for your agent.
