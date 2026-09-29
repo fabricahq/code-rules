@@ -225,7 +225,7 @@ Importing a revision other than a library release opts that source out of rule v
 
 ### Where each rule's files come from
 
-Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as group metadata, shared assets, and license files, come from the newest library release among the imported rule versions, or from the revision your `ref` names.
+Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as group metadata, shared assets, and license files, come from the newest library release among the imported rule versions, or from the revision your `ref` names. A source that imports no rules, such as one that selects only empty groups, gets them from the newest library release.
 
 Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
 

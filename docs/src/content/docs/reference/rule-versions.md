@@ -16,7 +16,7 @@ A rule version covers the rule itself:
 
 A project that imports a rule version gets exactly these files as they were in that version.
 
-Everything else is a **library-wide file**: group metadata, shared files in the library-root `assets/` directory, the license declaration, and license and notice files. Library-wide files aren't part of any rule version, and changing them needs no change note. Projects receive them from the newest library release among the rule versions they import, or from the revision their `ref` names. A rule pinned to an older version can therefore link to a newer copy of a shared file, so keep everything that defines a rule's obligation in the rule itself, and use shared files only to explain and illustrate.
+Everything else is a **library-wide file**: group metadata, shared files in the library-root `assets/` directory, the license declaration, and license and notice files. Library-wide files aren't part of any rule version, and changing them needs no change note. Projects receive them from the newest library release among the rule versions they import, or from the revision their `ref` names. A project that imports no rules from a library, such as one that selects only empty groups, receives them from the newest library release. A rule pinned to an older version can therefore link to a newer copy of a shared file, so keep everything that defines a rule's obligation in the rule itself, and use shared files only to explain and illustrate.
 
 ## Library releases
 
