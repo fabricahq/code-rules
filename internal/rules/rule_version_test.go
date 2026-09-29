@@ -12,8 +12,9 @@ import (
 func TestRuleVersionNext_ResetsLowerComponents(t *testing.T) {
 	from := rules.RuleVersion{Major: 1, Minor: 3, Patch: 2}
 	for change, want := range map[rules.Change]string{rules.ChangeMajor: "2.0.0", rules.ChangeMinor: "1.4.0", rules.ChangePatch: "1.3.3", rules.ChangeNew: "1.3.2", rules.ChangeRetired: "1.3.2"} {
-		if got := from.Next(change).String(); got != want {
-			t.Errorf("%s from %s: got %s, want %s", change, from, got, want)
+		got, err := from.Next(change)
+		if err != nil || got.String() != want {
+			t.Errorf("%s from %s: got %s, %v; want %s", change, from, got, err, want)
 		}
 	}
 }
@@ -45,6 +46,39 @@ func TestLargerChange_PicksTheLargestVersionChange(t *testing.T) {
 	} {
 		if got := rules.LargerChange(test.a, test.b); got != test.want {
 			t.Errorf("larger of %s and %s: got %s, want %s", test.a, test.b, got, test.want)
+		}
+	}
+}
+
+// TestRuleVersionNext_RefusesToPassTheLargestNumber never produces a version the parser would reject.
+func TestRuleVersionNext_RefusesToPassTheLargestNumber(t *testing.T) {
+	for _, test := range []struct {
+		from   string
+		change rules.Change
+		want   string
+	}{
+		{"1.0.999999998", rules.ChangePatch, "1.0.999999999"},
+		{"1.0.999999999", rules.ChangePatch, ""},
+		{"1.999999999.4", rules.ChangeMinor, ""},
+		{"999999999.2.0", rules.ChangeMajor, ""},
+		{"1.999999999.4", rules.ChangeMajor, "2.0.0"},
+	} {
+		from, err := rules.ParseRuleVersion(test.from, "from")
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := from.Next(test.change)
+		if test.want == "" {
+			if err == nil {
+				t.Errorf("%s from %s: got %s, want an error", test.change, test.from, got)
+			}
+			continue
+		}
+		if err != nil || got.String() != test.want {
+			t.Errorf("%s from %s: got %s, %v; want %s", test.change, test.from, got, err, test.want)
+		}
+		if _, err := rules.ParseRuleVersion(got.String(), "next"); err != nil {
+			t.Errorf("next version %s doesn't parse: %v", got, err)
 		}
 	}
 }

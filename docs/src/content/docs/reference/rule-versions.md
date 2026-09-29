@@ -69,7 +69,7 @@ libraryFiles:
 | `retired` | Each rule this library release retired: its `lastVersion`, its `summary`, and its `replacedBy` rule when there is one. |
 | `libraryFiles` | Library-wide files this library release changed, such as group metadata and shared assets. |
 
-A rule's version is plain `major.minor.patch` numbers, without prerelease or build suffixes. A new rule starts at `1.0.0`. The rule ID is the rule's path without `.md`.
+A rule's version is plain `major.minor.patch` numbers, each at most 999,999,999, without prerelease or build suffixes. A new rule starts at `1.0.0`. The rule ID is the rule's path without `.md`.
 
 A rule's full history is the `changes` entries for it across every `release/<number>` tag. To find which library release published a version, such as one a project pins, Code Rules finds the tag whose `changes` entry has that version; the rule's files are at that tag's commit. Projects fetch release tags without the library's history.
 

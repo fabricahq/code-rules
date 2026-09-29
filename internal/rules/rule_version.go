@@ -3,6 +3,7 @@
 package rules
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 )
@@ -27,9 +28,12 @@ const (
 // FirstRuleVersion is every new rule's version, including every rule in a library's first library release.
 var FirstRuleVersion = RuleVersion{Major: 1}
 
+// MaxRuleVersionComponent is the largest major, minor, or patch number a rule version can have.
+const MaxRuleVersionComponent = 999_999_999
+
 var ruleVersionPattern = regexp.MustCompile(`^(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})$`)
 
-// ParseRuleVersion accepts only canonical major.minor.patch text, such as 1.3.0, with components below one billion.
+// ParseRuleVersion accepts only canonical major.minor.patch text, such as 1.3.0, with components up to MaxRuleVersionComponent.
 func ParseRuleVersion(text, location string) (RuleVersion, error) {
 	parts := ruleVersionPattern.FindStringSubmatch(text)
 	if parts == nil {
@@ -60,17 +64,22 @@ func (v RuleVersion) Compare(other RuleVersion) int {
 }
 
 // Next returns the version after v for a major, minor, or patch change, resetting lower components.
-// It returns v unchanged for any other change.
-func (v RuleVersion) Next(change Change) RuleVersion {
+// It returns v unchanged for any other change, and an error when the changed component would exceed
+// MaxRuleVersionComponent, so it never returns a version ParseRuleVersion rejects.
+func (v RuleVersion) Next(change Change) (RuleVersion, error) {
+	next := v
 	switch change {
 	case ChangeMajor:
-		return RuleVersion{Major: v.Major + 1}
+		next = RuleVersion{Major: v.Major + 1}
 	case ChangeMinor:
-		return RuleVersion{Major: v.Major, Minor: v.Minor + 1}
+		next = RuleVersion{Major: v.Major, Minor: v.Minor + 1}
 	case ChangePatch:
-		return RuleVersion{Major: v.Major, Minor: v.Minor, Patch: v.Patch + 1}
+		next = RuleVersion{Major: v.Major, Minor: v.Minor, Patch: v.Patch + 1}
 	}
-	return v
+	if next.Major > MaxRuleVersionComponent || next.Minor > MaxRuleVersionComponent || next.Patch > MaxRuleVersionComponent {
+		return v, fmt.Errorf("a %s change from %s exceeds the largest rule version number, %d", change, v, MaxRuleVersionComponent)
+	}
+	return next, nil
 }
 
 // MarshalText writes the canonical version text, so JSON and YAML records hold "1.3.0".
