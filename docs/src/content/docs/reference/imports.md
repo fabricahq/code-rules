@@ -79,7 +79,7 @@ The same files support implementation and review. Your project chooses how to ch
 
 Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `code-rules project sync` again imports those same versions, so every checkout of the project gets the same rules. `code-rules project sync` chooses a rule's version again only when the source or its groups are new, or the rule's version choice changed since it was recorded; see [project sync](/reference/cli/#project-sync).
 
-`code-rules project update` moves each rule to the newest version its source's [`versions`](/reference/configuration/#choose-versions) allows. Rules pinned to an exact version, or held by `default: hold`, stay where they are, and sources that import one library release or commit don't move.
+`code-rules project update` moves each rule to the newest version its source's [`versions`](/reference/configuration/#choose-versions) allows. Rules pinned to an exact version, or held by `default: hold`, stay where they are, and sources that use `versions.ref` don't move.
 
 With the same configuration and recorded versions, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
 
@@ -166,5 +166,5 @@ When finding the newest library release, Code Rules can report:
 
 | Error | Meaning and next step |
 | --- | --- |
-| `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with `versions.commit`. |
-| `version-not-found` | No published version of a rule satisfies its constraint, or the requested library release doesn't exist. Check the constraint or release number. |
+| `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with `versions.ref`. |
+| `version-not-found` | No published version of a rule satisfies its constraint, or the tag or commit in `versions.ref` doesn't exist. Check the constraint or `ref`. |

@@ -115,8 +115,8 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | `formatVersion` | The snapshot format version, `2`. |
 | `repository` | The library's repository address. |
 | `versions` | The `versions` choices from configuration when the snapshot was recorded. Omitted when configuration has none. |
-| `release` | The newest library release among the imported rule versions, or the library release you chose. It supplies the group metadata and license files. Omitted when you imported a commit. |
-| `resolvedCommit` | The full Git commit SHA of that library release, or of the commit you chose. |
+| `release` | The newest library release among the imported rule versions, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
+| `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
 | `rules` | Each imported rule's ID, its `version`, the `release` that published it, and that library release's full `commit`. |
 | `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
 | `ruleSelection` | Your configured list of individually selected rules. Omitted when you select none. |
@@ -125,7 +125,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
 
-A rule's `version` and `release` are `null` when the imported file isn't a released version, which can happen only when you import a commit. Generated guidance shows no version for it.
+A rule's `version` and `release` are `null` when the imported file isn't a released version, which can happen only when your `ref` names a revision other than a library release. Generated guidance shows no version for it.
 
 For a wildcard selection, the snapshot must contain every group in the selected scope and record the exact selector. Older records without `groupSelection` imply the explicit `groups` list; they cannot satisfy a wildcard selection.
 
@@ -136,8 +136,7 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 | Choice | What Code Rules verifies offline |
 | --- | --- |
 | Rule by rule, the default | Each recorded version satisfies its rule's choice: an exact version or constraint matches, and `latest` or `hold` accepts the recorded version. |
-| One library release | `release` equals the chosen library release, and every rule records that library release's version. |
-| One commit | `resolvedCommit` equals the chosen commit. |
+| One revision, with `ref` | For a commit SHA, `resolvedCommit` equals it. For a library release, every rule records the version that library release published. A tag's recorded commit is used without checking where the tag points now. |
 
 For every source, offline checks also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions.
 

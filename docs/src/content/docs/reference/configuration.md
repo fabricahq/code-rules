@@ -64,7 +64,7 @@ Replacement paths resolve relative to the Code Rules directory and must stay und
 
 Each source owns its version choices, groups, and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.
-The former `ref` and `version` fields are rejected with migration guidance. Use `versions.release` or `versions.commit` to import a fixed revision, or omit `versions` to follow each rule's newest version.
+The former source-level `ref` and `version` fields are rejected with migration guidance. Use `versions.ref` to import a fixed revision, or omit `versions` to follow each rule's newest version.
 The schema version is `1`.
 
 ## Import every group
@@ -171,15 +171,14 @@ Replacing a repository under an existing source name also requires reviewing tho
 
 Each rule in a library has its own [version](/reference/rule-versions/). A source's optional `versions` field chooses which versions to import. Omit it to follow each rule's newest version, which suits most projects.
 
-`versions` takes one of three forms:
+`versions` takes one of two forms:
 
 | Form | Use it to |
 | --- | --- |
 | `default` and `rules` | Choose versions rule by rule. |
-| `release` | Import exactly what one library release published. |
-| `commit` | Import one exact commit. Advanced. |
+| `ref` | Import the library exactly as it was at one Git revision, such as a library release. |
 
-`release` and `commit` can't be combined with each other, or with `default` and `rules`.
+`ref` can't be combined with `default` or `rules`.
 
 Configuration states what the project wants. The source's `vendor/<source-name>/_source.json` records the exact version and commit of every rule it imported, like a lockfile. [`code-rules project sync`](/reference/cli/#project-sync) restores those recorded versions, so every checkout imports the same content, and [`code-rules project update`](/reference/cli/#project-update) looks for newer versions that `versions` allows. Neither changes configuration.
 
@@ -225,27 +224,29 @@ Constraints use [HashiCorp go-version syntax](https://github.com/hashicorp/go-ve
 
 Quote constraints so YAML reads them as text. Caret ranges (`^`), npm tilde ranges (`~`), wildcard versions (`1.x`), OR (`||`), and space-separated comparisons are not supported; use commas for AND. Rule versions have no prerelease or build suffixes.
 
-### Import one library release
+### Import one revision
+
+Set `ref` to import the library exactly as it was at one Git revision:
 
 ```yaml
 versions:
-  release: 5
+  ref: release/5
 ```
 
-Imports the version of every selected rule that [library release](/reference/rule-versions/#library-releases) 5 published, as recorded in its release manifest. `code-rules project update` doesn't move the source; change the number and run `code-rules project sync` to import another library release.
+`ref` accepts a tag name, such as the library release tag `release/5`, or a full 40-character commit SHA. A tag may also use the explicit `refs/tags/<name>` form. Branch names and abbreviated SHAs aren't supported, so every import can be reproduced. Code Rules resolves the tag when you add or change `ref`, then keeps the recorded commit even if someone later moves the tag.
 
-### Import one commit
+What you get depends on what the revision is:
 
-```yaml
-versions:
-  commit: 0c9f3e2a7d41b6c85e19f0a3d27b4c6e8a15f9d2
-```
+- **A [library release](/reference/rule-versions/#library-releases)**, which is the usual case. Every selected rule is imported at the version that library release published, as recorded in its release manifest.
+- **Any other commit or tag**, such as unreleased changes a library author wants to test in a real project, or a library that hasn't published its first library release. Rules whose files match a published version record that version. Rules with unreleased changes record their version as `null`, and generated guidance shows no version for them.
 
-Imports the library exactly as it was at one full commit SHA, even if the commit was never released. Use it to try unreleased changes, or a library that hasn't published its first library release. Rules whose files differ from any published version record their version as `null`. `code-rules project update` doesn't move the source.
+Importing a revision other than a library release opts that source out of rule versions: rules with unreleased changes have no version to cite, and nothing asks for consent to major changes. To keep that from shipping by accident, `code-rules project sync` and `code-rules project update` print a warning naming the source and its unreleased rules, and the generated library summary in `generated/libraries/<source-name>/README.md` says the source is imported from unreleased changes. `code-rules project check` still passes.
+
+`code-rules project update` doesn't move a source that uses `ref`. To import another revision, change `ref` and run `code-rules project sync`. To go back to following versions, remove `ref`.
 
 ### Where each rule's files come from
 
-Each rule's [versioned content](/reference/rule-versions/#what-a-version-covers) comes from the library release that published its version, so rules at different versions keep the shared files they were written with. Group metadata and the library's license files come from the newest library release among the imported rule versions, or from the chosen library release or commit.
+Each rule's [versioned content](/reference/rule-versions/#what-a-version-covers) comes from the library release that published its version, so rules at different versions keep the shared files they were written with. Group metadata and the library's license files come from the newest library release among the imported rule versions, or from the revision your `ref` names.
 
 Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
 
@@ -302,7 +303,7 @@ This imports every rule in `techs/react`, including rules added to it later, plu
 
 - Each entry is a library-relative rule ID that must exist in the library.
 - An individually selected rule brings its group's metadata, so its group appears in the generated index with only the selected rules.
-- Listing a rule whose group is already selected is an error; the group already includes it.
+- Listing a rule whose group is already selected is an error, because the entry would add nothing and could be misread as narrowing the group or choosing the rule's version. The error suggests removing the entry, or using `versions.rules` to choose the rule's version.
 - To stop using an individually selected rule, remove it from `rules`. Exclusions apply only to rules imported through groups.
 - When the library retires an individually selected rule, `code-rules project update` reports the retirement and writes nothing. Remove the entry to stop using the rule, or pin the rule to its last version in `versions.rules` to keep it.
 

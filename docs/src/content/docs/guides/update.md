@@ -134,14 +134,16 @@ A pinned rule keeps its identity: it still appears as the library's rule, with i
 
 ## Import one library release
 
-To import exactly what one library release published, choose the library release by number:
+To import exactly what one library release published, set `ref` to its tag:
 
 ```yaml
 versions:
-  release: 5
+  ref: release/5
 ```
 
-`code-rules project update` doesn't move this source. To import another library release, change the number and run `code-rules project sync`. To go back to choosing versions rule by rule, remove `release`.
+`code-rules project update` doesn't move this source. To import another library release, change the tag and run `code-rules project sync`. To go back to choosing versions rule by rule, remove `ref`.
+
+`ref` also accepts any other tag or a full commit SHA, which library authors use to test unreleased changes. Rules imported that way have no version, so Code Rules warns about them every time you sync or update. See [Import one revision](/reference/configuration/#import-one-revision).
 
 ## Review and commit the update
 

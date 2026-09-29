@@ -37,12 +37,11 @@ Record a library in project configuration without fetching it. `ALIAS` is the so
 | --- | --- |
 | `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
 | `--groups GROUP` | Groups to import in full. Repeat for multiple group IDs, or supply one selector: `*`, `practices/*`, or `techs/*`. Quote wildcard values so your shell does not expand them. |
-| `--rules RULE` | Individual rules to import without the rest of their group, such as `practices/testing/verify-retry-limits`. Repeat for multiple rules. |
-| `--release NUMBER` | Optional. Import exactly what one library release published, such as `5`. Recorded as `versions.release`. |
-| `--commit SHA` | Optional and advanced. Import one exact commit, such as an unreleased change. Recorded as `versions.commit`. |
+| `--rules RULE` | Individual rules to import without the rest of their group, such as `practices/testing/verify-retry-limits`. Repeat for multiple rules. A rule whose group `--groups` also selects is an error. |
+| `--ref REF` | Optional. Import the library exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as `versions.ref`. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Supply at least one `--groups` or `--rules`. Without `--release` or `--commit`, the source follows each rule's newest version. `--release` and `--commit` can't be combined. To pin or constrain individual rules, edit the source's `versions` in configuration; see [Choose versions](/reference/configuration/#choose-versions).
+Supply at least one `--groups` or `--rules`. Without `--ref`, the source follows each rule's newest version. To pin or constrain individual rules, edit the source's `versions` in configuration; see [Choose versions](/reference/configuration/#choose-versions).
 
 Library addition preserves existing source exceptions and local files. Pass each group ID as a separate option, rather than a comma-separated flag value:
 
@@ -128,7 +127,7 @@ Accepts the [shared options](#shared-options-and-prompts) only.
 Sync needs access to every configured repository and uses your existing Git credentials. It never moves a rule to a newer version on its own: `vendor/<source-name>/_source.json` records each rule's version and the `versions` configuration it was chosen under, and sync restores that version. Sync chooses a rule's version again only when:
 
 - The source is new, its repository changed, or the rule's group is newly selected.
-- The rule's version choice changed since it was recorded. Its choice is its `rules` entry, the source's `default`, or the source's `release` or `commit`.
+- The rule's version choice changed since it was recorded. Its choice is its `versions.rules` entry, the source's `default`, or the source's `ref`.
 
 A rule's version is then chosen from its current choice:
 
@@ -137,8 +136,7 @@ A rule's version is then chosen from its current choice:
 | `latest` | The newest version. |
 | `default: hold` | The recorded version, or the newest if none is recorded. |
 | A constraint or exact version | The recorded version if it satisfies the constraint; otherwise the highest version that does. |
-| `release` | The version that library release published. |
-| `commit` | The rule as it was at that commit. |
+| `ref` | The rule as it was at that revision: the version a library release published, or `null` for unreleased changes. |
 
 Editing `versions` is itself consent, so sync doesn't ask for `--accept-major`.
 
@@ -164,7 +162,7 @@ How far each rule moves depends on its [version setting](/reference/configuratio
 | A constraint, such as `"~> 1.3"` | Its highest version that satisfies the constraint. |
 | `default: hold`, or an exact version | Nowhere. Update reports any newer version. |
 
-Sources that use `versions.release` or `versions.commit` don't move; change that setting and run `code-rules project sync` instead.
+Sources that use `versions.ref` don't move; change `ref` and run `code-rules project sync` instead.
 
 Update reports each rule that changed: its change (`new`, `major`, `minor`, `patch`, or `retired`), its old and new versions, and each version's summary. A retired rule shows its reason, `superseded` or `withdrawn`, and any replacement. Rules that stayed put because of their setting are listed with their newest available version.
 

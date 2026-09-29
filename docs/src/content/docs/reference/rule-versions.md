@@ -74,7 +74,7 @@ The first library release creates the manifest. Each later library release rewri
 
 Each library release creates one `release/<number>` tag, such as `release/2`. For a repository on GitHub.com, it also creates one **GitHub Release page** on that tag: the page GitHub uses to announce a library release, which people can browse and get notified about. It's an announcement only; Code Rules never reads it. In these docs, a *library release* is the Code Rules release described on this page, and a *GitHub Release page* is only its announcement on GitHub. The page lists the library release's changes, grouped as major, minor, patch, new, and retired, with each rule's old and new version and its summary.
 
-The newest library release is the one with the highest release number. A project normally chooses versions rule by rule, but it can also import exactly what one library release published; see [Choose versions](/reference/configuration/#choose-versions).
+The newest library release is the one with the highest release number. A project normally chooses versions rule by rule, but it can also import exactly what one library release published, by naming its release tag; see [Import one revision](/reference/configuration/#import-one-revision).
 
 ## Choose a version change
 
