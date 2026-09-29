@@ -49,13 +49,17 @@ type libraryChanges struct {
 	pending []pendingNote
 }
 
+// firstReleaseSummary is every rule's summary in the first library release, which publishes each rule as new
+// without change notes. A release record requires a summary for every change.
+const firstReleaseSummary = "Add the rule."
+
 // releasePlan is what the next library release would record, before library-wide files are compared.
 type releasePlan struct {
 	release int
 	// versions holds every current rule's version after the library release.
 	versions map[string]rules.RuleVersion
-	// changes holds each new or changed rule. A summary joins its notes' summaries, one line per note,
-	// and is empty in the first library release, which has no notes.
+	// changes holds each new or changed rule. A summary joins its notes' summaries, one line per note;
+	// the first library release, which has no notes, gives every rule firstReleaseSummary.
 	changes map[string]rules.RecordedChange
 	retired map[string]rules.RetiredRule
 }
@@ -155,7 +159,7 @@ func (c libraryChanges) namedRules() (map[string]bool, map[string][]rules.NoteCh
 }
 
 // plan computes the next library release from notes that passed review. Before the first library release,
-// every current rule is new. Several notes on one rule use the largest change; a retirement outweighs any other.
+// every current rule is new, with firstReleaseSummary as its summary. Several notes on one rule use the largest change; a retirement outweighs any other.
 // It fails when a change would advance a version past the largest rule version number.
 func (c libraryChanges) plan() (releasePlan, error) {
 	plan := releasePlan{release: 1, versions: map[string]rules.RuleVersion{}, changes: map[string]rules.RecordedChange{}, retired: map[string]rules.RetiredRule{}}
@@ -163,7 +167,7 @@ func (c libraryChanges) plan() (releasePlan, error) {
 	if latest == nil {
 		for _, id := range c.current {
 			plan.versions[id] = rules.FirstRuleVersion
-			plan.changes[id] = rules.RecordedChange{Change: rules.ChangeNew}
+			plan.changes[id] = rules.RecordedChange{Change: rules.ChangeNew, Summary: firstReleaseSummary}
 		}
 		return plan, nil
 	}
