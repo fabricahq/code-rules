@@ -4,7 +4,10 @@ package library
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -24,8 +27,8 @@ import (
 // changesDirectory holds change notes at the library root; projects never import it.
 const changesDirectory = "changes"
 
-// maxNoteNameAttempts bounds the numbered suffixes tried for a unique note name on one day.
-const maxNoteNameAttempts = 1000
+// maxNoteNameAttempts bounds the random suffixes tried for a note name that isn't taken.
+const maxNoteNameAttempts = 100
 
 // ChangeRequest describes a new change note for one or more rules.
 type ChangeRequest struct {
@@ -71,9 +74,9 @@ func PlanChange(ctx context.Context, request ChangeRequest, options Options) (*C
 	return &ChangePlan{request: request, options: options, Versioned: versioned}, nil
 }
 
-// Commit writes a new, uniquely named note, such as changes/2026-09-29-verify-retry-limits.yaml, named by
-// date's calendar day and the first rule. It never edits or deletes an existing note, and revalidates the
-// complete request under writer ownership.
+// Commit writes a new, uniquely named note, such as changes/2026-09-29-verify-retry-limits-7f3a9c.yaml, named
+// by date's calendar day, the first rule, and a random suffix, so notes written on different branches don't
+// collide. It never edits or deletes an existing note, and revalidates the complete request under writer ownership.
 func (p *ChangePlan) Commit(ctx context.Context, bump rules.Change, summary string, date time.Time) (AuthoringResult, error) {
 	if p == nil || len(p.request.IDs) == 0 {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned change note", nil)
@@ -96,7 +99,7 @@ func (p *ChangePlan) Commit(ctx context.Context, bump rules.Change, summary stri
 		if err := requireComplete(request, versioned); err != nil {
 			return nil, err
 		}
-		name, err := noteName(root, request.IDs[0], date, published)
+		name, err := noteName(root, request.IDs[0], date, published, randomNoteSuffix)
 		if err != nil {
 			return nil, err
 		}
@@ -232,15 +235,16 @@ func unknownRule(id string, published bool) string {
 	return message
 }
 
-// noteName returns changes/<date>-<rule name>.yaml, adding -2, -3, and so on when that name exists in the
-// working tree or was published by the latest library release.
-func noteName(root *os.Root, id string, date time.Time, published map[string]string) (string, error) {
+// noteName returns changes/<date>-<rule name>-<suffix>.yaml, drawing another suffix when that name exists in
+// the working tree or was published by the latest library release.
+func noteName(root *os.Root, id string, date time.Time, published map[string]string, suffix func() (string, error)) (string, error) {
 	base := changesDirectory + "/" + date.Format(time.DateOnly) + "-" + path.Base(id)
-	for attempt := 1; attempt <= maxNoteNameAttempts; attempt++ {
-		name := base + ".yaml"
-		if attempt > 1 {
-			name = base + "-" + strconv.Itoa(attempt) + ".yaml"
+	for range maxNoteNameAttempts {
+		random, err := suffix()
+		if err != nil {
+			return "", err
 		}
+		name := base + "-" + random + ".yaml"
 		if _, ok := published[name]; ok {
 			continue
 		}
@@ -250,7 +254,17 @@ func noteName(root *os.Root, id string, date time.Time, published map[string]str
 			return "", err
 		}
 	}
-	return "", failure("invalid-change", "too many change notes named "+base+"; name the note by hand", nil)
+	return "", failure("invalid-change", "every change note name tried for "+base+" is taken; name the note by hand", nil)
+}
+
+// randomNoteSuffix returns 6 lowercase hexadecimal characters from a cryptographic source, so two branches that
+// record the same rule on the same day almost never choose the same note name.
+func randomNoteSuffix() (string, error) {
+	var random [3]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		return "", fmt.Errorf("choose a change note name: %w", err)
+	}
+	return hex.EncodeToString(random[:]), nil
 }
 
 // renderNote writes the note's YAML and parses it back, so the command never writes a note check rejects.

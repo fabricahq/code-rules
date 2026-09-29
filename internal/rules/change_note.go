@@ -23,7 +23,7 @@ type NoteChange struct {
 	ReplacedBy string `json:"replacedBy,omitempty"`
 }
 
-// ParseChangeNote validates one change note's YAML. location names the note, such as changes/2026-09-29-verify-retry-limits.yaml.
+// ParseChangeNote validates one change note's YAML. location names the note, such as changes/2026-09-29-verify-retry-limits-7f3a9c.yaml.
 // Rule IDs are checked for syntax only; whether each rule exists, and whether its change matches the library, is a library check.
 func ParseChangeNote(input []byte, location string) (ChangeNote, error) {
 	_, data, err := authoredYAML(input, location)

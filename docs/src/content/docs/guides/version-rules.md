@@ -98,7 +98,7 @@ code-rules library change practices/testing/verify-retry-limits \
   --summary 'Add a Python example of the retry-limit test.'
 ```
 
-This writes a new note, such as `changes/2026-09-29-verify-retry-limits.yaml`:
+This writes a new note, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`:
 
 ```yaml
 summary: Add a Python example of the retry-limit test.

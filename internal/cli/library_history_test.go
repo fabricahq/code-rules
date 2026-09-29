@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -165,7 +166,8 @@ func TestLibraryChange_RecordsNotesThatCheckAccepts(t *testing.T) {
 	args := []string{"library", "change", "practices/testing/a", "--bump", "minor", "--summary", "Add a Python example of the retry-limit test."}
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, args...)
 	notes := changeNotes(t, dir)
-	if code != 0 || diagnostic != "" || len(notes) != 1 || !strings.HasSuffix(notes[0], "-a.yaml") {
+	generated := regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}-a-[0-9a-f]{6}\.yaml$`)
+	if code != 0 || diagnostic != "" || len(notes) != 1 || !generated.MatchString(notes[0]) {
 		t.Fatal(code, out, diagnostic, notes)
 	}
 	physical, err := filepath.EvalSymlinks(dir)
@@ -191,8 +193,7 @@ func TestLibraryChange_RecordsNotesThatCheckAccepts(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" || !response.OK {
 		t.Fatal(err, code, out, diagnostic)
 	}
-	second := strings.TrimSuffix(note, ".yaml") + "-2.yaml"
-	if len(response.Value.Files) != 1 || response.Value.Files[0] != second || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "code-rules library check" {
+	if len(response.Value.Files) != 1 || response.Value.Files[0] == note || !generated.MatchString(filepath.Base(response.Value.Files[0])) || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "code-rules library check" {
 		t.Fatalf("%+v", response.Value)
 	}
 }

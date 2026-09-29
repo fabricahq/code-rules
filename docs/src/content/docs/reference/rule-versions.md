@@ -114,7 +114,7 @@ After the first library release, every change to a rule needs a **change note**:
 
 Before the first library release, no rule has a version, so rules need no notes. The first library release gives every rule version `1.0.0`.
 
-Notes live in the library-root `changes/` directory. Each is a YAML file with a unique name, so changes made in parallel never conflict. `code-rules library change` names new notes by date and rule, such as `changes/2026-09-29-verify-retry-limits.yaml`, but any unique name ending in `.yaml` works. Notes are never deleted.
+Notes live in the library-root `changes/` directory. Each is a YAML file with a unique name, so changes made in parallel never conflict. `code-rules library change` names new notes by date, rule, and a random suffix, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, but any unique name ending in `.yaml` works. Notes are never deleted.
 
 ```yaml
 summary: Require a test at the limit for every retry policy.

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -49,33 +50,34 @@ func TestChange_WritesNotesThatLibraryCheckAccepts(t *testing.T) {
 		name    string
 		files   map[string]string
 		request ChangeRequest
-		note    string
-		want    string
-		rows    []string
+		// note is the note's name before its random suffix.
+		note string
+		want string
+		rows []string
 	}{
 		{name: "version change", files: map[string]string{"practices/testing/a.md": ruleText("Changed.")},
 			request: ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: rules.ChangeMinor, Summary: "Add a Python example of the retry-limit test."},
-			note:    "changes/2026-09-29-a.yaml", want: "summary: Add a Python example of the retry-limit test.\nrules:\n  practices/testing/a: minor\n",
+			note:    "changes/2026-09-29-a", want: "summary: Add a Python example of the retry-limit test.\nrules:\n  practices/testing/a: minor\n",
 			rows: []string{"practices/testing/a minor 1.0.0 1.1.0"}},
 		{name: "several rules", files: map[string]string{"practices/testing/a.md": ruleText("Changed."), "practices/testing/b.md": ruleText("Changed too.")},
 			request: ChangeRequest{IDs: []string{"practices/testing/b", "practices/testing/a"}, Bump: rules.ChangeMajor, Summary: "Require a test at every limit."},
-			note:    "changes/2026-09-29-b.yaml", want: "summary: Require a test at every limit.\nrules:\n  practices/testing/a: major\n  practices/testing/b: major\n",
+			note:    "changes/2026-09-29-b", want: "summary: Require a test at every limit.\nrules:\n  practices/testing/a: major\n  practices/testing/b: major\n",
 			rows: []string{"practices/testing/a major 1.0.0 2.0.0", "practices/testing/b major 1.0.0 2.0.0"}},
 		{name: "new rule", files: map[string]string{"practices/testing/verify-backoff.md": ruleText("New.")},
 			request: ChangeRequest{IDs: []string{"practices/testing/verify-backoff"}, Summary: "Add a rule about testing retry backoff."},
-			note:    "changes/2026-09-29-verify-backoff.yaml", want: "summary: Add a rule about testing retry backoff.\nrules:\n  practices/testing/verify-backoff: new\n",
+			note:    "changes/2026-09-29-verify-backoff", want: "summary: Add a rule about testing retry backoff.\nrules:\n  practices/testing/verify-backoff: new\n",
 			rows: []string{"practices/testing/verify-backoff new - 1.0.0"}},
 		{name: "retirement with a replacement", files: map[string]string{"practices/testing/b.md": ""},
 			request: ChangeRequest{IDs: []string{"practices/testing/b"}, Retire: true, ReplacedBy: "practices/testing/a", Summary: "Covered by a."},
-			note:    "changes/2026-09-29-b.yaml", want: "summary: Covered by a.\nrules:\n  practices/testing/b:\n    change: retired\n    replacedBy: practices/testing/a\n",
+			note:    "changes/2026-09-29-b", want: "summary: Covered by a.\nrules:\n  practices/testing/b:\n    change: retired\n    replacedBy: practices/testing/a\n",
 			rows: []string{"practices/testing/b retired 1.0.0 - replacedBy practices/testing/a"}},
 		{name: "retirement without a replacement", files: map[string]string{"practices/testing/a.md": "", "practices/testing/assets/a": ""},
 			request: ChangeRequest{IDs: []string{"practices/testing/a"}, Retire: true, Summary: "Agents shouldn't test retries this way."},
-			note:    "changes/2026-09-29-a.yaml", want: "summary: Agents shouldn't test retries this way.\nrules:\n  practices/testing/a: retired\n",
+			note:    "changes/2026-09-29-a", want: "summary: Agents shouldn't test retries this way.\nrules:\n  practices/testing/a: retired\n",
 			rows: []string{"practices/testing/a retired 1.0.0 -"}},
 		{name: "summary that YAML must quote", files: map[string]string{"practices/testing/a.md": ruleText("Changed.")},
 			request: ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: rules.ChangePatch, Summary: "  Fix: '#' is \"quoted\" - " + strings.Repeat("long ", 40) + " "},
-			note:    "changes/2026-09-29-a.yaml",
+			note:    "changes/2026-09-29-a",
 			rows:    []string{"practices/testing/a patch 1.0.0 1.0.1"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -83,7 +85,7 @@ func TestChange_WritesNotesThatLibraryCheckAccepts(t *testing.T) {
 			_, options := authorClone(t, libraryFiles(), releaseOne)
 			edit(t, options.Directory, test.files)
 			name, content, err := recordChange(t, options, test.request)
-			if err != nil || name != test.note || (test.want != "" && content != test.want) {
+			if err != nil || !regexp.MustCompile("^"+test.note+"-[0-9a-f]{6}\\.yaml$").MatchString(name) || (test.want != "" && content != test.want) {
 				t.Fatalf("wrote %s:\n%s\nerror %v; want %s:\n%s", name, content, err, test.note, test.want)
 			}
 			note, err := rules.ParseChangeNote([]byte(content), name)
@@ -103,7 +105,7 @@ func TestChange_NamesEachNoteUniquely(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
 	published := "summary: Published.\nrules:\n  practices/testing/a: patch\n"
-	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/2026-09-29-a.yaml": []byte(published)}); err != nil {
+	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/2026-09-29-a-aaaaaa.yaml": []byte(published)}); err != nil {
 		t.Fatal(err)
 	}
 	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Published.\n"
@@ -111,17 +113,79 @@ func TestChange_NamesEachNoteUniquely(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The published note is gone from the working tree, but its name stays taken.
-	edit(t, options.Directory, map[string]string{"changes/2026-09-29-a.yaml": "", "changes/2026-09-29-a-2.yaml": "summary: Pending.\nrules:\n  practices/testing/a: patch\n", "practices/testing/a.md": ruleText("Three.")})
+	pending := "summary: Pending.\nrules:\n  practices/testing/a: patch\n"
+	edit(t, options.Directory, map[string]string{"changes/2026-09-29-a-aaaaaa.yaml": "", "changes/2026-09-29-a-bbbbbb.yaml": pending, "practices/testing/a.md": ruleText("Three.")})
+	git, err := openLibraryGit(ctx, options.Directory, options.Git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	released, err := git.history(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := os.OpenRoot(options.Directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	suffixes := []string{"aaaaaa", "bbbbbb", "cccccc"}
+	next := func() (string, error) {
+		suffix := suffixes[0]
+		suffixes = suffixes[1:]
+		return suffix, nil
+	}
+	if name, err := noteName(root, "practices/testing/a", noteDay, released.latest.files, next); err != nil || name != "changes/2026-09-29-a-cccccc.yaml" {
+		t.Fatalf("chose %s: %v", name, err)
+	}
 	request := ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: rules.ChangePatch, Summary: "Another fix."}
-	for _, want := range []string{"changes/2026-09-29-a-3.yaml", "changes/2026-09-29-a-4.yaml"} {
-		name, _, err := recordChange(t, options, request)
-		if err != nil || name != want {
-			t.Fatalf("wrote %s, want %s: %v", name, want, err)
+	first, _, err := recordChange(t, options, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, _, err := recordChange(t, options, request)
+	if err != nil || second == first {
+		t.Fatalf("wrote %s after %s: %v", second, first, err)
+	}
+	if data, err := os.ReadFile(filepath.Join(options.Directory, "changes/2026-09-29-a-bbbbbb.yaml")); err != nil || string(data) != pending {
+		t.Fatalf("changed an existing note: %q %v", data, err)
+	}
+}
+
+// TestChange_NotesFromParallelBranchesMergeWithoutConflict records the same rule on the same day in two clones.
+func TestChange_NotesFromParallelBranchesMergeWithoutConflict(t *testing.T) {
+	ctx := context.Background()
+	fixture, first := authorClone(t, libraryFiles(), releaseOne)
+	secondDirectory, err := fixture.Clone(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := first
+	second.Directory = secondDirectory
+	edit(t, first.Directory, map[string]string{"practices/testing/a.md": ruleText("Test one past the limit.")})
+	edit(t, second.Directory, map[string]string{"practices/testing/assets/a/example.go": "package example // at the limit\n"})
+	for _, clone := range []struct {
+		options Options
+		bump    rules.Change
+	}{{first, rules.ChangeMinor}, {second, rules.ChangePatch}} {
+		if _, _, err := recordChange(t, clone.options, ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: clone.bump, Summary: "Change a as " + string(clone.bump) + "."}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := fixture.Commit(ctx, clone.options.Directory, "Change a", nil); err != nil {
+			t.Fatal(err)
 		}
 	}
-	pending, err := os.ReadFile(filepath.Join(options.Directory, "changes/2026-09-29-a-2.yaml"))
-	if err != nil || string(pending) != "summary: Pending.\nrules:\n  practices/testing/a: patch\n" {
-		t.Fatalf("changed an existing note: %q %v", pending, err)
+	if _, err := fixture.CommandIn(ctx, first.Directory, "push", "--quiet", "origin", "main"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.CommandIn(ctx, second.Directory, "pull", "--quiet", "--no-rebase", "--no-edit", "origin", "main"); err != nil {
+		t.Fatalf("merging the parallel notes failed: %v", err)
+	}
+	result, err := Check(ctx, second)
+	if err != nil || !slices.Equal(previewRows(result.PendingRelease), []string{"practices/testing/a minor 1.0.0 1.1.0"}) {
+		t.Fatal(result, err)
+	}
+	if notes, err := os.ReadDir(filepath.Join(second.Directory, "changes")); err != nil || len(notes) != 2 {
+		t.Fatalf("expected both notes after the merge: %v %v", notes, err)
 	}
 }
 
