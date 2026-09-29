@@ -17,7 +17,7 @@ Use this guide to **manage rules**. Use `.code-rules/generated/RULES.md` to **re
 1. Identify the requested change: add local guidance, adopt a library, change an existing definition, or verify generated output.
 2. Run the corresponding commands below. Run `code-rules project init` **from the Git repository root**. Other project commands can run from any subdirectory and use the root's `.code-rules/config.yaml`. Outside Git, run commands from the project root, the parent of `.code-rules/`.
 3. Supply the project's intended metadata and guidance. The examples below illustrate command syntax; replace their values before using them in a real project.
-4. Build after local edits. Sync after changing a library's repository, ref, or group selection. Inspect the resulting diff and resolve errors before reporting completion.
+4. Build after local edits. Sync after changing a library's repository, selected groups or rules, pins, or ref. Inspect the resulting diff and resolve errors before reporting completion.
 5. Run check. Exit 0 confirms that generated files match their inputs and this guide matches the installed CLI; it does not verify application code against the rules.
 
 Human-readable output is the default. Add `--json` to any command for a structured response. JSON mode never prompts: supply all required flags. Inspect `ok`, `value`, and `error` and the process exit status. Exit 1 means operation failure or stale output; exit 2 means invalid usage. Use `--help` on a command for all options.
@@ -58,7 +58,7 @@ code-rules project check
 
 Confirm that `.code-rules/local/techs/go/return-errors.md` contains the complete rule and that the generated Go group includes it. The body file is an authoring input; future edits belong in the local rule file. If you omit `--body-file`, open the created Markdown file in your editor. Keep its metadata between the `---` lines; below it, write the instructions, rationale, correct and incorrect examples, and validation steps. Replace template placeholders and remove unused sections before building.
 
-Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions or replacements in the configuration when overriding imported rules; adding a local rule does not automatically replace an imported rule.
+Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions in the configuration, optionally naming a local rule as `replacedBy`, when overriding imported rules; adding a local rule does not automatically replace an imported rule.
 
 #### Add a third-party library
 
@@ -75,7 +75,7 @@ code-rules project check
 
 `code-rules project add library` records the declaration without fetching. `code-rules project sync` fetches configured sources, validates them, and installs vendor and generated files together. If any source fails, the previous complete output stays in place. Inspect the selected revision and retained terms in `.code-rules/generated/provenance.json` and `.code-rules/vendor/team/`.
 
-Use `--ref` for an exact tag, such as a library release tag `release/5`, or a full commit SHA. Branch names and abbreviated commits aren't supported. Repeat `--groups` for multiple groups. For a wildcard, quote it: `--groups 'techs/*'` or `--groups '*'`.
+Repeat `--groups` for multiple groups. For a wildcard, quote it: `--groups 'techs/*'` or `--groups '*'`. To import single rules without the rest of their group, repeat `--rules` with library rule IDs such as `techs/go/shared`; supply at least one `--groups` or `--rules`. `--ref` imports the library exactly as it was at one tag, such as a library release tag `release/5`, or a full commit SHA. Branch names and abbreviated commits aren't supported.
 
 #### Maintain and verify the project
 

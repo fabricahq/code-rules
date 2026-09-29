@@ -81,13 +81,14 @@ func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 
 func projectLibraryCommand(options Options, output *commandOutput) *cobra.Command {
 	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project configuration."), options.Directory)
-	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag or full commit SHA"} {
+	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Optional and advanced: import the library as it was at one tag or full commit SHA"} {
 		sf.add(source, name, description)
 	}
 	source.Long = librarySelectionHelp + documentationHelp
-	sf.prompts = map[string]string{"repository": "Git repository URL", "ref": "Ref (tag or full commit SHA)"}
-	var groups []string
+	sf.prompts = map[string]string{"repository": "Git repository URL"}
+	var groups, ruleIDs []string
 	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
+	source.Flags().StringArrayVar(&ruleIDs, "rules", nil, "Library rule `ID` to import without the rest of its group (repeat)")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
 		target, err := sf.options(cmd.Context(), false)
 		if err != nil {
@@ -98,10 +99,10 @@ func projectLibraryCommand(options Options, output *commandOutput) *cobra.Comman
 			return err
 		}
 		sf.introduction = librarySelectionIntroduction(args[0])
-		if err := sf.collectSource(&groups); err != nil {
+		if err := sf.collectSource(&groups, ruleIDs); err != nil {
 			return err
 		}
-		result, err := plan.Commit(cmd.Context(), project.SourceInput{Repository: sf.value("repository"), Ref: sf.value("ref"), Groups: groups})
+		result, err := plan.Commit(cmd.Context(), project.SourceInput{Repository: sf.value("repository"), Ref: sf.value("ref"), Groups: groups, Rules: ruleIDs})
 		if err != nil {
 			return err
 		}

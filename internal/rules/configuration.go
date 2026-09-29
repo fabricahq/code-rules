@@ -151,7 +151,7 @@ func parseSelection(fields map[string]json.RawMessage, where string) (GroupSelec
 	ids := []string{}
 	if raw, ok := fields["rules"]; ok {
 		var err error
-		if ids, err = parseRuleList(raw, where+".rules"); err != nil {
+		if ids, err = ParseRuleList(raw, where+".rules"); err != nil {
 			return GroupSelection{}, nil, err
 		}
 	}
@@ -161,9 +161,9 @@ func parseSelection(fields map[string]json.RawMessage, where string) (GroupSelec
 	return groups, ids, nil
 }
 
-// parseRuleList validates distinct rule IDs, reporting the original index, and returns them sorted.
+// ParseRuleList validates a JSON array of distinct library rule IDs, reporting each original index, and returns them sorted.
 // Element text errors precede duplicates, then ID syntax errors, matching group selection.
-func parseRuleList(input json.RawMessage, location string) ([]string, error) {
+func ParseRuleList(input json.RawMessage, location string) ([]string, error) {
 	var items []json.RawMessage
 	if json.Unmarshal(input, &items) != nil || items == nil {
 		return nil, invalid(location, "expected an array of rule IDs, such as practices/testing/verify-retry-limits")

@@ -66,39 +66,32 @@ func TestInteractiveImpactRetry(t *testing.T) {
 func TestSourceAnswerRetry(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	binary := buildCLI(t)
-	for _, invalid := range []string{"bad ref", ">= 1.2.3"} {
-		t.Run(invalid, func(t *testing.T) {
-			dir := t.TempDir()
-			if _, stderr, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
-				t.Fatal(stderr)
-			}
-			revisionPrompt, valid := "Ref (tag or full commit SHA):", "v1.2.3"
-			groupPrompt := "Groups (comma-separated paths, *, practices/*, or techs/*):"
-			steps := []terminalfixture.Step{
-				{Prompt: "Git repository URL:", Answer: "acme/rules"},
-				{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"},
-				{Prompt: revisionPrompt, Answer: invalid},
-				{Prompt: revisionPrompt, Answer: valid},
-				{Prompt: groupPrompt, Answer: "techs/go, techs/go"},
-				{Prompt: groupPrompt, Answer: "techs/*"},
-			}
-			result, err := terminalfixture.Run(context.Background(), binary, dir, []string{"project", "add", "library", "team"}, steps)
-			if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 3 {
-				t.Fatal(err, result)
-			}
-			data, err := os.ReadFile(filepath.Join(dir, ".code-rules/config.yaml"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			var config struct{ Sources map[string]map[string]any }
-			if err := yaml.Unmarshal(data, &config); err != nil {
-				t.Fatal(err)
-			}
-			source := config.Sources["team"]
-			if source["repository"] != "https://github.com/acme/rules" || source["ref"] != valid || source["groups"] != "techs/*" {
-				t.Fatal(string(data))
-			}
-		})
+	dir := t.TempDir()
+	if _, stderr, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
+		t.Fatal(stderr)
+	}
+	groupPrompt := "Groups (comma-separated paths, *, practices/*, or techs/*):"
+	steps := []terminalfixture.Step{
+		{Prompt: "Git repository URL:", Answer: "acme/rules"},
+		{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"},
+		{Prompt: groupPrompt, Answer: "techs/go, techs/go"},
+		{Prompt: groupPrompt, Answer: "techs/*"},
+	}
+	result, err := terminalfixture.Run(context.Background(), binary, dir, []string{"project", "add", "library", "team"}, steps)
+	if err != nil || result.ExitCode != 0 || strings.Count(result.Transcript, "Error:") != 2 {
+		t.Fatal(err, result)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, ".code-rules/config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config struct{ Sources map[string]map[string]any }
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		t.Fatal(err)
+	}
+	source := config.Sources["team"]
+	if source["repository"] != "https://github.com/acme/rules" || source["ref"] != nil || source["groups"] != "techs/*" {
+		t.Fatal(string(data))
 	}
 }
 
