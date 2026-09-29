@@ -51,14 +51,27 @@ A project keeps the versions it imported until someone runs `code-rules project 
 
 Projects can also choose versions rule by rule: hold one rule at its current version, or accept only compatible updates, while the rest moves forward. Projects import only released versions, unless one deliberately imports an exact commit, so changes waiting to be released don't reach them.
 
+## Library releases
+
+New rule versions don't reach projects one at a time. A **library release** publishes all of a library's pending rule changes together: every rule that changed since the last release gets its new version at the same moment. A release can hold one change or dozens.
+
+Each release has a number, starting at 1. The number only identifies the release. It isn't a version of the library, and it says nothing about compatibility; each rule's own version does that.
+
+A release produces:
+
+- a new version tag for each changed rule, such as `practices/testing/verify-retry-limits@1.3.0`,
+- an update to the library's **release manifest**, `code-rules-release.yaml`, which lists every rule's version as of that release,
+- a release tag, such as `release/3`, and
+- on GitHub.com, a **GitHub Release page** that announces the release and lists its changes. The page is only an announcement; the release itself is the new versions and tags.
+
+Release whenever you want your pending changes to reach projects. There's no schedule, and no need to wait for a major change: smaller releases are easier for projects to review. Projects don't have to take a whole release, either. Each project chooses versions rule by rule, and can import one specific release when it wants a known snapshot of the library.
+
 ## How releases work
 
-You manage rule versions with two Code Rules commands. You never create version tags by hand.
+You manage versions and releases with two Code Rules commands. You never create tags by hand.
 
 - **`code-rules library change`** records a change to one rule. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file beside the rule.
-- **`code-rules library release`** publishes a **release**: every pending change note becomes a new rule version at once. It updates the library's release manifest, `code-rules-release.yaml`, which lists every rule's current version, and removes the notes. Then it tags each new version and the release itself, such as `release/3`, and publishes one **GitHub Release page**, GitHub's announcement for the release, that lists the changes. The GitHub Release page is only an announcement; the release itself is the new versions and tags.
-
-A release can hold one rule change or many. Release as often as you like: smaller releases are easier for projects to review.
+- **`code-rules library release`** publishes a [library release](#library-releases). It turns every pending change note into a new rule version, updates the release manifest, removes the notes, and creates the tags and the GitHub Release page.
 
 A third command, `code-rules library check`, confirms that every changed rule has a change note, and previews the versions the next release will publish.
 
