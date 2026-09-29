@@ -148,7 +148,11 @@ func renderIndexes(resolved resolution, maxLines, inlineMaxBytes int) (map[strin
 		entries := []string{}
 		for _, active := range group.Rules {
 			r := active.Rule
-			entries = append(entries, "### "+escapeText(r.Title)+"\n\nRule ID: `"+r.ID+"`\n\n**When to read:** "+escapeText(r.WhenToRead)+"\n\n**Impact:** "+escapeText(string(r.Impact))+"\n\n**Why it matters:** "+escapeText(r.ImpactDescription)+"\n\n**Read full rule:** ["+escapeText(r.Title)+"]("+relativeURL(file, rulePath(r))+")")
+			version := ""
+			if active.Origin.Version != nil {
+				version = "Version: " + active.Origin.Version.String() + "\n\n"
+			}
+			entries = append(entries, "### "+escapeText(r.Title)+"\n\nRule ID: `"+r.ID+"`\n\n"+version+"**When to read:** "+escapeText(r.WhenToRead)+"\n\n**Impact:** "+escapeText(string(r.Impact))+"\n\n**Why it matters:** "+escapeText(r.ImpactDescription)+"\n\n**Read full rule:** ["+escapeText(r.Title)+"]("+relativeURL(file, rulePath(r))+")")
 		}
 		if len(entries) == 0 {
 			entries = append(entries, "No active rules in this group.")

@@ -80,7 +80,11 @@ func renderRule(active resolvedRule, paths map[string]string, outputPath string)
 		titleHeading = "###"
 	}
 	sectionHeading := titleHeading + "#"
-	lines := []string{titleHeading + " " + escapeText(r.Title), "", "Rule ID: `" + r.ID + "`", "", "**When to read:** " + escapeText(r.WhenToRead), "", "**Impact:** " + escapeText(string(r.Impact)), "", "**Why it matters:** " + escapeText(r.ImpactDescription), "", sectionHeading + " Guidance", "", body, "", sectionHeading + " Source and attribution", "", "**Rule source:** [Original rule](" + source + ")"}
+	lines := []string{titleHeading + " " + escapeText(r.Title), "", "Rule ID: `" + r.ID + "`", ""}
+	if version := active.Origin.Version; version != nil {
+		lines = append(lines, "Version: "+version.String(), "")
+	}
+	lines = append(lines, "**When to read:** "+escapeText(r.WhenToRead), "", "**Impact:** "+escapeText(string(r.Impact)), "", "**Why it matters:** "+escapeText(r.ImpactDescription), "", sectionHeading+" Guidance", "", body, "", sectionHeading+" Source and attribution", "", "**Rule source:** [Original rule]("+source+")")
 	if outputPath != rulePath(r) {
 		lines = append(lines, "", "**Separate rule file:** ["+escapeText(r.Title)+"]("+relativeURL(outputPath, rulePath(r))+")")
 	}

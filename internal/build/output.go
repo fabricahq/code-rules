@@ -6,10 +6,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"path"
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -69,10 +71,22 @@ func prepare(resolved resolution, options Options) (Output, error) {
 	return Output{Files: files}, nil
 }
 
-// libraryReadme exposes source identity and generated terms without interpreting their legal meaning.
+// libraryReadme summarizes the imported library release, each imported rule's version, and generated terms,
+// without interpreting their legal meaning. It says when the source imports unreleased changes.
 func libraryReadme(source resolvedSource) string {
 	file := "libraries/" + source.Name + "/README.md"
-	sections := []string{"# " + escapeText(source.Name), "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.", "**Repository:** " + escapeText(source.Repository), "**Requested revision or version:** " + escapeText(source.Ref), "**Resolved commit:** `" + source.Commit + "`"}
+	sections := []string{"# " + escapeText(source.Name), "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.", "**Repository:** " + escapeText(source.Repository)}
+	if source.Release != 0 {
+		sections = append(sections, fmt.Sprintf("**Library release:** release/%d", source.Release))
+	}
+	if source.Ref != "" {
+		sections = append(sections, "**Requested revision:** "+escapeText(source.Ref))
+	}
+	sections = append(sections, "**Resolved commit:** `"+source.Commit+"`")
+	if source.Ref != "" && source.Release == 0 {
+		sections = append(sections, "**Imported from unreleased changes.** This source's ref isn't a library release, so the source doesn't follow rule versions: rules with unreleased changes have no version to cite.")
+	}
+	sections = append(sections, "## Rule versions", ruleVersionTable(source.Versions), "## License terms")
 	if source.License == nil {
 		sections = append(sections, "No library license declaration was supplied.")
 	}
@@ -88,6 +102,24 @@ func libraryReadme(source resolvedSource) string {
 	return strings.Join(sections, "\n\n") + "\n"
 }
 
+// ruleVersionTable lists each imported rule, including excluded ones, with its version and the library release
+// that published it.
+func ruleVersionTable(versions map[string]library.ImportedRule) string {
+	if len(versions) == 0 {
+		return "This source imports no rules."
+	}
+	rows := []string{"| Rule | Version | Library release |", "| --- | --- | --- |"}
+	for _, id := range slices.Sorted(maps.Keys(versions)) {
+		rule := versions[id]
+		if rule.Version == nil {
+			rows = append(rows, "| `"+id+"` | Unreleased | None |")
+			continue
+		}
+		rows = append(rows, fmt.Sprintf("| `%s` | %s | release/%d |", id, rule.Version, rule.Release))
+	}
+	return strings.Join(rows, "\n")
+}
+
 // provenanceLicense records original and generated term locations without copying their contents.
 type provenanceLicense struct {
 	SPDXExpression            *string  `json:"spdxExpression"`
@@ -97,16 +129,21 @@ type provenanceLicense struct {
 	GeneratedAttributionFiles []string `json:"generatedAttributionFiles"`
 }
 
-// provenanceSource records supplied revision identity and actual group selection.
+// provenanceSource records the requested versions, the library release that supplied group metadata and terms,
+// and the requested and actual selection. Pins, ref, release, and ruleSelection are omitted when empty, as in
+// the source's _source.json.
 type provenanceSource struct {
-	Name         string               `json:"name"`
-	Repository   string               `json:"repository"`
-	Ref          string               `json:"ref,omitempty"`
-	Commit       string               `json:"resolvedCommit"`
-	Groups       []string             `json:"groups"`
-	Selection    rules.GroupSelection `json:"groupSelection"`
-	LicenseFiles []string             `json:"licenseFiles"`
-	License      *provenanceLicense   `json:"license"`
+	Name          string               `json:"name"`
+	Repository    string               `json:"repository"`
+	Pins          map[string]rules.Pin `json:"pins,omitempty"`
+	Ref           string               `json:"ref,omitempty"`
+	Release       int                  `json:"release,omitempty"`
+	Commit        string               `json:"resolvedCommit"`
+	Groups        []string             `json:"groups"`
+	Selection     rules.GroupSelection `json:"groupSelection"`
+	RuleSelection []string             `json:"ruleSelection,omitempty"`
+	LicenseFiles  []string             `json:"licenseFiles"`
+	License       *provenanceLicense   `json:"license"`
 }
 
 // provenanceGroup retains all guidance plus the sources chosen for display.
@@ -155,9 +192,13 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 		Sources         []provenanceSource `json:"sources"`
 		Groups          []provenanceGroup  `json:"groups"`
 		Rules           []provenanceRule   `json:"rules"`
-	}{GeneratedNotice: generatedNotice + " Edit source rules or configuration, then regenerate with code-rules project build or code-rules project sync. Run project commands from the project root.", ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
+	}{GeneratedNotice: generatedNotice + " " + strings.ReplaceAll(regenerationNotice, "`", ""), ToolVersion: version, Sources: []provenanceSource{}, Groups: []provenanceGroup{}, Rules: []provenanceRule{}}
 	for _, source := range resolved.Sources {
-		result.Sources = append(result.Sources, provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, LicenseFiles: rules.LicensePaths(source.License), License: termProvenance(source.Name, "", source.License)})
+		record := provenanceSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Release: source.Release, Commit: source.Commit, Groups: source.Groups, Selection: source.Selection, RuleSelection: source.Rules, LicenseFiles: rules.LicensePaths(source.License), License: termProvenance(source.Name, "", source.License)}
+		if len(source.Pins) > 0 {
+			record.Pins = source.Pins
+		}
+		result.Sources = append(result.Sources, record)
 	}
 	for _, group := range resolved.Groups {
 		effective := []string{}
@@ -198,13 +239,17 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 	return data.Bytes(), nil
 }
 
-// provenanceOrigin preserves explicit nulls for unavailable repository identity fields.
+// provenanceOrigin preserves explicit nulls for unavailable repository identity and version fields. Commit is
+// the commit that supplied the rule's files; Version and Release are null for local rules and for imported
+// files that aren't a published version.
 type provenanceOrigin struct {
-	Source     string  `json:"source"`
-	File       string  `json:"file"`
-	Repository *string `json:"repository"`
-	Ref        *string `json:"ref"`
-	Commit     *string `json:"resolvedCommit"`
+	Source     string             `json:"source"`
+	File       string             `json:"file"`
+	Repository *string            `json:"repository"`
+	Ref        *string            `json:"ref"`
+	Commit     *string            `json:"resolvedCommit"`
+	Version    *rules.RuleVersion `json:"version"`
+	Release    *int               `json:"release"`
 }
 
 // nullableText represents absent optional provenance text as JSON null.
@@ -220,5 +265,10 @@ func originProvenance(origin *ruleOrigin) *provenanceOrigin {
 	if origin == nil {
 		return nil
 	}
-	return &provenanceOrigin{origin.Source, origin.File, nullableText(origin.Repository), nullableText(origin.Ref), nullableText(origin.Commit)}
+	result := &provenanceOrigin{origin.Source, origin.File, nullableText(origin.Repository), nullableText(origin.Ref), nullableText(origin.Commit), origin.Version, nil}
+	if origin.Version != nil {
+		release := origin.Release
+		result.Release = &release
+	}
+	return result
 }
