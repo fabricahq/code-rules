@@ -227,7 +227,7 @@ func TestCancellationDuringGitMetadata(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	input := cancelMetadata{gitFiles: &gitFiles{ctx: ctx}, cancel: cancel}
-	_, err := library.LoadSource(ctx, input, "team", rules.GroupSelection{Groups: []string{}})
+	_, err := library.LoadSource(ctx, input, "team", rules.GroupSelection{Groups: []string{}}, nil)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("lost cancellation identity: %v", err)
 	}

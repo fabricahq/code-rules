@@ -80,7 +80,7 @@ func importLibrary(ctx context.Context, source rules.Source, options Options) (_
 	if err != nil {
 		return Library{}, err
 	}
-	catalog, err := library.LoadSource(ctx, input, source.Name, source.Groups)
+	catalog, err := library.LoadSource(ctx, input, source.Name, source.Groups, nil)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return Library{}, gitexec.ContextFailure(err)

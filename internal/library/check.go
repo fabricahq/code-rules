@@ -76,7 +76,7 @@ func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit) (checkedL
 	if err = validateLibraryInventory(ctx, input.tree.Files, rules.LicensePaths(input.license)); err != nil {
 		return checkedLibrary{}, err
 	}
-	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"})
+	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"}, nil)
 	if err != nil {
 		return checkedLibrary{}, err
 	}

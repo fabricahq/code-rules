@@ -28,7 +28,11 @@ const (
 // original Document; SupportingFiles holds only manifest, group metadata, and terms.
 // SupportingFiles also holds complete owned assets and referenced shared assets.
 type Catalog struct {
-	Selection       rules.GroupSelection      `json:"groupSelection"`
+	// Selection names the groups imported in full; Groups also holds the groups individually selected rules reach.
+	Selection rules.GroupSelection `json:"groupSelection"`
+	// Rules lists the individually selected rule IDs, sorted; it is empty, never nil, when there are none.
+	// A group that Selection doesn't include holds only the rules this list names.
+	Rules           []string                  `json:"ruleSelection"`
 	Groups          []Group                   `json:"groups"`
 	License         *rules.LicenseDeclaration `json:"license"`
 	SupportingFiles map[string][]byte         `json:"supportingFiles"`
@@ -62,12 +66,14 @@ func Load(ctx context.Context, root *os.Root, source string, selection rules.Gro
 	if root == nil {
 		return Catalog{}, bad("library", "expected an open filesystem root")
 	}
-	return LoadSource(ctx, rootFiles{ctx: ctx, root: root}, source, selection)
+	return LoadSource(ctx, rootFiles{ctx: ctx, root: root}, source, selection, nil)
 }
 
 // LoadSource applies the same catalog rules to bounded local or immutable Git bytes.
 // The caller owns the source and must keep its identity stable for this operation.
-func LoadSource(ctx context.Context, input FileSource, source string, selection rules.GroupSelection) (Catalog, error) {
+// ruleIDs names individually selected rules, which must exist: each brings its group's metadata, and a group
+// the selection doesn't include holds only the named rules, whose other rules and assets are neither read nor validated.
+func LoadSource(ctx context.Context, input FileSource, source string, selection rules.GroupSelection, ruleIDs []string) (Catalog, error) {
 	if err := ctx.Err(); err != nil {
 		return Catalog{}, fmt.Errorf("load library: %w", err)
 	}
@@ -100,18 +106,46 @@ func LoadSource(ctx context.Context, input FileSource, source string, selection 
 		return Catalog{}, err
 	}
 	terms := rules.LicensePaths(license)
-	ids, err := r.groups(selection, terms)
+	full, err := r.groups(selection, terms)
 	if err != nil {
 		return Catalog{}, err
 	}
-	catalog := Catalog{Selection: selection, Groups: make([]Group, 0, len(ids)), License: license}
+	individual, err := individualRules(ruleIDs)
+	if err != nil {
+		return Catalog{}, err
+	}
+	ids := slices.Clone(full)
+	for group := range individual {
+		if !slices.Contains(full, group) {
+			ids = append(ids, group)
+		}
+	}
+	slices.Sort(ids)
+	catalog := Catalog{Selection: selection, Rules: []string{}, Groups: make([]Group, 0, len(ids)), License: license}
+	loaded := map[string]bool{}
 	for _, id := range ids {
-		group, err := r.group(id, source, terms)
+		var only map[string]bool
+		if !slices.Contains(full, id) {
+			only = individual[id]
+		}
+		group, err := r.group(id, source, terms, only)
 		if err != nil {
 			return Catalog{}, err
 		}
+		for _, rule := range group.Rules {
+			loaded[strings.TrimSuffix(rule.Path, ".md")] = true
+		}
 		catalog.Groups = append(catalog.Groups, group)
 	}
+	for _, group := range slices.Sorted(maps.Keys(individual)) {
+		for _, id := range slices.Sorted(maps.Keys(individual[group])) {
+			if !loaded[id] {
+				return Catalog{}, bad(id+".md", "missing individually selected rule; the library has no rule "+id)
+			}
+			catalog.Rules = append(catalog.Rules, id)
+		}
+	}
+	slices.Sort(catalog.Rules)
 	if err := r.supportingLinks(terms); err != nil {
 		return Catalog{}, err
 	}
@@ -279,8 +313,25 @@ func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]strin
 	return ids, nil
 }
 
+// individualRules validates individually selected rule IDs and indexes them by group.
+func individualRules(ids []string) (map[string]map[string]bool, error) {
+	result := map[string]map[string]bool{}
+	for _, id := range ids {
+		group, err := rules.GroupFromPath(id+".md", "rules")
+		if err != nil {
+			return nil, err
+		}
+		if result[group] == nil {
+			result[group] = map[string]bool{}
+		}
+		result[group][id] = true
+	}
+	return result, nil
+}
+
 // group validates metadata and every rule under one selected group, retaining original bytes.
-func (r *reader) group(id, source string, terms []string) (Group, error) {
+// A non-nil only limits the group to those rule IDs, skipping other rules and their assets.
+func (r *reader) group(id, source string, terms []string, only map[string]bool) (Group, error) {
 	metadataPath := id + "/_group.yaml"
 	data, err := r.read(metadataPath)
 	if err != nil {
@@ -291,7 +342,7 @@ func (r *reader) group(id, source string, terms []string) (Group, error) {
 		return Group{}, err
 	}
 	paths := []string{}
-	if err := r.rulePaths(id, metadataPath, terms, &paths); err != nil {
+	if err := r.rulePaths(id, metadataPath, terms, only, &paths); err != nil {
 		return Group{}, err
 	}
 	slices.Sort(paths)
@@ -317,7 +368,8 @@ func (r *reader) group(id, source string, terms []string) (Group, error) {
 }
 
 // rulePaths discovers selected rules and their complete owned assets; unsafe entries fail closed.
-func (r *reader) rulePaths(directory, metadata string, terms []string, paths *[]string) error {
+// A non-nil only skips files other than those rules' Markdown files, and other rules' assets.
+func (r *reader) rulePaths(directory, metadata string, terms []string, only map[string]bool, paths *[]string) error {
 	entries, err := r.entries(directory, false)
 	if err != nil {
 		return err
@@ -332,14 +384,17 @@ func (r *reader) rulePaths(directory, metadata string, terms []string, paths *[]
 		}
 		if entry.IsDir() {
 			if entry.Name() == "assets" {
-				if err := r.ownedAssets(path, terms); err != nil {
+				if err := r.ownedAssets(path, terms, only); err != nil {
 					return err
 				}
 				continue
 			}
-			if err := r.rulePaths(path, metadata, terms, paths); err != nil {
+			if err := r.rulePaths(path, metadata, terms, only, paths); err != nil {
 				return err
 			}
+			continue
+		}
+		if only != nil && !only[strings.TrimSuffix(path, ".md")] {
 			continue
 		}
 		if !entry.Type().IsRegular() {

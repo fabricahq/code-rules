@@ -240,7 +240,7 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(options.Directory, "techs/go/_group.yaml"), []byte(`{"name":"Go","description":"Go guidance","whenToRead":"When editing Go"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	catalog, err := LoadSource(ctx, capturedLibrary{snapshot.tree}, "library", rules.GroupSelection{Pattern: "*"})
+	catalog, err := LoadSource(ctx, capturedLibrary{snapshot.tree}, "library", rules.GroupSelection{Pattern: "*"}, nil)
 	if err != nil || len(catalog.Groups) != 0 {
 		t.Fatal(catalog, err)
 	}
@@ -254,7 +254,7 @@ func TestCapturedLibraryIgnoresLaterEdits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := LoadSource(ctx, capturedLibrary{empty.tree}, "library", rules.GroupSelection{Pattern: "*"}); err == nil {
+	if _, err := LoadSource(ctx, capturedLibrary{empty.tree}, "library", rules.GroupSelection{Pattern: "*"}, nil); err == nil {
 		t.Fatal("empty group without metadata accepted")
 	}
 }

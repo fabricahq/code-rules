@@ -38,7 +38,8 @@ func (r *reader) registerPath(file string) error {
 }
 
 // ownedAssets retains complete rule-owned directories while exempting declared terms and term-only directories.
-func (r *reader) ownedAssets(directory string, terms []string) error {
+// A non-nil only skips the directories of other rules.
+func (r *reader) ownedAssets(directory string, terms []string, only map[string]bool) error {
 	entries, err := r.entries(directory, false)
 	if err != nil {
 		return err
@@ -49,6 +50,9 @@ func (r *reader) ownedAssets(directory string, terms []string) error {
 			continue
 		}
 		owner := path.Dir(directory) + "/" + entry.Name() + ".md"
+		if only != nil && !only[strings.TrimSuffix(owner, ".md")] {
+			continue
+		}
 		if !entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
 			return bad(assetPath, "expected an owned assets directory")
 		}

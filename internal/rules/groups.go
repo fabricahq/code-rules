@@ -115,6 +115,31 @@ func quote(value string) string {
 	return b.String()
 }
 
+// VersionedRule returns the ID of the rule whose versions cover file: the rule's own Markdown file, or a file in
+// its asset directory, assets/<rule-name>/ beside it. It reports false for library-wide files, such as group
+// metadata, group READMEs, and the library-root assets/ directory, and for paths that can't be rule content.
+func VersionedRule(file string) (string, bool) {
+	parts := strings.Split(file, "/")
+	if len(parts) < 3 || (parts[0] != "techs" && parts[0] != "practices") {
+		return "", false
+	}
+	for i := 2; i < len(parts); i++ {
+		if parts[i] == "assets" {
+			if i+2 >= len(parts) {
+				return "", false
+			}
+			return strings.Join(parts[:i], "/") + "/" + parts[i+1], true
+		}
+	}
+	if IsGroupReadme(file) {
+		return "", false
+	}
+	if _, err := GroupFromPath(file, file); err != nil {
+		return "", false
+	}
+	return strings.TrimSuffix(file, ".md"), true
+}
+
 // IsGroupReadme recognizes only the orientation file directly inside a valid group, outside rule and asset paths.
 func IsGroupReadme(file string) bool {
 	group, found := strings.CutSuffix(file, "/README.md")
