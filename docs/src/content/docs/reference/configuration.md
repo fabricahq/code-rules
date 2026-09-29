@@ -96,7 +96,6 @@ A pattern snapshot must record the exact selector in `groupSelection` and contai
 For example, `"practices/*"` requires all practice groups, while `"*"` requires both kinds.
 The builder compares discovered groups with the recorded expansion and validates every group and rule within the selected scope.
 An old partial snapshot is insufficient even if its recorded groups look complete; changing selection intent requires sync.
-Legacy snapshots without `groupSelection` represent their explicit `groups` list and remain valid for list-based configuration.
 This completeness declaration comes from the snapshot supplier; offline checks do not independently authenticate it against the remote repository.
 
 ## Repository addresses

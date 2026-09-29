@@ -128,7 +128,7 @@ A **checksum** detects whether a file's contents differ from the recorded copy. 
 
 A rule's `version` and `release` are `null` when the imported file isn't a published version, which can happen only when your `ref` names a revision other than a library release. Generated guidance shows no version for it.
 
-For a wildcard selection, the snapshot must contain every group in the selected scope and record the exact selector. Older records without `groupSelection` imply the explicit `groups` list; they cannot satisfy a wildcard selection.
+For a wildcard selection, the snapshot must contain every group in the selected scope and record the exact selector.
 
 ### What offline checks can verify
 
