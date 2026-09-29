@@ -112,7 +112,7 @@ func parseChangeNotes(files map[string][]byte) (map[string]rules.ChangeNote, err
 }
 
 // compare finds the notes added since the latest library release and the rules whose versioned content
-// differs from it, with a warning for each published note that was edited. A nil receiver has no history.
+// differs from it, with a warning for each published note that was edited or deleted. A nil receiver has no history.
 func (g *libraryGit) compare(ctx context.Context, files map[string][]byte, current []string, notes map[string]rules.ChangeNote) (libraryChanges, []string, error) {
 	history, err := g.history(ctx)
 	if err != nil {
@@ -151,6 +151,11 @@ func (g *libraryGit) compare(ctx context.Context, files map[string][]byte, curre
 			changes.pending = append(changes.pending, pendingNote{path: name, note: notes[name]})
 		case hashes[name] != published:
 			warnings = append(warnings, name+" changed after a library release published it. Editing a published note has no effect.")
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(latest.files)) {
+		if _, kept := notes[name]; strings.HasPrefix(name, changesDirectory+"/") && !kept {
+			warnings = append(warnings, name+" was deleted after a library release published it. Notes are never deleted; restore it.")
 		}
 	}
 	return changes, warnings, nil

@@ -265,6 +265,24 @@ func TestCheck_UsesTheLatestReachableLibraryRelease(t *testing.T) {
 	}
 }
 
+// TestCheck_WarnsAboutADeletedPublishedNote because notes are never deleted.
+func TestCheck_WarnsAboutADeletedPublishedNote(t *testing.T) {
+	ctx := context.Background()
+	fixture, options := authorClone(t, libraryFiles(), releaseOne)
+	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/one.yaml": []byte("summary: Fix a.\nrules:\n  practices/testing/a: patch\n")}); err != nil {
+		t.Fatal(err)
+	}
+	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Fix a.\n"
+	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
+		t.Fatal(err)
+	}
+	edit(t, options.Directory, map[string]string{"changes/one.yaml": ""})
+	result, err := Check(ctx, options)
+	if err != nil || !slices.Contains(result.Warnings, "changes/one.yaml was deleted after a library release published it. Notes are never deleted; restore it.") || len(result.PendingRelease.Rules) != 0 {
+		t.Fatal(result, err)
+	}
+}
+
 // TestCheck_IgnoresLineEndingConversion compares content as Git stores it, so a checkout's converted line endings aren't a change.
 func TestCheck_IgnoresLineEndingConversion(t *testing.T) {
 	ctx := context.Background()

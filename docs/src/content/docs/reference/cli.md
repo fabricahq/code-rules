@@ -303,7 +303,7 @@ After the first library release, check compares each rule's [versioned content](
 - A pending note names a rule that doesn't exist and isn't being retired.
 - A note is invalid, such as an unknown change or a blank summary.
 
-Check warns when a note that a library release already published was edited, because the edit has no effect.
+Check warns when a note that a library release already published was edited, because the edit has no effect. It also warns when such a note was deleted, because notes are never deleted; restore it.
 
 This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone; in CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
