@@ -60,6 +60,13 @@ func TestParseTagAdvertisementLimits(t *testing.T) {
 	if _, err := rules.ParseTagAdvertisement(text.String()); !errors.As(err, &refused) || refused.Kind != rules.TagLimitExceeded {
 		t.Fatalf("over record limit: %v", err)
 	}
+	repeated := strings.Repeat(strings.Repeat("a", 40)+"\trefs/tags/v1\n", 20_000)
+	if got, err := rules.ParseTagAdvertisement(repeated); err != nil || len(got) != 1 {
+		t.Fatalf("exact record limit with one repeated tag: %d, %v", len(got), err)
+	}
+	if _, err := rules.ParseTagAdvertisement(repeated + strings.Repeat("a", 40) + "\trefs/tags/v1^{}\n"); !errors.As(err, &refused) || refused.Kind != rules.TagLimitExceeded {
+		t.Fatalf("over record limit with repeated and peeled records: %v", err)
+	}
 	if _, err := rules.ParseTagAdvertisement(strings.Repeat("\n", 8*1024*1024)); err != nil {
 		t.Fatalf("exact byte limit: %v", err)
 	}

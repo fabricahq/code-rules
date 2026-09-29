@@ -29,13 +29,15 @@ const (
 
 // ParseTagAdvertisement reads `git ls-remote --tags` output into a map from tag name, without
 // refs/tags/, to its lowercase object ID. Annotated tags keep both the tag object under their
-// name and the peeled commit under name^{}. Records count toward the limit, peeled ones included.
+// name and the peeled commit under name^{}. Every nonempty line counts toward the record limit,
+// including peeled and repeated ones; a repeated tag keeps its last object.
 // Any malformed line or exceeded limit returns a nil map and a *TagAdvertisementError.
 func ParseTagAdvertisement(text string) (map[string]string, error) {
 	if len(text) > maxTagAdvertisementBytes {
 		return nil, &TagAdvertisementError{Kind: TagLimitExceeded, Problem: "Git tag advertisement exceeds 8 MiB."}
 	}
 	records := make(map[string]string)
+	count := 0
 	for line := range strings.SplitSeq(text, "\n") {
 		if line == "" {
 			continue
@@ -46,7 +48,8 @@ func ParseTagAdvertisement(text string) (map[string]string, error) {
 			return nil, &TagAdvertisementError{Kind: InvalidTagAdvertisement, Problem: "Git returned an unsupported tag advertisement."}
 		}
 		records[tag] = object
-		if len(records) > maxAdvertisedTags {
+		count++
+		if count > maxAdvertisedTags {
 			return nil, &TagAdvertisementError{Kind: TagLimitExceeded, Problem: "The repository exceeds the version-discovery tag limit."}
 		}
 	}
