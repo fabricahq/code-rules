@@ -30,7 +30,8 @@ In `.code-rules/config.yaml`, each library you import gets a named entry under `
 
 - **Where to get it:** `repository` is the library's Git URL.
 - **Which versions to use:** omit `versions` to follow each rule's newest version, or choose versions rule by rule. See [Choose versions](/reference/configuration/#choose-versions).
-- **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`.
+- **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`. A selected group includes rules the library adds to it later.
+- **Which individual rules to import:** optionally, `rules` lists single rules to import without the rest of their group, such as `techs/go/wrap-errors-with-operation`. Rules added to that group later don't join. See [Select individual rules](/reference/configuration/#select-individual-rules).
 
 You can also use `exclude` to leave out individual rules or `replace` to substitute your own. We'll cover both below.
 
@@ -39,7 +40,7 @@ See the [complete configuration example](/reference/configuration/#complete-exam
 To adopt an entire library, set `groups` to `"*"` instead of an array.
 Use `"practices/*"` for all practice groups, or `"techs/*"` for all technology groups.
 All groups within that scope in the imported library are included, and exclusions and replacements still apply.
-When a library adds groups within your selector, `code-rules project update` adds them, unless the source's `versions.default` is `hold`, which lists them instead. Review them as part of that update.
+When a library adds groups within your selector, `code-rules project update` adds them. Review them as part of that update.
 See [Import every group](/reference/configuration/#import-every-group) for an example and snapshot requirements.
 
 If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual resolved rules.

@@ -69,6 +69,7 @@ If a relevant group is missing, report the missing coverage.
 If resolved rules conflict, identify both IDs and ask the project owner to resolve the intended policy.
 Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
 Keep the recorded ruleset during ordinary work. Adopting upstream changes is a separate step, `code-rules project update`, and major changes need the project owner's consent; don't run it as part of another task.
+When asked to keep an imported rule at its current version, read the rule's version from `.code-rules/vendor/<source-name>/_source.json`, add it as an exact version under that source's `versions.rules`, such as `practices/testing/verify-retry-limits: "1.3.0"`, and run `code-rules project sync`.
 
 ## Write or review rules themselves
 

@@ -36,12 +36,13 @@ Record a library in project configuration without fetching it. `ALIAS` is the so
 | Option | Meaning |
 | --- | --- |
 | `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
-| `--groups GROUP` | Required. Repeat for multiple group IDs, or supply one selector: `*`, `practices/*`, or `techs/*`. Quote wildcard values so your shell does not expand them. |
+| `--groups GROUP` | Groups to import in full. Repeat for multiple group IDs, or supply one selector: `*`, `practices/*`, or `techs/*`. Quote wildcard values so your shell does not expand them. |
+| `--rules RULE` | Individual rules to import without the rest of their group, such as `practices/testing/verify-retry-limits`. Repeat for multiple rules. |
 | `--release NUMBER` | Optional. Import exactly what one library release published, such as `5`. Recorded as `versions.release`. |
 | `--commit SHA` | Optional and advanced. Import one exact commit, such as an unreleased change. Recorded as `versions.commit`. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Without `--release` or `--commit`, the source follows each rule's newest version. `--release` and `--commit` can't be combined. To hold or constrain individual rules, edit the source's `versions` in configuration; see [Choose versions](/reference/configuration/#choose-versions).
+Supply at least one `--groups` or `--rules`. Without `--release` or `--commit`, the source follows each rule's newest version. `--release` and `--commit` can't be combined. To pin or constrain individual rules, edit the source's `versions` in configuration; see [Choose versions](/reference/configuration/#choose-versions).
 
 Library addition preserves existing source exceptions and local files. Pass each group ID as a separate option, rather than a comma-separated flag value:
 
@@ -134,7 +135,7 @@ A rule's version is then chosen from its current choice:
 | Choice | Version chosen |
 | --- | --- |
 | `latest` | The newest version. |
-| `hold` | The recorded version, or the newest if none is recorded. |
+| `default: hold` | The recorded version, or the newest if none is recorded. |
 | A constraint or exact version | The recorded version if it satisfies the constraint; otherwise the highest version that does. |
 | `release` | The version that library release published. |
 | `commit` | The rule as it was at that commit. |
@@ -161,17 +162,17 @@ How far each rule moves depends on its [version setting](/reference/configuratio
 | --- | --- |
 | `latest`, the default | Its newest version. |
 | A constraint, such as `"~> 1.3"` | Its highest version that satisfies the constraint. |
-| `hold` or an exact version | Nowhere. Update reports any newer version. |
+| `default: hold`, or an exact version | Nowhere. Update reports any newer version. |
 
 Sources that use `versions.release` or `versions.commit` don't move; change that setting and run `code-rules project sync` instead.
 
 Update reports each rule that changed: its change (`new`, `major`, `minor`, `patch`, or `retired`), its old and new versions, and each version's summary. A retired rule shows its reason, `superseded` or `withdrawn`, and any replacement. Rules that stayed put because of their setting are listed with their newest available version.
 
-New rules in the selected groups join when the source's `versions.default` is `latest`. With `default: hold`, update lists them without adding them.
+Rules that the library adds to a selected group join at the newest version their choice allows, whatever `versions.default` is, and update reports them as new. Individually selected rules never bring in other rules.
 
-`code-rules project update` writes nothing, and exits with status `1`, while any rule the project uses would take a major change or retirement that you haven't accepted, even when the rule's constraint allows it. It lists each such rule with the option that accepts it. Review the reported changes, then rerun with `--accept-major` to accept them all, or with `--accept-major=RULE` for each rule you accept. To keep a rule where it is instead, set it to `hold` in `versions` or exclude it, and the update applies without it. Excluded and replaced rules don't need consent; the command lists their changes so you can review your exceptions.
+`code-rules project update` writes nothing, and exits with status `1`, while any rule the project uses would take a major change or retirement that you haven't accepted, even when the rule's constraint allows it. It lists each such rule with the option that accepts it, and with the `versions.rules` entry that pins it to its current version, ready to paste into configuration. Review the reported changes, then rerun with `--accept-major` to accept them all, or with `--accept-major=RULE` for each rule you accept. To keep a rule where it is instead, add its pinning entry or exclude it, and the update applies without it. Excluded and replaced rules don't need consent; the command lists their changes so you can review your exceptions.
 
-A rule held by `hold` or an exact version stays at that version after it's retired upstream; update reports the retirement. When a rule the configuration excludes or replaces is retired and would no longer be imported, the exclusion or replacement points at nothing. Update reports that stale entry, names it for you to delete, and writes nothing. This isn't a consent check.
+A rule pinned to an exact version, or held by `default: hold`, stays at that version after it's retired upstream; update reports the retirement. When a rule that configuration excludes, replaces, or selects individually is retired and would no longer be imported, that entry points at nothing. Update reports that stale entry, names it for you to delete, and writes nothing. This isn't a consent check.
 
 Group metadata and the library's license files come from the newest library release among the rule versions the project imports.
 

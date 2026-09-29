@@ -50,7 +50,8 @@ Replace them with libraries and rules your project can access.
 | `schemaVersion` | Configuration format version; the builder accepts `1`. |
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
-| `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
+| `sources.<name>.groups` | Groups to import in full: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. Required unless `rules` selects individual rules. |
+| `sources.<name>.rules` | Optional individual rules to import without the rest of their group: an array of library rule IDs. See [Select individual rules](#select-individual-rules). |
 | `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
 | `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
 | `sources.<name>.versions` | Optional version choices. Omit it to follow each rule's newest version. See [Choose versions](#choose-versions). |
@@ -90,10 +91,10 @@ Choose one of three supported selectors:
 
 Each selector includes all groups in its scope in the imported library, including empty groups with valid metadata.
 Rule exclusions and replacements still apply. Agents still select relevant rules for each task.
-When a newer library release adds groups within the selector's scope, `code-rules project update` adds them and their rules under `default: latest`, and lists them without adding them under `default: hold`. Review those additions in the changed source records and generated provenance.
+When a newer library release adds groups within the selector's scope, `code-rules project update` adds them and their rules. Review those additions in the changed source records and generated provenance.
 Offline builds do not discover changes on the remote repository.
 
-Keep `groups` required. Use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
+Select at least one group or individual rule. For `groups`, use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
 Local metadata can describe a group that is also selected from a library, including through a wildcard.
 
 Snapshots record both the original `groupSelection` and the concrete `groups` list.
@@ -194,21 +195,21 @@ versions:
 
 Read this as: keep every rule at its current version, let `verify-retry-limits` follow its newest version, and let `verify-backoff` take compatible updates from `1.3` onward.
 
-`default` sets the choice for every selected rule, and `rules` overrides it for individual rules by library-relative rule ID:
+`default` sets the choice for every imported rule, and `rules` overrides it for individual rules by library-relative rule ID:
 
 | Choice | Allowed in | Meaning |
 | --- | --- | --- |
 | `latest` | `default`, `rules` | Follow the newest version. This is the default when `versions` or `default` is omitted. |
-| `hold` | `default`, `rules` | Keep the version recorded in `_source.json`, or import the newest version if none is recorded yet. Update reports newer versions without applying them. |
-| A constraint, such as `"1.3.0"` or `"~> 1.3"` | `rules` | Allow only versions that satisfy the constraint. |
+| `hold` | `default` | Keep each rule at the version recorded in `_source.json`, or import the newest version if none is recorded yet. Update reports newer versions without applying them. |
+| A constraint, such as `"1.3.0"` or `"~> 1.3"` | `rules` | Allow only versions that satisfy the constraint. An exact version pins the rule. |
 
-`default` accepts only `latest` or `hold`. Each rule has its own version numbers, so a constraint such as `"~> 1.3"` can't apply across rules.
+`default` accepts only `latest` or `hold`. Each rule has its own version numbers, so a constraint such as `"~> 1.3"` can't apply across rules. To keep one rule where it is, pin it to its current version, such as `"1.3.0"`; you'll find the version in `_source.json`, in the rule's generated file, and in `code-rules project update` output. Pinning to an exact version, rather than holding, keeps the decision visible in configuration.
 
 `code-rules project update` moves each rule to the newest version its choice allows. Major changes and retirements of rules the project uses still need `--accept-major`, even when a constraint allows them. A constraint limits which versions update can choose; consent confirms a major change.
 
-With `default: hold`, update doesn't add rules that newer library releases put in the selected groups; it lists them so you can decide. With `latest`, they join and are reported as new.
+`versions` never changes which rules are imported. Rules that newer library releases add to a selected group join, at the version their choice allows, and update reports them as new. To import only specific rules, [select them individually](#select-individual-rules).
 
-A `rules` entry must name a rule in the source's selected groups, or a retired rule the project still imports at a held version; other IDs are errors. Remove an entry to return the rule to `default`; the next sync or update reports any resulting change. A held rule that its library retires stays at its version, and update reports the retirement. Nothing moves an entry to a replacement rule automatically; add the replacement yourself.
+A `versions.rules` entry must name a rule the source imports, including a retired rule the project still imports at a pinned version; other IDs are errors. Remove an entry to return the rule to `default`; the next sync or update reports any resulting change. A pinned rule that its library retires stays at its version, and update reports the retirement. Nothing moves an entry to a replacement rule automatically; add the replacement yourself.
 
 ### Constraints
 
@@ -261,6 +262,7 @@ Generated files and review findings retain source-qualified IDs because they app
 
 Select complete groups separately for each source, then exclude individual rules when necessary.
 Each selected group must exist in the imported library.
+A selected group includes rules the library adds to it later.
 Selecting `practices/testing` from two sources combines both sets of rules into one effective testing group, with a group page and individual resolved rule files.
 Source order never establishes precedence.
 
@@ -278,6 +280,33 @@ The root `local/README.md` and each group-root `README.md` are authoring documen
 The generated index shows group names, applicability guidance, and explicit **Open group** links. Without local metadata, guidance from multiple libraries remains labeled by source.
 Local metadata supplies the complete project description when present.
 The importer does not silently choose one library's description over another's.
+
+## Select individual rules
+
+To import some rules without the rest of their group, list them under the source's `rules`:
+
+```yaml
+sources:
+  team:
+    repository: https://github.com/acme/.code-rules.git
+    groups:
+      - techs/react
+    rules:
+      - practices/testing/verify-retry-limits
+      - techs/go/wrap-errors-with-operation
+    exclude: {}
+    replace: {}
+```
+
+This imports every rule in `techs/react`, including rules added to it later, plus exactly two other rules. Rules the library later adds to `practices/testing` or `techs/go` don't join, because those groups aren't selected.
+
+- Each entry is a library-relative rule ID that must exist in the library.
+- An individually selected rule brings its group's metadata, so its group appears in the generated index with only the selected rules.
+- Listing a rule whose group is already selected is an error; the group already includes it.
+- To stop using an individually selected rule, remove it from `rules`. Exclusions apply only to rules imported through groups.
+- When the library retires an individually selected rule, `code-rules project update` reports the retirement and writes nothing. Remove the entry to stop using the rule, or pin the rule to its last version in `versions.rules` to keep it.
+
+Individually selected rules follow `versions` like any other imported rule.
 
 ## Conflicting rules
 

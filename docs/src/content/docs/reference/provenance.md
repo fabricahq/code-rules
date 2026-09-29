@@ -84,7 +84,7 @@ The same `generated/provenance.json` file contains three other top-level fields:
 | `sources` | Each named library, its repository, requested `versions`, the library release that supplied its group metadata and terms, selected groups, and declared terms. |
 | `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
 
-For each source, `groupSelection` records what you asked for, while `groups` lists the groups imported. For example, `"practices/*"` asks for all practice groups; the list records which ones existed in the imported library.
+For each source, `groupSelection` and `ruleSelection` record what you asked for, while `groups` lists the groups imported. For example, `"practices/*"` asks for all practice groups; the list records which ones existed in the imported library.
 
 Within each group record, `guidance` keeps the metadata labeled by source. `effectiveGuidanceSources` identifies which sources supply the guidance agents see. Local group metadata takes precedence when present; otherwise the guidance from all contributing libraries remains effective.
 
@@ -100,6 +100,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
   "release": 3,
   "resolvedCommit": "9e07b3d6f0c1a4b85e2d7c3f9a61b04e8d52c7aa",
   "groupSelection": ["practices/testing"],
+  "ruleSelection": ["techs/go/wrap-errors-with-operation"],
   "groups": ["practices/testing"],
   "rules": {
     "practices/testing/verify-backoff": { "version": "1.3.0", "release": 2, "commit": "4f1c2a95…" },
@@ -118,6 +119,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the commit you chose. |
 | `rules` | Each imported rule's ID, its `version`, the `release` that published it, and that library release's full `commit`. |
 | `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
+| `ruleSelection` | Your configured list of individually selected rules. Omitted when you select none. |
 | `groups` | The groups included in the snapshot. |
 | `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Files of rules from a different library release than `release` are stored under `_releases/<number>/`. |
 

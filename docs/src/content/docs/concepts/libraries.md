@@ -32,7 +32,7 @@ Each [project](/concepts/project/) chooses which libraries and groups to import 
 
 Running `code-rules project sync` downloads the selected rules and generates the guidance agents read. Groups with the same ID combine, and the project's exclusions and replacements determine which rules appear.
 
-A project records the version of every rule it imports. Running `code-rules project update` moves rules to newer versions and reports every rule that changed, so each project adopts updates on its own schedule. A project can also hold a rule at its current version, or accept only compatible updates to it. See [Import rules](/guides/select-rules/) and [Update rules](/guides/update/) for the steps.
+A project records the version of every rule it imports. Running `code-rules project update` moves rules to newer versions and reports every rule that changed, so each project adopts updates on its own schedule. A project can also pin a rule to a version, accept only compatible updates to it, or import only specific rules instead of whole groups. See [Import rules](/guides/select-rules/) and [Update rules](/guides/update/) for the steps.
 
 ## How a library releases rules
 

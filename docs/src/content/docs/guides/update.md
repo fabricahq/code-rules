@@ -5,7 +5,7 @@ description: "Review each rule change, accept major changes deliberately, and pr
 
 Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, or make rules stricter. Your project adopts those changes only when you run `code-rules project update`.
 
-In this guide, you'll update your libraries, review each rule change, accept major changes or hold a rule at its current version, and commit the result. You'll also learn how to choose versions rule by rule, import one library release, change your selection of groups, and recover from a failed update.
+In this guide, you'll update your libraries, review each rule change, accept major changes or pin a rule to its current version, and commit the result. You'll also learn how to choose versions rule by rule, import one library release, change your selection of groups, and recover from a failed update.
 
 Start with a project that already [imports rules](/guides/select-rules/). For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
@@ -45,11 +45,15 @@ fabrica
            Newest version: 2.0.0.
 
 Nothing was updated: 1 major change and 1 retirement affect
-rules this project uses. Review them, then run:
+rules this project uses. Review them, then accept them all:
   code-rules project update --accept-major
+Or keep a rule at its current version by adding its entry
+under sources.fabrica.versions.rules:
+  practices/testing/verify-retry-limits: "1.3.0"
+  practices/testing/check-retry-backoff: "1.2.0"
 ```
 
-Each line shows the change, the rule, and its old and new versions, followed by the summaries of every version in between. A retired rule shows its last version, the reason it was retired, and any replacement. A held rule shows its newest version without moving to it.
+Each line shows the change, the rule, and its old and new versions, followed by the summaries of every version in between. A retired rule shows its last version, the reason it was retired, and any replacement. A held rule shows its newest version without moving to it, because its version choice keeps it where it is.
 
 | Change | What it means for your project |
 | --- | --- |
@@ -67,7 +71,7 @@ When no rule your project uses has a major change or retirement, `code-rules pro
 For each major change and retirement, read the new rule, or the reason for the retirement, and decide what your project should do. Compare the old and new text in `.code-rules/vendor/<source-name>/` after updating, or in the library's GitHub Release pages. Then choose one of these for each rule:
 
 - **Adopt it.** Plan any work your code needs to follow the new obligation. For a superseded rule, read its replacement, and check that you import the replacement's group.
-- **Keep the current version.** [Hold the rule](#choose-versions-rule-by-rule) at the version you have. This also keeps a retired rule you still want to follow.
+- **Keep the current version.** [Pin the rule](#choose-versions-rule-by-rule) to the version you have, by pasting the entry the command printed into configuration. This also keeps a retired rule you still want to follow.
 - **Stop using it.** Add an [exclusion](/guides/select-rules/#exclude-a-rule) with your reason.
 
 When you've decided to adopt every major change and retirement, accept them all:
@@ -84,13 +88,13 @@ code-rules project update \
   --accept-major=fabrica:practices/code-design/comment-intent
 ```
 
-The update applies only when every major change and retirement of a rule you use is accepted. Hold or exclude the rest first, then run the command again.
+The update applies only when every major change and retirement of a rule you use is accepted. Pin or exclude the rest first, then run the command again.
 
 Major changes to rules you exclude or replace don't need consent, because your agents don't read them. `code-rules project update` still lists them so you can check that your exception still makes sense. If a rule you exclude or replace is retired, your exception no longer points at anything. The command stops and tells you which entry to delete.
 
 ## Choose versions rule by rule
 
-By default, every rule follows its newest version. To treat some rules differently, add `versions` to the source in `.code-rules/config.yaml`. For example, to keep `verify-backoff` at its current version while the rest of the library moves forward:
+By default, every rule follows its newest version. To treat some rules differently, add `versions` to the source in `.code-rules/config.yaml`. For example, to keep `verify-backoff` at version 1.3.0 while the rest of the library moves forward:
 
 ```yaml
 sources:
@@ -100,7 +104,7 @@ sources:
       - practices/testing
     versions:
       rules:
-        practices/testing/verify-backoff: hold
+        practices/testing/verify-backoff: "1.3.0"
     exclude: {}
     replace: {}
 ```
@@ -110,11 +114,12 @@ Each rule can be set to:
 | Setting | Effect |
 | --- | --- |
 | `latest` | Follow the newest version. This is the default. |
-| `hold` | Stay at the version you have. Update still reports newer versions. |
-| An exact version, such as `"1.3.0"` | Use exactly that version. |
+| An exact version, such as `"1.3.0"` | Pin the rule to exactly that version. Update still reports newer versions. |
 | A constraint, such as `"~> 1.3"` | Take any version from 1.3 up to, but not including, 2.0: fixes and additions, never a major change. |
 
-To reverse the default, holding everything and letting only chosen rules move, set `default: hold`:
+To keep a rule at the version you have, pin it to that version. The rule's current version is in `.code-rules/vendor/<source-name>/_source.json` and in its generated rule file, and `code-rules project update` prints the pinning entry when it stops for a major change. An agent can look the version up and add the entry for you.
+
+To reverse the default, keeping every rule where it is and letting only chosen rules move, set `default: hold`:
 
 ```yaml
 versions:
@@ -123,9 +128,9 @@ versions:
     practices/testing/verify-retry-limits: latest
 ```
 
-After editing `versions`, run `code-rules project sync`. For each rule whose choice you changed, sync applies the new choice; for example, setting a rule to `"1.3.0"` moves it to 1.3.0, and changing `hold` to `latest` moves it to its newest version. Editing `versions` is itself your consent, so sync doesn't ask for `--accept-major`. See [Choose versions](/reference/configuration/#choose-versions) for every option.
+After editing `versions`, run `code-rules project sync`. For each rule whose choice you changed, sync applies the new choice; for example, setting a rule to `"1.3.0"` moves it to 1.3.0, and changing it to `latest` moves it to its newest version. Editing `versions` is itself your consent, so sync doesn't ask for `--accept-major`. See [Choose versions](/reference/configuration/#choose-versions) for every option.
 
-A held rule keeps its identity: it still appears as the library's rule, with its version, in your generated guidance and provenance. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules.
+A pinned rule keeps its identity: it still appears as the library's rule, with its version, in your generated guidance and provenance. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules.
 
 ## Import one library release
 
@@ -148,10 +153,10 @@ versions:
 
 Commit the configuration, vendor snapshots, and generated files together.
 
-## Change selected groups
+## Change selected groups or rules
 
-Edit the relevant `sources.<name>.groups` and run `code-rules project sync`.
-`code-rules project sync` imports the new groups' rules at the newest versions their version choices allow, and leaves the rest of your rules unchanged.
+Edit the relevant `sources.<name>.groups` or `sources.<name>.rules` and run `code-rules project sync`.
+`code-rules project sync` imports newly selected rules at the newest versions their version choices allow, and leaves the rest of your rules unchanged.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
 Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.yaml` exists.

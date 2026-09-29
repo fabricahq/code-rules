@@ -49,7 +49,7 @@ Projects import rules from your library. Each imported rule's version appears in
 
 A project keeps the versions it imported until someone runs `code-rules project update`, which lists each rule that changed, with its old and new versions and your summaries. It applies patch and minor changes directly. It stops for major changes and retirements until someone on the project accepts them, because those can change what the project's code must do. See [Update rules](/guides/update/).
 
-Projects can also choose versions rule by rule: hold one rule at its current version, or accept only compatible updates, while the rest moves forward. Projects import only released versions, unless one deliberately imports an exact commit, so changes waiting to be released don't reach them.
+Projects can also choose versions rule by rule: pin one rule to a version, or accept only compatible updates, while the rest moves forward. Projects import only released versions, unless one deliberately imports an exact commit, so changes waiting to be released don't reach them.
 
 ## Library releases
 
