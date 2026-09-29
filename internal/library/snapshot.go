@@ -10,11 +10,7 @@ import "github.com/fabricahq/code-rules/internal/rules"
 type Snapshot struct {
 	Repository string `json:"repository"`
 	Ref        string `json:"ref,omitempty"`
-	Version    string `json:"version,omitempty"`
-	// Tag and ResolvedVersion are present only for a version constraint, not an exact ref.
-	Tag             string `json:"resolvedTag,omitempty"`
-	ResolvedVersion string `json:"resolvedVersion,omitempty"`
-	Commit          string `json:"resolvedCommit"`
+	Commit     string `json:"resolvedCommit"`
 	// Groups lists the resolved IDs; Selection retains the requested IDs or wildcard.
 	Groups    []string             `json:"groups"`
 	Selection rules.GroupSelection `json:"groupSelection"`
