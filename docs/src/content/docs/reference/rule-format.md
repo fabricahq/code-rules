@@ -89,7 +89,7 @@ Link from the rule with ordinary Markdown, such as `[Explanation](assets/verify-
 Use `../../assets/retry-lifecycle.svg` from this rule to reference a shared image.
 
 Code Rules preserves each selected rule's complete asset directory, including files that are not individually linked.
-From the library-root `assets/` directory, Code Rules imports only the files a selected rule or its Markdown assets link to, including files those shared files link to in turn. They're part of the rule's [version](/reference/rule-versions/#what-a-version-covers), so each rule gets them as they were in its version.
+From the library-root `assets/` directory, Code Rules imports only the files a selected rule or its Markdown assets link to, including files those shared files link to in turn. Shared files aren't part of a rule's [version](/reference/rule-versions/#what-a-version-covers): a project gets them from the newest library release among its imported rule versions. Keep a rule's obligations in the rule itself, and use shared files to explain and illustrate.
 Other shared assets are omitted. Nested folders and binary files are allowed within these directories, subject to the import size and file-type limits.
 No asset is executed. Markdown assets must be UTF-8 so their standard Markdown references can be checked.
 

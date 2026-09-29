@@ -112,7 +112,7 @@ Metadata options and `--body-file` don't apply to a fork. The command:
 3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL.
 4. When the project imports the rule from `LIBRARY`, adds a `replace` entry for it with your reason, so agents read only the fork.
 
-The fork fails if the rule links to the library's shared `assets/` directory, because local rules can't depend on library files. Existing local rules are never overwritten. A forked rule has no version; it changes only when you edit it. Run `code-rules project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
+If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. Existing local rules are never overwritten. A forked rule has no version; it changes only when you edit it. Run `code-rules project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
 
 ### project sync
 
@@ -291,10 +291,9 @@ Validate `rule-library.yaml`, the release manifest, all groups and rules, suppor
 
 Reports group and rule counts and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations and missing declared files fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
 
-After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file, its asset directory, and the shared files it links to, with the latest library release: the most recent commit in the current branch's history that changed the release manifest. A changed rule passes when it has a valid note. Check fails when:
+After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file and its asset directory, with the latest library release: the most recent commit in the current branch's history that changed the release manifest. A changed rule passes when it has a valid note. Check fails when:
 
 - A rule changed and has no note. The error names the rule and its latest version, and gives the `code-rules library change` command to run.
-- A shared file changed, and a rule that links to it has no note.
 - A new rule has no note.
 - A published rule was deleted without a `retired` note.
 - A retired rule's `replacedBy` isn't a rule in the library.
@@ -316,7 +315,7 @@ When checks pass, the result previews the pending library release: each rule, it
 code-rules library release [options]
 ```
 
-Publish the pending change notes as a [library release](/reference/rule-versions/#library-releases). Requires a Git remote. See [Version your rules](/guides/version-rules/) for the workflow.
+Publish the pending change notes, and any changes to library-wide files, as a [library release](/reference/rule-versions/#library-releases). Requires a Git remote. See [Version your rules](/guides/version-rules/) for the workflow.
 
 | Option | Meaning |
 | --- | --- |
@@ -345,9 +344,9 @@ The three ways to run it differ in who creates the release commit.
 
 It then creates the release commit, pushes it together with the release tag in one atomic push, and creates the GitHub Release page. `--dry-run` shows the repository, branch, commit, release number, and each rule's change and versions.
 
-If a run stops partway, run it again. It finds the unpublished release commit at the tip of the branch and finishes publishing it, rather than reporting that there's nothing to publish. The result reports separately whether the versions were published and whether the GitHub Release page was created. With no pending notes and nothing unpublished, the command reports that there is nothing to publish.
+If a run stops partway, run it again. It finds the unpublished release commit at the tip of the branch and finishes publishing it, rather than reporting that there's nothing to publish. The result reports separately whether the versions were published and whether the GitHub Release page was created. With no pending notes, no library-wide changes, and nothing unpublished, the command reports that there is nothing to publish.
 
-**`--pr`** keeps one release pull request up to date. It creates the release commit on the branch `code-rules/release-pr`, on top of the default branch's current commit, and opens or updates the pull request "Library release". The description lists each rule, its change, its current and next version, its summary, and the pull requests that added its note when GitHub can find them. Before the first library release, the pull request creates the manifest. After the first library release, when nothing is pending, it closes an open release pull request and exits successfully. It updates the branch only if nobody else has changed it since it was read, and exits without changes if the default branch has moved past the commit that started the run; the newer run takes over. `--pr` never publishes; merging its pull request does, through `--publish`.
+**`--pr`** keeps one release pull request up to date. It creates the release commit on the branch `code-rules/release-pr`, on top of the default branch's current commit, and opens or updates the pull request "Library release". The description lists each rule, its change, its current and next version, its summary, and the pull requests that added its note when GitHub can find them. Before the first library release, the pull request creates the manifest. It also opens for library-wide changes alone, such as an edited group description or shared diagram. After the first library release, when nothing is pending, it closes an open release pull request and exits successfully. It updates the branch only if nobody else has changed it since it was read, and exits without changes if the default branch has moved past the commit that started the run; the newer run takes over. `--pr` never publishes; merging its pull request does, through `--publish`.
 
 **`--publish`** runs on the default branch's newest commit and publishes any library release that commit contains but isn't tagged yet, whether the release pull request was merged with a merge commit, a squash, or a rebase. It finds the library release from the manifest, not from how the commit was made, and tags the first commit on the default branch that contains that manifest. It refuses when a change note remains or the manifest doesn't match the notes the library release deleted. Rerunning it is safe: a release tag that already points to the release commit is kept, anything missing, such as the GitHub Release page, is created, and a release tag that points elsewhere stops the command.
 

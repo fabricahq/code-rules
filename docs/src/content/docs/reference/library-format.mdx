@@ -57,6 +57,8 @@ The builder does not inspect the contents of unselected groups.
 
 Files that several rules use, such as a shared diagram, live in the library-root `assets/` directory. A rule's own supporting files live beside it instead. [Supporting assets](/reference/rule-format/#supporting-assets) covers both locations and the rules for linking to them.
 
+Shared files are library-wide files: they aren't part of any rule version, need no change note when they change, and reach projects with the next library release. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
+
 ## License metadata
 
 The optional `license` object declares the library-wide terms. Authors should use root-level `LICENSE.md` and optional `NOTICE.md`; the manifest can identify other source locations:

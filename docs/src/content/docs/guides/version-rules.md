@@ -13,7 +13,7 @@ A **rule version** identifies one state of a rule, such as `1.3.0`. When a rule 
 
 Each rule has its own version, even though one library repository holds many rules. The library's **release manifest**, `code-rules-release.yaml`, records every rule's versions: each version a rule has had, the library release that published it, and a summary of the change. The rule file itself contains no version.
 
-A version covers everything an agent needs to read the rule: its Markdown file, its own supporting files, and any shared files in the library that it links to. Changing a shared diagram therefore changes every rule that uses it.
+A version covers the rule's Markdown file and its own supporting files. Library-wide files, such as group descriptions and shared diagrams, aren't part of any rule version.
 
 ## Semantic versions
 
@@ -53,7 +53,7 @@ A project can also pin a rule to a version, with a reason, while the rest moves 
 
 ## Library releases
 
-New rule versions reach projects through library releases. A **library release** publishes all of a library's pending rule changes together: every rule that changed since the last library release gets its new version at the same moment.
+New rule versions reach projects through library releases. A **library release** publishes all of a library's pending changes together: every rule that changed since the last library release gets its new version at the same moment, and changes to library-wide files, such as group descriptions and shared diagrams, go out with it.
 
 A library release can be as small as a single rule change, published as soon as it's ready. It can also be a larger, meaningful collection of rule updates that you announce together and point users to as a snapshot of the library.
 
@@ -166,9 +166,11 @@ The library release records the retirement in the release manifest. A rule that 
 
 A rename changes the rule's ID. Move the file, add a new-rule note for the new ID, and retire the old ID with the new ID as its replacement. Projects see the old rule retired, with the new rule as its replacement.
 
-### Change a shared file
+### Change a shared file or group description
 
-A file in the library's shared `assets/` directory, such as a diagram, is part of every rule that links to it. After editing one, run `code-rules library check`: it names each rule that uses the file and still needs a note. Record a change for each, choosing the change level by its effect on that rule. A clarified diagram is usually a patch.
+Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. The next library release publishes them, and the release pull request opens for them even when no rule changed.
+
+Keep everything that defines a rule's obligation in the rule itself. A project that pins a rule to an older version still gets the newest shared files, so shared files should only explain and illustrate.
 
 ### Check your changes
 
@@ -194,7 +196,7 @@ Commit each rule and its note together.
 - **On pull requests,** runs `code-rules library check` with the repository's full history.
 - **On pushes to `main`,** runs `code-rules library release --publish`, then `code-rules library release --pr`, then starts the check on the release pull request.
 
-Each release command does nothing when it has nothing to do. `code-rules library release --publish` acts only when `main` contains a library release that isn't tagged yet, however the release pull request was merged. `code-rules library release --pr` opens or updates the release pull request while notes are pending, and closes it when none are. The workflow runs one release job at a time, and a job started by an older commit of `main` steps aside for the newer one.
+Each release command does nothing when it has nothing to do. `code-rules library release --publish` acts only when `main` contains a library release that isn't tagged yet, however the release pull request was merged. `code-rules library release --pr` opens or updates the release pull request while changes are pending, and closes it when none are. The workflow runs one release job at a time, and a job started by an older commit of `main` steps aside for the newer one.
 
 The workflow uses the built-in `GITHUB_TOKEN`; you don't need to create a token. GitHub doesn't start workflows for a pull request that this token opens or updates, so the release job starts the check itself, with a manual run (`workflow_dispatch`) on the release pull request's branch. That run reports its result on the pull request like any other check. The job sets Git's identity variables so library releases are committed and tagged as Code Rules Bot; change them to use another name. The release job looks like this, with the install step shortened:
 

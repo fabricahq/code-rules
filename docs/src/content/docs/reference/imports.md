@@ -89,7 +89,7 @@ With the same configuration and recorded versions, an import produces the same p
 
 The newest library release is the one with the highest `release/<number>` tag. Each [release](/reference/rule-versions/#library-releases) commit holds the release manifest, which lists every rule's versions and the library release that published each one.
 
-To choose a rule's version, Code Rules reads the rule's history in the release manifest at the newest `release/<number>` tag, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [versioned content](/reference/rule-versions/#what-a-version-covers), its Markdown file, its asset directory, and the shared files it links to, from that version's release commit. Rules at different versions keep the shared files they were written with; Code Rules stores each version's copy separately and points each rule's links at its own copy.
+To choose a rule's version, Code Rules reads the rule's history in the release manifest at the newest `release/<number>` tag, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from that version's release commit. Library-wide files, including the shared files rules link to, come from the newest library release among the imported rule versions.
 
 A rule absent from a library release was retired, and the manifest's `retired` entry records why. A rule the project pinned before its retirement keeps importing its pinned version.
 
@@ -135,7 +135,7 @@ Code Rules reads original Git file contents without checking out the library. It
 Code Rules copies supporting material from [two asset locations](/reference/rule-format/#supporting-assets):
 
 - **A rule's own assets:** the adjacent `assets/<rule-name>/` directory. Code Rules copies this directory in full when it imports the rule.
-- **Shared assets:** files in the library-root `assets/` directory. Code Rules copies the files a selected rule or its Markdown assets link to, including files they link to in turn, as they were in that rule's version.
+- **Shared assets:** files in the library-root `assets/` directory. Code Rules copies the files a selected rule or its Markdown assets link to, including files they link to in turn, from the newest library release among the imported rule versions.
 
 Markdown links, images, and reference links must point to files within the allowed locations. Missing files and links into another rule's private assets cause an error. Code Rules preserves external URLs as links without downloading their contents.
 

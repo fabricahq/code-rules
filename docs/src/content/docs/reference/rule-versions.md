@@ -9,19 +9,18 @@ This page is the exact specification. [Version your rules](/guides/version-rules
 
 ## What a version covers
 
-A rule version covers everything an agent needs to read the rule as its author intended:
+A rule version covers the rule itself:
 
 - The rule's Markdown file.
 - The rule's own asset directory, `assets/<rule-name>/`.
-- Every file in the library's shared `assets/` directory that the rule or its assets link to, including files those shared files link to in turn.
 
-A project that imports a rule version gets exactly these files as they were in that version. A change to a shared file is a change to every rule that links to it, so each of those rules needs a [change note](#change-notes).
+A project that imports a rule version gets exactly these files as they were in that version.
 
-Group metadata, the library's license declaration, and its license and notice files aren't part of any rule version. Projects receive them from the newest library release they import, or from the revision their `ref` names.
+Everything else is a **library-wide file**: group metadata, shared files in the library-root `assets/` directory, the license declaration, and license and notice files. Library-wide files aren't part of any rule version, and changing them needs no change note. Projects receive them from the newest library release among the rule versions they import, or from the revision their `ref` names. A rule pinned to an older version can therefore link to a newer copy of a shared file, so keep everything that defines a rule's obligation in the rule itself, and use shared files only to explain and illustrate.
 
 ## Library releases
 
-A **library release** publishes every pending change note as new rule versions. It creates one **release commit**, the first commit on the default branch that contains the library release's manifest. If the release pull request is merged with a merge commit, that's the merge commit; with a squash or rebase, it's the commit the pull request became. The release commit:
+A **library release** publishes every pending change note as new rule versions, together with any changes to library-wide files since the previous library release. A library release can contain only library-wide changes. It creates one **release commit**, the first commit on the default branch that contains the library release's manifest. If the release pull request is merged with a merge commit, that's the merge commit; with a squash or rebase, it's the commit the pull request became. The release commit:
 
 - deletes the library release's change notes, so it never contains changes waiting for a library release, and
 - updates the release manifest with the new versions.
@@ -30,7 +29,7 @@ Every rule in a release commit is exactly one of its published versions.
 
 ### Release tags
 
-Each library release creates one annotated tag, `release/<number>`, such as `release/3`, on its release commit. The tag's message lists the library release's changes. The release commands create these tags; don't create, move, or delete them by hand. Code Rules ignores other tags.
+Each library release creates one annotated tag, `release/<number>`, such as `release/3`, on its release commit. The tag's message lists the library release's changes, including the library-wide files it changed. The release commands create these tags; don't create, move, or delete them by hand. Code Rules ignores other tags.
 
 Rule versions don't get tags of their own. The release manifest records them.
 
@@ -83,7 +82,7 @@ Code Rules and Rulemart read the manifest as of a `release/<number>` tag, never 
 
 ### GitHub Release pages
 
-For a repository on GitHub.com, each library release also creates one **GitHub Release page** on its `release/<number>` tag: the page GitHub uses to announce a library release, which people can browse and get notified about. It's an announcement only; Code Rules never reads it. In these docs, a *library release* is a publication of a library's rule versions, as described on this page, and a *GitHub Release page* is only its announcement on GitHub. The page lists the library release's changes, grouped as major, minor, patch, new, and retired, with each rule's old and new version and its summary.
+For a repository on GitHub.com, each library release also creates one **GitHub Release page** on its `release/<number>` tag: the page GitHub uses to announce a library release, which people can browse and get notified about. It's an announcement only; Code Rules never reads it. In these docs, a *library release* is a publication of a library's rule versions, as described on this page, and a *GitHub Release page* is only its announcement on GitHub. The page lists the library release's changes, grouped as major, minor, patch, new, and retired, with each rule's old and new version and its summary, followed by the library-wide files it changed.
 
 The newest library release is the one with the highest release number. A project normally follows each rule's newest version, but it can also import exactly what one library release published, by naming its release tag; see [Import one revision](/reference/configuration/#import-one-revision).
 
@@ -109,8 +108,6 @@ These edits show how the definitions apply:
 | Reword a sentence, fix a typo, or correct an example that contradicted the rule's own text. | `patch` |
 
 Widening where a rule applies can be major, even though it only adds text: code in the newly covered situation may not comply. Adding a new case is minor only when all work that complied with the previous version still complies. When unsure, choose the larger change.
-
-A change to a shared file follows the same test for each rule that links to it. A clarified diagram is usually a patch; a shared example that now shows a stricter practice may be major for the rules that rely on it.
 
 ### Write the summary
 
@@ -168,7 +165,7 @@ summary: |
   Add a Python example.
 ```
 
-`code-rules library check` requires a valid note for each changed rule, including rules that link to a changed shared file, and rejects notes that no longer match a change. See [library check](/reference/cli/#library-check) for the complete list. The [Version your rules](/guides/version-rules/) guide shows the workflow.
+`code-rules library check` requires a valid note for each changed rule, and rejects notes that no longer match a change. See [library check](/reference/cli/#library-check) for the complete list. The [Version your rules](/guides/version-rules/) guide shows the workflow.
 
 ## Retired rules
 
