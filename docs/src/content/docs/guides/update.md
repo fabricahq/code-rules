@@ -5,7 +5,7 @@ description: "Review each rule change, accept major changes deliberately, and pr
 
 Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, or make rules stricter. Your project adopts those changes only when you run `code-rules project update`.
 
-Reviewing an update lets you check that the changed guidance still fits your project, including any rules you've excluded or replaced. In this guide, you'll update your libraries, review each rule change, accept major changes or keep an older version of a rule, and commit the result. You'll also learn how to change your selection of groups and recover from a failed update.
+In this guide, you'll update your libraries, review each rule change, accept major changes or keep an older version of a rule, and commit the result. You'll also learn how to change your selection of groups and recover from a failed update.
 
 Start with a project that already [imports rules](/guides/select-rules/). For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
