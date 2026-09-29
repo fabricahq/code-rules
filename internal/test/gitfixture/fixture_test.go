@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // TestClone_PushesCommitsAndTagsToTheFixture lets library release tests publish through the fixture's transport.
@@ -61,5 +63,29 @@ func TestNew_ServesPartialCloneFilters(t *testing.T) {
 	missing, err := f.CommandIn(ctx, filepath.Join(parent, "filtered"), "rev-list", "--objects", "--missing=print", "--all")
 	if err != nil || !strings.Contains(missing, "\n?") {
 		t.Fatalf("blobs were not filtered: %q, %v", missing, err)
+	}
+	// Reading an omitted blob fetches it by ID, which the served protocol must allow.
+	if got, err := f.CommandIn(ctx, filepath.Join(parent, "filtered"), "cat-file", "-p", "HEAD:README.md"); err != nil || got != "fixture" {
+		t.Fatalf("omitted blob was not fetched on demand: %q, %v", got, err)
+	}
+}
+
+// TestRelease_TagsARecordThatParses publishes a library release whose tag message Code Rules can read.
+func TestRelease_TagsARecordThatParses(t *testing.T) {
+	ctx := context.Background()
+	f, err := New(ctx, map[string][]byte{"rule-library.yaml": []byte("formatVersion: 1\n")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	if err := f.Release(ctx, 1, "release: 1\nrules: {}\n"); err != nil {
+		t.Fatal(err)
+	}
+	object, err := f.Command(ctx, "cat-file", "tag", "release/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, record, err := rules.ParseReleaseTagObject("release/1", []byte(object)); err != nil || record.Release != 1 {
+		t.Fatalf("got %+v, %v", record, err)
 	}
 }
