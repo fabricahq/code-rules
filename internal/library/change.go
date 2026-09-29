@@ -166,7 +166,54 @@ func checkChange(ctx context.Context, root *os.Root, options Options, request Ch
 	case request.Bump != "" && len(unversioned) > 0:
 		return false, nil, failure("invalid-change", "--bump isn't accepted for new rules, which start at version 1.0.0: "+strings.Join(unversioned, ", ")+".", nil)
 	}
+	if err := requireChanged(ctx, root, git, history.latest, versioned); err != nil {
+		return false, nil, err
+	}
 	return len(versioned) > 0, history.latest.files, nil
+}
+
+// requireChanged refuses a note for a published rule whose versioned content is unchanged since the latest library
+// release, which library check would reject as stale. It compares the same files, the same way, as check does.
+func requireChanged(ctx context.Context, root *os.Root, git *libraryGit, latest *publishedRelease, ids []string) error {
+	working := map[string][]string{}
+	for _, id := range ids {
+		files, err := ruleWorkingFiles(root, id)
+		if err != nil {
+			return err
+		}
+		working[id] = files
+	}
+	changed, err := git.changedRules(ctx, latest, working)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		if !changed[id] {
+			return failure("unchanged-rule", id+" hasn't changed since "+latest.tagName()+". Edit the rule first, then record the change.", nil)
+		}
+	}
+	return nil
+}
+
+// ruleWorkingFiles returns the sorted working-tree paths of a rule's versioned files: its Markdown file and the
+// files in its asset directory, which may be absent.
+func ruleWorkingFiles(root *os.Root, id string) ([]string, error) {
+	files := []string{id + ".md"}
+	assets := strings.TrimSuffix(rules.RuleAssetDirectory(id+".md"), "/")
+	if _, err := root.Lstat(assets); errors.Is(err, fs.ErrNotExist) {
+		return files, nil
+	}
+	err := fs.WalkDir(root.FS(), assets, func(name string, entry fs.DirEntry, err error) error {
+		if err == nil && !entry.IsDir() {
+			files = append(files, name)
+		}
+		return err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list the files of %s: %w", id, err)
+	}
+	slices.Sort(files)
+	return files, nil
 }
 
 // validateRequest checks the request's own consistency, independently of the library.

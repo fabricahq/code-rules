@@ -226,10 +226,35 @@ func TestChange_RejectsNotesThatDontMatchTheLibrary(t *testing.T) {
 	}
 }
 
+// TestChange_RefusesAnUnchangedPublishedRule, which library check would reject as stale, before writing anything.
+func TestChange_RefusesAnUnchangedPublishedRule(t *testing.T) {
+	ctx := context.Background()
+	files := libraryFiles()
+	// A checkout's converted line endings aren't a change, as in library check.
+	files[".gitattributes"] = []byte("*.md text eol=crlf\n")
+	_, options := authorClone(t, files, releaseOne)
+	request := ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: rules.ChangePatch, Summary: "Fix a."}
+	if _, err := PlanChange(ctx, request, options); errorCode(err) != "unchanged-rule" || !strings.Contains(err.Error(), "practices/testing/a hasn't changed since release/1. Edit the rule first, then record the change.") {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(options.Directory, "changes")); !os.IsNotExist(err) {
+		t.Fatal("wrote changes/", err)
+	}
+	// Any versioned file counts: here, a new file in the rule's asset directory.
+	edit(t, options.Directory, map[string]string{"practices/testing/assets/a/more.go": "package more\n"})
+	if _, _, err := recordChange(t, options, request); err != nil {
+		t.Fatal(err)
+	}
+	if result, err := Check(ctx, options); err != nil || !slices.Equal(previewRows(result.PendingRelease), []string{"practices/testing/a patch 1.0.0 1.0.1"}) {
+		t.Fatal(result, err)
+	}
+}
+
 // TestChange_RequiresABumpAndSummaryToCommit lets prompts supply them, then requires them when writing.
 func TestChange_RequiresABumpAndSummaryToCommit(t *testing.T) {
 	ctx := context.Background()
 	_, options := authorClone(t, libraryFiles(), releaseOne)
+	edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed.")})
 	plan, err := PlanChange(ctx, ChangeRequest{IDs: []string{"practices/testing/a"}}, options)
 	if err != nil || !plan.Versioned {
 		t.Fatal(plan, err)

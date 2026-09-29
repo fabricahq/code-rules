@@ -273,7 +273,7 @@ Write a new [change note](/reference/rule-versions/#change-notes) for one or mor
 | `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces the retired one. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-The command writes a new file in `changes/` with a unique name, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. A rule without any version is recorded as `new`. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. A rule that was never published can't be retired: delete its Markdown file, and remove it from any pending note.
+The command writes a new file in `changes/` with a unique name, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. A rule without any version is recorded as `new`. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release: edit the rule first, then record the change. A rule that was never published can't be retired: delete its Markdown file, and remove it from any pending note.
 
 See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL`.
 
