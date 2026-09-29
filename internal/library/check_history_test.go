@@ -273,6 +273,29 @@ func TestCheck_UsesTheLatestReachableLibraryRelease(t *testing.T) {
 	}
 }
 
+// TestCheck_OnlyWarnsAboutAnInvalidEditToAPublishedNote, which has no effect, while an invalid pending note fails.
+func TestCheck_OnlyWarnsAboutAnInvalidEditToAPublishedNote(t *testing.T) {
+	ctx := context.Background()
+	fixture, options := authorClone(t, libraryFiles(), releaseOne)
+	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/one.yaml": []byte("summary: Fix a.\nrules:\n  practices/testing/a: patch\n")}); err != nil {
+		t.Fatal(err)
+	}
+	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Fix a.\n"
+	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
+		t.Fatal(err)
+	}
+	edit(t, options.Directory, map[string]string{"changes/one.yaml": "summary: [unclosed\n"})
+	result, err := Check(ctx, options)
+	if err != nil || !slices.Contains(result.Warnings, "changes/one.yaml changed after a library release published it. Editing a published note has no effect.") {
+		t.Fatal(result, err)
+	}
+	edit(t, options.Directory, map[string]string{"changes/two.yaml": "summary: [unclosed\n"})
+	var validation *rules.ValidationError
+	if _, err := Check(ctx, options); !errors.As(err, &validation) || validation.Location != "changes/two.yaml" {
+		t.Fatalf("accepted an invalid pending note: %v", err)
+	}
+}
+
 // TestCheck_WarnsAboutADeletedPublishedNote because notes are never deleted.
 func TestCheck_WarnsAboutADeletedPublishedNote(t *testing.T) {
 	ctx := context.Background()

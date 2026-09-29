@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -267,6 +268,26 @@ func (g *libraryGit) releaseFiles(ctx context.Context, tag string) (map[string]s
 		}
 	}
 	return files, nil
+}
+
+// changedRules reports, for each rule in working, whether its versioned files differ from the ones the latest
+// library release published, comparing content as Git would store it. working maps a rule ID to the sorted
+// working-tree paths of its Markdown file and asset directory's files.
+func (g *libraryGit) changedRules(ctx context.Context, latest *publishedRelease, working map[string][]string) (map[string]bool, error) {
+	paths := []string{}
+	for _, names := range working {
+		paths = append(paths, names...)
+	}
+	hashes, err := g.hashFiles(ctx, paths)
+	if err != nil {
+		return nil, err
+	}
+	changed := map[string]bool{}
+	for id, names := range working {
+		released := ruleFiles(id, maps.Keys(latest.files))
+		changed[id] = !slices.Equal(names, released) || slices.ContainsFunc(names, func(name string) bool { return hashes[name] != latest.files[name] })
+	}
+	return changed, nil
 }
 
 // hashFiles returns the blob ID Git would store for each working-tree file, applying the repository's

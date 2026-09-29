@@ -57,10 +57,6 @@ func checkLibrary(ctx context.Context, options Options) (CheckResult, releasePla
 	if err != nil {
 		return CheckResult{}, releasePlan{}, err
 	}
-	notes, err := parseChangeNotes(input.notes)
-	if err != nil {
-		return CheckResult{}, releasePlan{}, err
-	}
 	result := CheckResult{Groups: len(catalog.Groups), Warnings: []string{}}
 	current := []string{}
 	for _, group := range catalog.Groups {
@@ -74,7 +70,7 @@ func checkLibrary(ctx context.Context, options Options) (CheckResult, releasePla
 	if err != nil {
 		return CheckResult{}, releasePlan{}, err
 	}
-	changes, warnings, err := git.compare(ctx, input.tree.Files, current, notes)
+	changes, warnings, err := git.compare(ctx, input.tree.Files, current, input.notes)
 	if err != nil {
 		return CheckResult{}, releasePlan{}, err
 	}
@@ -104,58 +100,60 @@ func checkLibrary(ctx context.Context, options Options) (CheckResult, releasePla
 	return result, plan, nil
 }
 
-// parseChangeNotes validates every note's format, including notes that library releases already published.
-func parseChangeNotes(files map[string][]byte) (map[string]rules.ChangeNote, error) {
-	notes := map[string]rules.ChangeNote{}
-	for _, name := range slices.Sorted(maps.Keys(files)) {
-		note, err := rules.ParseChangeNote(files[name], name)
-		if err != nil {
-			return nil, err
-		}
-		notes[name] = note
-	}
-	return notes, nil
+// parseChangeNote validates one note's format.
+func parseChangeNote(name string, data []byte) (pendingNote, error) {
+	note, err := rules.ParseChangeNote(data, name)
+	return pendingNote{path: name, note: note}, err
 }
 
 // compare finds the notes added since the latest library release and the rules whose versioned content
-// differs from it, with a warning for each published note that was edited or deleted. A nil receiver has no history.
-func (g *libraryGit) compare(ctx context.Context, files map[string][]byte, current []string, notes map[string]rules.ChangeNote) (libraryChanges, []string, error) {
+// differs from it, with a warning for each published note that was edited or deleted. It validates the format
+// of pending notes only: a published note's edits have no effect, so an invalid edit only warns. Before the first
+// library release every note is pending. A nil receiver has no history.
+func (g *libraryGit) compare(ctx context.Context, files map[string][]byte, current []string, notes map[string][]byte) (libraryChanges, []string, error) {
 	history, err := g.history(ctx)
 	if err != nil {
 		return libraryChanges{}, nil, err
 	}
 	changes := libraryChanges{history: history, current: current, changed: map[string]bool{}}
 	latest := history.latest
+	published := map[string]string{}
+	if latest != nil {
+		published = latest.files
+	}
+	var warnings []string
+	var releasedNotes []string
+	for _, name := range slices.Sorted(maps.Keys(notes)) {
+		if _, ok := published[name]; ok {
+			releasedNotes = append(releasedNotes, name)
+			continue
+		}
+		pending, err := parseChangeNote(name, notes[name])
+		if err != nil {
+			return libraryChanges{}, nil, err
+		}
+		if latest != nil {
+			changes.pending = append(changes.pending, pending)
+		}
+	}
 	if latest == nil {
 		return changes, nil, nil
 	}
-	versioned := map[string][]string{}
-	paths := []string{}
+	working := map[string][]string{}
 	for _, id := range current {
-		if _, published := latest.record.Rules[id]; published {
-			versioned[id] = ruleFiles(id, maps.Keys(files))
-			paths = append(paths, versioned[id]...)
+		if _, versioned := latest.record.Rules[id]; versioned {
+			working[id] = ruleFiles(id, maps.Keys(files))
 		}
 	}
-	for name := range notes {
-		if _, published := latest.files[name]; published {
-			paths = append(paths, name)
-		}
+	if changes.changed, err = g.changedRules(ctx, latest, working); err != nil {
+		return libraryChanges{}, nil, err
 	}
-	hashes, err := g.hashFiles(ctx, paths)
+	hashes, err := g.hashFiles(ctx, releasedNotes)
 	if err != nil {
 		return libraryChanges{}, nil, err
 	}
-	for id, names := range versioned {
-		released := ruleFiles(id, maps.Keys(latest.files))
-		changes.changed[id] = !slices.Equal(names, released) || slices.ContainsFunc(names, func(name string) bool { return hashes[name] != latest.files[name] })
-	}
-	var warnings []string
-	for _, name := range slices.Sorted(maps.Keys(notes)) {
-		switch published, ok := latest.files[name]; {
-		case !ok:
-			changes.pending = append(changes.pending, pendingNote{path: name, note: notes[name]})
-		case hashes[name] != published:
+	for _, name := range releasedNotes {
+		if hashes[name] != published[name] {
 			warnings = append(warnings, name+" changed after a library release published it. Editing a published note has no effect.")
 		}
 	}
