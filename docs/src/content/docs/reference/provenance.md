@@ -141,7 +141,7 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 
 For every source, offline checks also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions.
 
-Offline checks cannot prove that a recorded version was the newest available, or that recorded versions match the library's release manifest. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
+Offline checks cannot prove that a recorded version was the newest available, or that recorded versions match the library's release tags. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
 
 ## Find declared licenses and source credits
 

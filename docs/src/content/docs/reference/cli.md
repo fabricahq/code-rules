@@ -107,7 +107,7 @@ Copy one version of a library rule into `local/` so the project controls its tex
 
 Metadata options and `--body-file` don't apply to a fork. The command:
 
-1. Looks up the library release that published `<VERSION>` in the release manifest, and reads the rule and its asset directory at that library release's commit.
+1. Finds the library release that published `<VERSION>` from the release records in the library's `release/<number>` tags, and reads the rule and its asset directory at that tag's commit.
 2. Writes them under `local/` and creates the local group from the library's group metadata if it doesn't exist.
 3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL.
 4. When the project imports the rule from `LIBRARY`, adds a `replace` entry for it with your reason, so agents read only the fork.
@@ -206,7 +206,7 @@ code-rules library init [options]
 
 Create `rule-library.yaml`, an authoring README, and a GitHub Actions workflow without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library.
 
-The workflow, `.github/workflows/code-rules.yml`, checks pull requests and publishes library releases from `main`, and installs the Code Rules version that created it. See [Version your rules](/guides/version-rules/#automate-library-releases-with-github-actions).
+The workflow, `.github/workflows/code-rules.yml`, runs `code-rules library check` on every pull request, using the Code Rules version that created it. See [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
 
 | Option | Meaning |
 | --- | --- |
@@ -216,7 +216,7 @@ The workflow, `.github/workflows/code-rules.yml`, checks pull requests and publi
 | `--notice-file PATH` | Optional UTF-8 notice text to copy to `NOTICE.md`. Requires both license options. Relative to your working directory. |
 | `--non-interactive` | Accepted; library init runs without prompts even when this flag is omitted. |
 
-If you omit the license options, the manifest leaves the license undeclared. Init does not infer license terms, create a Git repository, commit, or publish the library.
+If you omit the license options, `rule-library.yaml` leaves the license undeclared. Init does not infer license terms, create a Git repository, commit, or publish the library.
 
 ### library add group
 
@@ -259,21 +259,20 @@ Create the group first with `code-rules library add group`; rule creation does n
 ### library change
 
 ```sh
-code-rules library change ID [options]
+code-rules library change ID... [options]
 ```
 
-Create or update the [change note](/reference/rule-versions/#change-notes) for one rule. `ID` is the rule ID, such as `practices/testing/verify-retry-limits`. Before the first library release, rules need no notes.
+Write a new [change note](/reference/rule-versions/#change-notes) for one or more rules. `ID` is a rule ID, such as `practices/testing/verify-retry-limits`; name several rules to cover related changes in one note. Before the first library release, rules need no notes.
 
 | Option | Meaning |
 | --- | --- |
-| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
-| `--bump LEVEL` | `major`, `minor`, or `patch`. Required for a rule that has a version. Not accepted for a new or retired rule. |
-| `--summary TEXT` | Required. One line describing the change. |
-| `--retire` | Record that the rule is [retired](/reference/rule-versions/#retired-rules). The rule's Markdown file must already be gone. |
-| `--replaced-by ID` | Optional with `--retire`: the rule that replaces the retired one. |
+| `--bump LEVEL` | `major`, `minor`, or `patch`. Required for rules that have a version. Not accepted for new or retired rules. |
+| `--summary TEXT` | Required. One line describing the change for project maintainers. |
+| `--retire` | Record that the rules are [retired](/reference/rule-versions/#retired-rules). Their Markdown files must already be gone. |
+| `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces the retired one. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-A rule without any version is new, and its note omits `bump`. When a note already exists, the command keeps the larger of the two bumps and appends the new summary line. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. A rule that was never published can't be retired: delete its Markdown file and its note together.
+The command writes a new file in `changes/` with a unique name, such as `changes/2026-09-29-verify-retry-limits.yaml`, and never edits or deletes existing notes. A rule without any version is recorded as `new`. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. A rule that was never published can't be retired: delete its Markdown file, and remove it from any pending note.
 
 See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL`.
 
@@ -283,7 +282,7 @@ See [Choose a version change](/reference/rule-versions/#choose-a-version-change)
 code-rules library check [options]
 ```
 
-Validate `rule-library.yaml`, the release manifest, all groups and rules, supporting assets, and declared license and notice files. After the first library release, also check change notes against the last library release. Does not change files.
+Validate `rule-library.yaml`, all groups and rules, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
 
 | Option | Meaning |
 | --- | --- |
@@ -292,19 +291,18 @@ Validate `rule-library.yaml`, the release manifest, all groups and rules, suppor
 
 Reports group and rule counts and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations and missing declared files fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
 
-After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file and its asset directory, with the latest library release: the most recent commit in the current branch's history that changed the release manifest. A changed rule passes when it has a valid note. Check fails when:
+After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file and its asset directory, with the latest `release/<number>` tag in the current branch's history. Notes added since that tag are pending. Check fails when:
 
-- A rule changed and has no note. The error names the rule and its latest version, and gives the `code-rules library change` command to run.
-- A new rule has no note.
-- A published rule was deleted without a `retired` note.
+- A rule changed and no pending note names it. The error names the rule and its latest version, and gives the `code-rules library change` command to run.
+- A new rule has no pending note.
+- A published rule was deleted without a pending note that retires it.
 - A retired rule's `replacedBy` isn't a rule in the library.
 - A rule reuses the ID of a retired rule.
-- A note's rule is unchanged since the last library release, so the note is stale.
-- A note has no matching rule and isn't a retirement, so the note is orphaned.
-- A note is invalid, such as an unknown `bump` or a blank summary.
-- The release manifest was edited outside a library release: it must match the manifest at the latest `release/<number>` tag, except in a release candidate or an untagged library release that's waiting to be published.
+- A pending note names a rule that's unchanged since the latest library release, so the note is stale.
+- A pending note names a rule that doesn't exist and isn't being retired.
+- A note is invalid, such as an unknown change or a blank summary.
 
-A **release candidate** is a commit whose only changes from its parent are deleting change notes and updating the release manifest, such as the release pull request. Check validates it as a library release instead: the deleted notes must be valid at the parent, the manifest must list exactly the versions they produce, and no notes may remain.
+Check warns when a note that a library release already published was edited, because the edit has no effect.
 
 This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone; in CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else.
 
@@ -316,44 +314,30 @@ When checks pass, the result previews the pending library release: each rule, it
 code-rules library release [options]
 ```
 
-Publish the pending change notes, and any changes to library-wide files, as a [library release](/reference/rule-versions/#library-releases). Requires a Git remote. See [Version your rules](/guides/version-rules/) for the workflow.
+Publish the pending change notes, and any changes to library-wide files, as a [library release](/reference/rule-versions/#library-releases). See [Version your rules](/guides/version-rules/#publish-a-library-release) for the workflow.
 
 | Option | Meaning |
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
-| `--dry-run` | Report what the library release would do without changing files, commits, tags, or GitHub. |
-| `--pr` | Open or update the release pull request instead of publishing a library release. For CI. |
-| `--publish` | Publish a library release that has reached the default branch. For CI. |
+| `--dry-run` | Show exactly what would be published, including the release notes, without creating a tag or a GitHub Release page. |
 | `--no-github-release` | Skip creating the GitHub Release page. |
 | `--non-interactive` | Accepted; library release does not prompt. |
 
-`--pr` and `--publish` can't be combined.
-
-Every library release does the same work, in two steps:
-
-1. **Create the release commit.** Compute each changed rule's next version, delete the notes, and update the release manifest with the next release number. The first library release creates the manifest and gives every rule version `1.0.0`, with the message `new: Initial version.`
-2. **Publish it.** Create the `release/<number>` tag on the release commit and push it, then create the library release's GitHub Release page.
-
-The three ways to run it differ in who creates the release commit.
-
-**Without a mode**, `code-rules library release` runs locally, for maintainers who push directly to the default branch. Before changing anything, it fetches from the branch's upstream remote. It refuses unless:
+Before publishing, the command fetches from the branch's upstream remote. It refuses unless:
 
 - you're on the remote's default branch,
-- the branch matches the remote exactly, so the library release contains no unpushed commits and misses none,
-- the working tree has no uncommitted changes, and
+- the branch matches the remote exactly, so the library release contains no unpushed commits and misses none, and
 - `code-rules library check` passes.
 
-It then creates the release commit, pushes it together with the release tag in one atomic push, and creates the GitHub Release page. `--dry-run` shows the repository, branch, commit, release number, and each rule's change and versions.
+It then computes each changed rule's next version from the pending notes, using the largest change when several notes name the same rule. The first library release gives every rule version `1.0.0`. It creates the annotated `release/<number>` tag on the current commit, with the release notes and [release record](/reference/rule-versions/#release-record) as its message, and pushes it. No files change and nothing is committed. Finally, it creates the GitHub Release page.
 
-If a run stops partway, run it again. It finds the unpublished release commit at the tip of the branch and finishes publishing it, rather than reporting that there's nothing to publish. The result reports separately whether the versions were published and whether the GitHub Release page was created. With no pending notes, no library-wide changes, and nothing unpublished, the command reports that there is nothing to publish.
+`--dry-run` shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes.
 
-**`--pr`** keeps one release pull request up to date. It creates the release commit on the branch `code-rules/release-pr`, on top of the default branch's current commit, and opens or updates the pull request "Library release". The description lists each rule, its change, its current and next version, its summary, and the pull requests that added its note when GitHub can find them. Before the first library release, the pull request creates the manifest. It also opens for library-wide changes alone, such as an edited group description or shared diagram. After the first library release, when nothing is pending, it closes an open release pull request and exits successfully. It updates the branch only if nobody else has changed it since it was read, and exits without changes if the default branch has moved past the commit that started the run; the newer run takes over. `--pr` never publishes; merging its pull request does, through `--publish`.
+If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. The result reports separately whether the tag and the GitHub Release page were created. With no pending notes and no library-wide changes, the command reports that there is nothing to publish.
 
-**`--publish`** runs on the default branch's newest commit and publishes any library release that commit contains but isn't tagged yet, whether the release pull request was merged with a merge commit, a squash, or a rebase. It finds the library release from the manifest, not from how the commit was made, and tags the first commit on the default branch that contains that manifest. It refuses when a change note remains or the manifest doesn't match the notes the library release deleted. Rerunning it is safe: a release tag that already points to the release commit is kept, anything missing, such as the GitHub Release page, is created, and a release tag that points elsewhere stops the command.
+The tag uses Git's configured identity as its tagger, including the `GIT_COMMITTER_*` environment variables.
 
-**Commit and tag author.** Every mode commits and tags with Git's configured identity, including the `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables. The workflow created by `code-rules library init` sets them to Code Rules Bot.
-
-**GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, named after the library release and listing its changes. Before changing anything, `code-rules library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. Repositories hosted elsewhere get tags only.
+**GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, with the release notes as its body. Before changing anything, `code-rules library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. Repositories hosted elsewhere get tags only.
 
 <span id="help-and-version"></span>
 

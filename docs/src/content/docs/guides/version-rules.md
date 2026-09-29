@@ -11,7 +11,7 @@ Just as with code, you can track these changes by versioning your rules. This gu
 
 A **rule version** identifies one state of a rule, such as `1.3.0`. When a rule changes, it gets a new version, along with a summary of what changed.
 
-Each rule has its own version, even though one library repository holds many rules. The library's **release manifest**, `code-rules-release.yaml`, records every rule's versions: each version a rule has had, the library release that published it, and a summary of the change. The rule file itself contains no version.
+Each rule has its own version, even though one library repository holds many rules. Each library release records every rule's version, and the summary of each change, in its Git tag, so the tags together hold each rule's full history. The rule file itself contains no version.
 
 A version covers the rule's Markdown file and its own supporting files. Library-wide files, such as group descriptions and shared diagrams, aren't part of any rule version.
 
@@ -39,7 +39,7 @@ Sometimes a rule shouldn't change; it should stop. **Retiring** a rule ends its 
 - **A better rule replaces it.** For example, you fold a narrow rule about retry limits into a broader rule about testing retries. The retirement names the replacement, so projects know what to adopt instead.
 - **The practice is no longer recommended.** For example, you published a rule about how agents should comment code, then concluded from feedback that agents shouldn't add those comments at all. There's no replacement; the summary explains why the advice was withdrawn.
 
-Code Rules records a retirement in the library's release manifest, with its summary and any replacement. A retired rule's ID is never reused.
+The library release that publishes a retirement records it with its summary and any replacement. A retired rule's ID is never reused.
 
 Retiring a rule a project uses is as disruptive as a major change, because its agents stop following the rule. Projects see retirements in their update preview, next to major changes.
 
@@ -61,9 +61,8 @@ Library releases are numbered 1, 2, 3, and so on. They don't use semantic versio
 
 A library release produces:
 
-- an update to the library's **release manifest**, `code-rules-release.yaml`, which lists every rule's version as of that library release,
-- a release tag, such as `release/3`, and
-- on GitHub.com, a **GitHub Release page** that announces the library release and lists its changes. The page is only an announcement; the library release itself is the new versions and tags.
+- a release tag, such as `release/4`, whose message records every rule's version and the release notes, and
+- on GitHub.com, a **GitHub Release page** that announces the library release with the same release notes. The page is only an announcement; the library release itself is the tag.
 
 Publish a library release whenever you want your pending changes to reach projects. There's no schedule, and no need to wait for a major change: smaller library releases are easier for projects to review. Projects don't have to take a whole library release, either. Each project chooses versions rule by rule, and can import one specific library release when it wants a known snapshot of the library.
 
@@ -71,27 +70,17 @@ Publish a library release whenever you want your pending changes to reach projec
 
 You manage versions and library releases with three Code Rules commands. You never create tags by hand.
 
-- **`code-rules library change`** records a change to one rule. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file beside the rule.
+- **`code-rules library change`** records a change. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file in the library's `changes/` directory.
 - **`code-rules library check`** confirms that every changed rule has a change note, and previews the versions the next library release will publish.
 - **`code-rules library release`** publishes a [library release](#library-releases).
 
-Publishing a library release takes two steps:
+Change notes pile up on `main` as you merge changes, and they're never deleted. Publishing a library release doesn't change any files: `code-rules library release` computes each rule's next version from the notes added since the previous library release, and records the result in a new `release/<number>` tag. The next library release starts from that tag.
 
-1. **Prepare the release commit.** Turn every pending change note into a new rule version, record the versions in the release manifest, and delete the notes.
-2. **Publish it.** Tag the release commit `release/<number>` and create the GitHub Release page.
-
-`code-rules library release` does both from your machine, on any Git host; see [Publish a library release](#publish-a-library-release). On GitHub, a workflow can run the same two steps for you around a pull request, so each library release is reviewed and approved by merging; see [Automate library releases with GitHub Actions](#automate-library-releases-with-github-actions).
-
-Change notes start with the second library release. Your library's [first library release](#publish-the-first-library-release) gives every rule version `1.0.0`, so it needs no notes. For the exact manifest and note formats, see [Rule versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
+Change notes start with the second library release. Your library's [first library release](#publish-the-first-library-release) gives every rule version `1.0.0`, so it needs no notes. For the exact formats, see [Rule versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
 
 ## Publish the first library release
 
-Before your first library release, its rules have no versions, so you don't need change notes. When the rules are ready for projects to use, publish the first library release the same way as every later one:
-
-- **From your machine,** run `code-rules library release`. See [Publish a library release](#publish-a-library-release).
-- **With the [GitHub Actions workflow](#automate-library-releases-with-github-actions),** merge the "Library release" pull request. Before the first library release, the workflow keeps it open, and its only change is creating the release manifest. Leave it unmerged until your rules are ready.
-
-The first library release gives every rule version `1.0.0`.
+Before your first library release, its rules have no versions, so you don't need change notes. When the rules are ready for projects to use, publish the first library release the same way as every later one; see [Publish a library release](#publish-a-library-release). It gives every rule version `1.0.0`.
 
 From then on, [record every change with a note](#change-rules-after-the-first-library-release).
 
@@ -109,14 +98,15 @@ code-rules library change practices/testing/verify-retry-limits \
   --summary 'Add a Python example of the retry-limit test.'
 ```
 
-This writes `practices/testing/verify-retry-limits.change.yaml`:
+This writes a new note, such as `changes/2026-09-29-verify-retry-limits.yaml`:
 
 ```yaml
-bump: minor
 summary: Add a Python example of the retry-limit test.
+rules:
+  practices/testing/verify-retry-limits: minor
 ```
 
-Write the summary for someone deciding whether to update: say what changed in the obligation or guidance, not how you edited the file. If the rule already has a pending note, `code-rules library change` keeps the larger change and adds your summary as another line.
+Write the summary for someone deciding whether to update: say what changed in the obligation or guidance, not how you edited the file. Every note gets its own file, so two pull requests that change the same rule never conflict. When several notes name the same rule, the library release uses the largest change and lists each summary.
 
 ### Add a rule
 
@@ -134,7 +124,7 @@ Then record it. A new rule always starts at version `1.0.0`, so leave out `--bum
 
 ```sh
 code-rules library change practices/testing/verify-backoff \
-  --summary 'Add the rule.'
+  --summary 'Add a rule about testing retry backoff.'
 ```
 
 ### Retire a rule
@@ -144,7 +134,7 @@ Delete the rule's Markdown file and its asset directory, then record the retirem
 When a better rule replaces it, name the replacement:
 
 ```sh
-code-rules library change practices/testing/verify-retry-limits \
+code-rules library change practices/testing/check-retry-backoff \
   --retire \
   --replaced-by practices/testing/verify-retries \
   --summary 'Covered by the broader rule about testing retries.'
@@ -160,15 +150,26 @@ code-rules library change practices/code-design/comment-intent \
   --summary "Withdrawn after feedback that agents shouldn't add explanatory comments."
 ```
 
-The library release records the retirement in the release manifest. A rule that was never published can't be retired; delete it and its note together.
+A rule that was never published can't be retired; just delete it.
 
 ### Rename a rule
 
-A rename changes the rule's ID. Move the file, add a new-rule note for the new ID, and retire the old ID with the new ID as its replacement. Projects see the old rule retired, with the new rule as its replacement.
+A rename changes the rule's ID. Move the file, then record one note that retires the old ID, replaced by the new one, and adds the new ID:
+
+```yaml
+summary: Rename to describe what the rule checks.
+rules:
+  practices/testing/check-retry-backoff:
+    change: retired
+    replacedBy: practices/testing/verify-retry-backoff
+  practices/testing/verify-retry-backoff: new
+```
+
+Projects see the old rule retired, with the new rule as its replacement.
 
 ### Change a shared file or group description
 
-Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. The next library release publishes them, and the release pull request opens for them even when no rule changed.
+Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. The next library release publishes them, even if no rule changed.
 
 Keep everything that defines a rule's obligation in the rule itself. A project that pins a rule to an older version still gets the newest shared files, so shared files should only explain and illustrate.
 
@@ -180,148 +181,152 @@ Whatever you changed, check the library before opening your pull request:
 code-rules library check
 ```
 
-`code-rules library check` fails if a changed rule has no note, or if a note no longer matches a change. When it passes, it previews the pending library release:
+`code-rules library check` fails if a changed rule has no note, or if a note doesn't match a change. When it passes, it previews the pending library release:
 
 ```text
-Pending library release
+Pending library release 4
   practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
 ```
 
-Commit each rule and its note together.
+Commit each rule and its note together. Reviewers can then review the rule and the wording of its note in the same pull request.
 
 ## Publish a library release
 
-To publish a library release yourself, run `code-rules library release` from an up-to-date checkout of `main`. This works on any Git host, and suits maintainers who push directly to `main`. Preview first:
+Publish from an up-to-date checkout of `main`. This works on any Git host.
+
+### Review the release notes
+
+Preview exactly what will be published:
 
 ```sh
 code-rules library release --dry-run
 ```
 
-The preview shows the repository, branch, commit, release number, and each rule's change and versions. Then publish the library release:
+The preview shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes. The release notes are generated from the change notes, so to change their wording, edit the notes in `changes/` in a normal pull request, then preview again.
+
+### Publish
 
 ```sh
 code-rules library release
 ```
 
-The command fetches from the remote first. It refuses unless you're on the remote's default branch, your branch matches the remote exactly, your working tree has no uncommitted changes, and `code-rules library check` passes. It then creates the release commit, pushes it with the release tag in one atomic push, and creates the GitHub Release page with the [GitHub CLI](https://cli.github.com/). Because it pushes to `main`, run it as someone allowed to push there.
+The command fetches from the remote first. It refuses unless you're on the remote's default branch, your branch matches the remote exactly, and `code-rules library check` passes. It then creates the annotated `release/<number>` tag on the current commit, pushes it, and creates the GitHub Release page with the [GitHub CLI](https://cli.github.com/). No files change and nothing is committed. Because it pushes a tag, run it as someone allowed to push to the repository.
 
-If the command stops partway, such as on a network error, run it again: it finishes publishing the library release it already started. If you don't want a GitHub Release page, or the library isn't hosted on GitHub.com, run `code-rules library release --no-github-release`; repositories hosted elsewhere get tags only.
+If you don't want a GitHub Release page, or the library isn't hosted on GitHub.com, run `code-rules library release --no-github-release`; repositories hosted elsewhere get the tag only.
 
-## Automate library releases with GitHub Actions
+### What the GitHub Release page looks like
 
-The workflow automates the two publishing steps around a pull request, so every library release is reviewed and approved by merging it. A typical cycle:
+For a library release that changes four rules, the generated page, titled `release/4`, looks like this:
 
-1. You edit a rule and run `code-rules library change` in the same pull request. The workflow runs `code-rules library check` on the pull request.
-2. After the pull request merges, the workflow runs `code-rules library release --pr`, which prepares the release commit on a branch and opens a "Library release" pull request, or updates the open one. Its diff updates the release manifest and deletes the notes, so it shows exactly what the library release will publish.
-3. When you merge the release pull request, the workflow runs `code-rules library release --publish`, which creates the release tag and the GitHub Release page.
+```md
+Library release 4 changes 4 rules: 1 major, 1 minor, 1 new, and 1 retired.
 
-`code-rules library init` creates `.github/workflows/code-rules.yml`. It installs the Code Rules version that created it, then:
+## Major changes
 
-- **On pull requests,** runs `code-rules library check` with the repository's full history.
-- **On pushes to `main`,** runs `code-rules library release --publish`, then `code-rules library release --pr`, then starts the check on the release pull request.
+Code that complied with the previous rule version could fail the new one, so review these before updating.
 
-Each release command does nothing when it has nothing to do. `code-rules library release --publish` acts only when `main` contains a library release that isn't tagged yet, however the release pull request was merged. `code-rules library release --pr` opens or updates the release pull request while changes are pending, and closes it when none are. The workflow runs one release job at a time, and a job started by an older commit of `main` steps aside for the newer one.
+- **practices/testing/verify-retry-limits** `1.3.0` → `2.0.0`
+  Require a test at the limit for every retry policy.
 
-The workflow uses the built-in `GITHUB_TOKEN`; you don't need to create a token. GitHub doesn't start workflows for a pull request that this token opens or updates, so the release job starts the check itself, with a manual run (`workflow_dispatch`) on the release pull request's branch. That run reports its result on the pull request like any other check. The job sets Git's identity variables so library releases are committed and tagged as Code Rules Bot; change them to use another name. The release job looks like this, with the install step shortened:
+## Minor changes
 
-```yaml
-release:
-  if: github.event_name == 'push'
-  runs-on: ubuntu-latest
-  permissions:
-    actions: write
-    contents: write
-    pull-requests: write
-  env:
-    GH_TOKEN: ${{ github.token }}
-    # Commit and tag library releases as Code Rules Bot.
-    GIT_AUTHOR_NAME: Code Rules Bot
-    GIT_AUTHOR_EMAIL: code-rules-bot@noreply.invalid
-    GIT_COMMITTER_NAME: Code Rules Bot
-    GIT_COMMITTER_EMAIL: code-rules-bot@noreply.invalid
-  steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      with:
-        fetch-depth: 0
-    # Download Code Rules, verify its attestation and checksum, and add it to PATH.
-    - name: Install Code Rules
-      run: ...
-    - name: Publish a merged library release
-      run: code-rules library release --publish
-    - name: Open or update the release pull request
-      run: code-rules library release --pr
-    - name: Check the release pull request
-      run: |
-        if [ "$(gh pr view code-rules/release-pr --json state --jq .state)" = OPEN ]; then
-          gh workflow run code-rules.yml --ref code-rules/release-pr
-        fi
+- **techs/react/test-hooks-in-isolation** `2.1.0` → `2.2.0`
+  Add an example for custom hooks.
+
+## New rules
+
+- **practices/testing/verify-retries** `1.0.0`
+  Add a broader rule about testing retries.
+
+## Retired rules
+
+- **practices/testing/check-retry-backoff**, last version `1.2.0`
+  Covered by the broader rule about testing retries.
+  Replaced by **practices/testing/verify-retries**.
+
+<details>
+<summary>All rule versions in this library release</summary>
+
+| Rule | Version |
+| --- | --- |
+| practices/code-design/organize-code-by-feature | 1.1.0 |
+| practices/testing/verify-backoff | 1.3.0 |
+| practices/testing/verify-retries | 1.0.0 |
+| practices/testing/verify-retry-limits | 2.0.0 |
+| techs/react/prefer-server-components | 1.4.0 |
+| techs/react/test-hooks-in-isolation | 2.2.0 |
+
+</details>
 ```
 
-`code-rules library check` needs every tag and the full history to compare rules with their last library release, so the workflow checks out with `fetch-depth: 0`.
+Code Rules generates all of it from the change notes: the counts, the sections, which appear only when they have entries, the versions, and the table. Each summary is copied from its note. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
 
-### Configure the repository
+To add a general message, such as an introduction to what this library release is about, edit the GitHub Release page on GitHub. The page is only the announcement. The tag message keeps the generated text, and it's what projects read when they update.
 
-Configure three settings on GitHub. Each step shows the setting's place in the repository's settings, and a [GitHub CLI](https://cli.github.com/) command that applies it. Run the commands from your library's checkout; `gh api` fills in `{owner}` and `{repo}` from it.
+### After publishing
 
-1. **Require the check, on an up-to-date branch, before merging to `main`.** Then the release pull request always includes every pending note: if a newer note reaches `main` first, the release pull request must be updated before it can merge. In **Settings > Rules > Rulesets**, add a branch ruleset for the default branch that requires the `check` status check and requires branches to be up to date.
+The tag is the permanent record, so leave it as it is. Fix a typo on the GitHub Release page directly. To correct something substantive, such as a misstated change, say so in a note in the next library release.
 
-   To do this with the GitHub CLI, run:
+### Publish from CI
 
-   ```sh
-   gh api --method POST 'repos/{owner}/{repo}/rulesets' --input - <<'EOF'
-   {
-     "name": "Code Rules checks",
-     "target": "branch",
-     "enforcement": "active",
-     "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
-     "rules": [{
-       "type": "required_status_checks",
-       "parameters": {
-         "strict_required_status_checks_policy": true,
-         "required_status_checks": [{"context": "check", "integration_id": 15368}]
-       }
-     }]
-   }
-   EOF
-   ```
+To publish from GitHub Actions instead of your machine, add a workflow that someone starts by hand:
 
-   `check` is the name of the workflow's check job. `15368` is the ID of the GitHub Actions app, so only the workflow can report that check.
+```yaml
+name: Library release
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GIT_COMMITTER_NAME: Code Rules Bot
+      GIT_COMMITTER_EMAIL: code-rules-bot@noreply.invalid
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # Download Code Rules, verify its attestation and checksum, and add it to PATH.
+      - name: Install Code Rules
+        run: ...
+      - run: code-rules library release
+```
 
-2. **Let the workflow open pull requests.** In **Settings > Actions > General**, enable **Allow GitHub Actions to create and approve pull requests**.
+The job needs only permission to push tags. It tags as Code Rules Bot, set through Git's identity variables.
 
-   To do this with the GitHub CLI, run:
+## Check changes in CI
 
-   ```sh
-   gh api --method PUT 'repos/{owner}/{repo}/actions/permissions/workflow' \
-     -f default_workflow_permissions=read \
-     -F can_approve_pull_request_reviews=true
-   ```
+`code-rules library init` creates `.github/workflows/code-rules.yml`, which runs `code-rules library check` on every pull request, using the Code Rules version that created it:
 
-   The workflow asks for the write permissions it needs itself, so the default can stay read-only. If your organization disables this setting, an organization owner must allow it first.
+```yaml
+name: Code Rules
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Download Code Rules, verify its attestation and checksum, and add it to PATH.
+      - name: Install Code Rules
+        run: ...
+      - run: code-rules library check
+```
 
-3. **Let the workflow push release tags and its branch.** Check that no ruleset covers tags under `release/`, or branches under `code-rules/`. Review them in **Settings > Rules > Rulesets**.
+`code-rules library check` needs every tag and the full history to compare rules with the latest library release, so the workflow checks out with `fetch-depth: 0`.
 
-   To list them with the GitHub CLI, run:
-
-   ```sh
-   gh api 'repos/{owner}/{repo}/rulesets' --jq '.[] | {id, name, target}'
-   ```
-
-   Show one ruleset's conditions with `gh api 'repos/{owner}/{repo}/rulesets/ID' --jq .conditions`, replacing `ID`. If a ruleset covers those tags or branches, exclude them from it in **Settings > Rules > Rulesets**.
-
-### Review and merge the release pull request
-
-The release pull request, from the branch `code-rules/release-pr`, updates the release manifest and deletes every pending note. The manifest's diff shows every rule's next version. The description lists each rule with its change, its current and next version, its summary, and the pull request that added the note. Review the major changes carefully: every project that uses those rules will see them in its update preview and decide whether to adopt them.
-
-Merge it when you want to publish, using whichever merge method your repository allows. The workflow then tags the new rule versions and the library release, and creates the library release's GitHub Release page. Projects see the new versions the next time they run `code-rules project update`.
+To make the check required before merging, add a branch ruleset in **Settings > Rules > Rulesets** that requires the `check` status check.
 
 ## Recover from a failed library release
 
 | Problem | What to do |
 | --- | --- |
-| `code-rules library release --publish` stopped partway, such as on a network error. | Rerun the workflow job. The command keeps the release tag if it already exists and adds anything missing. |
-| `code-rules library release` stopped partway on your machine. | Run it again. It finds the unpublished release commit and finishes publishing it. |
-| Publishing refused because the release commit on `main` still contains notes. | A note reached `main` without being included in the release pull request. Revert the release pull request's merge. The workflow then opens a new release pull request with every pending note. To prevent this, require branches to be up to date before merging. |
+| `code-rules library release` stopped after pushing the tag, such as when GitHub was unavailable. | Run it again. It finds the tag on the current commit and creates the GitHub Release page. |
 | A release tag points to a different commit. | Someone created or moved a `release/<number>` tag by hand. Don't move published tags; projects may have imported them. Ask the tag's author, then restore it to its original commit. |
 | Check fails in a shallow clone. | Fetch the full history and tags, such as with `git fetch --unshallow --tags`, or `fetch-depth: 0` in CI. |
 
@@ -329,4 +334,4 @@ Merge it when you want to publish, using whichever merge method your repository 
 
 - [Write a rule](/guides/write-rules/) covers authoring guidance.
 - [Update rules](/guides/update/) shows how projects review and adopt your library releases.
-- The [CLI reference](/reference/cli/#library-release) lists every library release option.
+- The [CLI reference](/reference/cli/#library-release) lists every option.

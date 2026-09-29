@@ -29,7 +29,7 @@ code-rules library init
 
 - `rule-library.yaml`, which identifies the library format.
 - A README for authors at the repository root.
-- `.github/workflows/code-rules.yml`, which checks pull requests and publishes library releases once the library is on GitHub.
+- `.github/workflows/code-rules.yml`, which checks pull requests once the library is on GitHub.
 
 You'll publish this repository to your Git host in step 5.
 
@@ -145,35 +145,30 @@ git add .github README.md rule-library.yaml LICENSE.md practices/
 git commit -m "Create the first shared rule"
 ```
 
-Create an empty repository on GitHub, then replace the example URL below with its Git URL:
+Create an empty repository on your Git host, then replace the example URL below with its Git URL and push:
 
 ```sh
 git remote add origin https://github.com/YOUR-ORG/engineering-rules.git
-```
-
-The release workflow publishes library releases by opening a pull request, which GitHub doesn't allow workflows to do by default. Allow it in **Settings > Actions > General** by selecting **Allow GitHub Actions to create and approve pull requests**, or run:
-
-```sh
-gh api --method PUT 'repos/{owner}/{repo}/actions/permissions/workflow' \
-  -f default_workflow_permissions=read \
-  -F can_approve_pull_request_reviews=true
-```
-
-Then push:
-
-```sh
 git push -u origin HEAD
 ```
 
-The workflow runs and opens a "Library release" pull request. Because this is your first library release, the pull request's only change is creating the release manifest, `code-rules-release.yaml`, which gives every rule version `1.0.0`. Review it on GitHub and merge it.
+Preview your first library release:
 
-The workflow then publishes the library release: it tags the merged commit as `release/1`, and creates a GitHub Release page that announces it. The release manifest now records `practices/error-handling/make-errors-actionable` at version `1.0.0`.
+```sh
+code-rules library release --dry-run
+```
+
+It shows the release notes that will be published: this is your first library release, so every rule gets version `1.0.0`. Then publish it:
+
+```sh
+code-rules library release
+```
+
+The command tags your commit `release/1`, recording `practices/error-handling/make-errors-actionable` at version `1.0.0`, and pushes the tag. On GitHub.com, it also creates a GitHub Release page that announces the library release, using the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tag only. No files change.
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 
-If your library isn't hosted on GitHub, push it to your Git host and run `code-rules library release` from your machine instead. It publishes the same library release, with tags only. See [Publish a library release](/guides/version-rules/#publish-a-library-release).
-
-Each rule has its own version. From now on, every change to a rule needs a **change note**, recorded with `code-rules library change`, that tells projects what changed. Change rules through pull requests, each with its note. The workflow keeps a "Library release" pull request open with the pending changes, and merging it publishes the next library release, just as you did for the first. See [Version your rules](/guides/version-rules/) for the full workflow and the repository settings teams should add.
+Each rule has its own version. From now on, every change to a rule needs a **change note**, recorded with `code-rules library change`, that tells projects what changed. Change rules through pull requests, each with its note; the workflow in `.github/workflows/code-rules.yml` runs `code-rules library check` on each one. When you're ready, publish the next library release with `code-rules library release`, just as you did the first. See [Version your rules](/guides/version-rules/) for the full workflow.
 
 ## 6. Try the library in a project
 

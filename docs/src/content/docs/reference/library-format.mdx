@@ -17,8 +17,9 @@ The tree below shows a library repository named **`engineering-rules/`**. The fo
 
 - engineering-rules/
   - rule-library.yaml
-  - code-rules-release.yaml
   - LICENSE.md
+  - changes/
+    - 2026-09-29-verify-retry-limits.yaml
   - techs/
     - typescript/
       - _group.yaml
@@ -29,7 +30,6 @@ The tree below shows a library repository named **`engineering-rules/`**. The fo
       - _group.yaml
       - README.md
       - verify-retry-limits.md
-      - verify-retry-limits.change.yaml
 
 </FileTree>
 
@@ -45,13 +45,13 @@ license:
 
 Discover groups only under `techs/` and `practices/`.
 Within selected groups, Markdown files outside reserved asset directories are rules. Declared license and notice files and the group-root `README.md` are exempt. Group READMEs are authoring documentation, not generated rule guidance.
-A rule's [change note](/reference/rule-versions/#change-notes), `<rule-name>.change.yaml`, may sit beside the rule's Markdown file. Projects never import change notes.
-The [release manifest](/reference/rule-versions/#release-manifest), `code-rules-release.yaml`, records each rule's version at the latest library release. The release commands create and update it.
+[Change notes](/reference/rule-versions/#change-notes) live in the library-root `changes/` directory. Projects never import them.
+Library releases are Git tags, not files; see [Library releases](/reference/rule-versions/#library-releases).
 Other supporting files, including `_README.md`, must live in an asset directory.
 Rules and [group metadata](/reference/rule-format/#group-metadata) must use valid paths; wildcard discovery also rejects rules whose group metadata is missing.
 The builder does not inspect the contents of unselected groups.
 
-`rule-library.yaml`, the release manifest, and group metadata use one YAML document per file. Duplicate keys, anchors, aliases, and explicit tags are rejected. Generated snapshot and provenance files remain JSON.
+`rule-library.yaml`, change notes, and group metadata use one YAML document per file. Duplicate keys, anchors, aliases, and explicit tags are rejected. Generated snapshot and provenance files remain JSON.
 
 ## Shared assets
 
@@ -93,6 +93,6 @@ See [License rules](/guides/license-rules/) for publisher guidance and the bound
 ## Related guides
 
 - [Create your first library](/start-here/create-library/) walks through organizing and sharing a library.
-- [Version your rules](/guides/version-rules/) explains change notes, the release pull request, and publishing rule versions.
+- [Version your rules](/guides/version-rules/) explains change notes and publishing library releases.
 - [License rules](/guides/license-rules/) explains how to choose and declare terms.
 - [Configuration](/reference/configuration/) explains how a project selects libraries and rules to import.

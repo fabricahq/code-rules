@@ -87,13 +87,13 @@ With the same configuration and recorded versions, an import produces the same p
 
 ### How rule versions are resolved
 
-The newest library release is the one with the highest `release/<number>` tag. Each [release](/reference/rule-versions/#library-releases) commit holds the release manifest, which lists every rule's versions and the library release that published each one.
+The newest library release is the one with the highest `release/<number>` tag. Each [library release](/reference/rule-versions/#library-releases) tag's message records every rule's version and the changes that library release published.
 
-To choose a rule's version, Code Rules reads the rule's history in the release manifest at the newest `release/<number>` tag, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from that version's release commit. Library-wide files, including the shared files rules link to, come from the newest library release among the imported rule versions.
+To choose a rule's version, Code Rules reads the rule's history from the release records in the `release/<number>` tags, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from the tagged commit of the library release that published that version. Library-wide files, including the shared files rules link to, come from the newest library release among the imported rule versions.
 
 A rule absent from a library release was retired, and the manifest's `retired` entry records why. A rule the project pinned before its retirement keeps importing its pinned version.
 
-To find versions, Code Rules lists only `release/` tags, reads the manifest at the newest one, and fetches only the files it imports. It records each imported rule's version and release commit in `_source.json` and generated provenance, and shows the version in generated guidance.
+To find versions, Code Rules lists only `release/` tags, fetches their messages without the library's history, and fetches only the files it imports. It records each imported rule's version, library release, and commit in `_source.json` and generated provenance, and shows the version in generated guidance.
 
 ### Tracing rules to their source
 
