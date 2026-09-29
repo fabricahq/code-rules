@@ -214,17 +214,17 @@ func (c libraryChanges) plan() (releasePlan, error) {
 	return plan, nil
 }
 
+// record returns the release record that publishes the plan with libraryFiles, the changed library-wide files.
+func (p releasePlan) record(libraryFiles []string) rules.ReleaseRecord {
+	return rules.ReleaseRecord{Release: p.release, Rules: p.versions, Changes: p.changes, Retired: p.retired, LibraryFiles: libraryFiles}
+}
+
 // preview lists each changed, new, and retired rule in ID order.
 func (p releasePlan) preview() PendingRelease {
-	preview := PendingRelease{Release: p.release, Rules: []PendingRule{}}
-	for id, change := range p.changes {
-		next := p.versions[id]
-		preview.Rules = append(preview.Rules, PendingRule{ID: id, Change: change.Change, CurrentVersion: change.From, NextVersion: &next})
-	}
-	for id, retired := range p.retired {
-		last := retired.LastVersion
-		preview.Rules = append(preview.Rules, PendingRule{ID: id, Change: rules.ChangeRetired, CurrentVersion: &last, ReplacedBy: retired.ReplacedBy})
-	}
-	slices.SortFunc(preview.Rules, func(a, b PendingRule) int { return strings.Compare(a.ID, b.ID) })
-	return preview
+	return PendingRelease{Release: p.release, Rules: releaseRules(p.record(nil))}
+}
+
+// empty reports whether the plan changes, adds, and retires no rules.
+func (p releasePlan) empty() bool {
+	return len(p.changes) == 0 && len(p.retired) == 0
 }
