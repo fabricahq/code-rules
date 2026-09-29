@@ -107,7 +107,7 @@ Copy one version of a library rule into `local/` so the project controls its tex
 
 Metadata options and `--body-file` don't apply to a fork. The command:
 
-1. Reads the rule and its asset directory at the tag `<ID>@<VERSION>`.
+1. Looks up the library release that published `<VERSION>` in the release manifest, and reads the rule and its asset directory at that library release's commit.
 2. Writes them under `local/` and creates the local group from the library's group metadata if it doesn't exist.
 3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL.
 4. When the project imports the rule from `LIBRARY`, adds a `replace` entry for it with your reason, so agents read only the fork.
@@ -302,8 +302,7 @@ After the first library release, check compares each rule's [versioned content](
 - A note's rule is unchanged since the last library release, so the note is stale.
 - A note has no matching rule and isn't a retirement, so the note is orphaned.
 - A note is invalid, such as an unknown `bump` or a blank summary.
-- The release manifest was edited outside a library release, or doesn't match the library's tags. The newest library release may still be untagged, as between merging the release pull request and publishing it.
-- A tag is named like a group or folder that contains rules.
+- The release manifest was edited outside a library release: it must match the manifest at the latest `release/<number>` tag, except in a release candidate or an untagged library release that's waiting to be published.
 
 A **release candidate** is a commit whose only changes from its parent are deleting change notes and updating the release manifest, such as the release pull request. Check validates it as a library release instead: the deleted notes must be valid at the parent, the manifest must list exactly the versions they produce, and no notes may remain.
 
@@ -333,7 +332,7 @@ Publish the pending change notes as a [library release](/reference/rule-versions
 Every library release does the same work, in two steps:
 
 1. **Create the release commit.** Compute each changed rule's next version, delete the notes, and update the release manifest with the next release number. The first library release creates the manifest and gives every rule version `1.0.0`, with the message `new: Initial version.`
-2. **Publish it.** On the release commit, create a tag for each new rule version, a `<rule-id>@retired` tag for each retirement, and the `release/<number>` tag. Push the tags in one atomic push, so either all of them arrive or none do, then create the library release's GitHub Release page.
+2. **Publish it.** Create the `release/<number>` tag on the release commit and push it, then create the library release's GitHub Release page.
 
 The three ways to run it differ in who creates the release commit.
 
@@ -344,13 +343,13 @@ The three ways to run it differ in who creates the release commit.
 - the working tree has no uncommitted changes, and
 - `code-rules library check` passes.
 
-It then creates the release commit, pushes it together with the tags in one atomic push, and creates the GitHub Release page. `--dry-run` shows the repository, branch, commit, release number, and each rule's change and versions.
+It then creates the release commit, pushes it together with the release tag in one atomic push, and creates the GitHub Release page. `--dry-run` shows the repository, branch, commit, release number, and each rule's change and versions.
 
 If a run stops partway, run it again. It finds the unpublished release commit at the tip of the branch and finishes publishing it, rather than reporting that there's nothing to publish. The result reports separately whether the versions were published and whether the GitHub Release page was created. With no pending notes and nothing unpublished, the command reports that there is nothing to publish.
 
 **`--pr`** keeps one release pull request up to date. It creates the release commit on the branch `code-rules/release-pr`, on top of the default branch's current commit, and opens or updates the pull request "Library release". The description lists each rule, its change, its current and next version, its summary, and the pull requests that added its note when GitHub can find them. Before the first library release, the pull request creates the manifest. After the first library release, when nothing is pending, it closes an open release pull request and exits successfully. It updates the branch only if nobody else has changed it since it was read, and exits without changes if the default branch has moved past the commit that started the run; the newer run takes over. `--pr` never publishes; merging its pull request does, through `--publish`.
 
-**`--publish`** runs on the default branch's newest commit and publishes any library release that commit contains but isn't tagged yet, whether the release pull request was merged with a merge commit, a squash, or a rebase. It finds the library release from the manifest, not from how the commit was made, and tags the first commit on the default branch that contains that manifest. It refuses when a change note remains or the manifest doesn't match the notes the library release deleted. Rerunning it is safe: tags that already point to the release commit are kept, missing tags and the GitHub Release page are created, and a tag that points elsewhere stops the command.
+**`--publish`** runs on the default branch's newest commit and publishes any library release that commit contains but isn't tagged yet, whether the release pull request was merged with a merge commit, a squash, or a rebase. It finds the library release from the manifest, not from how the commit was made, and tags the first commit on the default branch that contains that manifest. It refuses when a change note remains or the manifest doesn't match the notes the library release deleted. Rerunning it is safe: a release tag that already points to the release commit is kept, anything missing, such as the GitHub Release page, is created, and a release tag that points elsewhere stops the command.
 
 **Commit and tag author.** Every mode commits and tags with Git's configured identity, including the `GIT_AUTHOR_*` and `GIT_COMMITTER_*` environment variables. The workflow created by `code-rules library init` sets them to Code Rules Bot.
 

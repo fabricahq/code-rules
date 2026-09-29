@@ -51,7 +51,7 @@ A library rule has its own [semantic version](https://semver.org/), such as `1.3
 
 A rule can also be **retired**, when a better rule replaces it or the practice is no longer recommended.
 
-Each version is a Git tag in the library, such as `practices/testing/verify-retry-limits@1.3.0`, with a summary of what changed. The rule file itself has no version field. Library authors record each change in a change note, and a library release turns the notes into new versions.
+Each version is recorded in the library's release manifest, with a summary of what changed. The rule file itself has no version field. Library authors record each change in a change note, and a library release turns the notes into new versions.
 
 Projects see each imported rule's version in their generated guidance. Before a project adopts a major change or retirement of a rule it uses, someone on the project accepts it. Local rules have no versions.
 

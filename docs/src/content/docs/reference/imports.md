@@ -87,13 +87,13 @@ With the same configuration and recorded versions, an import produces the same p
 
 ### How rule versions are resolved
 
-The newest library release is the one with the highest `release/<number>` tag. Each [release](/reference/rule-versions/#library-releases) commit holds a manifest listing every rule's version at that library release, and each rule version has its own tag on the release commit that published it.
+The newest library release is the one with the highest `release/<number>` tag. Each [release](/reference/rule-versions/#library-releases) commit holds the release manifest, which lists every rule's versions and the library release that published each one.
 
-To choose a rule's version, Code Rules lists the rule's version tags and picks the newest one, or the one the rule is pinned to. It then imports the rule's [versioned content](/reference/rule-versions/#what-a-version-covers), its Markdown file, its asset directory, and the shared files it links to, from that version's release commit. Rules at different versions keep the shared files they were written with; Code Rules stores each version's copy separately and points each rule's links at its own copy.
+To choose a rule's version, Code Rules reads the rule's history in the release manifest at the newest `release/<number>` tag, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [versioned content](/reference/rule-versions/#what-a-version-covers), its Markdown file, its asset directory, and the shared files it links to, from that version's release commit. Rules at different versions keep the shared files they were written with; Code Rules stores each version's copy separately and points each rule's links at its own copy.
 
-A rule absent from a library release was retired, and its `<rule-id>@retired` tag records why. A rule the project pinned before its retirement keeps importing its pinned version.
+A rule absent from a library release was retired, and the manifest's `retired` entry records why. A rule the project pinned before its retirement keeps importing its pinned version.
 
-To find versions, Code Rules lists only tags under `techs/`, `practices/`, and `release/`, and fetches only the files it imports. It records each imported rule's version and release commit in `_source.json` and generated provenance, and shows the version in generated guidance.
+To find versions, Code Rules lists only `release/` tags, reads the manifest at the newest one, and fetches only the files it imports. It records each imported rule's version and release commit in `_source.json` and generated provenance, and shows the version in generated guidance.
 
 ### Tracing rules to their source
 
@@ -158,7 +158,7 @@ Each library import has these limits:
 | Git file-tree listing | 8 MiB. |
 | Each retained file | 8 MiB. |
 | All retained files combined | 64 MiB. |
-| Git's listing of rule tags | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. |
+| Git's listing of release tags | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. |
 
 The retained-file limits apply after fetching. They do not cap network traffic or Git's temporary disk use. Finding rule versions uses the same Git access settings and deadline as fetching.
 

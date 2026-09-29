@@ -167,7 +167,7 @@ git push -u origin HEAD
 
 The workflow runs and opens a "Library release" pull request. Because this is your first library release, the pull request's only change is creating the release manifest, `code-rules-release.yaml`, which gives every rule version `1.0.0`. Review it on GitHub and merge it.
 
-The workflow then publishes the library release: it tags the merged commit as `release/1` and as `practices/error-handling/make-errors-actionable@1.0.0`, and creates a GitHub Release page that announces it.
+The workflow then publishes the library release: it tags the merged commit as `release/1`, and creates a GitHub Release page that announces it. The release manifest now records `practices/error-handling/make-errors-actionable` at version `1.0.0`.
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 
