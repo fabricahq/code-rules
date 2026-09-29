@@ -130,3 +130,74 @@ func TestProcessLimitsAndDeadlines(t *testing.T) {
 		t.Fatal("deadline or child-pipe cleanup failed", err)
 	}
 }
+
+// TestOwned_RunsTheAuthorsHooks keeps an author's pre-push checks in force for pushes in their own repository,
+// while Isolated never runs repository hooks.
+func TestOwned_RunsTheAuthorsHooks(t *testing.T) {
+	ctx := context.Background()
+	f, err := gitfixture.New(ctx, map[string][]byte{"rule-library.yaml": []byte("formatVersion: 1\n")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	checkout, err := f.Clone(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pushed, err := f.Commit(ctx, checkout, "Change the library", map[string][]byte{"changes/one.yaml": []byte("summary: One.\n")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(t.TempDir(), "hook-ran")
+	hooks := filepath.Join(t.TempDir(), "hooks")
+	if err := os.Mkdir(hooks, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hooks, "pre-push"), []byte("#!/bin/sh\n: > "+gitfixture.Quote(marker)+"\nexit 1\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.CommandIn(ctx, checkout, "config", "core.hooksPath", hooks); err != nil {
+		t.Fatal(err)
+	}
+	options := Options{GitPath: f.GitPath, Environment: f.Environment}
+	remoteMain := func() string {
+		head, err := f.Command(ctx, "rev-parse", "main")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return head
+	}
+
+	owned, err := Owned(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := owned.Run(ctx, checkout, []string{"push", "--quiet", "origin", "main"}, 1<<20, nil)
+	if err != nil || result.Status == 0 {
+		t.Fatalf("push through Owned succeeded despite a rejecting pre-push hook: %+v, %v", result, err)
+	}
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatal("Owned didn't run the pre-push hook", err)
+	}
+	if head := remoteMain(); head != f.LatestCommit {
+		t.Fatalf("rejected push changed the remote to %s", head)
+	}
+
+	if err := os.Remove(marker); err != nil {
+		t.Fatal(err)
+	}
+	isolated, err := Isolated(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err = isolated.Run(ctx, checkout, []string{"push", "--quiet", "origin", "main"}, 1<<20, nil)
+	if err != nil || result.Status != 0 {
+		t.Fatalf("push through Isolated failed: %+v, %v", result, err)
+	}
+	if _, err := os.Stat(marker); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("Isolated ran a repository hook", err)
+	}
+	if head := remoteMain(); head != pushed {
+		t.Fatalf("remote main is %s, want %s", head, pushed)
+	}
+}
