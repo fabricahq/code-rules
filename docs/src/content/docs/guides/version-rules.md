@@ -114,7 +114,7 @@ Commit the rule and its note together.
 
 ### Add a rule
 
-A new rule needs a note without a `bump`, because its first version is always `1.0.0`:
+Create the rule as usual:
 
 ```sh
 code-rules library add rule practices/testing/verify-backoff \
@@ -122,6 +122,11 @@ code-rules library add rule practices/testing/verify-backoff \
   --when-to-read 'When adding or changing retry delays.' \
   --impact MEDIUM \
   --impact-description 'Prevents retries from overloading a struggling service.'
+```
+
+Then record it. A new rule always starts at version `1.0.0`, so leave out `--bump`:
+
+```sh
 code-rules library change practices/testing/verify-backoff \
   --summary 'Add the rule.'
 ```
