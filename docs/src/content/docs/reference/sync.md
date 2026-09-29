@@ -3,7 +3,7 @@ title: "Sync and recovery"
 description: "When to run sync, build, or check, which files they change, and how to recover from problems."
 ---
 
-The `code-rules project sync` command imports your project's library files and regenerates the guidance your agents read. Run it after adding a library, changing its version choices or selected groups, or to restore imported files.
+The `code-rules project sync` command imports your project's library files and regenerates the guidance your agents read. Run it after adding a library, changing its pins or selected groups or rules, or to restore imported files.
 
 Sync imports the rule versions recorded for each source, so it never adopts newer versions on its own. To move to newer versions, run `code-rules project update`, which reports each rule change and asks you to accept major changes first. See [Update rules](/guides/update/).
 

@@ -26,7 +26,7 @@ Library releases create three kinds of annotated tags. Code Rules ignores other 
 | Tag | Example | Target | Message |
 | --- | --- | --- | --- |
 | Rule version | `practices/testing/verify-retry-limits@1.3.0` | The release commit that published the version. | `<change>: <summary>`, where `<change>` is `new`, `major`, `minor`, or `patch`. When several changes were combined, each further summary line follows on its own line. |
-| Retired rule | `practices/testing/check-retry-backoff@retired` | The release commit where the rule's file no longer exists. | `<reason>: <summary>`; see [Retired rules](#retired-rules). |
+| Retired rule | `practices/testing/check-retry-backoff@retired` | The release commit where the rule's file no longer exists. | `retired: <summary>`, with a `Replaced-by` trailer when a rule replaces it; see [Retired rules](#retired-rules). |
 | Library release | `release/2` | The release commit. | A list of the library release's changes. |
 
 In a rule version tag, the rule ID is the rule's path without `.md`, and the version is plain `major.minor.patch` numbers, without prerelease or build suffixes. A new rule starts at `1.0.0`.
@@ -57,14 +57,15 @@ rules:
   practices/testing/verify-retries: 1.0.0
   practices/testing/verify-retry-limits: 2.0.0
 retired:
-  practices/testing/check-retry-backoff: superseded
+  practices/testing/check-retry-backoff:
+    replacedBy: practices/testing/verify-retries
 ```
 
 | Field | Meaning |
 | --- | --- |
 | `release` | The release number. The first library release is `1`, and each library release adds one. Release numbers aren't semantic versions: a library release can hold changes of every size to different rules, and each rule's version describes its own change. |
 | `rules` | Every current rule's ID and version. |
-| `retired` | Every retired rule's ID and reason, kept permanently so retired IDs aren't reused. |
+| `retired` | Every retired rule's ID, with its `replacedBy` rule when there is one, kept permanently so retired IDs aren't reused. A rule retired without a replacement maps to `{}`. |
 
 The manifest uses one YAML document. Duplicate keys, anchors, aliases, explicit tags, and unknown fields are rejected.
 
@@ -122,8 +123,8 @@ summary: Clarify the incorrect example.
 | --- | --- |
 | `bump` | `major`, `minor`, or `patch`. Required for a changed rule. Omit it for a new rule, which is released as `1.0.0`, and for a retired rule. |
 | `summary` | Required non-blank text. Each line describes one change. Several lines appear when changes were combined. For a retirement, explain why. |
-| `retired` | Optional `superseded` or `withdrawn`. Records that the rule was [retired](#retired-rules), so the note exists while its Markdown file does not. |
-| `replacedBy` | The ID of the rule that replaces a `superseded` rule. Required for `superseded` and rejected otherwise. The replacement must exist in the library when the retirement is released. |
+| `retired` | Optional `true`. Records that the rule was [retired](#retired-rules), so the note exists while its Markdown file does not. |
+| `replacedBy` | Optional, only with `retired: true`: the ID of the rule that replaces the retired one. The replacement must exist in the library when the retirement is released. |
 
 Change notes use one YAML document. Duplicate keys, anchors, aliases, explicit tags, and unknown fields are rejected.
 
@@ -133,18 +134,18 @@ A new rule's note omits `bump`:
 summary: Add the rule.
 ```
 
-A retired rule's note keeps its name after the Markdown file is deleted. A superseded rule names its replacement:
+A retired rule's note keeps its name after the Markdown file is deleted. When a better rule replaces it, name the replacement:
 
 ```yaml
-retired: superseded
+retired: true
 replacedBy: practices/testing/verify-retries
 summary: Covered by the broader rule about testing retries.
 ```
 
-A withdrawn rule has no replacement, so its summary explains why the practice is no longer recommended:
+When nothing replaces it, the summary explains why the practice is no longer recommended:
 
 ```yaml
-retired: withdrawn
+retired: true
 summary: Withdrawn after feedback that agents shouldn't add explanatory comments.
 ```
 
@@ -161,23 +162,18 @@ summary: |
 
 ## Retired rules
 
-**Retiring** a rule ends its history: the library stops publishing it. A rule is retired for one of two reasons:
+**Retiring** a rule ends its history: the library stops publishing it. Retire a rule when a better rule replaces it, such as a narrow retry-limit rule folded into a broader rule about testing retries, or when the practice is no longer recommended, such as a rule about how agents should comment code after the author concludes they shouldn't add those comments at all. The retirement names its replacement when there is one; its summary explains why.
 
-| Reason | Meaning | Example |
-| --- | --- | --- |
-| `superseded` | A better rule replaces it. The retirement names the replacement, a rule in the same library. | A narrow retry-limit rule is folded into a broader rule about testing retries. |
-| `withdrawn` | The practice is no longer recommended, because it turned out to be wrong or unhelpful. It has no replacement. | A rule about how agents should comment code, after the author concludes agents shouldn't add those comments at all. |
-
-To retire a rule, delete its Markdown file and asset directory and add a [change note](#change-notes) with the reason. The library release creates an annotated `<rule-id>@retired` tag on the release commit where the file no longer exists, and lists the rule under `retired` in the manifest. The tag message starts with the reason and summary. A superseded rule's message ends with a `Replaced-by` [trailer](https://git-scm.com/docs/git-interpret-trailers):
+To retire a rule, delete its Markdown file and asset directory and add a [change note](#change-notes) with `retired: true`. The library release creates an annotated `<rule-id>@retired` tag on the release commit where the file no longer exists, and lists the rule under `retired` in the manifest. The tag message starts with `retired:` and the summary. When a rule replaces it, the message ends with a `Replaced-by` [trailer](https://git-scm.com/docs/git-interpret-trailers):
 
 ```text
-superseded: Covered by the broader rule about testing retries.
+retired: Covered by the broader rule about testing retries.
 
 Replaced-by: practices/testing/verify-retries
 ```
 
-The rule's last numbered version stays its final version, and projects can still import it. A retired rule's ID can't be reused; give a new rule a new ID.
+The rule's last numbered version stays its final version, and projects can still import it by pinning it. A retired rule's ID can't be reused; give a new rule a new ID.
 
-Projects that update past a retirement see its reason, summary, and any replacement. A retirement of a rule the project uses requires the same consent as a major change.
+Projects that update past a retirement see it in the update preview, with its summary and any replacement.
 
-Renaming or moving a rule changes its ID. Record it as retiring the old ID as `superseded`, replaced by the new ID, which starts at `1.0.0`.
+Renaming or moving a rule changes its ID. Record it as retiring the old ID, replaced by the new ID, which starts at `1.0.0`.

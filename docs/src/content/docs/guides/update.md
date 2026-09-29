@@ -1,11 +1,11 @@
 ---
 title: "Update rules"
-description: "Review each rule change, accept major changes deliberately, and preserve local decisions."
+description: "Preview each rule change, keep rules where they are when you need to, and adopt the rest deliberately."
 ---
 
-Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, or make rules stricter. Your project adopts those changes only when you run `code-rules project update`.
+Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them.
 
-In this guide, you'll update your libraries, review each rule change, accept major changes or pin a rule to its current version, and commit the result. You'll also learn how to choose versions rule by rule, import one library release, change your selection of groups, and recover from a failed update.
+In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, update a single library or rule, and commit the result. You'll also learn how to import one library release, change which rules you import, and recover from a failed update.
 
 Start with a project that already [imports rules](/guides/select-rules/). For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
@@ -13,8 +13,8 @@ Start with a project that already [imports rules](/guides/select-rules/). For de
 
 Two commands import library rules, and they do different things:
 
-- **`code-rules project sync`** imports the rule versions already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It chooses a rule's version again only for a new source or group, or after you change that rule's version choice.
-- **`code-rules project update`** moves rules to newer versions, as far as each source's `versions` allows. It reports every rule change and asks you to accept major changes and retirements before it writes anything.
+- **`code-rules project sync`** imports the rule versions already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It chooses a version only for a rule you newly selected, or when you add or change a pin.
+- **`code-rules project update`** looks for newer rule versions, new rules, and retirements, shows you a preview, and applies the changes once you confirm.
 
 Neither command runs during ordinary coding, review, or `code-rules project check`, so rules never change underneath your agents.
 
@@ -26,122 +26,117 @@ From the project root, run:
 code-rules project update
 ```
 
-To update only some libraries, name their sources, such as `code-rules project update fabrica`.
-
-By default, `code-rules project update` moves every rule to its newest version and reports each [rule version](/concepts/rule/#how-a-rule-is-versioned) that changed:
+The command previews every change in each library, with each [rule version](/concepts/rule/#how-a-rule-is-versioned)'s summary, then asks you to confirm:
 
 ```text
-fabrica
-  major    practices/testing/verify-retry-limits           1.3.0 -> 2.0.0
+team
+  major    practices/testing/verify-retry-limits     1.3.0 -> 2.0.0
            Require a test at the limit for every retry policy.
-  minor    practices/code-design/organize-code-by-feature  1.0.0 -> 1.1.0
-           Add a Go example.
-  new      practices/testing/verify-retries                1.0.0
+  major    techs/react/prefer-server-components      1.4.0 -> 2.0.0
+           Require server components for all data fetching.
+  minor    techs/react/test-hooks-in-isolation       2.1.0 -> 2.2.0
+           Add an example for custom hooks.
+  new      practices/testing/verify-retries          1.0.0
            Add the rule.
-  retired  practices/testing/check-retry-backoff           1.2.0 superseded
+  retired  practices/testing/check-retry-backoff     1.2.0
            Replaced by practices/testing/verify-retries.
            Covered by the broader rule about testing retries.
-  held     practices/testing/verify-backoff                1.3.0
+  pinned   practices/testing/verify-backoff          1.3.0
            Newest version: 2.0.0.
-
-Nothing was updated: 1 major change and 1 retirement affect
-rules this project uses. Review them, then accept them all:
-  code-rules project update --accept-major
-Or keep a rule at its current version by adding its entry
-under sources.fabrica.versions.rules:
-  practices/testing/verify-retry-limits: "1.3.0"
-  practices/testing/check-retry-backoff: "1.2.0"
+           Reason: Waiting on the author's response to #45.
 ```
-
-Each line shows the change, the rule, and its old and new versions, followed by the summaries of every version in between. A retired rule shows its last version, the reason it was retired, and any replacement. A held rule shows its newest version without moving to it, because its version choice keeps it where it is.
 
 | Change | What it means for your project |
 | --- | --- |
 | `patch` | Work that complied with the previous version still complies. The rule adds no new guidance. |
 | `minor` | Work that complied with the previous version still complies. The rule adds new guidance. |
 | `major` | Work that complied with the previous version could fail this one. |
-| `new` | A rule added to a group you import. |
-| `retired` | The library stopped publishing the rule, so your agents will stop reading it. `superseded` means a named rule replaces it. `withdrawn` means the author no longer recommends the practice. |
-| `held` | A newer version exists, but the rule's [version choice](#choose-versions-rule-by-rule) keeps it where it is. |
+| `new` | A rule the library added to a group you import. |
+| `retired` | The library stopped publishing the rule, so your agents will stop reading it. The preview names its replacement when there is one. |
+| `pinned` | A newer version exists, but your [pin](#keep-a-rule-at-its-current-version) keeps the rule where it is. |
 
-When no rule your project uses has a major change or retirement, `code-rules project update` applies the changes right away. Otherwise it changes nothing and exits with status `1`.
+Read the major changes, new rules, and retirements closely: each can change what your code must do. Then confirm, and the update applies exactly the changes the preview showed.
 
-## Accept major changes
-
-For each major change and retirement, read the new rule, or the reason for the retirement, and decide what your project should do. Compare the old and new text in `.code-rules/vendor/<source-name>/` after updating, or in the library's GitHub Release pages. Then choose one of these for each rule:
-
-- **Adopt it.** Plan any work your code needs to follow the new obligation. For a superseded rule, read its replacement, and check that you import the replacement's group.
-- **Keep the current version.** [Pin the rule](#choose-versions-rule-by-rule) to the version you have, by pasting the entry the command printed into configuration. This also keeps a retired rule you still want to follow.
-- **Stop using it.** Add an [exclusion](/guides/select-rules/#exclude-a-rule) with your reason.
-
-When you've decided to adopt every major change and retirement, accept them all:
+In a script or CI job, where there's no terminal to confirm in, the command only shows the preview. To apply it, pass `--yes`:
 
 ```sh
-code-rules project update --accept-major
+code-rules project update --yes
 ```
 
-To accept only some, name each rule you accept. Use the rule's full ID, including its source name, after `=`:
+## Keep a rule at its current version
 
-```sh
-code-rules project update \
-  --accept-major=fabrica:practices/testing/verify-retry-limits \
-  --accept-major=fabrica:practices/code-design/comment-intent
-```
-
-The update applies only when every major change and retirement of a rule you use is accepted. Pin or exclude the rest first, then run the command again.
-
-Major changes to rules you exclude or replace don't need consent, because your agents don't read them. `code-rules project update` still lists them so you can check that your exception still makes sense. If a rule you exclude or replace is retired, your exception no longer points at anything. The command stops and tells you which entry to delete.
-
-## Choose versions rule by rule
-
-By default, every rule follows its newest version. To treat some rules differently, add `versions` to the source in `.code-rules/config.yaml`. For example, to keep `verify-backoff` at version 1.3.0 while the rest of the library moves forward:
+When an update brings a change you're not ready for, keep that rule where it is with a **pin**, and let everything else update. A pin records the version and why you're keeping it:
 
 ```yaml
 sources:
-  fabrica:
-    repository: https://github.com/fabricahq/public-rules.git
+  team:
+    repository: https://github.com/acme/.code-rules.git
     groups:
+      - techs/react
       - practices/testing
-    versions:
-      rules:
-        practices/testing/verify-backoff: "1.3.0"
+    pins:
+      practices/testing/verify-retry-limits:
+        version: "1.3.0"
+        reason: Waiting on the author's response to acme/.code-rules#45.
     exclude: {}
     replace: {}
 ```
 
-Each rule can be set to:
+There are three ways to add one:
 
-| Setting | Effect |
-| --- | --- |
-| `latest` | Follow the newest version. This is the default. |
-| An exact version, such as `"1.3.0"` | Pin the rule to exactly that version. Update still reports newer versions. |
-| A constraint, such as `"~> 1.3"` | Take any version from 1.3 up to, but not including, 2.0: fixes and additions, never a major change. |
+- **During the update.** In a terminal, `code-rules project update` asks about each major change and retirement: adopt it, or keep the current version. Choose to keep it, give a reason, and the command writes the pin.
+- **With `--keep`.** Pin rules as part of the update, without prompts:
 
-To keep a rule at the version you have, pin it to that version. The rule's current version is in `.code-rules/vendor/<source-name>/_source.json` and in its generated rule file, and `code-rules project update` prints the pinning entry when it stops for a major change. An agent can look the version up and add the entry for you.
+  ```sh
+  code-rules project update \
+    --keep team:practices/testing/verify-retry-limits \
+    --reason "Waiting on the author's response to acme/.code-rules#45."
+  ```
 
-To reverse the default, keeping every rule where it is and letting only chosen rules move, set `default: hold`:
+- **By hand.** Add the pin to `.code-rules/config.yaml`, using the version recorded in `.code-rules/vendor/<source-name>/_source.json`, and run `code-rules project sync`. An agent asked to keep a rule at its current version can do this for you.
 
-```yaml
-versions:
-  default: hold
-  rules:
-    practices/testing/verify-retry-limits: latest
+A pinned rule keeps its identity: it still appears as the library's rule, with its version, in your generated guidance and provenance. Every update preview lists it, with its newest version and your reason, so the decision isn't forgotten.
+
+When you're ready to adopt the newer version, delete the pin and update that rule:
+
+```sh
+code-rules project update team:practices/testing/verify-retry-limits
 ```
 
-After editing `versions`, run `code-rules project sync`. For each rule whose choice you changed, sync applies the new choice; for example, setting a rule to `"1.3.0"` moves it to 1.3.0, and changing it to `latest` moves it to its newest version. Editing `versions` is itself your consent, so sync doesn't ask for `--accept-major`. See [Choose versions](/reference/configuration/#choose-versions) for every option.
+A pin can also move a rule to a specific version: set `version`, and `code-rules project sync` moves the rule to exactly that version, up or down. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules. See [Pin a rule](/reference/configuration/#pin-a-rule) for the details.
 
-A pinned rule keeps its identity: it still appears as the library's rule, with its version, in your generated guidance and provenance. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules.
+## Update one library or one rule
+
+To limit an update, name what to update:
+
+```sh
+code-rules project update team
+code-rules project update team:techs/react/prefer-server-components
+```
+
+The first updates only the `team` library. The second moves only that rule; nothing else changes, including new rules. The rest waits for your next full update. Nothing is recorded in configuration, so use a pin when you want the decision to last.
+
+## Handle retirements
+
+A retired rule appears in the preview with its last version, the summary explaining why, and its replacement if it has one. When you confirm, the rule is dropped. For a rule with a replacement, read the replacement, and check that you import its group.
+
+To keep following a retired rule, pin it to its last version. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it.
 
 ## Import one library release
 
-To import exactly what one library release published, set `ref` to its tag:
+To import exactly what one library release published, set the source's `ref` to its tag:
 
 ```yaml
-versions:
-  ref: release/5
+sources:
+  vendor-rules:
+    repository: https://github.com/example/engineering-rules.git
+    groups: "*"
+    ref: release/5
+    exclude: {}
+    replace: {}
 ```
 
-`code-rules project update` doesn't move this source. To import another library release, change the tag and run `code-rules project sync`. To go back to choosing versions rule by rule, remove `ref`.
+`code-rules project update` doesn't move this source. To import another library release, change the tag and run `code-rules project sync`. To go back to following rule versions, remove `ref`.
 
 `ref` also accepts any other tag or a full commit SHA, which library authors use to test unreleased changes. Rules imported that way have no version, so Code Rules warns about them every time you sync or update. See [Import one revision](/reference/configuration/#import-one-revision).
 
@@ -158,7 +153,7 @@ Commit the configuration, vendor snapshots, and generated files together.
 ## Change selected groups or rules
 
 Edit the relevant `sources.<name>.groups` or `sources.<name>.rules` and run `code-rules project sync`.
-`code-rules project sync` imports newly selected rules at the newest versions their version choices allow, and leaves the rest of your rules unchanged.
+`code-rules project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
 Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.yaml` exists.
@@ -167,8 +162,8 @@ If it already exists, keep the local files unchanged. Otherwise author group met
 ## Recover from a failed update
 
 `code-rules project update` and `code-rules project sync` validate and render before installing output.
-A failed import, or an update that needs your consent, preserves the previous working ruleset.
+A failed import, or an update you didn't confirm, preserves the previous working ruleset.
 Interrupted installations must be detected and recovered before another operation can claim success.
 
 Rules never change automatically during coding, review, or offline checks.
-Code Rules keeps the versions it recorded until you change `versions` or run `code-rules project update`.
+Code Rules keeps the versions it recorded until you change your selection, pins, or `ref`, or confirm an update.

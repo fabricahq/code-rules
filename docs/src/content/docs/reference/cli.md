@@ -37,11 +37,11 @@ Record a library in project configuration without fetching it. `ALIAS` is the so
 | --- | --- |
 | `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
 | `--groups GROUP` | Groups to import in full. Repeat for multiple group IDs, or supply one selector: `*`, `practices/*`, or `techs/*`. Quote wildcard values so your shell does not expand them. |
-| `--rules RULE` | Individual rules to import without the rest of their group, such as `practices/testing/verify-retry-limits`. Repeat for multiple rules. A rule whose group `--groups` also selects is an error. |
-| `--ref REF` | Optional. Import the library exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as `versions.ref`. |
+| `--rules RULE` | Individual rules to import without the rest of their group, such as `practices/testing/verify-retry-limits`. Repeat for multiple rules. |
+| `--ref REF` | Optional and advanced. Import the library exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as the source's `ref`. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Supply at least one `--groups` or `--rules`. Without `--ref`, the source follows each rule's newest version. To pin or constrain individual rules, edit the source's `versions` in configuration; see [Choose versions](/reference/configuration/#choose-versions).
+Supply at least one `--groups` or `--rules`. Without `--ref`, the source follows each rule's newest version when the project updates. To pin individual rules, add `pins` to the source in configuration, or use `code-rules project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
 
 Library addition preserves existing source exceptions and local files. Pass each group ID as a separate option, rather than a comma-separated flag value:
 
@@ -124,55 +124,48 @@ Import the rule versions recorded for each source, validate their files, and rep
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Sync needs access to every configured repository and uses your existing Git credentials. It never moves a rule to a newer version on its own: `vendor/<source-name>/_source.json` records each rule's version and the `versions` configuration it was chosen under, and sync restores that version. Sync chooses a rule's version again only when:
+Sync needs access to every configured repository and uses your existing Git credentials. It never moves a rule to a newer version on its own: it restores the version recorded in `vendor/<source-name>/_source.json`. Sync chooses a rule's version only when configuration asks for something the record doesn't have:
 
-- The source is new, its repository changed, or the rule's group is newly selected.
-- The rule's version choice changed since it was recorded. Its choice is its `versions.rules` entry, the source's `default`, or the source's `ref`.
-
-A rule's version is then chosen from its current choice:
-
-| Choice | Version chosen |
+| Situation | Version sync imports |
 | --- | --- |
-| `latest` | The newest version. |
-| `default: hold` | The recorded version, or the newest if none is recorded. |
-| A constraint or exact version | The recorded version if it satisfies the constraint; otherwise the highest version that does. |
-| `ref` | The rule as it was at that revision: the version a library release published, or `null` for unreleased changes. |
+| A new source, a changed repository, or a newly selected group or rule | Each new rule's newest version. |
+| A pin added or changed | The pinned version, up or down. |
+| A pin removed | The recorded version, unchanged. The next update offers newer versions. |
+| `ref` added or changed | The rule as it was at that revision: the version a library release published, or `null` for unreleased changes. |
+| `ref` removed | The recorded version when it's a published version; otherwise the newest version. |
 
-Editing `versions` is itself consent, so sync doesn't ask for `--accept-major`.
+These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
-To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
+When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion, replacement, or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything.
 
 ### project update
 
 ```sh
-code-rules project update [SOURCE...] [options]
+code-rules project update [SOURCE | SOURCE:RULE ...] [options]
 ```
 
-Move each imported rule to the newest version its source's `versions` setting allows, report what changed, then regenerate guidance like sync. `SOURCE` limits the update to the named sources; by default, every source is updated.
+Preview newer rule versions, new rules, and retirements, then apply them after you confirm, and regenerate guidance like sync. With no arguments, every source is updated. `SOURCE`, such as `team`, limits the update to one library. `SOURCE:RULE`, such as `team:techs/react/prefer-server-components`, moves only that rule; nothing else changes, including new rules.
 
 | Option | Meaning |
 | --- | --- |
-| `--accept-major[=RULE]` | Accept major changes and retirements of rules the project uses. On its own, accepts all of them. With a source-qualified rule ID, such as `--accept-major=fabrica:practices/testing/verify-retry-limits`, accepts only that rule's; repeat it to accept several. Use the `=` form to give a rule ID. |
+| `--yes` | Apply the previewed changes without asking. Required to apply changes without a terminal, or with `--json`. |
+| `--keep SOURCE:RULE` | Pin this rule at its current version before applying the update, so it stays where it is. Repeat for several rules. Requires `--reason`. |
+| `--reason TEXT` | The reason recorded with each pin that `--keep` writes. |
 
-How far each rule moves depends on its [version setting](/reference/configuration/#choose-versions):
+The preview lists, for each source:
 
-| Setting | Update moves the rule to |
+| Change | Meaning |
 | --- | --- |
-| `latest`, the default | Its newest version. |
-| A constraint, such as `"~> 1.3"` | Its highest version that satisfies the constraint. |
-| `default: hold`, or an exact version | Nowhere. Update reports any newer version. |
+| `major`, `minor`, or `patch` | The rule's old and new versions, and the summary of every version in between. |
+| `new` | A rule the library added to a selected group, at its newest version. |
+| `retired` | A rule the library retired, with its last version, its summary, and its replacement when there is one. Applying the update drops it. |
+| `pinned` | A pinned rule that has a newer version. It doesn't move; the preview shows the pin's reason. |
 
-Sources that use `versions.ref` don't move; change `ref` and run `code-rules project sync` instead.
+In a terminal, `code-rules project update` shows the preview and asks for confirmation. For each major change and retirement, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed.
 
-Update reports each rule that changed: its change (`new`, `major`, `minor`, `patch`, or `retired`), its old and new versions, and each version's summary. A retired rule shows its reason, `superseded` or `withdrawn`, and any replacement. Rules that stayed put because of their setting are listed with their newest available version.
+`--keep` and pins in configuration never change which rules are imported. When a rule you exclude, replace, or select individually is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update.
 
-Rules that the library adds to a selected group join at the newest version their choice allows, whatever `versions.default` is, and update reports them as new. Individually selected rules never bring in other rules.
-
-`code-rules project update` writes nothing, and exits with status `1`, while any rule the project uses would take a major change or retirement that you haven't accepted, even when the rule's constraint allows it. It lists each such rule with the option that accepts it, and with the `versions.rules` entry that pins it to its current version, ready to paste into configuration. Review the reported changes, then rerun with `--accept-major` to accept them all, or with `--accept-major=RULE` for each rule you accept. To keep a rule where it is instead, add its pinning entry or exclude it, and the update applies without it. Excluded and replaced rules don't need consent; the command lists their changes so you can review your exceptions.
-
-A rule pinned to an exact version, or held by `default: hold`, stays at that version after it's retired upstream; update reports the retirement. When a rule that configuration excludes, replaces, or selects individually is retired and would no longer be imported, that entry points at nothing. Update reports that stale entry, names it for you to delete, and writes nothing. This isn't a consent check.
-
-Group metadata and the library's license files come from the newest library release among the rule versions the project imports.
+Sources that use `ref` don't move; change `ref` and run `code-rules project sync` instead. Group metadata and the library's license files come from the newest library release among the rule versions the project imports.
 
 See [Update rules](/guides/update/) for the workflow.
 
@@ -275,8 +268,8 @@ Create or update the [change note](/reference/rule-versions/#change-notes) for o
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--bump LEVEL` | `major`, `minor`, or `patch`. Required for a rule that has a version. Not accepted for a new or retired rule. |
 | `--summary TEXT` | Required. One line describing the change. |
-| `--retire REASON` | Record that the rule is [retired](/reference/rule-versions/#retired-rules): `superseded` or `withdrawn`. The rule's Markdown file must already be gone. |
-| `--replaced-by ID` | The rule that replaces a `superseded` rule. Required with `--retire superseded`, and rejected otherwise. |
+| `--retire` | Record that the rule is [retired](/reference/rule-versions/#retired-rules). The rule's Markdown file must already be gone. |
+| `--replaced-by ID` | Optional with `--retire`: the rule that replaces the retired one. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
 A rule without any version is new, and its note omits `bump`. When a note already exists, the command keeps the larger of the two bumps and appends the new summary line. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. A rule that was never released can't be retired: delete its Markdown file and its note together.
@@ -304,7 +297,7 @@ After the first library release, check compares each rule's [versioned content](
 - A shared file changed, and a rule that links to it has no note.
 - A new rule has no note.
 - A released rule was deleted without a `retired` note.
-- A superseded rule's `replacedBy` isn't a rule in the library.
+- A retired rule's `replacedBy` isn't a rule in the library.
 - A rule reuses the ID of a retired rule.
 - A note's rule is unchanged since the last library release, so the note is stale.
 - A note has no matching rule and isn't a retirement, so the note is orphaned.

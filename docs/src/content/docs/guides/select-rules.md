@@ -29,7 +29,7 @@ Agents choose which installed groups apply to each task using the [rule-loading 
 In `.code-rules/config.yaml`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
 
 - **Where to get it:** `repository` is the library's Git URL.
-- **Which versions to use:** omit `versions` to follow each rule's newest version, or choose versions rule by rule. See [Choose versions](/reference/configuration/#choose-versions).
+- **Which versions to use:** by default, each rule follows its newest version when you update. Add `pins` to keep individual rules at exact versions. See [Choose versions](/reference/configuration/#choose-versions).
 - **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`. A selected group includes rules the library adds to it later.
 - **Which individual rules to import:** optionally, `rules` lists single rules to import without the rest of their group, such as `techs/go/wrap-errors-with-operation`. Rules added to that group later don't join. See [Select individual rules](/reference/configuration/#select-individual-rules).
 
@@ -84,7 +84,7 @@ sources:
 ```
 
 These are partial snippets, not complete source definitions.
-Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, version choices, and groups.
+Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, pins, and groups.
 Rule IDs are illustrative and must exist in the selected source groups.
 An exclusion removes only the named source's rule, without introducing a replacement.
 The same rule path in another source remains active.
@@ -113,7 +113,7 @@ Include the intended scope and exceptions in that definition.
 
 ## Generate and review
 
-When sources, version choices, or selected groups change, run `code-rules project sync`.
+When sources, pins, or selected groups or rules change, run `code-rules project sync`.
 For changes limited to local rules or exceptions, run `code-rules project build` against the existing vendor snapshots.
 Review and commit the updated generated files with their inputs.
 

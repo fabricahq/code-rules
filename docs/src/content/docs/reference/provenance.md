@@ -25,7 +25,7 @@ Code Rules writes these files. To change the information they describe, edit you
 
 ## How the records are created
 
-1. **You select libraries and rules.** Configuration records the libraries, groups, version choices, exclusions, and replacements your project wants to use.
+1. **You select libraries and rules.** Configuration records the libraries, selected groups and rules, pins, exclusions, and replacements your project wants to use.
 2. **Sync and update record what they import.** `code-rules project sync` and `code-rules project update` copy each library's selected files and write its `_source.json` record with the exact Git commit, rule versions, and file checksums.
 3. **Generation records the result.** Sync, update, or build combines the imported and local rules, then writes `generated/provenance.json` alongside the guidance your agents read.
 
@@ -81,7 +81,7 @@ The same `generated/provenance.json` file contains three other top-level fields:
 | Field | What it records |
 | --- | --- |
 | `toolVersion` | The Code Rules version that generated the files. |
-| `sources` | Each named library, its repository, requested `versions`, the library release that supplied its group metadata and terms, selected groups, and declared terms. |
+| `sources` | Each named library, its repository, its `pins` and `ref`, the library release that supplied its group metadata and terms, selected groups, and declared terms. |
 | `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
 
 For each source, `groupSelection` and `ruleSelection` record what you asked for, while `groups` lists the groups imported. For example, `"practices/*"` asks for all practice groups; the list records which ones existed in the imported library.
@@ -96,7 +96,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 {
   "formatVersion": 2,
   "repository": "https://github.com/fabricahq/public-rules.git",
-  "versions": { "default": "hold", "rules": { "practices/testing/verify-retry-limits": "latest" } },
+  "pins": { "practices/testing/verify-backoff": { "version": "1.3.0", "reason": "Waiting on the author's response to #45." } },
   "release": 3,
   "resolvedCommit": "9e07b3d6f0c1a4b85e2d7c3f9a61b04e8d52c7aa",
   "groupSelection": ["practices/testing"],
@@ -114,7 +114,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | --- | --- |
 | `formatVersion` | The snapshot format version, `2`. |
 | `repository` | The library's repository address. |
-| `versions` | The `versions` choices from configuration when the snapshot was recorded. Omitted when configuration has none. |
+| `pins` and `ref` | The source's pins and `ref` from configuration when the snapshot was recorded. Each is omitted when configuration has none. |
 | `release` | The newest library release among the imported rule versions, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
 | `rules` | Each imported rule's ID, its `version`, the `release` that published it, and that library release's full `commit`. |
@@ -131,11 +131,11 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 
 ### What offline checks can verify
 
-`code-rules project build` and `code-rules project check` compare the recorded library selection with configuration and compare stored files with their checksums. Version checks depend on how you chose versions:
+`code-rules project build` and `code-rules project check` compare the recorded library selection with configuration and compare stored files with their checksums. Version checks depend on how the source chooses versions:
 
 | Choice | What Code Rules verifies offline |
 | --- | --- |
-| Rule by rule, the default | Each recorded version satisfies its rule's choice: an exact version or constraint matches, and `latest` or `hold` accepts the recorded version. |
+| Newest versions, the default | Each pinned rule records its pinned version. Other rules may record any published version. |
 | One revision, with `ref` | For a commit SHA, `resolvedCommit` equals it. For a library release, every rule records the version that library release published. A tag's recorded commit is used without checking where the tag points now. |
 
 For every source, offline checks also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions.

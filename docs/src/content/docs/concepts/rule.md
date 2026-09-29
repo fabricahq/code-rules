@@ -49,7 +49,7 @@ A library rule has its own [semantic version](https://semver.org/), such as `1.3
 - **Minor:** work that complied with the previous version still complies, and this version adds new guidance.
 - **Patch:** work that complied with the previous version still complies, and this version adds no new guidance.
 
-A rule can also be **retired**: superseded by a better rule, or withdrawn because the practice is no longer recommended.
+A rule can also be **retired**, when a better rule replaces it or the practice is no longer recommended.
 
 Each version is a Git tag in the library, such as `practices/testing/verify-retry-limits@1.3.0`, with a summary of what changed. The rule file itself has no version field. Library authors record each change in a change note, and a library release turns the notes into new versions.
 

@@ -77,9 +77,9 @@ The same files support implementation and review. Your project chooses how to ch
 
 ## What changes when you update
 
-Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `code-rules project sync` again imports those same versions, so every checkout of the project gets the same rules. `code-rules project sync` chooses a rule's version again only when the source or its groups are new, or the rule's version choice changed since it was recorded; see [project sync](/reference/cli/#project-sync).
+Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `code-rules project sync` again imports those same versions, so every checkout of the project gets the same rules. `code-rules project sync` chooses a rule's version only for a newly selected rule, or when you add, change, or remove a pin or `ref`; see [project sync](/reference/cli/#project-sync).
 
-`code-rules project update` moves each rule to the newest version its source's [`versions`](/reference/configuration/#choose-versions) allows. Rules pinned to an exact version, or held by `default: hold`, stay where they are, and sources that use `versions.ref` don't move.
+`code-rules project update` previews each rule's newest version, and applies it once you confirm, unless the rule is [pinned](/reference/configuration/#pin-a-rule). Sources that use `ref` don't move.
 
 With the same configuration and recorded versions, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
 
@@ -89,7 +89,7 @@ With the same configuration and recorded versions, an import produces the same p
 
 The newest library release is the one with the highest `release/<number>` tag. Each [release](/reference/rule-versions/#library-releases) commit holds a manifest listing every rule's version at that library release, and each rule version has its own tag on the release commit that published it.
 
-To choose a rule's version, Code Rules lists the rule's version tags and picks the newest one its `versions` choice allows. It then imports the rule's [versioned content](/reference/rule-versions/#what-a-version-covers), its Markdown file, its asset directory, and the shared files it links to, from that version's release commit. Rules at different versions keep the shared files they were written with; Code Rules stores each version's copy separately and points each rule's links at its own copy.
+To choose a rule's version, Code Rules lists the rule's version tags and picks the newest one, or the one the rule is pinned to. It then imports the rule's [versioned content](/reference/rule-versions/#what-a-version-covers), its Markdown file, its asset directory, and the shared files it links to, from that version's release commit. Rules at different versions keep the shared files they were written with; Code Rules stores each version's copy separately and points each rule's links at its own copy.
 
 A rule absent from a library release was retired, and its `<rule-id>@retired` tag records why. A rule pinned to an earlier version can still import that version.
 
@@ -166,5 +166,5 @@ When finding the newest library release, Code Rules can report:
 
 | Error | Meaning and next step |
 | --- | --- |
-| `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with `versions.ref`. |
-| `version-not-found` | No published version of a rule satisfies its constraint, or the tag or commit in `versions.ref` doesn't exist. Check the constraint or `ref`. |
+| `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with the source's `ref`. |
+| `version-not-found` | A pin names a version the rule never published, or the tag or commit in `ref` doesn't exist. Check the pin or `ref`. |

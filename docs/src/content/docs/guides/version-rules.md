@@ -34,22 +34,22 @@ A few more conventions:
 
 ## Retired rules
 
-Sometimes a rule shouldn't change; it should stop. **Retiring** a rule ends its history: the library stops publishing it, and its last version stays its final version. A retirement always says why, and there are two reasons:
+Sometimes a rule shouldn't change; it should stop. **Retiring** a rule ends its history: the library stops publishing it, and its last version stays its final version. A retirement always explains why, and it usually happens for one of two reasons:
 
-- **Superseded:** a better rule replaces it. For example, you fold a narrow rule about retry limits into a broader rule about testing retries. The retirement names the replacement, so projects know what to adopt instead.
-- **Withdrawn:** the practice is no longer recommended. For example, you published a rule about how agents should comment code, then concluded from feedback that agents shouldn't add those comments at all. There's no replacement; the summary explains why the advice was withdrawn.
+- **A better rule replaces it.** For example, you fold a narrow rule about retry limits into a broader rule about testing retries. The retirement names the replacement, so projects know what to adopt instead.
+- **The practice is no longer recommended.** For example, you published a rule about how agents should comment code, then concluded from feedback that agents shouldn't add those comments at all. There's no replacement; the summary explains why the advice was withdrawn.
 
-Code Rules records a retirement with a `<rule-id>@retired` tag, whose message gives the reason, the summary, and any replacement. A retired rule's ID is never reused.
+Code Rules records a retirement with a `<rule-id>@retired` tag, whose message gives the summary and any replacement. A retired rule's ID is never reused.
 
-Retiring a rule a project uses is as disruptive as a major change, because its agents stop following the rule. So projects accept retirements the same way they accept major changes.
+Retiring a rule a project uses is as disruptive as a major change, because its agents stop following the rule. Projects see retirements in their update preview, next to major changes.
 
 ## How projects use rule versions
 
 Projects import rules from your library. Each imported rule's version appears in the project's generated guidance, so agents and reviewers can cite the exact version they followed.
 
-A project keeps the versions it imported until someone runs `code-rules project update`, which lists each rule that changed, with its old and new versions and your summaries. It applies patch and minor changes directly. It stops for major changes and retirements until someone on the project accepts them, because those can change what the project's code must do. See [Update rules](/guides/update/).
+A project keeps the versions it imported until someone runs `code-rules project update`, which previews each rule that changed, with its old and new versions and your summaries, plus new and retired rules. Nothing applies until someone on the project confirms, so major changes, which can change what the project's code must do, get reviewed first. See [Update rules](/guides/update/).
 
-Projects can also choose versions rule by rule: pin one rule to a version, or accept only compatible updates, while the rest moves forward. Projects import only released versions, unless one deliberately imports an exact commit, so changes waiting to be released don't reach them.
+A project can also pin a rule to a version, with a reason, while the rest moves forward. That's how projects hold back one major change, often while they give you feedback on it. Projects import only released versions, unless one deliberately imports an exact commit, so changes waiting to be released don't reach them.
 
 ## Library releases
 
@@ -140,24 +140,24 @@ code-rules library change practices/testing/verify-backoff \
 
 ### Retire a rule
 
-Delete the rule's Markdown file and its asset directory, then record the retirement with its reason.
+Delete the rule's Markdown file and its asset directory, then record the retirement.
 
-When a better rule replaces it, retire it as superseded and name the replacement:
+When a better rule replaces it, name the replacement:
 
 ```sh
 code-rules library change practices/testing/verify-retry-limits \
-  --retire superseded \
+  --retire \
   --replaced-by practices/testing/verify-retries \
   --summary 'Covered by the broader rule about testing retries.'
 ```
 
 The replacement must exist in the library by the time the retirement is released. It can be a new rule in the same library release.
 
-When the practice itself is no longer recommended, retire it as withdrawn, and explain why in the summary:
+When the practice itself is no longer recommended, leave out `--replaced-by`, and explain why in the summary:
 
 ```sh
 code-rules library change practices/code-design/comment-intent \
-  --retire withdrawn \
+  --retire \
   --summary "Withdrawn after feedback that agents shouldn't add explanatory comments."
 ```
 
@@ -165,7 +165,7 @@ The library release creates the rule's `@retired` tag. A rule that was never rel
 
 ### Rename a rule
 
-A rename changes the rule's ID. Move the file, add a new-rule note for the new ID, and retire the old ID as superseded by the new one. Projects see the old rule retired, with the new rule as its replacement.
+A rename changes the rule's ID. Move the file, add a new-rule note for the new ID, and retire the old ID with the new ID as its replacement. Projects see the old rule retired, with the new rule as its replacement.
 
 ### Change a shared file
 

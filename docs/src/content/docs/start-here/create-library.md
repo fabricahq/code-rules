@@ -145,26 +145,35 @@ git add .github README.md rule-library.yaml LICENSE.md practices/
 git commit -m "Create the first shared rule"
 ```
 
-Create an empty repository on your Git host, then replace the example URL below with its Git URL and push:
+Create an empty repository on GitHub, then replace the example URL below with its Git URL:
 
 ```sh
 git remote add origin https://github.com/YOUR-ORG/engineering-rules.git
+```
+
+The release workflow publishes library releases by opening a pull request, which GitHub doesn't allow workflows to do by default. Allow it in **Settings > Actions > General** by selecting **Allow GitHub Actions to create and approve pull requests**, or run:
+
+```sh
+gh api --method PUT 'repos/{owner}/{repo}/actions/permissions/workflow' \
+  -f default_workflow_permissions=read \
+  -F can_approve_pull_request_reviews=true
+```
+
+Then push:
+
+```sh
 git push -u origin HEAD
 ```
 
-Now publish your first library release:
+The workflow runs and opens a "Library release" pull request. Because this is your first library release, the pull request's only change is creating the release manifest, `code-rules-release.yaml`, which gives every rule version `1.0.0`. Review it on GitHub and merge it.
 
-```sh
-code-rules library release
-```
-
-This is your first library release, so every rule gets version `1.0.0`. `code-rules library release` commits a release manifest, `code-rules-release.yaml`, that lists each rule's version. It tags that commit as `release/1` and as `practices/error-handling/make-errors-actionable@1.0.0`, pushes the commit and tags, and creates a GitHub Release page with the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tags only. To skip the GitHub Release page, run `code-rules library release --no-github-release` instead.
-
-The workflow you pushed also opened a "Library release" pull request for this first library release. After you publish it from your machine, the workflow closes that pull request, because nothing is left to publish. From the second library release on, you'll publish library releases by merging that pull request instead.
+The workflow then publishes the library release: it tags the merged commit as `release/1` and as `practices/error-handling/make-errors-actionable@1.0.0`, and creates a GitHub Release page that announces it.
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 
-Each rule has its own version. From now on, every change to a rule needs a **change note**, recorded with `code-rules library change`, that tells projects what changed. Change rules through pull requests, each with its note. The workflow in `.github/workflows/code-rules.yml` opens a "Library release" pull request, and merging it publishes the new versions. See [Version your rules](/guides/version-rules/) to finish setting it up.
+If your library isn't hosted on GitHub, push it to your Git host and run `code-rules library release` from your machine instead. It publishes the same library release, with tags only. See [Publish from your machine](/guides/version-rules/#publish-from-your-machine).
+
+Each rule has its own version. From now on, every change to a rule needs a **change note**, recorded with `code-rules library change`, that tells projects what changed. Change rules through pull requests, each with its note. The workflow keeps a "Library release" pull request open with the pending changes, and merging it publishes the next library release, just as you did for the first. See [Version your rules](/guides/version-rules/) for the full workflow and the repository settings teams should add.
 
 ## 6. Try the library in a project
 
@@ -176,7 +185,7 @@ code-rules project add library acme-rules \
   --groups practices/error-handling
 ```
 
-This adds the library's repository and group to `.code-rules/config.yaml` under the source name `acme-rules`. Without `versions`, the project follows each rule's newest version.
+This adds the library's repository and group to `.code-rules/config.yaml` under the source name `acme-rules`. The project follows each rule's newest version whenever someone runs `code-rules project update`.
 
 Download the rules and build the project's agent guidance:
 
