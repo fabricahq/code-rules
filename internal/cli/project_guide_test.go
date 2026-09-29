@@ -75,6 +75,9 @@ func TestProjectGuideExamples(t *testing.T) {
 			t.Error(err)
 		}
 	})
+	if err := fixture.Release(context.Background(), 1, "release: 1\nrules:\n  techs/go/shared: 1.0.0\nchanges:\n  techs/go/shared: {change: new, summary: Add the rule.}\n"); err != nil {
+		t.Fatal(err)
+	}
 	for _, projectName := range []string{"project", "project 'quoted'"} {
 		t.Run(projectName, func(t *testing.T) {
 			directory := filepath.Join(t.TempDir(), projectName)
