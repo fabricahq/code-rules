@@ -86,13 +86,13 @@ Run:
 code-rules project build
 ```
 
-Build reads your rules and `.code-rules/config.yaml`, validates them, and writes the results into `.code-rules/generated/`. It:
+`code-rules project build` reads your rules and `.code-rules/config.yaml`, validates them, and writes the results into `.code-rules/generated/`. It:
 
 - **Applies your choices:** includes the selected rules, leaves out rules you've excluded, and substitutes your local replacements for imported rules where configured.
 - **Organizes the rules for reading:** creates `RULES.md` and group indexes with links and instructions that help agents find and read relevant rules. See [a sample `RULES.md` and the files it links to](/reference/files/#example-follow-a-rule-from-the-index).
 - **Splits large indexes into pages:** keeps navigation manageable without shortening the full rule text.
 
-If two rules give conflicting advice, you decide which to exclude or replace in configuration. Build applies those decisions; it doesn't detect or resolve contradictory advice on its own.
+If two rules give conflicting advice, you decide which to exclude or replace in configuration. `code-rules project build` applies those decisions; it doesn't detect or resolve contradictory advice on its own.
 
 For this first build, open `.code-rules/generated/RULES.md` and follow its links to the Testing group and your rule. You've turned your source rule into part of the organized guidance your agent will use.
 
@@ -124,7 +124,7 @@ This adds the library's repository and selected group to `.code-rules/config.yam
 
 Each rule in Fabrica's library has its own version. Without a `ref`, the project follows the library's releases.
 
-Now run `code-rules project sync` to download the selected rules and build the agent guidance. You don't need to run `code-rules project build` separately. Sync records the release it imported, so your project keeps the same rules until you choose to [update them](/guides/update/).
+Now run `code-rules project sync` to download the selected rules and build the agent guidance. You don't need to run `code-rules project build` separately. `code-rules project sync` records the release it imported, so your project keeps the same rules until you choose to [update them](/guides/update/).
 
 ```sh
 code-rules project sync

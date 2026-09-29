@@ -13,10 +13,10 @@ Start with a project that already [imports rules](/guides/select-rules/). For de
 
 Two commands import library rules, and they do different things:
 
-- **`code-rules project sync`** imports the commits already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. Sync resolves a revision only for a new source, or after you change a source's repository or `ref`.
+- **`code-rules project sync`** imports the commits already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It resolves a revision only for a new source, or after you change a source's repository or `ref`.
 - **`code-rules project update`** moves sources to newer revisions, reports every rule change, and asks you to accept major changes before it writes anything.
 
-Neither command runs during ordinary coding, review, or `project check`, so rules never change underneath your agents.
+Neither command runs during ordinary coding, review, or `code-rules project check`, so rules never change underneath your agents.
 
 ## Update your libraries
 
@@ -28,7 +28,7 @@ code-rules project update
 
 To update only some libraries, name their sources, such as `code-rules project update fabrica`.
 
-For a library that [versions rules](/concepts/rule/#how-a-rule-is-versioned), update moves to its newest release and reports each rule that changed:
+For a library that [versions rules](/concepts/rule/#how-a-rule-is-versioned), `code-rules project update` moves to its newest release and reports each rule that changed:
 
 ```text
 fabrica  4f1c2a9 -> 9e07b3d
@@ -57,7 +57,7 @@ Each line shows the change, the rule, and its old and new versions, followed by 
 | `new` | A rule added to a group you import. |
 | `retired` | The library stopped publishing the rule, so your agents will stop reading it. `superseded` means a named rule replaces it. `withdrawn` means the author no longer recommends the practice. |
 
-When no rule your project uses has a major change or retirement, update applies the new release right away. Otherwise it changes nothing and exits with status `1`.
+When no rule your project uses has a major change or retirement, `code-rules project update` applies the new release right away. Otherwise it changes nothing and exits with status `1`.
 
 ## Accept major changes
 
@@ -73,7 +73,7 @@ When you've decided, apply the update:
 code-rules project update --accept-major
 ```
 
-Major changes to rules you exclude or replace don't need consent, because your agents don't read them. Update still lists them so you can check that your exception still makes sense. If a retired rule is still named in an exclusion or replacement, update stops and tells you which entry to delete.
+Major changes to rules you exclude or replace don't need consent, because your agents don't read them. `code-rules project update` still lists them so you can check that your exception still makes sense. If a retired rule is still named in an exclusion or replacement, the command stops and tells you which entry to delete.
 
 ## Keep an older version of a rule
 
@@ -109,7 +109,7 @@ If a library you use starts versioning rules, remove the source's `ref` and run 
 
 ## Review and commit the update
 
-Update reports added, changed, and removed file paths. Before committing:
+`code-rules project update` reports added, changed, and removed file paths. Before committing:
 
 - Inspect the diff of `.code-rules/vendor/` for upstream changes, including rules hidden by your exclusions and replacements, and changes to retained licenses and notices.
 - When a replacement's target changed, compare its old and new text before deciding whether your local rule still makes sense.
@@ -120,7 +120,7 @@ Commit the configuration, vendor snapshots, and generated files together.
 ## Change selected groups
 
 Edit the relevant `sources.<name>.groups` and run `code-rules project sync`.
-Sync imports the new groups from the release already recorded for that source, so the rest of your rules don't change.
+`code-rules project sync` imports the new groups from the release already recorded for that source, so the rest of your rules don't change.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
 Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.yaml` exists.
@@ -128,10 +128,10 @@ If it already exists, keep the local files unchanged. Otherwise author group met
 
 ## Recover from a failed update
 
-Update and sync validate and render before installing output.
+`code-rules project update` and `code-rules project sync` validate and render before installing output.
 A failed import, or an update that needs your consent, preserves the previous working ruleset.
 Interrupted installations must be detected and recovered before another operation can claim success.
 
 Moved tags never update rules automatically during coding, review, or offline checks.
-`project update` resolves tags again and reports a moved tag's new commit for review.
+`code-rules project update` resolves tags again and reports a moved tag's new commit for review.
 To keep a tag's previous content regardless, set `ref` to the previously recorded full commit SHA.

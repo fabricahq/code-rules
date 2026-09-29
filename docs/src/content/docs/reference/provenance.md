@@ -26,7 +26,7 @@ Code Rules writes these files. To change the information they describe, edit you
 ## How the records are created
 
 1. **You select libraries and rules.** Configuration records the library revisions, groups, exclusions, and replacements your project wants to use.
-2. **Sync and update record what they import.** `code-rules project sync` and `project update` copy each library's selected files and write its `_source.json` record with the exact Git commit, rule versions, and file checksums.
+2. **Sync and update record what they import.** `code-rules project sync` and `code-rules project update` copy each library's selected files and write its `_source.json` record with the exact Git commit, rule versions, and file checksums.
 3. **Generation records the result.** Sync, update, or build combines the imported and local rules, then writes `generated/provenance.json` alongside the guidance your agents read.
 
 An **active rule** is one included in that generated guidance. An excluded rule has no active rule entry. A local replacement has an entry that also identifies the imported rule it replaced.
@@ -109,7 +109,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
 
-Records written by earlier Code Rules versions use `formatVersion` `1` and store a version range in a separate `version` field. Build and check still accept them; the next sync or update writes format `2`. `project sync` keeps the recorded commit when the configured `ref` equals the old `version` value.
+Records written by earlier Code Rules versions use `formatVersion` `1` and store a version range in a separate `version` field. Build and check still accept them; the next sync or update writes format `2`. `code-rules project sync` keeps the recorded commit when the configured `ref` equals the old `version` value.
 
 For a wildcard selection, the snapshot must contain every group in the selected scope at that revision and record the exact selector. Older records without `groupSelection` imply the explicit `groups` list; they cannot satisfy a wildcard selection.
 

@@ -88,7 +88,7 @@ Create a rule in an existing local group. `ID` includes the group path and rule 
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the group first with `project add group`. A missing group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `code-rules:draft` marker before building. Existing rules are not overwritten.
+Create the group first with `code-rules project add group`. A missing group fails before metadata prompts. Without `--body-file`, complete the [template](/reference/rule-authoring/#markdown-template) and remove its `code-rules:draft` marker before building. Existing rules are not overwritten.
 
 #### Fork a library rule
 
@@ -192,7 +192,7 @@ code-rules library init [options]
 
 Create `rule-library.yaml`, an authoring README, and a GitHub Actions workflow without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library.
 
-A new manifest declares `versioning: rules`, so each rule gets its own version. Init preserves an existing manifest; to move an existing library to rule versions, use [`library release --init`](#library-release). The workflow, `.github/workflows/code-rules.yml`, checks pull requests and releases rules from `main`, and installs the Code Rules version that created it. Init writes it only when the library versions rules. See [Version your rules](/guides/version-rules/#automate-releases-with-github-actions).
+A new manifest declares `versioning: rules`, so each rule gets its own version. Init preserves an existing manifest; to move an existing library to rule versions, use [`code-rules library release --init`](#library-release). The workflow, `.github/workflows/code-rules.yml`, checks pull requests and releases rules from `main`, and installs the Code Rules version that created it. Init writes it only when the library versions rules. See [Version your rules](/guides/version-rules/#automate-releases-with-github-actions).
 
 | Option | Meaning |
 | --- | --- |
@@ -240,7 +240,7 @@ Create a rule in an existing library group. `ID` includes the group path and rul
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the group first with `library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `code-rules:draft` marker before validation. Existing rules are not overwritten. In a library that versions rules, the next steps include adding the new rule's change note with `library change`.
+Create the group first with `code-rules library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `code-rules:draft` marker before validation. Existing rules are not overwritten. In a library that versions rules, the next steps include adding the new rule's change note with `code-rules library change`.
 
 ### library change
 
@@ -283,7 +283,7 @@ For a library that versions rules, check compares each rule's Markdown file and 
 | Situation | Result |
 | --- | --- |
 | A rule changed and has a valid note. | Passes. |
-| A rule changed and has no note. | Error naming the rule and its latest version, with the `library change` command to run. |
+| A rule changed and has no note. | Error naming the rule and its latest version, with the `code-rules library change` command to run. |
 | A new rule has no note. | Error. |
 | A released rule was deleted without a `retired` note. | Error. |
 | A superseded rule's `replacedBy` isn't a rule in the library. | Error. |
@@ -297,7 +297,7 @@ This comparison needs the repository's history and tags. Check fails with instru
 
 When checks pass, the result previews the pending release: each rule, its change, and its current and next version. JSON output includes this preview in `value.pendingRelease`.
 
-In a library versioned as a whole, change notes are errors, and check warns that the library can adopt rule versions with `library release --init`. It doesn't use Git.
+In a library versioned as a whole, change notes are errors, and check warns that the library can adopt rule versions with `code-rules library release --init`. It doesn't use Git.
 
 ### library release
 
@@ -321,7 +321,7 @@ Publish rule versions from the pending change notes. Requires a library that ver
 
 `--pr`, `--publish`, and `--init` can't be combined with each other or with `--bump-all`.
 
-**Without a mode**, release runs locally, for maintainers who push directly to the default branch. It refuses when the working tree has uncommitted changes, the branch is behind its upstream, or `library check` fails. Then it:
+**Without a mode**, release runs locally, for maintainers who push directly to the default branch. It refuses when the working tree has uncommitted changes, the branch is behind its upstream, or `code-rules library check` fails. Then it:
 
 1. Computes each rule's next version from its note, or its retirement.
 2. Deletes every note and commits the result as `Release N rules`.
@@ -361,13 +361,13 @@ Use `-h` or `--help` to inspect command syntax and options. For example, run `co
 | `--license` | At the root, print the full embedded MIT license and copyright notice. |
 | `--json` | Return help, version, or license text in `value.text` inside a JSON response. |
 
-Running `code-rules` or a command group such as `code-rules library` without a subcommand displays help. The `project`, `project add`, `library`, and `library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
+Running `code-rules` or a command group such as `code-rules library` without a subcommand displays help. The `project`, `code-rules project add`, `library`, and `code-rules library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
 
-The root `--version` flag prints the tool version. To select a library revision, use `project add library --ref` instead.
+The root `--version` flag prints the tool version. To select a library revision, use `code-rules project add library --ref` instead.
 
 ## Working directories
 
-In Git repositories, run `code-rules project init` or `code-rules library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `library init --directory`.
+In Git repositories, run `code-rules project init` or `code-rules library init` from the repository root. Initialization from a subdirectory fails without writing files. This also applies to the target of `code-rules library init --directory`.
 
 Other commands find the nearest ancestor containing a `.git` directory or file, including worktrees and submodules. Project commands use that root's `.code-rules/config.yaml`; library commands use its `rule-library.yaml`. They stop at that repository boundary, even if its configuration is missing. A nested `.code-rules/` does not override the root's configuration.
 
@@ -383,7 +383,7 @@ Authoring commands accept `--non-interactive`. Without it, commands can prompt f
 
 Invalid interactive answers repeat the same question while retaining earlier answers. Explicit flags are validated without prompting for replacement values. Existing groups, rules, and library aliases fail before prompts.
 
-Both init commands, both check commands, and `library release` run without prompts. Of these, `library check` and `library release` accept `--non-interactive`; project `check`, `sync`, `update`, and `build` do not need or accept it.
+Both init commands, both check commands, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; project `check`, `sync`, `update`, and `build` do not need or accept it.
 
 String options accept one value and cannot be repeated, except `--groups`, which accepts repeated group IDs. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 

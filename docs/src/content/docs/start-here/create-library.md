@@ -169,7 +169,7 @@ Now release the rule:
 code-rules library release
 ```
 
-Release turns the change note into a version. It deletes the note, commits `Release 1 rule`, and tags that commit `practices/error-handling/make-errors-actionable@1.0.0`. It pushes the commit and tag, and creates a GitHub Release with the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tag only. Add `--no-github-release` to skip GitHub Releases.
+`code-rules library release` turns the change note into a version. It deletes the note, commits `Release 1 rule`, and tags that commit `practices/error-handling/make-errors-actionable@1.0.0`. It pushes the commit and tag, and creates a GitHub Release with the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tag only. To skip GitHub Releases, run `code-rules library release --no-github-release` instead.
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 
@@ -194,7 +194,7 @@ code-rules project sync
 code-rules project check
 ```
 
-Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. Sync records that release, so the project keeps the same rules until someone runs `code-rules project update`.
+Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that release, so the project keeps the same rules until someone runs `code-rules project update`.
 
 The rules are now in the project, but its agent needs instructions to read them. If you haven't already, [connect the rules to your agent and try a task](/start-here/set-up-project/#5-give-the-rules-to-your-agent). Then commit the project's configuration, imported rules, generated guidance, and agent instructions together.
 

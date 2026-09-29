@@ -174,7 +174,7 @@ A source's `ref` says which revision of the library to import:
 | Exact tag name | `v1.0.0` or `practices/testing/verify-retry-limits@1.3.0` | The commit the tag points to. |
 | Version range | `>= 1.2.0, < 2.0.0` | The highest semantic version tag that matches, in a library versioned as a whole. |
 
-Configuration records what the project asked for. The source's `vendor/<source-name>/_source.json` records the exact commit it imported, like a lockfile. [`project sync`](/reference/cli/#project-sync) keeps that recorded commit while the source's repository and `ref` are unchanged, so every checkout imports the same content. [`project update`](/reference/cli/#project-update) moves to a newer revision when the `ref` allows one. Changing `ref` and running sync imports the revision it now names.
+Configuration records what the project asked for. The source's `vendor/<source-name>/_source.json` records the exact commit it imported, like a lockfile. [`code-rules project sync`](/reference/cli/#project-sync) keeps that recorded commit while the source's repository and `ref` are unchanged, so every checkout imports the same content. [`code-rules project update`](/reference/cli/#project-update) moves to a newer revision when the `ref` allows one. Changing `ref` and running sync imports the revision it now names.
 
 ### Follow a library's releases
 
@@ -188,7 +188,7 @@ exclude: {}
 replace: {}
 ```
 
-The first sync imports the library's newest release commit and records each rule's version. Later syncs keep that commit. `project update` moves to the newest release and asks you to accept major changes to rules the project uses. See [Update rules](/guides/update/).
+The first sync imports the library's newest release commit and records each rule's version. Later syncs keep that commit. `code-rules project update` moves to the newest release and asks you to accept major changes to rules the project uses. See [Update rules](/guides/update/).
 
 Omitting `ref` for a library versioned as a whole fails, because it has no releases to follow. Set `ref` to one of its tags, commits, or a version range instead.
 
@@ -200,10 +200,10 @@ Branch names and abbreviated commit SHAs are unsupported.
 A plain name resolves only as a tag, even when a branch has the same name.
 Both lightweight and annotated tags must resolve to a commit.
 
-In a library that versions rules, any rule tag, such as `practices/testing/verify-retry-limits@1.3.0`, names the release commit that published it. The project imports every selected rule as it was at that release, not only the named rule. `project update` doesn't move a pinned source; change or remove `ref` to move it.
+In a library that versions rules, any rule tag, such as `practices/testing/verify-retry-limits@1.3.0`, names the release commit that published it. The project imports every selected rule as it was at that release, not only the named rule. `code-rules project update` doesn't move a pinned source; change or remove `ref` to move it.
 
 Tags can move.
-Sync keeps the recorded commit, and `project update` resolves tags again and reports any change for review.
+Sync keeps the recorded commit, and `code-rules project update` resolves tags again and reports any change for review.
 Offline `build`, `check`, and ordinary agent work use the committed snapshot without resolving tags again.
 Use a commit SHA when the configured reference itself must be immutable.
 
