@@ -1,9 +1,9 @@
 ---
 title: "Rule versions"
-description: "What a rule version covers, tag and release formats, change levels, change notes, and retired rules."
+description: "What a rule version covers, tag and library release formats, change levels, change notes, and retired rules."
 ---
 
-Each rule in a library has its own [semantic version](https://semver.org/). A rule's version is a Git tag, not a field in the rule file, so frontmatter has no `version` field. A **release** publishes new versions of one or more rules at once, from a single rule change to a large collection of updates.
+Each rule in a library has its own [semantic version](https://semver.org/). A rule's version is a Git tag, not a field in the rule file, so frontmatter has no `version` field. A **library release** publishes new versions of one or more rules at once, from a single rule change to a large collection of updates.
 
 This page is the exact specification. [Version your rules](/guides/version-rules/) explains the concepts and walks through the workflow.
 
@@ -17,17 +17,17 @@ A rule version covers everything an agent needs to read the rule as its author i
 
 A project that imports a rule version gets exactly these files as they were in that version. A change to a shared file is a change to every rule that links to it, so each of those rules needs a [change note](#change-notes).
 
-Group metadata, the library's license declaration, and its license and notice files aren't part of any rule version. Projects receive them from the newest release they import.
+Group metadata, the library's license declaration, and its license and notice files aren't part of any rule version. Projects receive them from the newest library release they import.
 
 ## Tag format
 
-Releases create three kinds of annotated tags. Code Rules ignores other tags.
+Library releases create three kinds of annotated tags. Code Rules ignores other tags.
 
 | Tag | Example | Target | Message |
 | --- | --- | --- | --- |
 | Rule version | `practices/testing/verify-retry-limits@1.3.0` | The release commit that published the version. | `<change>: <summary>`, where `<change>` is `new`, `major`, `minor`, or `patch`. When several changes were combined, each further summary line follows on its own line. |
 | Retired rule | `practices/testing/check-retry-backoff@retired` | The release commit where the rule's file no longer exists. | `<reason>: <summary>`; see [Retired rules](#retired-rules). |
-| Release | `release/2` | The release commit. | A list of the release's changes. |
+| Library release | `release/2` | The release commit. | A list of the library release's changes. |
 
 In a rule version tag, the rule ID is the rule's path without `.md`, and the version is plain `major.minor.patch` numbers, without prerelease or build suffixes. A new rule starts at `1.0.0`.
 
@@ -35,18 +35,18 @@ The release commands create these tags. Don't create, move, or delete them by ha
 
 Git can't store a tag whose name matches a directory of other tags, so no tag may be named like a group or folder that contains rules, such as `practices/testing`. `code-rules library check` reports such tags.
 
-## Releases
+## Library releases
 
-A **release** publishes every pending change note as new rule versions. All of its tags point to one **release commit**: the first commit on the default branch that contains the release's manifest. If the release pull request is merged with a merge commit, that's the merge commit; with a squash or rebase, it's the commit the pull request became. The release commit:
+A **library release** publishes every pending change note as new rule versions. All of its tags point to one **release commit**: the first commit on the default branch that contains the library release's manifest. If the release pull request is merged with a merge commit, that's the merge commit; with a squash or rebase, it's the commit the pull request became. The release commit:
 
-- deletes the release's change notes, so it never contains changes waiting to be released, and
+- deletes the library release's change notes, so it never contains changes waiting to be released, and
 - updates the release manifest to list every rule's version.
 
 Every rule in a release commit is exactly one of its published versions.
 
 ### Release manifest
 
-The **release manifest**, `code-rules-release.yaml` at the library root, records what each release published. Only the release commands write it; don't edit it by hand.
+The **release manifest**, `code-rules-release.yaml` at the library root, records what each library release published. Only the release commands write it; don't edit it by hand.
 
 ```yaml
 # Written by code-rules library release. Don't edit.
@@ -62,19 +62,19 @@ retired:
 
 | Field | Meaning |
 | --- | --- |
-| `release` | The release number. The first release is `1`, and each release adds one. Release numbers aren't semantic versions: a release can hold changes of every size to different rules, and each rule's version describes its own change. |
+| `release` | The release number. The first library release is `1`, and each library release adds one. Release numbers aren't semantic versions: a library release can hold changes of every size to different rules, and each rule's version describes its own change. |
 | `rules` | Every current rule's ID and version. |
 | `retired` | Every retired rule's ID and reason, kept permanently so retired IDs aren't reused. |
 
 The manifest uses one YAML document. Duplicate keys, anchors, aliases, explicit tags, and unknown fields are rejected.
 
-The first release creates the manifest. Each later release rewrites it, so the release's diff shows the exact new version of every changed rule.
+The first library release creates the manifest. Each later library release rewrites it, so the library release's diff shows the exact new version of every changed rule.
 
 ### Release tags and GitHub Release pages
 
-Each release creates one `release/<number>` tag, such as `release/2`. For a repository on GitHub.com, it also creates one **GitHub Release page** on that tag: the page GitHub uses to announce a release, which people can browse and get notified about. It's an announcement only; Code Rules never reads it. In these docs, a *release* always means the Code Rules release, and a *GitHub Release page* means its announcement on GitHub. The page lists the release's changes, grouped as major, minor, patch, new, and retired, with each rule's old and new version and its summary.
+Each library release creates one `release/<number>` tag, such as `release/2`. For a repository on GitHub.com, it also creates one **GitHub Release page** on that tag: the page GitHub uses to announce a library release, which people can browse and get notified about. It's an announcement only; Code Rules never reads it. In these docs, a *library release* is the Code Rules release described on this page, and a *GitHub Release page* is only its announcement on GitHub. The page lists the library release's changes, grouped as major, minor, patch, new, and retired, with each rule's old and new version and its summary.
 
-The newest release is the one with the highest release number. A project normally chooses versions rule by rule, but it can also import exactly what one release published; see [Choose versions](/reference/configuration/#choose-versions).
+The newest library release is the one with the highest release number. A project normally chooses versions rule by rule, but it can also import exactly what one library release published; see [Choose versions](/reference/configuration/#choose-versions).
 
 ## Choose a version change
 
@@ -107,9 +107,9 @@ Write each change's summary for a project maintainer deciding whether to update.
 
 ## Change notes
 
-After a library's first release, every change to a rule needs a **change note** until the change is released. The note records the size of the change and a summary for projects that update. Releasing deletes the note and turns it into the rule's next version tag.
+After the first library release, every change to a rule needs a **change note** until the change is released. The note records the size of the change and a summary for projects that update. A library release deletes the note and turns it into the rule's next version tag.
 
-Before the first release, no rule has a version, so rules need no notes. The first release gives every rule version `1.0.0`.
+Before the first library release, no rule has a version, so rules need no notes. The first library release gives every rule version `1.0.0`.
 
 A change note is `<rule-name>.change.yaml` in the same directory as `<rule-name>.md`. For example, the note for `practices/testing/verify-retry-limits.md` is `practices/testing/verify-retry-limits.change.yaml`. Notes use YAML because every Markdown file in a group is a rule.
 
@@ -148,7 +148,7 @@ retired: withdrawn
 summary: Withdrawn after feedback that agents shouldn't add explanatory comments.
 ```
 
-If a rule changes again before a release, update its existing note rather than adding another. Keep the larger `bump` and add a summary line. `code-rules library change` does this for you:
+If a rule changes again before a library release, update its existing note rather than adding another. Keep the larger `bump` and add a summary line. `code-rules library change` does this for you:
 
 ```yaml
 bump: minor
@@ -168,7 +168,7 @@ summary: |
 | `superseded` | A better rule replaces it. The retirement names the replacement, a rule in the same library. | A narrow retry-limit rule is folded into a broader rule about testing retries. |
 | `withdrawn` | The practice is no longer recommended, because it turned out to be wrong or unhelpful. It has no replacement. | A rule about how agents should comment code, after the author concludes agents shouldn't add those comments at all. |
 
-To retire a rule, delete its Markdown file and asset directory and add a [change note](#change-notes) with the reason. The release creates an annotated `<rule-id>@retired` tag on the release commit where the file no longer exists, and lists the rule under `retired` in the manifest. The tag message starts with the reason and summary. A superseded rule's message ends with a `Replaced-by` [trailer](https://git-scm.com/docs/git-interpret-trailers):
+To retire a rule, delete its Markdown file and asset directory and add a [change note](#change-notes) with the reason. The library release creates an annotated `<rule-id>@retired` tag on the release commit where the file no longer exists, and lists the rule under `retired` in the manifest. The tag message starts with the reason and summary. A superseded rule's message ends with a `Replaced-by` [trailer](https://git-scm.com/docs/git-interpret-trailers):
 
 ```text
 superseded: Covered by the broader rule about testing retries.

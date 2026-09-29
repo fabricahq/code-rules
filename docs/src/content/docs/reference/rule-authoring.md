@@ -228,7 +228,7 @@ When adapting someone else's material, preserve source attribution and required 
 
 ## Record changes to a library rule
 
-After a library's first release, every edit to a rule needs a [change note](/reference/rule-versions/#change-notes) that says how much the obligation changed. Projects use it to decide whether they can update without changing their code. See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for choosing major, minor, or patch and writing the summary, and [Version your rules](/guides/version-rules/#change-rules-after-the-first-release) for the commands.
+After the first library release, every edit to a rule needs a [change note](/reference/rule-versions/#change-notes) that says how much the obligation changed. Projects use it to decide whether they can update without changing their code. See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for choosing major, minor, or patch and writing the summary, and [Version your rules](/guides/version-rules/#change-rules-after-the-first-library-release) for the commands.
 
 ## Authoring rubric
 

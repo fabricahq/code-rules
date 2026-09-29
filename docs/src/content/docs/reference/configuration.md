@@ -90,7 +90,7 @@ Choose one of three supported selectors:
 
 Each selector includes all groups in its scope in the imported library, including empty groups with valid metadata.
 Rule exclusions and replacements still apply. Agents still select relevant rules for each task.
-When a newer release adds groups within the selector's scope, `code-rules project update` adds them and their rules under `default: latest`, and lists them without adding them under `default: hold`. Review those additions in the changed source records and generated provenance.
+When a newer library release adds groups within the selector's scope, `code-rules project update` adds them and their rules under `default: latest`, and lists them without adding them under `default: hold`. Review those additions in the changed source records and generated provenance.
 Offline builds do not discover changes on the remote repository.
 
 Keep `groups` required. Use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
@@ -175,7 +175,7 @@ Each rule in a library has its own [version](/reference/rule-versions/). A sourc
 | Form | Use it to |
 | --- | --- |
 | `default` and `rules` | Choose versions rule by rule. |
-| `release` | Import exactly what one release published. |
+| `release` | Import exactly what one library release published. |
 | `commit` | Import one exact commit. Advanced. |
 
 `release` and `commit` can't be combined with each other, or with `default` and `rules`.
@@ -206,7 +206,7 @@ Read this as: keep every rule at its current version, let `verify-retry-limits` 
 
 `code-rules project update` moves each rule to the newest version its choice allows. Major changes and retirements of rules the project uses still need `--accept-major`, even when a constraint allows them. A constraint limits which versions update can choose; consent confirms a major change.
 
-With `default: hold`, update doesn't add rules that newer releases put in the selected groups; it lists them so you can decide. With `latest`, they join and are reported as new.
+With `default: hold`, update doesn't add rules that newer library releases put in the selected groups; it lists them so you can decide. With `latest`, they join and are reported as new.
 
 A `rules` entry must name a rule in the source's selected groups, or a retired rule the project still imports at a held version; other IDs are errors. Remove an entry to return the rule to `default`; the next sync or update reports any resulting change. A held rule that its library retires stays at its version, and update reports the retirement. Nothing moves an entry to a replacement rule automatically; add the replacement yourself.
 
@@ -224,14 +224,14 @@ Constraints use [HashiCorp go-version syntax](https://github.com/hashicorp/go-ve
 
 Quote constraints so YAML reads them as text. Caret ranges (`^`), npm tilde ranges (`~`), wildcard versions (`1.x`), OR (`||`), and space-separated comparisons are not supported; use commas for AND. Rule versions have no prerelease or build suffixes.
 
-### Import one release
+### Import one library release
 
 ```yaml
 versions:
   release: 5
 ```
 
-Imports the version of every selected rule that [release](/reference/rule-versions/#releases) 5 published, as recorded in its release manifest. `code-rules project update` doesn't move the source; change the number and run `code-rules project sync` to import another release.
+Imports the version of every selected rule that [library release](/reference/rule-versions/#library-releases) 5 published, as recorded in its release manifest. `code-rules project update` doesn't move the source; change the number and run `code-rules project sync` to import another library release.
 
 ### Import one commit
 
@@ -240,11 +240,11 @@ versions:
   commit: 0c9f3e2a7d41b6c85e19f0a3d27b4c6e8a15f9d2
 ```
 
-Imports the library exactly as it was at one full commit SHA, even if the commit was never released. Use it to try unreleased changes, or a library that hasn't published its first release. Rules whose files differ from any published version record their version as `null`. `code-rules project update` doesn't move the source.
+Imports the library exactly as it was at one full commit SHA, even if the commit was never released. Use it to try unreleased changes, or a library that hasn't published its first library release. Rules whose files differ from any published version record their version as `null`. `code-rules project update` doesn't move the source.
 
 ### Where each rule's files come from
 
-Each rule's [versioned content](/reference/rule-versions/#what-a-version-covers) comes from the release that published its version, so rules at different versions keep the shared files they were written with. Group metadata and the library's license files come from the newest release among the imported rule versions, or from the chosen release or commit.
+Each rule's [versioned content](/reference/rule-versions/#what-a-version-covers) comes from the library release that published its version, so rules at different versions keep the shared files they were written with. Group metadata and the library's license files come from the newest library release among the imported rule versions, or from the chosen library release or commit.
 
 Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
 
@@ -294,7 +294,7 @@ Each library's `formatVersion` describes its authoring format.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
 Each source's `versions`, or its absence, states which rule versions the project wants.
-Vendored provenance records each imported rule's version, release, and commit, used by offline commands. It is importer-owned output, not a second user-selected version.
+Vendored provenance records each imported rule's version, library release, and commit, used by offline commands. It is importer-owned output, not a second user-selected version.
 A project imports multiple sources directly.
 Libraries that themselves inherit and republish other libraries are not supported.
 

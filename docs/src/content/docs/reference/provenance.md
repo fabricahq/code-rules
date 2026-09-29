@@ -17,7 +17,7 @@ Code Rules keeps three related records:
 | --- | --- |
 | `generated/provenance.json` | Where active rules came from, which rule versions are in use, and why rules were replaced. |
 | `vendor/<source-name>/_source.json` | Which commit and original files were imported from one library. |
-| `generated/libraries/<source-name>/README.md` | A readable summary of one library's imported release, rule versions, and declared license terms. |
+| `generated/libraries/<source-name>/README.md` | A readable summary of the imported library release, rule versions, and declared license terms. |
 
 These paths are relative to the Code Rules directory, `.code-rules/`. The **source name** is the name you gave a library in your configuration, such as `team`.
 
@@ -42,12 +42,12 @@ Each rule entry includes:
 | Field | What to look for |
 | --- | --- |
 | `id` and `group` | The active rule's identity and group. |
-| `origin` | The source and file supplying the active rule. Imported origins also identify the repository and the exact commit the rule came from. `version` records the rule's version, such as `"1.3.0"`, and `release` the release that published it; both are `null` when the imported file isn't a released version. |
+| `origin` | The source and file supplying the active rule. Imported origins also identify the repository and the exact commit the rule came from. `version` records the rule's version, such as `"1.3.0"`, and `release` the library release that published it; both are `null` when the imported file isn't a released version. |
 | `upstream` | The imported rule's origin, including its `version`, when a local rule replaces it; otherwise `null`. |
 | `replacementReason` | Your configured reason for the replacement; otherwise `null`. |
 | `license`, `licenseBasis`, and `attribution` | Declared terms and source credits, explained below. |
 
-Local origins use `source: "local"`. Their repository, commit, version, and release fields are `null` because the rule comes from your project. A local fork of a library rule records its source in `attribution` instead.
+Local origins use `source: "local"`. Their `repository`, `resolvedCommit`, `version`, and `release` fields are `null` because the rule comes from your project. A local fork of a library rule records its source in `attribution` instead.
 
 ### Example: explain a local replacement
 
@@ -81,7 +81,7 @@ The same `generated/provenance.json` file contains three other top-level fields:
 | Field | What it records |
 | --- | --- |
 | `toolVersion` | The Code Rules version that generated the files. |
-| `sources` | Each named library, its repository, requested `versions`, the release that supplied its group metadata and terms, selected groups, and declared terms. |
+| `sources` | Each named library, its repository, requested `versions`, the library release that supplied its group metadata and terms, selected groups, and declared terms. |
 | `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
 
 For each source, `groupSelection` records what you asked for, while `groups` lists the groups imported. For example, `"practices/*"` asks for all practice groups; the list records which ones existed in the imported library.
@@ -114,12 +114,12 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | `formatVersion` | The snapshot format version, `2`. |
 | `repository` | The library's repository address. |
 | `versions` | The `versions` choices from configuration when the snapshot was recorded. Omitted when configuration has none. |
-| `release` | The newest release among the imported rule versions, or the release you chose. It supplies the group metadata and license files. Omitted when you imported a commit. |
-| `resolvedCommit` | The full Git commit SHA of that release, or of the commit you chose. |
-| `rules` | Each imported rule's ID, its `version`, the `release` that published it, and that release's full `commit`. |
+| `release` | The newest library release among the imported rule versions, or the library release you chose. It supplies the group metadata and license files. Omitted when you imported a commit. |
+| `resolvedCommit` | The full Git commit SHA of that library release, or of the commit you chose. |
+| `rules` | Each imported rule's ID, its `version`, the `release` that published it, and that library release's full `commit`. |
 | `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
 | `groups` | The groups included in the snapshot. |
-| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Files of rules from a different release than `release` are stored under `_releases/<number>/`. |
+| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Files of rules from a different library release than `release` are stored under `_releases/<number>/`. |
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
 
@@ -134,7 +134,7 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 | Choice | What Code Rules verifies offline |
 | --- | --- |
 | Rule by rule, the default | Each recorded version satisfies its rule's choice: an exact version or constraint matches, and `latest` or `hold` accepts the recorded version. |
-| One release | `release` equals the chosen release, and every rule records that release's version. |
+| One library release | `release` equals the chosen library release, and every rule records that library release's version. |
 | One commit | `resolvedCommit` equals the chosen commit. |
 
 For every source, offline checks also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions.

@@ -46,7 +46,7 @@ license:
 Discover groups only under `techs/` and `practices/`.
 Within selected groups, Markdown files outside reserved asset directories are rules. Declared license and notice files and the group-root `README.md` are exempt. Group READMEs are authoring documentation, not generated rule guidance.
 A rule's [change note](/reference/rule-versions/#change-notes), `<rule-name>.change.yaml`, may sit beside the rule's Markdown file. Projects never import change notes.
-The [release manifest](/reference/rule-versions/#release-manifest), `code-rules-release.yaml`, records each rule's version at the latest release. The release commands create and update it.
+The [release manifest](/reference/rule-versions/#release-manifest), `code-rules-release.yaml`, records each rule's version at the latest library release. The release commands create and update it.
 Other supporting files, including `_README.md`, must live in an asset directory.
 Rules and [group metadata](/reference/rule-format/#group-metadata) must use valid paths; wildcard discovery also rejects rules whose group metadata is missing.
 The builder does not inspect the contents of unselected groups.
@@ -72,7 +72,7 @@ Unknown fields in the license declaration are rejected so misspellings cannot si
 Code Rules retains the declared files from the resolved source commit and links generated rules to unchanged copies. Offline builds require those files in the stored snapshot.
 If the declaration is absent, provenance records `license: null`. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.
 
-Every imported library has a generated `libraries/<source-name>/README.md` with its repository, version choices, imported release, each rule's version, declared SPDX expression when supplied, and links to retained terms and provenance. Libraries without a license declaration omit the `licenses/` directory. [Provenance](/reference/provenance/) documents the machine-readable records.
+Every imported library has a generated `libraries/<source-name>/README.md` with its repository, version choices, imported library release, each rule's version, declared SPDX expression when supplied, and links to retained terms and provenance. Libraries without a license declaration omit the `licenses/` directory. [Provenance](/reference/provenance/) documents the machine-readable records.
 
 The manifest paths select **source files**, not output locations. For declared terms, Code Rules uses these fixed destinations:
 

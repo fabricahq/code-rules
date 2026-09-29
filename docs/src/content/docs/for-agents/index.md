@@ -76,6 +76,6 @@ When the task changes a rule, use the [authoring rubric and template](/reference
 Follow those documents directly. The [Code Rules authoring skill](/guides/write-rules/#write-with-the-skill) is planned and is not available yet.
 
 Read the target library's conventions and evaluate each rule against every rubric criterion.
-In a library that has published its first release, add or update the rule's change note with `code-rules library change` in the same change, and choose `major` whenever work that complied with the previous version could fail the new one. See [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule).
+In a library that has published its first library release, add or update the rule's change note with `code-rules library change` in the same change, and choose `major` whenever work that complied with the previous version could fail the new one. See [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule).
 Report unmet criteria with the relevant passage and a concrete revision.
 Separate unclear wording from unresolved engineering policy; ask the author to resolve the latter.

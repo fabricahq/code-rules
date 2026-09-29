@@ -5,7 +5,7 @@ description: "Review each rule change, accept major changes deliberately, and pr
 
 Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, or make rules stricter. Your project adopts those changes only when you run `code-rules project update`.
 
-In this guide, you'll update your libraries, review each rule change, accept major changes or hold a rule at its current version, and commit the result. You'll also learn how to choose versions rule by rule, import one release, change your selection of groups, and recover from a failed update.
+In this guide, you'll update your libraries, review each rule change, accept major changes or hold a rule at its current version, and commit the result. You'll also learn how to choose versions rule by rule, import one library release, change your selection of groups, and recover from a failed update.
 
 Start with a project that already [imports rules](/guides/select-rules/). For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
@@ -127,16 +127,16 @@ After editing `versions`, run `code-rules project sync`. For each rule whose cho
 
 A held rule keeps its identity: it still appears as the library's rule, with its version, in your generated guidance and provenance. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules.
 
-## Import one release
+## Import one library release
 
-To import exactly what one library release published, choose the release by number:
+To import exactly what one library release published, choose the library release by number:
 
 ```yaml
 versions:
   release: 5
 ```
 
-`code-rules project update` doesn't move this source. To import another release, change the number and run `code-rules project sync`. To go back to choosing versions rule by rule, remove `release`.
+`code-rules project update` doesn't move this source. To import another library release, change the number and run `code-rules project sync`. To go back to choosing versions rule by rule, remove `release`.
 
 ## Review and commit the update
 

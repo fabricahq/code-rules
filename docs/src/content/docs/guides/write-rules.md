@@ -98,7 +98,7 @@ In a library, a rename retires the old ID as superseded by the new one, and proj
 
 ## Record the change
 
-After a library's first release, add a change note with every rule you write or edit, in the same commit:
+After the first library release, add a change note with every rule you write or edit, in the same commit:
 
 ```sh
 code-rules library change practices/testing/verify-retry-limits \
