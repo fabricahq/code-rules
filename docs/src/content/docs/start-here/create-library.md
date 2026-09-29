@@ -27,7 +27,7 @@ code-rules library init
 
 `engineering-rules` is an example repository name; you can choose another. `code-rules library init` creates:
 
-- `rule-library.yaml`, which identifies the library format. Its `versioning: rules` line gives each rule its own version.
+- `rule-library.yaml`, which identifies the library format.
 - A README for authors at the repository root.
 - `.github/workflows/code-rules.yml`, which checks pull requests and releases rules once the library is on GitHub.
 
@@ -84,15 +84,6 @@ The fields at the top describe the rule; the Markdown below tells the agent what
 
 The rule's path without `.md` is its ID: `practices/error-handling/make-errors-actionable`. Keep that path stable after projects start importing it.
 
-Each rule has its own version, and every change to a rule needs a **change note** until it's released. The note tells projects what changed. Record that you added this rule:
-
-```sh
-code-rules library change practices/error-handling/make-errors-actionable \
-  --summary 'Add the rule.'
-```
-
-This creates `make-errors-actionable.change.yaml` beside the rule. A new rule's note has no change size, because its first version is always `1.0.0`.
-
 Your library now looks like this:
 
 ```text
@@ -105,7 +96,6 @@ engineering-rules/
       _group.yaml
       README.md
       make-errors-actionable.md
-      make-errors-actionable.change.yaml
 ```
 
 Library rules live directly under `practices/` or `techs/`. Publishing a library does not require a Code Rules directory or generated agent guidance. Those belong to projects that consume rules.
@@ -118,7 +108,7 @@ You've written a rule. Now check that Code Rules can read and import it:
 code-rules library check
 ```
 
-The result should report **1 group and 1 rule**, and preview a pending release of `practices/error-handling/make-errors-actionable` at version `1.0.0`. The command checks the library metadata, group definitions, rule format, and change notes without changing your files. Read the rule yourself to decide whether its advice is clear and useful.
+The result should report **1 group and 1 rule**, and preview the library's first release, which gives `practices/error-handling/make-errors-actionable` version `1.0.0`. The command checks the library metadata, group definitions, and rule format without changing your files. Read the rule yourself to decide whether its advice is clear and useful.
 
 There is no library build step. A library publishes source rules; each consuming project builds its own agent guidance after selecting rules and applying its exclusions and replacements. See [how project builds work](/start-here/set-up-project/#3-build-the-guidance-your-agent-will-read).
 
@@ -130,7 +120,6 @@ For example, if you choose MIT for your own rules, add the complete MIT text wit
 
 ```yaml
 formatVersion: 1
-versioning: rules
 license:
   spdxExpression: MIT
   file: LICENSE.md
@@ -169,11 +158,11 @@ Now release the rule:
 code-rules library release
 ```
 
-`code-rules library release` turns the change note into a version. It deletes the note, commits `Release 1 rule`, and tags that commit `practices/error-handling/make-errors-actionable@1.0.0`. It pushes the commit and tag, and creates a GitHub Release with the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tag only. To skip GitHub Releases, run `code-rules library release --no-github-release` instead.
+This is your library's first release, so every rule gets version `1.0.0`. `code-rules library release` tags your commit `practices/error-handling/make-errors-actionable@1.0.0`, pushes the tag, and creates a GitHub Release with the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tag only. To skip GitHub Releases, run `code-rules library release --no-github-release` instead.
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 
-From now on, change rules through pull requests, each with a change note. The workflow in `.github/workflows/code-rules.yml` opens a "Release rules" pull request, and merging it publishes the new versions. See [Version your rules](/guides/version-rules/) to finish setting it up.
+Each rule has its own version. From now on, every change to a rule needs a **change note**, recorded with `code-rules library change`, that tells projects what changed. Change rules through pull requests, each with its note. The workflow in `.github/workflows/code-rules.yml` opens a "Release rules" pull request, and merging it publishes the new versions. See [Version your rules](/guides/version-rules/) to finish setting it up.
 
 ## 6. Try the library in a project
 

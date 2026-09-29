@@ -38,14 +38,11 @@ The tree below shows a library repository named **`engineering-rules/`**. The fo
 
 ```yaml
 formatVersion: 1
-versioning: rules
 license:
   spdxExpression: MIT
   file: LICENSE.md
   notices: []
 ```
-
-`versioning: rules` means each rule has its own version. See [Rule versions](#rule-versions). Without it, the library is versioned as a whole by ordinary Git tags such as `v1.2.0`.
 
 Discover groups only under `techs/` and `practices/`.
 Within selected groups, Markdown files outside reserved asset directories are rules. Declared license and notice files and the group-root `README.md` are exempt. Group READMEs are authoring documentation, not generated rule guidance.
@@ -151,7 +148,7 @@ Relative links in raw HTML are rejected during generation. Use Markdown links, i
 
 ## Rule versions
 
-In a library that declares `versioning: rules`, each rule has its own [semantic version](https://semver.org/). A rule's version is a Git tag, not a field in the rule file, so frontmatter has no `version` field.
+Each rule in a library has its own [semantic version](https://semver.org/). A rule's version is a Git tag, not a field in the rule file, so frontmatter has no `version` field.
 
 A version covers the rule's Markdown file and its owned asset directory. Group metadata, shared assets, and license files are not versioned; projects receive changes to them with the next release.
 
@@ -167,7 +164,7 @@ A version covers the rule's Markdown file and its owned asset directory. Group m
 
 The release commands create these tags. Don't create, move, or delete them by hand.
 
-Tags that don't start with `techs/` or `practices/`, such as `v1.1.0`, are ignored by rule versioning. Git cannot store a tag whose name matches a directory of other tags, so no tag may be named like a group or folder that contains rules, such as `practices/testing`. `code-rules library check` reports such tags.
+Code Rules ignores tags that don't start with `techs/` or `practices/`. Git cannot store a tag whose name matches a directory of other tags, so no tag may be named like a group or folder that contains rules, such as `practices/testing`. `code-rules library check` reports such tags.
 
 ### Release commits
 
@@ -212,7 +209,9 @@ To decide, ask two questions in order. First, could work that complied with the 
 
 ## Change notes
 
-In a library that versions rules, every change to a rule needs a **change note** until the change is released. The note records the size of the change and a summary for projects that update. Releasing deletes the note and turns it into the rule's next version tag.
+After a library's first release, every change to a rule needs a **change note** until the change is released. The note records the size of the change and a summary for projects that update. Releasing deletes the note and turns it into the rule's next version tag.
+
+Before the first release, no rule has a version, so rules need no notes. The first `code-rules library release` publishes every rule at `1.0.0`.
 
 A change note is `<rule-name>.change.yaml` in the same directory as `<rule-name>.md`. For example, the note for `practices/testing/verify-retry-limits.md` is `practices/testing/verify-retry-limits.change.yaml`. Notes use YAML because every Markdown file in a group is a rule.
 

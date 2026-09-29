@@ -228,7 +228,7 @@ When adapting someone else's material, preserve source attribution and required 
 
 ## Record changes to a library rule
 
-In a library that versions rules, every edit to a rule needs a [change note](/reference/rule-library-format/#change-notes) that says how much the obligation changed. Projects use it to decide whether they can update without changing their code.
+After a library's first release, every edit to a rule needs a [change note](/reference/rule-library-format/#change-notes) that says how much the obligation changed. Projects use it to decide whether they can update without changing their code.
 
 Judge the change by its effect on work that complied with the previous version. Major means that work could fail the new version. Minor and patch mean it still complies; minor adds new guidance, and patch doesn't:
 

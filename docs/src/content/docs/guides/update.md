@@ -14,7 +14,7 @@ Start with a project that already [imports rules](/guides/select-rules/). For de
 Two commands import library rules, and they do different things:
 
 - **`code-rules project sync`** imports the commits already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It resolves a revision only for a new source, or after you change a source's repository or `ref`.
-- **`code-rules project update`** moves sources to newer revisions, reports every rule change, and asks you to accept major changes before it writes anything.
+- **`code-rules project update`** moves sources to the newest release, reports every rule change, and asks you to accept major changes and retirements before it writes anything.
 
 Neither command runs during ordinary coding, review, or `code-rules project check`, so rules never change underneath your agents.
 
@@ -28,7 +28,7 @@ code-rules project update
 
 To update only some libraries, name their sources, such as `code-rules project update fabrica`.
 
-For a library that [versions rules](/concepts/rule/#how-a-rule-is-versioned), `code-rules project update` moves to its newest release and reports each rule that changed:
+`code-rules project update` moves each library to its newest release and reports each [rule version](/concepts/rule/#how-a-rule-is-versioned) that changed:
 
 ```text
 fabrica  4f1c2a9 -> 9e07b3d
@@ -93,19 +93,9 @@ Then update the library:
 code-rules project update
 ```
 
-## Libraries versioned as a whole
+## Pin a source
 
-Some libraries publish one tag, such as `v1.2.0`, for all of their rules. For those sources, what update can do depends on the configured `ref`:
-
-| `ref` | What update does |
-| --- | --- |
-| Version range, such as `>= 1.2.0, < 2.0.0` | Moves to the highest matching version tag. |
-| Exact tag, such as `v1.2.0` | Moves only if the publisher moved the tag. |
-| Full commit | Nothing. |
-
-To move to a version outside the range, or to another tag, edit `ref` and run `code-rules project sync`. These libraries don't report individual rule changes, so review the diff of `.code-rules/vendor/<source-name>/` to see what changed.
-
-If a library you use starts versioning rules, remove the source's `ref` and run `code-rules project sync` to follow its releases. Review the diff as you would any update.
+To hold a whole library at one release, set its `ref` to a rule version tag, such as `practices/testing/verify-retry-limits@1.3.0`, or to a commit, then run `code-rules project sync`. `code-rules project update` skips pinned sources. To follow releases again, remove `ref` and run `code-rules project update`. See [Select a revision](/reference/configuration/#select-a-revision).
 
 ## Review and commit the update
 
@@ -132,6 +122,5 @@ If it already exists, keep the local files unchanged. Otherwise author group met
 A failed import, or an update that needs your consent, preserves the previous working ruleset.
 Interrupted installations must be detected and recovered before another operation can claim success.
 
-Moved tags never update rules automatically during coding, review, or offline checks.
-`code-rules project update` resolves tags again and reports a moved tag's new commit for review.
-To keep a tag's previous content regardless, set `ref` to the previously recorded full commit SHA.
+Rules never change automatically during coding, review, or offline checks, even if someone moves a tag your `ref` names.
+Code Rules keeps the commit it recorded until you change `ref` or run `code-rules project update`.

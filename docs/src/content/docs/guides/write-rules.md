@@ -94,11 +94,11 @@ A rule's library ID is its relative path without `.md`.
 Consuming projects qualify it with their configured source name, such as `fabrica:practices/testing/verify-retry-limits`.
 Renaming or moving the file changes its ID.
 Consumers must update exclusions and replacements that referenced the old path.
-In a library that versions rules, a rename retires the old ID as superseded by the new one, and projects must accept it like a major change.
+In a library, a rename retires the old ID as superseded by the new one, and projects must accept it like a major change.
 
 ## Record the change
 
-In a library that versions rules, add a change note with every rule you write or edit, in the same commit:
+After a library's first release, add a change note with every rule you write or edit, in the same commit:
 
 ```sh
 code-rules library change practices/testing/verify-retry-limits \

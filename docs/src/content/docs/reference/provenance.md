@@ -42,7 +42,7 @@ Each rule entry includes:
 | Field | What to look for |
 | --- | --- |
 | `id` and `group` | The active rule's identity and group. |
-| `origin` | The source and file supplying the active rule. Imported origins also identify the repository, requested ref or selected tag, and exact commit. For a library that versions rules, `version` records the rule's version, such as `"1.3.0"`; otherwise it is `null`. |
+| `origin` | The source and file supplying the active rule. Imported origins also identify the repository, requested ref, and exact commit. `version` records the rule's version, such as `"1.3.0"`, or `null` when the imported file isn't a released version. |
 | `upstream` | The imported rule's origin, including its `version`, when a local rule replaces it; otherwise `null`. |
 | `replacementReason` | Your configured reason for the replacement; otherwise `null`. |
 | `license`, `licenseBasis`, and `attribution` | Declared terms and source credits, explained below. |
@@ -74,19 +74,19 @@ The replacement's entry contains these fields. This excerpt omits the other orig
 
 Read this as: agents receive the local `service-retries` rule, it replaces version 2.1.0 of `team`'s `check-retries` rule, and the reason comes from your project configuration. The imported rule's full origin also records its repository and exact commit.
 
-## Inspect library versions and group guidance
+## Inspect library revisions and group guidance
 
 The same `generated/provenance.json` file contains three other top-level fields:
 
 | Field | What it records |
 | --- | --- |
 | `toolVersion` | The Code Rules version that generated the files. |
-| `sources` | Each named library, its repository, requested `ref`, exact imported commit, selected groups, and declared terms. `versioning` is `"rules"` for a library that versions rules and `"library"` otherwise. |
+| `sources` | Each named library, its repository, requested `ref`, exact imported commit, selected groups, and declared terms. |
 | `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
 
 For each source, `groupSelection` records what you asked for, while `groups` lists the groups imported. For example, `"practices/*"` asks for all practice groups; the list records which ones existed at the imported revision.
 
-When you select a version range, the source also records `resolvedTag` and `resolvedVersion`. The source keeps the requested range in `ref`; individual imported rule origins use the selected tag as `ref`. When a source follows a library's releases, its `ref` is `null` and `resolvedCommit` is the release commit.
+When a source follows a library's releases, its `ref` is `null` and `resolvedCommit` is the release commit it imported.
 
 Within each group record, `guidance` keeps the metadata labeled by source. `effectiveGuidanceSources` identifies which sources supply the guidance agents see. Local group metadata takes precedence when present; otherwise the guidance from all contributing libraries remains effective.
 
@@ -98,18 +98,16 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | --- | --- |
 | `formatVersion` | The snapshot format version, `2`. |
 | `repository` | The library's repository address. |
-| `ref` | The commit, tag, or version range you requested. Omitted when the source follows the library's releases. |
-| `versioning` | `"rules"` when the library versions rules at the imported commit; otherwise `"library"`. |
-| `resolvedCommit` | The full Git commit SHA imported. For a library that versions rules, a release commit. |
-| `resolvedTag` and `resolvedVersion` | The tag and version selected for a version range. Omitted otherwise. |
-| `ruleVersions` | For a library that versions rules, each imported rule's ID and version, such as `"practices/testing/check-retries": "2.1.0"`. Omitted otherwise. |
+| `ref` | The tag or commit you requested. Omitted when the source follows the library's releases. |
+| `resolvedCommit` | The full Git commit SHA imported. |
+| `ruleVersions` | Each imported rule's ID and version, such as `"practices/testing/check-retries": "2.1.0"`. |
 | `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
 | `groups` | The groups included in the snapshot. |
 | `files` | Each retained library-relative path and its SHA-256 checksum, written as lowercase hexadecimal text. |
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
 
-Records written by earlier Code Rules versions use `formatVersion` `1` and store a version range in a separate `version` field. Build and check still accept them; the next sync or update writes format `2`. `code-rules project sync` keeps the recorded commit when the configured `ref` equals the old `version` value.
+A rule's version is `null` when the imported file isn't a released version: the rule has no version yet, or it has unreleased changes at a pinned commit. Generated guidance shows no version for it.
 
 For a wildcard selection, the snapshot must contain every group in the selected scope at that revision and record the exact selector. Older records without `groupSelection` imply the explicit `groups` list; they cannot satisfy a wildcard selection.
 
@@ -122,9 +120,8 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 | Library releases (no `ref`) | Uses the recorded release commit without checking for newer releases. |
 | Exact commit | `resolvedCommit` equals the requested commit. |
 | Exact tag | Uses the recorded commit without checking where the remote tag points now. |
-| Version range | The recorded tag represents `resolvedVersion`, and that version satisfies your configured range. |
 
-For every library that versions rules, however it was selected, offline checks also verify that `ruleVersions` lists exactly the imported rules, and that generated provenance and guidance show the same versions.
+For every source, offline checks also verify that `ruleVersions` lists exactly the imported rules, and that generated provenance and guidance show the same versions.
 
 Offline checks cannot prove that a selected version was the highest available, that a remote tag points to the recorded commit, or that recorded rule versions match the library's tags. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
 

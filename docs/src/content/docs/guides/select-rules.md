@@ -29,7 +29,7 @@ Agents choose which installed groups apply to each task using the [rule-loading 
 In `.code-rules/config.yaml`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
 
 - **Where to get it:** `repository` is the library's Git URL.
-- **Which revision to use:** for a library that versions rules, omit `ref` to follow its releases. Otherwise, `ref` selects a tag, a commit, or a range of library versions. See [Select a revision](/reference/configuration/#select-a-revision).
+- **Which revision to use:** omit `ref` to follow the library's releases, or set it to a tag or commit to pin one. See [Select a revision](/reference/configuration/#select-a-revision).
 - **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`.
 
 You can also use `exclude` to leave out individual rules or `replace` to substitute your own. We'll cover both below.

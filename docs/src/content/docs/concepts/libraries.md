@@ -11,7 +11,7 @@ You can publish your team's rules in a library or import libraries from others. 
 
 A library lives in a Git repository. It contains:
 
-- **Library metadata** in `rule-library.yaml`, which declares the format, how the library is versioned, and any license information.
+- **Library metadata** in `rule-library.yaml`, which declares the format and any license information.
 - **Groups** under `techs/` and `practices/`, each with group metadata and Markdown rule files.
 
 For example, a repository named "engineering-rules" might contain:
@@ -41,8 +41,6 @@ A library doesn't have one version for all of its rules. Each rule has [its own 
 When an author changes a rule, they add a change note saying how large the change is and what changed. A release turns the pending notes into new rule versions, all tagged on one **release commit**. Projects import release commits, so they never see changes that haven't been released.
 
 Releases usually go through a pull request that the release workflow opens and keeps up to date. Merging it publishes the new versions. See [Version your rules](/guides/version-rules/).
-
-Libraries created before rule versions were available can keep publishing ordinary tags, such as `v1.2.0`, for the whole library. Projects select those releases with an exact tag or a version range until the library [adopts rule versions](/guides/version-rules/#adopt-rule-versions-in-an-existing-library).
 
 ## Sharing a library
 

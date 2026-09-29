@@ -55,7 +55,7 @@ Sync, update, and build report counts and sorted lists of added, changed, and re
 - Sync and update paths start with `vendor/` or `generated/`.
 - Build paths are relative to `generated/`.
 
-Update also reports each source's old and new revision and, for a library that versions rules, each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
+`code-rules project update` also reports each source's old and new revision and each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
 Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies both generated guidance and the managed Code Rules guide without writing either.
 
@@ -80,7 +80,7 @@ Run `code-rules project check` again after repairing the problem.
 
 ### How stored imports are checked
 
-For each library, Code Rules records its imported revision, rule versions when the library versions rules, and file checksums in `vendor/<source-name>/_source.json`. A **checksum** detects whether a file's contents differ from the recorded copy.
+For each library, Code Rules records its imported revision, rule versions, and file checksums in `vendor/<source-name>/_source.json`. A **checksum** detects whether a file's contents differ from the recorded copy.
 
 Build and check work offline. They reject missing, changed, or unexpected imported files, invalid source records, rule version records that don't cover exactly the imported rules, and library selections that no longer match your configuration. Sync fetches the recorded library files again, including replacing locally modified copies.
 

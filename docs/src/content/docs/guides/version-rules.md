@@ -47,6 +47,8 @@ Projects import rules from your library. Each imported rule's version appears in
 
 A project keeps the versions it imported until someone runs `code-rules project update`, which lists each rule that changed, with its old and new versions and your summaries. It applies patch and minor changes directly. It stops for major changes and retirements until someone on the project accepts them, because those can change what the project's code must do. See [Update rules](/guides/update/).
 
+Projects only ever import released versions. Changes waiting to be released never reach them.
+
 ## How releases work
 
 You manage rule versions with two Code Rules commands. You never create version tags by hand.
@@ -62,9 +64,22 @@ You can run `code-rules library release` yourself, or let a GitHub Actions workf
 2. After the pull request merges, the workflow runs `code-rules library release --pr`. It opens a "Release rules" pull request, or updates the open one, listing the versions the release will publish.
 3. When you merge the release pull request, the workflow runs `code-rules library release --publish`, which creates the tags and GitHub Releases.
 
-Each run of `code-rules library release` tags its new versions on a single **release commit**. It contains no pending notes, so each rule's content matches its newest version. Projects import only release commits, so unreleased changes on `main` never reach them.
+Change notes start with the second release. Your library's [first release](#publish-the-first-release) gives every rule version `1.0.0`, so it needs no notes. For the exact tag and note formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
 
-A library opts in to rule versions with `versioning: rules` in `rule-library.yaml`. Libraries created with `code-rules library init` do. For an older library, see [Adopt rule versions in an existing library](#adopt-rule-versions-in-an-existing-library). For the exact tag and note formats, see [Rule versions](/reference/rule-library-format/#rule-versions) and [Change notes](/reference/rule-library-format/#change-notes).
+## Publish the first release
+
+Until your library's first release, its rules have no versions, and you can write and revise them without change notes. When the rules are ready for projects to use, push the library to its Git host and release it from your machine:
+
+```sh
+code-rules library release --dry-run
+code-rules library release
+```
+
+The first release tags every rule at `1.0.0` and creates the `code-rules/released` branch that projects follow. It runs from your machine even if you use the release workflow, because the workflow's release pull request only publishes change notes. Because it pushes to `main`, run it as someone allowed to push there.
+
+If the repository already holds rules but has no `rule-library.yaml` or workflow, run `code-rules library init` first. It keeps your existing files and adds what's missing.
+
+From then on, record every change with a note.
 
 ## Record a change
 
@@ -145,7 +160,7 @@ A rename changes the rule's ID. Move the file, add a new-rule note for the new I
 
 ## Automate releases with GitHub Actions
 
-`code-rules library init` creates `.github/workflows/code-rules.yml` in a library that versions rules. It installs the Code Rules version that created it, then:
+`code-rules library init` creates `.github/workflows/code-rules.yml`. It installs the Code Rules version that created it, then:
 
 - **On pull requests,** runs `code-rules library check` with the repository's full history.
 - **On pushes to `main`,** runs `code-rules library release --publish`, then `code-rules library release --pr`.
@@ -223,27 +238,6 @@ code-rules library release --bump-all major \
 ```
 
 This merges a major change into every rule's note, then releases from your machine. Every project that updates must accept the release.
-
-## Adopt rule versions in an existing library
-
-A library that publishes tags such as `v1.2.0` for the whole library can switch to rule versions once. From an up-to-date checkout of `main` with no change notes:
-
-```sh
-code-rules library release --init --dry-run
-code-rules library release --init
-```
-
-`code-rules library release --init` adds `versioning: rules` to `rule-library.yaml`, commits it, tags every rule at `1.0.0`, and pushes the commit, tags, and `code-rules/released` together. Because it pushes to `main`, run it as someone allowed to push there. It creates no GitHub Releases.
-
-Then add the release workflow:
-
-```sh
-code-rules library init
-```
-
-`code-rules library init` keeps your existing files and adds the workflow if it's missing. Commit it.
-
-Existing tags such as `v1.2.0` stay in place, and projects pinned to them keep working. To follow rule versions, a project removes the source's `ref` from `.code-rules/config.yaml` and runs `code-rules project sync`. Tell your consumers when you switch.
 
 ## Recover from a failed release
 

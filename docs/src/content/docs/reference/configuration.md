@@ -47,7 +47,7 @@ Replace them with libraries and rules your project can access.
 | `schemaVersion` | Configuration format version; the builder accepts `1`. |
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
-| `sources.<name>.ref` | Optional revision: a full Git commit SHA, an exact tag name such as `v1.0.0`, or a version range such as `>= 1.2.0, < 2.0.0`. Omit it to follow the releases of a library that versions rules. See [Select a revision](#select-a-revision). |
+| `sources.<name>.ref` | Optional revision to pin: a tag, such as a rule version tag, or a full Git commit SHA. Omit it to follow the library's releases. See [Select a revision](#select-a-revision). |
 | `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
 | `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
 | `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
@@ -60,7 +60,7 @@ Replacement paths resolve relative to the Code Rules directory and must stay und
 
 Each source owns its revision, groups, and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.
-The former `version` field is rejected with migration guidance. Move its value to `ref`, which now accepts version ranges.
+The former `version` field and version ranges are not supported. Omit `ref` to follow a library's releases, or pin a tag or commit.
 The schema version is `1`.
 
 ## Import every group
@@ -169,16 +169,16 @@ A source's `ref` says which revision of the library to import:
 
 | `ref` | Example | Imports |
 | --- | --- | --- |
-| Omitted | | The newest release of a library that [versions rules](/reference/rule-library-format/#rule-versions). |
+| Omitted | | The library's newest [release](/reference/rule-library-format/#release-commits). |
+| Rule version tag | `practices/testing/verify-retry-limits@1.3.0` | The release commit that published that version. |
+| Other tag | `team-approved` | The commit the tag points to. |
 | Full commit SHA | `0c9f3e…` (40 hex digits) | That commit. |
-| Exact tag name | `v1.0.0` or `practices/testing/verify-retry-limits@1.3.0` | The commit the tag points to. |
-| Version range | `>= 1.2.0, < 2.0.0` | The highest semantic version tag that matches, in a library versioned as a whole. |
 
-Configuration records what the project asked for. The source's `vendor/<source-name>/_source.json` records the exact commit it imported, like a lockfile. [`code-rules project sync`](/reference/cli/#project-sync) keeps that recorded commit while the source's repository and `ref` are unchanged, so every checkout imports the same content. [`code-rules project update`](/reference/cli/#project-update) moves to a newer revision when the `ref` allows one. Changing `ref` and running sync imports the revision it now names.
+Configuration records what the project asked for. The source's `vendor/<source-name>/_source.json` records the exact commit it imported, like a lockfile. [`code-rules project sync`](/reference/cli/#project-sync) keeps that recorded commit while the source's repository and `ref` are unchanged, so every checkout imports the same content. [`code-rules project update`](/reference/cli/#project-update) moves a source without a `ref` to the library's newest release. Changing `ref` and running `code-rules project sync` imports the revision it now names.
 
 ### Follow a library's releases
 
-Omit `ref` for a library that versions rules:
+Omit `ref` to follow the library's releases:
 
 ```yaml
 repository: https://github.com/fabricahq/public-rules.git
@@ -188,82 +188,25 @@ exclude: {}
 replace: {}
 ```
 
-The first sync imports the library's newest release commit and records each rule's version. Later syncs keep that commit. `code-rules project update` moves to the newest release and asks you to accept major changes to rules the project uses. See [Update rules](/guides/update/).
+The first sync imports the library's newest release commit and records each rule's version. Later syncs keep that commit. `code-rules project update` moves to the newest release and asks you to accept major changes and retirements of rules the project uses. See [Update rules](/guides/update/).
 
-Omitting `ref` for a library versioned as a whole fails, because it has no releases to follow. Set `ref` to one of its tags, commits, or a version range instead.
+A library that hasn't published its first release has nothing to follow, so sync fails until it does. Pin a commit to import it before then.
 
-### Pin a commit or tag
+### Pin a tag or commit
 
-Set `ref` to a full commit SHA or an exact tag name.
+Set `ref` to pin a source. `code-rules project update` never moves a pinned source; change or remove `ref` to move it.
+
+A rule version tag names the release commit that published it. The project imports every selected rule as it was at that release, not only the named rule.
+
 A tag may also use the explicit `refs/tags/<name>` form.
 Branch names and abbreviated commit SHAs are unsupported.
 A plain name resolves only as a tag, even when a branch has the same name.
 Both lightweight and annotated tags must resolve to a commit.
 
-In a library that versions rules, any rule tag, such as `practices/testing/verify-retry-limits@1.3.0`, names the release commit that published it. The project imports every selected rule as it was at that release, not only the named rule. `code-rules project update` doesn't move a pinned source; change or remove `ref` to move it.
+Code Rules resolves a tag when you add or change `ref`, then keeps the recorded commit even if someone later moves the tag.
+Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the committed snapshot without resolving tags again.
 
-Tags can move.
-Sync keeps the recorded commit, and `code-rules project update` resolves tags again and reports any change for review.
-Offline `build`, `check`, and ordinary agent work use the committed snapshot without resolving tags again.
-Use a commit SHA when the configured reference itself must be immutable.
-
-### Version ranges
-
-For a library versioned as a whole, set `ref` to a version range to accept its compatible releases:
-
-```yaml
-repository: https://github.com/example/rules.git
-ref: ">= 1.2.0, < 2.0.0"
-groups: "*"
-exclude: {}
-replace: {}
-```
-
-Code Rules treats `ref` as a range when it starts with a comparison operator, such as `>=`, `<`, `!=`, `=`, or `~>`, or contains a comma. A bare version such as `v1.2.3` or `1.2.3` names a literal tag. To name a tag that looks like a range, use the `refs/tags/<name>` form.
-Ranges use [HashiCorp go-version syntax](https://github.com/hashicorp/go-version). Surrounding whitespace is trimmed; comma-separated comparisons must all match.
-
-| Constraint | Eligible stable versions |
-| --- | --- |
-| `= 1.2.3` | Exactly 1.2.3 |
-| `!= 1.2.3` | Any version except 1.2.3 |
-| `>= 1.2.3, < 2.0.0` | Explicit lower and upper bounds |
-| `~> 1.2.3` | At least 1.2.3, below 1.3.0 |
-| `~> 1.2` | At least 1.2.0, below 2.0.0 |
-
-Partial constraint versions are accepted by go-version; for example, `= 1.2` means an exact 1.2.0 constraint. Release tags still require complete versions.
-Caret ranges (`^`), npm tilde ranges (`~`), wildcard versions (`1.2.x`), OR (`||`), and space-separated comparator chains are not supported. Use commas for AND.
-
-Prerelease matching follows go-version. A prerelease must be explicitly admitted by the comparisons; an ordinary stable bound does not admit prereleases. Use exact prerelease constraints when selecting one particular prerelease, and check the combined comparisons when defining a prerelease range.
-
-Only complete version tags such as `1.2.3` or `v1.2.3` participate. The optional prefix is lowercase `v`.
-Partial tags such as `v1`, names such as `release-1.2.3`, rule tags, and branches are ignored during version selection.
-Lightweight and annotated tags are supported, but the selected tag must resolve to a commit.
-Use an exact tag name to select a tag outside this naming convention.
-
-Code Rules selects by semantic version precedence, not tag date or Git listing order.
-If tags at the highest matching precedence point to different objects, import fails as ambiguous. Build metadata does not affect precedence.
-Aliases pointing to the same commit are allowed; the lexicographically first tag spelling is selected deterministically.
-If the selected tag changes between discovery and fetching, import fails rather than silently accepting a different revision.
-No matching tag is an error; Code Rules does not fall back to a branch or unrelated release.
-
-A library that versions rules has no library versions, so a range fails with instructions to omit `ref` and follow its releases.
-
-Snapshots and generated provenance record the requested `ref`, `resolvedTag`, `resolvedVersion`, and `resolvedCommit`.
-The normalized version retains any SemVer build metadata and omits the leading `v`.
-Offline builds check the recorded tag and version against the range, then use the stored commit without querying Git.
-
-### Migrate from the version field
-
-Earlier configurations stored ranges in a separate `version` field. Code Rules now rejects that field and tells you to rename it. Move its value to `ref`, then run `code-rules project sync`:
-
-```yaml
-# Before
-version: ">= 1.2.0, < 2.0.0"
-# After
-ref: ">= 1.2.0, < 2.0.0"
-```
-
-Sync imports the commit already recorded for the source, because the requested range is unchanged.
+Snapshots and generated provenance record the requested `ref` and the `resolvedCommit`.
 
 ## Source-scoped exceptions
 
@@ -311,8 +254,7 @@ Each library's `formatVersion` describes its authoring format.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
 Each source's `ref`, or its absence, selects the requested revision.
-Vendored provenance records the resolved commit, and for a library that versions rules each rule's version, used by offline commands. It is importer-owned output, not a second user-selected version.
-A library's `versioning` field says whether its rules or the library as a whole carry versions.
+Vendored provenance records the resolved commit and each rule's version, used by offline commands. It is importer-owned output, not a second user-selected version.
 A project imports multiple sources directly.
 Libraries that themselves inherit and republish other libraries are not supported.
 

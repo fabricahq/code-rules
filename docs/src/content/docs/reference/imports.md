@@ -77,24 +77,17 @@ The same files support implementation and review. Your project chooses how to ch
 
 ## What changes when you update
 
-Each source's `vendor/<source-name>/_source.json` records the commit it imported. Running `code-rules project sync` again imports that same commit, so every checkout of the project gets the same rules. Sync resolves a source's revision again only when the source is new or you changed its repository or `ref`.
+Each source's `vendor/<source-name>/_source.json` records the commit it imported. Running `code-rules project sync` again imports that same commit, so every checkout of the project gets the same rules. `code-rules project sync` resolves a source's revision again only when the source is new or you changed its repository or `ref`.
 
-`code-rules project update` moves sources forward, as far as each `ref` allows:
-
-| `ref` | What update can move to |
-| --- | --- |
-| Omitted | The library's newest release. |
-| Version range | A newer matching version, if one is available. |
-| Exact tag | The content the tag points to now. If the publisher moved the tag, the content can change. |
-| Full Git commit | Nothing. The source stays on that commit. |
+`code-rules project update` moves each source without a `ref` to the library's newest release. Sources pinned with a `ref` stay where they are.
 
 With the same configuration and commit, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
 
-For a library that versions rules, update reports each changed rule with its change, versions, and summary, and asks you to accept major changes to rules the project uses. For a library versioned as a whole, it reports the old and new revision; review the file changes to understand the update. Sync and update both report changed files, including group metadata and revision records.
+`code-rules project update` reports each changed rule with its change, versions, and summary, and asks you to accept major changes and retirements of rules the project uses. Both commands report changed files, including group metadata and revision records.
 
 ### How rule versions are resolved
 
-A library that versions rules keeps the branch `code-rules/released` pointed at its newest [release commit](/reference/rule-library-format/#release-commits). When a source has no `ref`, Code Rules reads that branch to find the newest release.
+Every library keeps the branch `code-rules/released` pointed at its newest [release commit](/reference/rule-library-format/#release-commits). When a source has no `ref`, Code Rules reads that branch to find the newest release.
 
 A rule's version at a release commit is its highest version tag on that commit or an earlier release commit. Every release commit contains exactly the released content, so this version describes the imported file. A rule absent from the release commit was retired, and its `<rule-id>@retired` tag records why; its last version remains in the library's history but isn't imported.
 
@@ -102,7 +95,7 @@ To find these versions, Code Rules lists only tags under `techs/` and `practices
 
 ### Tracing rules to their source
 
-Code Rules records both the revision you requested and the exact commit it imported. For a version range, it also records the selected tag and version number. For a library that versions rules, it records each rule's version. See [Provenance](/reference/provenance/) for these records.
+Code Rules records the revision you requested, the exact commit it imported, and each imported rule's version. See [Provenance](/reference/provenance/) for these records.
 
 Links to original files on GitHub.com and GitLab.com use the imported commit, so moving a tag does not change their destination. For other Git hosts, links point to the stored files; provenance retains the repository address and commit.
 
@@ -158,21 +151,17 @@ Each library import has these limits:
 
 | Resource | Limit |
 | --- | --- |
-| Fetching and version discovery | 120 seconds per library. |
+| Fetching and finding rule versions | 120 seconds per library. |
 | Entries in the Git file tree | 10,000 entries. |
 | Git file-tree listing | 8 MiB. |
 | Each retained file | 8 MiB. |
 | All retained files combined | 64 MiB. |
-| Git's tag listing during version discovery | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. For a library that versions rules, the limit applies to the listing of rule tags. |
+| Git's listing of rule tags | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. |
 
-The retained-file limits apply after fetching. They do not cap network traffic or Git's temporary disk use. Version discovery uses the same Git access settings and deadline as fetching.
+The retained-file limits apply after fetching. They do not cap network traffic or Git's temporary disk use. Finding rule versions uses the same Git access settings and deadline as fetching.
 
-When selecting a version, Code Rules can report:
+When finding a library's newest release, Code Rules can report:
 
 | Error | Meaning and next step |
 | --- | --- |
-| `version-not-found` | No eligible tag matches your version range. Check the published tags and configured range. |
-| `ambiguous-version` | Conflicting tags represent the highest matching version. Correct the tags or select an exact revision. |
-| `ref-changed` | The selected tag moved between discovery and fetching. Retry, correct the tags, or select an exact commit. |
-| `releases-not-found` | The source has no `ref`, but the library has no `code-rules/released` branch, so it doesn't version rules. Set `ref` to a tag, commit, or version range. |
-| `range-unsupported` | The source's `ref` is a version range, but the library versions rules. Remove `ref` to follow its releases, or pin a commit or rule tag. |
+| `releases-not-found` | The source has no `ref`, but the library has no `code-rules/released` branch because it hasn't published its first release. Ask the maintainer to release, or pin a commit. |
