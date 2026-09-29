@@ -115,6 +115,62 @@ func TestResolveFailures(t *testing.T) {
 	}
 }
 
+// TestResolveReplacementFileReuse refuses one local file replacing two rules, within one source or across
+// sources, and accepts distinct replacement files.
+func TestResolveReplacementFileReuse(t *testing.T) {
+	meta, err := rules.ParseGroupMetadata(json.RawMessage(metadata), "group")
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog := func(source string, paths ...string) Library {
+		group := library.Group{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{}}
+		for _, path := range paths {
+			rule, err := rules.Parse(document, path, source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			group.Rules = append(group.Rules, rule)
+		}
+		return Library{Commit: commit, Catalog: library.Catalog{Selection: rules.GroupSelection{Groups: []string{"techs/go"}}, Groups: []library.Group{group}, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}}}
+	}
+	replaced := func(file string) string {
+		return `{"reason":"Project policy","replacedBy":"local/techs/go/` + file + `"}`
+	}
+	local := map[string][]byte{"techs/go/custom.md": []byte(document), "techs/go/second.md": []byte(document)}
+	for _, test := range []struct {
+		name      string
+		sources   string
+		libraries map[string]Library
+		reused    bool
+	}{
+		{"same source", `"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/errors":` + replaced("custom.md") + `,"techs/go/other":` + replaced("custom.md") + `}}`,
+			map[string]Library{"team": catalog("team", "techs/go/errors.md", "techs/go/other.md")}, true},
+		{"two sources", `"acme":{"repository":"https://github.com/acme/other","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/errors":` + replaced("custom.md") + `}},` +
+			`"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/errors":` + replaced("custom.md") + `}}`,
+			map[string]Library{"acme": catalog("acme", "techs/go/errors.md"), "team": catalog("team", "techs/go/errors.md")}, true},
+		{"distinct files", `"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/errors":` + replaced("custom.md") + `,"techs/go/other":` + replaced("second.md") + `}}`,
+			map[string]Library{"team": catalog("team", "techs/go/errors.md", "techs/go/other.md")}, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config, err := rules.ParseConfiguration(json.RawMessage(`{"schemaVersion":1,"sources":{` + test.sources + `}}`))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := resolve(config, test.libraries, local)
+			if !test.reused {
+				if err != nil || len(got.Groups) != 1 || len(got.Groups[0].Rules) != 2 || got.Groups[0].Rules[0].Rule.ID != "local:techs/go/custom" || got.Groups[0].Rules[1].Rule.ID != "local:techs/go/second" {
+					t.Fatalf("got %+v, %v", got.Groups, err)
+				}
+				return
+			}
+			var validation *rules.ValidationError
+			if !errors.As(err, &validation) || validation.Location != "local/techs/go/custom.md" || validation.Problem != "replacement file is reused for multiple targets" || got.Groups != nil || got.Sources != nil {
+				t.Fatalf("got %+v, %v; want reuse refusal and no result", got, err)
+			}
+		})
+	}
+}
+
 // TestResolveRequiresImportedExceptionTargets rejects an exclusion or pin naming a rule the source doesn't import,
 // and accepts both for an imported rule.
 func TestResolveRequiresImportedExceptionTargets(t *testing.T) {
