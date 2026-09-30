@@ -44,6 +44,7 @@ team
   replaced  techs/react/use-query-hooks            1.1.0 -> 1.2.0
             Add an example for paginated queries.
             Your rule: local/techs/react/use-data-loaders.md.
+            Changes since the imported version 1.1.0; your rule may already have some.
   pinned    practices/testing/verify-backoff       1.3.0
             Newest version: 2.0.0.
             Reason: Waiting on the author's response to acme/.code-rules#45.
@@ -58,7 +59,7 @@ When a rule moves through several versions, each summary starts with the version
 | `major` | Work that complied with the previous version could fail this one. |
 | `new` | A rule the library added to a group you import. |
 | `retired` | The library stopped publishing the rule, so your agents will stop reading it. The preview names its replacement when there is one. |
-| `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule). Your rule doesn't change. |
+| `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule). The preview lists the changes since the version the project imports, not the ones your rule lacks; a fork of a newer version may already have some. Your rule doesn't change. |
 | `pinned` | A newer version exists, but your [pin](#keep-a-rule-at-its-current-version) keeps the rule where it is. |
 
 When a library release changed [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group descriptions or shared diagrams, the preview ends the source with a line such as `Shared files: release 3 -> 4`. The update brings them in even when no rule changes.

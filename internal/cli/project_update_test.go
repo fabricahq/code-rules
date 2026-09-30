@@ -143,6 +143,7 @@ const updatePreview = `team
   replaced  techs/go/loaders  1.0.0 -> 1.1.0
             Add pagination.
             Your rule: local/techs/go/use-data-loaders.md.
+            Changes since the imported version 1.0.0; your rule may already have some.
   pinned    techs/go/backoff  1.0.0
             Newest version: 2.0.0.
             Reason: Waiting on #45.

@@ -330,7 +330,8 @@ func updateDetails(row imports.RuleUpdate) []string {
 		lines = append(lines, summary)
 	}
 	if row.LocalRule != "" {
-		lines = append(lines, "Your rule: "+row.LocalRule+".")
+		// Until forks record the version they came from, the rows compare with the imported version.
+		lines = append(lines, "Your rule: "+row.LocalRule+".", "Changes since the imported version "+row.From.String()+"; your rule may already have some.")
 	}
 	switch {
 	case row.Change == imports.UpdatePinned:
