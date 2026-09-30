@@ -485,6 +485,27 @@ func TestImport_RejectsAReleaseTagWithoutARecord(t *testing.T) {
 	}
 }
 
+// TestImport_RejectsAReleaseTagOfSomethingOtherThanACommit refuses a release tag with a valid record whose target
+// is a tree or a blob, so a non-commit never becomes a recorded commit.
+func TestImport_RejectsAReleaseTagOfSomethingOtherThanACommit(t *testing.T) {
+	for _, target := range []string{"HEAD^{tree}", "HEAD:rule-library.yaml"} {
+		t.Run(target, func(t *testing.T) {
+			h := newHistory(t)
+			ctx := context.Background()
+			object, err := h.fixture.Command(ctx, "rev-parse", target)
+			if err != nil {
+				t.Fatal(err)
+			}
+			record := "release: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.0\n"
+			if _, err := h.fixture.Command(ctx, "tag", "--annotate", "--cleanup=verbatim", "--message", "Notes.\n\n---\n"+record, "release/4", object); err != nil {
+				t.Fatal(err)
+			}
+			_, err = h.sync(t, h.source(t, `"groups":["techs/go"]`), nil)
+			requireCode(t, err, "invalid-release-tag")
+		})
+	}
+}
+
 // TestImport_IgnoresOtherTagsUnderRelease reads only tags named release/<number>.
 func TestImport_IgnoresOtherTagsUnderRelease(t *testing.T) {
 	h := newHistory(t)
