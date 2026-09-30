@@ -687,6 +687,20 @@
     }
   },
   {
+    "id": "configuration-numeric-ref",
+    "operation": "configuration",
+    "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": 0, \"groups\": [\"techs/go\"]}}}",
+    "location": "configuration",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: expected a tag or full commit SHA in quotes; YAML reads an unquoted value of digits as a number",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
     "id": "configuration-branch-ref",
     "operation": "configuration",
     "input": "{\"schemaVersion\": 1, \"sources\": {\"team\": {\"repository\": \"https://github.com/fixture/team.git\", \"ref\": \"refs/heads/main\", \"groups\": [\"techs/go\"]}}}",
@@ -695,7 +709,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "message": "sources.team.ref: refs/heads/main is a branch; ref accepts a tag or a full commit SHA, not a branch",
         "location": "sources.team.ref"
       }
     }

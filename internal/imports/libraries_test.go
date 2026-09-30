@@ -286,6 +286,19 @@ func TestCatalogMutationPreservesSnapshot(t *testing.T) {
 
 }
 
+// TestImportBranchRefDiagnostic says a ref that names one of the library's branches isn't supported, rather than
+// that the library has no such revision.
+func TestImportBranchRefDiagnostic(t *testing.T) {
+	f := newLibraryFixture(t, libraryFiles())
+	config := libraryConfig(t, f.Repository)
+	config.Sources[0].Ref = "main"
+	_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
+	requireCode(t, err, "version-not-found")
+	if want := "sources.team.ref: main is a branch; ref accepts a tag or a full commit SHA, not a branch, so every import can be reproduced."; !strings.HasSuffix(err.Error(), want) {
+		t.Fatalf("unexpected diagnostic: %s", err)
+	}
+}
+
 // TestImportMissingRefDiagnostic preserves typed failures without doubled sentence punctuation.
 func TestImportMissingRefDiagnostic(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())

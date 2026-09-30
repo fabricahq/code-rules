@@ -115,6 +115,9 @@ func parseSource(name string, input json.RawMessage, repositories map[string]boo
 		if _, pinned := fields["pins"]; pinned {
 			return Source{}, invalid(where, "pins and ref can't be combined; remove ref to pin individual rules, or remove pins to import one revision")
 		}
+		if first := strings.TrimSpace(string(raw)); first != "" && strings.ContainsRune("-0123456789", rune(first[0])) {
+			return Source{}, invalid(where+".ref", "expected a tag or full commit SHA in quotes; YAML reads an unquoted value of digits as a number")
+		}
 		text, err := jsonText(raw, where+".ref")
 		if err != nil {
 			return Source{}, err

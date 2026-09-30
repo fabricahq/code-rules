@@ -120,6 +120,15 @@ func (r *repository) unreachable(ctx context.Context) error {
 	return fail("not-found-or-no-access", "Repository not found or no access; check its address and Git credentials.", nil)
 }
 
+// hasBranch reports whether the library has a branch named name, to explain a ref that names no tag.
+func (r *repository) hasBranch(ctx context.Context, name string) (bool, error) {
+	result, err := r.runner.Run(ctx, r.directory, []string{"ls-remote", "--exit-code", "--heads", fetchRemote, "refs/heads/" + name}, 64<<10, nil)
+	if err != nil {
+		return false, err
+	}
+	return result.Status == 0, nil
+}
+
 // fetchCommits fetches each commit that isn't present yet. A commit the repository doesn't have fails with
 // code version-not-found and missing's explanation.
 func (r *repository) fetchCommits(ctx context.Context, commits []string, missing string) error {
@@ -169,6 +178,15 @@ func (r *repository) fetchRef(ctx context.Context, source rules.Source) (string,
 	if !ok {
 		if err := r.unreachable(ctx); err != nil {
 			return "", err
+		}
+		if ref.Kind == rules.GitRefTag {
+			branch, err := r.hasBranch(ctx, strings.TrimPrefix(ref.Name, "refs/tags/"))
+			if err != nil {
+				return "", err
+			}
+			if branch {
+				return "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: %s is a branch; ref accepts a tag or a full commit SHA, not a branch, so every import can be reproduced.", source.Name, source.Ref), nil)
+			}
 		}
 		return "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no tag or commit %s; check the ref.", source.Name, source.Ref), nil)
 	}

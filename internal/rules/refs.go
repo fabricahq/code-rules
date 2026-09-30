@@ -40,7 +40,13 @@ func ParseGitRef(ref, location string) (GitRef, error) {
 		return GitRef{}, invalid(location, "expected nonempty text")
 	}
 	if commitRef.MatchString(ref) {
+		if strings.Trim(ref, "0") == "" {
+			return GitRef{}, invalid(location, "the all-zero SHA names no commit; use a full commit SHA or a tag")
+		}
 		return GitRef{Kind: GitRefCommit, SHA: strings.ToLower(ref)}, nil
+	}
+	if strings.HasPrefix(ref, "refs/heads/") {
+		return GitRef{}, invalid(location, ref+" is a branch; ref accepts a tag or a full commit SHA, not a branch")
 	}
 	tag := strings.TrimPrefix(ref, "refs/tags/")
 	if unsafeRef.MatchString(tag) || tag == "@" || strings.HasPrefix(tag, "-") ||
