@@ -272,7 +272,7 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	rule, err := rules.Parse(string(f.files(t)["local/techs/go/errors.md"]), "techs/go/errors.md", "local")
-	want := []rules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release release/1 at commit " + commit + "."}}
+	want := []rules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
 	if err != nil || !reflect.DeepEqual(rule.Attribution, want) {
 		t.Fatalf("attribution %+v, %v; want %+v", rule.Attribution, err, want)
 	}
@@ -290,7 +290,7 @@ func TestForkAttribution_DependsOnTheHost(t *testing.T) {
 		{"git@git.example.org:srv/rules.git", ""},
 	} {
 		got, err := forkAttribution(test.repository, "techs/go/errors", version, published)
-		if err != nil || (got == nil) != (test.url == "") || got != nil && (got.URL != test.url || got.Description != "Forked from version 1.3.0 of techs/go/errors, published in library release release/4 at commit "+published.Commit+".") {
+		if err != nil || (got == nil) != (test.url == "") || got != nil && (got.URL != test.url || got.Description != "Forked from version 1.3.0 of techs/go/errors, published in library release 4 at commit "+published.Commit+".") {
 			t.Errorf("%s: got %+v, %v; want %q", test.repository, got, err, test.url)
 		}
 	}

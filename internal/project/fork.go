@@ -108,7 +108,7 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 		return nil, fmt.Errorf("fork %s@%s: %w", id, from.Version, err)
 	}
 	if published.GroupMetadata != nil {
-		if _, err := rules.ParseGroupMetadataYAML(published.GroupMetadata, fmt.Sprintf("library release release/%d: %s/_group.yaml", published.Release, plan.group)); err != nil {
+		if _, err := rules.ParseGroupMetadataYAML(published.GroupMetadata, fmt.Sprintf("release/%d: %s/_group.yaml", published.Release, plan.group)); err != nil {
 			return nil, err
 		}
 	}
@@ -190,7 +190,7 @@ func (p *ForkPlan) groupFiles(ctx context.Context, root *os.Root, config rules.C
 		return nil, err
 	}
 	if p.groupMetadata == nil {
-		return nil, failure("missing-group", fmt.Sprintf("library release release/%d has no metadata for group %s; create the group with code-rules project add group %s, then retry the fork", p.release, group, group), nil)
+		return nil, failure("missing-group", fmt.Sprintf("release/%d has no metadata for group %s; create the group with code-rules project add group %s, then retry the fork", p.release, group, group), nil)
 	}
 	guideName, _ := projectGuide()
 	files := []filetxn.File{}
@@ -320,7 +320,7 @@ func forkAttribution(repository, id string, version rules.RuleVersion, published
 		}
 		url = repository
 	}
-	return &rules.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release release/%d at commit %s.", version, id, published.Release, published.Commit)}, nil
+	return &rules.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release %d at commit %s.", version, id, published.Release, published.Commit)}, nil
 }
 
 // forkFiles returns the fork's files by path relative to local/. The rule and its asset directory keep their

@@ -341,7 +341,7 @@ func (p *planner) resolveRef() (int, string, error) {
 			}
 			release := history.release(number)
 			if release == nil {
-				return 0, "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no library release %s; check the ref.", p.source.Name, p.source.Ref), nil)
+				return 0, "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no %s; check the ref.", p.source.Name, p.source.Ref), nil)
 			}
 			return number, release.commit, nil
 		}
@@ -359,7 +359,7 @@ func (p *planner) revisionVersion(id string, plan sourcePlan) (library.ImportedR
 	if plan.release != 0 {
 		release := history.release(plan.release)
 		if release == nil {
-			return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.ref names library release release/%d, which the library no longer has, so newly selected rule %s has no version to import. Ask the library's maintainer to restore the tag, or change sources.%s.ref.", p.source.Name, plan.release, id, p.source.Name), nil)
+			return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.ref names release/%d, which the library no longer has, so newly selected rule %s has no version to import. Ask the library's maintainer to restore the tag, or change sources.%s.ref.", p.source.Name, plan.release, id, p.source.Name), nil)
 		}
 		version, listed := release.record.Rules[id]
 		if !listed {

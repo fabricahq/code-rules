@@ -419,7 +419,7 @@ func (p *planner) settle(plan *sourcePlan) error {
 func retiredRow(id string, current library.ImportedRule, history releaseHistory) (RuleUpdate, error) {
 	retired := history.retirement(id)
 	if retired == nil {
-		return RuleUpdate{}, fail("invalid-release-tag", fmt.Sprintf("Rule %s is missing from library release release/%d, but no library release retired it. Don't create or move release tags by hand.", id, history.newest().number), nil)
+		return RuleUpdate{}, fail("invalid-release-tag", fmt.Sprintf("Rule %s is missing from release/%d, but no library release retired it. Don't create or move release tags by hand.", id, history.newest().number), nil)
 	}
 	last := retired.LastVersion
 	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), ReplacedBy: retired.ReplacedBy}
