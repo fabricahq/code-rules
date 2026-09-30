@@ -687,7 +687,7 @@ func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
 }
 
 // TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit publishes a release tag that exists only in the clone,
-// on HEAD, numbered one past the remote's latest.
+// on HEAD, numbered one past the remote's latest, and keeps it when the push fails.
 func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles())
@@ -695,6 +695,23 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	local := tags(t, fixture, options.Directory)
+	// A failed push keeps the tag, which this run didn't create.
+	hook := filepath.Join(options.Directory, ".git", "hooks", "pre-push")
+	if err := os.MkdirAll(filepath.Dir(hook), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hook, []byte("#!/bin/sh\nexit 1\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Release(ctx, ReleaseRequest{Options: options}); errorCode(err) != "push-failed" || !strings.Contains(err.Error(), "This clone's release/1, from an earlier run, stays") {
+		t.Fatal(err)
+	}
+	if tags(t, fixture, options.Directory) != local {
+		t.Fatal("a failed push deleted a tag an earlier run created")
+	}
+	if err := os.Remove(hook); err != nil {
+		t.Fatal(err)
+	}
 	result, err := Release(ctx, ReleaseRequest{Options: options})
 	if err != nil || !result.TagCreated || result.Published || result.Release != 1 || result.Notes != "Library release 1." {
 		t.Fatal(result, err)

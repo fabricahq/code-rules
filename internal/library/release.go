@@ -126,6 +126,8 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		return ReleaseResult{}, err
 	}
 	var object string
+	// created is set when this run creates the tag, so a failed push deletes only a tag this run made.
+	var created bool
 	if latest := checked.changes.history.latest; latest != nil && latest.commit == result.Commit {
 		describe(&result, latest.record, latest.notes)
 		result.Published = unpushed != latest.number
@@ -163,13 +165,13 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		if object, err = git.createTag(ctx, result.Tag, result.Commit, message); err != nil {
 			return ReleaseResult{}, err
 		}
-		unpushed = record.Release
+		unpushed, created = record.Release, true
 	}
 	if request.DryRun {
 		return result, nil
 	}
 	if unpushed == result.Release {
-		if err = git.pushTag(ctx, branch, result.Tag, object); err != nil {
+		if err = git.pushTag(ctx, branch, result.Tag, object, created); err != nil {
 			return ReleaseResult{}, err
 		}
 		result.TagCreated = true

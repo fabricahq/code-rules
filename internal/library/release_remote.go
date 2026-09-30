@@ -497,10 +497,11 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 	return object, nil
 }
 
-// pushTag pushes only the tag, running the author's pre-push hook. If the push fails, it deletes the local
-// tag, so the clone never keeps a release tag the remote lacks; a remote that already has a different tag of
-// that name fails with release-conflict.
-func (g *libraryGit) pushTag(ctx context.Context, u upstream, name, object string) error {
+// pushTag pushes only the tag, running the author's pre-push hook. If the push fails, it deletes the local tag
+// when this run created it, so the clone doesn't keep a release tag the remote lacks; a tag an interrupted run
+// left stays, with its signature, for the next run to push. A remote that already has a different tag of that
+// name fails with release-conflict.
+func (g *libraryGit) pushTag(ctx context.Context, u upstream, name, object string, created bool) error {
 	ref := "refs/tags/" + name
 	pushed, err := g.runner.Run(ctx, g.dir, []string{"push", "--no-follow-tags", "--", u.remote, ref + ":" + ref}, 1024*1024, nil)
 	if err == nil && pushed.Status == 0 {
@@ -515,6 +516,9 @@ func (g *libraryGit) pushTag(ctx context.Context, u upstream, name, object strin
 		case len(remote.Output) > 0:
 			problem = failure("release-conflict", "someone else published "+name+" to "+u.remote+" first. Pull their changes, then run code-rules library release again if anything remains to publish.", nil)
 		}
+	}
+	if !created {
+		return fmt.Errorf("%w This clone's %s, from an earlier run, stays; if %s has another, delete this one with git tag --delete %s", problem, name, u.remote, name)
 	}
 	// Delete the tag even after cancellation, which may have interrupted the push.
 	deleted, deleteErr := g.runner.Run(context.WithoutCancel(ctx), g.dir, []string{"update-ref", "-d", ref, object}, 4096, nil)
