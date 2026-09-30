@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fabricahq/code-rules/internal/test/ghfixture"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -99,7 +100,7 @@ func withFakeGitHubCLI(t *testing.T, options *Options, responses []ghfixture.Res
 func gitHubCalls(tag string, code int) []ghfixture.Response {
 	return []ghfixture.Response{
 		{Args: []string{"auth", "status", "--hostname", "github.com"}},
-		{Args: []string{"release", "view", tag, "--repo", "github.com/acme/rules", "--json", "url", "--jq", ".url"}, ExitCode: 1},
+		{Args: []string{"release", "view", tag, "--repo", "github.com/acme/rules", "--json", "url", "--jq", ".url"}, Stderr: "release not found\n", ExitCode: 1},
 		{Args: []string{"release", "create", tag, "--repo", "github.com/acme/rules", "--verify-tag", "--title", tag, "--notes-file", "-"}, Stdout: "https://github.com/acme/rules/releases/tag/" + tag + "\n", ExitCode: code},
 	}
 }
@@ -180,7 +181,7 @@ func TestRelease_LaterLibraryReleasePublishesPendingNotesAndLibraryWideFiles(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	notes := "Library release 2 changes 3 rules:\n1 minor, 1 new, and 1 retired.\n\n## Minor changes\n\n- **practices/testing/a** `1.0.0` → `1.1.0`\n  Fix a typo.\n  Test one past the limit.\n\n## New rules\n\n- **practices/testing/c** `1.0.0`\n  Fold b into a broader rule.\n\n## Retired rules\n\n- **practices/testing/b**, last version `1.0.0`\n  Fold b into a broader rule.\n  Replaced by **practices/testing/c**.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.1.0 |\n| practices/testing/c | 1.0.0 |\n\n</details>"
+	notes := "Library release 2 changes 3 rules:\n1 minor, 1 new, and 1 retired.\n\n## Minor changes\n\n- **practices/testing/a** `1.0.0` → `1.1.0`\n  Fix a typo.\n  Test one past the limit.\n\n## New rules\n\n- **practices/testing/c** `1.0.0`\n  Fold b into a broader rule.\n\n## Retired rules\n\n- **practices/testing/b**, last version `1.0.0`\n  Fold b into a broader rule.\n  Replaced by **practices/testing/c**.\n\nThis library release also updates shared files, such as group\ndescriptions or shared assets.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.1.0 |\n| practices/testing/c | 1.0.0 |\n\n</details>"
 	record := "release: 2\nrules:\n  practices/testing/a: 1.1.0\n  practices/testing/c: 1.0.0\nchanges:\n  practices/testing/a:\n    change: minor\n    from: 1.0.0\n    summary: |-\n      Fix a typo.\n      Test one past the limit.\n  practices/testing/c:\n    change: new\n    summary: Fold b into a broader rule.\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    replacedBy: practices/testing/c\n    summary: Fold b into a broader rule.\nlibraryFiles:\n  - assets/diagram.svg\n  - practices/testing/_group.yaml\n"
 	if message := tagMessage(t, fixture, remoteDir(fixture), "release/2"); message != notes+"\n---\n"+record {
 		t.Fatalf("tag message:\n%s\nwant:\n%s\n---\n%s", message, notes, record)
@@ -199,9 +200,29 @@ func TestRelease_PublishesLibraryWideChangesWithoutRuleChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "Library release 2 changes no rules, only library-wide files.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| practices/testing/b | 1.0.0 |\n\n</details>\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nlibraryFiles:\n  - practices/testing/_group.yaml\n"
+	want := "Library release 2 changes no rules.\nIt updates shared files, such as group descriptions or shared assets.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| practices/testing/b | 1.0.0 |\n\n</details>\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nlibraryFiles:\n  - practices/testing/_group.yaml\n"
 	if message := tagMessage(t, fixture, remoteDir(fixture), "release/2"); message != want || !result.TagCreated || len(result.Rules) != 0 {
 		t.Fatalf("result %+v, tag message:\n%s", result, message)
+	}
+}
+
+// TestRelease_ListsRenamedAndRemovedLicenseFiles compares the license and notice files both library releases
+// declare, so a renamed license and a removed notice are listed under their old paths too.
+func TestRelease_ListsRenamedAndRemovedLicenseFiles(t *testing.T) {
+	files := libraryFiles()
+	files["rule-library.yaml"] = []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n  notices:\n    - NOTICE.md\n")
+	files["LICENSE.md"] = []byte("MIT License\n")
+	files["NOTICE.md"] = []byte("Notice\n")
+	fixture, options := authorClone(t, files, releaseOne)
+	commitAndPush(t, fixture, options.Directory, map[string][]byte{
+		"rule-library.yaml": []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.txt\n  notices: []\n"),
+		"LICENSE.md":        nil,
+		"LICENSE.txt":       []byte("MIT License\n"),
+		"NOTICE.md":         nil,
+	})
+	result, err := Release(context.Background(), ReleaseRequest{Options: options})
+	if want := []string{"LICENSE.md", "LICENSE.txt", "NOTICE.md", "rule-library.yaml"}; err != nil || !slices.Equal(result.LibraryFiles, want) {
+		t.Fatalf("library-wide files %q, want %q: %v", result.LibraryFiles, want, err)
 	}
 }
 
@@ -268,14 +289,33 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed."))})
 			}},
-		{name: "uncommitted changes", code: "uncommitted-changes", message: "the library has changes that aren't committed:\n  - changes/a.yaml isn't committed\n  - practices/testing/a.md has uncommitted changes\n  - practices/testing/b.md was deleted, and the deletion isn't committed\n  - practices/testing/c.md isn't committed\nCommit and push them",
+		{name: "uncommitted changes", code: "uncommitted-changes", message: "the library files check read differ from it:\n  - changes/a.yaml isn't committed\n  - practices/testing/a.md differs from its committed copy\n  - practices/testing/b.md was deleted, and the deletion isn't committed\n  - practices/testing/c.md isn't committed\nCommit and push your changes",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed."), "practices/testing/b.md": "", "practices/testing/c.md": ruleText("New."), "changes/a.yaml": "summary: Change a.\nrules:\n  practices/testing/a: patch\n  practices/testing/b: retired\n  practices/testing/c: new\n"})
+			}},
+		{name: "file a Git filter changes", code: "uncommitted-changes", message: "  - assets/note.txt differs from its committed copy\n",
+			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
+				// Like Git LFS, the clean filter commits other content than the checkout holds, so Git sees no change.
+				run(t, fixture, options.Directory, "config", "filter.upper.clean", "/usr/bin/tr a-z A-Z")
+				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitattributes": []byte("assets/*.txt filter=upper\n"), "assets/note.txt": []byte("checked content\n")})
+				if status, err := fixture.CommandIn(context.Background(), options.Directory, "-c", "filter.upper.clean=/usr/bin/tr a-z A-Z", "status", "--porcelain"); err != nil || status != "" {
+					t.Fatalf("the filtered file looks changed to Git: %q %v", status, err)
+				}
 			}},
 		{name: "ignored library file", code: "uncommitted-changes", message: "practices/testing/c.md isn't committed",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitignore": []byte("c.md\n")})
 				edit(t, options.Directory, map[string]string{"practices/testing/c.md": ruleText("New."), "changes/c.yaml": "summary: Add c.\nrules:\n  practices/testing/c: new\n"})
+			}},
+		{name: "push URL for another repository", code: "push-destination", message: "origin fetches from https://github.com/acme/rules but pushes to https://github.com/alice/rules.",
+			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
+				run(t, fixture, options.Directory, "remote", "set-url", "origin", gitHubRepositoryURL)
+				run(t, fixture, options.Directory, "remote", "set-url", "--push", "origin", "git@github.com:alice/rules.git")
+			}},
+		{name: "several push URLs", code: "push-destination", message: "origin pushes to 2 URLs, so a library release could reach only some of them.",
+			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
+				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository)
+				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository+"-mirror")
 			}},
 		{name: "unreachable remote", code: "fetch-failed", message: "Git couldn't read origin. Check your network connection and access to the repository",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
@@ -288,6 +328,10 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 		{name: "branch without an upstream", code: "no-upstream", message: "main has no upstream branch on a remote",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				run(t, fixture, options.Directory, "branch", "--unset-upstream")
+			}},
+		{name: "remote without a fetch refspec", code: "no-upstream", message: "main has no upstream branch on a remote",
+			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
+				run(t, fixture, options.Directory, "config", "--unset-all", "remote.origin.fetch")
 			}},
 		{name: "moved release tag", code: "release-tag-mismatch", message: "release/1 in this clone differs from release/1 on origin",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
@@ -316,13 +360,8 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			}},
 		{name: "unknown committer", code: "git-identity", message: "Git doesn't know your name and email",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
-				environment := []string{}
-				for _, item := range options.Git.Environment {
-					if !strings.HasPrefix(item, "GIT_COMMITTER_") && !strings.HasPrefix(item, "GIT_AUTHOR_") && !strings.HasPrefix(item, "EMAIL=") {
-						environment = append(environment, item)
-					}
-				}
-				options.Git.Environment = append(environment, "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=user.useConfigOnly", "GIT_CONFIG_VALUE_0=true")
+				commitAndPush(t, fixture, options.Directory, changedA)
+				withoutIdentity(options)
 			}},
 		{name: "GitHub CLI not installed", code: "github-cli-missing", message: "Install it from https://cli.github.com", github: true,
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
@@ -367,6 +406,34 @@ func run(t *testing.T, fixture *gitfixture.Fixture, dir string, args ...string) 
 	if _, err := fixture.CommandIn(context.Background(), dir, args...); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// withoutIdentity leaves Git no committer name or email to record as a tag's tagger.
+func withoutIdentity(options *Options) {
+	environment := []string{}
+	for _, item := range options.Git.Environment {
+		if !strings.HasPrefix(item, "GIT_COMMITTER_") && !strings.HasPrefix(item, "GIT_AUTHOR_") && !strings.HasPrefix(item, "EMAIL=") {
+			environment = append(environment, item)
+		}
+	}
+	options.Git.Environment = append(environment, "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=user.useConfigOnly", "GIT_CONFIG_VALUE_0=true")
+}
+
+// TestRelease_ReportsNothingToPublishWithoutTheToolsPublishingNeeds needs neither a tagger identity nor gh
+// when there's nothing to publish.
+func TestRelease_ReportsNothingToPublishWithoutTheToolsPublishingNeeds(t *testing.T) {
+	fixture, options := authorClone(t, libraryFiles(), releaseOne)
+	commitAndPush(t, fixture, options.Directory, map[string][]byte{"README.md": []byte("About the library.\n")})
+	fake := withGitHub(t, fixture, &options, nil)
+	if err := os.Remove(filepath.Join(pathOf(&options), "gh")); err != nil {
+		t.Fatal(err)
+	}
+	withoutIdentity(&options)
+	result, err := Release(context.Background(), ReleaseRequest{Options: options})
+	if err != nil || result.Release != 0 {
+		t.Fatal(result, err)
+	}
+	requireCalls(t, fake, []ghfixture.Call{})
 }
 
 // pathOf returns the PATH in options' environment.
@@ -420,6 +487,35 @@ func TestRelease_CreatesTheGitHubReleasePageAndFinishesAfterItFails(t *testing.T
 		t.Fatal(result, err)
 	}
 	requireCalls(t, fake, []ghfixture.Call{{Args: calls[0].Args}, {Args: calls[1].Args}})
+}
+
+// TestRelease_FailsWithoutCreatingAPageGHCouldNotLookUp treats only gh's "release not found" as a missing page,
+// so an API failure never leads to creating a second page.
+func TestRelease_FailsWithoutCreatingAPageGHCouldNotLookUp(t *testing.T) {
+	fixture, options := authorClone(t, libraryFiles())
+	responses := gitHubCalls("release/1", 0)
+	responses[1].Stderr = "HTTP 502: Bad Gateway (https://api.github.com/repos/acme/rules/releases/tags/release/1)\n"
+	fake := withGitHub(t, fixture, &options, responses)
+	_, err := Release(context.Background(), ReleaseRequest{Options: options})
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1 (HTTP 502: Bad Gateway") {
+		t.Fatal(err)
+	}
+	requireCalls(t, fake, []ghfixture.Call{{Args: responses[0].Args}, {Args: responses[1].Args}})
+}
+
+// TestRelease_PublishesThroughAPushURLForTheSameRepository accepts a push URL in another form for the fetch
+// repository, and names the GitHub repository after the push destination.
+func TestRelease_PublishesThroughAPushURLForTheSameRepository(t *testing.T) {
+	fixture, options := authorClone(t, libraryFiles())
+	withGitHub(t, fixture, &options, nil)
+	run(t, fixture, options.Directory, "remote", "set-url", "--push", "origin", "ssh://git@github.com/Acme/Rules")
+	result, err := Release(context.Background(), ReleaseRequest{Options: options, NoGitHubRelease: true})
+	if err != nil || !result.TagCreated || result.GitHubRepository != "Acme/Rules" || result.Repository != "https://github.com/Acme/Rules" {
+		t.Fatal(result, err)
+	}
+	if _, err := fixture.Command(context.Background(), "rev-parse", "--verify", "refs/tags/release/1"); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestRelease_SkipsTheGitHubReleasePageWhenAsked publishes the tag without calling gh.
@@ -482,6 +578,109 @@ func TestRelease_StopsCleanlyWhenSomeoneElsePublishesFirst(t *testing.T) {
 	}
 }
 
+// TestRelease_RefusesWhenTheRemoteChangesBetweenListingAndFetching changes the remote just before the fetch,
+// through a transport that runs the change on its second connection, after the listing.
+func TestRelease_RefusesWhenTheRemoteChangesBetweenListingAndFetching(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		// change runs in the remote repository, with arguments for Git.
+		change  string
+		message string
+	}{
+		{"branch", "commit --quiet --allow-empty --message Elsewhere", "origin changed while code-rules library release was reading it: someone pushed to main."},
+		{"release tag", "tag --force --annotate --cleanup=verbatim --message " + gitfixture.Quote(strings.Replace(releaseOne, "Add a.", "Add rule a.", 1)) + " release/1", "origin changed while code-rules library release was reading it: release/1 changed."},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fixture, options := authorClone(t, libraryFiles(), releaseOne)
+			// Without its own release/1, the clone fetches the remote's.
+			run(t, fixture, options.Directory, "tag", "--delete", "release/1")
+			state := filepath.Join(t.TempDir(), "connections")
+			transport := filepath.Join(t.TempDir(), "ssh")
+			// The change runs Git with an empty environment, so nothing from the author's Git reaches the remote.
+			script := "#!/bin/sh\nn=$(/bin/cat " + gitfixture.Quote(state) + " 2>/dev/null || echo 0)\nn=$((n + 1))\necho $n > " + gitfixture.Quote(state) + "\n" +
+				"if [ $n = 2 ]; then /usr/bin/env -i GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME=Other GIT_AUTHOR_EMAIL=other@example.invalid GIT_COMMITTER_NAME=Other GIT_COMMITTER_EMAIL=other@example.invalid " +
+				gitfixture.Quote(fixture.GitPath) + " -C " + gitfixture.Quote(remoteDir(fixture)) + " -c core.hooksPath=/dev/null -c tag.gpgsign=false -c commit.gpgsign=false " + test.change + " >/dev/null 2>&1 || exit 1; fi\n" +
+				"exec " + gitfixture.Quote(filepath.Join(fixture.Directory, "ssh")) + " \"$@\"\n"
+			if err := os.WriteFile(transport, []byte(script), 0700); err != nil {
+				t.Fatal(err)
+			}
+			options.Git.Environment = append(slices.Clone(options.Git.Environment), "GIT_SSH_COMMAND="+gitfixture.Quote(transport))
+			before := tags(t, fixture, remoteDir(fixture))
+			_, err := Release(context.Background(), ReleaseRequest{Options: options})
+			if errorCode(err) != "remote-changed" || !strings.Contains(err.Error(), test.message) {
+				t.Fatal(err)
+			}
+			if connections, _ := os.ReadFile(state); string(connections) != "2\n" {
+				t.Fatalf("connections: %q", connections)
+			}
+			if test.name == "branch" && tags(t, fixture, remoteDir(fixture)) != before {
+				t.Fatal("published after the branch moved")
+			}
+		})
+	}
+}
+
+// TestRequireTagSize_AcceptsTagsUpToTheReadersLimit refuses one byte more than reading release tags accepts.
+func TestRequireTagSize_AcceptsTagsUpToTheReadersLimit(t *testing.T) {
+	if err := requireTagSize("release/2", maxFileBytes); err != nil {
+		t.Fatal(err)
+	}
+	if err := requireTagSize("release/2", maxFileBytes+1); errorCode(err) != "release-too-large" || !strings.Contains(err.Error(), "release/2 would be a tag of 8388609 bytes") {
+		t.Fatal(err)
+	}
+}
+
+// TestCreateTag_SizesTagsLikeGitAndDeletesOneTooLarge predicts an unsigned tag's size exactly, and deletes a
+// created tag larger than the limit, as a signature could make it, instead of leaving it to be pushed.
+func TestCreateTag_SizesTagsLikeGitAndDeletesOneTooLarge(t *testing.T) {
+	ctx := context.Background()
+	fixture, options := authorClone(t, libraryFiles())
+	git, err := openLibraryGit(ctx, options.Directory, options.Git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tagger, err := git.requireCommitterIdentity(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	message := []byte("Notes.\n---\nrelease: 1\nrules: {}\n")
+	object, err := git.createTag(ctx, "release/1", fixture.LatestCommit, message)
+	if err != nil {
+		t.Fatal(err)
+	}
+	size, err := fixture.CommandIn(ctx, options.Directory, "cat-file", "-s", object)
+	if err != nil || size != strconv.Itoa(tagObjectSize("release/1", fixture.LatestCommit, tagger, message)) {
+		t.Fatalf("Git's tag has %s bytes, predicted %d: %v", size, tagObjectSize("release/1", fixture.LatestCommit, tagger, message), err)
+	}
+	large := []byte(strings.Repeat("x", maxFileBytes-tagObjectSize("release/2", fixture.LatestCommit, tagger, nil)+1))
+	before := tags(t, fixture, options.Directory)
+	if _, err := git.createTag(ctx, "release/2", fixture.LatestCommit, large); errorCode(err) != "release-too-large" {
+		t.Fatal(err)
+	}
+	if tags(t, fixture, options.Directory) != before {
+		t.Fatal("kept a tag too large to read")
+	}
+}
+
+// TestRelease_RefusesATagTooLargeToRead stops before tagging when the notes and record exceed 8 MiB, here
+// through one long summary that both rules repeat in the notes and in the record.
+func TestRelease_RefusesATagTooLargeToRead(t *testing.T) {
+	fixture, options := authorClone(t, libraryFiles(), releaseOne)
+	summary := strings.Repeat("Explain the retry change. ", 90_000)
+	commitAndPush(t, fixture, options.Directory, map[string][]byte{
+		"practices/testing/a.md": []byte(ruleText("Changed a.")),
+		"practices/testing/b.md": []byte(ruleText("Changed b.")),
+		"changes/both.yaml":      []byte("summary: " + summary + "\nrules:\n  practices/testing/a: patch\n  practices/testing/b: patch\n"),
+	})
+	local, remote := tags(t, fixture, options.Directory), tags(t, fixture, remoteDir(fixture))
+	if _, err := Release(context.Background(), ReleaseRequest{Options: options}); errorCode(err) != "release-too-large" {
+		t.Fatal(err)
+	}
+	if tags(t, fixture, options.Directory) != local || tags(t, fixture, remoteDir(fixture)) != remote {
+		t.Fatal("tagged a library release too large to read")
+	}
+}
+
 // TestRelease_DeletesItsTagWhenThePushFails runs the author's pre-push hook, which refuses the push, and
 // leaves no release tag in the clone or on the remote, so a rerun starts over.
 func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
@@ -511,7 +710,7 @@ func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
 }
 
 // TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit publishes a release tag that exists only in the clone,
-// on HEAD, numbered one past the remote's latest.
+// on HEAD, numbered one past the remote's latest, and keeps it when the push fails.
 func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles())
@@ -519,6 +718,23 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	local := tags(t, fixture, options.Directory)
+	// A failed push keeps the tag, which this run didn't create.
+	hook := filepath.Join(options.Directory, ".git", "hooks", "pre-push")
+	if err := os.MkdirAll(filepath.Dir(hook), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(hook, []byte("#!/bin/sh\nexit 1\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Release(ctx, ReleaseRequest{Options: options}); errorCode(err) != "push-failed" || !strings.Contains(err.Error(), "This clone's release/1, from an earlier run, stays") {
+		t.Fatal(err)
+	}
+	if tags(t, fixture, options.Directory) != local {
+		t.Fatal("a failed push deleted a tag an earlier run created")
+	}
+	if err := os.Remove(hook); err != nil {
+		t.Fatal(err)
+	}
 	result, err := Release(ctx, ReleaseRequest{Options: options})
 	if err != nil || !result.TagCreated || result.Published || result.Release != 1 || result.Notes != "Library release 1." {
 		t.Fatal(result, err)
@@ -529,6 +745,29 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 	result, err = Release(ctx, ReleaseRequest{Options: options})
 	if err != nil || result.TagCreated || !result.Published {
 		t.Fatal(result, err)
+	}
+}
+
+// TestFindGitHubCLI_StopsAGitHubCLIThatFloodsItsOutput stops a gh that keeps writing, ignoring broken pipes,
+// with a descendant holding its output open, instead of waiting for it forever.
+func TestFindGitHubCLI_StopsAGitHubCLIThatFloodsItsOutput(t *testing.T) {
+	bin := t.TempDir()
+	script := "#!/bin/sh\ntrap '' PIPE\n/bin/sleep 30 &\nwhile :; do printf xxxxxxxxxxxxxxxx 2>/dev/null; done\n"
+	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := findGitHubCLI(context.Background(), []string{"PATH=" + bin}, t.TempDir())
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if errorCode(err) != "limit-exceeded" {
+			t.Fatal(err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("gh's output overflowed, and the release kept waiting for it")
 	}
 }
 
@@ -568,11 +807,11 @@ func TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles(t *test
 		"techs/go/_group.yaml":          "1",
 	}
 	want := []string{"LICENSE.md", "assets/new.svg", "assets/old.svg", "techs/go/_group.yaml"}
-	if files := changedLibraryFiles(head, released, []string{"LICENSE.md"}); !slices.Equal(files, want) {
+	if files := diffLibraryFiles(head, released, []string{"LICENSE.md"}); !slices.Equal(files, want) {
 		t.Fatalf("got %q, want %q", files, want)
 	}
 	want = []string{"LICENSE.md", "assets/new.svg", "practices/testing/_group.yaml", "rule-library.yaml", "techs/go/_group.yaml"}
-	if files := changedLibraryFiles(head, map[string]string{}, []string{"LICENSE.md"}); !slices.Equal(files, want) {
+	if files := diffLibraryFiles(head, map[string]string{}, []string{"LICENSE.md"}); !slices.Equal(files, want) {
 		t.Fatalf("first library release: got %q, want %q", files, want)
 	}
 }
@@ -615,13 +854,18 @@ func TestParseRemoteListing_ReadsTheDefaultBranchAndReleaseTagsWithinTheRecordLi
 	}
 }
 
-// TestGitHubRepository_RecognizesOnlyGitHubDotCom and shows remotes without credentials.
+// TestGitHubRepository_RecognizesOnlyGitHubDotCom, with or without credentials in the URL, and shows remotes
+// without credentials, queries, or fragments.
 func TestGitHubRepository_RecognizesOnlyGitHubDotCom(t *testing.T) {
 	for _, test := range []struct{ url, github, display string }{
 		{"git@github.com:Acme/Rules.git", "Acme/Rules", "https://github.com/Acme/Rules"},
 		{"https://github.com/acme/rules", "acme/rules", "https://github.com/acme/rules"},
 		{"ssh://git@github.com/acme/rules.git", "acme/rules", "https://github.com/acme/rules"},
-		{"https://x-access-token:secret@github.com/acme/rules.git", "", "https://github.com/acme/rules.git"},
+		{"https://x-access-token:secret@github.com/acme/rules.git", "acme/rules", "https://github.com/acme/rules"},
+		{"https://secret-token@github.com/acme/rules.git?secret=1#secret", "acme/rules", "https://github.com/acme/rules"},
+		{"https://user:secret@host.example/library.git?access_token=secret#secret", "", "https://host.example/library.git"},
+		{"ssh://git:secret@host.example:2222/library.git?secret", "", "ssh://git@host.example:2222/library.git"},
+		{"git@host.example:library.git?secret", "", "git@host.example:library.git"},
 		{"https://gitlab.com/acme/rules.git", "", "https://gitlab.com/acme/rules"},
 		{"git@github-work:acme/rules.git", "", "git@github-work:acme/rules.git"},
 		{"https://github.example.com/acme/rules.git", "", "https://github.example.com/acme/rules.git"},

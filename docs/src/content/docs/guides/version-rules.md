@@ -216,7 +216,7 @@ If you don't want a GitHub Release page, or the library isn't hosted on GitHub.c
 
 ### What the GitHub Release page looks like
 
-For a library release that changes four rules, the generated page, titled `release/4`, looks like this:
+For a library release that changes four rules and a group description, the generated page, titled `release/4`, looks like this:
 
 ```md
 Library release 4 changes 4 rules:
@@ -246,6 +246,9 @@ the new one, so review these before updating.
   Covered by the broader rule about testing retries.
   Replaced by **practices/testing/verify-retries**.
 
+This library release also updates shared files, such as group
+descriptions or shared assets.
+
 <details>
 <summary>All rule versions in this library release</summary>
 
@@ -261,7 +264,7 @@ the new one, so review these before updating.
 </details>
 ```
 
-Code Rules generates all of it from the change notes: the counts, the sections, which appear only when they have entries, the versions, and the table. Each summary is copied from its note. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
+Code Rules generates all of it from the change notes and the library's changes: the counts, the sections, which appear only when they have entries, the versions, a sentence saying the library release also updates shared files when it does, except in the first library release, which adds them all, and the table. The notes never list shared files by name; the tag's release record does. A library release that changes no rules opens by saying it updates shared files instead. Each summary is copied from its note. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
 
 To add a general message, such as an introduction to what this library release is about, edit the GitHub Release page on GitHub. The page is only the announcement. The tag message keeps the generated text, and it's what projects read when they update.
 
