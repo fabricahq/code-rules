@@ -5,8 +5,11 @@ package project
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"maps"
 	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
@@ -15,6 +18,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // syncedProject syncs the sync fixture's project at release/1, then publishes release/2, in which
@@ -204,6 +208,113 @@ func TestUpdate_RejectsDecisionsThePreviewDoesntOffer(t *testing.T) {
 	}
 	if after := projectTree(t, options); after.Digest() != before.Digest() {
 		t.Fatal("a rejected decision changed the project")
+	}
+}
+
+// twoLibraryProject syncs a project that imports techs/go from two libraries, alpha and beta, at their release/1,
+// then publishes each library's release/2, in which techs/go/errors moves to 1.1.0 and techs/go/retry is retired.
+func twoLibraryProject(t *testing.T) (Options, imports.Options) {
+	t.Helper()
+	ctx := context.Background()
+	fixtures := map[string]*gitfixture.Fixture{}
+	for _, name := range []string{"alpha", "beta"} {
+		f, err := gitfixture.New(ctx, map[string][]byte{
+			"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+			"techs/go/_group.yaml": []byte(projectMetadata),
+			"techs/go/errors.md":   []byte(strings.Replace(projectRule, "# Return errors", "# Return errors, from "+name, 1)),
+			"techs/go/retry.md":    []byte(projectRule),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = f.Close() })
+		if err := f.Release(ctx, 1, "release: 1\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/retry: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n  techs/go/retry: {change: new, summary: Add the rule.}\n"); err != nil {
+			t.Fatal(err)
+		}
+		fixtures[name] = f
+	}
+	environment, err := fixtures["alpha"].Route(fixtures)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := openTestProject(t)
+	options := Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}
+	if _, err := Initialize(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, configurationFile, "schemaVersion: 1\nsources:\n  alpha:\n    repository: git@fixture.invalid:alpha\n    groups: [techs/go]\n  beta:\n    repository: git@fixture.invalid:beta\n    groups: [techs/go]\n")
+	git := imports.Options{GitPath: fixtures["alpha"].GitPath, Environment: environment}
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	for name, f := range fixtures {
+		if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": []byte(strings.Replace(projectRule, "# Return errors", "# Return wrapped errors, from "+name, 1)), "techs/go/retry.md": nil}); err != nil {
+			t.Fatal(err)
+		}
+		if err := f.Release(ctx, 2, "release: 2\nrules:\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\nretired:\n  techs/go/retry: {lastVersion: 1.0.0, summary: No longer needed.}\n"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return options, git
+}
+
+// sourceFiles returns the project's files that belong to source: its vendored snapshot and its generated rules
+// and library page.
+func sourceFiles(t *testing.T, options Options, source string) map[string]string {
+	t.Helper()
+	files := map[string]string{}
+	for name, data := range projectTree(t, options).Files {
+		for _, prefix := range []string{"vendor/" + source + "/", "generated/rules/" + source + "/", "generated/libraries/" + source + "/"} {
+			if strings.HasPrefix(name, prefix) {
+				files[name] = string(data)
+			}
+		}
+	}
+	return files
+}
+
+// TestUpdate_ScopedToOneLibraryLeavesTheOtherUnchanged updates only alpha, as a whole or one rule of it, while
+// beta also has a newer version and a retirement: beta's record, vendored files, and generated rules keep their
+// bytes.
+func TestUpdate_ScopedToOneLibraryLeavesTheOtherUnchanged(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		target imports.UpdateTarget
+		// alpha lists alpha's rules after the update.
+		alpha []string
+	}{
+		{"SOURCE", imports.UpdateTarget{Source: "alpha"}, []string{"techs/go/errors"}},
+		{"SOURCE:RULE", imports.UpdateTarget{Source: "alpha", Rule: "techs/go/errors"}, []string{"techs/go/errors", "techs/go/retry"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			options, git := twoLibraryProject(t)
+			beta := sourceFiles(t, options, "beta")
+			plan, err := PlanUpdate(context.Background(), options, git, []imports.UpdateTarget{test.target})
+			if err != nil {
+				t.Fatal(err)
+			}
+			applied, err := plan.Apply(context.Background(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(applied.Sources) != 1 || applied.Sources[0].Name != "alpha" {
+				t.Fatalf("updated %+v", applied.Sources)
+			}
+			if after := sourceFiles(t, options, "beta"); !reflect.DeepEqual(after, beta) || len(beta) == 0 {
+				t.Fatalf("updating alpha changed beta's files:\nbefore %v\nafter %v", slices.Sorted(maps.Keys(beta)), slices.Sorted(maps.Keys(after)))
+			}
+			alpha := sourceFiles(t, options, "alpha")
+			var record struct {
+				Rules map[string]struct{ Version string }
+			}
+			if err := json.Unmarshal([]byte(alpha["vendor/alpha/_source.json"]), &record); err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(slices.Sorted(maps.Keys(record.Rules)), test.alpha) || record.Rules["techs/go/errors"].Version != "1.1.0" {
+				t.Fatalf("alpha's rules %+v, want %v with errors at 1.1.0", record.Rules, test.alpha)
+			}
+			requireCurrent(t, options)
+		})
 	}
 }
 
