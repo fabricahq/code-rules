@@ -29,15 +29,16 @@ type Options struct {
 	GroupInlineMaxBytes *int
 }
 
-// FileChanges lists sorted changed paths. Build uses generated-relative paths; Sync prefixes managed tree names.
+// FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
+// names, and update also lists config.yaml when it writes pins or exclusions.
 // Empty lists mean matching tree output; Guide reports a separate managed-guide update.
 type FileChanges struct {
 	Added   []string     `json:"added"`
 	Changed []string     `json:"changed"`
 	Removed []string     `json:"removed"`
 	Guide   *GuideChange `json:"guide,omitempty"`
-	// Warnings explain configuration sync tolerated, in source order: entries naming retired rules, and sources
-	// importing a ref that isn't a library release. Build reports none.
+	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
+	// sources importing a ref that isn't a library release. Build reports none.
 	Warnings []string `json:"warnings,omitempty"`
 }
 
