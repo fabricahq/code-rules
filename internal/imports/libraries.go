@@ -151,10 +151,48 @@ func (r *repository) snapshotFiles(ctx context.Context, source string, plan sour
 			prefetch = append(prefetch, entry.object)
 		}
 	}
+	restored, err := r.missingGroupMetadata(ctx, files, plan)
+	if err != nil {
+		return nil, err
+	}
+	for file, entry := range restored {
+		files[file] = entry
+		prefetch = append(prefetch, entry.object)
+	}
 	if err := r.prefetch(ctx, prefetch); err != nil {
 		return nil, err
 	}
 	return newGitFiles(ctx, r, files), nil
+}
+
+// missingGroupMetadata returns, by path, the metadata of each imported rule's group that files lacks, such as a
+// retired rule's group that the library-wide release removed. Each comes from the newest library release among
+// the group's imported rules that still has it; a group none of them has stays missing, for the loader to report.
+func (r *repository) missingGroupMetadata(ctx context.Context, files map[string]treeEntry, plan sourcePlan) (map[string]treeEntry, error) {
+	byGroup := map[string][]library.ImportedRule{}
+	for id, rule := range plan.rules {
+		byGroup[ruleGroup(id)] = append(byGroup[ruleGroup(id)], rule)
+	}
+	restored := map[string]treeEntry{}
+	for _, group := range slices.Sorted(maps.Keys(byGroup)) {
+		metadata := group + "/_group.yaml"
+		if _, ok := files[metadata]; ok {
+			continue
+		}
+		candidates := byGroup[group]
+		slices.SortFunc(candidates, func(a, b library.ImportedRule) int { return b.Release - a.Release })
+		for _, rule := range candidates {
+			tree, err := r.tree(ctx, rule.Commit)
+			if err != nil {
+				return nil, err
+			}
+			if entry, ok := tree[metadata]; ok {
+				restored[metadata] = entry
+				break
+			}
+		}
+	}
+	return restored, nil
 }
 
 // catalogRules returns the library rule IDs of every rule in catalog, sorted.

@@ -374,6 +374,36 @@ func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	}
 }
 
+// TestImport_KeptRuleWhoseGroupWasRemovedKeepsItsGroupMetadata takes a retained retired rule's group metadata
+// from its own library release when the library-wide release no longer has the group.
+func TestImport_KeptRuleWhoseGroupWasRemovedKeepsItsGroupMetadata(t *testing.T) {
+	f := newLibraryFixture(t, map[string][]byte{
+		"rule-library.yaml":     []byte(`{"formatVersion":1}`),
+		"techs/old/_group.yaml": []byte(`{"name":"Old","description":"Old rules.","whenToRead":"Rarely."}`),
+		"techs/old/x.md":        versionedRule("x 1.0.0"),
+		"techs/go/_group.yaml":  groupMetadata,
+		"techs/go/y.md":         versionedRule("y 1.0.0"),
+	})
+	h := history{fixture: f, commits: map[int]string{}}
+	h.release(t, 1, nil, "release: 1\nrules:\n  techs/old/x: 1.0.0\n  techs/go/y: 1.0.0\nchanges:\n  techs/old/x: {change: new, summary: Add the rule.}\n  techs/go/y: {change: new, summary: Add the rule.}\n")
+	first, err := h.sync(t, h.source(t, `"groups":["techs/go","techs/old"]`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.release(t, 2, map[string][]byte{"techs/old/x.md": nil, "techs/old/_group.yaml": nil, "techs/go/y.md": versionedRule("y 1.1.0")},
+		"release: 2\nrules:\n  techs/go/y: 1.1.0\nchanges:\n  techs/go/y: {change: minor, from: 1.0.0, summary: Add an example.}\nretired:\n  techs/old/x: {lastVersion: 1.0.0, summary: No longer recommended.}\n")
+	imported, err := h.sync(t, h.source(t, `"groups":["techs/go","techs/old"],"pins":{"techs/go/y":{"version":"1.1.0","reason":"Adopt."}}`), &first.Snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]string{"techs/old/x": "1.0.0@1", "techs/go/y": "1.1.0@2"}; !reflect.DeepEqual(versions(imported.Snapshot), want) || imported.Snapshot.Release != 2 {
+		t.Fatalf("versions %v, release %d", versions(imported.Snapshot), imported.Snapshot.Release)
+	}
+	if !strings.Contains(string(imported.Snapshot.Files["techs/old/_group.yaml"]), "Old rules.") {
+		t.Fatalf("group metadata %q", imported.Snapshot.Files["techs/old/_group.yaml"])
+	}
+}
+
 // TestImport_LicenseInsideARulesAssetsIsLibraryWide takes a declared license file from the library-wide commit,
 // even inside an older rule's asset directory, and leaves it out when matching a ref's rules to published versions.
 func TestImport_LicenseInsideARulesAssetsIsLibraryWide(t *testing.T) {
