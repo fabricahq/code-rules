@@ -9,7 +9,6 @@ import (
 	"maps"
 	"slices"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/gitexec"
@@ -34,14 +33,10 @@ type PublishedRule struct {
 // release records in its release/<number> tags. It fails with code releases-not-found before the library's first
 // library release, and version-not-found when the rule never published version.
 func ReadPublishedRule(ctx context.Context, source rules.Source, id string, version rules.RuleVersion, options Options) (_ PublishedRule, err error) {
-	timeout := options.Timeout
-	if timeout == 0 {
-		timeout = 120 * time.Second
+	ctx, cancel, err := withTimeout(ctx, options)
+	if err != nil {
+		return PublishedRule{}, err
 	}
-	if timeout < 0 {
-		return PublishedRule{}, fail("invalid-options", "Import timeout must be positive or zero for the default.", nil)
-	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	repo, err := openRepository(ctx, source, options)
 	if err != nil {

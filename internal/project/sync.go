@@ -14,7 +14,6 @@ import (
 	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -45,7 +44,11 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		if err != nil {
 			return err
 		}
-		changes, err = install(ctx, root, w, before, installation{guide: guide, config: before.config, recorded: recorded, git: git, options: options})
+		imported, err := imports.ImportLibraries(ctx, before.config, recorded, git)
+		if err != nil {
+			return err
+		}
+		changes, err = install(ctx, root, w, before, installation{guide: guide, config: before.config, imported: imported, options: options})
 		return err
 	})
 	if err != nil {
@@ -54,33 +57,28 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 	return changes, nil
 }
 
-// installation is what install imports and writes. guide is the managed guide as planned under the writer.
-// edited is nil unless config is an edited configuration whose bytes install writes to config.yaml.
+// installation is what install writes. guide is the managed guide as planned under the writer. edited is nil unless
+// config is an edited configuration whose bytes install writes to config.yaml. imported holds every source of config.
 type installation struct {
 	guide    *filetxn.File
 	config   rules.Configuration
 	edited   []byte
-	recorded map[string]library.Snapshot
-	git      imports.Options
+	imported map[string]imports.Library
 	options  Options
 }
 
-// install imports every source of the installation's configuration from its recorded snapshots, renders the
-// project, and replaces vendor and generated output, an older managed guide, and config.yaml when edited, in one
-// transaction of w. When local rules would lose the only imported copy of their group's metadata, the transaction
-// also writes that copy to local/<group>/_group.yaml, with a warning. before is the project as read under w; any
-// change to it before replacement fails with concurrent-change. The report lists vendor and generated paths,
-// config.yaml when edited, and local group metadata it adds.
+// install renders the project from the installation's imported sources and replaces vendor and generated output,
+// an older managed guide, and config.yaml when edited, in one transaction of w. When local rules would lose the
+// only imported copy of their group's metadata, the transaction also writes that copy to
+// local/<group>/_group.yaml, with a warning. before is the project as read under w; any change to it before
+// replacement fails with concurrent-change. The report lists vendor and generated paths, config.yaml when edited,
+// and local group metadata it adds.
 func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before projectState, in installation) (FileChanges, error) {
-	imported, err := imports.ImportLibraries(ctx, in.config, in.recorded, in.git)
-	if err != nil {
-		return FileChanges{}, err
-	}
 	snapshots := map[string]snapshot{}
 	libraries := map[string]build.Library{}
 	warnings := []string{}
 	for _, source := range in.config.Sources {
-		item := imported[source.Name]
+		item := in.imported[source.Name]
 		snapshots[source.Name] = item.Snapshot
 		libraries[source.Name] = build.Library{Catalog: item.Catalog, Snapshot: item.Snapshot}
 		warnings = append(warnings, item.Warnings...)
@@ -89,7 +87,7 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	if err != nil {
 		return FileChanges{}, err
 	}
-	kept := keptGroupMetadata(in.config, before, imported)
+	kept := keptGroupMetadata(in.config, before, in.imported)
 	state := before
 	state.config = in.config
 	if len(kept) > 0 {

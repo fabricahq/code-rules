@@ -31,6 +31,16 @@ type Library struct {
 // chosen only where configuration asks for something a snapshot doesn't have. It never installs files in a
 // consuming project. Source temporary state is closed on every path.
 func ImportLibraries(ctx context.Context, configuration rules.Configuration, recorded map[string]library.Snapshot, options Options) (map[string]Library, error) {
+	return importSources(ctx, configuration, options, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
+		return planSource(ctx, repo, source, recordedSnapshot(recorded, source.Name))
+	})
+}
+
+// resolver chooses what one source imports, reading its library through repo only when a choice needs it.
+type resolver func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error)
+
+// importSources imports every source of configuration as resolve plans it, or returns no partial result.
+func importSources(ctx context.Context, configuration rules.Configuration, options Options, resolve resolver) (map[string]Library, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, gitexec.ContextFailure(err)
 	}
@@ -39,11 +49,7 @@ func ImportLibraries(ctx context.Context, configuration rules.Configuration, rec
 		if _, exists := result[source.Name]; exists {
 			return nil, fail("invalid-configuration", "Duplicate source alias.", nil)
 		}
-		var previous *library.Snapshot
-		if snapshot, ok := recorded[source.Name]; ok {
-			previous = &snapshot
-		}
-		imported, err := importLibrary(ctx, source, previous, options)
+		imported, err := importLibrary(ctx, source, options, resolve)
 		if err != nil {
 			return nil, fmt.Errorf("import source %q failed (no libraries were returned because all configured sources must succeed): %w", source.Name, err)
 		}
@@ -52,32 +58,64 @@ func ImportLibraries(ctx context.Context, configuration rules.Configuration, rec
 	return result, nil
 }
 
-// importLibrary applies one deadline across choosing versions, fetching, blob reads, validation, and snapshot
-// construction.
-func importLibrary(ctx context.Context, source rules.Source, recorded *library.Snapshot, options Options) (_ Library, err error) {
-	timeout := options.Timeout
-	if timeout == 0 {
-		timeout = 120 * time.Second
+// recordedSnapshot returns the snapshot recorded holds for a source, or nil when it holds none.
+func recordedSnapshot(recorded map[string]library.Snapshot, source string) *library.Snapshot {
+	if snapshot, ok := recorded[source]; ok {
+		return &snapshot
 	}
-	if timeout < 0 {
-		return Library{}, fail("invalid-options", "Import timeout must be positive or zero for the default.", nil)
+	return nil
+}
+
+// importLibrary applies one deadline across resolving what source imports, fetching, blob reads, validation, and
+// snapshot construction.
+func importLibrary(ctx context.Context, source rules.Source, options Options, resolve resolver) (_ Library, err error) {
+	ctx, cancel, err := withTimeout(ctx, options)
+	if err != nil {
+		return Library{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	repo, err := openRepository(ctx, source, options)
 	if err != nil {
 		return Library{}, err
 	}
 	defer func() { err = errors.Join(err, repo.Close()) }()
-	plan, err := planSource(ctx, repo, source, recorded)
+	plan, err := resolve(ctx, repo, source)
 	if err != nil {
 		return Library{}, err
 	}
-	input, err := repo.snapshotFiles(ctx, source, plan)
+	return repo.importPlan(ctx, source, plan)
+}
+
+// withTimeout returns ctx bounded by the options' import timeout, 120 seconds when it is zero, and fails with code
+// invalid-options when it is negative. The caller owns the returned cancel function on success.
+func withTimeout(ctx context.Context, options Options) (context.Context, context.CancelFunc, error) {
+	timeout := options.Timeout
+	if timeout == 0 {
+		timeout = 120 * time.Second
+	}
+	if timeout < 0 {
+		return nil, nil, fail("invalid-options", "Import timeout must be positive or zero for the default.", nil)
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	return ctx, cancel, nil
+}
+
+// importPlan fetches the commits plan names, reads and validates the files it imports, and returns them with the
+// snapshot that records them.
+func (r *repository) importPlan(ctx context.Context, source rules.Source, plan sourcePlan) (Library, error) {
+	commits := []string{plan.commit}
+	for _, rule := range plan.rules {
+		commits = append(commits, rule.Commit)
+	}
+	if err := r.fetchCommits(ctx, commits, fmt.Sprintf("A commit that vendor/%s/_source.json records is missing from the library's repository. Delete vendor/%s and run code-rules project sync to choose versions again.", source.Name, source.Name)); err != nil {
+		return Library{}, err
+	}
+	individual := slices.Sorted(slices.Values(plan.individual))
+	input, err := r.snapshotFiles(ctx, source, plan)
 	if err != nil {
 		return Library{}, err
 	}
-	catalog, err := library.LoadSource(ctx, input, source.Name, source.Groups, plan.individual)
+	catalog, err := library.LoadSource(ctx, input, source.Name, source.Groups, individual)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return Library{}, gitexec.ContextFailure(err)

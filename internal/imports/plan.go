@@ -14,7 +14,8 @@ import (
 )
 
 // sourcePlan is what one source imports: the revision that supplies its library-wide files, and each imported
-// rule's version and the commit that supplies its files.
+// rule's version and the commit that supplies its files. Resolving it may read the library's release history;
+// importing it fetches the commits it names and reads their files.
 type sourcePlan struct {
 	// release is the library release that supplies the library-wide files, or 0 when ref isn't a library release.
 	release int
@@ -26,6 +27,7 @@ type sourcePlan struct {
 }
 
 // planner chooses versions for one source, reading the library's release history only when a choice needs it.
+// A planner whose history is already read never uses its context or repository.
 type planner struct {
 	ctx    context.Context
 	repo   *repository
@@ -38,25 +40,14 @@ type planner struct {
 
 // planSource chooses what source imports, as project sync does: recorded versions stay, and versions are chosen
 // only for new sources, changed repositories, newly selected rules, added or changed pins, and a changed ref.
-// Every commit the plan names is fetched when it returns.
+// It fails when a library release tag that a recorded rule names has moved.
 func planSource(ctx context.Context, repo *repository, source rules.Source, recorded *library.Snapshot) (sourcePlan, error) {
 	p := newPlanner(ctx, repo, source, recorded)
 	plan, err := p.choose()
 	if err != nil {
 		return sourcePlan{}, err
 	}
-	if err := p.requireUnmoved(plan); err != nil {
-		return sourcePlan{}, err
-	}
-	commits := []string{plan.commit}
-	for _, rule := range plan.rules {
-		commits = append(commits, rule.Commit)
-	}
-	if err := repo.fetchCommits(ctx, commits, fmt.Sprintf("A commit that vendor/%s/_source.json records is missing from the library's repository. Delete vendor/%s and run code-rules project sync to choose versions again.", source.Name, source.Name)); err != nil {
-		return sourcePlan{}, err
-	}
-	slices.Sort(plan.individual)
-	return plan, nil
+	return plan, p.requireUnmoved(plan)
 }
 
 // newPlanner plans source against recorded, which it ignores when it records another repository.
@@ -186,25 +177,23 @@ func (p *planner) planVersions() (sourcePlan, error) {
 	if err := p.requireEntries(&plan); err != nil {
 		return sourcePlan{}, err
 	}
-	return plan, p.libraryWideRelease(&plan)
+	return plan, p.libraryWideRelease(&plan, recorded)
 }
 
-// libraryWideRelease sets the plan's library release to the newest one among its rule versions. A source that
-// imports no rules keeps its recorded library release while its selection is unchanged, and otherwise gets the
-// newest library release.
-func (p *planner) libraryWideRelease(plan *sourcePlan) error {
+// libraryWideRelease sets the library release that supplies the library-wide files of a plan for a source without
+// ref, whose ref names that revision instead: the newest library release among the plan's rule versions. A plan
+// that imports no rules keeps recorded's library release while the source selects what recorded did; otherwise, and
+// when recorded is nil, it gets the newest library release.
+func (p *planner) libraryWideRelease(plan *sourcePlan, recorded *library.Snapshot) error {
+	plan.release, plan.commit = 0, ""
 	for _, rule := range plan.rules {
 		if rule.Release > plan.release {
 			plan.release, plan.commit = rule.Release, rule.Commit
 		}
 	}
 	if plan.release != 0 {
-		if p.history != nil && p.history.release(plan.release) != nil {
-			plan.commit = p.history.release(plan.release).commit
-		}
 		return nil
 	}
-	recorded := p.recorded
 	if recorded != nil && recorded.Ref == "" && recorded.Release != 0 && sameGroupSelection(recorded.Selection, p.source.Groups) && slices.Equal(recorded.RuleSelection, p.source.Rules) {
 		plan.release, plan.commit = recorded.Release, recorded.Commit
 		return nil

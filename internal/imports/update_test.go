@@ -73,10 +73,10 @@ func rows(update Update) []string {
 	return result
 }
 
-// install imports config from the update's lock, as project update does after its preview.
+// install imports config as the update plans it, as project update does after its preview.
 func (h history) install(t *testing.T, update Update, config rules.Configuration) Library {
 	t.Helper()
-	result, err := ImportLibraries(context.Background(), config, update.Lock(config), Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment})
+	result, err := update.Import(context.Background(), config, Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment})
 	if err != nil {
 		t.Fatal(err)
 	}

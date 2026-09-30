@@ -140,13 +140,15 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		if !sameProject(p.planned, before) || (guide.Previous == nil) != (p.guide == nil) || !bytes.Equal(guide.Previous, p.guide) {
 			return failure("concurrent-change", "the project's configuration, local rules, imported files, generated output, or Code Rules guide changed after the update preview; run code-rules project update again", nil)
 		}
-		in := installation{guide: guide, config: before.config, git: p.git, options: p.options}
+		in := installation{guide: guide, config: before.config, options: p.options}
 		if len(edits) > 0 {
 			if in.edited, in.config, err = editConfiguration(before.configBytes, edits); err != nil {
 				return err
 			}
 		}
-		in.recorded = p.update.Lock(in.config)
+		if in.imported, err = p.update.Import(ctx, in.config, p.git); err != nil {
+			return err
+		}
 		changes, err = install(ctx, root, w, before, in)
 		return err
 	})
