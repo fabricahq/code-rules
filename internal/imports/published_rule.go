@@ -97,14 +97,11 @@ func publishingRelease(history releaseHistory, id string, version rules.RuleVers
 	if release := history.publisher(id, version); release != nil {
 		return release, nil
 	}
-	versions := []string{}
-	for _, release := range history.published(id) {
-		versions = append(versions, release.record.Rules[id].String())
-	}
-	if len(versions) == 0 {
+	versions := history.versionList(id)
+	if versions == "" {
 		return nil, fail("version-not-found", fmt.Sprintf("The library never published a rule %s; check the rule ID.", id), nil)
 	}
-	return nil, fail("version-not-found", fmt.Sprintf("Rule %s never published version %s. Its published versions, newest first: %s.", id, version, strings.Join(versions, ", ")), nil)
+	return nil, fail("version-not-found", fmt.Sprintf("Rule %s never published version %s. Its published versions, newest first: %s.", id, version, versions), nil)
 }
 
 // readEntries fetches the blobs of entries in one request and returns their bytes by path.

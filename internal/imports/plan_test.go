@@ -191,6 +191,9 @@ func TestImport_PinsMoveRulesUpAndDown(t *testing.T) {
 	}
 	_, err = h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.2.0","reason":"Typo."}}`), &up.Snapshot)
 	requireCode(t, err, "version-not-found")
+	if !strings.Contains(err.Error(), "the rule never published version 1.2.0; check the pin. Its published versions, newest first: 2.0.0, 1.1.0, 1.0.0.") {
+		t.Fatalf("the failure doesn't list the published versions: %v", err)
+	}
 }
 
 // TestImport_NewlySelectedRulesGetTheirNewestVersion leaves recorded rules and adds only the new selection.
@@ -682,5 +685,21 @@ func TestImport_WarnsAboutARuleItsGroupAlreadySelects(t *testing.T) {
 	want := []string{"sources.team.rules names techs/go/a, whose group techs/go sources.team.groups already selects, so the entry changes nothing; delete it."}
 	if !slices.Equal(imported.Warnings, want) {
 		t.Fatalf("warnings %q, want %q", imported.Warnings, want)
+	}
+}
+
+// TestVersionList_ListsAtMostTenVersionsNewestFirst and counts the older ones.
+func TestVersionList_ListsAtMostTenVersionsNewestFirst(t *testing.T) {
+	history := releaseHistory{}
+	for number := 1; number <= 12; number++ {
+		version := rules.RuleVersion{Major: 1, Minor: number - 1}
+		history.releases = append(history.releases, libraryRelease{number: number, record: rules.ReleaseRecord{Rules: map[string]rules.RuleVersion{"techs/go/a": version}, Changes: map[string]rules.RecordedChange{"techs/go/a": {Change: rules.ChangeMinor}}}})
+	}
+	if got, want := history.versionList("techs/go/a"), "1.11.0, 1.10.0, 1.9.0, 1.8.0, 1.7.0, 1.6.0, 1.5.0, 1.4.0, 1.3.0, 1.2.0, and 2 older"; got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+	history.releases = history.releases[:10]
+	if got := history.versionList("techs/go/a"); strings.Contains(got, "older") || !strings.HasSuffix(got, "1.0.0") {
+		t.Fatalf("ten versions: %q", got)
 	}
 }

@@ -406,7 +406,7 @@ func (p *planner) pinnedVersion(id string, pin rules.Pin) (library.ImportedRule,
 		return library.ImportedRule{}, err
 	}
 	if history.publisher(id, pin.Version) == nil {
-		return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.pins.%s: the rule never published version %s; check the pin.", p.source.Name, id, pin.Version), nil)
+		return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.pins.%s: the rule never published version %s; check the pin. Its published versions, newest first: %s.", p.source.Name, id, pin.Version, history.versionList(id)), nil)
 	}
 	return p.publishedVersion(id, pin.Version)
 }

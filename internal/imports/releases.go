@@ -9,6 +9,7 @@ import (
 	"maps"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -67,6 +68,22 @@ func (h releaseHistory) published(id string) []*libraryRelease {
 		}
 	}
 	return result
+}
+
+// maxListedVersions bounds how many versions an error lists, so a long-lived rule's history stays readable.
+const maxListedVersions = 10
+
+// versionList lists, newest first, the versions rule id published, at most maxListedVersions of them followed by
+// how many older ones there are, or "" when it published none.
+func (h releaseHistory) versionList(id string) string {
+	versions := []string{}
+	for _, release := range h.published(id) {
+		versions = append(versions, release.record.Rules[id].String())
+	}
+	if len(versions) > maxListedVersions {
+		return strings.Join(versions[:maxListedVersions], ", ") + fmt.Sprintf(", and %d older", len(versions)-maxListedVersions)
+	}
+	return strings.Join(versions, ", ")
 }
 
 // retired reports whether any library release retired rule id.
