@@ -534,7 +534,7 @@ func TestRelease_DryRunDescribesTheLibraryReleaseWithoutPublishing(t *testing.T)
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
 	commit := commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed.")), "changes/a.yaml": []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")})
-	fake := withGitHub(t, fixture, &options, nil)
+	fake := withGitHub(t, fixture, &options, []ghfixture.Response{{Args: []string{"auth", "status", "--hostname", "github.com"}}})
 	local, remote := tags(t, fixture, options.Directory), tags(t, fixture, remoteDir(fixture))
 	result, err := Release(ctx, ReleaseRequest{Options: options, DryRun: true})
 	if err != nil {
@@ -547,7 +547,35 @@ func TestRelease_DryRunDescribesTheLibraryReleaseWithoutPublishing(t *testing.T)
 	if tags(t, fixture, options.Directory) != local || tags(t, fixture, remoteDir(fixture)) != remote {
 		t.Fatal("a dry run changed tags")
 	}
-	requireCalls(t, fake, []ghfixture.Call{})
+	// The dry run only checks that gh is signed in, as the real run would before creating anything.
+	requireCalls(t, fake, []ghfixture.Call{{Args: []string{"auth", "status", "--hostname", "github.com"}}})
+}
+
+// TestRelease_DryRunRefusesAsTheRealRunWouldWithoutTheGitHubCLI reports a missing or signed-out gh on a dry run.
+func TestRelease_DryRunRefusesAsTheRealRunWouldWithoutTheGitHubCLI(t *testing.T) {
+	for _, test := range []struct {
+		name, code string
+		responses  []ghfixture.Response
+	}{
+		{"signed out", "github-cli-signed-out", []ghfixture.Response{{Args: []string{"auth", "status", "--hostname", "github.com"}, ExitCode: 1}}},
+		{"not installed", "github-cli-missing", nil},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fixture, options := authorClone(t, libraryFiles(), releaseOne)
+			commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed.")), "changes/a.yaml": []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")})
+			withGitHub(t, fixture, &options, test.responses)
+			if test.responses == nil {
+				if err := os.Remove(filepath.Join(pathOf(&options), "gh")); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for _, dryRun := range []bool{true, false} {
+				if _, err := Release(context.Background(), ReleaseRequest{Options: options, DryRun: dryRun}); errorCode(err) != test.code {
+					t.Fatalf("dry run %v: got %v, want %s", dryRun, err, test.code)
+				}
+			}
+		})
+	}
 }
 
 // TestRelease_StopsCleanlyWhenSomeoneElsePublishesFirst lets the author's pre-push hook publish release/2

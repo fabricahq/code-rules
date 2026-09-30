@@ -119,10 +119,11 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		return ReleaseResult{}, err
 	}
 	// gh is nil unless a GitHub Release page applies. It and the tagger are checked only when there's
-	// something to publish, but before anything is created.
+	// something to publish, but before anything is created; a dry run checks gh too, so it refuses as the real run
+	// would.
 	var gh *gitHubCLI
 	requireGitHubCLI := func() error {
-		if request.DryRun || result.GitHubRepository == "" || request.NoGitHubRelease {
+		if result.GitHubRepository == "" || request.NoGitHubRelease {
 			return nil
 		}
 		cli, err := findGitHubCLI(ctx, request.Git.Environment, root.Name())
@@ -170,9 +171,9 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 			if tagger, err = git.requireCommitterIdentity(ctx); err != nil {
 				return ReleaseResult{}, err
 			}
-			if err = requireGitHubCLI(); err != nil {
-				return ReleaseResult{}, err
-			}
+		}
+		if err = requireGitHubCLI(); err != nil {
+			return ReleaseResult{}, err
 		}
 		if err = requireTagSize(result.Tag, tagObjectSize(result.Tag, result.Commit, tagger, planned.message)); err != nil {
 			return ReleaseResult{}, err
