@@ -33,7 +33,9 @@ Then give a repository-aware agent this prompt:
 ```text
 Review this project's resolved Code Rules for conflicting guidance.
 
-Read .code-rules/generated/RULES.md, every part of each group index, and all linked resolved rules to assess conflicts across the complete adopted set.
+Read .code-rules/generated/RULES.md, every part of each group index, and
+all linked resolved rules to assess conflicts across the complete adopted
+set.
 Use .code-rules/generated/provenance.json to identify the reviewed snapshot.
 Compare active rules within and across groups, including local additions
 and replacements. Excluded rules and replaced upstream text are context,

@@ -102,7 +102,7 @@ Copy one version of a library rule into `local/` so the project controls its tex
 | Option | Meaning |
 | --- | --- |
 | `--from LIBRARY@VERSION` | Required for a fork. `LIBRARY` is a configured source name, such as `team`, or a [repository address](/reference/configuration/#repository-addresses). `VERSION` is one of the rule's versions, such as `1.3.0`. |
-| `--reason TEXT` | Why the project uses the fork instead of the imported rule. Required when the project imports this rule from `LIBRARY`. |
+| `--reason TEXT` | Why the project uses the fork instead of the imported rule. Required when the project imports this rule from `LIBRARY`, and refused otherwise. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
 Metadata options and `--body-file` don't apply to a fork. The command:

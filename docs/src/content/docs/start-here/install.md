@@ -58,7 +58,8 @@ brew uninstall code-rules
 Add `--version` to install an older or specific [release](https://github.com/fabricahq/code-rules/releases), or `--install-dir` to choose an absolute, writable directory:
 
 ```sh
-curl -fsSL https://code-rules.fabricahq.com/install.sh | sh -s -- --version 0.1.0 --install-dir "$HOME/bin"
+curl -fsSL https://code-rules.fabricahq.com/install.sh |
+  sh -s -- --version 0.1.0 --install-dir "$HOME/bin"
 ```
 
 Use the same custom directory when upgrading. Pass `--no-update-path` if you prefer to manage your shell configuration yourself.
@@ -72,7 +73,8 @@ Download the archive for your OS and processor, plus `SHA256SUMS`, from [GitHub 
 
 ```sh
 gh attestation verify SHA256SUMS --repo fabricahq/code-rules \
-  --signer-workflow fabricahq/code-rules/.github/workflows/release-planner.yml \
+  --signer-workflow \
+    fabricahq/code-rules/.github/workflows/release-planner.yml \
   --source-ref refs/heads/main
 ```
 

@@ -110,7 +110,7 @@ Write the summary for someone deciding whether to update: say what changed in th
 
 ### Add a rule
 
-Create the rule as usual:
+Create the rule as usual, and complete the draft it writes:
 
 ```sh
 code-rules library add rule practices/testing/verify-backoff \
