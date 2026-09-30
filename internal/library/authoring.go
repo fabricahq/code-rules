@@ -28,7 +28,7 @@ type AuthoringResult struct {
 	Changed []string `json:"changed"`
 	// LicenseDeclared describes the manifest after initialization.
 	LicenseDeclared bool     `json:"-"`
-	Warnings        []string `json:"warnings,omitempty"`
+	Warnings        []string `json:"warnings"`
 }
 
 // Written returns every path the operation wrote: its created files, then its changed ones.

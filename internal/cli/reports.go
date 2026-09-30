@@ -24,14 +24,14 @@ type commandReport struct {
 // nextStep keeps recovery or follow-up commands separate from their explanation for automation.
 type nextStep struct {
 	Instruction string   `json:"instruction"`
-	Commands    []string `json:"commands,omitempty"`
+	Commands    []string `json:"commands"`
 }
 
 // authoringValue is an authoring command's JSON value: the files it created and changed, as absolute paths.
 type authoringValue struct {
 	Added     []string   `json:"added"`
 	Changed   []string   `json:"changed"`
-	Warnings  []string   `json:"warnings,omitempty"`
+	Warnings  []string   `json:"warnings"`
 	NextSteps []nextStep `json:"nextSteps"`
 }
 
@@ -52,10 +52,14 @@ func (s authoringScope) command(action string) string {
 	return command
 }
 
-// authoredReport renders each next step once, after the report, and returns the steps in its value.
+// authoredReport renders each next step once, after the report, and returns the steps in its value. Every list
+// in the value is present, empty when there's nothing to report.
 func authoredReport(out *strings.Builder, added, changed, warnings []string, steps []nextStep) commandReport {
 	var next strings.Builder
-	for _, step := range steps {
+	for i, step := range steps {
+		if step.Commands == nil {
+			steps[i].Commands = []string{}
+		}
 		if next.Len() > 0 {
 			next.WriteByte('\n')
 		}
@@ -68,7 +72,15 @@ func authoredReport(out *strings.Builder, added, changed, warnings []string, ste
 		out.WriteByte('\n')
 		out.WriteString(next.String())
 	}
-	return commandReport{value: authoringValue{added, changed, warnings, steps}, human: out.String()}
+	return commandReport{value: authoringValue{nonNil(added), nonNil(changed), nonNil(warnings), steps}, human: out.String()}
+}
+
+// nonNil returns list, or an empty list for nil, so JSON output shows [] rather than null.
+func nonNil(list []string) []string {
+	if list == nil {
+		return []string{}
+	}
+	return list
 }
 
 func projectInitializedReport(result project.AuthoringResult) commandReport {

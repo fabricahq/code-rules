@@ -390,7 +390,7 @@ func publicationComplete(err error) bool {
 type Changes struct {
 	Added    []string `json:"added"`
 	Changed  []string `json:"changed"`
-	Warnings []string `json:"warnings,omitempty"`
+	Warnings []string `json:"warnings"`
 }
 
 // Written returns every path the edit wrote: its created files, then its replaced ones.
@@ -421,7 +421,7 @@ func finishPublication(root *os.Root, files []File, committed bool, err error) (
 	if err != nil && !committed {
 		return Changes{}, err
 	}
-	result := Changes{Added: []string{}, Changed: []string{}}
+	result := Changes{Added: []string{}, Changed: []string{}, Warnings: []string{}}
 	for _, file := range files {
 		path := filepath.Join(root.Name(), filepath.FromSlash(file.Path))
 		if file.Previous == nil {

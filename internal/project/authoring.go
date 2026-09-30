@@ -20,7 +20,7 @@ type AuthoringResult struct {
 	Added   []string `json:"added"`
 	Changed []string `json:"changed"`
 	// Warnings describe cleanup failures after all requested files were committed.
-	Warnings []string `json:"warnings,omitempty"`
+	Warnings []string `json:"warnings"`
 }
 
 // Written returns every path the operation wrote: its created files, then its changed ones.

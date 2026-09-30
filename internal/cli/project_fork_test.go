@@ -132,7 +132,7 @@ func TestForkRule_ReportsJSON(t *testing.T) {
 	}
 	config := string(f.read(t, "config.yaml"))
 	forked := run(0, "practices/testing/verify", "--from", "team@1.0.0")
-	steps := []nextStep{{Instruction: "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text."}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"code-rules project build", "code-rules project check"}}}
+	steps := []nextStep{{Instruction: "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text.", Commands: []string{}}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"code-rules project build", "code-rules project check"}}}
 	if !forked.OK || len(forked.Value.Added) != 3 || len(forked.Value.Changed) != 0 || !reflect.DeepEqual(forked.Value.NextSteps, steps) || string(f.read(t, "config.yaml")) != config {
 		t.Fatalf("fork %+v, configuration:\n%s", forked, f.read(t, "config.yaml"))
 	}
