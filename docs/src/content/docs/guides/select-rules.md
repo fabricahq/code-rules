@@ -65,6 +65,7 @@ Write a Markdown rule under the matching local group:
 ```
 
 The group needs `_group.yaml` metadata from a selected library or from `local/<group-id>/`.
+If you later deselect or remove the last library supplying the group, sync copies the group's last imported metadata to `local/<group-id>/_group.yaml` and warns that it did, so the rule keeps its group; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group).
 The rule joins the inherited rules and receives a `local:`-prefixed ID.
 Use the [authoring format](/guides/write-rules/) for its metadata and body.
 

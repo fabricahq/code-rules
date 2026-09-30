@@ -188,6 +188,9 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			order = append(order, target)
 		}
 		if fileTarget(target) {
+			if err := requireRealParents(w.root, target); err != nil {
+				return err
+			}
 			if err := rejectAlias(w.root, string(target)); err != nil {
 				return err
 			}
@@ -376,6 +379,10 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 			return failure("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
 		}
 		seen[entry.Name] = true
+		// A symbolic link in a parent could make recovery inspect, discard, or replace another file.
+		if err := requireRealParents(root, entry.Name); err != nil {
+			return failure("recovery-required", string(entry.Name)+": a parent directory changed into a symbolic link or file after interruption; preserve the transaction and restore the directory", err)
+		}
 	}
 	if seen[GuideReadme] && seen[GuideStandalone] {
 		return failure("recovery-required", "multiple project guides in transaction; preserve journal", nil)

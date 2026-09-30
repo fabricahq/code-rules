@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"strings"
@@ -50,6 +51,27 @@ func fileTarget(target Target) bool {
 
 func validTarget(target Target) bool {
 	return target == Vendor || target == Generated || fileTarget(target)
+}
+
+// requireRealParents fails with unsafe-path when a parent directory of target, such as local/techs for local group
+// metadata, is a symbolic link or not a directory, so publication and recovery never reach another file through
+// it. A missing parent passes: the target is absent.
+func requireRealParents(root *os.Root, target Target) error {
+	parts := strings.Split(string(target), "/")
+	for i := 1; i < len(parts); i++ {
+		parent := strings.Join(parts[:i], "/")
+		info, err := root.Lstat(parent)
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return failure("unsafe-path", parent+": expected a directory without symlinks", nil)
+		}
+	}
+	return nil
 }
 
 // entryName names target's staged output, backup, and displaced copy inside the transaction directory, which holds

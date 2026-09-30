@@ -713,6 +713,21 @@ func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
 // library, as a run interrupted before pushing it leaves it, and returns its release notes.
 func interruptedRelease(t *testing.T, options Options) string {
 	t.Helper()
+	planned, head := planFixtureRelease(t, options)
+	git, err := openLibraryGit(context.Background(), options.Directory, options.Git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := git.createTag(context.Background(), "release/"+strconv.Itoa(planned.record.Release), head, planned.message); err != nil {
+		t.Fatal(err)
+	}
+	return planned.notes
+}
+
+// planFixtureRelease returns the library release that code-rules library release would publish from options'
+// library, and the commit it would tag.
+func planFixtureRelease(t *testing.T, options Options) (plannedRelease, string) {
+	t.Helper()
 	ctx := context.Background()
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
@@ -735,10 +750,54 @@ func interruptedRelease(t *testing.T, options Options) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := git.createTag(ctx, "release/"+strconv.Itoa(planned.record.Release), head, planned.message); err != nil {
-		t.Fatal(err)
+	return planned, head
+}
+
+// TestRelease_RefusesAnUnpublishedTagTooLargeToRead pushes an unpublished release tag of exactly 8 MiB, and
+// refuses one a byte larger, counting a signature the release record's parser ignores.
+func TestRelease_RefusesAnUnpublishedTagTooLargeToRead(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		size int
+		code string
+	}{{"at the limit", maxFileBytes, ""}, {"one byte over", maxFileBytes + 1, "release-too-large"}} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			fixture, options := authorClone(t, libraryFiles())
+			planned, _ := planFixtureRelease(t, options)
+			// A fixed date keeps the tag's header the same size when the tag is created again.
+			fixture.Environment = append(slices.Clone(fixture.Environment), "GIT_COMMITTER_DATE=2026-01-01T00:00:00Z")
+			message := func(padding int) string {
+				return string(planned.message) + "-----BEGIN SSH SIGNATURE-----\n" + strings.Repeat("A", padding) + "\n-----END SSH SIGNATURE-----\n"
+			}
+			file := filepath.Join(t.TempDir(), "message")
+			tag := func(padding int) int {
+				if err := os.WriteFile(file, []byte(message(padding)), 0600); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := fixture.CommandIn(ctx, options.Directory, "tag", "--force", "--annotate", "--cleanup=verbatim", "--file="+file, "release/1"); err != nil {
+					t.Fatal(err)
+				}
+				size, err := fixture.CommandIn(ctx, options.Directory, "cat-file", "-s", "release/1")
+				if err != nil {
+					t.Fatal(err)
+				}
+				bytes, _ := strconv.Atoi(size)
+				return bytes
+			}
+			if size := tag(test.size - tag(0)); size != test.size {
+				t.Fatalf("tag of %d bytes, want %d", size, test.size)
+			}
+			remote := tags(t, fixture, remoteDir(fixture))
+			result, err := Release(ctx, ReleaseRequest{Options: options})
+			if errorCode(err) != test.code {
+				t.Fatalf("got %+v, %v; want %q", result, err, test.code)
+			}
+			if pushed := tags(t, fixture, remoteDir(fixture)) != remote; pushed != (test.code == "") {
+				t.Fatalf("pushed the tag: %v", pushed)
+			}
+		})
 	}
-	return planned.notes
 }
 
 // TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit publishes a release tag that exists only in the clone,

@@ -87,7 +87,10 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	if err != nil {
 		return FileChanges{}, err
 	}
-	kept := keptGroupMetadata(in.config, before, in.imported)
+	kept, err := keptGroupMetadata(in.config, before, in.imported)
+	if err != nil {
+		return FileChanges{}, err
+	}
 	state := before
 	state.config = in.config
 	if len(kept) > 0 {
@@ -132,10 +135,12 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 }
 
 // keptGroupMetadata returns, by group ID, the metadata to write to local/ for each group whose local rules would
-// otherwise have none: the project has no local metadata for it, no source now imports it, and a source configured
-// before supplied it, as its vendored copy shows. Each copy comes from the first such source in configuration
-// order. It is empty, never nil, when no group needs one.
-func keptGroupMetadata(config rules.Configuration, before projectState, imported map[string]imports.Library) map[string][]byte {
+// otherwise have none: the project has no local metadata for it, no source now imports it, and a stored source
+// record in vendor/ lists the group's metadata, including the record of a source the configuration no longer has.
+// Each copy comes from the first such record: configured sources in configuration order, then removed sources in
+// name order. Invalid records are skipped. It is empty, never nil, when no group needs one. It fails when the
+// vendored copy it would use differs from its record's checksum, so modified metadata never becomes local guidance.
+func keptGroupMetadata(config rules.Configuration, before projectState, imported map[string]imports.Library) (map[string][]byte, error) {
 	local := treeFiles(before.local)
 	supplied := map[string]bool{}
 	for _, source := range config.Sources {
@@ -144,6 +149,7 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 		}
 	}
 	vendored := treeFiles(before.vendor)
+	records := storedRecords(before.config, vendored)
 	kept := map[string][]byte{}
 	for file := range local {
 		id, versioned := rules.VersionedRule(file)
@@ -154,14 +160,54 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 		if _, ok := local[group+"/_group.yaml"]; ok || supplied[group] || kept[group] != nil {
 			continue
 		}
-		for _, source := range before.config.Sources {
-			if data, ok := vendored[source.Name+"/"+group+"/_group.yaml"]; ok {
-				kept[group] = data
-				break
+		for _, record := range records {
+			recorded, listed := record.digests[group+"/_group.yaml"]
+			if !listed {
+				continue
 			}
+			file := record.name + "/" + group + "/_group.yaml"
+			data, ok := vendored[file]
+			if !ok || digest(data) != recorded {
+				return nil, invalidSnapshot("vendor/"+file, fmt.Sprintf("missing or modified since sync imported it, so it can't become local/%s/_group.yaml, the metadata your local rules in the group need. Restore it: run code-rules project sync with the previous configuration, then change the configuration and sync again; or write local/%s/_group.yaml yourself", group, group))
+			}
+			kept[group] = data
+			break
 		}
 	}
-	return kept
+	return kept, nil
+}
+
+// storedRecord is a valid source record in vendor/, named by its source.
+type storedRecord struct {
+	name string
+	parsedRecord
+}
+
+// storedRecords returns every valid source record in vendor: those of config's sources in configuration order,
+// then those of sources config no longer has, in name order. Records that don't parse are left out.
+func storedRecords(config rules.Configuration, vendored map[string][]byte) []storedRecord {
+	names := []string{}
+	for _, source := range config.Sources {
+		names = append(names, source.Name)
+	}
+	removed := []string{}
+	for file := range vendored {
+		if name, ok := strings.CutSuffix(file, "/_source.json"); ok && !strings.Contains(name, "/") && !slices.Contains(names, name) {
+			removed = append(removed, name)
+		}
+	}
+	slices.Sort(removed)
+	records := []storedRecord{}
+	for _, name := range append(names, removed...) {
+		data, ok := vendored[name+"/_source.json"]
+		if !ok {
+			continue
+		}
+		if record, err := parseSourceRecord(data, name); err == nil {
+			records = append(records, storedRecord{name: name, parsedRecord: record})
+		}
+	}
+	return records
 }
 
 // managedFiles prefixes source-relative and generated-relative paths for an unambiguous combined change report.
