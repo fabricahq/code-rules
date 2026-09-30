@@ -40,7 +40,7 @@ type Report struct {
 // All writes and Git history belong to disposable directories; no external network or global install is used.
 func Run(ctx context.Context, binary, scenario string) (report Report, err error) {
 	report = Report{Scenario: scenario, Steps: []Step{}, Verified: []string{}}
-	if scenario != "lifecycle" && scenario != "versions" && scenario != "changed-vendor" && scenario != "failed-sync" {
+	if !slices.Contains([]string{"lifecycle", "versions", "update", "changed-vendor", "failed-sync"}, scenario) {
 		return report, fmt.Errorf("unknown acceptance scenario")
 	}
 	directory, err := os.MkdirTemp("", "code-rules-acceptance-")
@@ -258,6 +258,10 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			return report, fmt.Errorf("failed build changed files")
 		}
 		report.Verified = append(report.Verified, "Changed vendor bytes produce an error and preserve all project files")
+	case "update":
+		if err := updateScenario(ctx, &report, invoke, fixture, directory, consumer, online, offline); err != nil {
+			return report, err
+		}
 	case "versions", "failed-sync":
 		document := libraryTree.Files["techs/go/errors.md"]
 		if scenario == "versions" {
