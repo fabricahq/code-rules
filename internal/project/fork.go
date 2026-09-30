@@ -386,11 +386,21 @@ func relocateLinks(text, from, to string, moved map[string]string) (string, erro
 	return result, nil
 }
 
-// requireSelfContained fails when a Markdown file among files links to a file that files doesn't hold.
+// requireSelfContained fails when a Markdown file among files links to a file that files doesn't hold, or has a
+// relative link in raw HTML, which a fork can't relocate and generation rejects in local rules.
 func requireSelfContained(files map[string][]byte) error {
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !strings.HasSuffix(file, ".md") {
 			continue
+		}
+		links, err := rules.RawHTMLLinks(string(files[file]))
+		if err != nil {
+			return fmt.Errorf("%s: %w", file, err)
+		}
+		for _, link := range links {
+			if _, _, local, err := rules.RelativeTarget(link, file); err != nil || local {
+				return &rules.ValidationError{Location: file, Problem: fmt.Sprintf("links to %s in raw HTML, which a fork can't use: local rules can't have relative links in raw HTML; use a Markdown link in the library", link)}
+			}
 		}
 		targets, err := rules.MarkdownTargets(string(files[file]), file)
 		if err != nil {

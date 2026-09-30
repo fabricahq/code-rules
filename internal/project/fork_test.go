@@ -447,6 +447,34 @@ func TestForkFiles_RelocatesExplicitSelfLinks(t *testing.T) {
 	}
 }
 
+// TestForkFiles_RefusesRelativeRawHTMLLinks refuses a fork whose Markdown has a relative link in raw HTML, in the
+// rule or a shared asset, because generation rejects those in local rules; external HTML links are fine.
+func TestForkFiles_RefusesRelativeRawHTMLLinks(t *testing.T) {
+	for _, test := range []struct {
+		name, rule, guide string
+		refused           bool
+	}{
+		{"rule's own asset", `See <a href="assets/errors/x.md">x</a>.`, "Guide.\n", true},
+		{"shared asset", "See [the guide](../../assets/guide.md).", `<img src="flow.svg">` + "\n", true},
+		{"anchor", `See <a href="#top">the top</a>.`, "Guide.\n", true},
+		{"external", `See <a href="https://example.com/x">x</a>.`, "Guide.\n", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			published := imports.PublishedRule{Release: 1, Commit: "0123456789abcdef0123456789abcdef01234567", Files: map[string][]byte{
+				"techs/go/errors.md":          []byte(forkedRule(test.rule + " [Guide](../../assets/guide.md)")),
+				"techs/go/assets/errors/x.md": []byte("X.\n"),
+				"assets/guide.md":             []byte(test.guide),
+				"assets/flow.svg":             []byte("<svg/>"),
+			}}
+			_, err := forkFiles("techs/go/errors", published, nil)
+			var validation *rules.ValidationError
+			if refused := errors.As(err, &validation) && strings.Contains(validation.Problem, "raw HTML"); refused != test.refused {
+				t.Fatalf("refused %t, want %t: %v", refused, test.refused, err)
+			}
+		})
+	}
+}
+
 // TestForkFiles_RewritesLinksInDocumentOrder rewrites a reference link that precedes an inline link, and an image
 // nested in a link, whose destinations the Markdown tree lists out of document order.
 func TestForkFiles_RewritesLinksInDocumentOrder(t *testing.T) {
