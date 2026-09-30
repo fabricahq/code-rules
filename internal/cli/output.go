@@ -70,8 +70,9 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error) i
 			text.WriteString(humanError(streams.Out, errors.New(problem.Message)))
 			text.WriteByte('\n')
 		}
-		// A post-commit presentation failure must not hide the completed operation's receipt.
-		text.WriteString(o.report.human)
+		// A post-commit presentation failure must not hide the completed operation's receipt. Reports show library
+		// text, such as change summaries, so control characters are escaped.
+		text.WriteString(terminalText(o.report.human))
 		if err == nil {
 			text.WriteString(o.text.String())
 		}

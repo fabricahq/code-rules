@@ -14,6 +14,7 @@ import (
 
 // humanError separates failures from preceding output and colors only an interactive label.
 // Unwrapped validation errors expose their location separately; wrapped errors retain all outer context.
+// The message can carry library text, so its control characters are escaped; only the label's color stays.
 func humanError(destination io.Writer, err error) string {
 	label := "Error:"
 	if file, ok := destination.(*os.File); ok && term.IsTerminal(int(file.Fd())) && os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "" && os.Getenv("TERM") != "dumb" {
@@ -21,7 +22,7 @@ func humanError(destination io.Writer, err error) string {
 	}
 	var validation *rules.ValidationError
 	if errors.As(err, &validation) && err == validation {
-		return fmt.Sprintf("\n%s %s\n\nLocation: %s\n", label, validation.Problem, validation.Location)
+		return fmt.Sprintf("\n%s %s\n\nLocation: %s\n", label, terminalText(validation.Problem), terminalText(validation.Location))
 	}
-	return fmt.Sprintf("\n%s %s\n", label, err)
+	return fmt.Sprintf("\n%s %s\n", label, terminalText(err.Error()))
 }

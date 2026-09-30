@@ -28,8 +28,9 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if !f.interactive() {
 		return "", usage(fmt.Errorf("%s Missing input; supply explicit flags in non-interactive mode", label))
 	}
+	// Introductions and labels can show library text, such as an update's change summaries.
 	if f.introduction != "" {
-		if _, err := io.WriteString(f.command.ErrOrStderr(), f.introduction); err != nil {
+		if _, err := io.WriteString(f.command.ErrOrStderr(), terminalText(f.introduction)); err != nil {
 			return "", err
 		}
 		f.introduction = ""
@@ -41,7 +42,7 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 		return "", err
 	}
 	defer func() { err = errors.Join(err, term.Restore(fd, state)) }()
-	terminal := term.NewTerminal(&promptStream{ctx: f.command.Context(), fd: fd, output: f.command.ErrOrStderr()}, label+" ")
+	terminal := term.NewTerminal(&promptStream{ctx: f.command.Context(), fd: fd, output: f.command.ErrOrStderr()}, terminalText(label)+" ")
 	if width, height, sizeErr := term.GetSize(fd); sizeErr == nil && width > 0 && height > 0 {
 		if err := terminal.SetSize(width, height); err != nil {
 			return "", err
