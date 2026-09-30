@@ -159,6 +159,54 @@ Build in slices. Each slice ends with passing validation, atomic commits, and a 
 7. **Forking.** `code-rules project add rule ID --from LIBRARY@VERSION`: find the version's library release, copy the rule, its assets, and linked shared assets with rewritten links, add attribution, and write the exclusion with `replacedBy`.
 8. **Finish.** Rewrite the acceptance scenarios around the new lifecycle, verify every command example in the docs against the built binary, run an independent review of the docs against the implementation, and fix any drift. Delete this file.
 
+## Breaking changes for the v0.2.0 release notes
+
+Every breaking change from `v0.1.0`, with its manual migration, for the release pull request. Code Rules migrates nothing itself: old fields fail as unknown fields and old records fail as unsupported.
+
+**Project configuration** (`.code-rules/config.yaml`)
+
+- `sources.<name>.version`, the version constraint, is removed and fails as `unknown field version`. Delete it. The source then follows each rule's newest version when the project updates; to import exactly one library release, set `ref: release/<number>`; to hold a rule back, add a pin.
+- `sources.<name>.replace` is removed and fails as `unknown field replace`, including an empty `replace: {}`. Move each entry into `exclude`, keeping its reason and naming its file as `replacedBy`: `rule-id: {reason: "…", replacedBy: local/<group>/<rule>.md}`.
+- `sources.<name>.exclude` values are objects, not reason strings. A string fails with `expected an object`. Rewrite `rule-id: Reason.` as `rule-id: {reason: Reason.}`. An empty `exclude: {}` is no longer required.
+- `ref` accepts only a tag or a full commit SHA, as before, but a version range is no longer accepted anywhere. `ref` is now optional, and can't be combined with `pins`. A `ref` that names a tag other than `release/<number>`, such as `v1.1.0`, still imports that revision but warns on every sync that its rules have no versions.
+- New, optional fields: `rules` (individually selected rules, unioned with `groups`, so `groups` is required only when `rules` is empty) and `pins`.
+
+**Libraries**
+
+- Projects import rule versions from `release/<number>` tags only. A library without one fails to import with `releases-not-found`, unless the source sets `ref`; older tags such as `v1.0.0` are ignored. Authors publish the first library release, which gives every rule `1.0.0`, with `code-rules library release` from an up-to-date default branch, and never create release tags by hand.
+- After the first library release, `code-rules library check` requires a change note in `changes/` for every changed, new, or retired rule. Record them with `code-rules library change`. `changes/` is reserved for change notes.
+- `code-rules library check` and `code-rules library add rule` now read Git history and tags, and fail in a shallow clone, even before the first library release. CI must check out with full history, such as `fetch-depth: 0` with `actions/checkout`.
+- `code-rules library init` also writes `.github/workflows/code-rules.yml`. Rerunning it in an existing library adds the workflow without touching other files.
+- The library README that `code-rules library init` wrote (from `internal/library/library-guide.md`) is never refreshed and still says to publish a Git tag. Replace its release section with the new guide's, or delete it and rerun `code-rules library init`.
+- A project now imports only the shared `assets/` files that its selected rules link to, directly or through other shared files, instead of the whole directory.
+
+**Vendored snapshots** (`vendor/<source-name>/_source.json`)
+
+- Format version 1 fails with `unsupported source record; delete .code-rules/vendor/ and run code-rules project sync to import it again`. Format version 2 records `pins`, `exclude`, `ref`, `release`, `ruleSelection`, and each rule's `version`, `release`, and `commit`, and drops `version`, `resolvedTag`, and `resolvedVersion`. Files are stored at their library paths, possibly from several library releases.
+- Migration for every project: edit the configuration as above, delete `.code-rules/vendor/`, run `code-rules project sync`, and commit the configuration, `vendor/`, and `generated/` together.
+
+**Provenance** (`generated/provenance.json`)
+
+- `sources[]` drops `version`, `resolvedTag`, and `resolvedVersion`, and adds `pins`, `release`, and `ruleSelection`.
+- `rules[].origin` adds `version` and `release`, `null` for local rules and unreleased imports; `rules[].upstream` adds `version` and `release`.
+- `generatedNotice` says build and sync work from any subdirectory in Git repositories. Tools that read provenance must follow these fields; `code-rules project sync` regenerates the file.
+
+**Generated guidance and the managed project guide**
+
+- Each imported rule shows `Version: X.Y.Z` below its rule ID, in rule files and group pages. RULES.md and group pages ask reviewers to cite a rule's version with its ID. Each `generated/libraries/<source-name>/README.md` shows the library release, a rule version table, and the source's pins. Sync or build regenerates all of it; `code-rules project check` reports it stale until then.
+- The managed `.code-rules/README.md` describes pins, updates, and forks. Build, sync, and init refresh an unedited older guide on their own. An edited guide stops them with `unrecognized or manually edited project guide`: move your notes to another file, move the guide aside, and rerun the command.
+
+**Commands and JSON output**
+
+- `code-rules project sync` no longer moves rules to newer versions: it restores the versions in `_source.json`, and chooses versions only for new sources, selections, pins, and `ref` changes. Adopt newer versions with the new `code-rules project update`, which previews them and applies them after confirmation, or with `--yes` in scripts and CI.
+- `code-rules project add library`: `--ref` is optional and rejects version ranges; `--rules` is new. Scripts that passed a range should drop `--ref`, or pass `--ref release/<number>`.
+- New commands: `code-rules project update`, `code-rules project add rule ID --from LIBRARY@VERSION`, `code-rules library change`, and `code-rules library release`.
+- JSON output only gains fields for existing commands: `error.code` now appears for Git and import failures (such as `releases-not-found`, `version-not-found`, `shallow-clone`, and `change-notes`), `code-rules library check` adds `value.pendingRelease`, and `code-rules project sync` adds `value.warnings`. Scripts that treated any `code` as a file-transaction error should check its value.
+
+**This repository**
+
+- `.code-rules/config.yaml` still uses `replace: {}` and imports `fabricahq/public-rules` at `v1.1.0`, so `v0.2.0` rejects it. Migrate it after public-rules publishes its first library release; see [After the CLI ships](#after-the-cli-ships-fabricahqpublic-rules).
+
 ## Final review
 
 When every slice is done and its review fixes have landed, run four independent GPT-6 Astra reviews (Codex CLI, read-only) of the whole change, from `main` to the top of the PR stack. Each reports findings without changing code, and each finding states the insight, its severity, a recommendation, and its blast radius:
