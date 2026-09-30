@@ -837,6 +837,26 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 	}
 }
 
+// TestRelease_AsksToUpgradeForAnUnpublishedTagInANewerFormat reports an unpublished release tag whose record
+// format this version can't read as a reason to upgrade, not as a mismatch to delete.
+func TestRelease_AsksToUpgradeForAnUnpublishedTagInANewerFormat(t *testing.T) {
+	ctx := context.Background()
+	fixture, options := authorClone(t, libraryFiles())
+	// A newer Code Rules created this tag, then stopped before pushing it.
+	newer := "Library release 1.\n\n---\nformatVersion: 2\nrelease: 1\nrules: A later shape.\n"
+	if err := fixture.Tag(ctx, options.Directory, "release/1", newer); err != nil {
+		t.Fatal(err)
+	}
+	local, remote := tags(t, fixture, options.Directory), tags(t, fixture, remoteDir(fixture))
+	_, err := Release(ctx, ReleaseRequest{Options: options})
+	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Code Rules") || strings.Contains(err.Error(), "git tag --delete") {
+		t.Fatalf("got %v; want unsupported-release-record asking to upgrade", err)
+	}
+	if tags(t, fixture, options.Directory) != local || tags(t, fixture, remoteDir(fixture)) != remote {
+		t.Fatal("a refused library release changed the tags")
+	}
+}
+
 // TestRelease_RefusesAnUnpublishedTagThatDoesntMatchTheLibrary checks a release tag found only in the clone
 // against the library release its commit would publish after the latest one the remote published, and pushes
 // nothing when they differ: a hand-made tag can't skip a missing change note or change what a note publishes.
@@ -874,7 +894,9 @@ func TestRelease_RefusesAnUnpublishedTagThatDoesntMatchTheLibrary(t *testing.T) 
 // with a descendant holding its output open, instead of waiting for it forever.
 func TestFindGitHubCLI_StopsAGitHubCLIThatFloodsItsOutput(t *testing.T) {
 	bin := t.TempDir()
-	script := "#!/bin/sh\ntrap '' PIPE\n/bin/sleep 30 &\nwhile :; do printf xxxxxxxxxxxxxxxx 2>/dev/null; done\n"
+	// The fake writes 64 KiB at a time, so it passes the 1 MiB limit in a few writes. With 16-byte writes, the
+	// 65,536 writes that reaching the limit took could alone outlast the timeout below on a busy machine.
+	script := "#!/bin/sh\ntrap '' PIPE\n/bin/sleep 30 &\nx=xxxxxxxxxxxxxxxx\nwhile [ ${#x} -lt 65536 ]; do x=$x$x; done\nwhile :; do printf %s \"$x\" 2>/dev/null; done\n"
 	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}

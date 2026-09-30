@@ -427,6 +427,22 @@ func TestSnapshotRefWrittenAnotherWayNeedsNoSync(t *testing.T) {
 	requireSync(t, got, err)
 }
 
+// TestSnapshotRefThatIsntValidFails reports an invalid ref assigned to a parsed configuration at sources.team.ref,
+// instead of comparing it with the recorded ref as though the source had none.
+func TestSnapshotRefThatIsntValidFails(t *testing.T) {
+	config, snapshots := snapshotFixture(t)
+	vendor, err := encodeSnapshots(config, snapshots)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config.Sources[0].Ref = "refs/heads/main"
+	got, err := decodeSnapshots(config, vendor)
+	var validation *rules.ValidationError
+	if got != nil || !errors.As(err, &validation) || validation.Location != "sources.team.ref" {
+		t.Fatalf("got %v, %v; want a failure at sources.team.ref", got, err)
+	}
+}
+
 // TestSnapshotEmptySources encodes and decodes a local-only project and rejects a removed source's record.
 func TestSnapshotEmptySources(t *testing.T) {
 	c, s := snapshotFixture(t)

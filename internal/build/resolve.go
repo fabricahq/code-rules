@@ -125,7 +125,11 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		if err != nil || ref.Kind != rules.GitRefCommit {
 			return resolution{}, invalid(source.Name, "resolvedCommit must be a full commit SHA")
 		}
-		if requested, hasRef := source.GitRef(); hasRef && requested.Kind == rules.GitRefCommit && requested.SHA != ref.SHA {
+		requested, hasRef, err := source.GitRef()
+		if err != nil {
+			return resolution{}, err
+		}
+		if hasRef && requested.Kind == rules.GitRefCommit && requested.SHA != ref.SHA {
 			return resolution{}, invalid(source.Name, "resolved commit differs from configured commit")
 		}
 		candidates := map[string]rules.Rule{}

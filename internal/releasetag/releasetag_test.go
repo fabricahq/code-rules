@@ -5,6 +5,11 @@ package releasetag_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/gitexec"
@@ -66,14 +71,83 @@ func TestListAndRead_ReleaseTagsInNumberOrder(t *testing.T) {
 		t.Fatalf("listed %v from HEAD, %v; want 2, 3, 10", numbers(reachable), err)
 	}
 
-	read, err := releasetag.Read(ctx, runner, dir, []releasetag.Tag{all[0], all[3]})
+	read := []releasetag.Release{}
+	err = releasetag.Read(ctx, runner, dir, []releasetag.Tag{all[0], all[3]}, func(i int, release releasetag.Release) error {
+		if i != len(read) {
+			t.Errorf("release %d passed as index %d", len(read), i)
+		}
+		read = append(read, release)
+		return nil
+	})
 	if err != nil || len(read) != 2 || read[0].Notes != "Library release 2." || read[0].Record.Release != 2 || read[1].Record.Release != 10 {
 		t.Fatalf("read %+v, %v", read, err)
 	}
-	_, err = releasetag.Read(ctx, runner, dir, []releasetag.Tag{all[0], all[2]})
+	stop := errors.New("stop")
+	calls := 0
+	if err := releasetag.Read(ctx, runner, dir, []releasetag.Tag{all[0], all[3]}, func(int, releasetag.Release) error { calls++; return stop }); err != stop || calls != 1 {
+		t.Fatalf("a caller's error: got %v after %d calls", err, calls)
+	}
+	err = releasetag.Read(ctx, runner, dir, []releasetag.Tag{all[0], all[2]}, func(int, releasetag.Release) error { return nil })
 	var invalid *releasetag.RecordError
 	var validation *rules.ValidationError
 	if !errors.As(err, &invalid) || invalid.Tag != "release/4" || !errors.As(err, &validation) || validation.Location != "release/4" {
 		t.Fatalf("read a tag without a record: %v", err)
+	}
+}
+
+// TestRead_HandsOverEachBatchBeforeReadingTheNext reads three release tags with 6 MiB of notes and a small record,
+// more than one 16 MiB batch holds, and receives each release before Git reads the batch after it, so the reader
+// never holds more than one batch of notes.
+func TestRead_HandsOverEachBatchBeforeReadingTheNext(t *testing.T) {
+	ctx := context.Background()
+	f, err := gitfixture.New(ctx, map[string][]byte{"README.md": []byte("Library.\n")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	notes := strings.Repeat("A long line of release notes.\n", 6<<20/30)
+	for number := 1; number <= 3; number++ {
+		message := filepath.Join(t.TempDir(), "message")
+		record := fmt.Sprintf("formatVersion: 1\nrelease: %d\nrules: {}\n", number)
+		if err := os.WriteFile(message, []byte(notes+"\n---\n"+record), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.Command(ctx, "tag", "--annotate", "--cleanup=verbatim", "--file="+message, fmt.Sprintf("release/%d", number)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The wrapper counts the Git processes that read a batch of tag objects.
+	batches := filepath.Join(t.TempDir(), "batches")
+	git := filepath.Join(t.TempDir(), "git")
+	script := "#!/bin/sh\ncase \"$*\" in *\"cat-file --batch\"*) echo batch >> " + gitfixture.Quote(batches) + " ;; esac\nexec " + gitfixture.Quote(f.GitPath) + " \"$@\"\n"
+	if err := os.WriteFile(git, []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	runner, err := gitexec.Isolated(gitexec.Options{GitPath: git, Environment: f.Environment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tags, err := releasetag.List(ctx, runner, f.Worktree(), "")
+	if err != nil || len(tags) != 3 {
+		t.Fatalf("listed %v, %v", numbers(tags), err)
+	}
+	seen := []int{}
+	err = releasetag.Read(ctx, runner, f.Worktree(), tags, func(i int, release releasetag.Release) error {
+		if len(release.Notes) < 6<<20-64 || release.Record.Release != i+1 {
+			t.Errorf("release %d: %d bytes of notes, record %+v", i+1, len(release.Notes), release.Record)
+		}
+		data, err := os.ReadFile(batches)
+		if err != nil {
+			return err
+		}
+		seen = append(seen, strings.Count(string(data), "batch"))
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Two 6 MiB tags fit in the first 16 MiB batch; the third needs a second one.
+	if !slices.Equal(seen, []int{1, 1, 2}) {
+		t.Fatalf("batches read before each release was handed over: %v, want [1 1 2]", seen)
 	}
 }

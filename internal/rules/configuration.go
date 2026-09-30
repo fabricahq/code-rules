@@ -34,26 +34,36 @@ type Source struct {
 	Exclude map[string]Exclusion `json:"exclude"`
 }
 
-// GitRef returns the source's ref, parsed and normalized, and false when the source has none.
-// ParseConfiguration already validated Ref, so parsing here can't fail for a configuration it returned.
-func (s Source) GitRef() (GitRef, bool) {
+// GitRef returns the source's ref, parsed and normalized. It returns false and no error when the source has no
+// ref. Ref is exported, so a Source built without ParseConfiguration can hold any text; text that isn't a tag or
+// full commit SHA fails with a *ValidationError at sources.<name>.ref.
+func (s Source) GitRef() (GitRef, bool, error) {
 	if s.Ref == "" {
-		return GitRef{}, false
+		return GitRef{}, false, nil
 	}
 	ref, err := ParseGitRef(s.Ref, "sources."+s.Name+".ref")
-	return ref, err == nil
+	if err != nil {
+		return GitRef{}, false, err
+	}
+	return ref, true, nil
 }
 
-// SameRef reports whether ref, such as the ref a snapshot recorded for the source, names the same revision as the
-// source's ref once both are parsed, so release/5 and refs/tags/release/5 match. An empty ref matches only a
-// source without one, and text that isn't a valid ref matches nothing.
-func (s Source) SameRef(ref string) bool {
-	if ref == "" || s.Ref == "" {
-		return ref == s.Ref
+// SameRef reports whether ref, such as the ref a snapshot recorded for the source, and the source's ref are the
+// same normalized reference once parsed, so release/5 and refs/tags/release/5 match. An empty ref matches only a
+// source without one. It fails with a *ValidationError when either ref isn't a tag or full commit SHA.
+func (s Source) SameRef(ref string) (bool, error) {
+	own, hasRef, err := s.GitRef()
+	if err != nil {
+		return false, err
 	}
-	own, valid := s.GitRef()
+	if ref == "" || !hasRef {
+		return ref == "" && !hasRef, nil
+	}
 	other, err := ParseGitRef(ref, "ref")
-	return valid && err == nil && other == own
+	if err != nil {
+		return false, err
+	}
+	return other == own, nil
 }
 
 // Pin keeps one rule at an exact published version, with the project's reason.

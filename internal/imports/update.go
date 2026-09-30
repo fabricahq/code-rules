@@ -118,15 +118,45 @@ func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
 
 // Import imports every source of configuration, the planned configuration plus the pins and exclusions the
 // project decided on, or returns no partial result, as ImportLibraries does. Each source the update names imports
-// exactly its planned versions, except that a rule configuration pins keeps its version from before the update;
-// any other source imports what sync would.
+// exactly its planned versions, except that a rule configuration pins keeps its version from before the update,
+// and fails when a library release tag those versions come from has moved since planning; any other source imports
+// what sync would.
 func (u Update) Import(ctx context.Context, configuration rules.Configuration, options Options) (map[string]Library, error) {
 	return importSources(ctx, configuration, options, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
-		if planned, named := u.plans[source.Name]; named {
-			return planned.decided(source)
+		planned, named := u.plans[source.Name]
+		if !named {
+			return planSource(ctx, repo, source, recordedSnapshot(u.recorded, source.Name))
 		}
-		return planSource(ctx, repo, source, recordedSnapshot(u.recorded, source.Name))
+		plan, err := planned.decided(source)
+		if err != nil {
+			return sourcePlan{}, err
+		}
+		return plan, repo.requireTagsUnmoved(ctx, source, plan)
 	})
+}
+
+// requireTagsUnmoved fails with code invalid-release-tag when a library release tag that the plan's rules or
+// library-wide files come from now names another commit than the plan recorded, so an update never installs
+// versions its preview read from a tag that has moved since. A tag the library deleted passes, as it does for sync.
+func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source, plan sourcePlan) error {
+	advertised, err := r.listReleases(ctx)
+	if err != nil {
+		return err
+	}
+	current := map[int]string{}
+	for _, release := range advertised {
+		current[release.number] = release.commit
+	}
+	recorded := map[int]string{plan.release: plan.commit}
+	for _, rule := range plan.rules {
+		recorded[rule.Release] = rule.Commit
+	}
+	for _, number := range slices.Sorted(maps.Keys(recorded)) {
+		if commit, listed := current[number]; number != 0 && listed && commit != recorded[number] {
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than when code-rules project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run code-rules project update again.", number, source.Name), nil)
+		}
+	}
+	return nil
 }
 
 // PlanUpdate plans moving the rules that targets name to their newest versions, reading each named source's

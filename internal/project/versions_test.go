@@ -357,7 +357,13 @@ func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *te
 				if err != nil {
 					t.Fatal(err)
 				}
-				writeFixture(t, root, "vendor/team/_source.json", strings.Replace(string(record), `"formatVersion": 2`, `"formatVersion": `+strconv.Itoa(format), 1))
+				// A newer format can also hold fields and values this version can't decode, such as a number no
+				// Go type holds.
+				replacement := `"formatVersion": ` + strconv.Itoa(format)
+				if format > 2 {
+					replacement += `, "future": {"limit": 1e999, "rules": "another shape"}`
+				}
+				writeFixture(t, root, "vendor/team/_source.json", strings.Replace(string(record), `"formatVersion": 2`, replacement, 1))
 				err = operation(options, git)
 				var failure *filetxn.Error
 				var invalid *rules.ValidationError
