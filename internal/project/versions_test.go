@@ -256,6 +256,50 @@ func TestSync_RefusesAFormatOneRecord(t *testing.T) {
 	}
 }
 
+// TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat asks to upgrade Code Rules for a
+// _source.json a newer Code Rules wrote, whose deletion would downgrade the project, and to delete vendor/ and sync
+// for an older one, in offline build and check as in sync and update.
+func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *testing.T) {
+	operations := map[string]func(Options, imports.Options) error{
+		"build": func(o Options, _ imports.Options) error { _, err := Build(context.Background(), o); return err },
+		"check": func(o Options, _ imports.Options) error { _, err := Check(context.Background(), o); return err },
+		"sync":  func(o Options, g imports.Options) error { _, err := Sync(context.Background(), o, g); return err },
+		"update": func(o Options, g imports.Options) error {
+			_, err := PlanUpdate(context.Background(), o, g, nil)
+			return err
+		},
+	}
+	for name, operation := range operations {
+		for _, format := range []int{1, 3} {
+			t.Run(name+"/format "+strconv.Itoa(format), func(t *testing.T) {
+				_, options, git := syncProject(t)
+				if _, err := Sync(context.Background(), options, git); err != nil {
+					t.Fatal(err)
+				}
+				root, err := openProject(context.Background(), options, false)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer root.Close()
+				record, err := root.ReadFile("vendor/team/_source.json")
+				if err != nil {
+					t.Fatal(err)
+				}
+				writeFixture(t, root, "vendor/team/_source.json", strings.Replace(string(record), `"formatVersion": 2`, `"formatVersion": `+strconv.Itoa(format), 1))
+				err = operation(options, git)
+				var failure *filetxn.Error
+				var invalid *rules.ValidationError
+				switch {
+				case format > 2 && (!errors.As(err, &failure) || failure.Code != "unsupported-source-record" || !strings.Contains(err.Error(), "upgrade Code Rules") || strings.Contains(err.Error(), "delete")):
+					t.Fatalf("got %v; want unsupported-source-record asking to upgrade", err)
+				case format < 2 && (!errors.As(err, &invalid) || !strings.Contains(err.Error(), "delete .code-rules/vendor/ and run code-rules project sync")):
+					t.Fatalf("got %v; want the advice to delete vendor/ and sync", err)
+				}
+			})
+		}
+	}
+}
+
 // TestSync_ReportsCodesForMissingLibraryReleases surfaces releases-not-found before the first library release.
 func TestSync_ReportsCodesForMissingLibraryReleases(t *testing.T) {
 	f, err := gitfixture.New(context.Background(), map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`)})

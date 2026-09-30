@@ -140,7 +140,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 
 | Field | Meaning |
 | --- | --- |
-| `formatVersion` | The snapshot format version, `2`. |
+| `formatVersion` | The snapshot format version, `2`. An older format, such as `1`, fails with advice to delete `.code-rules/vendor/` and run `code-rules project sync`, which records the sources again. A newer format, written by a later Code Rules, fails with `unsupported-source-record` and asks you to upgrade Code Rules instead, since syncing would rewrite the project in the older format. Unknown fields are always rejected. |
 | `repository` | The library's repository address. |
 | `pins`, `exclude`, and `ref` | The source's pins, the rule IDs its `exclude` names, and its `ref`, from configuration when the snapshot was recorded. Each is omitted when configuration has none. Sync records an exclusion only after checking that it names an imported rule or one the library retired, so offline checks accept an exclusion of a rule the snapshot doesn't import only when it's recorded here. |
 | `release` | The newest library release among the imported rule versions, the newest library release when the source imports no rules, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
