@@ -99,11 +99,12 @@ func TestRenderReleaseNotes_CountsAndSectionsFollowTheChanges(t *testing.T) {
 			want: "Library release 5 changes 3 rules:\n2 minor and 1 retired.\n\n## Minor changes\n\n- **practices/testing/a** `1.9.0` → `1.10.0`\n  Add a Python example.\n- **practices/testing/b** `1.4.0` → `1.5.0`\n  Add a Go example.\n\n## Retired rules\n\n- **practices/testing/c**, last version `3.1.4`\n  Agents shouldn't add these comments.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.10.0 |\n| practices/testing/b | 1.5.0 |\n\n</details>",
 		},
 		{
-			name: "first library release",
+			name: "first library release, which adds its library-wide files without the shared-files sentence",
 			record: rules.ReleaseRecord{
-				Release: 1,
-				Rules:   map[string]rules.RuleVersion{"practices/testing/a": rules.FirstRuleVersion, "techs/go/b": rules.FirstRuleVersion},
-				Changes: map[string]rules.RecordedChange{"practices/testing/a": {Change: rules.ChangeNew, Summary: "Add the rule."}, "techs/go/b": {Change: rules.ChangeNew, Summary: "Add the rule."}},
+				Release:      1,
+				LibraryFiles: []string{"practices/testing/_group.yaml", "rule-library.yaml"},
+				Rules:        map[string]rules.RuleVersion{"practices/testing/a": rules.FirstRuleVersion, "techs/go/b": rules.FirstRuleVersion},
+				Changes:      map[string]rules.RecordedChange{"practices/testing/a": {Change: rules.ChangeNew, Summary: "Add the rule."}, "techs/go/b": {Change: rules.ChangeNew, Summary: "Add the rule."}},
 			},
 			want: "Library release 1 changes 2 rules:\n2 new.\n\n## New rules\n\n- **practices/testing/a** `1.0.0`\n  Add the rule.\n- **techs/go/b** `1.0.0`\n  Add the rule.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| techs/go/b | 1.0.0 |\n\n</details>",
 		},

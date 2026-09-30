@@ -264,7 +264,7 @@ descriptions or shared assets.
 </details>
 ```
 
-Code Rules generates all of it from the change notes and the library's changes: the counts, the sections, which appear only when they have entries, the versions, a sentence saying the library release also updates shared files when it does, and the table. The notes never list shared files by name; the tag's release record does. A library release that changes no rules opens by saying it updates shared files instead. Each summary is copied from its note. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
+Code Rules generates all of it from the change notes and the library's changes: the counts, the sections, which appear only when they have entries, the versions, a sentence saying the library release also updates shared files when it does, except in the first library release, which adds them all, and the table. The notes never list shared files by name; the tag's release record does. A library release that changes no rules opens by saying it updates shared files instead. Each summary is copied from its note. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
 
 To add a general message, such as an introduction to what this library release is about, edit the GitHub Release page on GitHub. The page is only the announcement. The tag message keeps the generated text, and it's what projects read when they update.
 
