@@ -223,35 +223,31 @@ If you don't want a GitHub Release page, or the library isn't hosted on GitHub.c
 For a library release that changes four rules and a group description, the generated page, titled `release/4`, looks like this:
 
 ```md
-Library release 4 changes 4 rules:
-1 major, 1 minor, 1 new, and 1 retired.
+Library release 4 changes 4 rules: 1 major, 1 minor, 1 new, and 1 retired.
 
 ## Major changes
 
-Code that complied with the previous rule version could fail
-the new one, so review these before updating.
+Code that complied with the previous rule version could fail the new one, so review these before updating.
 
 - **practices/testing/verify-retry-limits** `1.3.0` → `2.0.0`
-  Require a test at the limit for every retry policy.
+  - Require a test at the limit for every retry policy.
 
 ## Minor changes
 
 - **techs/react/test-hooks-in-isolation** `2.1.0` → `2.2.0`
-  Add an example for custom hooks.
+  - Add an example for custom hooks.
 
 ## New rules
 
 - **practices/testing/verify-retries** `1.0.0`
-  Add a broader rule about testing retries.
+  - Add a broader rule about testing retries.
 
 ## Retired rules
 
-- **practices/testing/check-retry-backoff**, last version `1.2.0`
-  Covered by the broader rule about testing retries.
-  Replaced by **practices/testing/verify-retries**.
+- **practices/testing/check-retry-backoff**, last version `1.2.0`, replaced by **practices/testing/verify-retries**
+  - Covered by the broader rule about testing retries.
 
-This library release also updates shared files, such as group
-descriptions or shared assets.
+This library release also updates shared files, such as group descriptions or shared assets.
 
 <details>
 <summary>All rule versions in this library release</summary>
@@ -268,7 +264,7 @@ descriptions or shared assets.
 </details>
 ```
 
-Code Rules generates all of it from the change notes and the library's changes: the counts, the sections, which appear only when they have entries, the versions, a sentence saying the library release also updates shared files when it does, except in the first library release, which adds them all, and the table. The notes never list shared files by name; the tag's release record does. A library release that changes no rules opens by saying it updates shared files instead. Each summary is copied from its note. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
+Code Rules generates all of it from the change notes and the library's changes: the counts, the sections, which appear only when they have entries, the versions, a sentence saying the library release also updates shared files when it does, except in the first library release, which adds them all, and the table. The notes never list shared files by name; the tag's release record does. A library release that changes no rules opens by saying it updates shared files instead. Each summary is copied from its note, as an item under its rule. Every paragraph and list item is one line, because GitHub shows each line break in a GitHub Release page as a new line. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
 
 To add a general message, such as an introduction to what this library release is about, edit the GitHub Release page on GitHub. The page is only the announcement. The tag message keeps the generated text, and it's what projects read when they update.
 

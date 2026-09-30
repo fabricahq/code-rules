@@ -15,13 +15,16 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
+// The notes write each paragraph and each list item on one line, because GitHub renders a GitHub Release page's
+// body with hard line breaks, so a line break inside a sentence would show on the page.
+
 // majorChangesAdvice opens the major changes section of every library release's notes.
-const majorChangesAdvice = "Code that complied with the previous rule version could fail\nthe new one, so review these before updating."
+const majorChangesAdvice = "Code that complied with the previous rule version could fail the new one, so review these before updating."
 
 // sharedFilesSentence follows the rule sections of a library release that also changes library-wide files,
 // except the first, which adds every file because nothing existed before it. The notes never list those files
 // by path; the release record does.
-const sharedFilesSentence = "This library release also updates shared files, such as group\ndescriptions or shared assets."
+const sharedFilesSentence = "This library release also updates shared files, such as group descriptions or shared assets."
 
 // releaseRules lists each rule a release record changed, added, or retired, in ID order.
 func releaseRules(record rules.ReleaseRecord) []PendingRule {
@@ -41,7 +44,8 @@ func releaseRules(record rules.ReleaseRecord) []PendingRule {
 // renderReleaseNotes returns a library release's Markdown notes, without a trailing newline: a line counting
 // the rule changes, a section for each kind of change that has entries, in the order major, minor, patch, new,
 // and retired, a sentence noting shared files when a library release after the first also lists library-wide
-// files, and a collapsed table of every rule's version. Summaries keep one line per change note. Library-wide files are never listed.
+// files, and a collapsed table of every rule's version. Each rule is a list item with its summaries, one per
+// change note, as nested items. Every paragraph and list item is one line. Library-wide files are never listed.
 func renderReleaseNotes(record rules.ReleaseRecord) string {
 	var out strings.Builder
 	out.WriteString(countLine(record))
@@ -76,11 +80,11 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 		var items []string
 		for _, id := range slices.Sorted(maps.Keys(record.Retired)) {
 			retired := record.Retired[id]
-			item := "- **" + id + "**, last version `" + retired.LastVersion.String() + "`" + summaryLines(retired.Summaries)
+			item := "- **" + id + "**, last version `" + retired.LastVersion.String() + "`"
 			if retired.ReplacedBy != "" {
-				item += "\n  Replaced by **" + retired.ReplacedBy + "**."
+				item += ", replaced by **" + retired.ReplacedBy + "**"
 			}
-			items = append(items, item)
+			items = append(items, item+summaryLines(retired.Summaries))
 		}
 		out.WriteString(strings.Join(items, "\n"))
 	}
@@ -97,8 +101,8 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 	return out.String()
 }
 
-// countLine opens the notes, such as "Library release 4 changes 4 rules:" and a line with each kind's count.
-// A library release that changes no rules says it updates shared files instead.
+// countLine opens the notes, such as "Library release 4 changes 4 rules: 1 major and 3 new.", on one line. A
+// library release that changes no rules says it updates shared files instead.
 func countLine(record rules.ReleaseRecord) string {
 	counts := map[rules.Change]int{rules.ChangeRetired: len(record.Retired)}
 	for _, change := range record.Changes {
@@ -107,7 +111,7 @@ func countLine(record rules.ReleaseRecord) string {
 	total := len(record.Changes) + len(record.Retired)
 	heading := "Library release " + strconv.Itoa(record.Release) + " changes "
 	if total == 0 {
-		return heading + "no rules.\nIt updates shared files, such as group descriptions or shared assets."
+		return heading + "no rules. It updates shared files, such as group descriptions or shared assets."
 	}
 	var kinds []string
 	for _, change := range []rules.Change{rules.ChangeMajor, rules.ChangeMinor, rules.ChangePatch, rules.ChangeNew, rules.ChangeRetired} {
@@ -119,7 +123,7 @@ func countLine(record rules.ReleaseRecord) string {
 	if total == 1 {
 		noun = " rule"
 	}
-	return heading + strconv.Itoa(total) + noun + ":\n" + series(kinds) + "."
+	return heading + strconv.Itoa(total) + noun + ": " + series(kinds) + "."
 }
 
 // series joins items as English prose: "a", "a and b", or "a, b, and c".
@@ -133,11 +137,11 @@ func series(items []string) string {
 	return strings.Join(items[:len(items)-1], ", ") + ", and " + items[len(items)-1]
 }
 
-// summaryLines writes each summary on a line of its own, indented as a continuation of its list item.
+// summaryLines writes each summary as a nested list item of its rule's item.
 func summaryLines(summaries []string) string {
 	var out strings.Builder
 	for _, summary := range summaries {
-		out.WriteString("\n  " + summary)
+		out.WriteString("\n  - " + summary)
 	}
 	return out.String()
 }

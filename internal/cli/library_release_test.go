@@ -58,7 +58,7 @@ func pendingPatch(t *testing.T, fixture *gitfixture.Fixture, dir string) string 
 }
 
 // releaseTwoNotes are the notes of the library release pendingPatch prepares.
-const releaseTwoNotes = "Library release 2 changes 1 rule:\n1 patch.\n\n## Patch changes\n\n- **practices/testing/a** `1.0.0` → `1.0.1`\n  Clarify the retry-limit rule.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.1 |\n| practices/testing/b | 1.0.0 |\n\n</details>"
+const releaseTwoNotes = "Library release 2 changes 1 rule: 1 patch.\n\n## Patch changes\n\n- **practices/testing/a** `1.0.0` → `1.0.1`\n  - Clarify the retry-limit rule.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.1 |\n| practices/testing/b | 1.0.0 |\n\n</details>"
 
 // TestLibraryRelease_DryRunShowsTheLibraryReleaseAndChangesNothing prints the repository, branch, commit,
 // release number, each rule's change, and the complete release notes, in human and JSON output.
