@@ -1,0 +1,3 @@
+name: JavaScript
+description: Coordinate asynchronous work, use browser DOM, event, storage, and scheduling APIs, and keep code analyzable by build tools, in JavaScript and TypeScript.
+whenToRead: When planning, implementing, changing, or reviewing JavaScript or TypeScript code that runs asynchronous operations, uses browser APIs, or builds dynamic import and file paths.

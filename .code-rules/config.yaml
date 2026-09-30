@@ -1,0 +1,15 @@
+schemaVersion: 1
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/public-rules.git
+    ref: v1.1.0
+    groups:
+      - practices/code-design
+      - practices/performance
+      - practices/readmes
+      - practices/testing
+      - techs/go
+      - techs/javascript
+      - techs/typescript
+    exclude: {}
+    replace: {}

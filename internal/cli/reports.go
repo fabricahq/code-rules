@@ -85,6 +85,7 @@ func projectInitializedReport(result project.AuthoringResult) commandReport {
 		steps = []nextStep{
 			{Instruction: "Start with a project-only rule (example):", Commands: []string{"code-rules project add group practices/testing", "code-rules project add rule practices/testing/my-rule"}},
 			{Instruction: "Or use a shared library (example):", Commands: []string{"code-rules project add library team", "code-rules project sync"}},
+			{Instruction: "Then connect your coding agent to the rules; see .code-rules/README.md."},
 		}
 	}
 	return authoredReport(&out, result.Files, result.Warnings, steps)
