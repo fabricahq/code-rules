@@ -304,6 +304,39 @@ func TestPlanUpdate_SharedFilesFollowAFullUpdate(t *testing.T) {
 	}
 }
 
+// TestPlanUpdate_RefusesASharedFilesReleaseTagMovedBeforeThePreview records shared files from release/2, which no
+// imported rule comes from, then moves that tag before planning: the update refuses rather than preview and
+// install another commit's shared files under the same release number, with rules or without any.
+func TestPlanUpdate_RefusesASharedFilesReleaseTagMovedBeforeThePreview(t *testing.T) {
+	for _, test := range []struct {
+		name, fields string
+		imported     map[string]string
+	}{
+		{"source with rules", `"groups":["practices/testing"]`, map[string]string{"practices/testing/c": "1.0.0@1"}},
+		{"source without rules", `"groups":["techs/empty"]`, map[string]string{}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			h := newHistory(t)
+			config := h.source(t, test.fields)
+			recorded := h.record(t, config, 2, test.imported)
+			ctx := context.Background()
+			object, err := h.fixture.Command(ctx, "cat-file", "tag", "release/2")
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, message, _ := strings.Cut(object, "\n\n")
+			if _, err := h.fixture.Commit(ctx, h.fixture.Worktree(), "Move release/2", map[string][]byte{"README.md": []byte("Moved.\n")}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := h.fixture.Command(ctx, "tag", "--force", "--annotate", "--cleanup=verbatim", "--message", message+"\n", "release/2"); err != nil {
+				t.Fatal(err)
+			}
+			_, err = h.plan(t, config, &recorded)
+			requireCode(t, err, "invalid-release-tag")
+		})
+	}
+}
+
 // TestPlanUpdate_SaysWhenARetiredRulesReplacementWasRetiredToo previews b, retired in favor of d, after d is retired
 // in turn: without a replacement for d, and then in favor of a, which the preview names instead.
 func TestPlanUpdate_SaysWhenARetiredRulesReplacementWasRetiredToo(t *testing.T) {

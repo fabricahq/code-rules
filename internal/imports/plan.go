@@ -484,10 +484,14 @@ func (p *planner) retiredEntry(field, id string) string {
 	return fmt.Sprintf("sources.%s.%s names %s, a rule the library retired, so the entry no longer does anything; delete it.", p.source.Name, field, id)
 }
 
-// requireUnmoved fails when a rule's recorded library release tag now names a different commit than the record.
+// requireUnmoved fails when the library release tag that supplies the plan's library-wide files, or a rule's, now
+// names a different commit than the plan records.
 func (p *planner) requireUnmoved(plan sourcePlan) error {
 	if p.history == nil {
 		return nil
+	}
+	if release := p.history.release(plan.release); plan.release != 0 && release != nil && release.commit != plan.commit {
+		return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for the library's shared files. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run code-rules project sync to use the tag's current commit.", plan.release, p.source.Name, p.source.Name), nil)
 	}
 	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
 		rule := plan.rules[id]
