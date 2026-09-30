@@ -27,7 +27,7 @@ func TestInitialize_WritesTheDocumentedCheckWorkflow(t *testing.T) {
 		t.Fatal(err)
 	}
 	workflow := string(data)
-	if !strings.Contains(workflow, "gh release download v0.2.0 --repo fabricahq/code-rules") || strings.Contains(workflow, checkWorkflowTag) {
+	if !strings.Contains(workflow, "\n          version=0.2.0\n") || strings.Contains(workflow, checkWorkflowVersion) {
 		t.Fatalf("workflow isn't pinned to v0.2.0:\n%s", workflow)
 	}
 	guide, err := os.ReadFile("../../docs/src/content/docs/guides/version-rules.md")
@@ -48,19 +48,20 @@ func TestInitialize_WritesTheDocumentedCheckWorkflow(t *testing.T) {
 
 // TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds, which no release published.
 func TestInitialize_PinsReleasesAndInstallsTheLatestForDevelopmentBuilds(t *testing.T) {
-	for version, download := range map[string]string{
-		"0.2.0":                   "gh release download v0.2.0 --repo fabricahq/code-rules",
-		"0.3.0-rc.1":              "gh release download v0.3.0-rc.1 --repo fabricahq/code-rules",
-		"0.0.0-development":       "gh release download --repo fabricahq/code-rules",
-		"0.0.0-dev.g0123456789ab": "gh release download --repo fabricahq/code-rules",
+	latest := `version=$(gh release view --repo fabricahq/code-rules --json tagName --jq '.tagName | ltrimstr("v")')`
+	for version, installed := range map[string]string{
+		"0.2.0":                   "version=0.2.0",
+		"0.3.0-rc.1":              "version=0.3.0-rc.1",
+		"0.0.0-development":       latest,
+		"0.0.0-dev.g0123456789ab": latest,
 	} {
 		options := Options{Directory: t.TempDir()}
 		if _, err := Initialize(context.Background(), options, nil, version); err != nil {
 			t.Fatal(version, err)
 		}
 		data, err := os.ReadFile(filepath.Join(options.Directory, ".github/workflows/code-rules.yml"))
-		if err != nil || !strings.Contains(string(data), "\n          "+download+" \\\n") {
-			t.Fatalf("%s: want %q in:\n%s", version, download, data)
+		if err != nil || !strings.Contains(string(data), "\n          "+installed+"\n") {
+			t.Fatalf("%s: want %q in:\n%s", version, installed, data)
 		}
 	}
 }

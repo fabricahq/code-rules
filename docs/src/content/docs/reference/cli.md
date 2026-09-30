@@ -211,7 +211,7 @@ code-rules library init [options]
 
 Create `rule-library.yaml`, an authoring README, and a GitHub Actions workflow without overwriting existing authored files. Optionally copy explicitly supplied license terms into the library.
 
-The workflow, `.github/workflows/code-rules.yml`, runs `code-rules library check` on every pull request, using the Code Rules version that created it. A development build, which no release published, writes a workflow that uses the latest release instead. See [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
+The workflow, `.github/workflows/code-rules.yml`, runs `code-rules library check` on every pull request, using the Code Rules version that created it. A development build, which no release published, writes a workflow that finds the latest release's version when it runs and uses that instead. Either way, the workflow installs only that version's archive, after verifying it against the release's attested `SHA256SUMS`. See [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
 
 | Option | Meaning |
 | --- | --- |

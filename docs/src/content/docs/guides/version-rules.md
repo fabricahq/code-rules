@@ -327,6 +327,8 @@ jobs:
       - run: code-rules library check
 ```
 
+The install step downloads that version's Linux archive and `SHA256SUMS` from the Code Rules GitHub Release page, verifies that Code Rules' release workflow built `SHA256SUMS`, and installs the archive only when `SHA256SUMS` lists that exact archive with its checksum. A release whose files were replaced, even with another genuine release's, fails the step instead of installing the wrong version.
+
 `code-rules library check` needs every tag and the full history to compare rules with the latest library release, so the workflow checks out with `fetch-depth: 0`.
 
 To make the check required before merging, add a branch ruleset in **Settings > Rules > Rulesets** that requires the `check` status check.

@@ -53,13 +53,17 @@ type RuleOptions struct {
 //go:embed library-guide.md
 var libraryReadme string
 
-// checkWorkflow runs code-rules library check on pull requests; checkWorkflowFor fills in checkWorkflowTag.
+// checkWorkflow runs code-rules library check on pull requests; checkWorkflowFor fills in checkWorkflowVersion.
 //
 //go:embed check-workflow.yml
 var checkWorkflow string
 
-// checkWorkflowTag marks the release tag argument of gh release download in checkWorkflow, after a space.
-const checkWorkflowTag = "CODE_RULES_TAG"
+// checkWorkflowVersion marks where checkWorkflow's install step sets the Code Rules version it installs.
+const checkWorkflowVersion = "CODE_RULES_VERSION"
+
+// latestVersion is the shell command that the install step of a development build's workflow runs to find the
+// version of the latest Code Rules release, without its v prefix.
+const latestVersion = `$(gh release view --repo fabricahq/code-rules --json tagName --jq '.tagName | ltrimstr("v")')`
 
 // developmentVersion prefixes the versions of builds that no release published: development builds and
 // unpublished candidates, such as 0.0.0-development and 0.0.0-dev.g0123456789ab.
@@ -214,18 +218,19 @@ func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVer
 	return result, err
 }
 
-// checkWorkflowFor returns the check workflow pinned to the release tag of version, which must be a complete
-// semantic version without a v prefix, so the tag can't change the workflow's structure. A development build
-// has no release to pin, so its workflow installs the latest release instead.
+// checkWorkflowFor returns the check workflow pinned to version, which must be a complete semantic version
+// without a v prefix, so it can't change the workflow's structure. Its install step downloads and verifies only
+// that version's archive. A development build has no release to pin, so its workflow finds the latest release's
+// version first and then installs exactly that one.
 func checkWorkflowFor(version string) ([]byte, error) {
 	if canonical, err := rules.TagVersion(version, "version"); err != nil || canonical != version {
 		return nil, failure("invalid-version", "Code Rules version "+strconv.Quote(version)+" is not a complete semantic version", err)
 	}
-	tag := " v" + version
+	installed := version
 	if strings.HasPrefix(version, developmentVersion) {
-		tag = ""
+		installed = latestVersion
 	}
-	return []byte(strings.ReplaceAll(checkWorkflow, " "+checkWorkflowTag, tag)), nil
+	return []byte(strings.ReplaceAll(checkWorkflow, checkWorkflowVersion, installed)), nil
 }
 
 // readOptionalBelow reads a file whose parent directories may be missing; nil means the file is absent.

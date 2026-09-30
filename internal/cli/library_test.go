@@ -91,7 +91,7 @@ func TestLibraryGuideExamples(t *testing.T) {
 // TestLibraryInit_PinsTheRunningVersionInTheCheckWorkflow installs the Code Rules release that created the
 // workflow, or the latest release when a development build, with the default version, created it.
 func TestLibraryInit_PinsTheRunningVersionInTheCheckWorkflow(t *testing.T) {
-	for version, download := range map[string]string{"1.2.3": "gh release download v1.2.3 --repo", "": "gh release download --repo"} {
+	for version, download := range map[string]string{"1.2.3": "\n          version=1.2.3\n", "": "\n          version=$(gh release view --repo fabricahq/code-rules "} {
 		directory := t.TempDir()
 		var out, diagnostic strings.Builder
 		if code := Run(context.Background(), []string{"library", "init"}, Streams{Out: &out, Err: &diagnostic}, Options{Directory: directory, Version: version}); code != 0 {
