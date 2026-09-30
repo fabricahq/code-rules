@@ -389,7 +389,7 @@ func TestPrepareShowsNoVersionForUnreleasedRules(t *testing.T) {
 		t.Errorf("provenance lacks null version fields:\n%s", files["provenance.json"])
 	}
 	summary := files["libraries/team/README.md"]
-	for _, text := range []string{"**Imported from unreleased changes.**", "| `techs/go/errors` | Unreleased | None |", "**Requested revision:** v1.0.0"} {
+	for _, text := range []string{"**Imported from unreleased changes.**", "| `techs/go/errors` | No version | Unreleased |", "**Requested revision:** v1.0.0"} {
 		if !strings.Contains(summary, text) {
 			t.Errorf("library summary lacks %q:\n%s", text, summary)
 		}

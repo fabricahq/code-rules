@@ -116,7 +116,7 @@ func ruleVersionTable(versions map[string]library.ImportedRule) string {
 	for _, id := range slices.Sorted(maps.Keys(versions)) {
 		rule := versions[id]
 		if rule.Version == nil {
-			rows = append(rows, "| `"+id+"` | Unreleased | None |")
+			rows = append(rows, "| `"+id+"` | No version | Unreleased |")
 			continue
 		}
 		rows = append(rows, fmt.Sprintf("| `%s` | %s | release/%d |", id, rule.Version, rule.Release))
