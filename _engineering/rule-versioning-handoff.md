@@ -220,6 +220,14 @@ Every breaking change from `v0.1.0`, with its manual migration, for the release 
   - Authoring commands (project and library init, add group, add rule including forks, add library, and library change) replace `value.files` with `value.added` and `value.changed`, so created files are told apart from modified ones such as `config.yaml`.
   - Every list field is always present, empty when there's nothing to report, including `value.warnings` of sync, build, and authoring commands and a next step's `commands`, which were left out when empty.
   - Enumerated values are kebab-case: `code-rules project check`'s `value.status` is `up-to-date` or `out-of-date`, its problem kinds are `missing-file`, `stale-contents`, `unexpected-file`, and `outdated-readme`, and a stale check's `error.kind` is `out-of-date`.
+- Human output changes, for scripts that read it:
+  - Authoring commands (project and library init, add group, add rule including forks, add library, and library change) list files under `Added:` and `Changed:`, relative to the working directory, instead of absolute paths under `Updated files:`.
+  - Sync, update, build, and check label paths `Paths relative to DIR:`.
+  - Errors no longer start with a blank line.
+  - Generated library release notes put each paragraph and list item on one line, list each summary as a nested item, and open the first library release with `Library release 1 publishes N rules.`, without the placeholder summaries.
+  - A fork's `attribution.description` and messages say `library release N` or `release/N`, never `library release release/N`.
+  - The generated `libraries/<source-name>/README.md` adds a Status column to its Rule versions table: active, excluded, or replaced by a local rule.
+  - A duplicate repository names the other source; a pin of an unpublished version lists the published versions, at most ten; sync and update warn about a rules entry whose group `groups` already selects.
 
 **This repository**
 
