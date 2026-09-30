@@ -20,6 +20,9 @@ type Snapshot struct {
 	Repository string `json:"repository"`
 	// Pins repeats the source's pins when the snapshot was recorded; it is empty, never nil, when there are none.
 	Pins map[string]rules.Pin `json:"pins"`
+	// Exclude lists, sorted, the rule IDs the source's exclude named when the snapshot was recorded; it is empty,
+	// never nil, when there are none. An ID it lists that Rules lacks named a rule the library had retired.
+	Exclude []string `json:"exclude"`
 	// Ref repeats the source's ref when the snapshot was recorded, or is empty.
 	Ref string `json:"ref,omitempty"`
 	// Release is the library release that supplied the library-wide files, or 0 when Ref names a revision other

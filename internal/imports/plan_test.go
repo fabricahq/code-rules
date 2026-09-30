@@ -258,6 +258,9 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 			if err != nil || len(imported.Warnings) != 1 || !strings.HasPrefix(imported.Warnings[0], test.warning) {
 				t.Fatalf("warnings %v, %v", imported.Warnings, err)
 			}
+			if strings.Contains(test.fields, "exclude") && !slices.Equal(imported.Snapshot.Exclude, []string{"techs/go/b"}) {
+				t.Fatalf("recorded exclusions %v", imported.Snapshot.Exclude)
+			}
 			if _, ok := imported.Snapshot.Rules["techs/go/b"]; ok {
 				t.Fatal("imported a retired rule")
 			}

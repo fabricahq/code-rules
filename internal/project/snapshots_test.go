@@ -36,7 +36,7 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
 	config := snapshotConfig(t, `"groups":["techs/go"]`)
 	one, two := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 1, Minor: 1}
-	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Pins: map[string]rules.Pin{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
+	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Pins: map[string]rules.Pin{}, Exclude: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne}},
 		Files: map[string][]byte{
 			"rule-library.yaml":    []byte(`{"formatVersion":1}`),
@@ -107,7 +107,7 @@ func TestSnapshotRecordFormat(t *testing.T) {
 			t.Errorf("%s = %s, want %s", field, got, want)
 		}
 	}
-	for _, field := range []string{"pins", "ref", "ruleSelection"} {
+	for _, field := range []string{"pins", "exclude", "ref", "ruleSelection"} {
 		if _, ok := record[field]; ok {
 			t.Errorf("wrote empty %s", field)
 		}
@@ -189,6 +189,45 @@ func TestSnapshotRetiredEntriesRecordedAtSyncNeedNoSync(t *testing.T) {
 	}
 	if _, err := decodeSnapshots(config, vendor); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestSnapshotExclusionOfAKnownRetiredRuleNeedsNoSync accepts an exclusion whose rule isn't imported when sync
+// recorded it, which sync does only after finding the rule retired.
+func TestSnapshotExclusionOfAKnownRetiredRuleNeedsNoSync(t *testing.T) {
+	config := snapshotConfig(t, `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Retired."},"techs/go/errors":{"reason":"Not for us."}}`)
+	_, snapshots := snapshotFixture(t)
+	item := snapshots["team"]
+	item.Exclude = []string{"techs/go/errors", "techs/go/gone"}
+	snapshots["team"] = item
+	vendor, err := encodeSnapshots(config, snapshots)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, fields := range map[string]string{
+		"same exclusions":        `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Retired."},"techs/go/errors":{"reason":"Not for us."}}`,
+		"changed reason":         `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Delete me."}}`,
+		"new imported exclusion": `"groups":["techs/go"],"exclude":{"techs/go/naming":{"reason":"Not for us.","replacedBy":"local/techs/go/naming.md"}}`,
+		"removed exclusions":     `"groups":["techs/go"]`,
+	} {
+		if _, err := decodeSnapshots(snapshotConfig(t, fields), vendor); err != nil {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}
+
+// TestSnapshotExclusionOfAnUnknownRuleRequiresSync refuses an exclusion whose rule isn't imported and that sync
+// didn't record, such as a typo, so the intended rule doesn't stay active unnoticed.
+func TestSnapshotExclusionOfAnUnknownRuleRequiresSync(t *testing.T) {
+	config, snapshots := snapshotFixture(t)
+	vendor, err := encodeSnapshots(config, snapshots)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"exclude":{"techs/go/erorrs":{"reason":"Typo."}}`), vendor)
+	requireSync(t, got, err)
+	if !strings.Contains(err.Error(), "sources.team.exclude.techs/go/erorrs") {
+		t.Fatalf("the error doesn't name the entry: %v", err)
 	}
 }
 

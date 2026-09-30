@@ -115,7 +115,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | --- | --- |
 | `formatVersion` | The snapshot format version, `2`. |
 | `repository` | The library's repository address. |
-| `pins` and `ref` | The source's pins and `ref` from configuration when the snapshot was recorded. Each is omitted when configuration has none. |
+| `pins`, `exclude`, and `ref` | The source's pins, the rule IDs its `exclude` names, and its `ref`, from configuration when the snapshot was recorded. Each is omitted when configuration has none. Sync records an exclusion only after checking that it names an imported rule or one the library retired, so offline checks accept an exclusion of a rule the snapshot doesn't import only when it's recorded here. |
 | `release` | The newest library release among the imported rule versions, the newest library release when the source imports no rules, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
 | `rules` | Each imported rule's ID, whether imported through a group or individually selected, its `version`, the `release` that published it, and that library release's full `commit`. |
