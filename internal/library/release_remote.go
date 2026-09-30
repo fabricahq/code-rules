@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -168,7 +169,7 @@ func (g *libraryGit) readRemote(ctx context.Context, u upstream) (remoteState, e
 		return remoteState{}, fmt.Errorf("list the branches and release tags of remote=%q: %w", u.remote, err)
 	}
 	if result.Status != 0 {
-		return remoteState{}, failure("fetch-failed", "Git couldn't read "+u.remote+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
+		return remoteState{}, failure("fetch-failed", "Git couldn't read "+u.remote+g.gitReason(result.Diagnostics, u)+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
 	}
 	return parseRemoteListing(string(result.Output), u)
 }
@@ -267,7 +268,7 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 		return releasetag.Tag{}, fmt.Errorf("fetch remote=%q: %w", u.remote, err)
 	}
 	if result.Status != 0 {
-		return releasetag.Tag{}, failure("fetch-failed", "Git couldn't fetch from "+u.remote+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
+		return releasetag.Tag{}, failure("fetch-failed", "Git couldn't fetch from "+u.remote+g.gitReason(result.Diagnostics, u)+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
 	}
 	if err := g.requireFetched(ctx, u, remote); err != nil {
 		return releasetag.Tag{}, err
@@ -555,6 +556,32 @@ func (g *libraryGit) serverRejection(diagnostics []byte, u upstream) string {
 		lines = append(lines, "  "+line)
 	}
 	return strings.Join(lines, "\n")
+}
+
+// gitReason returns Git's first fatal: or error: line from diagnostics, usually the most specific, as
+// " (Git: reason)", with credentials redacted, control characters removed, and at most maxRejectionLineRunes long,
+// or "" when there is none.
+func (g *libraryGit) gitReason(diagnostics []byte, u upstream) string {
+	for line := range strings.SplitSeq(string(diagnostics), "\n") {
+		line = strings.TrimSpace(line)
+		reason, fatal := strings.CutPrefix(line, "fatal:")
+		if !fatal {
+			if reason, fatal = strings.CutPrefix(line, "error:"); !fatal {
+				continue
+			}
+		}
+		reason = strings.Map(func(r rune) rune {
+			if unicode.IsControl(r) {
+				return -1
+			}
+			return r
+		}, g.runner.Redact(strings.TrimSpace(reason), u.url, u.pushURL))
+		if runes := []rune(reason); len(runes) > maxRejectionLineRunes {
+			reason = string(runes[:maxRejectionLineRunes]) + "..."
+		}
+		return " (Git: " + strings.TrimRight(reason, ". ") + ")"
+	}
+	return ""
 }
 
 // pushTag pushes only the tag, running the author's pre-push hook. If the push fails, it deletes the local tag

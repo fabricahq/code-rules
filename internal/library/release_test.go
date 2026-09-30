@@ -317,7 +317,7 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository)
 				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository+"-mirror")
 			}},
-		{name: "unreachable remote", code: "fetch-failed", message: "Git couldn't read origin. Check your network connection and access to the repository",
+		{name: "unreachable remote", code: "fetch-failed", message: "does not appear to be a git repository). Check your network connection and access to the repository",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				run(t, fixture, options.Directory, "remote", "set-url", "origin", filepath.Join(t.TempDir(), "missing"))
 			}},
