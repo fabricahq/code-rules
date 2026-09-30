@@ -115,8 +115,13 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 			previous = &snapshot
 		}
 		planned, preview, err := planSourceUpdate(ctx, source, previous, scope, options)
+		var validation *rules.ValidationError
+		if errors.As(err, &validation) {
+			// Its location already names the source, or the SOURCE:RULE argument.
+			return Update{}, err
+		}
 		if err != nil {
-			return Update{}, fmt.Errorf("plan the update of source %q: %w", source.Name, err)
+			return Update{}, fmt.Errorf("update source %q: %w", source.Name, err)
 		}
 		update.plans[source.Name] = planned
 		update.Sources = append(update.Sources, preview)
@@ -173,7 +178,12 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	if err != nil {
 		return plannedSource{}, SourceUpdate{}, err
 	}
-	defer func() { err = errors.Join(err, repo.Close()) }()
+	// Joining only a failed Close keeps a validation error unwrapped, so its location reads on its own.
+	defer func() {
+		if closeErr := repo.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	p := newPlanner(ctx, repo, source, recorded)
 	before, err := p.choose()
 	if err != nil {

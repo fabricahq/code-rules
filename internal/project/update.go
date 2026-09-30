@@ -90,9 +90,10 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 	if err != nil {
 		return nil, err
 	}
+	// imports.PlanUpdate names the source or argument that failed, which is all the context the command needs.
 	update, err := imports.PlanUpdate(ctx, state.config, recorded, targets, git)
 	if err != nil {
-		return nil, fmt.Errorf("plan project update: %w", err)
+		return nil, err
 	}
 	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide}, nil
 }
