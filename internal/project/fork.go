@@ -55,8 +55,10 @@ type ForkPlan struct {
 }
 
 // PlanFork checks the project, reads the published rule version from the library, and prepares the fork's files,
-// without writing. It fails before reading the library when local/ already has the rule, or when the configured
-// source that imports the rule already excludes it; existing local rules and exclusions are never replaced.
+// without writing. The fork replaces the rule when the configured source for the library imports it, as the
+// source's synced record shows. It fails before reading the library when local/ already has the rule, when that
+// source already excludes it, since existing local rules and exclusions are never replaced, or when the source
+// selects the rule but the project hasn't synced the source's current configuration.
 func PlanFork(ctx context.Context, id string, from ForkSource, options Options, git imports.Options) (*ForkPlan, error) {
 	plan := &ForkPlan{id: id}
 	var library rules.Source
@@ -65,6 +67,7 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 		if err != nil {
 			return err
 		}
+		plan.configBytes = original
 		if plan.group, err = checkForkTarget(ctx, root, id); err != nil {
 			return err
 		}
@@ -73,12 +76,15 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 			return err
 		}
 		if replaces != nil {
+			imported, err := importsRule(ctx, root, *replaces, id)
+			if err != nil || !imported {
+				return err
+			}
 			if _, excluded := replaces.Exclude[id]; excluded {
 				return &rules.ValidationError{Location: "sources." + replaces.Name + ".exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
 			}
 			plan.replaces = replaces.Name
 		}
-		plan.configBytes = original
 		return nil
 	})
 	if err != nil {
@@ -196,7 +202,7 @@ func checkForkTarget(ctx context.Context, root *os.Root, id string) (string, err
 }
 
 // forkLibrary returns the library that name identifies, labeled for diagnostics, and the configured source that
-// imports rule id of group from it, through its groups or its rules list, or nil when none does. A name without a
+// selects rule id of group from it, through its groups or its rules list, or nil when none does. A name without a
 // colon is a configured source name; any other is a repository address, matched to a configured source by
 // repository.
 func forkLibrary(config rules.Configuration, name, id, group string) (rules.Source, *rules.Source, error) {
@@ -224,6 +230,29 @@ func forkLibrary(config rules.Configuration, name, id, group string) (rules.Sour
 		return library, configured, nil
 	}
 	return library, nil, nil
+}
+
+// importsRule reports whether source, which selects rule id, imports it, as its record from the last sync shows:
+// a ref, for example, can name a revision without the rule. It fails, asking to sync, when the source has no
+// record or its record doesn't match its configuration.
+func importsRule(ctx context.Context, root *os.Root, source rules.Source, id string) (bool, error) {
+	location := source.Name + "/_source.json"
+	data, err := filetxn.ReadOptional(ctx, root, path.Join("vendor", location))
+	if err != nil {
+		return false, err
+	}
+	if data == nil {
+		return false, invalidSnapshot(location, "missing source record, so whether the source imports "+id+" isn't known; run code-rules project sync, then fork the rule")
+	}
+	record, err := parseSourceRecord(data, source.Name)
+	if err != nil {
+		return false, err
+	}
+	if err := matchSnapshotSource(source, record); err != nil {
+		return false, err
+	}
+	_, imported := record.Rules[id]
+	return imported, nil
 }
 
 // repositoryIdentity returns the identity that recognizes two spellings of one repository address.

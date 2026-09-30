@@ -25,7 +25,8 @@ func forkedRule(text string) string {
 
 // forkFixture is a project synced from a library whose release/1 publishes techs/go/errors, which links to shared
 // assets directly and through its own asset, techs/go/licensed, which links to the library's license, and
-// practices/testing/verify, which the project doesn't import. Its release/2 moves errors to 1.1.0.
+// practices/testing/verify, which the project doesn't import. Its release/2 moves errors to 1.1.0 and adds
+// techs/go/added.
 type forkFixture struct {
 	fixture *gitfixture.Fixture
 	options Options
@@ -74,10 +75,10 @@ func newForkFixture(t *testing.T, repository string) forkFixture {
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": []byte(forkedRule("Wrap errors."))}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": []byte(forkedRule("Wrap errors.")), "techs/go/added.md": []byte(forkedRule("Added."))}); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Release(ctx, 2, "release: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.1.0\n  techs/go/licensed: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n"); err != nil {
+	if err := f.Release(ctx, 2, "release: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/errors: 1.1.0\n  techs/go/licensed: 1.0.0\nchanges:\n  techs/go/added: {change: new, summary: Add the rule.}\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n"); err != nil {
 		t.Fatal(err)
 	}
 	return forkFixture{fixture: f, options: options, git: git}
@@ -349,6 +350,62 @@ func location(want string) func(error) bool {
 // message matches an error whose text contains want.
 func message(want string) func(error) bool {
 	return func(err error) bool { return strings.Contains(err.Error(), want) }
+}
+
+// TestFork_OfARuleARefDoesNotImportWritesNoExclusion forks a rule that release/2 added while the source imports
+// release/1 with ref: the source selects the rule's group but doesn't import it, so the fork needs no reason and
+// writes no exclusion, and sync and build still succeed.
+func TestFork_OfARuleARefDoesNotImportWritesNoExclusion(t *testing.T) {
+	f := newForkFixture(t, "")
+	root, err := openProject(context.Background(), f.options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	config := "schemaVersion: 1\nsources:\n  team:\n    repository: " + f.fixture.Repository + "\n    groups:\n      - techs/go\n    ref: release/1\n"
+	writeFixture(t, root, configurationFile, config)
+	if _, err := Sync(context.Background(), f.options, f.git); err != nil {
+		t.Fatal(err)
+	}
+	source, _ := ParseForkSource("team@1.0.0")
+	plan, err := PlanFork(context.Background(), "techs/go/added", source, f.options, f.git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Replaces() != "" {
+		t.Fatalf("the fork replaces source %s's rule", plan.Replaces())
+	}
+	if _, err := plan.Commit(context.Background(), ""); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(f.files(t)["config.yaml"]); got != config {
+		t.Fatalf("configuration changed to %q", got)
+	}
+	if _, err := Sync(context.Background(), f.options, f.git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Build(context.Background(), f.options); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestFork_OfASelectedRuleNeedsASyncedRecord refuses, before reading the library, to fork a rule the source
+// selects when the project hasn't synced the source's current configuration, since whether it imports the rule
+// isn't known.
+func TestFork_OfASelectedRuleNeedsASyncedRecord(t *testing.T) {
+	f := newForkFixture(t, "")
+	root, err := openProject(context.Background(), f.options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"    ref: release/1\n")
+	source, _ := ParseForkSource("team@1.0.0")
+	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
+	var invalid *rules.ValidationError
+	if !errors.As(err, &invalid) || invalid.Location != "team/_source.json" || !strings.Contains(invalid.Problem, "run code-rules project sync") {
+		t.Fatalf("got %v", err)
+	}
 }
 
 // TestForkFiles_RelocatesExplicitSelfLinks rewrites a moved shared asset's root-relative and relative links to
