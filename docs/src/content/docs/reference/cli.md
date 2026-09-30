@@ -344,6 +344,44 @@ The tag uses Git's configured identity as its tagger, including the `GIT_COMMITT
 
 When the remote refuses the tag push, such as through a pre-receive hook or a GitHub tag ruleset, the command fails with `push-failed` and shows the server's reason: the lines the server printed, which Git prefixes with `remote:`, and Git's `! [remote rejected]` line naming the tag and the reason, at most 20 lines. Git's other output stays hidden because it can contain the remote's URL with credentials. Credentials in the lines shown are replaced with `[redacted]`: the user name and password in the remote's URL, the values of `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, and `GITHUB_ENTERPRISE_TOKEN`, and anything that looks like a credential, such as user information in a URL, GitHub and GitLab tokens, `Authorization` header values, and Bearer tokens. The command deletes the tag it created, so a rerun starts over.
 
+`code-rules library release` refuses before creating anything, with exit code `1` and `error.code` in JSON output, when:
+
+| Code | Refusal |
+| --- | --- |
+| `not-a-repository` | The library isn't the root of a Git repository. |
+| `shallow-clone` | The clone has partial history. Fetch it with `git fetch --unshallow --tags`, or check out with `fetch-depth: 0` in CI. |
+| `missing-release-tags` | The commit has change notes, but the clone has no `release/<number>` tags. Fetch them with `git fetch --tags`. |
+| `detached-head` | `HEAD` isn't on a branch. |
+| `no-upstream` | The branch has no upstream branch on a remote. |
+| `push-destination` | The remote pushes to several URLs, or to another repository than it fetches from. |
+| `fetch-failed` | Git couldn't read or fetch from the remote. The message quotes Git's reason. |
+| `not-default-branch` | The branch doesn't track the remote's default branch, or the remote reports none. |
+| `no-commits` | The library has no commits yet. |
+| `branch-differs` | The branch has commits the remote lacks, the remote has commits the branch lacks, or the remote branch doesn't exist. |
+| `remote-changed` | Someone pushed to the branch, or changed a release tag, while the command ran. |
+| `release-tag-mismatch` | A release tag in the clone differs from the remote's, exists only in the clone without being the next one on this commit, or doesn't publish what this commit would. |
+| `invalid-release-tag` | A release tag reachable from the commit isn't a valid annotated tag with a release record. |
+| `unsupported-release-record` | A release tag uses a newer release record format. Upgrade Code Rules. |
+| `uncommitted-changes` | Library files differ from the checked-out commit. |
+| `change-notes` | Change notes don't match the rule changes, as `code-rules library check` reports; other check failures keep their own codes. |
+| `version-limit` | A change would take a rule's version past the largest version number. |
+| `git-identity` | Git doesn't know your name and email for the tag's tagger. |
+| `github-cli-missing` | A GitHub Release page applies, but `gh` isn't installed. |
+| `github-cli-signed-out` | A GitHub Release page applies, but `gh` isn't signed in to GitHub.com. |
+| `release-too-large` | The release tag would exceed 8 MiB. |
+| `limit-exceeded` | The clone has more than 20,000 release tags, or `gh` printed more than its output limit. |
+| `changed-input` | Library files changed while the command read them. |
+
+After it creates the tag, it can fail with:
+
+| Code | Failure |
+| --- | --- |
+| `tag-failed` | Git couldn't create the tag, such as when tag signing fails. |
+| `push-failed` | The push failed, including when the remote refused it, as described above. The command deletes the tag it created. |
+| `release-conflict` | Someone else published the same `release/<number>` first. |
+| `github-cli-failed` | `gh` couldn't run. |
+| `github-release-failed` | `gh` couldn't look up or create the GitHub Release page. The tag is published; run the command again to create the page. |
+
 **GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, with the release notes as its body. Before changing anything, `code-rules library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. `code-rules library release --dry-run` checks it too, and refuses the same way. Repositories hosted elsewhere get tags only.
 
 <span id="help-and-version"></span>
