@@ -165,6 +165,8 @@ func TestForkRule_RejectsUsage(t *testing.T) {
 		{[]string{"techs/go/errors", "--from", "team@1.0.0", "--reason", "Ours.", "--body-file", "body.md"}, "--body-file doesn't apply to a fork"},
 		{[]string{"techs/go/errors", "--reason", "Ours."}, "--reason applies only to a fork"},
 		{[]string{"techs/go/errors", "--from", "team"}, "expected LIBRARY@VERSION"},
+		{[]string{"techs/go/errors", "--from", ""}, "--from"},
+		{[]string{"techs/go/errors", "--from=", "--reason", "Ours."}, "--from"},
 		{[]string{"techs/go/errors", "--from", "team@1.0"}, "--from"},
 		{[]string{"techs/go/errors", "--from", "team@1.0.0", "--non-interactive"}, "--reason is required: the project imports techs/go/errors from team"},
 		{[]string{"practices/testing/verify", "--from", "team@1.0.0", "--reason", "Ours."}, "no source imports practices/testing/verify from team"},

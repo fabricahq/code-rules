@@ -33,11 +33,11 @@ func forkRule(cmd *cobra.Command, id string, f *authoringFlags, options Options,
 	if err != nil {
 		return err
 	}
-	reason := f.value("reason")
+	reason, given := f.value("reason"), cmd.Flags().Changed("reason")
 	switch {
-	case plan.Replaces() == "" && reason != "":
+	case plan.Replaces() == "" && given:
 		return usage(fmt.Errorf("--reason applies only when the project imports the rule from the library it forks, and no source imports %s from %s; omit --reason", id, from.Library))
-	case plan.Replaces() != "" && reason == "":
+	case plan.Replaces() != "" && !given:
 		if !f.interactive() {
 			return usage(fmt.Errorf("--reason is required: the project imports %s from %s, so the fork replaces it, and the exclusion that makes it the replacement records why", id, plan.Replaces()))
 		}

@@ -149,10 +149,10 @@ func projectRuleCommand(options Options, output *commandOutput) *cobra.Command {
 	rf.add(rule, "from", "Fork `LIBRARY@VERSION` of a library rule, such as team@1.3.0, instead of writing one")
 	rf.add(rule, "reason", "Why the project uses the fork instead of the rule it imports; required when it imports the rule")
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
-		if rf.value("from") != "" {
+		if cmd.Flags().Changed("from") {
 			return forkRule(cmd, args[0], rf, options, output)
 		}
-		if rf.value("reason") != "" {
+		if cmd.Flags().Changed("reason") {
 			return usage(fmt.Errorf("--reason applies only to a fork; add --from LIBRARY@VERSION, or omit --reason"))
 		}
 		target, err := rf.options(cmd.Context(), false)
