@@ -163,13 +163,17 @@ func (r *reader) supportingLinks(terms []string) error {
 	}
 }
 
-// requireSpelling fails unless every component of file below its first names a directory entry spelled exactly
-// the same. A case-insensitive filesystem finds a file under another spelling, which Git and other checkouts
-// wouldn't.
+// requireSpelling fails unless every component of file, from the library root down, names a directory entry
+// spelled exactly the same. A case-insensitive filesystem finds a file under another spelling, which Git and
+// other checkouts wouldn't.
 func (r *reader) requireSpelling(file string) error {
 	parts := strings.Split(file, "/")
-	for i := 1; i < len(parts); i++ {
-		entries, err := r.entries(strings.Join(parts[:i], "/"), false)
+	for i := range parts {
+		parent := "."
+		if i > 0 {
+			parent = strings.Join(parts[:i], "/")
+		}
+		entries, err := r.entries(parent, false)
 		if err != nil {
 			return err
 		}

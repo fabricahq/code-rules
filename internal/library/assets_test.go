@@ -6,10 +6,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -179,6 +183,65 @@ func TestLoadRejectsUndeclaredFilesBesideAssetTerms(t *testing.T) {
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
 	if err == nil || !strings.Contains(err.Error(), "no adjacent owning rule") || got.Groups != nil {
 		t.Fatalf("accepted ownerless attachment: %+v, %v", got, err)
+	}
+}
+
+// caseInsensitiveFiles finds files under any spelling, as the default macOS and Windows filesystems do, while
+// ReadDir reports each entry's real name.
+type caseInsensitiveFiles struct{ files fstest.MapFS }
+
+// resolve returns name spelled as the files spell it, or name itself when nothing matches.
+func (c caseInsensitiveFiles) resolve(name string) string {
+	resolved := "."
+	for _, part := range strings.Split(name, "/") {
+		entries, err := fs.ReadDir(c.files, resolved)
+		if err != nil {
+			return name
+		}
+		index := slices.IndexFunc(entries, func(entry fs.DirEntry) bool { return strings.EqualFold(entry.Name(), part) })
+		if index < 0 {
+			return name
+		}
+		resolved = path.Join(resolved, entries[index].Name())
+	}
+	return resolved
+}
+
+func (c caseInsensitiveFiles) Lstat(name string) (fs.FileInfo, error) {
+	return fs.Stat(c.files, c.resolve(name))
+}
+func (c caseInsensitiveFiles) ReadFile(name string) ([]byte, error) {
+	return fs.ReadFile(c.files, c.resolve(name))
+}
+func (c caseInsensitiveFiles) ReadDir(name string) ([]fs.DirEntry, error) {
+	return fs.ReadDir(c.files, c.resolve(name))
+}
+
+// TestLoadRejectsSharedAssetLinksSpelledDifferently refuses a shared asset link whose spelling differs from the
+// file's in any component, including the root assets directory, even where the filesystem would find the file:
+// Git and other checkouts wouldn't.
+func TestLoadRejectsSharedAssetLinksSpelledDifferently(t *testing.T) {
+	for _, test := range []struct {
+		name, file string
+		valid      bool
+	}{
+		{"same spelling", "assets/diagram.png", true},
+		{"root directory", "Assets/diagram.png", false},
+		{"file", "assets/Diagram.png", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			files := fstest.MapFS{}
+			for name, text := range validFiles() {
+				files[name] = &fstest.MapFile{Data: []byte(text)}
+			}
+			files["techs/go/errors.md"] = &fstest.MapFile{Data: []byte(document + "\n![Diagram](/assets/diagram.png)\n")}
+			files[test.file] = &fstest.MapFile{Data: []byte("shared")}
+			_, err := library.LoadSource(context.Background(), caseInsensitiveFiles{files}, "team", rules.GroupSelection{Groups: []string{"techs/go"}}, nil)
+			var validation *rules.ValidationError
+			if test.valid && err != nil || !test.valid && (!errors.As(err, &validation) || !strings.Contains(validation.Problem, "spelled differently")) {
+				t.Fatalf("got %v, valid %t", err, test.valid)
+			}
+		})
 	}
 }
 
