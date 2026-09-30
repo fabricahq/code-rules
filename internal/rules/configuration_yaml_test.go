@@ -168,7 +168,7 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 					"techs/go/c": {Reason: "Project policy.", ReplacedBy: "local/techs/go/c.md"},
 				},
 			},
-			written: []string{"version: 1.3.0\n", "replacedBy: local/techs/go/c.md\n"},
+			written: []string{"version: \"1.3.0\"\n", "replacedBy: local/techs/go/c.md\n"},
 			omitted: []string{"rules:", "ref:"},
 		},
 	} {
