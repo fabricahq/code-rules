@@ -205,7 +205,7 @@ Every breaking change from `v0.1.0`, with its manual migration, for the release 
 - New commands: `code-rules project update`, `code-rules project add rule ID --from LIBRARY@VERSION`, `code-rules library change`, and `code-rules library release`.
 - When the remote refuses a tag push, `code-rules library release` fails with `push-failed` and shows the server's reason: its `remote:` lines and Git's `! [remote rejected]` line, at most 20, with credentials replaced by `[redacted]`. Git's other push output stays hidden.
 - JSON output changes for existing commands:
-  - `error.code` now appears for Git and import failures (such as `releases-not-found`, `version-not-found`, `shallow-clone`, and `change-notes`). Scripts that treated any `code` as a file-transaction error should check its value.
+  - `error.code` now appears for Git and import failures (such as `releases-not-found`, `version-not-found`, `shallow-clone`, `missing-release-tags`, and `change-notes`; an unreachable host is `connection-failed`, apart from `not-found-or-no-access`, and a server that refuses to send files by object ID is `object-fetch-refused`). Scripts that treated any `code` as a file-transaction error should check its value.
   - `code-rules library check` adds `value.pendingRelease`, whose rules name versions `from`, `to`, and, for a retired rule, `lastVersion`, with `summaries`, as the release record and `code-rules project update` do; `code-rules library release` reports its `value.rules` the same way.
   - `code-rules project sync` adds `value.warnings`.
   - `code-rules library check` renames its counts `value.groups` and `value.rules` to `value.groupCount` and `value.ruleCount`, since `rules` is a list everywhere else.

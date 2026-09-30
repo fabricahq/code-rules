@@ -34,8 +34,10 @@ type Options struct {
 // repository owns a temporary bare repository that fetches one library as a partial clone: commits and trees
 // arrive with depth 1 and no blobs, and blobs arrive only when requested. It isn't safe for concurrent use.
 type repository struct {
-	// source names the configured source in diagnostics.
+	// source names the configured source in diagnostics, and url is its repository address, whose credentials
+	// failures redact.
 	source    string
+	url       string
 	directory string
 	runner    gitexec.Runner
 	// present lists the commits already fetched, so later fetches request only missing ones.
@@ -66,7 +68,7 @@ func openRepository(ctx context.Context, source rules.Source, options Options) (
 	if err != nil {
 		return nil, fail("temporary-storage", "Cannot create temporary Git storage.", err)
 	}
-	repo := &repository{source: source.Name, directory: dir, runner: runner, present: map[string]bool{}, trees: map[string]map[string]treeEntry{}, owned: map[string]map[string]map[string]treeEntry{}}
+	repo := &repository{source: source.Name, url: source.Repository, directory: dir, runner: runner, present: map[string]bool{}, trees: map[string]map[string]treeEntry{}, owned: map[string]map[string]map[string]treeEntry{}}
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, repo.Close())
@@ -96,23 +98,19 @@ func (r *repository) Close() error {
 	return nil
 }
 
-// fetch requests refspecs from the remote without blobs other than those it names, returning whether Git
-// succeeded. With commits, commits arrive without their history. Refspecs travel on standard input, so their
-// number doesn't bound the command line.
-func (r *repository) fetch(ctx context.Context, refspecs []string, commits bool) (bool, error) {
+// fetch requests refspecs from the remote without blobs other than those it names, returning Git's result, whose
+// Status is 0 when it succeeded. With commits, commits arrive without their history. Refspecs travel on standard
+// input, so their number doesn't bound the command line.
+func (r *repository) fetch(ctx context.Context, refspecs []string, commits bool) (gitexec.Result, error) {
 	args := []string{"-c", "fetch.negotiationAlgorithm=noop", "fetch", "--quiet", "--filter=blob:none", "--no-tags", "--no-auto-gc", "--no-recurse-submodules", "--no-write-fetch-head", "--stdin", fetchRemote}
 	if commits {
 		args = slices.Insert(args, 4, "--depth=1")
 	}
-	result, err := r.runner.Run(ctx, r.directory, args, 1<<20, []byte(strings.Join(refspecs, "\n")+"\n"))
-	if err != nil {
-		return false, err
-	}
-	return result.Status == 0, nil
+	return r.runner.Run(ctx, r.directory, args, 1<<20, []byte(strings.Join(refspecs, "\n")+"\n"))
 }
 
-// unreachable reports why a failed fetch failed: a repository that can't be reached, or nil when the repository
-// answers, so the requested revision is missing.
+// unreachable reports why a failed fetch failed: a repository that can't be reached, as remoteFailure explains
+// it, or nil when the repository answers, so the requested revision is missing.
 func (r *repository) unreachable(ctx context.Context) error {
 	result, err := r.runner.Run(ctx, r.directory, []string{"ls-remote", "--exit-code", fetchRemote, "HEAD"}, 64<<10, nil)
 	if err != nil {
@@ -121,7 +119,7 @@ func (r *repository) unreachable(ctx context.Context) error {
 	if result.Status == 0 || result.Status == 2 {
 		return nil
 	}
-	return fail("not-found-or-no-access", "Repository not found or no access; check its address and Git credentials.", nil)
+	return r.remoteFailure(result.Diagnostics)
 }
 
 // hasBranch reports whether the library has a branch named name, to explain a ref that names no tag.
@@ -146,11 +144,11 @@ func (r *repository) fetchCommits(ctx context.Context, commits []string, missing
 		return nil
 	}
 	slices.Sort(wanted)
-	ok, err := r.fetch(ctx, wanted, true)
+	fetched, err := r.fetch(ctx, wanted, true)
 	if err != nil {
 		return err
 	}
-	if !ok {
+	if fetched.Status != 0 {
 		if err := r.unreachable(ctx); err != nil {
 			return err
 		}
@@ -171,11 +169,11 @@ func (r *repository) fetchRef(ctx context.Context, source rules.Source, ref rule
 	if ref.Kind == rules.GitRefTag {
 		refspec = "+" + ref.Name + ":" + ref.Name
 	}
-	ok, err := r.fetch(ctx, []string{refspec}, true)
+	fetched, err := r.fetch(ctx, []string{refspec}, true)
 	if err != nil {
 		return "", err
 	}
-	if !ok {
+	if fetched.Status != 0 {
 		if err := r.unreachable(ctx); err != nil {
 			return "", err
 		}
@@ -270,12 +268,12 @@ func (r *repository) prefetch(ctx context.Context, entries []treeEntry) error {
 		return nil
 	}
 	slices.Sort(missing)
-	ok, err := r.fetch(ctx, missing, false)
+	fetched, err := r.fetch(ctx, missing, false)
 	if err != nil {
 		return err
 	}
-	if !ok {
-		return fail("git-failed", "Could not fetch library files.", nil)
+	if fetched.Status != 0 {
+		return r.gitFailure("git-failed", "Could not fetch library files.", fetched.Diagnostics)
 	}
 	return nil
 }

@@ -171,3 +171,14 @@ When finding the newest library release, Code Rules can report:
 | `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with the source's `ref`. |
 | `version-not-found` | A pin names a version the rule never published, or the tag or commit in `ref` doesn't exist. Check the pin or `ref`. |
 | `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Code Rules reads, because a later Code Rules published it. Upgrade Code Rules. |
+
+When Code Rules can't read the library's repository, it can report:
+
+| Error | Meaning and next step |
+| --- | --- |
+| `connection-failed` | Git couldn't reach the repository's host, such as when the host name doesn't resolve, the connection is refused or times out, or TLS fails. The message quotes Git's reason. Check the repository address and your network connection. |
+| `not-found-or-no-access` | The host answered, but the repository doesn't exist or your Git credentials can't read it; servers report both the same way. Check the address and your credentials. |
+| `object-fetch-refused` | The server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; a self-hosted server needs Git protocol version 2 or `uploadpack.allowAnySHA1InWant`. |
+| `git-failed` | Another Git failure. The message quotes Git's last error line. |
+
+Messages that quote Git replace credentials, such as a password in the repository address or a token, with `[redacted]`.

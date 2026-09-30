@@ -220,7 +220,7 @@ func (g *gitFiles) ReadFile(name string) ([]byte, error) {
 		return nil, err
 	}
 	if result.Status != 0 {
-		return nil, fail("git-failed", "Could not read library blobs.", nil)
+		return nil, g.repo.gitFailure("git-failed", "Could not read library files.", result.Diagnostics)
 	}
 	header, body, ok := bytes.Cut(result.Output, []byte{'\n'})
 	size, found := strings.CutPrefix(string(header), entry.object+" blob ")

@@ -112,15 +112,15 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 		name := "refs/tags/release/" + strconv.Itoa(release.number)
 		refspecs = append(refspecs, "+"+name+":"+name)
 	}
-	ok, err := r.fetch(ctx, refspecs, true)
+	fetched, err := r.fetch(ctx, refspecs, true)
 	if err != nil {
 		return releaseHistory{}, err
 	}
-	if !ok {
+	if fetched.Status != 0 {
 		if err := r.unreachable(ctx); err != nil {
 			return releaseHistory{}, err
 		}
-		return releaseHistory{}, fail("git-failed", "Could not fetch the library's release tags.", nil)
+		return releaseHistory{}, r.gitFailure("git-failed", "Could not fetch the library's release tags.", fetched.Diagnostics)
 	}
 	tags, err := r.fetchedReleases(ctx, advertised)
 	if err != nil {
@@ -155,7 +155,7 @@ func (r *repository) listReleases(ctx context.Context) ([]libraryRelease, error)
 		return nil, err
 	}
 	if result.Status != 0 {
-		return nil, fail("not-found-or-no-access", "Repository not found or no access; check its address and Git credentials.", nil)
+		return nil, r.remoteFailure(result.Diagnostics)
 	}
 	tags, err := rules.ParseTagAdvertisement(string(result.Output))
 	if err != nil {
