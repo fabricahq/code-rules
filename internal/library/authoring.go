@@ -26,8 +26,10 @@ import (
 type AuthoringResult struct {
 	Added   []string `json:"added"`
 	Changed []string `json:"changed"`
-	// LicenseDeclared describes the manifest after initialization.
+	// LicenseDeclared describes the manifest after initialization, and HasGroups whether the library already had a
+	// technology or practice group.
 	LicenseDeclared bool     `json:"-"`
+	HasGroups       bool     `json:"-"`
 	Warnings        []string `json:"warnings"`
 }
 
@@ -221,6 +223,11 @@ func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVer
 	}
 	result, err := authoringResult(changes, err)
 	result.LicenseDeclared = license != nil
+	for _, directory := range []string{"practices", "techs"} {
+		if entries, readErr := fs.ReadDir(root.FS(), directory); readErr == nil && len(entries) > 0 {
+			result.HasGroups = true
+		}
+	}
 	return result, err
 }
 

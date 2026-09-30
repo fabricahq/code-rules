@@ -173,12 +173,8 @@ func TestLibraryChange_RecordsNotesThatCheckAccepts(t *testing.T) {
 	if code != 0 || diagnostic != "" || len(notes) != 1 || !generated.MatchString(notes[0]) {
 		t.Fatal(code, out, diagnostic, notes)
 	}
-	physical, err := filepath.EvalSymlinks(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	note := filepath.Join(physical, "changes", notes[0])
-	want := "Change note created:\n  " + note + "\n\nNext: Commit the note with the rule change, then validate the library:\n  code-rules library check\n"
+	note := filepath.Join(dir, "changes", notes[0])
+	want := "Change note created.\nAdded:\n  changes/" + notes[0] + "\n\nNext: Commit the note with the rule change, then validate the library:\n  code-rules library check\n"
 	if out != want {
 		t.Fatalf("stdout:\n%s\nwant:\n%s", out, want)
 	}

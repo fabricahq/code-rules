@@ -5,7 +5,7 @@ package cli
 import (
 	"fmt"
 	"path/filepath"
-	"slices"
+
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/library"
@@ -37,8 +37,10 @@ type authoringValue struct {
 
 // authoringScope retains explicit invocation context without reading Cobra flags during rendering.
 type authoringScope struct {
-	library   bool
+	library bool
+	// directory is the --directory option, and workdir the working directory that report paths are relative to.
 	directory string
+	workdir   string
 }
 
 func (s authoringScope) command(action string) string {
@@ -105,20 +107,24 @@ func projectInitializedReport(result project.AuthoringResult) commandReport {
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }
 
-func sourceAddedReport(result project.AuthoringResult) commandReport {
+func sourceAddedReport(result project.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, result.Written(), result.Warnings)
+	formatAuthored(&out, result.Added, result.Changed, result.Warnings, scope.workdir)
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, []nextStep{{Instruction: "Next: Fetch the library rules and build guidance:", Commands: []string{"code-rules project sync"}}})
 }
 
 func libraryInitializedReport(result library.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, result.Written(), result.Warnings)
+	formatAuthored(&out, result.Added, result.Changed, result.Warnings, scope.workdir)
 	steps := []nextStep{}
 	if !result.LicenseDeclared {
 		steps = append(steps, nextStep{Instruction: "License is undeclared. Decide terms before sharing."})
 	}
-	steps = append(steps, nextStep{Instruction: "Next: Add a group and rule, then validate the library:", Commands: []string{scope.command("add group practices/testing"), scope.command("add rule practices/testing/my-rule"), scope.command("check")}})
+	if result.HasGroups {
+		steps = append(steps, nextStep{Instruction: "Next: Validate the library:", Commands: []string{scope.command("check")}})
+	} else {
+		steps = append(steps, nextStep{Instruction: "Next: Add a group and rule, then validate the library:", Commands: []string{scope.command("add group practices/testing"), scope.command("add rule practices/testing/my-rule"), scope.command("check")}})
+	}
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }
 
@@ -126,16 +132,11 @@ func libraryInitializedReport(result library.AuthoringResult, scope authoringSco
 func ruleCreatedReport(added, changed, warnings []string, draft bool, scope authoringScope, id string, changeNote bool) commandReport {
 	var out strings.Builder
 	if draft {
-		out.WriteString("Rule draft created:\n")
+		out.WriteString("Rule draft created.\n")
 	} else {
-		out.WriteString("Rule created from --body-file:\n")
+		out.WriteString("Rule created from --body-file.\n")
 	}
-	for _, file := range append(slices.Clone(added), changed...) {
-		fmt.Fprintf(&out, "  %s\n", file)
-	}
-	for _, warning := range warnings {
-		fmt.Fprintf(&out, "Warning: %s\n", warning)
-	}
+	formatAuthored(&out, added, changed, warnings, scope.workdir)
 	instruction := "Review the Markdown file above. Make future edits directly in that file."
 	if draft {
 		instruction = "Next: Open the Markdown file above in your editor.\nKeep the metadata between the --- lines at the top. Below it:\n  - State the instructions and explain why they matter.\n  - Add correct and incorrect examples, then describe how to check compliance.\n  - Replace <...> placeholders and remove unused template sections."
@@ -158,7 +159,7 @@ func ruleCreatedReport(added, changed, warnings []string, draft bool, scope auth
 
 func groupCreatedReport(added, changed, warnings []string, groupPath string, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, append(slices.Clone(added), changed...), warnings)
+	formatAuthored(&out, added, changed, warnings, scope.workdir)
 	action := "build"
 	if scope.library {
 		action = "check"

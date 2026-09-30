@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -163,17 +164,39 @@ func requestsJSON(root *cobra.Command, args []string) bool {
 	return enabled
 }
 
-// formatAuthored presents completed file changes consistently for project and library operations.
-func formatAuthored(out *strings.Builder, files, warnings []string) {
-	if len(files) == 0 {
+// formatAuthored presents completed file changes consistently for project and library operations: created files
+// under Added and modified ones under Changed, each relative to workdir when it's inside workdir, then warnings.
+func formatAuthored(out *strings.Builder, added, changed, warnings []string, workdir string) {
+	if len(added)+len(changed) == 0 {
 		out.WriteString("No files changed.\n")
-	} else {
-		out.WriteString("Updated files:\n")
-		for _, path := range files {
-			fmt.Fprintf(out, "  %s\n", path)
+	}
+	for _, group := range []struct {
+		label string
+		files []string
+	}{{"Added", added}, {"Changed", changed}} {
+		if len(group.files) > 0 {
+			out.WriteString(group.label + ":\n")
+		}
+		for _, file := range group.files {
+			fmt.Fprintf(out, "  %s\n", displayPath(workdir, file))
 		}
 	}
 	for _, warning := range warnings {
 		fmt.Fprintf(out, "Warning: %s\n", warning)
 	}
+}
+
+// displayPath returns file relative to workdir, the process's working directory when empty, when file is inside
+// it, and file unchanged otherwise. It resolves symbolic links in workdir, because operations report resolved paths, such as /private/var for /var on macOS.
+func displayPath(workdir, file string) string {
+	if absolute, err := filepath.Abs(workdir); err == nil {
+		workdir = absolute
+	}
+	if resolved, err := filepath.EvalSymlinks(workdir); err == nil {
+		workdir = resolved
+	}
+	if relative, err := filepath.Rel(workdir, file); err == nil && filepath.IsAbs(file) && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return relative
+	}
+	return file
 }

@@ -76,15 +76,7 @@ func TestForkRule_ReplacesTheImportedRuleInTheBuild(t *testing.T) {
 	if code != 0 || diagnostic != "" {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
-	directory, err := filepath.EvalSymlinks(filepath.Join(f.directory, ".code-rules"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := "Rule forked from team 1.0.0, published in library release release/1:\n"
-	for _, file := range []string{"local/techs/go/assets/errors/guide.md", "local/techs/go/errors.md", "config.yaml"} {
-		want += "  " + filepath.Join(directory, file) + "\n"
-	}
-	want += "\n" +
+	want := "Rule forked from team 1.0.0, published in library release 1.\nAdded:\n  .code-rules/local/techs/go/assets/errors/guide.md\n  .code-rules/local/techs/go/errors.md\nChanged:\n  .code-rules/config.yaml\n\n" +
 		"Next: Edit the forked rule to change what it says. A fork has no version: it changes\n" +
 		"only when you edit it. The library's license still applies to the copied text.\n" +
 		"config.yaml now excludes team's techs/go/errors and names the fork as its replacement.\n\n" +
@@ -200,7 +192,7 @@ func TestForkRule_AsksForTheReasonInATerminal(t *testing.T) {
 		{Prompt: "provide a value for --reason", Answer: "Our wording."},
 	}
 	result, err := terminalfixture.RunWithEnvironment(context.Background(), f.binary, f.directory, f.fixture.Environment, args, steps)
-	if err != nil || result.ExitCode != 0 || !strings.Contains(result.Stdout, "Rule forked from team 1.1.0, published in library release release/2:") {
+	if err != nil || result.ExitCode != 0 || !strings.Contains(result.Stdout, "Rule forked from team 1.1.0, published in library release 2.") {
 		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
 	}
 	if !strings.Contains(string(f.read(t, "config.yaml")), "reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n") || string(f.read(t, "local/techs/go/errors.md")) != string(updateRule("Wrap errors.")) {

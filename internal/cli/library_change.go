@@ -53,7 +53,7 @@ func libraryChangeCommand(options Options, output *commandOutput) *cobra.Command
 		if err != nil {
 			return err
 		}
-		output.report = changeRecordedReport(result, authoringScope{library: true, directory: f.value("directory")})
+		output.report = changeRecordedReport(result, authoringScope{library: true, directory: f.value("directory"), workdir: f.directory})
 		return nil
 	}
 	return cmd
@@ -90,13 +90,8 @@ func changeIntroduction(ids []string, versioned, retire bool) string {
 // changeRecordedReport lists the new note and how to validate it with the rule change.
 func changeRecordedReport(result library.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
-	out.WriteString("Change note created:\n")
-	for _, file := range result.Written() {
-		fmt.Fprintf(&out, "  %s\n", file)
-	}
-	for _, warning := range result.Warnings {
-		fmt.Fprintf(&out, "Warning: %s\n", warning)
-	}
+	out.WriteString("Change note created.\n")
+	formatAuthored(&out, result.Added, result.Changed, result.Warnings, scope.workdir)
 	steps := []nextStep{{Instruction: "Next: Commit the note with the rule change, then validate the library:", Commands: []string{scope.command("check")}}}
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }
