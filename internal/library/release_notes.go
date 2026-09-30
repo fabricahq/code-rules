@@ -45,7 +45,8 @@ func releaseRules(record rules.ReleaseRecord) []PendingRule {
 // the rule changes, a section for each kind of change that has entries, in the order major, minor, patch, new,
 // and retired, a sentence noting shared files when a library release after the first also lists library-wide
 // files, and a collapsed table of every rule's version. Each rule is a list item with its summaries, one per
-// change note, as nested items. Every paragraph and list item is one line. Library-wide files are never listed.
+// change note, as nested items, except in the first library release, whose rules all have the same placeholder
+// summary, firstReleaseSummary. Every paragraph and list item is one line. Library-wide files are never listed.
 func renderReleaseNotes(record rules.ReleaseRecord) string {
 	var out strings.Builder
 	out.WriteString(countLine(record))
@@ -64,7 +65,11 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 			if change.From != nil {
 				item += "`" + change.From.String() + "` → "
 			}
-			items = append(items, item+"`"+record.Rules[id].String()+"`"+summaryLines(change.Summaries))
+			item += "`" + record.Rules[id].String() + "`"
+			if record.Release > 1 {
+				item += summaryLines(change.Summaries)
+			}
+			items = append(items, item)
 		}
 		if len(items) == 0 {
 			continue
@@ -102,8 +107,19 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 }
 
 // countLine opens the notes, such as "Library release 4 changes 4 rules: 1 major and 3 new.", on one line. A
-// library release that changes no rules says it updates shared files instead.
+// library release that changes no rules says it updates shared files instead, and the first library release says
+// how many rules it publishes, since they are all new.
 func countLine(record rules.ReleaseRecord) string {
+	if record.Release == 1 {
+		switch count := len(record.Changes); count {
+		case 0:
+			return "Library release 1 publishes no rules, only shared files, such as group descriptions or shared assets."
+		case 1:
+			return "Library release 1 publishes 1 rule."
+		default:
+			return "Library release 1 publishes " + strconv.Itoa(count) + " rules."
+		}
+	}
 	counts := map[rules.Change]int{rules.ChangeRetired: len(record.Retired)}
 	for _, change := range record.Changes {
 		counts[change.Change]++

@@ -106,7 +106,7 @@ func TestRenderReleaseNotes_CountsAndSectionsFollowTheChanges(t *testing.T) {
 				Rules:        map[string]rules.RuleVersion{"practices/testing/a": rules.FirstRuleVersion, "techs/go/b": rules.FirstRuleVersion},
 				Changes:      map[string]rules.RecordedChange{"practices/testing/a": {Change: rules.ChangeNew, Summaries: []string{"Add the rule."}}, "techs/go/b": {Change: rules.ChangeNew, Summaries: []string{"Add the rule."}}},
 			},
-			want: "Library release 1 changes 2 rules: 2 new.\n\n## New rules\n\n- **practices/testing/a** `1.0.0`\n  - Add the rule.\n- **techs/go/b** `1.0.0`\n  - Add the rule.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| techs/go/b | 1.0.0 |\n\n</details>",
+			want: "Library release 1 publishes 2 rules.\n\n## New rules\n\n- **practices/testing/a** `1.0.0`\n- **techs/go/b** `1.0.0`\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| techs/go/b | 1.0.0 |\n\n</details>",
 		},
 		{
 			name: "library-wide files only",
@@ -120,7 +120,7 @@ func TestRenderReleaseNotes_CountsAndSectionsFollowTheChanges(t *testing.T) {
 		{
 			name:   "library-wide files in a library without rules",
 			record: rules.ReleaseRecord{Release: 1, Rules: map[string]rules.RuleVersion{}, LibraryFiles: []string{"rule-library.yaml"}},
-			want:   "Library release 1 changes no rules. It updates shared files, such as group descriptions or shared assets.",
+			want:   "Library release 1 publishes no rules, only shared files, such as group descriptions or shared assets.",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
