@@ -1,0 +1,364 @@
+// Exercise code-rules project update through the compiled CLI: the preview, JSON, decisions, scopes, prompts, and
+// exit statuses, against a real library with two library releases.
+
+package cli
+
+import (
+	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+
+	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+)
+
+// updateRule is a valid rule whose body is text.
+func updateRule(text string) []byte {
+	return []byte("---\ntitle: Rule\nimpact: HIGH\nimpactDescription: Matters.\nwhenToRead: Always.\n---\n" + text + "\n")
+}
+
+// updateFixture is a project synced at a library's release/1, after the library published release/2.
+type updateFixture struct {
+	binary, directory string
+	fixture           *gitfixture.Fixture
+}
+
+// newUpdateFixture syncs a project that pins techs/go/backoff and replaces techs/go/loaders with a local rule,
+// then publishes release/2, which changes every other kind of rule: errors is major, naming minor, format patch,
+// verify new, and retry retired in favor of verify.
+func newUpdateFixture(t *testing.T) updateFixture {
+	t.Helper()
+	ctx := context.Background()
+	files := map[string][]byte{
+		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+		"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
+	}
+	names := []string{"backoff", "errors", "format", "loaders", "naming", "retry"}
+	record := "release: 1\nrules:\n"
+	changes := "changes:\n"
+	for _, name := range names {
+		files["techs/go/"+name+".md"] = updateRule(name + " 1.0.0")
+		record += "  techs/go/" + name + ": 1.0.0\n"
+		changes += "  techs/go/" + name + ": {change: new, summary: Add the rule.}\n"
+	}
+	f, err := gitfixture.New(ctx, files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	if err := f.Release(ctx, 1, record+changes); err != nil {
+		t.Fatal(err)
+	}
+	u := updateFixture{binary: buildCLI(t), directory: t.TempDir(), fixture: f}
+	if out, diagnostic, code := runCLI(t, u.binary, u.directory, "project", "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	u.write(t, "local/techs/go/use-data-loaders.md", string(updateRule("Our loaders rule.")))
+	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 1\nsources:\n  team:\n    repository: "+f.Repository+"\n    groups:\n      - techs/go\n    pins:\n      techs/go/backoff:\n        version: \"1.0.0\"\n        reason: 'Waiting on #45.'\n    exclude:\n      techs/go/loaders:\n        reason: Ours covers our data layer.\n        replacedBy: local/techs/go/use-data-loaders.md\n")
+	if out, diagnostic, code := u.run(t, "project", "sync"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	second := map[string][]byte{"techs/go/retry.md": nil, "techs/go/verify.md": updateRule("verify 1.0.0")}
+	for name, version := range map[string]string{"backoff": "2.0.0", "errors": "2.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0"} {
+		second["techs/go/"+name+".md"] = updateRule(name + " " + version)
+	}
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", second); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 2, "release: 2\nrules:\n  techs/go/backoff: 2.0.0\n  techs/go/errors: 2.0.0\n  techs/go/format: 1.0.1\n  techs/go/loaders: 1.1.0\n  techs/go/naming: 1.1.0\n  techs/go/verify: 1.0.0\n"+
+		"changes:\n  techs/go/backoff: {change: major, from: 1.0.0, summary: Require jitter.}\n  techs/go/errors: {change: major, from: 1.0.0, summary: Require wrapping.}\n  techs/go/format: {change: patch, from: 1.0.0, summary: Fix a typo.}\n"+
+		"  techs/go/loaders: {change: minor, from: 1.0.0, summary: Add pagination.}\n  techs/go/naming: {change: minor, from: 1.0.0, summary: Add an example.}\n  techs/go/verify: {change: new, summary: Add the rule.}\n"+
+		"retired:\n  techs/go/retry: {lastVersion: 1.0.0, replacedBy: techs/go/verify, summary: Covered by verify.}\n"); err != nil {
+		t.Fatal(err)
+	}
+	return u
+}
+
+// write writes a file in the project's Code Rules directory.
+func (u updateFixture) write(t *testing.T, name, text string) {
+	t.Helper()
+	file := filepath.Join(u.directory, ".code-rules", name)
+	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte(text), 0600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// run runs the CLI in the project with Git and the fixture's transport.
+func (u updateFixture) run(t *testing.T, args ...string) (string, string, int) {
+	t.Helper()
+	return runCLIWithEnvironment(t, u.binary, u.directory, u.fixture.Environment, args...)
+}
+
+// versions returns each rule's recorded version@release from the source record.
+func (u updateFixture) versions(t *testing.T) map[string]string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "vendor", "team", "_source.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var record struct {
+		Rules map[string]struct {
+			Version string
+			Release int
+		}
+	}
+	if err := json.Unmarshal(data, &record); err != nil {
+		t.Fatal(err)
+	}
+	result := map[string]string{}
+	for id, rule := range record.Rules {
+		result[strings.TrimPrefix(id, "techs/go/")] = rule.Version
+	}
+	return result
+}
+
+// updatePreview is the complete human preview of the fixture's update.
+const updatePreview = `team
+  major     techs/go/errors   1.0.0 -> 2.0.0
+            Require wrapping.
+  minor     techs/go/naming   1.0.0 -> 1.1.0
+            Add an example.
+  patch     techs/go/format   1.0.0 -> 1.0.1
+            Fix a typo.
+  new       techs/go/verify   1.0.0
+            Add the rule.
+  retired   techs/go/retry    1.0.0
+            Replaced by techs/go/verify.
+            Covered by verify.
+  replaced  techs/go/loaders  1.0.0 -> 1.1.0
+            Add pagination.
+            Your rule: local/techs/go/use-data-loaders.md.
+  pinned    techs/go/backoff  1.0.0
+            Newest version: 2.0.0.
+            Reason: Waiting on #45.
+`
+
+// TestUpdate_PreviewsWithoutATerminalAndWritesNothing exits 0 with the preview and how to apply it.
+func TestUpdate_PreviewsWithoutATerminalAndWritesNothing(t *testing.T) {
+	u := newUpdateFixture(t)
+	before := projectFileContents(t, u.directory)
+	out, diagnostic, code := u.run(t, "project", "update")
+	want := updatePreview + "\nThis is a preview; no files were written. To apply it, run the command again\nwith --yes, or in a terminal to answer each question and confirm.\n"
+	if code != 0 || diagnostic != "" || out != want {
+		t.Fatalf("exit %d, stderr %q, stdout:\n%s\nwant:\n%s", code, diagnostic, out, want)
+	}
+	if after := projectFileContents(t, u.directory); !reflect.DeepEqual(before, after) {
+		t.Fatal("a preview changed the project")
+	}
+}
+
+// TestUpdate_JSONPreviewReportsEveryRowAndWritesNothing returns the rows in value.sources with applied false.
+func TestUpdate_JSONPreviewReportsEveryRowAndWritesNothing(t *testing.T) {
+	u := newUpdateFixture(t)
+	before := projectFileContents(t, u.directory)
+	out, diagnostic, code := u.run(t, "project", "update", "--json")
+	var result struct {
+		OK    bool
+		Value struct {
+			Applied bool
+			Sources []struct {
+				Name  string
+				Rules []json.RawMessage
+			}
+			Added, Changed, Removed []string
+		}
+	}
+	if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || diagnostic != "" || !result.OK || result.Value.Applied {
+		t.Fatalf("exit %d, %v:\n%s%s", code, err, out, diagnostic)
+	}
+	if len(result.Value.Added)+len(result.Value.Changed)+len(result.Value.Removed) != 0 || len(result.Value.Sources) != 1 || result.Value.Sources[0].Name != "team" {
+		t.Fatalf("value %+v", result.Value)
+	}
+	want := []string{
+		`{"id":"techs/go/errors","change":"major","from":"1.0.0","to":"2.0.0","summaries":["Require wrapping."]}`,
+		`{"id":"techs/go/naming","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Add an example."]}`,
+		`{"id":"techs/go/format","change":"patch","from":"1.0.0","to":"1.0.1","summaries":["Fix a typo."]}`,
+		`{"id":"techs/go/verify","change":"new","to":"1.0.0","summaries":["Add the rule."]}`,
+		`{"id":"techs/go/retry","change":"retired","from":"1.0.0","lastVersion":"1.0.0","summaries":["Covered by verify."],"replacedBy":"techs/go/verify"}`,
+		`{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"localRule":"local/techs/go/use-data-loaders.md"}`,
+		`{"id":"techs/go/backoff","change":"pinned","from":"1.0.0","newest":"2.0.0","summaries":[],"pin":{"version":"1.0.0","reason":"Waiting on #45."}}`,
+	}
+	got := []string{}
+	for _, row := range result.Value.Sources[0].Rules {
+		got = append(got, compactJSON(t, row))
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("rows:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	if after := projectFileContents(t, u.directory); !reflect.DeepEqual(before, after) {
+		t.Fatal("a JSON preview changed the project")
+	}
+}
+
+// TestUpdate_YesAppliesWithKeepAndExclude pins a major change and a retirement, excludes the new rule, and
+// applies the rest, writing config.yaml with the output.
+func TestUpdate_YesAppliesWithKeepAndExclude(t *testing.T) {
+	u := newUpdateFixture(t)
+	out, diagnostic, code := u.run(t, "project", "update", "--yes", "--json", "--keep", "team:techs/go/errors", "--keep", "team:techs/go/retry", "--exclude", "team:techs/go/verify", "--reason", "Not yet.")
+	var result struct {
+		OK    bool
+		Value struct {
+			Applied bool
+			Changed []string
+			Sources []struct {
+				Rules []struct{ ID, Decision, Reason string }
+			}
+		}
+	}
+	if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || !result.OK || !result.Value.Applied || result.Value.Changed[0] != "config.yaml" {
+		t.Fatalf("exit %d, %v:\n%s%s", code, err, out, diagnostic)
+	}
+	decisions := map[string]string{}
+	for _, row := range result.Value.Sources[0].Rules {
+		if row.Decision != "" {
+			decisions[row.ID] = row.Decision + ": " + row.Reason
+		}
+	}
+	if want := map[string]string{"techs/go/errors": "keep: Not yet.", "techs/go/retry": "keep: Not yet.", "techs/go/verify": "exclude: Not yet."}; !reflect.DeepEqual(decisions, want) {
+		t.Fatalf("decisions %v", decisions)
+	}
+	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0", "retry": "1.0.0", "verify": "1.0.0"}; !reflect.DeepEqual(u.versions(t), want) {
+		t.Fatalf("versions %v", u.versions(t))
+	}
+	config, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, text := range []string{"# Team rules\n", "      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Not yet.\n", "      techs/go/retry:\n        version: \"1.0.0\"\n        reason: Not yet.\n", "      techs/go/verify:\n        reason: Not yet.\n"} {
+		if !strings.Contains(string(config), text) {
+			t.Fatalf("configuration lacks %q:\n%s", text, config)
+		}
+	}
+	if out, diagnostic, code := runCLI(t, u.binary, u.directory, "project", "check"); code != 0 {
+		t.Fatalf("offline check after the update: exit %d\n%s%s", code, out, diagnostic)
+	}
+	// The next preview lists the kept retirement and both pins, and nothing else.
+	out, _, code = u.run(t, "project", "update")
+	if code != 0 || !strings.Contains(out, "  retired   techs/go/retry    1.0.0\n            Replaced by techs/go/verify.\n            Covered by verify.\n            Your pin keeps it at 1.0.0.\n            Reason: Not yet.\n") || !strings.Contains(out, "No rule updates are available.") {
+		t.Fatalf("exit %d:\n%s", code, out)
+	}
+}
+
+// TestUpdate_ScopedToOneRuleMovesOnlyThatRule leaves the rest of the source where it was.
+func TestUpdate_ScopedToOneRuleMovesOnlyThatRule(t *testing.T) {
+	u := newUpdateFixture(t)
+	out, diagnostic, code := u.run(t, "project", "update", "team:techs/go/naming", "--yes")
+	if code != 0 || !strings.HasPrefix(out, "team\n  minor     techs/go/naming  1.0.0 -> 1.1.0\n            Add an example.\n\nUpdate complete: ") {
+		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+	}
+	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.0", "loaders": "1.0.0", "naming": "1.1.0", "retry": "1.0.0"}; !reflect.DeepEqual(u.versions(t), want) {
+		t.Fatalf("versions %v", u.versions(t))
+	}
+	out, _, code = u.run(t, "project", "update", "team", "--json")
+	if code != 0 || !strings.Contains(out, `"id": "techs/go/verify"`) {
+		t.Fatalf("a source target didn't preview its new rule: exit %d\n%s", code, out)
+	}
+}
+
+// TestUpdate_RejectsInvalidRequestsWithoutWriting separates usage errors (exit 2) from requests the project can't
+// satisfy (exit 1).
+func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
+	u := newUpdateFixture(t)
+	before := projectFileContents(t, u.directory)
+	for _, test := range []struct {
+		args []string
+		code int
+		text string
+	}{
+		{[]string{"--keep", "team:techs/go/errors"}, 2, "require --reason"},
+		{[]string{"--reason", "Why."}, 2, "--reason requires --keep or --exclude"},
+		{[]string{"--keep", "techs/go/errors", "--reason", "Why."}, 2, "expected SOURCE:RULE"},
+		{[]string{":techs/go/errors"}, 2, "expected SOURCE or SOURCE:RULE"},
+		{[]string{"team:Techs/Go"}, 2, "team:Techs/Go"},
+		{[]string{"other"}, 1, "no source named other"},
+		{[]string{"team:techs/go/missing"}, 1, "doesn't import this rule"},
+		{[]string{"--exclude", "team:techs/go/errors", "--reason", "Why.", "--yes"}, 1, "nothing to exclude"},
+		{[]string{"--keep", "team:techs/go/verify", "--reason", "Why.", "--yes"}, 1, "nothing to keep"},
+		{[]string{"--keep", "team:techs/go/backoff", "--reason", "Why.", "--yes"}, 1, "nothing to keep"},
+	} {
+		t.Run(strings.Join(test.args, " "), func(t *testing.T) {
+			out, diagnostic, code := u.run(t, append([]string{"project", "update"}, test.args...)...)
+			if code != test.code || !strings.Contains(diagnostic, test.text) {
+				t.Fatalf("exit %d, want %d with %q:\n%s%s", code, test.code, test.text, out, diagnostic)
+			}
+		})
+	}
+	if after := projectFileContents(t, u.directory); !reflect.DeepEqual(before, after) {
+		t.Fatal("a rejected update changed the project")
+	}
+}
+
+// TestUpdate_AsksInATerminal keeps a major change and excludes the new rule through prompts, then confirms.
+func TestUpdate_AsksInATerminal(t *testing.T) {
+	u := newUpdateFixture(t)
+	steps := []terminalfixture.Step{
+		{Prompt: "team:techs/go/errors: major change, 1.0.0 -> 2.0.0.\r\nAdopt it, or keep 1.0.0? [adopt/keep]:", Answer: "maybe"},
+		{Prompt: "answer adopt or keep", Answer: "keep"},
+		{Prompt: "Reason for keeping it:", Answer: "Waiting on review."},
+		{Prompt: "team:techs/go/verify: new rule, 1.0.0.\r\nAdd it, or exclude it? [add/exclude]:", Answer: "e"},
+		{Prompt: "Reason for excluding it:", Answer: "Covered locally."},
+		{Prompt: "team:techs/go/retry: retired.\r\nDrop it, or keep 1.0.0? [drop/keep]:", Answer: "drop"},
+		{Prompt: "Apply the update? [yes/no]:", Answer: "yes"},
+	}
+	result, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, steps)
+	if err != nil || result.ExitCode != 0 {
+		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
+	}
+	if strings.Index(result.Transcript, "  pinned    techs/go/backoff") > strings.Index(result.Transcript, "Adopt it, or keep") {
+		t.Fatalf("prompts came before the preview:\n%s", result.Transcript)
+	}
+	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0", "verify": "1.0.0"}; !reflect.DeepEqual(u.versions(t), want) {
+		t.Fatalf("versions %v", u.versions(t))
+	}
+	data, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := rules.ParseConfigurationYAML(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if team := config.Sources[0]; team.Pins["techs/go/errors"].Reason != "Waiting on review." || team.Exclude["techs/go/verify"].Reason != "Covered locally." || !strings.Contains(result.Stdout, "Kept at 1.0.0 by a new pin.") {
+		t.Fatalf("configuration:\n%s\nstdout:\n%s", data, result.Stdout)
+	}
+	// With nothing left to move, a terminal update applies without questions.
+	again, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, nil)
+	if err != nil || again.ExitCode != 0 || !strings.Contains(again.Stdout, "Update complete: 0 added, 0 changed, 0 removed.") {
+		t.Fatalf("exit %d, %v\n%s", again.ExitCode, err, again.Transcript)
+	}
+}
+
+// TestUpdate_TerminalCancellationWritesNothing covers declining, interrupting, and ending input.
+func TestUpdate_TerminalCancellationWritesNothing(t *testing.T) {
+	u := newUpdateFixture(t)
+	first := terminalfixture.Step{Prompt: "Adopt it, or keep 1.0.0? [adopt/keep]:", Answer: "adopt"}
+	for _, test := range []struct {
+		name  string
+		steps []terminalfixture.Step
+		code  int
+		text  string
+	}{
+		{"decline", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Answer: "add"}, {Prompt: "[drop/keep]:", Answer: "drop"}, {Prompt: "Apply the update? [yes/no]:", Answer: "no"}}, 0, "Update cancelled. No files were written."},
+		{"interrupt", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Interrupt: true}}, 1, ""},
+		{"end of input", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", EOF: true}}, 2, ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			before := projectFileContents(t, u.directory)
+			result, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, test.steps)
+			if err != nil || result.ExitCode != test.code || !strings.Contains(result.Stdout, test.text) {
+				t.Fatalf("exit %d, %v\n%s\nstdout:\n%s", result.ExitCode, err, result.Transcript, result.Stdout)
+			}
+			if after := projectFileContents(t, u.directory); !reflect.DeepEqual(before, after) {
+				t.Fatal("a cancelled update changed the project")
+			}
+		})
+	}
+}

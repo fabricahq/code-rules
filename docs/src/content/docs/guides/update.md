@@ -30,21 +30,21 @@ The command previews every change in each library, with each [rule version](/con
 
 ```text
 team
-  major     practices/testing/verify-retry-limits     1.3.0 -> 2.0.0
+  major     practices/testing/verify-retry-limits  1.3.0 -> 2.0.0
             Require a test at the limit for every retry policy.
-  major     techs/react/prefer-server-components      1.4.0 -> 2.0.0
+  major     techs/react/prefer-server-components   1.4.0 -> 2.0.0
             Require server components for all data fetching.
-  minor     techs/react/test-hooks-in-isolation       2.1.0 -> 2.2.0
+  minor     techs/react/test-hooks-in-isolation    2.1.0 -> 2.2.0
             Add an example for custom hooks.
-  new       practices/testing/verify-retries          1.0.0
+  new       practices/testing/verify-retries       1.0.0
             Add the rule.
-  retired   practices/testing/check-retry-backoff     1.2.0
+  retired   practices/testing/check-retry-backoff  1.2.0
             Replaced by practices/testing/verify-retries.
             Covered by the broader rule about testing retries.
-  replaced  techs/react/use-query-hooks               1.1.0 -> 1.2.0
+  replaced  techs/react/use-query-hooks            1.1.0 -> 1.2.0
             Add an example for paginated queries.
             Your rule: local/techs/react/use-data-loaders.md.
-  pinned    practices/testing/verify-backoff          1.3.0
+  pinned    practices/testing/verify-backoff       1.3.0
             Newest version: 2.0.0.
             Reason: Waiting on the author's response to #45.
 ```

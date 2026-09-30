@@ -48,7 +48,7 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 		}
 		command.AddCommand(cmd)
 	}
-	command.AddCommand(projectInitCommand(options, output))
+	command.AddCommand(projectInitCommand(options, output), projectUpdateCommand(options, output))
 	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or library"}
 	add.AddCommand(projectLibraryCommand(options, output), projectGroupCommand(options, output), projectRuleCommand(options, output))
 	command.AddCommand(add)

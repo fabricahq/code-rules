@@ -52,7 +52,7 @@ code-rules project check --json
 
 Sync, update, and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`.
 
-- Sync and update paths start with `vendor/` or `generated/`.
+- Sync and update paths start with `vendor/` or `generated/`. Update also lists `config.yaml` when it writes a pin or an exclusion.
 - Build paths are relative to `generated/`.
 
 `code-rules project update` also reports each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
