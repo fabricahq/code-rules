@@ -37,6 +37,17 @@ const shallowClone = "this clone has partial history, so it can't be compared wi
 type libraryGit struct {
 	runner gitexec.Runner
 	dir    string
+	// unpublished is the number of a release tag that exists only in this clone, which the release history leaves
+	// out, so it's checked against the library instead of trusted; it's 0 when there is none.
+	unpublished int
+}
+
+// withoutUnpublished returns g with a release history that leaves out release tag number, which exists only in
+// this clone. A number of 0 leaves out nothing.
+func (g *libraryGit) withoutUnpublished(number int) *libraryGit {
+	copied := *g
+	copied.unpublished = number
+	return &copied
 }
 
 // releaseTag is an annotated release/<number> tag reachable from HEAD.
@@ -90,9 +101,9 @@ func openLibraryGit(ctx context.Context, dir string, options gitexec.Options) (*
 	return &libraryGit{runner: runner, dir: dir}, nil
 }
 
-// releaseTags lists the annotated release tags reachable from HEAD in ascending number order.
-// It fails in a shallow clone, which may lack tags and history, and returns none on an unborn branch.
-// A nil receiver, a library outside Git, has no release tags.
+// releaseTags lists the annotated release tags reachable from HEAD in ascending number order, except the
+// unpublished one. It fails in a shallow clone, which may lack tags and history, and returns none on an unborn
+// branch. A nil receiver, a library outside Git, has no release tags.
 func (g *libraryGit) releaseTags(ctx context.Context) ([]releaseTag, error) {
 	if g == nil {
 		return nil, nil
@@ -120,7 +131,7 @@ func (g *libraryGit) releaseTags(ctx context.Context) ([]releaseTag, error) {
 		// Code Rules ignores other tags under release/, such as release/01 or release/v2.
 		name := strings.TrimPrefix(fields[0], "refs/tags/")
 		number, err := rules.ParseReleaseTag(name)
-		if err != nil {
+		if err != nil || number == g.unpublished {
 			continue
 		}
 		if fields[1] != "tag" || fields[4] != "commit" {

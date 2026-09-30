@@ -709,14 +709,44 @@ func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
 	}
 }
 
+// interruptedRelease creates the release tag that code-rules library release would publish from options'
+// library, as a run interrupted before pushing it leaves it, and returns its release notes.
+func interruptedRelease(t *testing.T, options Options) string {
+	t.Helper()
+	ctx := context.Background()
+	root, err := openLibrary(ctx, options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	git, err := openLibraryGit(ctx, root.Name(), options.Git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked, err := checkLibrary(ctx, root, git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := git.headCommit(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	planned, err := planRelease(ctx, git, checked, head)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := git.createTag(ctx, "release/"+strconv.Itoa(planned.record.Release), head, planned.message); err != nil {
+		t.Fatal(err)
+	}
+	return planned.notes
+}
+
 // TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit publishes a release tag that exists only in the clone,
 // on HEAD, numbered one past the remote's latest, and keeps it when the push fails.
 func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles())
-	if err := fixture.Tag(ctx, options.Directory, "release/1", releaseOne); err != nil {
-		t.Fatal(err)
-	}
+	notes := interruptedRelease(t, options)
 	local := tags(t, fixture, options.Directory)
 	// A failed push keeps the tag, which this run didn't create.
 	hook := filepath.Join(options.Directory, ".git", "hooks", "pre-push")
@@ -736,7 +766,7 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err := Release(ctx, ReleaseRequest{Options: options})
-	if err != nil || !result.TagCreated || result.Published || result.Release != 1 || result.Notes != "Library release 1." {
+	if err != nil || !result.TagCreated || result.Published || result.Release != 1 || result.Notes != notes {
 		t.Fatal(result, err)
 	}
 	if tags(t, fixture, remoteDir(fixture)) != local {
@@ -745,6 +775,39 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 	result, err = Release(ctx, ReleaseRequest{Options: options})
 	if err != nil || result.TagCreated || !result.Published {
 		t.Fatal(result, err)
+	}
+}
+
+// TestRelease_RefusesAnUnpublishedTagThatDoesntMatchTheLibrary checks a release tag found only in the clone
+// against the library release its commit would publish after the latest one the remote published, and pushes
+// nothing when they differ: a hand-made tag can't skip a missing change note or change what a note publishes.
+func TestRelease_RefusesAnUnpublishedTagThatDoesntMatchTheLibrary(t *testing.T) {
+	changed := map[string][]byte{"practices/testing/a.md": []byte(ruleText("Test the retry limit and one past it."))}
+	unchanged := "Library release 2.\n\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\n"
+	for _, test := range []struct {
+		name, code, message string
+		files               map[string][]byte
+	}{
+		{"a change without a note", "change-notes", unchanged, changed},
+		{"a record that differs from the notes", "release-tag-mismatch", unchanged, map[string][]byte{"practices/testing/a.md": changed["practices/testing/a.md"], "changes/a.yaml": []byte("summary: Test one past the limit.\nrules:\n  practices/testing/a: major\n")}},
+		{"notes that differ from the record", "release-tag-mismatch", "Nothing risky.\n\n---\nrelease: 2\nrules:\n  practices/testing/a: 2.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: major\n    from: 1.0.0\n    summary: Test one past the limit.\n", map[string][]byte{"practices/testing/a.md": changed["practices/testing/a.md"], "changes/a.yaml": []byte("summary: Test one past the limit.\nrules:\n  practices/testing/a: major\n")}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			fixture, options := authorClone(t, libraryFiles(), releaseOne)
+			commitAndPush(t, fixture, options.Directory, test.files)
+			if err := fixture.Tag(ctx, options.Directory, "release/2", test.message); err != nil {
+				t.Fatal(err)
+			}
+			remote := tags(t, fixture, remoteDir(fixture))
+			_, err := Release(ctx, ReleaseRequest{Options: options})
+			if errorCode(err) != test.code {
+				t.Fatalf("got %v; want %s", err, test.code)
+			}
+			if tags(t, fixture, remoteDir(fixture)) != remote {
+				t.Fatal("pushed a release tag that doesn't match the library")
+			}
+		})
 	}
 }
 

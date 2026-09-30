@@ -244,13 +244,14 @@ func (g *libraryGit) localReleaseTags(ctx context.Context) (map[int]localTag, er
 
 // syncReleaseTags fetches the upstream branch and every release tag the clone lacks. It refuses when a
 // release tag in the clone differs from the remote's, or when the clone has a release tag the remote lacks,
-// unless that tag is on head and numbered one past the remote's latest: a run that stopped before pushing its
-// tag. It also refuses when the fetch brings a branch tip or release tag other than the ones remote lists, so
-// every later comparison uses what was fetched. It returns the unpushed tag's number, or 0.
-func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote remoteState, head string) (int, error) {
+// unless that tag is on head and numbered one past the remote's latest, as a run that stopped before pushing its
+// tag leaves it; the caller must still check that tag's content. It also refuses when the fetch brings a branch
+// tip or release tag other than the ones remote lists, so every later comparison uses what was fetched. It
+// returns the unpushed tag's number and object, or 0 and "".
+func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote remoteState, head string) (int, string, error) {
 	local, err := g.localReleaseTags(ctx)
 	if err != nil {
-		return 0, err
+		return 0, "", err
 	}
 	refspecs := []string{"+" + u.ref + ":" + u.tracking}
 	for _, number := range slices.Sorted(maps.Keys(remote.tags)) {
@@ -260,7 +261,7 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 		case !ok:
 			refspecs = append(refspecs, "refs/tags/"+name+":refs/tags/"+name)
 		case tag.object != remote.tags[number]:
-			return 0, failure("release-tag-mismatch", name+" in this clone differs from "+name+" on "+u.remote+". Release tags must never change, because projects may have imported them. Find out which one is the original and restore it; to discard this clone's copy, run git tag --delete "+name+".", nil)
+			return 0, "", failure("release-tag-mismatch", name+" in this clone differs from "+name+" on "+u.remote+". Release tags must never change, because projects may have imported them. Find out which one is the original and restore it; to discard this clone's copy, run git tag --delete "+name+".", nil)
 		}
 	}
 	unpublished := 0
@@ -270,21 +271,21 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 		}
 		name := "release/" + strconv.Itoa(number)
 		if number != remote.latest()+1 || local[number].commit != head {
-			return 0, failure("release-tag-mismatch", name+" exists in this clone but not on "+u.remote+". Only code-rules library release creates release tags; if you created it by hand, delete it with git tag --delete "+name+", then run code-rules library release again.", nil)
+			return 0, "", failure("release-tag-mismatch", name+" exists in this clone but not on "+u.remote+". Only code-rules library release creates release tags; if you created it by hand, delete it with git tag --delete "+name+", then run code-rules library release again.", nil)
 		}
 		unpublished = number
 	}
 	result, err := g.runner.Run(ctx, g.dir, []string{"fetch", "--no-tags", "--stdin", "--", u.remote}, 1024*1024, []byte(strings.Join(refspecs, "\n")+"\n"))
 	if err != nil {
-		return 0, fmt.Errorf("fetch remote=%q: %w", u.remote, err)
+		return 0, "", fmt.Errorf("fetch remote=%q: %w", u.remote, err)
 	}
 	if result.Status != 0 {
-		return 0, failure("fetch-failed", "Git couldn't fetch from "+u.remote+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
+		return 0, "", failure("fetch-failed", "Git couldn't fetch from "+u.remote+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
 	}
 	if err := g.requireFetched(ctx, u, remote); err != nil {
-		return 0, err
+		return 0, "", err
 	}
-	return unpublished, nil
+	return unpublished, local[unpublished].object, nil
 }
 
 // requireFetched refuses when what the fetch brought differs from what listing the remote showed: the branch
