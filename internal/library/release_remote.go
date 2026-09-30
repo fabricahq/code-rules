@@ -22,6 +22,8 @@ type upstream struct {
 	branch string
 	// remote is the upstream remote's name, such as origin, and url its fetch URL after insteadOf rewriting.
 	remote, url string
+	// pushURL is the one URL git push uses for remote, naming the same repository as url.
+	pushURL string
 	// ref is the branch on the remote, such as refs/heads/main.
 	ref string
 	// tracking is the local remote-tracking branch, such as refs/remotes/origin/main, or "" when there is none.
@@ -80,7 +82,39 @@ func (g *libraryGit) upstream(ctx context.Context) (upstream, error) {
 		return upstream{}, fmt.Errorf("find the URL of remote=%q: %w", result.remote, err)
 	}
 	result.url = strings.TrimSpace(string(url))
+	if result.pushURL, err = g.pushDestination(ctx, result.remote, result.url); err != nil {
+		return upstream{}, err
+	}
 	return result, nil
+}
+
+// pushDestination returns the one URL git push would push remote to, which must name the repository remote
+// fetches from, fetchURL, so the release tag goes where its number and content were checked. It refuses
+// several push URLs, which could publish the tag to only some of them.
+func (g *libraryGit) pushDestination(ctx context.Context, remote, fetchURL string) (string, error) {
+	listing, err := g.runner.Output(ctx, g.dir, []string{"remote", "get-url", "--push", "--all", "--", remote}, 64*1024)
+	if err != nil {
+		return "", fmt.Errorf("find the push URLs of remote=%q: %w", remote, err)
+	}
+	urls := strings.Fields(string(listing))
+	if len(urls) != 1 {
+		return "", failure("push-destination", remote+" pushes to "+strconv.Itoa(len(urls))+" URLs, so a library release could reach only some of them. Configure a single push URL for "+remote+", such as with git config --unset-all remote."+remote+".pushurl, then run code-rules library release again.", nil)
+	}
+	if !sameRepository(fetchURL, urls[0]) {
+		return "", failure("push-destination", remote+" fetches from "+displayRepository(fetchURL)+" but pushes to "+displayRepository(urls[0])+". A library release is checked against the repository it's fetched from, so it must be pushed there too. Remove the push URL with git config --unset-all remote."+remote+".pushurl, or set it to the fetch repository, then run code-rules library release again.", nil)
+	}
+	return urls[0], nil
+}
+
+// sameRepository reports whether two remote URLs name the same repository, comparing recognized repositories
+// by identity, such as github.com/acme/rules for its HTTPS and SSH URLs, and other URLs without credentials.
+func sameRepository(a, b string) bool {
+	first, firstOK := parseRemote(a)
+	second, secondOK := parseRemote(b)
+	if firstOK && secondOK {
+		return first.Identity == second.Identity
+	}
+	return withoutCredentials(a) == withoutCredentials(b)
 }
 
 // requireCommitterIdentity fails before anything changes when Git has no tagger identity for the tag.

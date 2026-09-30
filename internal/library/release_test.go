@@ -278,6 +278,16 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitignore": []byte("c.md\n")})
 				edit(t, options.Directory, map[string]string{"practices/testing/c.md": ruleText("New."), "changes/c.yaml": "summary: Add c.\nrules:\n  practices/testing/c: new\n"})
 			}},
+		{name: "push URL for another repository", code: "push-destination", message: "origin fetches from https://github.com/acme/rules but pushes to https://github.com/alice/rules.",
+			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
+				run(t, fixture, options.Directory, "remote", "set-url", "origin", gitHubRepositoryURL)
+				run(t, fixture, options.Directory, "remote", "set-url", "--push", "origin", "git@github.com:alice/rules.git")
+			}},
+		{name: "several push URLs", code: "push-destination", message: "origin pushes to 2 URLs, so a library release could reach only some of them.",
+			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
+				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository)
+				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository+"-mirror")
+			}},
 		{name: "unreachable remote", code: "fetch-failed", message: "Git couldn't read origin. Check your network connection and access to the repository",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				run(t, fixture, options.Directory, "remote", "set-url", "origin", filepath.Join(t.TempDir(), "missing"))
@@ -435,6 +445,21 @@ func TestRelease_FailsWithoutCreatingAPageGHCouldNotLookUp(t *testing.T) {
 		t.Fatal(err)
 	}
 	requireCalls(t, fake, []ghfixture.Call{{Args: responses[0].Args}, {Args: responses[1].Args}})
+}
+
+// TestRelease_PublishesThroughAPushURLForTheSameRepository accepts a push URL in another form for the fetch
+// repository, and names the GitHub repository after the push destination.
+func TestRelease_PublishesThroughAPushURLForTheSameRepository(t *testing.T) {
+	fixture, options := authorClone(t, libraryFiles())
+	withGitHub(t, fixture, &options, nil)
+	run(t, fixture, options.Directory, "remote", "set-url", "--push", "origin", "ssh://git@github.com/Acme/Rules")
+	result, err := Release(context.Background(), ReleaseRequest{Options: options, NoGitHubRelease: true})
+	if err != nil || !result.TagCreated || result.GitHubRepository != "Acme/Rules" || result.Repository != "https://github.com/Acme/Rules" {
+		t.Fatal(result, err)
+	}
+	if _, err := fixture.Command(context.Background(), "rev-parse", "--verify", "refs/tags/release/1"); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TestRelease_SkipsTheGitHubReleasePageWhenAsked publishes the tag without calling gh.

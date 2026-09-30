@@ -22,7 +22,7 @@ type ReleaseRequest struct {
 // ReleaseResult describes a library release that was published, finished, or previewed, or that there was
 // nothing to publish.
 type ReleaseResult struct {
-	// Repository is the upstream remote's URL, without credentials.
+	// Repository is where the library release is pushed, the upstream remote's repository, without credentials.
 	Repository string `json:"repository"`
 	Remote     string `json:"remote"`
 	Branch     string `json:"branch"`
@@ -87,7 +87,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	if err != nil {
 		return ReleaseResult{}, err
 	}
-	result := ReleaseResult{Repository: displayRepository(branch.url), Remote: branch.remote, Branch: branch.branch, GitHubRepository: gitHubRepository(branch.url), DryRun: request.DryRun, Rules: []PendingRule{}, LibraryFiles: []string{}}
+	result := ReleaseResult{Repository: displayRepository(branch.pushURL), Remote: branch.remote, Branch: branch.branch, GitHubRepository: gitHubRepository(branch.pushURL), DryRun: request.DryRun, Rules: []PendingRule{}, LibraryFiles: []string{}}
 	var gh *gitHubCLI
 	if !request.DryRun {
 		if err = git.requireCommitterIdentity(ctx); err != nil {
