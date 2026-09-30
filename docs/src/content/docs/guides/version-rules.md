@@ -171,7 +171,9 @@ Projects see the old rule retired, with the new rule as its replacement.
 
 Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. The next library release publishes them, even if no rule changed.
 
-Keep everything that defines a rule's obligation in the rule itself. A project that pins a rule to an older version still gets the newest shared files, so shared files should only explain and illustrate.
+A project receives library-wide files from the newest library release among the rule versions it imports. A library release that changes only shared files therefore reaches a project once an update moves one of its imported rules to that library release or a later one.
+
+Keep everything that defines a rule's obligation in the rule itself. A rule pinned to an older version can link to newer shared files, from the library release of the project's other rule versions, so shared files should only explain and illustrate.
 
 ### Check your changes
 

@@ -179,6 +179,7 @@ Every breaking change from `v0.1.0`, with its manual migration, for the release 
 - `code-rules library init` also writes `.github/workflows/code-rules.yml`. Rerunning it in an existing library adds the workflow without touching other files.
 - The library README that `code-rules library init` wrote (from `internal/library/library-guide.md`) is never refreshed and still says to publish a Git tag. Replace its release section with the new guide's, or delete it and rerun `code-rules library init`.
 - A project now imports only the shared `assets/` files that its selected rules link to, directly or through other shared files, instead of the whole directory.
+- Library-wide files (group metadata, shared assets, license and notice files) come from the newest library release among the project's imported rule versions, the newest library release when it imports none, or its `ref`; before, they came from the one revision the source named. A library release that changes only library-wide files reaches a project only when `code-rules project update` moves an imported rule to that library release or a later one. Authors who fix a shared file or group description should expect projects to pick it up with their next rule change.
 
 **Vendored snapshots** (`vendor/<source-name>/_source.json`)
 
