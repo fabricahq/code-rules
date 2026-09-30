@@ -1,90 +1,169 @@
-// Interrupt a real code-rules project update partway through installing, then check that the next update or
-// sync recovers the project and completes.
+// Leave a real code-rules project update interrupted partway through installing, at a chosen step, then check
+// that the next update or sync, run through the real CLI, recovers the project and completes.
 
 package cli
 
 import (
-	"encoding/json"
+	"bytes"
+	"context"
 	"errors"
 	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
+
+	"github.com/fabricahq/code-rules/internal/filetxn"
 )
 
-// interruptedUpdate returns an update fixture whose `code-rules project update --yes` was killed after writing
-// its recovery journal and before committing, so the next writer must roll its transaction back. The kill races
-// the update's last steps, so it retries with a fresh project when the update committed first.
-func interruptedUpdate(t *testing.T) updateFixture {
+// updateArguments are the arguments of the update the tests interrupt and then run again.
+var updateArguments = []string{"project", "update", "--yes", "--keep", "team:techs/go/errors", "--reason", "Not yet."}
+
+// runBounded runs the CLI in the fixture's project like run, but stops it, and every process it started, after
+// two minutes or when the test ends, so a hung child can't outlive or stall the test.
+func (u updateFixture) runBounded(t *testing.T, directory string, args ...string) (string, string, int) {
 	t.Helper()
-	binary := buildCLI(t)
-	for attempt := 0; attempt < 10; attempt++ {
-		u := newUpdateFixtureWith(t, binary)
-		journal := filepath.Join(u.directory, ".code-rules", ".code-rules-transaction", "journal.json")
-		command := exec.Command(u.binary, "project", "update", "--yes", "--keep", "team:techs/go/errors", "--reason", "Not yet.")
-		command.Dir = u.directory
-		command.Env = u.fixture.Environment
-		if err := command.Start(); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	t.Cleanup(cancel)
+	command := exec.CommandContext(ctx, u.binary, args...)
+	command.Dir = directory
+	command.Env = u.fixture.Environment
+	command.WaitDelay = 5 * time.Second
+	var out, diagnostic bytes.Buffer
+	command.Stdout, command.Stderr = &out, &diagnostic
+	err := command.Run()
+	if ctx.Err() != nil {
+		t.Fatalf("%v didn't finish within its deadline: %v\n%s%s", args, err, out.String(), diagnostic.String())
+	}
+	var exit *exec.ExitError
+	if err != nil && !errors.As(err, &exit) {
+		t.Fatal(err)
+	}
+	return out.String(), diagnostic.String(), command.ProcessState.ExitCode()
+}
+
+// interruptedUpdate returns an update fixture whose update stopped after replacing the managed targets before
+// blocked, one of generated and config.yaml, as a process killed there would leave it: a complete recovery journal,
+// the new vendor/, and blocked's new copy staged but not installed. The real update runs to completion on a copy
+// of the project, and the project's own writer then installs exactly that output until a directory at blocked's
+// backup path stops it. Recovery can't roll back past that directory, so the transaction stays, and removing the
+// directory leaves the interrupted state.
+func interruptedUpdate(t *testing.T, blocked filetxn.Target) updateFixture {
+	t.Helper()
+	u := newUpdateFixture(t)
+	project := filepath.Join(u.directory, ".code-rules")
+	completed := filepath.Join(t.TempDir(), "project")
+	if err := os.CopyFS(completed, os.DirFS(u.directory)); err != nil {
+		t.Fatal(err)
+	}
+	if out, diagnostic, code := u.runBounded(t, completed, updateArguments...); code != 0 {
+		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+	}
+	output := updateOutput(t, project, filepath.Join(completed, ".code-rules"))
+	root, err := os.OpenRoot(project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	blocker := filepath.Join(".code-rules-transaction", "old-"+string(blocked))
+	err = filetxn.WithWriter(context.Background(), root, func(w *filetxn.Writer) error {
+		// Apply calls this after staging every target and before writing its journal.
+		return w.Apply(output, func() error { return root.MkdirAll(filepath.Join(blocker, "blocker"), 0700) })
+	})
+	var failure *filetxn.Error
+	if !errors.As(err, &failure) || failure.Code != "recovery-required" {
+		t.Fatalf("the blocked update didn't stop with its transaction kept: %v", err)
+	}
+	if err := root.RemoveAll(blocker); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"journal.json", "old-vendor", "new-" + string(blocked)} {
+		if _, err := root.Stat(filepath.Join(".code-rules-transaction", name)); err != nil {
+			t.Fatalf("the interrupted transaction lacks %s: %v", name, err)
+		}
+	}
+	// Replacement began: vendor/ already holds the update's output.
+	if vendor, err := filetxn.ReadTree(context.Background(), root, "vendor"); err != nil || !maps.EqualFunc(vendor.Files, output[filetxn.Vendor], bytes.Equal) {
+		t.Fatalf("vendor/ isn't the update's output: %v", err)
+	}
+	return u
+}
+
+// updateOutput returns what the update installed in completed, the Code Rules directory of a copy of project
+// that ran it: the vendor and generated trees, config.yaml, and the managed guide when it changed.
+func updateOutput(t *testing.T, project, completed string) map[filetxn.Target]map[string][]byte {
+	t.Helper()
+	root, err := os.OpenRoot(completed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	output := map[filetxn.Target]map[string][]byte{}
+	for _, target := range []filetxn.Target{filetxn.Vendor, filetxn.Generated} {
+		tree, err := filetxn.ReadTree(context.Background(), root, string(target))
+		if err != nil {
 			t.Fatal(err)
 		}
-		exited := make(chan error, 1)
-		go func() { exited <- command.Wait() }()
-		var waitErr error
-	watch:
-		for {
-			select {
-			case waitErr = <-exited:
-				break watch
-			default:
-			}
-			// Kill only once the journal is complete: from then on, recovery must restore or finish every target.
-			if data, err := os.ReadFile(journal); err == nil && json.Valid(data) {
-				_ = command.Process.Signal(syscall.SIGKILL)
-				waitErr = <-exited
-				break
-			}
-			time.Sleep(50 * time.Microsecond)
+		output[target] = tree.Files
+	}
+	for _, target := range []filetxn.Target{filetxn.Config, filetxn.GuideReadme} {
+		after, err := os.ReadFile(filepath.Join(completed, string(target)))
+		if err != nil {
+			t.Fatal(err)
 		}
-		var exit *exec.ExitError
-		_, journalErr := os.Stat(journal)
-		_, committedErr := os.Stat(filepath.Join(filepath.Dir(journal), "committed.json"))
-		if journalErr == nil && errors.Is(committedErr, os.ErrNotExist) && errors.As(waitErr, &exit) {
-			return u
+		before, err := os.ReadFile(filepath.Join(project, string(target)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(before, after) {
+			output[target] = map[string][]byte{string(target): after}
 		}
 	}
-	t.Fatal("the update always finished before it could be interrupted")
-	return updateFixture{}
+	if _, ok := output[filetxn.Config]; !ok {
+		t.Fatal("the update didn't write its pin to config.yaml")
+	}
+	return output
 }
 
-// TestUpdate_RecoversAnInterruptedUpdateAndCompletes reruns the update after a killed one.
+// interruptions are the steps the tests stop an update after: replacing vendor/, and replacing vendor/ and
+// generated/ but not yet config.yaml.
+var interruptions = []filetxn.Target{filetxn.Generated, filetxn.Config}
+
+// TestUpdate_RecoversAnInterruptedUpdateAndCompletes reruns the update after one that stopped partway.
 func TestUpdate_RecoversAnInterruptedUpdateAndCompletes(t *testing.T) {
-	u := interruptedUpdate(t)
-	if out, diagnostic, code := u.run(t, "project", "update", "--yes", "--keep", "team:techs/go/errors", "--reason", "Not yet."); code != 0 {
-		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
-	}
-	requireRecoveredUpdate(t, u)
-	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0", "verify": "1.0.0"}; !maps.Equal(u.versions(t), want) {
-		t.Fatalf("versions %v", u.versions(t))
+	for _, blocked := range interruptions {
+		t.Run("before "+string(blocked), func(t *testing.T) {
+			u := interruptedUpdate(t, blocked)
+			if out, diagnostic, code := u.runBounded(t, u.directory, updateArguments...); code != 0 {
+				t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+			}
+			requireRecoveredUpdate(t, u)
+			if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0", "verify": "1.0.0"}; !maps.Equal(u.versions(t), want) {
+				t.Fatalf("versions %v", u.versions(t))
+			}
+		})
 	}
 }
 
-// TestSync_RecoversAnInterruptedUpdate leaves a consistent project that checks offline.
+// TestSync_RecoversAnInterruptedUpdate rolls the update back and leaves a consistent project that checks offline.
 func TestSync_RecoversAnInterruptedUpdate(t *testing.T) {
-	u := interruptedUpdate(t)
-	if out, diagnostic, code := u.run(t, "project", "sync"); code != 0 {
-		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
-	}
-	requireRecoveredUpdate(t, u)
-	// Rolling back restored the configuration with the output, so sync restores the versions from before the update.
-	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.0", "loaders": "1.0.0", "naming": "1.0.0", "retry": "1.0.0"}; !maps.Equal(u.versions(t), want) {
-		t.Fatalf("versions %v", u.versions(t))
-	}
-	if config, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "config.yaml")); err != nil || strings.Contains(string(config), "techs/go/errors:") {
-		t.Fatalf("the rolled-back configuration kept the update's pin: %v\n%s", err, config)
+	for _, blocked := range interruptions {
+		t.Run("before "+string(blocked), func(t *testing.T) {
+			u := interruptedUpdate(t, blocked)
+			if out, diagnostic, code := u.runBounded(t, u.directory, "project", "sync"); code != 0 {
+				t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+			}
+			requireRecoveredUpdate(t, u)
+			// Rolling back restored the configuration with the output, so sync restores the versions from before the update.
+			if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.0", "loaders": "1.0.0", "naming": "1.0.0", "retry": "1.0.0"}; !maps.Equal(u.versions(t), want) {
+				t.Fatalf("versions %v", u.versions(t))
+			}
+			if config, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "config.yaml")); err != nil || strings.Contains(string(config), "techs/go/errors:") {
+				t.Fatalf("the rolled-back configuration kept the update's pin: %v\n%s", err, config)
+			}
+		})
 	}
 }
 
