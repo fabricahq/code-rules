@@ -47,7 +47,7 @@ Each rule entry includes:
 | `replacementReason` | Your configured reason for the replacement; otherwise `null`. |
 | `license`, `licenseBasis`, and `attribution` | Declared terms and source credits, explained below. |
 
-Local origins use `source: "local"`. Their `repository`, `resolvedCommit`, `version`, and `release` fields are `null` because the rule comes from your project. A local fork of a library rule records its source in `attribution` instead.
+Local origins use `source: "local"`. Their `repository`, `resolvedCommit`, `version`, and `release` fields are `null` because the rule comes from your project. A [fork](/reference/cli/#fork-a-library-rule) of a library rule records its source in `attribution` instead, when the library is on GitHub.com or GitLab.com or its repository address is an HTTPS URL.
 
 ### Example: explain a local replacement
 
@@ -76,10 +76,11 @@ Read this as: agents receive the local `service-retries` rule, it replaces versi
 
 ## Inspect library versions and group guidance
 
-The same `generated/provenance.json` file contains three other top-level fields:
+The same `generated/provenance.json` file contains four other top-level fields:
 
 | Field | What it records |
 | --- | --- |
+| `generatedNotice` | A reminder that Code Rules generates the file, and how to regenerate it. |
 | `toolVersion` | The Code Rules version that generated the files. |
 | `sources` | Each named library, its repository, its `pins` and `ref`, the library release that supplied its group metadata and terms, selected groups, and declared terms. |
 | `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
@@ -96,18 +97,44 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 {
   "formatVersion": 2,
   "repository": "https://github.com/fabricahq/public-rules.git",
-  "pins": { "practices/testing/verify-backoff": { "version": "1.3.0", "reason": "Waiting on the author's response to #45." } },
+  "pins": {
+    "practices/testing/verify-backoff": {
+      "version": "1.3.0",
+      "reason": "Waiting on the author's response to acme/.code-rules#45."
+    }
+  },
   "release": 3,
   "resolvedCommit": "9e07b3d6f0c1a4b85e2d7c3f9a61b04e8d52c7aa",
-  "groupSelection": ["practices/testing"],
-  "ruleSelection": ["techs/go/wrap-errors-with-operation"],
-  "groups": ["practices/testing"],
+  "groupSelection": [
+    "practices/testing"
+  ],
+  "ruleSelection": [
+    "techs/go/wrap-errors-with-operation"
+  ],
+  "groups": [
+    "practices/testing"
+  ],
   "rules": {
-    "practices/testing/verify-backoff": { "version": "1.3.0", "release": 2, "commit": "4f1c2a95…" },
-    "practices/testing/verify-retry-limits": { "version": "2.0.0", "release": 3, "commit": "9e07b3d6…" },
-    "techs/go/wrap-errors-with-operation": { "version": "1.1.0", "release": 3, "commit": "9e07b3d6…" }
+    "practices/testing/verify-backoff": {
+      "version": "1.3.0",
+      "release": 2,
+      "commit": "4f1c2a95…"
+    },
+    "practices/testing/verify-retry-limits": {
+      "version": "2.0.0",
+      "release": 3,
+      "commit": "9e07b3d6…"
+    },
+    "techs/go/wrap-errors-with-operation": {
+      "version": "1.1.0",
+      "release": 3,
+      "commit": "9e07b3d6…"
+    }
   },
-  "files": { "practices/testing/verify-retry-limits.md": "4c1f…e9a2", "…": "…" }
+  "files": {
+    "practices/testing/verify-retry-limits.md": "4c1f…e9a2",
+    "…": "…"
+  }
 }
 ```
 
@@ -158,7 +185,7 @@ The license record distinguishes original files from the copies retained with ge
 | `generatedFiles` | Retained license copies, relative to `generated/`. | The same generated license copies. |
 | `generatedAttributionFiles` | Retained notice copies, relative to `generated/`. | The same generated notice copies. |
 
-For example, a rule's `files` entry might be `vendor/team/LICENSE.md`, with `libraries/team/licenses/LICENSE.md` at the same position in `generatedFiles`. Generated rule links point to the retained copy. Notice paths correspond in the same way.
+For example, a rule's `files` entry might be `vendor/team/LICENSE.md`, with `libraries/team/licenses/LICENSE.md` at the same position in `generatedFiles`. Generated rule links point to the retained copy. Notice paths correspond in the same way, by position in `attributionFiles` and `generatedAttributionFiles`; generated notice copies are numbered, such as `libraries/team/licenses/notices/001.md`.
 
 The source record also has a `licenseFiles` list of the library-relative files belonging to its declaration. These lists describe files for one library-wide license declaration.
 

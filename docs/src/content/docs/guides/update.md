@@ -46,7 +46,7 @@ team
             Your rule: local/techs/react/use-data-loaders.md.
   pinned    practices/testing/verify-backoff       1.3.0
             Newest version: 2.0.0.
-            Reason: Waiting on the author's response to #45.
+            Reason: Waiting on the author's response to acme/.code-rules#45.
 ```
 
 | Change | What it means for your project |
@@ -61,7 +61,7 @@ team
 
 Read the major changes, new rules, and retirements closely: each can change what your code must do. For each replaced rule, check whether your own rule needs the same change. Then confirm, and the update applies exactly the changes the preview showed.
 
-In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` to do the same.
+In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` with `--yes` to do the same.
 
 In a script or CI job, where there's no terminal to confirm in, the command only shows the preview. To apply it, pass `--yes`:
 
@@ -88,11 +88,11 @@ sources:
 
 There are three ways to add one:
 
-- **During the update.** In a terminal, `code-rules project update` asks about each major change and retirement: adopt it, or keep the current version. Choose to keep it, give a reason, and the command writes the pin.
+- **During the update.** In a terminal, `code-rules project update` asks whether to adopt each major change or keep the current version, and whether to drop each retired rule or keep it. Choose to keep it, give a reason, and the command writes the pin.
 - **With `--keep`.** Pin rules as part of the update, without prompts:
 
   ```sh
-  code-rules project update \
+  code-rules project update --yes \
     --keep team:practices/testing/verify-retry-limits \
     --reason "Waiting on the author's response to acme/.code-rules#45."
   ```
