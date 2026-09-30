@@ -45,7 +45,7 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 		"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`),
 	}
 	names := []string{"backoff", "errors", "format", "loaders", "naming", "retry"}
-	record := "release: 1\nrules:\n"
+	record := "formatVersion: 1\nrelease: 1\nrules:\n"
 	changes := "changes:\n"
 	for _, name := range names {
 		files["techs/go/"+name+".md"] = updateRule(name + " 1.0.0")
@@ -76,7 +76,7 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 	if _, err := f.Commit(ctx, f.Worktree(), "Second release", second); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Release(ctx, 2, "release: 2\nrules:\n  techs/go/backoff: 2.0.0\n  techs/go/errors: 2.0.0\n  techs/go/format: 1.0.1\n  techs/go/loaders: 1.1.0\n  techs/go/naming: 1.1.0\n  techs/go/verify: 1.0.0\n"+
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/backoff: 2.0.0\n  techs/go/errors: 2.0.0\n  techs/go/format: 1.0.1\n  techs/go/loaders: 1.1.0\n  techs/go/naming: 1.1.0\n  techs/go/verify: 1.0.0\n"+
 		"changes:\n  techs/go/backoff: {change: major, from: 1.0.0, summary: Require jitter.}\n  techs/go/errors: {change: major, from: 1.0.0, summary: Require wrapping.}\n  techs/go/format: {change: patch, from: 1.0.0, summary: Fix a typo.}\n"+
 		"  techs/go/loaders: {change: minor, from: 1.0.0, summary: Add pagination.}\n  techs/go/naming: {change: minor, from: 1.0.0, summary: Add an example.}\n  techs/go/verify: {change: new, summary: Add the rule.}\n"+
 		"retired:\n  techs/go/retry: {lastVersion: 1.0.0, replacedBy: techs/go/verify, summary: Covered by verify.}\n"); err != nil {

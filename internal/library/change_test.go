@@ -108,7 +108,7 @@ func TestChange_NamesEachNoteUniquely(t *testing.T) {
 	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/2026-09-29-a-aaaaaa.yaml": []byte(published)}); err != nil {
 		t.Fatal(err)
 	}
-	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Published.\n"
+	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Published.\n"
 	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
 		t.Fatal(err)
 	}
@@ -308,7 +308,7 @@ func TestChange_RetiredRules(t *testing.T) {
 	if _, err := fixture.Commit(ctx, options.Directory, "Retire b", map[string][]byte{"practices/testing/b.md": nil}); err != nil {
 		t.Fatal(err)
 	}
-	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    summary: Retire b.\n"
+	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    summary: Retire b.\n"
 	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
 		t.Fatal(err)
 	}

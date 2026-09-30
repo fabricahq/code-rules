@@ -149,7 +149,7 @@ func TestPlanUpdate_KeptRulesStayAtTheirVersionsWhenPinned(t *testing.T) {
 func TestPlanUpdate_ReplacedAndExcludedRules(t *testing.T) {
 	h := newHistory(t)
 	h.release(t, 4, map[string][]byte{"techs/go/d.md": versionedRule("d 1.0.1"), "practices/testing/c.md": versionedRule("c 1.1.0")},
-		"release: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.1\n  practices/testing/c: 1.1.0\nchanges:\n  techs/go/d: {change: patch, from: 1.0.0, summary: Fix a typo.}\n  practices/testing/c: {change: minor, from: 1.0.0, summary: Add an example.}\n")
+		"formatVersion: 1\nrelease: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.1\n  practices/testing/c: 1.1.0\nchanges:\n  techs/go/d: {change: patch, from: 1.0.0, summary: Fix a typo.}\n  practices/testing/c: {change: minor, from: 1.0.0, summary: Add an example.}\n")
 	config := h.source(t, `"groups":["techs/go","practices/testing"],"exclude":{"techs/go/d":{"reason":"Ours is stricter.","replacedBy":"local/techs/go/d.md"},"practices/testing/c":{"reason":"Not used."}}`)
 	recorded := h.record(t, config, 3, map[string]string{"techs/go/a": "2.0.0@3", "techs/go/d": "1.0.0@2", "practices/testing/c": "1.0.0@1"})
 	update, err := h.plan(t, config, &recorded)
@@ -168,9 +168,9 @@ func TestPlanUpdate_ReplacedAndExcludedRules(t *testing.T) {
 func TestPlanUpdate_PatchChangeAndEveryIntermediateSummary(t *testing.T) {
 	h := newHistory(t)
 	h.release(t, 4, map[string][]byte{"practices/testing/c.md": versionedRule("c 1.0.1")},
-		"release: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.1\nchanges:\n  practices/testing/c: {change: patch, from: 1.0.0, summary: \"Fix a typo.\\nClarify a sentence.\"}\n")
+		"formatVersion: 1\nrelease: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.1\nchanges:\n  practices/testing/c: {change: patch, from: 1.0.0, summary: \"Fix a typo.\\nClarify a sentence.\"}\n")
 	h.release(t, 5, map[string][]byte{"practices/testing/c.md": versionedRule("c 1.0.2")},
-		"release: 5\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.2\nchanges:\n  practices/testing/c: {change: patch, from: 1.0.1, summary: Fix a link.}\n")
+		"formatVersion: 1\nrelease: 5\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.2\nchanges:\n  practices/testing/c: {change: patch, from: 1.0.1, summary: Fix a link.}\n")
 	config := h.source(t, `"groups":["practices/testing"]`)
 	recorded := h.record(t, config, 1, map[string]string{"practices/testing/c": "1.0.0@1"})
 	update, err := h.plan(t, config, &recorded)
@@ -275,7 +275,7 @@ func TestPlanUpdate_RefSourcesDontMove(t *testing.T) {
 // library causes, even when the failure wraps a validation error from parsing a release record.
 func TestPlanUpdate_NamesTheSourceWhoseLibraryHasAnInvalidReleaseRecord(t *testing.T) {
 	alpha, beta := newHistory(t), newHistory(t)
-	if err := beta.fixture.Tag(context.Background(), beta.fixture.Worktree(), "release/4", "Notes.\n\n---\nrelease: 4\nunknown: true\n"); err != nil {
+	if err := beta.fixture.Tag(context.Background(), beta.fixture.Worktree(), "release/4", "Notes.\n\n---\nformatVersion: 1\nrelease: 4\nunknown: true\n"); err != nil {
 		t.Fatal(err)
 	}
 	environment, err := alpha.fixture.Route(map[string]*gitfixture.Fixture{"alpha": alpha.fixture, "beta": beta.fixture})

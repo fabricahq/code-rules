@@ -43,6 +43,23 @@ type RetiredRule struct {
 // releaseSeparator divides a release tag's Markdown notes from its YAML record.
 const releaseSeparator = "---"
 
+// ReleaseRecordFormat is the release record format this version of Code Rules writes and reads, recorded in each
+// record's formatVersion. It changes only for incompatible changes: readers ignore fields they don't know, so new
+// optional fields keep the format.
+const ReleaseRecordFormat = 1
+
+// UnsupportedReleaseRecordError reports a release record in a format newer than this version of Code Rules reads,
+// which a newer Code Rules published. Upgrading Code Rules reads it.
+type UnsupportedReleaseRecordError struct {
+	// Location is the record's formatVersion field, such as release/4.formatVersion.
+	Location      string
+	FormatVersion int
+}
+
+func (e *UnsupportedReleaseRecordError) Error() string {
+	return e.Location + ": the release record uses format " + strconv.Itoa(e.FormatVersion) + ", but this version of Code Rules reads only format " + strconv.Itoa(ReleaseRecordFormat) + "; upgrade Code Rules to read this library release"
+}
+
 // Limits on a release record's collections bound the work of reading a record from a library nobody vetted. A
 // library holds at most 10,000 files, so a library release can't list more rules, changes, or retirements, and its
 // libraryFiles can name at most every file of the previous library release and of the new one.
@@ -135,7 +152,10 @@ func ParseReleaseTagObject(tag string, object []byte) (string, ReleaseRecord, er
 }
 
 // ParseReleaseRecord validates a release record's YAML, including that each change leads to the version in rules.
-// It refuses more than 10,000 entries in rules, changes, or retired, and more than 20,000 in libraryFiles.
+// It refuses more than 10,000 entries in rules, changes, or retired, and more than 20,000 in libraryFiles. It
+// ignores fields it doesn't know, at any level, so later formats can add fields that older readers skip. A
+// formatVersion above ReleaseRecordFormat fails with *UnsupportedReleaseRecordError; a missing or invalid one
+// with *ValidationError.
 func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
 	_, data, err := authoredYAML(input, location)
 	if err != nil {
@@ -145,7 +165,7 @@ func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
 	if err != nil {
 		return ReleaseRecord{}, err
 	}
-	if err := knownJSONFields(fields, []string{"release", "rules", "changes", "retired", "libraryFiles"}, location); err != nil {
+	if err := recordFormat(fields["formatVersion"], location+".formatVersion"); err != nil {
 		return ReleaseRecord{}, err
 	}
 	record := ReleaseRecord{Changes: map[string]RecordedChange{}, Retired: map[string]RetiredRule{}, LibraryFiles: []string{}}
@@ -188,6 +208,18 @@ func requireFirstRelease(record ReleaseRecord, location string) error {
 		if change, ok := record.Changes[id]; !ok || change.Change != ChangeNew {
 			return invalid(location+".changes."+id, "the first library release must list every rule as new")
 		}
+	}
+	return nil
+}
+
+// recordFormat accepts ReleaseRecordFormat, reporting a larger whole number as a format this version can't read.
+func recordFormat(input json.RawMessage, location string) error {
+	format, err := strconv.Atoi(string(input))
+	switch {
+	case err != nil || format < 1:
+		return invalid(location, "expected the release record format, a whole number such as 1")
+	case format > ReleaseRecordFormat:
+		return &UnsupportedReleaseRecordError{Location: location, FormatVersion: format}
 	}
 	return nil
 }
@@ -241,9 +273,6 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 		}
 		fields, err := jsonObject(entries[id], entryLocation)
 		if err != nil {
-			return nil, err
-		}
-		if err := knownJSONFields(fields, []string{"change", "from", "summary"}, entryLocation); err != nil {
 			return nil, err
 		}
 		var change RecordedChange
@@ -312,9 +341,6 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 		}
 		fields, err := jsonObject(entries[id], entryLocation)
 		if err != nil {
-			return nil, err
-		}
-		if err := knownJSONFields(fields, []string{"lastVersion", "replacedBy", "summary"}, entryLocation); err != nil {
 			return nil, err
 		}
 		var rule RetiredRule

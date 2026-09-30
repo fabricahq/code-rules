@@ -147,7 +147,7 @@ func TestReleaseMessage_WritesNotesThenARecordThatReadsBack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "Notes.\n\n---\n\nMore notes.\n---\nrelease: 2\nrules:\n  practices/testing/a: 2.0.0\n  practices/testing/c: 1.0.0\nchanges:\n  practices/testing/a:\n    change: major\n    from: 1.0.0\n    summary: |-\n      Fix a typo.\n      Replace b with c.\n  practices/testing/c:\n    change: new\n    summary: Replace b with c.\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    replacedBy: practices/testing/c\n    summary: Replace b with c.\n"
+	want := "Notes.\n\n---\n\nMore notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 2.0.0\n  practices/testing/c: 1.0.0\nchanges:\n  practices/testing/a:\n    change: major\n    from: 1.0.0\n    summary: |-\n      Fix a typo.\n      Replace b with c.\n  practices/testing/c:\n    change: new\n    summary: Replace b with c.\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    replacedBy: practices/testing/c\n    summary: Replace b with c.\n"
 	if string(message) != want {
 		t.Fatalf("message:\n%s\nwant:\n%s", message, want)
 	}

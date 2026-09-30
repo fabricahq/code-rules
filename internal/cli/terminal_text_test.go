@@ -40,7 +40,7 @@ func TestUpdate_EscapesControlCharactersFromTheLibrary(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	if err := f.Release(ctx, 1, "release: 1\nrules:\n  techs/go/errors: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n"); err != nil {
+	if err := f.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/errors: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n"); err != nil {
 		t.Fatal(err)
 	}
 	u := updateFixture{binary: buildCLI(t), directory: t.TempDir(), fixture: f}
@@ -54,7 +54,7 @@ func TestUpdate_EscapesControlCharactersFromTheLibrary(t *testing.T) {
 	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": updateRule("errors 1.1.0")}); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Release(ctx, 2, "release: 2\nrules:\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: \"\\e[2J\\e[HNo risky changes.\\x9b\"}\n"); err != nil {
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: \"\\e[2J\\e[HNo risky changes.\\x9b\"}\n"); err != nil {
 		t.Fatal(err)
 	}
 	out, diagnostic, code := u.run(t, "project", "update")

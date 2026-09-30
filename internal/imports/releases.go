@@ -248,6 +248,10 @@ func (r *repository) readRecords(ctx context.Context, releases []libraryRelease,
 				return fail("git-failed", "Git returned inconsistent or incomplete release tags.", nil)
 			}
 			_, record, err := rules.ParseReleaseTagObject(name, rest[:size])
+			var unsupported *rules.UnsupportedReleaseRecordError
+			if errors.As(err, &unsupported) {
+				return fail("unsupported-release-record", fmt.Sprintf("Library release tag %s uses release record format %d, which this version of Code Rules can't read. Upgrade Code Rules, then run the command again.", name, unsupported.FormatVersion), nil)
+			}
 			if err != nil {
 				return fail("invalid-release-tag", fmt.Sprintf("Invalid release record in library release tag %s: %v. Don't create or move release tags by hand.", name, err), err)
 			}

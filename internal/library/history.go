@@ -249,6 +249,10 @@ func batchObject(output []byte, object, kind string, size int) ([]byte, []byte, 
 func parseReleaseTag(object []byte, number int) (string, rules.ReleaseRecord, error) {
 	name := "release/" + strconv.Itoa(number)
 	notes, record, err := rules.ParseReleaseTagObject(name, object)
+	var unsupported *rules.UnsupportedReleaseRecordError
+	if errors.As(err, &unsupported) {
+		return "", rules.ReleaseRecord{}, failure("unsupported-release-record", name+" uses release record format "+strconv.Itoa(unsupported.FormatVersion)+", which this version of Code Rules can't read. Upgrade Code Rules, then run the command again", nil)
+	}
 	if err != nil {
 		return "", rules.ReleaseRecord{}, failure("invalid-release-tag", "invalid release record in "+name+": "+err.Error()+". Don't create or move release tags by hand", err)
 	}

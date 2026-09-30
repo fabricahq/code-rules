@@ -19,7 +19,7 @@ import (
 )
 
 // releaseOne publishes rules a and b at 1.0.0, as the first library release must.
-const releaseOne = "Library release 1.\n---\nrelease: 1\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: new\n    summary: Add a.\n  practices/testing/b:\n    change: new\n    summary: Add b.\n"
+const releaseOne = "Library release 1.\n---\nformatVersion: 1\nrelease: 1\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: new\n    summary: Add a.\n  practices/testing/b:\n    change: new\n    summary: Add b.\n"
 
 // ruleText returns a complete rule document with one line of guidance.
 func ruleText(guidance string) string {
@@ -246,7 +246,7 @@ func TestCheck_UsesTheLatestReachableLibraryRelease(t *testing.T) {
 	if _, err := fixture.Commit(ctx, dir, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Stricter.")), "practices/testing/b.md": nil, "changes/two.yaml": []byte(note)}); err != nil {
 		t.Fatal(err)
 	}
-	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 2.0.0\nchanges:\n  practices/testing/a:\n    change: major\n    from: 1.0.0\n    summary: Tighten a and retire b.\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    summary: Tighten a and retire b.\n"
+	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 2.0.0\nchanges:\n  practices/testing/a:\n    change: major\n    from: 1.0.0\n    summary: Tighten a and retire b.\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    summary: Tighten a and retire b.\n"
 	if err := fixture.Tag(ctx, dir, "release/2", two); err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +257,7 @@ func TestCheck_UsesTheLatestReachableLibraryRelease(t *testing.T) {
 	if _, err := fixture.Commit(ctx, dir, "Elsewhere", map[string][]byte{"README.md": []byte("elsewhere\n")}); err != nil {
 		t.Fatal(err)
 	}
-	three := "Library release 3.\n---\nrelease: 3\nrules:\n  practices/testing/a: 2.0.0\n"
+	three := "Library release 3.\n---\nformatVersion: 1\nrelease: 3\nrules:\n  practices/testing/a: 2.0.0\n"
 	if err := fixture.Tag(ctx, dir, "release/3", three); err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func TestCheck_OnlyWarnsAboutAnInvalidEditToAPublishedNote(t *testing.T) {
 	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/one.yaml": []byte("summary: Fix a.\nrules:\n  practices/testing/a: patch\n")}); err != nil {
 		t.Fatal(err)
 	}
-	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Fix a.\n"
+	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Fix a.\n"
 	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
 		t.Fatal(err)
 	}
@@ -318,7 +318,7 @@ func TestCheck_WarnsAboutADeletedPublishedNote(t *testing.T) {
 	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/one.yaml": []byte("summary: Fix a.\nrules:\n  practices/testing/a: patch\n")}); err != nil {
 		t.Fatal(err)
 	}
-	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Fix a.\n"
+	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Fix a.\n"
 	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +431,7 @@ func TestCheck_RejectsHistoryItCannotCompare(t *testing.T) {
 func TestCheck_RejectsVersionsPastTheLimit(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
-	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.999999999.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: minor\n    from: 1.999999998.0\n    summary: Large.\n"
+	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.999999999.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: minor\n    from: 1.999999998.0\n    summary: Large.\n"
 	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
 		t.Fatal(err)
 	}
@@ -476,6 +476,16 @@ func TestCheck_RejectsTermsInsideARulesVersion(t *testing.T) {
 				t.Fatalf("got %v; want the license path refused", err)
 			}
 		})
+	}
+}
+
+// TestCheck_AsksToUpgradeForANewerReleaseRecordFormat refuses a library release whose record a later Code Rules
+// wrote, with its own code.
+func TestCheck_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
+	_, options := authorClone(t, libraryFiles(), strings.Replace(releaseOne, "formatVersion: 1", "formatVersion: 2", 1))
+	_, err := Check(context.Background(), options)
+	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Code Rules") {
+		t.Fatalf("got %v", err)
 	}
 }
 

@@ -170,3 +170,4 @@ When finding the newest library release, Code Rules can report:
 | --- | --- |
 | `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with the source's `ref`. |
 | `version-not-found` | A pin names a version the rule never published, or the tag or commit in `ref` doesn't exist. Check the pin or `ref`. |
+| `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Code Rules reads, because a later Code Rules published it. Upgrade Code Rules. |

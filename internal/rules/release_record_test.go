@@ -26,7 +26,9 @@ func TestReleaseMessageFixtures(t *testing.T) {
 			OK    bool
 			Notes string
 			Value json.RawMessage
-			Error *struct{ Message, Location string }
+			// Error's Kind is "unsupported" for a record format newer than the parser reads, and empty for a
+			// validation error.
+			Error *struct{ Message, Location, Kind string }
 		}
 	}
 	if err := json.Unmarshal(data, &cases); err != nil {
@@ -35,6 +37,13 @@ func TestReleaseMessageFixtures(t *testing.T) {
 	for _, test := range cases {
 		t.Run(test.ID, func(t *testing.T) {
 			notes, got, err := rules.ParseReleaseMessage(test.Tag, []byte(test.Message))
+			if !test.Expected.OK && test.Expected.Error.Kind == "unsupported" {
+				var unsupported *rules.UnsupportedReleaseRecordError
+				if !errors.As(err, &unsupported) || err.Error() != test.Expected.Error.Message || unsupported.Location != test.Expected.Error.Location {
+					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Error)
+				}
+				return
+			}
 			if !test.Expected.OK {
 				var validation *rules.ValidationError
 				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
@@ -58,7 +67,7 @@ func TestReleaseMessageFixtures(t *testing.T) {
 
 // TestParseReleaseTagObject_SkipsHeadersAndSignature reads the record from a signed tag object's message only.
 func TestParseReleaseTagObject_SkipsHeadersAndSignature(t *testing.T) {
-	object := "object 0123456789012345678901234567890123456789\ntype commit\ntag release/2\ntagger Fixture <fixture@example.invalid> 0 +0000\n\nNotes.\n\n---\nrelease: 2\nrules: {}\n-----BEGIN PGP SIGNATURE-----\nU0lH\n-----END PGP SIGNATURE-----\n"
+	object := "object 0123456789012345678901234567890123456789\ntype commit\ntag release/2\ntagger Fixture <fixture@example.invalid> 0 +0000\n\nNotes.\n\n---\nformatVersion: 1\nrelease: 2\nrules: {}\n-----BEGIN PGP SIGNATURE-----\nU0lH\n-----END PGP SIGNATURE-----\n"
 	notes, record, err := rules.ParseReleaseTagObject("release/2", []byte(object))
 	if err != nil || notes != "Notes." || record.Release != 2 || len(record.Rules) != 0 {
 		t.Fatalf("got %q, %+v, %v", notes, record, err)
@@ -72,7 +81,7 @@ func TestParseReleaseTagObject_SkipsHeadersAndSignature(t *testing.T) {
 // entries, with the rules entries the changes need, up to the 10,000 rules allows.
 func recordWith(section string, count int) []byte {
 	var record strings.Builder
-	record.WriteString("release: 2\n")
+	record.WriteString("formatVersion: 1\nrelease: 2\n")
 	if section == "rules" || section == "changes" {
 		ruleCount := count
 		if section == "changes" {

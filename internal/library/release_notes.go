@@ -179,8 +179,8 @@ func normalizedRecord(record rules.ReleaseRecord) rules.ReleaseRecord {
 	return record
 }
 
-// encodeReleaseRecord writes the record's YAML with sorted keys, leaving out empty changes, retired, and
-// libraryFiles sections. rules is always present, since the parser requires it.
+// encodeReleaseRecord writes the record's YAML, starting with its formatVersion, with sorted keys, leaving out
+// empty changes, retired, and libraryFiles sections. rules is always present, since the parser requires it.
 func encodeReleaseRecord(record rules.ReleaseRecord) ([]byte, error) {
 	text := func(value string) *yaml.Node { return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: value} }
 	mapping := func(pairs ...*yaml.Node) *yaml.Node { return &yaml.Node{Kind: yaml.MappingNode, Content: pairs} }
@@ -188,7 +188,10 @@ func encodeReleaseRecord(record rules.ReleaseRecord) ([]byte, error) {
 	for _, id := range slices.Sorted(maps.Keys(record.Rules)) {
 		versions.Content = append(versions.Content, text(id), text(record.Rules[id].String()))
 	}
-	document := mapping(text("release"), &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: strconv.Itoa(record.Release)}, text("rules"), versions)
+	number := func(value int) *yaml.Node {
+		return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: strconv.Itoa(value)}
+	}
+	document := mapping(text("formatVersion"), number(rules.ReleaseRecordFormat), text("release"), number(record.Release), text("rules"), versions)
 	if len(record.Changes) > 0 {
 		changes := mapping()
 		for _, id := range slices.Sorted(maps.Keys(record.Changes)) {
