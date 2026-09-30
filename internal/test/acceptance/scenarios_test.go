@@ -426,7 +426,7 @@ func reportsCheckProblems(data []byte) bool {
 		}
 		Error struct{ Kind string }
 	}
-	if json.Unmarshal(data, &result) != nil || result.OK || result.Error.Kind != "out_of_date" || result.Value.Status != "out_of_date" || len(result.Value.Problems) == 0 {
+	if json.Unmarshal(data, &result) != nil || result.OK || result.Error.Kind != "out-of-date" || result.Value.Status != "out-of-date" || len(result.Value.Problems) == 0 {
 		return false
 	}
 	for _, problem := range result.Value.Problems {

@@ -32,7 +32,7 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 	if err != nil {
 		return projectCheckResult{}, err
 	}
-	result := projectCheckResult{Status: "up_to_date", Problems: []checkProblem{}}
+	result := projectCheckResult{Status: "up-to-date", Problems: []checkProblem{}}
 	for _, problem := range report.Problems {
 		message := ""
 		switch problem.Kind {
@@ -48,7 +48,7 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextSteps: []nextStep{rebuild}})
 	}
 	if !report.Current() {
-		result.Status = "out_of_date"
+		result.Status = "out-of-date"
 	}
 	return result, nil
 }

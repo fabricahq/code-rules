@@ -6,8 +6,11 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -81,6 +84,56 @@ func TestJSONOutput_ListsAreAlwaysPresent(t *testing.T) {
 					t.Errorf("%v: next step %v has no commands list", test.args, step)
 				}
 			}
+		}
+	}
+}
+
+// kebabCase matches an enumerated JSON value such as out-of-date or stale-contents.
+var kebabCase = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
+// enumValues returns the value of every enumerated field in a JSON document, by path.
+func enumValues(value any, path string) map[string]string {
+	values := map[string]string{}
+	switch typed := value.(type) {
+	case map[string]any:
+		for key, item := range typed {
+			if text, ok := item.(string); ok && slices.Contains([]string{"status", "kind", "change", "decision", "code"}, key) {
+				values[path+"."+key] = text
+			}
+			maps.Copy(values, enumValues(item, path+"."+key))
+		}
+	case []any:
+		for _, item := range typed {
+			maps.Copy(values, enumValues(item, path+"[]"))
+		}
+	}
+	return values
+}
+
+// TestJSONOutput_EnumeratedValuesAreKebabCase reports a stale project's status, problem kinds, and error kind in
+// kebab-case, as error codes are.
+func TestJSONOutput_EnumeratedValuesAreKebabCase(t *testing.T) {
+	directory := t.TempDir()
+	for _, args := range [][]string{{"project", "init"}, {"project", "add", "group", "techs/go", "--name", "Go", "--description", "Go guidance.", "--when-to-read", "When editing Go."}, {"project", "build"}} {
+		if out, diagnostic, code := invokeReport(t, context.Background(), directory, args...); code != 0 {
+			t.Fatal(args, code, out, diagnostic)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(directory, ".code-rules", "generated", "RULES.md"), []byte("Stale.\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	out, _, code := invokeReport(t, context.Background(), directory, "project", "check", "--json")
+	var document any
+	if err := json.Unmarshal([]byte(out), &document); err != nil || code != 1 {
+		t.Fatal(code, err, out)
+	}
+	values := enumValues(document, "")
+	if values[".value.status"] != "out-of-date" || values[".error.kind"] != "out-of-date" || values[".value.problems[].kind"] != "stale-contents" {
+		t.Fatalf("values %v", values)
+	}
+	for path, value := range values {
+		if !kebabCase.MatchString(value) {
+			t.Errorf("%s is %q, not kebab-case", path, value)
 		}
 	}
 }

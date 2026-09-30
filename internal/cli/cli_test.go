@@ -126,7 +126,7 @@ func TestCLIProcess(t *testing.T) {
 	var response struct {
 		Value projectCheckResult `json:"value"`
 	}
-	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || response.Value.Status != "out_of_date" || len(response.Value.Problems) == 0 {
+	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || response.Value.Status != "out-of-date" || len(response.Value.Problems) == 0 {
 		t.Fatalf("stale check: %d %s %s", code, out, diagnostic)
 	}
 	if _, err := os.Stat(filepath.Join(root, "generated")); !os.IsNotExist(err) {
@@ -137,7 +137,7 @@ func TestCLIProcess(t *testing.T) {
 		t.Fatalf("build: %d %s %s", code, out, diagnostic)
 	}
 	out, diagnostic, code = runCLI(t, binary, dir, "project", "check", "--json")
-	if code != 0 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || response.Value.Status != "up_to_date" || len(response.Value.Problems) != 0 {
+	if code != 0 || diagnostic != "" || json.Unmarshal([]byte(out), &response) != nil || response.Value.Status != "up-to-date" || len(response.Value.Problems) != 0 {
 		t.Fatalf("clean check: %d %s %s", code, out, diagnostic)
 	}
 	out, diagnostic, code = runCLI(t, binary, dir, "project", "sync", "--json")

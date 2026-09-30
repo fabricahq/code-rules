@@ -406,11 +406,11 @@ JSON mode writes one response to stdout:
 | --- | --- |
 | `ok` | `true` for success; `false` for failure or an out-of-date project check. |
 | `value` | The command's result, when available. An out-of-date check still includes its report here. |
-| `error` | On failure, an object with `kind` and `message`, plus `location` when available. Domain failures include a stable `code`, such as `needs-init`, `missing-group`, or `guide-edited`. |
+| `error` | On failure, an object with `kind` (`usage`, `validation`, `operation`, `cancelled`, or `out-of-date` for a stale project check) and `message`, plus `location` when available. Domain failures include a stable `code`, such as `needs-init`, `missing-group`, or `guide-edited`. |
 
-Every list in a value is always present, empty when there's nothing to report, including `warnings`. Only optional values that aren't lists, such as a `ref` or a `githubRelease` object, are left out when they don't apply.
+Every list in a value is always present, empty when there's nothing to report, including `warnings`. Enumerated values, such as statuses, kinds, changes, and codes, are kebab-case. Only optional values that aren't lists, such as a `ref` or a `githubRelease` object, are left out when they don't apply.
 
-Project check returns `value.status` as `up_to_date` or `out_of_date`, and a `value.problems` list. Each problem has `kind`, `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Code Rules directory. Both generated guidance and the managed Code Rules guide must be current for success.
+Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, or `outdated-readme`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Code Rules directory. Both generated guidance and the managed Code Rules guide must be current for success.
 
 Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or group creation.
 

@@ -208,7 +208,7 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 						for _, problem := range result.Value.Problems {
 							kinds[problem.Kind] = true
 						}
-						if kinds["outdated_readme"] != (guideState != "current") || kinds["stale_contents"] != stale {
+						if kinds["outdated-readme"] != (guideState != "current") || kinds["stale-contents"] != stale {
 							t.Fatal(out)
 						}
 					} else {

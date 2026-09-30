@@ -231,10 +231,10 @@ func pendingVersions(rule library.PendingRule) string {
 func projectCheckedReport(result projectCheckResult) commandReport {
 	var out strings.Builder
 	report := commandReport{value: result}
-	if result.Status == "up_to_date" {
+	if result.Status == "up-to-date" {
 		out.WriteString("Status: up to date.\nGenerated guidance and the Code Rules guide are current.\nNo files were changed.\n")
 	} else {
-		report.failure = &responseError{Kind: "out_of_date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
+		report.failure = &responseError{Kind: "out-of-date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
 		out.WriteString("Status: out of date.\nNo files were changed.\nPaths are relative to the Code Rules directory: .code-rules\n\nProblems:\n")
 		for _, problem := range result.Problems {
 			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, strings.Join(problem.NextSteps[0].Commands, "; "))

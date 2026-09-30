@@ -211,6 +211,7 @@ Every breaking change from `v0.1.0`, with its manual migration, for the release 
   - Authoring results drop the legacy `value.next` text; use `value.nextSteps`. Each `code-rules project check` problem replaces its `nextStep` string with `nextSteps`, a list of the same `{instruction, commands}` objects.
   - Authoring commands (project and library init, add group, add rule including forks, add library, and library change) replace `value.files` with `value.added` and `value.changed`, so created files are told apart from modified ones such as `config.yaml`.
   - Every list field is always present, empty when there's nothing to report, including `value.warnings` of sync, build, and authoring commands and a next step's `commands`, which were left out when empty.
+  - Enumerated values are kebab-case: `code-rules project check`'s `value.status` is `up-to-date` or `out-of-date`, its problem kinds are `missing-file`, `stale-contents`, `unexpected-file`, and `outdated-readme`, and a stale check's `error.kind` is `out-of-date`.
 
 **This repository**
 

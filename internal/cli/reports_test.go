@@ -134,7 +134,7 @@ func TestCommandErrorKindsDoNotDependOnExecutionOrder(t *testing.T) {
 		{name: "invalid extension", args: []string{"project", "add", "rule", "techs/go/errors.md"}, exit: 2, kind: "usage", code: "invalid-rule-path"},
 		{name: "missing body", args: []string{"project", "add", "rule", "techs/go/errors", "--title", "Errors", "--when-to-read", "When calling", "--impact", "HIGH", "--impact-description", "Preserve errors", "--body-file", "absent.md"}, exit: 1, kind: "operation"},
 		{name: "cancelled", args: []string{"project", "build"}, exit: 1, kind: "cancelled", cancel: true},
-		{name: "stale check", args: []string{"project", "check"}, exit: 1, kind: "out_of_date"},
+		{name: "stale check", args: []string{"project", "check"}, exit: 1, kind: "out-of-date"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			location := directory
