@@ -874,7 +874,9 @@ func TestRelease_RefusesAnUnpublishedTagThatDoesntMatchTheLibrary(t *testing.T) 
 // with a descendant holding its output open, instead of waiting for it forever.
 func TestFindGitHubCLI_StopsAGitHubCLIThatFloodsItsOutput(t *testing.T) {
 	bin := t.TempDir()
-	script := "#!/bin/sh\ntrap '' PIPE\n/bin/sleep 30 &\nwhile :; do printf xxxxxxxxxxxxxxxx 2>/dev/null; done\n"
+	// The fake writes 64 KiB at a time, so it passes the 1 MiB limit in a few writes. With 16-byte writes, the
+	// 65,536 writes that reaching the limit took could alone outlast the timeout below on a busy machine.
+	script := "#!/bin/sh\ntrap '' PIPE\n/bin/sleep 30 &\nx=xxxxxxxxxxxxxxxx\nwhile [ ${#x} -lt 65536 ]; do x=$x$x; done\nwhile :; do printf %s \"$x\" 2>/dev/null; done\n"
 	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
