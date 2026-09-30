@@ -143,6 +143,54 @@ func TestKilledMetadataWriterRecovers(t *testing.T) {
 	}
 }
 
+// TestRecovery_RefusesLocalMetadataBehindASymlinkedParent keeps an interrupted transaction whose local metadata
+// path reaches another file through a symbolic link in a parent directory, rather than discarding that file as
+// the transaction's output.
+func TestRecovery_RefusesLocalMetadataBehindASymlinkedParent(t *testing.T) {
+	root := openProject(t)
+	writeFixture(t, root, "aliased/go/_group.yaml", "name: Go\n")
+	if err := root.Mkdir("local", 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("../aliased", root.Name()+"/local/techs"); err != nil {
+		t.Fatal(err)
+	}
+	target := LocalGroupMetadata("techs/go")
+	after := &Tree{Files: map[string][]byte{string(target): []byte("name: Go\n")}}
+	if err := root.Mkdir(transactionName, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{5, []journalEntry{{target, treeDigest(nil), treeDigest(after), false}}}); err != nil {
+		t.Fatal(err)
+	}
+	projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { return nil }), "recovery-required")
+	if data, err := root.ReadFile("aliased/go/_group.yaml"); err != nil || string(data) != "name: Go\n" {
+		t.Fatalf("recovery discarded the aliased file: %q, %v", data, err)
+	}
+	if _, err := root.Stat(transactionName + "/journal.json"); err != nil {
+		t.Fatal("recovery lost the journal", err)
+	}
+}
+
+// TestApply_RefusesLocalMetadataBehindASymlinkedParent publishes nothing through a symbolic link in a parent.
+func TestApply_RefusesLocalMetadataBehindASymlinkedParent(t *testing.T) {
+	root := openProject(t)
+	writeFixture(t, root, "aliased/go/fork.md", "local rule")
+	if err := root.Mkdir("local", 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("../aliased", root.Name()+"/local/techs"); err != nil {
+		t.Fatal(err)
+	}
+	err := WithWriter(context.Background(), root, func(w *Writer) error {
+		return w.Apply(map[Target]map[string][]byte{LocalGroupMetadata("techs/go"): {localMetadata: []byte("name: Go\n")}}, nil)
+	})
+	projectCode(t, err, "unsafe-path")
+	if _, err := root.Lstat("aliased/go/_group.yaml"); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatal("published through a symbolic link", err)
+	}
+}
+
 // TestRecovery_RefusesALocalMetadataEntryInAnOlderJournal preserves a journal whose format can't hold local group
 // metadata.
 func TestRecovery_RefusesALocalMetadataEntryInAnOlderJournal(t *testing.T) {
