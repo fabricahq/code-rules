@@ -198,3 +198,36 @@ func TestUpdate_RejectsDecisionsThePreviewDoesntOffer(t *testing.T) {
 		t.Fatal("a rejected decision changed the project")
 	}
 }
+
+// TestUpdate_RetiringAnExcludedRuleKeepsTheExclusionValidOffline warns that the exclusion no longer does anything,
+// and records it so the next offline check still passes.
+func TestUpdate_RetiringAnExcludedRuleKeepsTheExclusionValidOffline(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	secondRelease(t, f)
+	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "exclude": map[string]any{"techs/go/extra": map[string]string{"reason": "Not used."}}})
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 3, "release: 3\nrules:\n  techs/go/errors: 1.1.0\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summary: No longer needed.}\n"); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanUpdate(ctx, options, git, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	applied, err := plan.Apply(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(applied.Sources[0].Rules) != 0 || len(applied.Warnings) != 1 || !strings.HasPrefix(applied.Warnings[0], "sources.team.exclude names techs/go/extra") {
+		t.Fatalf("rows %+v, warnings %v", applied.Sources[0].Rules, applied.Warnings)
+	}
+	if _, got := recordedVersions(t, options); !reflect.DeepEqual(got, map[string]string{"techs/go/errors": "1.1.0@2"}) {
+		t.Fatalf("versions %v", got)
+	}
+	requireCurrent(t, options)
+}

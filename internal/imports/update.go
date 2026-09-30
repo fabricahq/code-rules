@@ -359,6 +359,7 @@ func (u Update) Lock(configuration rules.Configuration) map[string]library.Snaps
 		result[source.Name] = library.Snapshot{
 			Repository:    source.Repository,
 			Pins:          maps.Clone(source.Pins),
+			Exclude:       slices.Sorted(maps.Keys(source.Exclude)),
 			Ref:           source.Ref,
 			Release:       release,
 			Commit:        commit,
