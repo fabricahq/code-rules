@@ -26,7 +26,7 @@ type upstream struct {
 	pushURL string
 	// ref is the branch on the remote, such as refs/heads/main.
 	ref string
-	// tracking is the local remote-tracking branch, such as refs/remotes/origin/main, or "" when there is none.
+	// tracking is the local remote-tracking branch, such as refs/remotes/origin/main, which the fetch updates.
 	tracking string
 }
 
@@ -70,13 +70,11 @@ func (g *libraryGit) upstream(ctx context.Context) (upstream, error) {
 		return upstream{}, fmt.Errorf("find the upstream of branch=%q: %w", branch, err)
 	}
 	fields := strings.Split(strings.TrimSuffix(string(listing), "\n"), "\x00")
-	if len(fields) != 3 || fields[0] == "" || fields[0] == "." || !strings.HasPrefix(fields[1], "refs/heads/") {
+	// The remote-tracking branch, fields[2], is empty unless the remote's fetch refspec maps the upstream branch.
+	if len(fields) != 3 || fields[0] == "" || fields[0] == "." || !strings.HasPrefix(fields[1], "refs/heads/") || fields[2] == "" {
 		return upstream{}, failure("no-upstream", branch+" has no upstream branch on a remote, so there's nothing to compare it with. Push it with git push --set-upstream, then run code-rules library release again.", nil)
 	}
-	result := upstream{branch: branch, remote: fields[0], ref: fields[1]}
-	if strings.HasPrefix(fields[2], "refs/remotes/") {
-		result.tracking = fields[2]
-	}
+	result := upstream{branch: branch, remote: fields[0], ref: fields[1], tracking: fields[2]}
 	url, err := g.runner.Output(ctx, g.dir, []string{"remote", "get-url", "--", result.remote}, 64*1024)
 	if err != nil {
 		return upstream{}, fmt.Errorf("find the URL of remote=%q: %w", result.remote, err)
@@ -223,16 +221,14 @@ func (g *libraryGit) localReleaseTags(ctx context.Context) (map[int]localTag, er
 // syncReleaseTags fetches the upstream branch and every release tag the clone lacks. It refuses when a
 // release tag in the clone differs from the remote's, or when the clone has a release tag the remote lacks,
 // unless that tag is on head and numbered one past the remote's latest: a run that stopped before pushing its
-// tag. It returns that tag's number, or 0.
+// tag. It also refuses when the fetch brings a branch tip or release tag other than the ones remote lists, so
+// every later comparison uses what was fetched. It returns the unpushed tag's number, or 0.
 func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote remoteState, head string) (int, error) {
 	local, err := g.localReleaseTags(ctx)
 	if err != nil {
 		return 0, err
 	}
-	refspecs := []string{u.ref}
-	if u.tracking != "" {
-		refspecs[0] = "+" + u.ref + ":" + u.tracking
-	}
+	refspecs := []string{"+" + u.ref + ":" + u.tracking}
 	for _, number := range slices.Sorted(maps.Keys(remote.tags)) {
 		name := "release/" + strconv.Itoa(number)
 		tag, ok := local[number]
@@ -261,7 +257,33 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 	if result.Status != 0 {
 		return 0, failure("fetch-failed", "Git couldn't fetch from "+u.remote+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
 	}
+	if err := g.requireFetched(ctx, u, remote); err != nil {
+		return 0, err
+	}
 	return unpublished, nil
+}
+
+// requireFetched refuses when what the fetch brought differs from what listing the remote showed: the branch
+// moved, or a release tag changed, while code-rules library release was reading the remote.
+func (g *libraryGit) requireFetched(ctx context.Context, u upstream, remote remoteState) error {
+	changed := u.remote + " changed while code-rules library release was reading it: "
+	tip, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--verify", "--end-of-options", u.tracking + "^{commit}"}, 4096)
+	if err != nil {
+		return fmt.Errorf("read the fetched branch=%q: %w", u.tracking, err)
+	}
+	if strings.TrimSpace(string(tip)) != remote.head {
+		return failure("remote-changed", changed+"someone pushed to "+strings.TrimPrefix(u.ref, "refs/heads/")+". Pull their changes, then run code-rules library release again.", nil)
+	}
+	local, err := g.localReleaseTags(ctx)
+	if err != nil {
+		return err
+	}
+	for _, number := range slices.Sorted(maps.Keys(remote.tags)) {
+		if local[number].object != remote.tags[number] {
+			return failure("remote-changed", changed+"release/"+strconv.Itoa(number)+" changed. Release tags must never change; find out who changed it, then run code-rules library release again.", nil)
+		}
+	}
+	return nil
 }
 
 // requireCurrent refuses unless head is the commit at the remote's branch, explaining how they differ.

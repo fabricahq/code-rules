@@ -300,6 +300,10 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				run(t, fixture, options.Directory, "branch", "--unset-upstream")
 			}},
+		{name: "remote without a fetch refspec", code: "no-upstream", message: "main has no upstream branch on a remote",
+			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
+				run(t, fixture, options.Directory, "config", "--unset-all", "remote.origin.fetch")
+			}},
 		{name: "moved release tag", code: "release-tag-mismatch", message: "release/1 in this clone differs from release/1 on origin",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				run(t, fixture, options.Directory, "tag", "--annotate", "--force", "--cleanup=verbatim", "--message", strings.Replace(releaseOne, "Add a.", "Add rule a.", 1), "release/1")
@@ -519,6 +523,48 @@ func TestRelease_StopsCleanlyWhenSomeoneElsePublishesFirst(t *testing.T) {
 	}
 	if strings.Contains(tags(t, fixture, options.Directory), "release/2") {
 		t.Fatal("the clone kept a release/2 that disagrees with the remote")
+	}
+}
+
+// TestRelease_RefusesWhenTheRemoteChangesBetweenListingAndFetching changes the remote just before the fetch,
+// through a transport that runs the change on its second connection, after the listing.
+func TestRelease_RefusesWhenTheRemoteChangesBetweenListingAndFetching(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		// change runs in the remote repository, with arguments for Git.
+		change  string
+		message string
+	}{
+		{"branch", "commit --quiet --allow-empty --message Elsewhere", "origin changed while code-rules library release was reading it: someone pushed to main."},
+		{"release tag", "tag --force --annotate --cleanup=verbatim --message " + gitfixture.Quote(strings.Replace(releaseOne, "Add a.", "Add rule a.", 1)) + " release/1", "origin changed while code-rules library release was reading it: release/1 changed."},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fixture, options := authorClone(t, libraryFiles(), releaseOne)
+			// Without its own release/1, the clone fetches the remote's.
+			run(t, fixture, options.Directory, "tag", "--delete", "release/1")
+			state := filepath.Join(t.TempDir(), "connections")
+			transport := filepath.Join(t.TempDir(), "ssh")
+			// The change runs Git with an empty environment, so nothing from the author's Git reaches the remote.
+			script := "#!/bin/sh\nn=$(/bin/cat " + gitfixture.Quote(state) + " 2>/dev/null || echo 0)\nn=$((n + 1))\necho $n > " + gitfixture.Quote(state) + "\n" +
+				"if [ $n = 2 ]; then /usr/bin/env -i GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME=Other GIT_AUTHOR_EMAIL=other@example.invalid GIT_COMMITTER_NAME=Other GIT_COMMITTER_EMAIL=other@example.invalid " +
+				gitfixture.Quote(fixture.GitPath) + " -C " + gitfixture.Quote(remoteDir(fixture)) + " -c core.hooksPath=/dev/null -c tag.gpgsign=false -c commit.gpgsign=false " + test.change + " >/dev/null 2>&1 || exit 1; fi\n" +
+				"exec " + gitfixture.Quote(filepath.Join(fixture.Directory, "ssh")) + " \"$@\"\n"
+			if err := os.WriteFile(transport, []byte(script), 0700); err != nil {
+				t.Fatal(err)
+			}
+			options.Git.Environment = append(slices.Clone(options.Git.Environment), "GIT_SSH_COMMAND="+gitfixture.Quote(transport))
+			before := tags(t, fixture, remoteDir(fixture))
+			_, err := Release(context.Background(), ReleaseRequest{Options: options})
+			if errorCode(err) != "remote-changed" || !strings.Contains(err.Error(), test.message) {
+				t.Fatal(err)
+			}
+			if connections, _ := os.ReadFile(state); string(connections) != "2\n" {
+				t.Fatalf("connections: %q", connections)
+			}
+			if test.name == "branch" && tags(t, fixture, remoteDir(fixture)) != before {
+				t.Fatal("published after the branch moved")
+			}
+		})
 	}
 }
 
