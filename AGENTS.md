@@ -104,7 +104,12 @@ Rule-input validation and generated-file consistency checks are in scope; checki
 
 ## Working in this repository
 
-Before implementing or reviewing code, consult [Fabrica's engineering rules](https://github.com/fabricahq/app/tree/main/_rules) and read the individual rules relevant to the change.
+This repository uses Code Rules to adopt Fabrica's [public rules](https://github.com/fabricahq/public-rules); [its guide](.code-rules/README.md) explains how to manage them.
+Before planning, implementing, reviewing, testing, or debugging a change, read [`.code-rules/generated/RULES.md`](.code-rules/generated/RULES.md) and follow its instructions to select relevant groups and read their rules in full.
+Follow the applicable rules and their exceptions, and check your work against them before finishing.
+If required rule files are unavailable or give conflicting instructions, report the issue rather than silently skipping a rule or choosing a policy.
+
+Before implementing or reviewing code, also consult [Fabrica's engineering rules](https://github.com/fabricahq/app/tree/main/_rules) and read the individual rules relevant to the change.
 For Go implementation, also read [Go conventions](_engineering/go-conventions.md).
 Apply the portable guidance; identify app-specific assumptions and explain any adaptation needed for this CLI.
 For comments, use [the local comment rule](_engineering/rules/comment-role-result-and-constraints.md), which supersedes the linked app comment policy.
