@@ -154,10 +154,21 @@ Build in slices. Each slice ends with passing validation, atomic commits, and a 
    - `code-rules library init` writes the check workflow (decision 13). Update `library-guide.md`.
 3. **Library releases.** `code-rules library release` with `--dry-run`, `--no-github-release`, the first library release, reruns, and the GitHub Release page (decisions 2, 10, 11).
 4. **Project configuration.** New fields (`rules`, `pins`, `exclude` objects with `replacedBy`), removal of `version` and `replace` (unknown fields now), `ref` limited to tags and full SHAs, `pins` and `ref` exclusive, stale-entry warnings versus unknown-ID failures. Rewrite the configuration fixtures. `code-rules project add library` gets `--rules` and an optional `--ref`.
-5. **Project resolution.** Release listing and version resolution (decisions 3, 4), `_source.json` format version 2 and `_releases/<number>/` (decision 5), `code-rules project sync` reading the lockfile (decisions 6, 7), offline verification in build and check, rule versions in generated guidance and provenance, the unreleased-`ref` warning and generated README note, and `replacedBy` in resolution. Fix `generatedNotice` in `generated/provenance.json`, which says to run project commands from the project root although they work from any subdirectory. Update `project-guide.md` and `for-agents/index.md` if its text changed.
+5. **Project resolution.** Release listing and version resolution (decisions 3, 4), `_source.json` format version 2 and `_releases/<number>/` (decision 5), `code-rules project sync` reading the lockfile (decisions 6, 7), offline verification in build and check, rule versions in generated guidance and provenance, the unreleased-`ref` warning and generated README note, and `replacedBy` in resolution. Make `exclude`, `pins`, and `rules` entries that name a rule the library retired warn instead of fail, while unknown IDs still fail (slice 4's `requireImported` in `internal/build/resolve.go` fails on both), including when a changed `ref` retires an excluded rule. Fix `generatedNotice` in `generated/provenance.json`, which says to run project commands from the project root although they work from any subdirectory. Update `project-guide.md` and `for-agents/index.md` if its text changed.
 6. **`code-rules project update`.** Preview rows (`major`, `minor`, `patch`, `new`, `retired`, `replaced`, `pinned`), scoped updates, confirmation and prompts, `--yes`, `--keep`, `--exclude`, `--reason`, `--json`, and the atomic configuration write (decisions 8, 14).
 7. **Forking.** `code-rules project add rule ID --from LIBRARY@VERSION`: find the version's library release, copy the rule, its assets, and linked shared assets with rewritten links, add attribution, and write the exclusion with `replacedBy`.
 8. **Finish.** Rewrite the acceptance scenarios around the new lifecycle, verify every command example in the docs against the built binary, run an independent review of the docs against the implementation, and fix any drift. Delete this file.
+
+## Final review
+
+When every slice is done and its review fixes have landed, run four independent GPT-6 Astra reviews (Codex CLI, read-only) of the whole change, from `main` to the top of the PR stack. Each reports findings without changing code, and each finding states the insight, its severity, a recommendation, and its blast radius:
+
+1. **Security** concerns across the whole change.
+2. **Simplification:** complexity to remove and more elegant abstractions, including ones that alter behavior slightly when that saves considerable complexity.
+3. **Testability** of the code.
+4. **Correctness** of the code.
+
+Then assemble the findings into one set of recommendations for Josh about what, if anything, to change.
 
 ## Testing
 

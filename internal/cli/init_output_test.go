@@ -24,6 +24,10 @@ func TestProjectInitGuidance(t *testing.T) {
 		if !strings.Contains(out, "Or use a shared library") || !strings.Contains(out, "code-rules project sync") {
 			t.Fatal("missing shared-library path", out)
 		}
+		// Without this step, a user who follows only the CLI output has rules that no agent reads.
+		if !strings.Contains(out, "connect your coding agent to the rules; see .code-rules/README.md") {
+			t.Fatal("missing agent connection step", out)
+		}
 		// Execute the displayed project-only examples, supplying metadata to avoid terminal prompts.
 		steps := 0
 		for _, line := range strings.Split(out, "\n") {
