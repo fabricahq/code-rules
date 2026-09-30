@@ -21,7 +21,9 @@ type invocation func(label, dir string, env []string, want int, args ...string) 
 // library's checkout, the author publishes release/2: techs/go/errors becomes a major change, techs/go/naming
 // retires in favor of the new techs/go/wrapping, and techs/go/panics is new. The project keeps errors at 1.0.0 with
 // --keep, excludes panics with --exclude, and applies the rest. After release/3 changes wrapping, the project deletes
-// the pin and adopts errors 2.0.0 alone with a scoped update, then forks errors into its local rules.
+// the pin and adopts errors 2.0.0 alone with a scoped update, then forks errors into its local rules. It imports
+// release/2 with ref, which update doesn't move, then release/3, and removes ref. After it pins wrapping,
+// release/4 retires wrapping and changes errors upstream: the pin keeps wrapping and the fork stays as it was.
 // project check passes after every step that changes the project.
 func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, fixture *gitfixture.Fixture, author, directory, consumer string, online, offline []string) error {
 	last := func() Step { return report.Steps[len(report.Steps)-1] }
@@ -253,6 +255,143 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 		return err
 	}
 	report.Verified = append(report.Verified, "A fork copies one published rule version and its asset into local rules and replaces the imported rule, which checks offline")
+	fork := files[".code-rules/local/techs/go/errors.md"]
+
+	// The project imports exactly library release 2 with ref: update doesn't move it, and changing ref does.
+	configFile := filepath.Join(consumer, ".code-rules/config.yaml")
+	configure := func(label string, change func(string) string) error {
+		data, err := os.ReadFile(configFile)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(configFile, []byte(change(string(data))), 0600); err != nil {
+			return err
+		}
+		edit("Configuration edit: " + label)
+		return nil
+	}
+	sync := func(label string) (map[string][]byte, error) {
+		if err := invoke(label, consumer, online, 0, "project", "sync"); err != nil {
+			return nil, err
+		}
+		if err := check("Check " + strings.ToLower(label[:1]) + label[1:]); err != nil {
+			return nil, err
+		}
+		return project()
+	}
+	wrappingAt := func(files map[string][]byte, document []byte, version string) error {
+		if !bytes.Equal(files[".code-rules/vendor/team/techs/go/wrapping.md"], document) || !strings.Contains(string(files[".code-rules/generated/rules/team/techs/go/wrapping.md"]), "Version: "+version+"\n") {
+			return fmt.Errorf("techs/go/wrapping isn't at %s", version)
+		}
+		return nil
+	}
+	if err := configure("import library release 2 with ref", func(config string) string { return config + "    ref: release/2\n" }); err != nil {
+		return err
+	}
+	if files, err = sync("Sync library release 2"); err != nil {
+		return err
+	}
+	if err := wrappingAt(files, wrappingV1, "1.0.0"); err != nil {
+		return err
+	}
+	if err := contains("_source.json", string(files[".code-rules/vendor/team/_source.json"]), `"ref": "release/2"`, `"release": 2,`); err != nil {
+		return err
+	}
+	before, err = readTree(ctx, consumer)
+	if err != nil {
+		return err
+	}
+	if err := invoke("Update a source that uses ref", consumer, online, 0, "project", "update", "--yes"); err != nil {
+		return err
+	}
+	if err := contains("update of a ref source", last().Stdout, "  Imports release/2 with ref, so update doesn't move it.\n"); err != nil {
+		return err
+	}
+	if after, err = readTree(ctx, consumer); err != nil {
+		return err
+	}
+	if !equalTrees(before, after) {
+		return fmt.Errorf("update moved a source that uses ref")
+	}
+	if err := configure("import library release 3 with ref", func(config string) string {
+		return strings.Replace(config, "ref: release/2", "ref: release/3", 1)
+	}); err != nil {
+		return err
+	}
+	if files, err = sync("Sync library release 3"); err != nil {
+		return err
+	}
+	if err := wrappingAt(files, wrappingV2, "1.1.0"); err != nil {
+		return err
+	}
+	if err := configure("remove ref", func(config string) string { return strings.Replace(config, "    ref: release/3\n", "", 1) }); err != nil {
+		return err
+	}
+	if files, err = sync("Sync without ref"); err != nil {
+		return err
+	}
+	if err := wrappingAt(files, wrappingV2, "1.1.0"); err != nil {
+		return err
+	}
+	report.Verified = append(report.Verified, "A ref to a library release imports what it published, update doesn't move it, and changing or removing ref and syncing does")
+
+	// The project pins wrapping; library release 4 retires it and changes the forked rule.
+	pinReason := "Our reviews still cite it."
+	if err := configure("pin techs/go/wrapping", func(config string) string {
+		return config + "    pins:\n      techs/go/wrapping:\n        version: \"1.1.0\"\n        reason: " + pinReason + "\n"
+	}); err != nil {
+		return err
+	}
+	if _, err := sync("Sync the pin"); err != nil {
+		return err
+	}
+	errorsV3 := append(bytes.Clone(errorsV2), []byte("\nFor example, name the operation first.\n")...)
+	if err := os.WriteFile(errorsRule, errorsV3, 0600); err != nil {
+		return err
+	}
+	if err := os.Remove(filepath.Join(author, "techs/go/wrapping.md")); err != nil {
+		return err
+	}
+	edit("Author edit: add an example to techs/go/errors and delete techs/go/wrapping")
+	for _, args := range [][]string{
+		{"library", "change", "techs/go/errors", "--bump", "minor", "--summary", "Add an example of naming the operation."},
+		{"library", "change", "techs/go/wrapping", "--retire", "--summary", "The errors rule now covers wrapping."},
+		{"library", "check"},
+	} {
+		if err := invoke("Record the library's changes", author, online, 0, args...); err != nil {
+			return err
+		}
+	}
+	if err := publish(4, "Add an errors example and retire wrapping"); err != nil {
+		return err
+	}
+	if err := invoke("Preview a replaced rule and a pinned retirement", consumer, online, 0, "project", "update"); err != nil {
+		return err
+	}
+	if err := contains("update preview", last().Stdout,
+		"  replaced  techs/go/errors    2.0.0 -> 2.1.0\n            Add an example of naming the operation.\n            Your rule: local/techs/go/errors.md.\n",
+		"  retired   techs/go/wrapping  1.1.0\n            The errors rule now covers wrapping.\n            Your pin keeps it at 1.1.0.\n            Reason: "+pinReason+"\n"); err != nil {
+		return err
+	}
+	if err := invoke("Apply the update", consumer, online, 0, "project", "update", "--yes"); err != nil {
+		return err
+	}
+	if files, err = project(); err != nil {
+		return err
+	}
+	if !bytes.Equal(files[".code-rules/local/techs/go/errors.md"], fork) || files[".code-rules/generated/rules/team/techs/go/errors.md"] != nil || files[".code-rules/generated/rules/local/techs/go/errors.md"] == nil {
+		return fmt.Errorf("the update changed the fork, or generated the replaced rule")
+	}
+	if !bytes.Equal(files[".code-rules/vendor/team/techs/go/errors.md"], errorsV3) {
+		return fmt.Errorf("the update didn't import the replaced rule's new version")
+	}
+	if err := wrappingAt(files, wrappingV2, "1.1.0"); err != nil {
+		return fmt.Errorf("the pin didn't keep the retired rule: %w", err)
+	}
+	if err := check("Check the replaced rule and the pinned retirement"); err != nil {
+		return err
+	}
+	report.Verified = append(report.Verified, "The preview shows an upstream change to a forked rule as replaced, and a retirement of a pinned rule, which the pin keeps; the fork stays unchanged and checks offline")
 	return nil
 }
 
