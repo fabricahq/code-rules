@@ -73,7 +73,8 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		return Configuration{}, err
 	}
 	result := Configuration{Sources: make([]Source, 0, len(sources))}
-	repositories := make(map[string]bool)
+	// repositories maps each repository identity to the first source, in name order, that imports it.
+	repositories := make(map[string]string)
 	for _, name := range slices.Sorted(maps.Keys(sources)) {
 		source, err := parseSource(name, sources[name], repositories)
 		if err != nil {
@@ -85,7 +86,7 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 }
 
 // parseSource validates identity, then revision, then selection, then pins and exclusions.
-func parseSource(name string, input json.RawMessage, repositories map[string]bool) (Source, error) {
+func parseSource(name string, input json.RawMessage, repositories map[string]string) (Source, error) {
 	where := "sources." + name
 	if !sourceNamePattern.MatchString(name) || name == "local" {
 		return Source{}, invalid(where, "invalid or reserved source name")
@@ -105,10 +106,10 @@ func parseSource(name string, input json.RawMessage, repositories map[string]boo
 	if err != nil {
 		return Source{}, err
 	}
-	if repositories[address.Identity] {
-		return Source{}, invalid(where, "repository "+repository+" is declared more than once")
+	if other, declared := repositories[address.Identity]; declared {
+		return Source{}, invalid(where, "repository "+repository+" is declared more than once: sources."+other+" imports it too. Import each repository with one source")
 	}
-	repositories[address.Identity] = true
+	repositories[address.Identity] = name
 	result := Source{Name: name, Repository: repository}
 	if raw, ok := fields["ref"]; ok {
 		if _, pinned := fields["pins"]; pinned {
