@@ -105,11 +105,11 @@ func (r *reader) assetTree(directory string) error {
 	return nil
 }
 
-// supportingLinks checks retained Markdown and loads shared assets until no new files remain.
+// supportingLinks checks retained Markdown and loads each shared asset it links to, following links from shared
+// Markdown in turn, until no new files remain. Shared assets nothing retained links to stay out.
 // Links to other rules fail before checking target existence, including inside attachments.
 func (r *reader) supportingLinks(terms []string) error {
 	checked := map[string]bool{}
-	shared := false
 	for {
 		pending := []string{}
 		for file := range r.files {
@@ -150,15 +150,34 @@ func (r *reader) supportingLinks(terms []string) error {
 				if err := r.linkExists(target); err != nil {
 					return fmt.Errorf("link from %s: %w", file, err)
 				}
-				if rules.AssetDirectory(target) == "assets/" && !shared {
-					shared = true
-					if err := r.assetTree("assets"); err != nil {
+				if rules.AssetDirectory(target) == "assets/" {
+					if err := r.requireSpelling(target); err != nil {
+						return err
+					}
+					if _, err := r.read(target); err != nil {
 						return err
 					}
 				}
 			}
 		}
 	}
+}
+
+// requireSpelling fails unless every component of file below its first names a directory entry spelled exactly
+// the same. A case-insensitive filesystem finds a file under another spelling, which Git and other checkouts
+// wouldn't.
+func (r *reader) requireSpelling(file string) error {
+	parts := strings.Split(file, "/")
+	for i := 1; i < len(parts); i++ {
+		entries, err := r.entries(strings.Join(parts[:i], "/"), false)
+		if err != nil {
+			return err
+		}
+		if !slices.ContainsFunc(entries, func(entry fs.DirEntry) bool { return entry.Name() == parts[i] }) {
+			return bad(file, "link destination is spelled differently from the file")
+		}
+	}
+	return nil
 }
 
 // linkExists checks every component without reading the destination.

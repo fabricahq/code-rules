@@ -15,7 +15,8 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// TestLoadAssets retains complete owned/shared trees while leaving unrelated rules unselected.
+// TestLoadAssets retains complete owned trees and the shared assets that retained Markdown links reach, following
+// links between shared files, while leaving unrelated rules and unlinked shared assets out.
 func TestLoadAssets(t *testing.T) {
 	files := validFiles()
 	files["techs/go/errors.md"] += "\n![image](assets/errors/image.bin) [shared](/assets/guide.md)\n"
@@ -33,13 +34,15 @@ func TestLoadAssets(t *testing.T) {
 	if len(got.Groups) != 1 || len(got.Groups[0].Rules) != 1 {
 		t.Fatalf("adopted another rule: %+v", got.Groups)
 	}
-	for _, file := range []string{"techs/go/assets/errors/image.bin", "techs/go/assets/errors/unused.bin", "assets/guide.md", "assets/next.md", "assets/unreferenced.bin"} {
+	for _, file := range []string{"techs/go/assets/errors/image.bin", "techs/go/assets/errors/unused.bin", "assets/guide.md", "assets/next.md"} {
 		if string(got.SupportingFiles[file]) != files[file] {
 			t.Errorf("lost bytes: %s", file)
 		}
 	}
-	if _, ok := got.SupportingFiles["techs/rust/other.md"]; ok {
-		t.Fatal("retained unselected rule")
+	for _, file := range []string{"techs/rust/other.md", "assets/unreferenced.bin"} {
+		if _, ok := got.SupportingFiles[file]; ok {
+			t.Errorf("retained %s, which nothing selected links to", file)
+		}
 	}
 }
 
