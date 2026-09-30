@@ -64,14 +64,17 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 	return encodeConfiguration(document)
 }
 
-// SourceEdit lists pins and exclusions to add to one source; either map may be empty or nil.
+// SourceEdit lists pins and exclusions to add to one source, and pins to remove from it; each may be empty or nil.
 type SourceEdit struct {
 	Pins    map[string]Pin
 	Exclude map[string]Exclusion
+	// Unpin names rules whose existing pins the edit removes.
+	Unpin []string
 }
 
-// EditConfigurationSource adds pins and exclusions to the existing source alias without dropping comments or
-// reordering entries. New entries follow the source's existing ones in rule ID order, in a pins or exclude map
+// EditConfigurationSource adds pins and exclusions to the existing source alias, and removes the pins edit.Unpin
+// names, without dropping other comments or reordering entries. A pins map left empty is removed; a pin to remove
+// that the source lacks fails. New entries follow the source's existing ones in rule ID order, in a pins or exclude map
 // that is created when absent. Versions are written quoted, such as version: "1.3.0", so YAML reads them as text.
 // A rule the source already pins or excludes fails rather than being replaced. Folded scalars use literal style,
 // as in AppendConfigurationSource. The complete resulting configuration is validated before any bytes are returned.
@@ -88,6 +91,9 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 		return nil, invalid("sources."+alias, "source doesn't exist")
 	}
 	source.Style = 0
+	if err := removeEntries(source, "pins", edit.Unpin, "sources."+alias); err != nil {
+		return nil, err
+	}
 	if err := addEntries(source, "pins", pinNodes(edit.Pins), "sources."+alias); err != nil {
 		return nil, err
 	}
@@ -105,6 +111,38 @@ func mappingValue(mapping *yaml.Node, key string) *yaml.Node {
 	for i := 0; i+1 < len(mapping.Content); i += 2 {
 		if mapping.Content[i].Value == key {
 			return mapping.Content[i+1]
+		}
+	}
+	return nil
+}
+
+// removeEntries deletes each of ids from the map field of source, and the field itself once it's empty. An ID the
+// map lacks fails with its location under where.
+func removeEntries(source *yaml.Node, field string, ids []string, where string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	target := mappingValue(source, field)
+	for _, id := range ids {
+		index := -1
+		if target != nil {
+			for i := 0; i+1 < len(target.Content); i += 2 {
+				if target.Content[i].Value == id {
+					index = i
+				}
+			}
+		}
+		if index < 0 {
+			return invalid(where+"."+field+"."+id, "the source has no such entry to remove")
+		}
+		target.Content = slices.Delete(target.Content, index, index+2)
+	}
+	if len(target.Content) == 0 {
+		for i := 0; i+1 < len(source.Content); i += 2 {
+			if source.Content[i].Value == field {
+				source.Content = slices.Delete(source.Content, i, i+2)
+				break
+			}
 		}
 	}
 	return nil

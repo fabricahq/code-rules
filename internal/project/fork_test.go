@@ -152,6 +152,49 @@ func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
 	}
 }
 
+// TestFork_OfAPinnedRuleRemovesThePin forks a rule that a pin holds at 1.0.0: the same configuration write
+// replaces the pin with the exclusion, with a warning, and the next update lists the rule as replaced.
+func TestFork_OfAPinnedRuleRemovesThePin(t *testing.T) {
+	f := newForkFixture(t, "")
+	ctx := context.Background()
+	root, err := openProject(ctx, f.options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	writeFixture(t, root, configurationFile, "# Team rules.\nschemaVersion: 1\nsources:\n  team:\n    repository: "+f.fixture.Repository+"\n    groups:\n      - techs/go\n    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Not ready.\n")
+	if _, err := Sync(ctx, f.options, f.git); err != nil {
+		t.Fatal(err)
+	}
+	result, err := f.fork(t, "techs/go/errors", "team@1.1.0", "Ours.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Warnings) != 1 || !strings.HasPrefix(result.Warnings[0], "Removed sources.team.pins.techs/go/errors, which kept the rule at 1.0.0, because the fork replaces the imported rule.") {
+		t.Fatalf("warnings %q", result.Warnings)
+	}
+	config := string(f.files(t)["config.yaml"])
+	if strings.Contains(config, "pins") || !strings.Contains(config, "    exclude:\n      techs/go/errors:\n        reason: Ours.\n        replacedBy: local/techs/go/errors.md\n") {
+		t.Fatalf("configuration:\n%s", config)
+	}
+	if _, err := Build(ctx, f.options); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanUpdate(ctx, f.options, f.git, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := plan.Preview(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rows := preview.Sources[0].Rules; !slices.ContainsFunc(rows, func(row imports.RuleUpdate) bool {
+		return row.ID == "techs/go/errors" && row.Change == imports.UpdateReplaced && row.LocalRule == "local/techs/go/errors.md"
+	}) {
+		t.Fatalf("rows %+v, want errors replaced by the fork", rows)
+	}
+}
+
 // TestFork_OfARuleTheProjectDoesNotImportWritesNoExclusion forks a rule of a group the source doesn't select, and
 // a rule through a repository address that no source uses: neither changes the configuration.
 func TestFork_OfARuleTheProjectDoesNotImportWritesNoExclusion(t *testing.T) {

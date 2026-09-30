@@ -46,7 +46,9 @@ type ForkPlan struct {
 	// configBytes is the configuration planning read; Commit refuses to write when it changed.
 	configBytes []byte
 	// replaces is the configured source whose imported rule the fork replaces, or empty when no source imports it.
+	// pin is that source's pin of the rule, which Commit removes, or nil when it has none.
 	replaces string
+	pin      *rules.Pin
 	release  int
 	// files holds the fork's files by path relative to local/, and groupMetadata the library's metadata for the
 	// rule's group, which Commit copies when the project has no local metadata for it.
@@ -84,6 +86,9 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 				return &rules.ValidationError{Location: "sources." + replaces.Name + ".exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
 			}
 			plan.replaces = replaces.Name
+			if pin, pinned := replaces.Pins[id]; pinned {
+				plan.pin = &pin
+			}
 		}
 		return nil
 	})
@@ -120,7 +125,8 @@ func (p *ForkPlan) Release() int { return p.release }
 
 // Commit writes the fork under writer ownership, creating the local group from the library's group metadata when
 // the project has no local metadata for it. When the fork replaces an imported rule, the same edit adds the
-// source's exclusion with reason and the fork as replacedBy. It writes nothing when reason is blank for a
+// source's exclusion with reason and the fork as replacedBy, and removes the source's pin of the rule, with a
+// warning, since the fork, not a pinned import, now decides what agents read. It writes nothing when reason is blank for a
 // replacement or given without one, when the configuration changed after planning, or when any file exists.
 func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, error) {
 	if p == nil || p.id == "" {
@@ -133,7 +139,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 	case p.replaces == "" && reason != "":
 		return AuthoringResult{}, &rules.ValidationError{Location: "--reason", Problem: "the project doesn't import this rule, so the fork replaces nothing and has no exclusion to record a reason in"}
 	}
-	return editProject(ctx, p.options, func(root *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
+	result, err := editProject(ctx, p.options, func(root *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
 		if !bytes.Equal(original, p.configBytes) {
 			return nil, failure("concurrent-change", "the project's configuration changed after the fork was planned; run the command again", nil)
 		}
@@ -151,7 +157,11 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 			}
 		}
 		if p.replaces != "" {
-			edited, err := rules.EditConfigurationSource(original, p.replaces, rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: replacedBy}}})
+			edit := rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: replacedBy}}}
+			if p.pin != nil {
+				edit.Unpin = []string{p.id}
+			}
+			edited, err := rules.EditConfigurationSource(original, p.replaces, edit)
 			if err != nil {
 				return nil, err
 			}
@@ -159,6 +169,10 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 		}
 		return files, nil
 	})
+	if err == nil && p.pin != nil {
+		result.Warnings = append(result.Warnings, fmt.Sprintf("Removed sources.%s.pins.%s, which kept the rule at %s, because the fork replaces the imported rule. Updates now list it as replaced, with the library's newer versions for you to compare with the fork.", p.replaces, p.id, p.pin.Version))
+	}
+	return result, err
 }
 
 // groupFiles returns the files that create the rule's local group from the library's metadata, and the group's
