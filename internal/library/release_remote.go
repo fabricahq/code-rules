@@ -234,11 +234,11 @@ func (g *libraryGit) localReleaseTags(ctx context.Context) (map[int]releasetag.T
 // unless that tag is on head and numbered one past the remote's latest, as a run that stopped before pushing its
 // tag leaves it; the caller must still check that tag's content. It also refuses when the fetch brings a branch
 // tip or release tag other than the ones remote lists, so every later comparison uses what was fetched. It
-// returns the unpushed tag's number and object, or 0 and "".
-func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote remoteState, head string) (int, string, error) {
+// returns the unpushed tag, or a zero Tag when there is none.
+func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote remoteState, head string) (releasetag.Tag, error) {
 	local, err := g.localReleaseTags(ctx)
 	if err != nil {
-		return 0, "", err
+		return releasetag.Tag{}, err
 	}
 	refspecs := []string{"+" + u.ref + ":" + u.tracking}
 	for _, number := range slices.Sorted(maps.Keys(remote.tags)) {
@@ -248,7 +248,7 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 		case !ok:
 			refspecs = append(refspecs, "refs/tags/"+name+":refs/tags/"+name)
 		case tag.Object != remote.tags[number]:
-			return 0, "", failure("release-tag-mismatch", name+" in this clone differs from "+name+" on "+u.remote+". Release tags must never change, because projects may have imported them. Find out which one is the original and restore it; to discard this clone's copy, run git tag --delete "+name+".", nil)
+			return releasetag.Tag{}, failure("release-tag-mismatch", name+" in this clone differs from "+name+" on "+u.remote+". Release tags must never change, because projects may have imported them. Find out which one is the original and restore it; to discard this clone's copy, run git tag --delete "+name+".", nil)
 		}
 	}
 	unpublished := 0
@@ -258,21 +258,21 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 		}
 		name := "release/" + strconv.Itoa(number)
 		if number != remote.latest()+1 || local[number].Target != head {
-			return 0, "", failure("release-tag-mismatch", name+" exists in this clone but not on "+u.remote+". Only code-rules library release creates release tags; if you created it by hand, delete it with git tag --delete "+name+", then run code-rules library release again.", nil)
+			return releasetag.Tag{}, failure("release-tag-mismatch", name+" exists in this clone but not on "+u.remote+". Only code-rules library release creates release tags; if you created it by hand, delete it with git tag --delete "+name+", then run code-rules library release again.", nil)
 		}
 		unpublished = number
 	}
 	result, err := g.runner.Run(ctx, g.dir, []string{"fetch", "--no-tags", "--stdin", "--", u.remote}, 1024*1024, []byte(strings.Join(refspecs, "\n")+"\n"))
 	if err != nil {
-		return 0, "", fmt.Errorf("fetch remote=%q: %w", u.remote, err)
+		return releasetag.Tag{}, fmt.Errorf("fetch remote=%q: %w", u.remote, err)
 	}
 	if result.Status != 0 {
-		return 0, "", failure("fetch-failed", "Git couldn't fetch from "+u.remote+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
+		return releasetag.Tag{}, failure("fetch-failed", "Git couldn't fetch from "+u.remote+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
 	}
 	if err := g.requireFetched(ctx, u, remote); err != nil {
-		return 0, "", err
+		return releasetag.Tag{}, err
 	}
-	return unpublished, local[unpublished].Object, nil
+	return local[unpublished], nil
 }
 
 // requireFetched refuses when what the fetch brought differs from what listing the remote showed: the branch

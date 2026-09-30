@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/releasetag"
@@ -99,10 +98,11 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	if result.Commit, err = git.headCommit(ctx); err != nil {
 		return ReleaseResult{}, err
 	}
-	unpushed, unpushedObject, err := git.syncReleaseTags(ctx, branch, remote, result.Commit)
+	unpushedTag, err := git.syncReleaseTags(ctx, branch, remote, result.Commit)
 	if err != nil {
 		return ReleaseResult{}, err
 	}
+	unpushed := unpushedTag.Number
 	if err = git.requireCurrent(ctx, branch, remote.head, result.Commit); err != nil {
 		return ReleaseResult{}, err
 	}
@@ -149,11 +149,11 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		}
 		if unpushed != 0 {
 			// An interrupted run left its tag on this commit; push it only if it publishes what this run would.
-			if err = git.requireUnpublishedTag(ctx, unpushed, unpushedObject, planned); err != nil {
+			if err = git.requireUnpublishedTag(ctx, unpushedTag, planned); err != nil {
 				return ReleaseResult{}, err
 			}
 			describe(&result, planned.record, planned.notes)
-			object = unpushedObject
+			object = unpushedTag.Object
 			if err = requireGitHubCLI(); err != nil {
 				return ReleaseResult{}, err
 			}
@@ -233,23 +233,15 @@ func planRelease(ctx context.Context, git *libraryGit, checked checkedLibrary, h
 	return planned, nil
 }
 
-// requireUnpublishedTag refuses to publish release tag number, object in this clone, unless its release notes
-// and record are exactly those of planned, the library release its commit would publish now.
-func (g *libraryGit) requireUnpublishedTag(ctx context.Context, number int, object string, planned plannedRelease) error {
-	name := "release/" + strconv.Itoa(number)
+// requireUnpublishedTag refuses to publish tag, a release tag only this clone has, unless its release notes and
+// record are exactly those of planned, the library release its commit would publish now.
+func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.Tag, planned plannedRelease) error {
+	name := tag.Name()
 	// The whole object counts, including a signature the record's parser ignores, because projects read the object.
-	size, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "-s", object}, 4096)
-	if err != nil {
-		return fmt.Errorf("read the size of tag=%q: %w", name, err)
-	}
-	objectSize, err := strconv.Atoi(strings.TrimSpace(string(size)))
-	if err != nil {
-		return failure("git-failed", "Git reported the size of "+name+" in an unexpected format", nil)
-	}
-	if err := requireTagSize(name, objectSize); err != nil {
+	if err := requireTagSize(name, tag.Size); err != nil {
 		return fmt.Errorf("%w This clone's %s is that large; delete it with git tag --delete %s", err, name, name)
 	}
-	body, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "tag", object}, releasetag.MaxBytes+64*1024)
+	body, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "tag", tag.Object}, releasetag.MaxBytes+64*1024)
 	if err != nil {
 		return fmt.Errorf("read tag=%q: %w", name, err)
 	}
