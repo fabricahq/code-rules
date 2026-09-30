@@ -6,6 +6,7 @@ package project
 import (
 	"context"
 	"errors"
+	"os"
 	"reflect"
 	"slices"
 	"strings"
@@ -144,26 +145,33 @@ func TestUpdate_AppliesThePreviewedVersionsAfterANewerLibraryRelease(t *testing.
 
 // TestUpdate_RefusesAProjectChangedAfterThePreview writes nothing when configuration changed in between.
 func TestUpdate_RefusesAProjectChangedAfterThePreview(t *testing.T) {
-	options, git, _ := syncedProject(t)
-	plan, err := PlanUpdate(context.Background(), options, git, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	root, err := openProject(context.Background(), options, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer root.Close()
-	data, err := root.ReadFile(configurationFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	writeFixture(t, root, configurationFile, string(data)+"\n")
-	before := projectTree(t, options)
-	_, err = plan.Apply(context.Background(), nil)
-	projectCode(t, err, "concurrent-change")
-	if after := projectTree(t, options); after.Digest() != before.Digest() {
-		t.Fatal("a refused update changed the project")
+	for _, file := range []string{configurationFile, "local/techs/go/errors.md", "vendor/team/techs/go/errors.md", "generated/RULES.md"} {
+		t.Run(file, func(t *testing.T) {
+			options, git, _ := syncedProject(t)
+			plan, err := PlanUpdate(context.Background(), options, git, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			root, err := openProject(context.Background(), options, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			data, err := root.ReadFile(file)
+			if errors.Is(err, os.ErrNotExist) {
+				data, err = []byte(projectRule), nil
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeFixture(t, root, file, string(data)+"\n")
+			before := projectTree(t, options)
+			_, err = plan.Apply(context.Background(), nil)
+			projectCode(t, err, "concurrent-change")
+			if after := projectTree(t, options); after.Digest() != before.Digest() {
+				t.Fatal("a refused update changed the project")
+			}
+		})
 	}
 }
 
