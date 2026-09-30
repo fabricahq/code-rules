@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 	"syscall"
 
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -20,17 +21,21 @@ import (
 
 const transactionName = ".code-rules-transaction"
 
-// backupNames are the transaction's backups of each target's previous output.
-var backupNames = []string{"old-vendor", "old-generated", "old-README.md", "old-CODE_RULES.md", "old-config.yaml"}
+// backupPrefix begins the name of each backup of a target's previous output in the transaction directory.
+const backupPrefix = "old-"
 
 // maxJournalEntries is how many targets a journal of each format version can hold: format 2 holds the two managed
-// trees, format 3 adds a project guide, and format 4 adds the configuration.
-var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4}
+// trees, format 3 adds a project guide, format 4 adds the configuration, and format 5 adds local group metadata.
+var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4, 5: 4 + maxLocalGroupMetadata}
+
+// maxJournalFormat is the newest journal format; Apply writes the oldest one that can hold its targets.
+const maxJournalFormat = 5
 
 const lockName = ".code-rules-lock"
 const cleanupName = ".code-rules-cleanup"
 
-// Target is a managed directory, project guide, or the project configuration. Authored rules are never targets.
+// Target is a managed directory, project guide, the project configuration, or a local group's metadata. Authored
+// rules are never targets.
 type Target string
 
 const (
@@ -174,9 +179,13 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			return failure("invalid-target", "only one project guide may be replaced", nil)
 		}
 	}
+	order := []Target{Vendor, Generated, GuideReadme, GuideStandalone, Config}
 	for target, files := range output {
 		if !validTarget(target) {
-			return failure("invalid-target", fmt.Sprintf("%q: only managed trees and project guides may be replaced", target), nil)
+			return failure("invalid-target", fmt.Sprintf("%q: only managed trees, project guides, the configuration, and local group metadata may be replaced", target), nil)
+		}
+		if localGroupMetadataTarget(target) {
+			order = append(order, target)
 		}
 		if fileTarget(target) {
 			if err := rejectAlias(w.root, string(target)); err != nil {
@@ -187,6 +196,12 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			return err
 		}
 	}
+	// Local group metadata follows the fixed targets in path order, so journals are deterministic.
+	fixed := 5
+	if len(order)-fixed > maxLocalGroupMetadata {
+		return failure("invalid-target", fmt.Sprintf("one transaction can hold at most %d local group metadata files", maxLocalGroupMetadata), nil)
+	}
+	slices.Sort(order[fixed:])
 	if err := w.root.Mkdir(transactionName, 0700); err != nil {
 		return err
 	}
@@ -206,7 +221,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		}
 	}()
 	entries := []journalEntry{}
-	for _, target := range []Target{Vendor, Generated, GuideReadme, GuideStandalone, Config} {
+	for _, target := range order {
 		files, ok := output[target]
 		if !ok {
 			continue
@@ -215,7 +230,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		if err != nil {
 			return err
 		}
-		staged := path.Join(transactionName, "new-"+string(target))
+		staged := path.Join(transactionName, "new-"+entryName(target))
 		if err := writeTarget(w.ctx, w.root, target, staged, files); err != nil {
 			return err
 		}
@@ -247,11 +262,13 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 	}
 	formatVersion := 2
 	for _, entry := range entries {
-		if guideTarget(entry.Name) {
+		switch {
+		case guideTarget(entry.Name):
 			formatVersion = max(formatVersion, 3)
-		}
-		if entry.Name == Config {
-			formatVersion = 4
+		case entry.Name == Config:
+			formatVersion = max(formatVersion, 4)
+		case localGroupMetadataTarget(entry.Name):
+			formatVersion = 5
 		}
 	}
 	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{formatVersion, entries}); err != nil {
@@ -263,7 +280,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			return err
 		}
 		if entry.Existed {
-			backupPath := path.Join(transactionName, "old-"+string(entry.Name))
+			backupPath := path.Join(transactionName, backupPrefix+entryName(entry.Name))
 			if err := w.rename(string(entry.Name), backupPath); err != nil {
 				return err
 			}
@@ -276,7 +293,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 				return failure("concurrent-change", string(entry.Name)+": output changed before replacement; preserve its backup", nil)
 			}
 		}
-		if err := w.rename(path.Join(transactionName, "new-"+string(entry.Name)), string(entry.Name)); err != nil {
+		if err := w.rename(path.Join(transactionName, "new-"+entryName(entry.Name)), string(entry.Name)); err != nil {
 			return err
 		}
 	}
@@ -321,12 +338,12 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	data, hasJournal := tree.Files["journal.json"]
 	if !hasJournal {
 		for _, dir := range tree.Directories {
-			if slices.Contains(backupNames, dir) {
+			if strings.HasPrefix(dir, backupPrefix) {
 				return failure("recovery-required", "missing journal with retained output; preserve transaction files for manual recovery", nil)
 			}
 		}
-		for _, name := range backupNames {
-			if _, ok := tree.Files[name]; ok {
+		for name := range tree.Files {
+			if strings.HasPrefix(name, backupPrefix) && !strings.Contains(name, "/") {
 				return failure("recovery-required", "missing journal with retained backup; preserve transaction files", nil)
 			}
 		}
@@ -350,12 +367,12 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		}
 	}
 	var record journalRecord
-	if json.Unmarshal(data, &record) != nil || record.FormatVersion < 1 || record.FormatVersion > 4 || len(record.Entries) == 0 || len(record.Entries) > maxJournalEntries[record.FormatVersion] {
+	if json.Unmarshal(data, &record) != nil || record.FormatVersion < 1 || record.FormatVersion > maxJournalFormat || len(record.Entries) == 0 || len(record.Entries) > maxJournalEntries[record.FormatVersion] {
 		return failure("recovery-required", "invalid transaction journal; preserve it for manual recovery", nil)
 	}
 	seen := map[Target]bool{}
 	for _, entry := range record.Entries {
-		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || entry.After == treeDigest(nil) {
+		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4) || (localGroupMetadataTarget(entry.Name) && record.FormatVersion < 5)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || entry.After == treeDigest(nil) {
 			return failure("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
 		}
 		seen[entry.Name] = true
@@ -372,7 +389,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		if err != nil {
 			return err
 		}
-		backup, err := readTarget(ctx, root, entry.Name, path.Join(transactionName, "old-"+string(entry.Name)))
+		backup, err := readTarget(ctx, root, entry.Name, path.Join(transactionName, backupPrefix+entryName(entry.Name)))
 		if err != nil {
 			return err
 		}
@@ -382,7 +399,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		if committed {
 			continue
 		}
-		discarded, err := readTarget(ctx, root, entry.Name, path.Join(transactionName, "discarded-"+string(entry.Name)))
+		discarded, err := readTarget(ctx, root, entry.Name, path.Join(transactionName, "discarded-"+entryName(entry.Name)))
 		if err != nil {
 			return err
 		}
@@ -420,7 +437,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		}
 	}
 	for _, entry := range slices.Backward(record.Entries) {
-		backup := path.Join(transactionName, "old-"+string(entry.Name))
+		backup := path.Join(transactionName, backupPrefix+entryName(entry.Name))
 		present, err := exists(root, backup)
 		if err != nil {
 			return err
@@ -433,7 +450,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 				return err
 			}
 			if current {
-				discardedPath := path.Join(transactionName, "discarded-"+string(entry.Name))
+				discardedPath := path.Join(transactionName, "discarded-"+entryName(entry.Name))
 				already, err := exists(root, discardedPath)
 				if err != nil {
 					return err

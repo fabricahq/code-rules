@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // GuideReadme and GuideStandalone are managed files, not permission to replace a general project README.
@@ -21,14 +24,40 @@ const (
 // so its pins and exclusions and the output they select are installed or recovered together.
 const Config Target = "config.yaml"
 
+// LocalGroupMetadata is the metadata file of the local group with ID group, local/<group>/_group.yaml; group must be
+// a valid group ID. Sync and update create it together with vendor and generated output when the project's local
+// rules in the group lose the only imported copy of its metadata, so recovery keeps the two consistent. Its
+// directory must already exist.
+func LocalGroupMetadata(group string) Target { return Target("local/" + group + "/_group.yaml") }
+
+// maxLocalGroupMetadata bounds the local group metadata files one transaction can create, so its journal stays
+// small enough to read during recovery.
+const maxLocalGroupMetadata = 1000
+
 func guideTarget(target Target) bool { return target == GuideReadme || target == GuideStandalone }
 
+// localGroupMetadataTarget reports whether target is a LocalGroupMetadata target of a valid group ID.
+func localGroupMetadataTarget(target Target) bool {
+	group, local := strings.CutPrefix(string(target), "local/")
+	group, metadata := strings.CutSuffix(group, "/_group.yaml")
+	return local && metadata && rules.ValidateGroupID(group, "group") == nil
+}
+
 // fileTarget reports whether target is a single file rather than a directory tree.
-func fileTarget(target Target) bool { return guideTarget(target) || target == Config }
+func fileTarget(target Target) bool {
+	return guideTarget(target) || target == Config || localGroupMetadataTarget(target)
+}
 
 func validTarget(target Target) bool {
 	return target == Vendor || target == Generated || fileTarget(target)
 }
+
+// entryName names target's staged output, backup, and displaced copy inside the transaction directory, which holds
+// no subdirectories for file targets: a local group metadata path's slashes become +, which no target contains.
+func entryName(target Target) string { return strings.ReplaceAll(string(target), "/", "+") }
+
+// renameCheck is where Apply probes that this filesystem can publish a file target without replacing another file.
+var renameCheck = path.Join(transactionName, "rename-check")
 
 // readTarget represents a managed file as a one-file inventory with a stable key across staging and recovery.
 func readTarget(ctx context.Context, root *os.Root, target Target, location string) (*Tree, error) {
@@ -63,15 +92,15 @@ func writeTarget(ctx context.Context, root *os.Root, target Target, location str
 	return errors.Join(writeErr, closeErr)
 }
 
-// renameManaged publishes guide and configuration files without replacing a file created after the last validation.
-// Parent descriptors come from os.Root so the platform rename retains root confinement.
+// renameManaged publishes file targets, and probes publishing them, without replacing a file created after the last
+// validation. Parent descriptors come from os.Root so the platform rename retains root confinement.
 func renameManaged(root *os.Root, from, to string) error {
 	return renameManagedWith(root, from, to, renameExclusive)
 }
 
 // renameManagedWith supplies the platform boundary for filesystem capability tests.
 func renameManagedWith(root *os.Root, from, to string, exclusive func(int, string, int, string) error) error {
-	if !fileTarget(Target(path.Base(to))) {
+	if !fileTarget(Target(to)) && path.Dir(to) != renameCheck {
 		return root.Rename(from, to)
 	}
 	source, err := root.Open(path.Dir(from))
@@ -90,16 +119,15 @@ func renameManagedWith(root *os.Root, from, to string, exclusive func(int, strin
 // probeFileRename checks actual staged bytes on this filesystem before any live output is displaced.
 // Hard-link fallbacks are unsuitable: interrupted link/unlink pairs violate recovery's no-hard-link policy.
 func (w *Writer) probeFileRename(target Target, staged string) error {
-	directory := path.Join(transactionName, "rename-check")
-	if err := w.root.Mkdir(directory, 0700); err != nil {
+	if err := w.root.Mkdir(renameCheck, 0700); err != nil {
 		return err
 	}
-	destination := path.Join(directory, string(target))
+	destination := path.Join(renameCheck, entryName(target))
 	if err := w.rename(staged, destination); err != nil {
 		return fmt.Errorf("cannot safely publish %s on this filesystem; existing files were not changed: %w", target, err)
 	}
 	if err := w.root.Rename(destination, staged); err != nil {
 		return err
 	}
-	return w.root.Remove(directory)
+	return w.root.Remove(renameCheck)
 }
