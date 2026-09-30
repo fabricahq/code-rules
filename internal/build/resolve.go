@@ -53,7 +53,6 @@ type resolvedGroup struct {
 
 // resolvedSource records the adopted revision and complete retained inventory, including excluded rules.
 // Files contains supporting bytes and inactive upstream documents; active rules own their original documents.
-// Stored maps each library path in Paths to where the snapshot stores it, relative to vendor/<source>/.
 type resolvedSource struct {
 	Name       string                          `json:"name"`
 	Repository string                          `json:"repository"`
@@ -67,7 +66,6 @@ type resolvedSource struct {
 	Versions   map[string]library.ImportedRule `json:"rules"`
 	License    *rules.LicenseDeclaration       `json:"license"`
 	Paths      []string                        `json:"paths"`
-	Stored     map[string]string               `json:"stored"`
 	Files      map[string][]byte               `json:"retainedFiles"`
 }
 
@@ -206,12 +204,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		paths := supplied.Catalog.Paths()
-		stored := make(map[string]string, len(paths))
-		for _, file := range paths {
-			stored[file] = snapshot.StoredPath(file)
-		}
-		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Pins: source.Pins, Release: snapshot.Release, Commit: ref.SHA, Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, License: supplied.Catalog.License, Paths: paths, Stored: stored, Files: retained})
+		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Pins: source.Pins, Release: snapshot.Release, Commit: ref.SHA, Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {

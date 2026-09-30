@@ -201,11 +201,10 @@ func TestOfflineRejectsSemanticCorruptionBeyondDigests(t *testing.T) {
 }
 
 // TestOfflineRejectsRuleFilesTheRecordDoesntDescribe detects tampering that keeps every digest consistent: a rule
-// file with no version record, and a rule stored under another library release's directory.
+// file with no version record.
 func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 	for name, move := range map[string][2]string{
-		"unrecorded rule":         {"", "techs/go/extra.md"},
-		"rule in the wrong place": {"techs/go/errors.md", "_releases/1/techs/go/errors.md"},
+		"unrecorded rule": {"", "techs/go/extra.md"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			root, options := importedProject(t)

@@ -104,7 +104,7 @@ func importLibrary(ctx context.Context, source rules.Source, recorded *library.S
 		}
 	}
 	snapshot.Files = map[string][]byte{}
-	for file, data := range snapshot.Store(catalog) {
+	for file, data := range catalog.Files() {
 		snapshot.Files[file] = bytes.Clone(data)
 	}
 	if err := ctx.Err(); err != nil {

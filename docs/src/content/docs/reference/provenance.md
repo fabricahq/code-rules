@@ -122,7 +122,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
 | `ruleSelection` | Your configured list of individually selected rules. Omitted when you select none. |
 | `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
-| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Files of rules from a different library release than `release` are stored under `_releases/<number>/`. |
+| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. |
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
 

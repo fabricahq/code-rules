@@ -209,9 +209,6 @@ func TestResolveRecordsEachRulesVersionAndCommit(t *testing.T) {
 	if origin.Commit != older || origin.Version == nil || *origin.Version != version || origin.Release != 2 {
 		t.Fatalf("origin %+v", origin)
 	}
-	if stored := got.Sources[0].Stored["techs/go/errors.md"]; stored != "_releases/2/techs/go/errors.md" {
-		t.Fatalf("stored at %q", stored)
-	}
 	delete(team.Snapshot.Rules, "techs/go/errors")
 	if _, err := resolve(config, libraries, nil); err == nil {
 		t.Fatal("resolved a rule without a version record")

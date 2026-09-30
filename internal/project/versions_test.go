@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -106,8 +108,8 @@ func TestSync_RestoresRecordedVersionsAndMovesOnlyPinnedRules(t *testing.T) {
 	if len(got) != 2 || got["techs/go/errors"] != "1.0.0@1" || got["techs/go/extra"] != "1.0.0@2" || record.Release != 2 {
 		t.Fatalf("pinned down with a new rule: %v, release %d", got, record.Release)
 	}
-	if _, ok := record.Files["_releases/1/techs/go/errors.md"]; !ok {
-		t.Fatalf("older rule isn't stored under _releases/1/: %v", record.Files)
+	if string(record.Files["techs/go/errors.md"]) != projectRule {
+		t.Fatalf("older rule's version 1.0.0 isn't stored at its library path: %q", record.Files["techs/go/errors.md"])
 	}
 	requireCurrent(t, options)
 }
@@ -168,4 +170,46 @@ func TestSync_ReportsCodesForMissingLibraryReleases(t *testing.T) {
 	if !errors.As(err, &failure) || failure.Code != "releases-not-found" {
 		t.Fatalf("got %v", err)
 	}
+}
+
+// TestSync_StoresOlderRulesAtTheirLibraryPaths keeps an older rule's attachment beside the shared files it links
+// to, so relative links in the vendored copy still resolve.
+func TestSync_StoresOlderRulesAtTheirLibraryPaths(t *testing.T) {
+	ctx := context.Background()
+	f, err := gitfixture.New(ctx, map[string][]byte{
+		"rule-library.yaml":               []byte(`{"formatVersion":1}`),
+		"techs/go/_group.yaml":            []byte(projectMetadata),
+		"techs/go/errors.md":              []byte(projectRule + "\n[Guide](assets/errors/guide.md)\n"),
+		"techs/go/assets/errors/guide.md": []byte("[Shared](../../../../assets/shared.md)\n"),
+		"assets/shared.md":                []byte("Shared explanation.\n"),
+		"techs/go/naming.md":              []byte(projectRule),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	if err := f.Release(ctx, 1, "release: 1\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n  techs/go/naming: {change: new, summary: Add the rule.}\n"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/naming.md": []byte(projectRule + "\nMore.\n")}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 2, "release: 2\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.1.0\nchanges:\n  techs/go/naming: {change: minor, from: 1.0.0, summary: Add more.}\n"); err != nil {
+		t.Fatal(err)
+	}
+	_, options, _ := syncProject(t)
+	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}})
+	if _, err := Sync(ctx, options, imports.Options{GitPath: f.GitPath, Environment: f.Environment}); err != nil {
+		t.Fatal(err)
+	}
+	record, versions := recordedVersions(t, options)
+	if versions["techs/go/errors"] != "1.0.0@1" || record.Release != 2 {
+		t.Fatalf("versions %v, release %d", versions, record.Release)
+	}
+	for _, file := range []string{"techs/go/errors.md", "techs/go/assets/errors/guide.md", "assets/shared.md"} {
+		if _, ok := record.Files[file]; !ok {
+			t.Errorf("%s isn't stored at its library path: %v", file, slices.Sorted(maps.Keys(record.Files)))
+		}
+	}
+	requireCurrent(t, options)
 }

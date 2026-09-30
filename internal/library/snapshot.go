@@ -8,8 +8,6 @@ import (
 	"maps"
 	"path"
 	"slices"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -36,8 +34,8 @@ type Snapshot struct {
 	RuleSelection []string `json:"ruleSelection"`
 	// Rules maps each imported rule's library rule ID, however it was selected, to its version record.
 	Rules map[string]ImportedRule `json:"rules"`
-	// Files maps each stored path to its original bytes. A rule from a library release other than Release is stored
-	// under _releases/<number>/; see StoredPath. Files excludes _source.json.
+	// Files maps each library path to its original bytes, excluding _source.json. The snapshot holds one version of
+	// each imported rule, so every file is stored at its library path.
 	Files map[string][]byte `json:"files"`
 }
 
@@ -51,58 +49,9 @@ type ImportedRule struct {
 	Commit string `json:"commit"`
 }
 
-// releasesDirectory holds the files of imported rules from library releases other than the snapshot's own.
-const releasesDirectory = "_releases/"
-
-// StoredPath returns where the snapshot stores the library file at file: the same path, or, for a file of an
-// imported rule that a library release other than Release published, that path under _releases/<number>/.
-func (s Snapshot) StoredPath(file string) string {
-	id, ok := rules.VersionedRule(file)
-	if !ok {
-		return file
-	}
-	rule, ok := s.Rules[id]
-	if !ok || rule.Release == s.Release || rule.Version == nil {
-		return file
-	}
-	return releasesDirectory + strconv.Itoa(rule.Release) + "/" + file
-}
-
-// Store returns the stored files for catalog, which must be loaded from this snapshot's rules: each file's bytes,
-// shared with the catalog, at its StoredPath.
-func (s Snapshot) Store(catalog Catalog) map[string][]byte {
-	stored := make(map[string][]byte, len(catalog.SupportingFiles))
-	for file, data := range catalog.SupportingFiles {
-		stored[s.StoredPath(file)] = data
-	}
-	for _, group := range catalog.Groups {
-		for _, rule := range group.Rules {
-			stored[s.StoredPath(rule.Path)] = []byte(rule.Document)
-		}
-	}
-	return stored
-}
-
-// Source returns the snapshot's files at their library paths, as the catalog loader reads them: a file stored
-// under _releases/<number>/ appears without that prefix. It fails when a stored path is malformed or two stored
-// files share a library path. Whether each file is stored where StoredPath says is for the caller to compare.
-func (s Snapshot) Source() (FileSource, error) {
-	files := make(map[string][]byte, len(s.Files))
-	for _, stored := range slices.Sorted(maps.Keys(s.Files)) {
-		file := stored
-		if rest, ok := strings.CutPrefix(stored, releasesDirectory); ok {
-			number, inner, found := strings.Cut(rest, "/")
-			if _, err := rules.ParseReleaseTag("release/" + number); err != nil || !found {
-				return nil, bad(stored, "expected a rule file under _releases/<number>/")
-			}
-			file = inner
-		}
-		if _, exists := files[file]; exists {
-			return nil, bad(stored, "the snapshot stores "+file+" more than once")
-		}
-		files[file] = s.Files[stored]
-	}
-	return newMemoryFiles(files), nil
+// Source returns the snapshot's files for the catalog loader to read.
+func (s Snapshot) Source() FileSource {
+	return newMemoryFiles(s.Files)
 }
 
 // memoryFiles lends in-memory files and the directories their paths imply to the catalog reader.

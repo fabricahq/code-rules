@@ -423,6 +423,21 @@ func (c Catalog) Paths() []string {
 	return paths
 }
 
+// Files returns the original bytes of every file the catalog holds, rule documents included, by library path.
+// The bytes are shared with the catalog.
+func (c Catalog) Files() map[string][]byte {
+	files := make(map[string][]byte, len(c.SupportingFiles))
+	for file, data := range c.SupportingFiles {
+		files[file] = data
+	}
+	for _, group := range c.Groups {
+		for _, rule := range group.Rules {
+			files[rule.Path] = []byte(rule.Document)
+		}
+	}
+	return files
+}
+
 // termDirectory identifies directories containing only declared terms, without hiding actual groups.
 func (r *reader) termDirectory(directory string, terms []string) (bool, error) {
 	hasTerm := false

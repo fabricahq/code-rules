@@ -30,7 +30,7 @@ func snapshotConfig(t *testing.T, fields string) rules.Configuration {
 }
 
 // snapshotFixture supplies a source that follows rule versions: errors at 1.1.0 from library release 2, which
-// supplies the library-wide files, and naming at 1.0.0 from library release 1, stored under _releases/1/.
+// supplies the library-wide files, and naming at 1.0.0 from library release 1.
 // Files include original binary and CRLF bytes.
 func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
@@ -39,11 +39,11 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Pins: map[string]rules.Pin{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne}},
 		Files: map[string][]byte{
-			"rule-library.yaml":              []byte(`{"formatVersion":1}`),
-			"techs/go/_group.yaml":           []byte(`{"name":"Go","description":"Go rules","whenToRead":"When editing Go."}`),
-			"techs/go/errors.md":             []byte(projectRule),
-			"_releases/1/techs/go/naming.md": []byte(projectRule),
-			"assets/image.bin":               {0, 255, 10, 128}, "LICENSE": []byte("Terms\r\nPreserved\r\n"), "empty.txt": {},
+			"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+			"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Go rules","whenToRead":"When editing Go."}`),
+			"techs/go/errors.md":   []byte(projectRule),
+			"techs/go/naming.md":   []byte(projectRule),
+			"assets/image.bin":     {0, 255, 10, 128}, "LICENSE": []byte("Terms\r\nPreserved\r\n"), "empty.txt": {},
 		}}}
 }
 
@@ -200,7 +200,7 @@ func TestSnapshotCorruptionReturnsNoPartialResult(t *testing.T) {
 	}{
 		{"missing record", func(v map[string][]byte) { delete(v, "team/_source.json") }},
 		{"missing content", func(v map[string][]byte) { delete(v, "team/LICENSE") }},
-		{"missing older rule", func(v map[string][]byte) { delete(v, "team/_releases/1/techs/go/naming.md") }},
+		{"missing older rule", func(v map[string][]byte) { delete(v, "team/techs/go/naming.md") }},
 		{"changed bytes", func(v map[string][]byte) { v["team/LICENSE"] = []byte("Terms\nPreserved\n") }},
 		{"extra content", func(v map[string][]byte) { v["team/untracked"] = []byte("x") }},
 		{"removed source", func(v map[string][]byte) { v["retired/_source.json"] = []byte("{}") }},

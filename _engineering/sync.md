@@ -5,7 +5,7 @@
 - `Initialize`, `AddLocalGroup`, `AddLocalRule`, and `AddSource` create or update authored project state without fetching libraries or generating output.
 - `PlanLocalGroup`, `PlanLocalRule`, and `PlanSource` check targets before prompts collect input; each plan's `Commit` revalidates under writer ownership.
 - `Sync` imports all configured Git sources, validates and renders the full result, then installs vendor and generated files together. Each source's `vendor/<source>/_source.json` is its lockfile: sync restores the recorded rule versions and chooses versions only where configuration asks for something the record doesn't have.
-- `Build` and `Check` load each source from its verified vendored bytes, assembling rules stored under `_releases/<number>/` at their library paths, and require the record to describe exactly those rules and files.
+- `Build` and `Check` load each source from its verified vendored bytes, stored at their library paths, and require the record to describe exactly those rules and files.
 - `Build` verifies persisted source identity and original-byte digests, then regenerates offline.
 - `Check` compares generated output and the managed project guide in one optimistic snapshot, without writes or Git access. It returns typed problems with config-relative paths and repair actions. Staleness is a report; invalid input or concurrent edits are errors. The CLI formats messages and repair commands and selects the exit status.
 

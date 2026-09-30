@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"maps"
 	"os"
 	"slices"
@@ -203,10 +202,6 @@ func prepareProject(ctx context.Context, state projectState, options Options) (b
 // loadSnapshot validates the library content of a verified snapshot, assembling each rule from the library
 // release that published it, and checks that it holds exactly the recorded rules and files.
 func loadSnapshot(ctx context.Context, source rules.Source, snapshot snapshot) (library.Catalog, error) {
-	input, err := snapshot.Source()
-	if err != nil {
-		return library.Catalog{}, fmt.Errorf("vendor/%s: %w", source.Name, err)
-	}
 	// An individually selected rule the snapshot doesn't import was retired when it was recorded.
 	individual := []string{}
 	for _, id := range source.Rules {
@@ -214,7 +209,7 @@ func loadSnapshot(ctx context.Context, source rules.Source, snapshot snapshot) (
 			individual = append(individual, id)
 		}
 	}
-	catalog, err := library.LoadSource(ctx, input, source.Name, source.Groups, individual)
+	catalog, err := library.LoadSource(ctx, snapshot.Source(), source.Name, source.Groups, individual)
 	if err != nil {
 		return library.Catalog{}, err
 	}
@@ -299,7 +294,7 @@ func verifyLoadedSnapshot(source rules.Source, catalog library.Catalog, snapshot
 	if !slices.Equal(loaded, slices.Sorted(maps.Keys(snapshot.Rules))) {
 		return failure("invalid-snapshot", source.Name+": the snapshot's rule files differ from the rules its record lists; run code-rules project sync", nil)
 	}
-	files := snapshot.Store(catalog)
+	files := catalog.Files()
 	if !slices.Equal(groups, snapshot.Groups) || !slices.Equal(slices.Sorted(maps.Keys(files)), slices.Sorted(maps.Keys(snapshot.Files))) {
 		return failure("invalid-snapshot", source.Name+": recorded groups or inventory differ from the selected library; run code-rules project sync", nil)
 	}

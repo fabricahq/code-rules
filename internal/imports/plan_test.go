@@ -118,7 +118,7 @@ func quoteJSON(text string) string {
 	return string(data)
 }
 
-// TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease stores older rules under _releases/<n>/.
+// TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease stores every file at its library path.
 func TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease(t *testing.T) {
 	h := newHistory(t)
 	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"]`), nil)
@@ -132,7 +132,7 @@ func TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease(t *test
 	if snapshot.Release != 3 || snapshot.Commit != h.commits[3] || snapshot.Rules["techs/go/d"].Commit != h.commits[2] {
 		t.Fatalf("snapshot %+v", snapshot)
 	}
-	want := []string{"_releases/2/techs/go/d.md", "rule-library.yaml", "techs/go/_group.yaml", "techs/go/a.md", "techs/go/assets/a/diagram.bin"}
+	want := []string{"rule-library.yaml", "techs/go/_group.yaml", "techs/go/a.md", "techs/go/assets/a/diagram.bin", "techs/go/d.md"}
 	if got := slices.Sorted(maps.Keys(snapshot.Files)); !reflect.DeepEqual(got, want) {
 		t.Fatalf("files %v, want %v", got, want)
 	}
@@ -156,7 +156,7 @@ func TestImport_RecordedVersionsStayWhenNewerOnesExist(t *testing.T) {
 	if want := map[string]string{"techs/go/a": "1.1.0@2", "techs/go/b": "1.0.0@1"}; !reflect.DeepEqual(versions(imported.Snapshot), want) {
 		t.Fatalf("versions %v, want %v", versions(imported.Snapshot), want)
 	}
-	if imported.Snapshot.Release != 2 || string(imported.Snapshot.Files["techs/go/a.md"]) != string(versionedRule("a 1.1.0")) || string(imported.Snapshot.Files["_releases/1/techs/go/b.md"]) != string(versionedRule("b 1.0.0")) {
+	if imported.Snapshot.Release != 2 || string(imported.Snapshot.Files["techs/go/a.md"]) != string(versionedRule("a 1.1.0")) || string(imported.Snapshot.Files["techs/go/b.md"]) != string(versionedRule("b 1.0.0")) {
 		t.Fatalf("snapshot %+v", imported.Snapshot)
 	}
 }
@@ -172,7 +172,7 @@ func TestImport_PinsMoveRulesUpAndDown(t *testing.T) {
 		t.Fatalf("versions %v, want %v", versions(down.Snapshot), want)
 	}
 	// The library-wide files come from the newest library release among the imported rule versions.
-	if down.Snapshot.Release != 2 || string(down.Snapshot.Files["_releases/1/techs/go/assets/a/diagram.bin"]) != string([]byte{1, 0}) {
+	if down.Snapshot.Release != 2 || string(down.Snapshot.Files["techs/go/assets/a/diagram.bin"]) != string([]byte{1, 0}) {
 		t.Fatalf("snapshot release %d, files %v", down.Snapshot.Release, slices.Sorted(maps.Keys(down.Snapshot.Files)))
 	}
 	up, err := h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.1.0","reason":"Ready for the example."}}`), &down.Snapshot)
