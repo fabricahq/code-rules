@@ -37,18 +37,15 @@ func (r *reader) registerPath(file string) error {
 	return nil
 }
 
-// ownedAssets retains complete rule-owned directories while exempting declared terms and term-only directories.
+// ownedAssets retains complete rule-owned directories. Declared license and notice files can't be inside them.
 // A non-nil only skips the directories of other rules.
-func (r *reader) ownedAssets(directory string, terms []string, only map[string]bool) error {
+func (r *reader) ownedAssets(directory string, only map[string]bool) error {
 	entries, err := r.entries(directory, false)
 	if err != nil {
 		return err
 	}
 	for _, entry := range entries {
 		assetPath := directory + "/" + entry.Name()
-		if slices.Contains(terms, assetPath) {
-			continue
-		}
 		owner := path.Dir(directory) + "/" + entry.Name() + ".md"
 		if only != nil && !only[strings.TrimSuffix(owner, ".md")] {
 			continue
@@ -56,18 +53,8 @@ func (r *reader) ownedAssets(directory string, terms []string, only map[string]b
 		if !entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
 			return bad(assetPath, "expected an owned assets directory")
 		}
-		onlyTerms, err := r.termDirectory(assetPath, terms)
-		if err != nil {
-			return err
-		}
-		if onlyTerms {
-			continue
-		}
 		if _, err := rules.GroupFromPath(owner, assetPath); err != nil {
 			return err
-		}
-		if slices.Contains(terms, owner) {
-			return bad(assetPath, "license files cannot own rule assets")
 		}
 		info, err := r.input.Lstat(owner)
 		if err != nil {

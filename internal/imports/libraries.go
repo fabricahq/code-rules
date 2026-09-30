@@ -134,8 +134,7 @@ func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, pla
 	files := map[string]treeEntry{}
 	prefetch := []treeEntry{}
 	for file, entry := range main {
-		_, versioned := rules.VersionedRule(file)
-		if versioned && !slices.Contains(terms, file) {
+		if _, versioned := rules.VersionedRule(file); versioned {
 			continue
 		}
 		files[file] = entry
@@ -145,7 +144,7 @@ func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, pla
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
-		owned, err := r.ruleFiles(ctx, plan.rules[id].Commit, id, terms)
+		owned, err := r.ruleFiles(ctx, plan.rules[id].Commit, id)
 		if err != nil {
 			return nil, err
 		}

@@ -64,7 +64,7 @@ func ReadPublishedRule(ctx context.Context, source rules.Source, id string, vers
 	if err != nil {
 		return PublishedRule{}, err
 	}
-	owned, err := repo.ruleFiles(ctx, release.commit, id, terms)
+	owned, err := repo.ruleFiles(ctx, release.commit, id)
 	if err != nil {
 		return PublishedRule{}, err
 	}

@@ -26,18 +26,18 @@ func forkLibrary(t *testing.T) (*gitfixture.Fixture, Options) {
 	t.Helper()
 	ctx := context.Background()
 	f := newLibraryFixture(t, map[string][]byte{
-		"rule-library.yaml":                []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":["techs/go/assets/errors/NOTICE.md"]}}`),
-		"LICENSE":                          []byte("Terms\n"),
-		"techs/go/_group.yaml":             []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}`),
-		"techs/go/errors.md":               forkRule("[Guide](../../assets/guide.md) [Notes](assets/errors/notes.md) [Notice](assets/errors/NOTICE.md)"),
-		"techs/go/assets/errors/notes.md":  []byte("![Diagram](../../../../assets/diagrams/flow.svg)\n"),
-		"techs/go/assets/errors/NOTICE.md": []byte("Notice\n"),
-		"techs/go/other.md":                forkRule("Other."),
-		"techs/go/assets/other/data.bin":   {0, 255},
-		"assets/guide.md":                  []byte("[More](more.md) [Terms](../LICENSE)\n"),
-		"assets/more.md":                   []byte("[Guide](guide.md)\n"),
-		"assets/diagrams/flow.svg":         []byte("<svg/>"),
-		"assets/unrelated.md":              []byte("Unrelated.\n"),
+		"rule-library.yaml":               []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":["assets/NOTICE.md"]}}`),
+		"LICENSE":                         []byte("Terms\n"),
+		"techs/go/_group.yaml":            []byte(`{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}`),
+		"techs/go/errors.md":              forkRule("[Guide](../../assets/guide.md) [Notes](assets/errors/notes.md) [Notice](../../assets/NOTICE.md)"),
+		"techs/go/assets/errors/notes.md": []byte("![Diagram](../../../../assets/diagrams/flow.svg)\n"),
+		"techs/go/other.md":               forkRule("Other."),
+		"techs/go/assets/other/data.bin":  {0, 255},
+		"assets/NOTICE.md":                []byte("Notice\n"),
+		"assets/guide.md":                 []byte("[More](more.md) [Terms](../LICENSE)\n"),
+		"assets/more.md":                  []byte("[Guide](guide.md)\n"),
+		"assets/diagrams/flow.svg":        []byte("<svg/>"),
+		"assets/unrelated.md":             []byte("Unrelated.\n"),
 	})
 	if err := f.Release(ctx, 1, "release: 1\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/other: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n  techs/go/other: {change: new, summary: Add the rule.}\n"); err != nil {
 		t.Fatal(err)

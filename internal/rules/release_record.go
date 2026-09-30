@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
-	"strings"
 )
 
 // ReleaseRecord is the permanent record of one library release, read from its release/<number> tag.
@@ -325,24 +324,6 @@ func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 		paths = append(paths, path)
 	}
 	return paths, nil
-}
-
-// isRuleContent reports whether path is part of some rule's version: a rule's Markdown file, or a file in an asset
-// directory inside a technology or practice group, since every such directory belongs to a rule. Group metadata
-// and the library-root assets/ directory are library-wide instead; group READMEs are authoring notes, neither
-// rule content nor library-wide.
-func isRuleContent(path string) bool {
-	parts := strings.Split(path, "/")
-	if parts[0] != "techs" && parts[0] != "practices" {
-		return false
-	}
-	if slices.Contains(parts[1:], "assets") {
-		return true
-	}
-	if _, err := GroupFromPath(path, path); err == nil {
-		return !IsGroupReadme(path)
-	}
-	return false
 }
 
 // versionField reads a rule version from YAML text. 1.3.0 is text in YAML; a number such as 1.0 is rejected.

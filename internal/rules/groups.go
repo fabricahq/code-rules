@@ -4,6 +4,7 @@ package rules
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -138,6 +139,25 @@ func VersionedRule(file string) (string, bool) {
 		return "", false
 	}
 	return strings.TrimSuffix(file, ".md"), true
+}
+
+// isRuleContent reports whether path is part of some rule's version: a rule's Markdown file, or a file in an asset
+// directory inside a technology or practice group, since every such directory belongs to a rule. Group metadata
+// and the library-root assets/ directory are library-wide instead; group READMEs are authoring notes, neither
+// rule content nor library-wide. ParseLibraryLicense rejects declared license and notice files that are rule
+// content, so every path is one or the other, never both.
+func isRuleContent(path string) bool {
+	parts := strings.Split(path, "/")
+	if parts[0] != "techs" && parts[0] != "practices" {
+		return false
+	}
+	if slices.Contains(parts[1:], "assets") {
+		return true
+	}
+	if _, err := GroupFromPath(path, path); err == nil {
+		return !IsGroupReadme(path)
+	}
+	return false
 }
 
 // IsGroupReadme recognizes only the orientation file directly inside a valid group, outside rule and asset paths.

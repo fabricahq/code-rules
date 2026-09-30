@@ -44,7 +44,7 @@ license:
 ```
 
 Discover groups only under `techs/` and `practices/`.
-Within selected groups, Markdown files outside reserved asset directories are rules. Declared license and notice files and the group-root `README.md` are exempt. Group READMEs are authoring documentation, not generated rule guidance.
+Within selected groups, Markdown files outside reserved asset directories are rules. The group-root `README.md` and declared license and notice files, which can't use a rule's path, are exempt. Group READMEs are authoring documentation, not generated rule guidance.
 [Change notes](/reference/rule-versions/#change-notes) live in the library-root `changes/` directory. Projects never import them.
 Library releases are Git tags, not files; see [Library releases](/reference/rule-versions/#library-releases).
 Other supporting files, including `_README.md`, must live in an asset directory.
@@ -70,6 +70,7 @@ The optional `license` object declares the library-wide terms. Authors should us
 | `license.notices` | Paths to accompanying notices, relative to the library root; use an empty array when none apply. |
 
 When `license` is present, `file` and `notices` are required and all declared files must exist within the library.
+Declared license and notice files are [library-wide files](/reference/rule-versions/#what-a-version-covers), so they can't be part of a rule's version: a declared path can't be a rule's Markdown file or lie in an asset directory inside a technology or practice group, such as `practices/testing/assets/verify-retry-limits/LICENSE`. Otherwise a later library release could replace a file that a project's pinned rule version covers. `code-rules library check` rejects such a declaration, and projects refuse to import a library release whose manifest has one.
 Unknown fields in the license declaration are rejected so misspellings cannot silently discard intended metadata.
 Code Rules retains the declared files from the resolved source commit and links generated rules to unchanged copies. Offline builds require those files in the stored snapshot.
 If the declaration is absent, provenance records `license: null`. A legacy declaration with files but no expression records `spdxExpression: null`; that differs from no declared terms. Code Rules never infers an identifier from a filename. It validates supplied SPDX expressions and identifiers using its bundled license list, while allowing `LicenseRef-` identifiers for custom terms. This validates the declaration format, not ownership, permissions, or agreement between the declaration and the retained text. The former `license.expression` field is rejected with a rename instruction; use `license.spdxExpression`.

@@ -447,36 +447,28 @@ func TestImport_IgnoresUnselectedGroupMetadata(t *testing.T) {
 	}
 }
 
-// TestImport_LicenseInsideARulesAssetsIsLibraryWide takes a declared license file from the library-wide commit,
-// even inside an older rule's asset directory, and leaves it out when matching a ref's rules to published versions.
-func TestImport_LicenseInsideARulesAssetsIsLibraryWide(t *testing.T) {
-	ctx := context.Background()
+// TestImport_RefusesALibraryReleaseDeclaringTermsInsideARulesVersion refuses a newer library release whose
+// manifest declares a file in a pinned rule's asset directory as its license, rather than letting that library
+// release replace the pinned version's file.
+func TestImport_RefusesALibraryReleaseDeclaringTermsInsideARulesVersion(t *testing.T) {
 	f := newLibraryFixture(t, map[string][]byte{
-		"rule-library.yaml":             []byte(`{"formatVersion":1,"license":{"file":"techs/go/assets/a/LICENSE","notices":[]}}`),
-		"techs/go/_group.yaml":          groupMetadata,
-		"techs/go/a.md":                 versionedRule("a 1.0.0"),
-		"techs/go/assets/a/diagram.bin": {1, 0},
-		"techs/go/assets/a/LICENSE":     []byte("Terms at release 1.\n"),
-		"techs/go/b.md":                 versionedRule("b 1.0.0"),
+		"rule-library.yaml":                 []byte(`{"formatVersion":1}`),
+		"techs/go/_group.yaml":              groupMetadata,
+		"techs/go/a.md":                     versionedRule("a 1.0.0"),
+		"techs/go/assets/a/requirements.md": []byte("Original requirements.\n"),
+		"techs/go/b.md":                     versionedRule("b 1.0.0"),
 	})
 	h := history{fixture: f, commits: map[int]string{}}
 	h.release(t, 1, nil, "release: 1\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.0.0\nchanges:\n  techs/go/a: {change: new, summary: Add the rule.}\n  techs/go/b: {change: new, summary: Add the rule.}\n")
-	h.release(t, 2, map[string][]byte{"techs/go/b.md": versionedRule("b 1.1.0"), "techs/go/assets/a/LICENSE": []byte("Terms at release 2.\n")},
-		"release: 2\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.1.0\nchanges:\n  techs/go/b: {change: minor, from: 1.0.0, summary: Add an example.}\n")
+	h.release(t, 2, map[string][]byte{
+		"rule-library.yaml":                 []byte(`{"formatVersion":1,"license":{"file":"techs/go/assets/a/requirements.md","notices":[]}}`),
+		"techs/go/assets/a/requirements.md": []byte("Replacement requirements.\n"),
+		"techs/go/b.md":                     versionedRule("b 1.1.0"),
+	}, "release: 2\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.1.0\nchanges:\n  techs/go/b: {change: minor, from: 1.0.0, summary: Add an example.}\n")
 	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.0.0","reason":"Keep."}}`), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if imported.Snapshot.Release != 2 || string(imported.Snapshot.Files["techs/go/assets/a/LICENSE"]) != "Terms at release 2.\n" || string(imported.Catalog.SupportingFiles["techs/go/assets/a/LICENSE"]) != "Terms at release 2.\n" {
-		t.Fatalf("release %d, license %q", imported.Snapshot.Release, imported.Snapshot.Files["techs/go/assets/a/LICENSE"])
-	}
-	commit, err := f.Commit(ctx, f.Worktree(), "Unreleased terms", map[string][]byte{"techs/go/assets/a/LICENSE": []byte("Unreleased terms.\n")})
-	if err != nil {
-		t.Fatal(err)
-	}
-	ref, err := h.sync(t, h.source(t, `"groups":["techs/go"],"ref":"`+commit+`"`), nil)
-	if err != nil || versions(ref.Snapshot)["techs/go/a"] != "1.0.0@1" {
-		t.Fatalf("versions %v, %v", versions(ref.Snapshot), err)
+	var invalid *rules.ValidationError
+	if !errors.As(err, &invalid) || !strings.Contains(invalid.Location, "rule-library.yaml: license.file") || !strings.Contains(invalid.Problem, "rule's version") {
+		t.Fatalf("imported %q with error %v; want the license declaration refused", imported.Snapshot.Files["techs/go/assets/a/requirements.md"], err)
 	}
 }
 

@@ -460,6 +460,25 @@ func TestCheck_RejectsFilesThatArentNotesInChanges(t *testing.T) {
 	}
 }
 
+// TestCheck_RejectsTermsInsideARulesVersion refuses a license file declared in a rule's asset directory, before
+// and after the first library release, instead of accepting a layout that can't be published or treating a
+// license edit as a rule change.
+func TestCheck_RejectsTermsInsideARulesVersion(t *testing.T) {
+	files := libraryFiles()
+	files["rule-library.yaml"] = []byte("formatVersion: 1\nlicense:\n  file: practices/testing/assets/a/LICENSE\n  notices: []\n")
+	files["practices/testing/assets/a/LICENSE"] = []byte("Terms.\n")
+	for name, tags := range map[string][]string{"before the first library release": nil, "after a library release": {releaseOne}} {
+		t.Run(name, func(t *testing.T) {
+			_, options := authorClone(t, files, tags...)
+			_, err := Check(context.Background(), options)
+			var invalid *rules.ValidationError
+			if !errors.As(err, &invalid) || !strings.HasSuffix(invalid.Location, "rule-library.yaml: license.file") || !strings.Contains(invalid.Problem, "belongs to a rule's version") {
+				t.Fatalf("got %v; want the license path refused", err)
+			}
+		})
+	}
+}
+
 // TestParseReleaseTag_IgnoresASignature reads the record from a signed tag, whose signature follows the message.
 func TestParseReleaseTag_IgnoresASignature(t *testing.T) {
 	object := "object 0123456789012345678901234567890123456789\ntype commit\ntag release/1\ntagger Fixture <fixture@example.invalid> 0 +0000\n\n" + releaseOne + "-----BEGIN SSH SIGNATURE-----\nU1NIU0lH\n-----END SSH SIGNATURE-----\n"
