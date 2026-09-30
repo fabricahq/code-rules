@@ -322,6 +322,13 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	if !prompted || !strings.HasPrefix(beforePrompts, updatePreview) {
 		t.Fatalf("the complete preview didn't come before the first prompt:\n%s", result.Transcript)
 	}
+	// The preview with the answers applied comes after the last question and before the confirmation.
+	transcript := strings.ReplaceAll(result.Transcript, "\r\n", "\n")
+	afterQuestions := transcript[strings.LastIndex(transcript, "Drop it, or keep 1.0.0?"):]
+	revised, _, confirmation := strings.Cut(afterQuestions, "Apply the update? [yes/no]:")
+	if !confirmation || !strings.Contains(revised, "Kept at 1.0.0 by a new pin.\n            Reason: Waiting on review.") || !strings.Contains(revised, "Excluded by a new exclusion.\n            Reason: Covered locally.") {
+		t.Fatalf("the preview with the answers didn't come before the confirmation:\n%s", result.Transcript)
+	}
 	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0", "verify": "1.0.0"}; !reflect.DeepEqual(u.versions(t), want) {
 		t.Fatalf("versions %v", u.versions(t))
 	}

@@ -51,14 +51,26 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 			return nil
 		}
 		if interactive && preview.Moves() {
-			var confirmed bool
-			if decisions, confirmed, err = askUpdateDecisions(f, preview, decisions); err != nil {
+			flagged := len(decisions)
+			if decisions, err = askUpdateDecisions(f, preview, decisions); err != nil {
 				return err
 			}
-			if !confirmed {
+			// Answers that keep or exclude rules change the preview, so people confirm what they'll get.
+			if len(decisions) > flagged {
 				if preview, err = plan.Preview(decisions); err != nil {
 					return err
 				}
+				var revised strings.Builder
+				revised.WriteString("\nWith your answers, the update is:\n\n")
+				formatUpdatePreview(&revised, preview.Sources)
+				f.introduction += revised.String()
+			}
+			f.introduction += "\n"
+			answer, err := askChoice(f, "Apply the update?", [2]string{"yes", "no"})
+			if err != nil {
+				return err
+			}
+			if answer != "yes" {
 				output.report = updateReport(preview, true)
 				return nil
 			}
@@ -125,10 +137,10 @@ func flagDecisions(keep, exclude []string, reason string) ([]project.UpdateDecis
 	return decisions, nil
 }
 
-// askUpdateDecisions shows the preview, asks about each major change, retirement, and new rule the flags didn't
-// decide, and then asks for confirmation. It returns the flags' decisions followed by the answers, and whether
-// the update was confirmed.
-func askUpdateDecisions(f *authoringFlags, preview project.UpdateResult, decisions []project.UpdateDecision) ([]project.UpdateDecision, bool, error) {
+// askUpdateDecisions shows the preview and asks about each major change, retirement, and new rule the flags
+// didn't decide. It returns the flags' decisions followed by one for each rule kept or excluded. The preview
+// stays in f.introduction when there is nothing to ask.
+func askUpdateDecisions(f *authoringFlags, preview project.UpdateResult, decisions []project.UpdateDecision) ([]project.UpdateDecision, error) {
 	var intro strings.Builder
 	formatUpdatePreview(&intro, preview.Sources)
 	f.introduction = intro.String()
@@ -163,7 +175,7 @@ func askUpdateDecisions(f *authoringFlags, preview project.UpdateResult, decisio
 			f.introduction += "\n" + context + "\n"
 			answer, err := askChoice(f, question, choices)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			if answer == choices[0] {
 				continue
@@ -175,14 +187,12 @@ func askUpdateDecisions(f *authoringFlags, preview project.UpdateResult, decisio
 				return nil
 			})
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			decisions = append(decisions, project.UpdateDecision{Source: source.Name, Rule: row.ID, Keep: row.Change != imports.UpdateNew, Reason: reason})
 		}
 	}
-	f.introduction += "\n"
-	answer, err := askChoice(f, "Apply the update?", [2]string{"yes", "no"})
-	return decisions, answer == "yes", err
+	return decisions, nil
 }
 
 // askChoice asks question until the answer is one of the two choices, or its first letter, ignoring case.
