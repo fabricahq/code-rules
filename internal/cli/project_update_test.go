@@ -309,7 +309,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	u := newUpdateFixture(t)
 	steps := []terminalfixture.Step{
 		{Prompt: "team:techs/go/errors: major change, 1.0.0 -> 2.0.0.\r\nAdopt it, or keep 1.0.0? [adopt/keep]:", Answer: "maybe"},
-		{Prompt: "answer adopt or keep", Answer: "keep"},
+		{Prompt: "\"maybe\" isn't one of the answers; answer adopt or keep, or a or k for short", Answer: "keep"},
 		{Prompt: "Reason for keeping it:", Answer: "Waiting on review."},
 		{Prompt: "team:techs/go/verify: new rule, 1.0.0.\r\nAdd it, or exclude it? [add/exclude]:", Answer: "e"},
 		{Prompt: "Reason for excluding it:", Answer: "Covered locally."},
@@ -363,13 +363,13 @@ func TestUpdate_TerminalCancellationWritesNothing(t *testing.T) {
 		text  string
 	}{
 		{"decline", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Answer: "add"}, {Prompt: "[drop/keep]:", Answer: "drop"}, {Prompt: "Apply the update? [yes/no]:", Answer: "no"}}, 0, "Update cancelled. No files were written."},
-		{"interrupt", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Interrupt: true}}, 1, ""},
+		{"interrupt", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Interrupt: true}}, 130, ""},
 		{"end of input", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", EOF: true}}, 2, ""},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			before := projectFileContents(t, u.directory)
 			result, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, test.steps)
-			if err != nil || result.ExitCode != test.code || !strings.Contains(result.Stdout, test.text) {
+			if err != nil || result.ExitCode != test.code || !strings.Contains(result.Stdout, test.text) || strings.Contains(result.Transcript, "context canceled") || strings.Contains(result.Transcript, "EOF") {
 				t.Fatalf("exit %d, %v\n%s\nstdout:\n%s", result.ExitCode, err, result.Transcript, result.Stdout)
 			}
 			if after := projectFileContents(t, u.directory); !reflect.DeepEqual(before, after) {

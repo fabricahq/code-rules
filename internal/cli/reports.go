@@ -149,7 +149,7 @@ func ruleCreatedReport(added, changed, warnings []string, draft bool, scope auth
 	if changeNote {
 		steps = []nextStep{
 			{Instruction: instruction},
-			{Instruction: "After the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:", Commands: []string{scope.command("change " + id)}},
+			{Instruction: "After the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:", Commands: []string{scope.command("change " + id + " --summary '<what the rule adds>'")}},
 			{Instruction: "Then validate the library:", Commands: commands},
 		}
 	}

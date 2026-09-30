@@ -91,14 +91,14 @@ func (c libraryChanges) review() []string {
 		case retired:
 			problems = append(problems, id+" reuses the ID of a rule that release/"+strconv.Itoa(release)+" retired. Retired IDs can't be reused; give the rule a new ID.")
 		case !published && !named[id]:
-			problems = append(problems, id+" is a new rule, and no pending change note names it. Record it with: code-rules library change "+id)
+			problems = append(problems, id+" is a new rule, and no pending change note names it. Record it with: code-rules library change "+id+" --summary '<what the rule adds>'")
 		case published && c.changed[id] && !named[id]:
-			problems = append(problems, id+" changed since "+latest.tagName()+", where its version is "+version.String()+", and no pending change note names it. Record it with: code-rules library change "+id)
+			problems = append(problems, id+" changed since "+latest.tagName()+", where its version is "+version.String()+", and no pending change note names it. Record it with: code-rules library change "+id+" --bump <major|minor|patch> --summary '<what changed>'")
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(latest.record.Rules)) {
 		if !current[id] && len(retiring[id]) == 0 {
-			problems = append(problems, id+", version "+latest.record.Rules[id].String()+", was deleted, and no pending change note retires it. Restore it, or record the retirement with: code-rules library change "+id+" --retire")
+			problems = append(problems, id+", version "+latest.record.Rules[id].String()+", was deleted, and no pending change note retires it. Restore it, or record the retirement with: code-rules library change "+id+" --retire --summary '<why it's retired>'")
 		}
 	}
 	for _, pending := range c.pending {

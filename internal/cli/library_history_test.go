@@ -71,10 +71,10 @@ func TestLibraryCheck_PreviewsThePendingLibraryRelease(t *testing.T) {
 	binary := buildCLI(t)
 	fixture, dir := releasedLibrary(t)
 	writeFiles(t, dir, map[string]string{
-		"practices/testing/a.md":       libraryRule("Test the retry limit and one past it."),
-		"practices/testing/retries.md": libraryRule("Test every retry."),
-		"changes/a.yaml":               "summary: Test one past the limit.\nrules:\n  practices/testing/a: minor\n",
-		"changes/retries.yaml":         "summary: Add a rule about testing retries.\nrules:\n  practices/testing/retries: new\n",
+		"practices/testing/a.md":        libraryRule("Test the retry limit and one past it."),
+		"practices/testing/retries.md":  libraryRule("Test every retry."),
+		"changes/a.yaml":                "summary: Test one past the limit.\nrules:\n  practices/testing/a: minor\n",
+		"changes/retries.yaml":          "summary: Add a rule about testing retries.\nrules:\n  practices/testing/retries: new\n",
 		"practices/testing/_group.yaml": "name: Testing\ndescription: Guidance for testing.\nwhenToRead: When testing.\n",
 	})
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check")
@@ -247,7 +247,7 @@ func TestLibraryChange_PromptsForMissingInputs(t *testing.T) {
 	writeFiles(t, dir, map[string]string{"practices/testing/a.md": libraryRule("Changed.")})
 	args := []string{"library", "change", "practices/testing/a"}
 	cancelled, err := terminalfixture.RunWithEnvironment(context.Background(), binary, dir, fixture.Environment, args, []terminalfixture.Step{{Prompt: "Change (major, minor, or patch):", Interrupt: true}})
-	if err != nil || cancelled.ExitCode != 1 || len(changeNotes(t, dir)) != 0 {
+	if err != nil || cancelled.ExitCode != 130 || !strings.Contains(cancelled.Transcript, "Error: cancelled; no files were written") || len(changeNotes(t, dir)) != 0 {
 		t.Fatal(err, cancelled, changeNotes(t, dir))
 	}
 	steps := []terminalfixture.Step{
@@ -273,6 +273,27 @@ func TestLibraryChange_PromptsForMissingInputs(t *testing.T) {
 	}
 }
 
+// TestLibraryChange_ReportsMisusedFlagsAsUsageErrors exits 2 for flags the rules don't accept or a missing flag
+// that it can't ask for, naming the flag, and writes nothing.
+func TestLibraryChange_ReportsMisusedFlagsAsUsageErrors(t *testing.T) {
+	binary := buildCLI(t)
+	fixture, dir := releasedLibrary(t)
+	writeFiles(t, dir, map[string]string{"practices/testing/a.md": libraryRule("Changed."), "practices/testing/new.md": libraryRule("New.")})
+	for _, test := range []struct {
+		args []string
+		text string
+	}{
+		{[]string{"practices/testing/new", "--bump", "minor", "--summary", "Add it."}, "--bump isn't accepted for new rules"},
+		{[]string{"practices/testing/a", "--summary", "Change it.", "--non-interactive"}, "--bump is required: pass it as a flag"},
+		{[]string{"practices/testing/a", "--bump", "minor"}, "--summary is required: pass it as a flag"},
+	} {
+		out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, append([]string{"library", "change"}, test.args...)...)
+		if code != 2 || !strings.Contains(diagnostic, test.text) || len(changeNotes(t, dir)) != 0 {
+			t.Fatalf("%v: exit %d, stdout %q, stderr:\n%s", test.args, code, out, diagnostic)
+		}
+	}
+}
+
 // TestLibraryChange_WarnsAboutAMissingReplacement in its output, after recording the retirement.
 func TestLibraryChange_WarnsAboutAMissingReplacement(t *testing.T) {
 	binary := buildCLI(t)
@@ -293,7 +314,7 @@ func TestLibraryAddRule_NextStepsIncludeTheChangeNote(t *testing.T) {
 	writeFiles(t, dir, map[string]string{"body.md": "Test every retry.\n"})
 	add := []string{"library", "add", "rule", "practices/testing/retries", "--title", "Test retries", "--when-to-read", "When changing retries.", "--impact", "HIGH", "--impact-description", "Catch retry bugs.", "--body-file", "body.md"}
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, add...)
-	want := "\nAfter the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:\n  code-rules library change practices/testing/retries\n\nThen validate the library:\n  code-rules library check\n"
+	want := "\nAfter the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:\n  code-rules library change practices/testing/retries --summary '<what the rule adds>'\n\nThen validate the library:\n  code-rules library check\n"
 	if code != 0 || diagnostic != "" || !strings.HasSuffix(out, want) {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}

@@ -338,7 +338,7 @@ It then computes each changed rule's next version from the pending notes, using 
 
 `--dry-run` shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes.
 
-If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Code Rules created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Code Rules and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created; JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.libraryFiles`, and `value.notes`. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, and succeeds.
+If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Code Rules created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Code Rules and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created. JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.libraryFiles`, and `value.notes`. Like other optional values that aren't lists, `value.githubRelease` is left out when the library release has no GitHub Release page: on a dry run, with `--no-github-release`, or for a repository that isn't on GitHub.com. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, and succeeds.
 
 The tag uses Git's configured identity as its tagger, including the `GIT_COMMITTER_*` environment variables.
 
@@ -386,7 +386,7 @@ Every command accepts `--json`, which prints one JSON response and disables prom
 
 Authoring commands accept `--non-interactive`. Without it, commands can prompt for missing required metadata or source selections when running in a terminal. With `--non-interactive`, `--json`, or no terminal, missing required inputs cause an error. Positional arguments such as `ID` and `ALIAS` must always be supplied.
 
-Invalid interactive answers repeat the same question while retaining earlier answers. Explicit flags are validated without prompting for replacement values. Existing groups, rules, and library aliases fail before prompts.
+Invalid interactive answers repeat the same question while retaining earlier answers; for a choice, such as `[yes/no]`, the error lists the valid answers. Without a terminal, or with `--json` or `--non-interactive`, a missing required input fails with exit code `2` and names the flag to pass, such as `--summary`. Explicit flags are validated without prompting for replacement values. Existing groups, rules, and library aliases fail before prompts.
 
 Both init commands, both check commands, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; `code-rules project check`, `code-rules project sync`, `code-rules project update`, and `code-rules project build` do not need or accept it.
 
@@ -426,7 +426,8 @@ In human mode, operational errors go to stderr. An out-of-date check prints its 
 | --- | --- |
 | `0` | Success. |
 | `1` | An operation failed, inputs are invalid, or a project check found stale output. |
-| `2` | Invalid command usage, such as an unknown command, unsupported option, or missing required CLI input. |
+| `2` | Invalid command usage, such as an unknown command, unsupported option, missing required CLI input, or options the command can't combine, such as `--bump` for a new rule in `code-rules library change`. |
+| `130` | The command was interrupted, such as with Ctrl-C, including at a prompt. It says it was cancelled; a command interrupted before writing files writes none, and one interrupted while replacing files is recovered by the next command, as [Sync and recovery](/reference/sync/) describes. JSON output reports `error.kind` as `cancelled`. |
 
 Usage errors point to the relevant help page. Operational errors identify the affected file or rule when available and describe the problem. For repair commands and interrupted updates, see [Sync and recovery](/reference/sync/).
 

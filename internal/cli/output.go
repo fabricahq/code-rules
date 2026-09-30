@@ -49,8 +49,12 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error) i
 	code := 0
 	if problem != nil {
 		code = 1
-		if problem.Kind == "usage" {
+		switch {
+		case problem.Kind == "usage":
 			code = 2
+		case errors.Is(err, context.Canceled):
+			// Only an interrupt, such as Ctrl-C, cancels a command; exit as a shell reports SIGINT.
+			code = 130
 		}
 	}
 	var writeErr error
@@ -114,7 +118,7 @@ func classifyError(err error) *responseError {
 		result.Kind = "cancelled"
 	case errors.As(err, &invalid):
 		result.Kind = "usage"
-	case result.Code == "invalid-rule-path":
+	case result.Code == "invalid-rule-path", result.Code == "invalid-arguments":
 		result.Kind = "usage"
 	case errors.As(err, &validation):
 		result.Kind = "validation"

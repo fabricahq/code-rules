@@ -185,11 +185,11 @@ func checkChange(ctx context.Context, root *os.Root, options Options, request Ch
 	}
 	switch {
 	case len(versioned) > 0 && len(unversioned) > 0:
-		return false, nil, failure("invalid-change", "--bump is required for rules that have a version ("+strings.Join(versioned, ", ")+") and not accepted for new rules ("+strings.Join(unversioned, ", ")+"). Record them in separate notes.", nil)
+		return false, nil, failure("invalid-arguments", "--bump is required for rules that have a version ("+strings.Join(versioned, ", ")+") and not accepted for new rules ("+strings.Join(unversioned, ", ")+"). Record them in separate notes.", nil)
 	case request.Bump != "" && request.Retire:
-		return false, nil, failure("invalid-change", "--bump isn't accepted for retired rules.", nil)
+		return false, nil, failure("invalid-arguments", "--bump isn't accepted for retired rules.", nil)
 	case request.Bump != "" && len(unversioned) > 0:
-		return false, nil, failure("invalid-change", "--bump isn't accepted for new rules, which start at version 1.0.0: "+strings.Join(unversioned, ", ")+".", nil)
+		return false, nil, failure("invalid-arguments", "--bump isn't accepted for new rules, which start at version 1.0.0: "+strings.Join(unversioned, ", ")+".", nil)
 	}
 	if err := requireChanged(ctx, root, git, history.latest, versioned); err != nil {
 		return false, nil, err
@@ -244,30 +244,30 @@ func ruleWorkingFiles(root *os.Root, id string) ([]string, error) {
 // validateRequest checks the request's own consistency, independently of the library.
 func validateRequest(request ChangeRequest) error {
 	if len(request.IDs) == 0 {
-		return failure("invalid-change", "name at least one rule", nil)
+		return failure("invalid-arguments", "name at least one rule", nil)
 	}
 	for i, id := range request.IDs {
 		if err := rules.ValidateRuleID(id, "ID"); err != nil {
 			return err
 		}
 		if slices.Contains(request.IDs[:i], id) {
-			return failure("invalid-change", id+" is named more than once", nil)
+			return failure("invalid-arguments", id+" is named more than once", nil)
 		}
 	}
 	switch request.Bump {
 	case "", rules.ChangeMajor, rules.ChangeMinor, rules.ChangePatch:
 	default:
-		return failure("invalid-change", "--bump must be major, minor, or patch", nil)
+		return failure("invalid-arguments", "--bump must be major, minor, or patch", nil)
 	}
 	if request.ReplacedBy != "" {
 		if !request.Retire || len(request.IDs) != 1 {
-			return failure("invalid-change", "--replaced-by requires --retire and a single rule", nil)
+			return failure("invalid-arguments", "--replaced-by requires --retire and a single rule", nil)
 		}
 		if err := rules.ValidateRuleID(request.ReplacedBy, "--replaced-by"); err != nil {
 			return err
 		}
 		if request.ReplacedBy == request.IDs[0] {
-			return failure("invalid-change", "a rule can't replace itself", nil)
+			return failure("invalid-arguments", "a rule can't replace itself", nil)
 		}
 	}
 	return nil
@@ -276,10 +276,10 @@ func validateRequest(request ChangeRequest) error {
 // requireComplete requires a summary, and a bump exactly when the rules have versions.
 func requireComplete(request ChangeRequest, versioned bool) error {
 	if strings.TrimSpace(request.Summary) == "" {
-		return failure("invalid-change", "--summary is required", nil)
+		return failure("invalid-arguments", "--summary is required", nil)
 	}
 	if versioned && request.Bump == "" {
-		return failure("invalid-change", "--bump is required for rules that have a version: major, minor, or patch", nil)
+		return failure("invalid-arguments", "--bump is required for rules that have a version: major, minor, or patch", nil)
 	}
 	return nil
 }

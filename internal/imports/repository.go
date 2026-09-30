@@ -184,7 +184,7 @@ func (r *repository) fetchRef(ctx context.Context, source rules.Source) (string,
 				return "", err
 			}
 			if branch {
-				return "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: %s is a branch; ref accepts a tag or a full commit SHA, not a branch, so every import can be reproduced.", source.Name, source.Ref), nil)
+				return "", fail("ref-is-branch", fmt.Sprintf("sources.%s.ref: %s is a branch; ref accepts a tag or a full commit SHA, not a branch, so every import can be reproduced.", source.Name, source.Ref), nil)
 			}
 		}
 		return "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no tag or commit %s; check the ref.", source.Name, source.Ref), nil)

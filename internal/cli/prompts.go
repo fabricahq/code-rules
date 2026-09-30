@@ -49,16 +49,25 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 		}
 	}
 	answer, err = terminal.ReadLine()
-	if err != nil {
-		ended := fmt.Errorf("terminal input ended; no files were written: %w", err)
-		if errors.Is(err, io.EOF) {
-			return "", usage(ended)
-		}
-		return "", ended
+	switch {
+	case errors.Is(err, context.Canceled):
+		return "", &cancelled{}
+	case errors.Is(err, io.EOF):
+		return "", usage(errors.New("terminal input ended; no files were written"))
+	case err != nil:
+		return "", fmt.Errorf("read the answer from the terminal; no files were written: %w", err)
 	}
 	f.prompted = true
 	return strings.TrimSpace(answer), nil
 }
+
+// cancelled reports an interrupt, such as Ctrl-C at a prompt, before the command wrote anything.
+type cancelled struct{}
+
+func (*cancelled) Error() string { return "cancelled; no files were written" }
+
+// Unwrap lets callers recognize the interrupt as context cancellation.
+func (*cancelled) Unwrap() error { return context.Canceled }
 
 // promptStream preserves stderr output while polling input for cancellation without a background reader.
 type promptStream struct {
