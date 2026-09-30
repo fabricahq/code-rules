@@ -241,6 +241,51 @@ func TestSync_KeepsTheSourceRecordWhenOnlyAPinsReasonChanges(t *testing.T) {
 	requireCurrent(t, options)
 }
 
+// TestBuild_HandEditedExclusionsKeepTheSourceRecordCurrent adds and removes exclusions by hand, of an imported rule
+// and of a retired one, and runs build, as a fork's next step says: check passes offline, and a sync afterward
+// writes _source.json byte for byte as before.
+func TestBuild_HandEditedExclusionsKeepTheSourceRecordCurrent(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	secondRelease(t, f)
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\nchanges: {}\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [Covered by errors.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	for _, exclude := range []map[string]any{
+		{"techs/go/errors": map[string]string{"reason": "Ours is stricter.", "replacedBy": "local/techs/go/errors.md"}},
+		{"techs/go/extra": map[string]string{"reason": "Retired upstream."}},
+		{},
+	} {
+		recorded := projectTree(t, options).Files["vendor/team/_source.json"]
+		configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "exclude": exclude})
+		if _, ok := exclude["techs/go/errors"]; ok {
+			root, err := openProject(ctx, options, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeFixture(t, root, "local/techs/go/errors.md", projectRule)
+			writeFixture(t, root, "local/techs/go/_group.yaml", projectMetadata)
+			root.Close()
+		}
+		if _, err := Build(ctx, options); err != nil {
+			t.Fatalf("build with exclusions %v: %v", exclude, err)
+		}
+		requireCurrent(t, options)
+		if _, err := Sync(ctx, options, git); err != nil {
+			t.Fatal(err)
+		}
+		if after := projectTree(t, options).Files["vendor/team/_source.json"]; !bytes.Equal(after, recorded) {
+			t.Fatalf("with exclusions %v, sync rewrote _source.json:\n%s\nwas:\n%s", exclude, after, recorded)
+		}
+	}
+}
+
 // TestSync_RefToAnUnreleasedCommitWarnsAndStillChecks reports the source and its unreleased rules.
 func TestSync_RefToAnUnreleasedCommitWarnsAndStillChecks(t *testing.T) {
 	f, options, git := syncProject(t)

@@ -24,6 +24,8 @@ type sourcePlan struct {
 	// individual lists the individually selected rules to load; it omits entries naming retired rules.
 	individual []string
 	warnings   []string
+	// retired lists, sorted, the rules the library retired that the source selects; it is empty, never nil.
+	retired []string
 }
 
 // planner chooses versions for one source, reading the library's release history only when a choice needs it.
@@ -60,10 +62,39 @@ func newPlanner(ctx context.Context, repo *repository, source rules.Source, reco
 // choose plans what the source imports as project sync does, without fetching the commits the plan names that
 // choosing didn't need.
 func (p *planner) choose() (sourcePlan, error) {
+	choose := p.planVersions
 	if p.source.Ref != "" {
-		return p.planRevision()
+		choose = p.planRevision
 	}
-	return p.planVersions()
+	chosen, err := choose()
+	if err != nil {
+		return sourcePlan{}, err
+	}
+	chosen.retired, err = p.retiredRules()
+	return chosen, err
+}
+
+// retiredRules returns, sorted, the rules the library retired that the source's groups or rules list selects. It
+// reads them from the release history once the planner has read it, or when the source selects something recorded
+// didn't; otherwise it keeps recorded's list, so a sync that changes nothing records the same list.
+func (p *planner) retiredRules() ([]string, error) {
+	if p.history == nil && p.recorded != nil && sameGroupSelection(p.recorded.Selection, p.source.Groups) && slices.Equal(p.recorded.RuleSelection, p.source.Rules) {
+		return slices.Clone(p.recorded.RetiredRules), nil
+	}
+	history, err := p.releases()
+	if err != nil {
+		return nil, err
+	}
+	retired := []string{}
+	for _, release := range history.releases {
+		for id := range release.record.Retired {
+			if p.selected(id) {
+				retired = append(retired, id)
+			}
+		}
+	}
+	slices.Sort(retired)
+	return slices.Compact(retired), nil
 }
 
 // releases returns the library's release history, reading it on first use; it may be empty.

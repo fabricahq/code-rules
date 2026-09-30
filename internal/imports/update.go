@@ -347,6 +347,10 @@ func (p *planner) settle(plan *sourcePlan) error {
 	if err := p.requireEntries(plan); err != nil {
 		return err
 	}
+	var err error
+	if plan.retired, err = p.retiredRules(); err != nil {
+		return err
+	}
 	return p.libraryWideRelease(plan, nil)
 }
 

@@ -29,7 +29,6 @@ type sourceRecord struct {
 	FormatVersion int                          `json:"formatVersion"`
 	Repository    string                       `json:"repository"`
 	Pins          map[string]rules.RuleVersion `json:"pins,omitempty"`
-	Exclude       []string                     `json:"exclude,omitempty"`
 	Ref           string                       `json:"ref,omitempty"`
 	Release       int                          `json:"release,omitempty"`
 	Commit        string                       `json:"resolvedCommit"`
@@ -37,6 +36,7 @@ type sourceRecord struct {
 	RuleSelection []string                     `json:"ruleSelection,omitempty"`
 	Groups        []string                     `json:"groups"`
 	Rules         map[string]recordRule        `json:"rules"`
+	RetiredRules  []string                     `json:"retiredRules"`
 	Files         map[string]string            `json:"files"`
 }
 
@@ -71,8 +71,9 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		if len(snapshot.Pins) > 0 {
 			record.Pins = snapshot.Pins
 		}
-		if len(snapshot.Exclude) > 0 {
-			record.Exclude = snapshot.Exclude
+		record.RetiredRules = snapshot.RetiredRules
+		if record.RetiredRules == nil {
+			record.RetiredRules = []string{}
 		}
 		for id, rule := range snapshot.Rules {
 			entry := recordRule{Version: rule.Version, Commit: rule.Commit}
@@ -200,13 +201,13 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if format != sourceRecordFormat {
 		return parsedRecord{}, invalidSnapshot(where, unsupportedRecord)
 	}
-	allowed := []string{"formatVersion", "repository", "pins", "exclude", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "files"}
+	allowed := []string{"formatVersion", "repository", "pins", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "files"}
 	for _, key := range slices.Sorted(maps.Keys(fields)) {
 		if !slices.Contains(allowed, key) || bytes.Equal(bytes.TrimSpace(fields[key]), []byte("null")) {
 			return parsedRecord{}, invalidSnapshot(where+"."+key, "unknown or null source record field")
 		}
 	}
-	for _, key := range []string{"repository", "resolvedCommit", "groupSelection", "groups", "rules", "files"} {
+	for _, key := range []string{"repository", "resolvedCommit", "groupSelection", "groups", "rules", "retiredRules", "files"} {
 		if _, ok := fields[key]; !ok {
 			return parsedRecord{}, invalidSnapshot(where+"."+key, "missing source record field")
 		}
@@ -217,7 +218,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if decoder.Decode(&record) != nil {
 		return parsedRecord{}, invalidSnapshot(where, "invalid source record field values")
 	}
-	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Pins: map[string]rules.RuleVersion{}, Ref: record.Ref, Release: record.Release, Commit: record.Commit, Exclude: []string{}, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
+	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Pins: map[string]rules.RuleVersion{}, Ref: record.Ref, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
 	}
@@ -242,10 +243,8 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if result.Selection, err = rules.ParseGroupSelection(fields["groupSelection"], where+".groupSelection"); err != nil {
 		return parsedRecord{}, err
 	}
-	if raw, ok := fields["exclude"]; ok {
-		if result.Exclude, err = rules.ParseRuleList(raw, where+".exclude"); err != nil {
-			return parsedRecord{}, err
-		}
+	if result.RetiredRules, err = rules.ParseRuleList(fields["retiredRules"], where+".retiredRules"); err != nil {
+		return parsedRecord{}, err
 	}
 	if raw, ok := fields["ruleSelection"]; ok {
 		if result.RuleSelection, err = rules.ParseRuleList(raw, where+".ruleSelection"); err != nil {
@@ -311,11 +310,11 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 			return invalidSnapshot(where, "sources."+source.Name+".pins."+id+" names a version the snapshot doesn't import; run code-rules project sync")
 		}
 	}
-	// Sync records exclusions only after checking them, so one naming a rule the snapshot doesn't import is known
-	// to name a retired rule; any other could be a typo that leaves the intended rule active.
+	// An exclusion naming neither an imported rule nor a retired one could be a typo that leaves the intended rule
+	// active; only the library, which sync reads, can tell.
 	for _, id := range slices.Sorted(maps.Keys(source.Exclude)) {
-		if _, imported := record.Rules[id]; !imported && !slices.Contains(record.Exclude, id) {
-			return invalidSnapshot(where, "sources."+source.Name+".exclude."+id+" names a rule the snapshot doesn't import; run code-rules project sync to check it")
+		if _, imported := record.Rules[id]; !imported && !slices.Contains(record.RetiredRules, id) {
+			return invalidSnapshot("sources."+source.Name+".exclude."+id, "names no rule the library supplies to this source; run code-rules project sync to check it against the library")
 		}
 	}
 	if source.Groups.Pattern == "" && !slices.Equal(record.Groups, source.Groups.Groups) {

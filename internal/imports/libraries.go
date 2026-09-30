@@ -128,7 +128,7 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	snapshot := library.Snapshot{
 		Repository:    source.Repository,
 		Pins:          pinnedVersions(source.Pins),
-		Exclude:       slices.Sorted(maps.Keys(source.Exclude)),
+		RetiredRules:  plan.retired,
 		Ref:           source.Ref,
 		Release:       plan.release,
 		Commit:        plan.commit,

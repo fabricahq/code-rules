@@ -21,9 +21,10 @@ type Snapshot struct {
 	// Pins maps each rule the source pinned when the snapshot was recorded to its pinned version; it is empty, never
 	// nil, when there are none. A pin's reason stays in configuration only, so rewording it changes no record.
 	Pins map[string]rules.RuleVersion `json:"pins"`
-	// Exclude lists, sorted, the rule IDs the source's exclude named when the snapshot was recorded; it is empty,
-	// never nil, when there are none. An ID it lists that Rules lacks named a rule the library had retired.
-	Exclude []string `json:"exclude"`
+	// RetiredRules lists, sorted, the rules the library had retired, as far as the snapshot's record knows, that the
+	// source's groups or rules list selects; it is empty, never nil, when there are none. It is a fact about the
+	// library, not the source's configuration, so offline checks can tell an exclusion of a retired rule from a typo.
+	RetiredRules []string `json:"retiredRules"`
 	// Ref repeats the source's ref when the snapshot was recorded, or is empty.
 	Ref string `json:"ref,omitempty"`
 	// Release is the library release that supplied the library-wide files, or 0 when Ref names a revision other

@@ -45,7 +45,7 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
 	config := snapshotConfig(t, `"groups":["techs/go"]`)
 	one, two := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 1, Minor: 1}
-	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Pins: map[string]rules.RuleVersion{}, Exclude: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
+	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Pins: map[string]rules.RuleVersion{}, RetiredRules: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne}},
 		Files: map[string][]byte{
 			"rule-library.yaml":    []byte(`{"formatVersion":1}`),
@@ -201,23 +201,23 @@ func TestSnapshotRetiredEntriesRecordedAtSyncNeedNoSync(t *testing.T) {
 	}
 }
 
-// TestSnapshotExclusionOfAKnownRetiredRuleNeedsNoSync accepts an exclusion whose rule isn't imported when sync
-// recorded it, which sync does only after finding the rule retired.
-func TestSnapshotExclusionOfAKnownRetiredRuleNeedsNoSync(t *testing.T) {
-	config := snapshotConfig(t, `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Retired."},"techs/go/errors":{"reason":"Not for us."}}`)
-	_, snapshots := snapshotFixture(t)
+// TestSnapshotExclusionOfAnImportedOrRetiredRuleNeedsNoSync accepts any exclusion naming a rule the snapshot imports
+// or a rule its record lists as retired, however the exclusions changed since the record was written, because the
+// record holds facts about the library, not the configuration's exclusions.
+func TestSnapshotExclusionOfAnImportedOrRetiredRuleNeedsNoSync(t *testing.T) {
+	config, snapshots := snapshotFixture(t)
 	item := snapshots["team"]
-	item.Exclude = []string{"techs/go/errors", "techs/go/gone"}
+	item.RetiredRules = []string{"techs/go/gone"}
 	snapshots["team"] = item
 	vendor, err := encodeSnapshots(config, snapshots)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for name, fields := range map[string]string{
-		"same exclusions":        `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Retired."},"techs/go/errors":{"reason":"Not for us."}}`,
-		"changed reason":         `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Delete me."}}`,
+		"imported and retired":   `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Retired."},"techs/go/errors":{"reason":"Not for us."}}`,
+		"retired only":           `"groups":["techs/go"],"exclude":{"techs/go/gone":{"reason":"Delete me."}}`,
 		"new imported exclusion": `"groups":["techs/go"],"exclude":{"techs/go/naming":{"reason":"Not for us.","replacedBy":"local/techs/go/naming.md"}}`,
-		"removed exclusions":     `"groups":["techs/go"]`,
+		"no exclusions":          `"groups":["techs/go"]`,
 	} {
 		if _, err := decodeSnapshots(snapshotConfig(t, fields), vendor); err != nil {
 			t.Errorf("%s: %v", name, err)
@@ -234,9 +234,9 @@ func TestSnapshotExclusionOfAnUnknownRuleRequiresSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"exclude":{"techs/go/erorrs":{"reason":"Typo."}}`), vendor)
-	requireSync(t, got, err)
-	if !strings.Contains(err.Error(), "sources.team.exclude.techs/go/erorrs") {
-		t.Fatalf("the error doesn't name the entry: %v", err)
+	var validation *rules.ValidationError
+	if got != nil || !errors.As(err, &validation) || validation.Location != "sources.team.exclude.techs/go/erorrs" || !strings.Contains(validation.Problem, "names no rule the library supplies") || !strings.Contains(validation.Problem, "run code-rules project sync") {
+		t.Fatalf("got %v, %v; want a failure naming the entry that asks for sync", got, err)
 	}
 }
 
