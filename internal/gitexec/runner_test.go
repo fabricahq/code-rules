@@ -201,3 +201,53 @@ func TestOwned_RunsTheAuthorsHooks(t *testing.T) {
 		t.Fatalf("remote main is %s, want %s", head, pushed)
 	}
 }
+
+// program installs an executable shell script named tool as the only program on a new PATH, returning an
+// environment that finds it.
+func program(t *testing.T, body string) []string {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "tool"), []byte("#!/bin/sh\n"+body), 0700); err != nil {
+		t.Fatal(err)
+	}
+	return []string{"PATH=" + dir}
+}
+
+// TestCommand_RunsAProgramWithGitsLimits finds the program on the given PATH, keeps its stderr apart, stops a
+// still-running program as soon as its output exceeds the budget, and cancels its descendants.
+func TestCommand_RunsAProgramWithGitsLimits(t *testing.T) {
+	if _, err := Command(Options{Environment: []string{"PATH=" + t.TempDir()}}, "tool"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing program: %v", err)
+	}
+	runner, err := Command(Options{Environment: program(t, "printf out\nprintf err >&2\nexit 3\n")}, "tool")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := runner.Run(context.Background(), t.TempDir(), nil, 100, nil)
+	if err != nil || string(result.Output) != "out" || string(result.Diagnostics) != "err" || result.Status != 3 {
+		t.Fatalf("result %+v: %v", result, err)
+	}
+	// The helper keeps the stream open and the program keeps running, so only stopping the group ends it.
+	runner, err = Command(Options{Environment: program(t, "/bin/sleep 30 &\nwhile :; do printf x; done\n")}, "tool")
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	_, err = runner.Run(context.Background(), t.TempDir(), nil, 100, nil)
+	requireCode(t, err, "limit-exceeded")
+	if time.Since(start) > 3*time.Second {
+		t.Fatal("overflow didn't stop the program promptly")
+	}
+	runner, err = Command(Options{Environment: program(t, "/bin/sleep 30 &\nwait\n")}, "tool")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	start = time.Now()
+	_, err = runner.Run(ctx, t.TempDir(), nil, 100, nil)
+	requireCode(t, err, "timed-out")
+	if time.Since(start) > 3*time.Second {
+		t.Fatal("cancellation left a descendant holding the program's output")
+	}
+}

@@ -3,31 +3,28 @@
 package library
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/url"
 	"os"
-	"os/exec"
 	"slices"
 	"strings"
-	"sync"
-	"time"
 	"unicode"
 
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// maxGitHubCLIOutput bounds what one gh invocation may print on each stream.
+// maxGitHubCLIOutput bounds what one gh invocation may print on both streams together.
 const maxGitHubCLIOutput = 1024 * 1024
 
-// gitHubCLI runs the GitHub CLI without prompts.
+// gitHubCLI runs the GitHub CLI without prompts, with the same output budget and process-group cancellation
+// as Git.
 type gitHubCLI struct {
-	executable  string
-	environment []string
+	runner gitexec.Runner
+	// dir is where gh runs; every call names its repository, so gh never reads the directory's Git state.
+	dir string
 }
 
 // gitHubRepository returns OWNER/REPO when a remote URL names a repository on GitHub.com, and "" for other
@@ -65,16 +62,20 @@ func displayRepository(remoteURL string) string {
 	return remoteURL
 }
 
-// findGitHubCLI locates gh on environment's PATH and requires it to be signed in to GitHub.com.
-func findGitHubCLI(ctx context.Context, environment []string) (gitHubCLI, error) {
+// findGitHubCLI locates gh on environment's PATH, or the process's when it's nil, and requires it to be signed
+// in to GitHub.com. gh runs in dir.
+func findGitHubCLI(ctx context.Context, environment []string, dir string) (gitHubCLI, error) {
 	if environment == nil {
 		environment = os.Environ()
 	}
-	executable := gitexec.LookPath("gh", environment)
-	if executable == "" {
+	runner, err := gitexec.Command(gitexec.Options{Environment: append(slices.Clone(environment), "GH_PROMPT_DISABLED=1", "GH_NO_UPDATE_NOTIFIER=1")}, "gh")
+	if errors.Is(err, gitexec.ErrNotFound) {
 		return gitHubCLI{}, failure("github-cli-missing", "code-rules library release creates the GitHub Release page with the GitHub CLI, gh, which isn't installed. Install it from https://cli.github.com and sign in with gh auth login, or pass --no-github-release to publish the tag only.", nil)
 	}
-	cli := gitHubCLI{executable: executable, environment: append(slices.Clone(environment), "GH_PROMPT_DISABLED=1", "GH_NO_UPDATE_NOTIFIER=1")}
+	if err != nil {
+		return gitHubCLI{}, err
+	}
+	cli := gitHubCLI{runner: runner, dir: dir}
 	if _, _, status, err := cli.run(ctx, "", "auth", "status", "--hostname", "github.com"); err != nil {
 		return gitHubCLI{}, err
 	} else if status != 0 {
@@ -110,30 +111,20 @@ func (c gitHubCLI) createReleasePage(ctx context.Context, repository, tag, notes
 	return strings.TrimSpace(stdout), nil
 }
 
-// run executes gh with args and stdin, returning its output and exit status. Cancellation stops gh; output
-// beyond maxGitHubCLIOutput on either stream fails.
+// run executes gh with args and stdin, returning its stdout, its stderr, and its exit status. Output beyond
+// maxGitHubCLIOutput and cancellation stop gh and everything it started.
 func (c gitHubCLI) run(ctx context.Context, stdin string, args ...string) (string, string, int, error) {
-	cmd := exec.CommandContext(ctx, c.executable, args...)
-	cmd.Env = c.environment
-	cmd.Stdin = strings.NewReader(stdin)
-	cmd.WaitDelay = time.Second
-	stdout, stderr := &boundedBuffer{limit: maxGitHubCLIOutput}, &boundedBuffer{limit: maxGitHubCLIOutput}
-	cmd.Stdout, cmd.Stderr = stdout, stderr
-	err := cmd.Run()
-	if ctx.Err() != nil {
-		return "", "", 0, ctx.Err()
-	}
-	if stdout.exceeded || stderr.exceeded {
+	result, err := c.runner.Run(ctx, c.dir, args, maxGitHubCLIOutput, []byte(stdin))
+	var failed *gitexec.Error
+	switch {
+	case err == nil:
+		return string(result.Output), string(result.Diagnostics), result.Status, nil
+	case errors.As(err, &failed) && failed.Code == "limit-exceeded":
 		return "", "", 0, failure("limit-exceeded", "the GitHub CLI's output exceeds its limit", nil)
+	case errors.As(err, &failed) && (failed.Code == "cancelled" || failed.Code == "timed-out"):
+		return "", "", 0, err
 	}
-	var exit *exec.ExitError
-	if errors.As(err, &exit) {
-		return stdout.String(), stderr.String(), exit.ExitCode(), nil
-	}
-	if err != nil {
-		return "", "", 0, failure("github-cli-missing", "code-rules library release couldn't run the GitHub CLI, gh. Check that it's installed, or pass --no-github-release to publish the tag only.", nil)
-	}
-	return stdout.String(), stderr.String(), 0, nil
+	return "", "", 0, failure("github-cli-failed", "code-rules library release couldn't run the GitHub CLI, gh. Check that it's installed and works, or pass --no-github-release to publish the tag only.", nil)
 }
 
 // diagnosticLine returns gh's last nonblank line of diagnostics, without control characters and at most
@@ -150,30 +141,4 @@ func diagnosticLine(stderr string) string {
 		line = string(runes[:200]) + "..."
 	}
 	return line
-}
-
-// boundedBuffer keeps at most limit bytes and records whether more arrived.
-type boundedBuffer struct {
-	mu       sync.Mutex
-	buffer   bytes.Buffer
-	limit    int
-	exceeded bool
-}
-
-// Write keeps data while it fits and fails once it doesn't, which stops copying from the process.
-func (b *boundedBuffer) Write(data []byte) (int, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if b.buffer.Len()+len(data) > b.limit {
-		b.exceeded = true
-		return 0, io.ErrShortWrite
-	}
-	return b.buffer.Write(data)
-}
-
-// String returns what was kept.
-func (b *boundedBuffer) String() string {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.buffer.String()
 }

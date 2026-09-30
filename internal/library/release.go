@@ -94,7 +94,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 			return ReleaseResult{}, err
 		}
 		if result.GitHubRepository != "" && !request.NoGitHubRelease {
-			cli, err := findGitHubCLI(ctx, request.Git.Environment)
+			cli, err := findGitHubCLI(ctx, request.Git.Environment, root.Name())
 			if err != nil {
 				return ReleaseResult{}, err
 			}

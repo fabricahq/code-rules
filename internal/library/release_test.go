@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fabricahq/code-rules/internal/test/ghfixture"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -529,6 +530,29 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 	result, err = Release(ctx, ReleaseRequest{Options: options})
 	if err != nil || result.TagCreated || !result.Published {
 		t.Fatal(result, err)
+	}
+}
+
+// TestFindGitHubCLI_StopsAGitHubCLIThatFloodsItsOutput stops a gh that keeps writing, ignoring broken pipes,
+// with a descendant holding its output open, instead of waiting for it forever.
+func TestFindGitHubCLI_StopsAGitHubCLIThatFloodsItsOutput(t *testing.T) {
+	bin := t.TempDir()
+	script := "#!/bin/sh\ntrap '' PIPE\n/bin/sleep 30 &\nwhile :; do printf xxxxxxxxxxxxxxxx 2>/dev/null; done\n"
+	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := findGitHubCLI(context.Background(), []string{"PATH=" + bin}, t.TempDir())
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if errorCode(err) != "limit-exceeded" {
+			t.Fatal(err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("gh's output overflowed, and the release kept waiting for it")
 	}
 }
 

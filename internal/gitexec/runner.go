@@ -1,4 +1,5 @@
-// Package gitexec runs noninteractive Git with bounded output and whole-process-group cancellation.
+// Package gitexec runs noninteractive Git, and other trusted programs such as the GitHub CLI, with bounded
+// output and whole-process-group cancellation.
 // It never includes Git's own diagnostics in errors, because they can contain credential-bearing URLs.
 package gitexec
 
@@ -56,7 +57,9 @@ type Runner struct {
 // Result separates a normal nonzero Git exit from startup, cancellation, and output-limit failures.
 type Result struct {
 	Output []byte
-	Status int
+	// Diagnostics is the program's stderr. Git's can contain credential-bearing URLs, so never show it.
+	Diagnostics []byte
+	Status      int
 }
 
 // isolatedConfig disables hooks and restricts transports for repositories the user doesn't own.
@@ -72,6 +75,25 @@ func Isolated(options Options) (Runner, error) {
 // credentials, and hooks, so a push runs the same pre-push hooks as git push would.
 func Owned(options Options) (Runner, error) {
 	return newRunner(options, nil)
+}
+
+// ErrNotFound reports that Command found no executable with the requested name on the environment's PATH.
+var ErrNotFound = errors.New("executable not found on PATH")
+
+// Command returns a Runner for another trusted program, such as the GitHub CLI, found by name on the PATH of
+// options.Environment, or of the process when it's nil. The program gets the same output budget, process-group
+// cancellation, and prompt-free environment as Git, without Git's configuration arguments. Failure codes and
+// messages still name Git, so callers translate them. It returns ErrNotFound when there's no such program.
+func Command(options Options, name string) (Runner, error) {
+	env := options.Environment
+	if env == nil {
+		env = os.Environ()
+	}
+	executable := lookPath(name, env)
+	if executable == "" {
+		return Runner{}, ErrNotFound
+	}
+	return Runner{executable: executable, environment: gitEnvironment(env)}, nil
 }
 
 // newRunner resolves the executable against the child's environment; prompts are always disabled.
@@ -128,16 +150,16 @@ func gitExecutable(name string, environment []string) (string, error) {
 	if strings.ContainsRune(name, '/') {
 		return filepath.Abs(name)
 	}
-	if executable := LookPath(name, environment); executable != "" {
+	if executable := lookPath(name, environment); executable != "" {
 		return executable, nil
 	}
 	return "", Fail("git-unavailable", "Cannot find Git; install Git 2.30 or later and check PATH.", nil)
 }
 
-// LookPath returns the first executable file named name in the absolute directories of environment's PATH,
+// lookPath returns the first executable file named name in the absolute directories of environment's PATH,
 // or "" when there is none. Unlike exec.LookPath, it reads a child's environment rather than the process's,
 // and never searches the current directory.
-func LookPath(name string, environment []string) string {
+func lookPath(name string, environment []string) string {
 	var search string
 	for _, item := range environment {
 		if value, ok := strings.CutPrefix(item, "PATH="); ok {
@@ -158,22 +180,22 @@ func LookPath(name string, environment []string) string {
 	return ""
 }
 
-// outputBudget counts both streams under one ceiling while retaining stdout only.
+// outputBudget counts both streams under one ceiling, retaining each separately.
 type outputBudget struct {
-	mu        sync.Mutex
-	remaining int
-	stdout    bytes.Buffer
-	exceeded  bool
-	stop      func() error
+	mu             sync.Mutex
+	remaining      int
+	stdout, stderr bytes.Buffer
+	exceeded       bool
+	stop           func() error
 }
 
-// budgetStream determines whether bounded bytes are retained or discarded as private diagnostics.
+// budgetStream writes one stream into its budget: stdout, or stderr when diagnostics is set.
 type budgetStream struct {
-	budget *outputBudget
-	retain bool
+	budget      *outputBudget
+	diagnostics bool
 }
 
-// Write drains diagnostics and stops the complete Git process group on combined-output overflow.
+// Write retains bounded output and stops the complete process group on combined-output overflow.
 func (w budgetStream) Write(data []byte) (int, error) {
 	b := w.budget
 	b.mu.Lock()
@@ -184,10 +206,10 @@ func (w budgetStream) Write(data []byte) (int, error) {
 		return 0, io.ErrShortWrite
 	}
 	b.remaining -= len(data)
-	if w.retain {
-		return b.stdout.Write(data)
+	if w.diagnostics {
+		return b.stderr.Write(data)
 	}
-	return len(data), nil
+	return b.stdout.Write(data)
 }
 
 // processGroup serializes signalling with release of the owned, unreaped child.
@@ -213,7 +235,7 @@ func (g *processGroup) stop(release bool) error {
 }
 
 // Run executes literal arguments in dir without a shell and drains both streams before returning.
-// maxBytes bounds stdout and stderr together; only stdout is returned, and a nonzero exit is not an error.
+// maxBytes bounds stdout and stderr together, and a nonzero exit is not an error.
 func (r Runner) Run(ctx context.Context, dir string, args []string, maxBytes int, input []byte) (Result, error) {
 	if err := ctx.Err(); err != nil {
 		return Result{}, ContextFailure(err)
@@ -228,8 +250,8 @@ func (r Runner) Run(ctx context.Context, dir string, args []string, maxBytes int
 	cmd.Cancel = func() error { return group.stop(false) }
 	cmd.WaitDelay = time.Second
 	budget := &outputBudget{remaining: maxBytes, stop: cmd.Cancel}
-	cmd.Stdout = budgetStream{budget: budget, retain: true}
-	cmd.Stderr = budgetStream{budget: budget}
+	cmd.Stdout = budgetStream{budget: budget}
+	cmd.Stderr = budgetStream{budget: budget, diagnostics: true}
 	if err := cmd.Start(); err != nil {
 		return Result{}, Fail("git-unavailable", "Cannot start Git; install Git 2.30 or later and check PATH.", nil)
 	}
@@ -253,7 +275,7 @@ func (r Runner) Run(ctx context.Context, dir string, args []string, maxBytes int
 	if err != nil && !errors.As(err, &exit) {
 		return Result{}, Fail("git-failed", "Git could not complete its input or output.", nil)
 	}
-	return Result{Output: budget.stdout.Bytes(), Status: cmd.ProcessState.ExitCode()}, nil
+	return Result{Output: budget.stdout.Bytes(), Diagnostics: budget.stderr.Bytes(), Status: cmd.ProcessState.ExitCode()}, nil
 }
 
 // Output returns stdout of a command that must exit successfully; a nonzero exit is a git-failed error.
