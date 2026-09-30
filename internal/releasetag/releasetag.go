@@ -61,8 +61,15 @@ type RecordError struct {
 }
 
 // Error names the tag and the record's problem.
-func (e *RecordError) Error() string {
-	return "invalid release record in " + e.Tag + ": " + e.Err.Error()
+func (e *RecordError) Error() string { return "invalid release record: " + e.Problem() }
+
+// Problem returns the record's problem starting with the tag, once: a parser error whose location already starts
+// with the tag, such as release/3.release, names it itself.
+func (e *RecordError) Problem() string {
+	if problem := e.Err.Error(); strings.HasPrefix(problem, e.Tag+":") || strings.HasPrefix(problem, e.Tag+".") {
+		return problem
+	}
+	return e.Tag + ": " + e.Err.Error()
 }
 
 // Unwrap returns the parser's validation error.

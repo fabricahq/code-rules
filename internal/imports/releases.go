@@ -151,7 +151,7 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
 		return releaseHistory{}, fail("unsupported-release-record", fmt.Sprintf("Library release tag %s uses release record format %d, which this version of Code Rules can't read. Upgrade Code Rules, then run the command again.", invalid.Tag, unsupported.FormatVersion), nil)
 	case invalid != nil:
-		return releaseHistory{}, fail("invalid-release-tag", fmt.Sprintf("Invalid release record in library release tag %s: %v. Don't create or move release tags by hand.", invalid.Tag, invalid.Err), invalid.Err)
+		return releaseHistory{}, fail("invalid-release-tag", "Invalid release record: "+invalid.Problem()+". Don't create or move release tags by hand.", invalid.Err)
 	}
 	if err != nil {
 		return releaseHistory{}, err

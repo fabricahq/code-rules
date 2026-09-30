@@ -365,7 +365,7 @@ func (g *libraryGit) requireCommitted(ctx context.Context, head string, input ch
 	}
 	if len(problems) > 0 {
 		slices.Sort(problems)
-		return failure("uncommitted-changes", "a library release publishes the checked-out commit exactly, but the library files check read differ from it:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push your changes, or discard them. Files that a Git filter changes, such as Git LFS files, can't be published. Then run code-rules library release again.", nil)
+		return failure("uncommitted-changes", "a library release publishes the checked-out commit exactly, but these library files differ from it:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push your changes, or discard them. Files that a Git filter changes, such as Git LFS files, can't be published. Then run code-rules library release again.", nil)
 	}
 	return nil
 }

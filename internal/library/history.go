@@ -122,7 +122,7 @@ func (g *libraryGit) releaseTags(ctx context.Context) ([]releasetag.Tag, error) 
 			continue
 		}
 		if tag.Type != "tag" || tag.TargetType != "commit" {
-			return nil, failure("invalid-release-tag", tag.Name()+": expected an annotated tag on a commit, with a release record; don't create release tags by hand", nil)
+			return nil, failure("invalid-release-tag", tag.Name()+": expected an annotated tag on a commit, with a release record. Don't create release tags by hand; if you created "+tag.Name()+" by hand, delete it with git tag --delete "+tag.Name()+", then run the command again.", nil)
 		}
 		if tag.Size > releasetag.MaxBytes {
 			return nil, failure("limit-exceeded", tag.Name()+": tag message exceeds 8 MiB", nil)
@@ -195,7 +195,7 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
 		return releaseHistory{}, unsupportedRecord(invalid.Tag, unsupported.FormatVersion)
 	case invalid != nil:
-		return releaseHistory{}, failure("invalid-release-tag", invalid.Error()+". Don't create or move release tags by hand", invalid.Err)
+		return releaseHistory{}, failure("invalid-release-tag", invalid.Error()+". Don't create or move release tags by hand; if you created "+invalid.Tag+" by hand, delete it with git tag --delete "+invalid.Tag+", then run the command again.", invalid.Err)
 	}
 	if err != nil {
 		return releaseHistory{}, fmt.Errorf("read the library's release tags: %w", err)

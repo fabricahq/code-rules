@@ -289,7 +289,7 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed."))})
 			}},
-		{name: "uncommitted changes", code: "uncommitted-changes", message: "the library files check read differ from it:\n  - changes/a.yaml isn't committed\n  - practices/testing/a.md differs from its committed copy\n  - practices/testing/b.md was deleted, and the deletion isn't committed\n  - practices/testing/c.md isn't committed\nCommit and push your changes",
+		{name: "uncommitted changes", code: "uncommitted-changes", message: "these library files differ from it:\n  - changes/a.yaml isn't committed\n  - practices/testing/a.md differs from its committed copy\n  - practices/testing/b.md was deleted, and the deletion isn't committed\n  - practices/testing/c.md isn't committed\nCommit and push your changes",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed."), "practices/testing/b.md": "", "practices/testing/c.md": ruleText("New."), "changes/a.yaml": "summary: Change a.\nrules:\n  practices/testing/a: patch\n  practices/testing/b: retired\n  practices/testing/c: new\n"})
 			}},
