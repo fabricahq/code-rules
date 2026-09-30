@@ -138,7 +138,7 @@ func (r *repository) snapshotFiles(ctx context.Context, source string, plan sour
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
-		owned, err := r.ruleFiles(ctx, plan.rules[id].Commit, id)
+		owned, err := r.ruleFiles(ctx, plan.rules[id].Commit, id, terms)
 		if err != nil {
 			return nil, err
 		}

@@ -136,8 +136,9 @@ func parseTree(data []byte) (map[string]treeEntry, error) {
 }
 
 // ruleFiles returns the files of rule id at a fetched commit, its Markdown file and its asset directory's files,
-// by path. The map is empty when the commit doesn't have the rule; callers must not modify it.
-func (r *repository) ruleFiles(ctx context.Context, commit, id string) (map[string]treeEntry, error) {
+// by path, leaving out terms: declared license and notice files are library-wide even inside an asset directory.
+// The map is empty when the commit doesn't have the rule.
+func (r *repository) ruleFiles(ctx context.Context, commit, id string, terms []string) (map[string]treeEntry, error) {
 	index, ok := r.owned[commit]
 	if !ok {
 		tree, err := r.tree(ctx, commit)
@@ -155,7 +156,13 @@ func (r *repository) ruleFiles(ctx context.Context, commit, id string) (map[stri
 		}
 		r.owned[commit] = index
 	}
-	return index[id], nil
+	files := map[string]treeEntry{}
+	for file, entry := range index[id] {
+		if !slices.Contains(terms, file) {
+			files[file] = entry
+		}
+	}
+	return files, nil
 }
 
 // terms returns the license and notice paths that tree's library manifest declares, or none without a manifest.

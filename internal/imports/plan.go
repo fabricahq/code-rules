@@ -34,6 +34,8 @@ type planner struct {
 	recorded *library.Snapshot
 	// history is nil until first needed.
 	history *releaseHistory
+	// terms lists the license and notice files a ref's revision declares, which are library-wide.
+	terms []string
 }
 
 // planSource chooses what source imports, as project sync does: recorded versions stay, and versions are chosen
@@ -230,11 +232,10 @@ func (p *planner) planRevision() (sourcePlan, error) {
 	if err != nil {
 		return sourcePlan{}, err
 	}
-	terms, err := p.repo.terms(p.ctx, p.source.Name, tree)
-	if err != nil {
+	if p.terms, err = p.repo.terms(p.ctx, p.source.Name, tree); err != nil {
 		return sourcePlan{}, err
 	}
-	present := rulesInTree(tree, terms)
+	present := rulesInTree(tree, p.terms)
 	imported := []string{}
 	for _, id := range present {
 		if p.source.Groups.Includes(ruleGroup(id)) {
@@ -312,12 +313,12 @@ func (p *planner) revisionVersion(id string, plan sourcePlan) (library.ImportedR
 		}
 		return p.publishedVersion(id, version)
 	}
-	files, err := p.repo.ruleFiles(p.ctx, plan.commit, id)
+	files, err := p.repo.ruleFiles(p.ctx, plan.commit, id, p.terms)
 	if err != nil {
 		return library.ImportedRule{}, err
 	}
 	for _, release := range history.published(id) {
-		published, err := p.repo.ruleFiles(p.ctx, release.commit, id)
+		published, err := p.repo.ruleFiles(p.ctx, release.commit, id, p.terms)
 		if err != nil {
 			return library.ImportedRule{}, err
 		}
