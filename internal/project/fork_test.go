@@ -57,7 +57,7 @@ func newForkFixture(t *testing.T, repository string) forkFixture {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	record := "release: 1\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.0.0\n  techs/go/licensed: 1.0.0\nchanges:\n" +
+	record := "formatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.0.0\n  techs/go/licensed: 1.0.0\nchanges:\n" +
 		"  practices/testing/verify: {change: new, summary: Add the rule.}\n  techs/go/errors: {change: new, summary: Add the rule.}\n  techs/go/licensed: {change: new, summary: Add the rule.}\n"
 	if err := f.Release(ctx, 1, record); err != nil {
 		t.Fatal(err)
@@ -78,7 +78,7 @@ func newForkFixture(t *testing.T, repository string) forkFixture {
 	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": []byte(forkedRule("Wrap errors.")), "techs/go/added.md": []byte(forkedRule("Added."))}); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Release(ctx, 2, "release: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/errors: 1.1.0\n  techs/go/licensed: 1.0.0\nchanges:\n  techs/go/added: {change: new, summary: Add the rule.}\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n"); err != nil {
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/errors: 1.1.0\n  techs/go/licensed: 1.0.0\nchanges:\n  techs/go/added: {change: new, summary: Add the rule.}\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n"); err != nil {
 		t.Fatal(err)
 	}
 	return forkFixture{fixture: f, options: options, git: git}
@@ -440,7 +440,7 @@ func TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds(t *testing.T) {
 	if _, err := library.Commit(ctx, library.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/notes.md": nil, "techs/go/assets/errors/data.bin": nil}); err != nil {
 		t.Fatal(err)
 	}
-	if err := library.Release(ctx, 3, "release: 3\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/licensed: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summary: No longer recommended.}\n"); err != nil {
+	if err := library.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/licensed: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summary: No longer recommended.}\n"); err != nil {
 		t.Fatal(err)
 	}
 	plan, err := PlanUpdate(ctx, f.options, f.git, nil)

@@ -159,7 +159,11 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	}
 	releases, err := releasetag.Read(ctx, g.runner, g.dir, tags)
 	var invalid *releasetag.RecordError
-	if errors.As(err, &invalid) {
+	var unsupported *rules.UnsupportedReleaseRecordError
+	switch {
+	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
+		return releaseHistory{}, failure("unsupported-release-record", invalid.Tag+" uses release record format "+strconv.Itoa(unsupported.FormatVersion)+", which this version of Code Rules can't read. Upgrade Code Rules, then run the command again", nil)
+	case invalid != nil:
 		return releaseHistory{}, failure("invalid-release-tag", invalid.Error()+". Don't create or move release tags by hand", invalid.Err)
 	}
 	if err != nil {

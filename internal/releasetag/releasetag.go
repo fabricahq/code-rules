@@ -51,8 +51,10 @@ type Release struct {
 	Record rules.ReleaseRecord
 }
 
-// RecordError reports a release tag whose message isn't release notes followed by a valid release record,
-// including a record whose number differs from the tag's. Err is the parser's validation error, with its location.
+// RecordError reports a release tag whose message isn't release notes followed by a release record this version of
+// Code Rules can read, including a record whose number differs from the tag's. Err is the parser's error: a
+// *rules.UnsupportedReleaseRecordError for a record in a newer format, which callers report separately, and
+// otherwise a *rules.ValidationError with its location.
 type RecordError struct {
 	Tag string
 	Err error

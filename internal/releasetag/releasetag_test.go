@@ -33,7 +33,7 @@ func TestListAndRead_ReleaseTagsInNumberOrder(t *testing.T) {
 	t.Cleanup(func() { _ = f.Close() })
 	dir := f.Worktree()
 	for _, number := range []string{"2", "10"} {
-		if err := f.Tag(ctx, dir, "release/"+number, "Library release "+number+".\n\n---\nrelease: "+number+"\nrules: {}\n"); err != nil {
+		if err := f.Tag(ctx, dir, "release/"+number, "Library release "+number+".\n\n---\nformatVersion: 1\nrelease: "+number+"\nrules: {}\n"); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -3,16 +3,10 @@
 package library
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/rules"
 )
-
-// recordFor returns the release record a plan describes, with no library-wide files.
-func recordFor(plan releasePlan) rules.ReleaseRecord {
-	return rules.ReleaseRecord{Release: plan.release, Rules: plan.versions, Changes: plan.changes, Retired: plan.retired, LibraryFiles: []string{}}
-}
 
 // TestPlan_FirstLibraryReleaseAddsEveryRuleWithASummary gives each rule "Add the rule.", since the record requires a summary.
 func TestPlan_FirstLibraryReleaseAddsEveryRuleWithASummary(t *testing.T) {
@@ -25,8 +19,8 @@ func TestPlan_FirstLibraryReleaseAddsEveryRuleWithASummary(t *testing.T) {
 			t.Fatalf("%s: %+v at %s", id, change, plan.versions[id])
 		}
 	}
-	// JSON is YAML, so the parser reads the encoded record as it would a tag's.
-	encoded, err := json.Marshal(recordFor(plan))
+	// The record is encoded as code-rules library release writes it into a tag.
+	encoded, err := encodeReleaseRecord(plan.record(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +47,7 @@ func TestPlan_LaterLibraryReleaseIsAValidRecord(t *testing.T) {
 	if a := plan.changes["practices/testing/a"]; a.Change != rules.ChangeMajor || a.Summary != "Fix a typo.\nReplace b with c." || plan.versions["practices/testing/a"] != (rules.RuleVersion{Major: 2}) {
 		t.Fatalf("%+v at %s", a, plan.versions["practices/testing/a"])
 	}
-	encoded, err := json.Marshal(recordFor(plan))
+	encoded, err := encodeReleaseRecord(plan.record(nil))
 	if err != nil {
 		t.Fatal(err)
 	}

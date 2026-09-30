@@ -184,7 +184,8 @@ type parsedRecord struct {
 }
 
 // parseSourceRecord validates a format 2 record's exact fields, value syntax, and complete digest inventory.
-// Relationships to configuration are matchSnapshotSource's; a format 1 record is unsupported.
+// Relationships to configuration are matchSnapshotSource's. An older format, such as 1, fails validation with advice
+// to import the source again; a newer one fails with code unsupported-source-record, asking to upgrade Code Rules.
 func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	where := name + "/_source.json"
 	var fields map[string]json.RawMessage
@@ -192,7 +193,11 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 		return parsedRecord{}, invalidSnapshot(where, "expected a UTF-8 source record object")
 	}
 	var format int
-	if json.Unmarshal(fields["formatVersion"], &format) != nil || format != sourceRecordFormat {
+	if json.Unmarshal(fields["formatVersion"], &format) == nil && format > sourceRecordFormat {
+		// Deleting vendor/ and syncing would rewrite the project in an older format, so this isn't the advice.
+		return parsedRecord{}, failure("unsupported-source-record", fmt.Sprintf("%s was written by a newer version of Code Rules, in source record format %d, but this version reads only format %d; upgrade Code Rules to use this project", where, format, sourceRecordFormat), nil)
+	}
+	if format != sourceRecordFormat {
 		return parsedRecord{}, invalidSnapshot(where, unsupportedRecord)
 	}
 	allowed := []string{"formatVersion", "repository", "pins", "exclude", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "files"}

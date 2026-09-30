@@ -34,6 +34,7 @@ The tag's message is the library release's permanent record. It has two parts, s
 2. A YAML record that Code Rules reads:
 
 ```yaml
+formatVersion: 1
 release: 4
 rules:
   practices/code-design/organize-code-by-feature: 1.1.0
@@ -65,11 +66,14 @@ libraryFiles:
 
 | Field | Meaning |
 | --- | --- |
+| `formatVersion` | The release record format, `1`. Required. |
 | `release` | The release number. |
 | `rules` | Every current rule and its version after this library release. |
 | `changes` | Each rule this library release changed or added: its `change` (`new`, `major`, `minor`, or `patch`), its previous version as `from` (absent for a new rule), and its `summary`. When several notes named the rule, the summary has one line per note. |
 | `retired` | Each rule this library release retired: its `lastVersion`, its `summary`, and its `replacedBy` rule when there is one. |
 | `libraryFiles` | Library-wide files this library release changed, such as group metadata and shared assets. |
+
+Release records are read by every later version of Code Rules, so the format is forward compatible. Readers ignore fields they don't know, at any level, so a later Code Rules can add fields that older versions skip. `formatVersion` changes only for an incompatible change; a Code Rules that finds a higher `formatVersion` than it reads stops with `unsupported-release-record` and asks you to upgrade it. The record still uses one YAML document without duplicate keys, anchors, aliases, or explicit tags, and every field above keeps its rules. Change notes, which people write by hand, stay strict: unknown fields fail.
 
 A rule's version is plain `major.minor.patch` numbers, each at most 999,999,999, without prerelease or build suffixes. A new rule starts at `1.0.0`. The rule ID is the rule's path without `.md`.
 
