@@ -124,7 +124,7 @@ The first updates only the `team` library. The second moves only that rule; noth
 
 ## Handle retirements
 
-A retired rule appears in the preview with its last version, the summary explaining why, and its replacement if it has one. When you confirm, the rule is dropped. For a rule with a replacement, read the replacement, and check that you import its group.
+A retired rule appears in the preview with its last version, the summary explaining why, and its replacement if it has one. If the library later retired the replacement too, the preview says so and names the rule that replaced it, if any. When you confirm, the rule is dropped. For a rule with a replacement, read the replacement, and check that you import its group.
 
 To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only import supplying its group's metadata, the update writes that metadata to `local/<group-id>/_group.yaml` so the fork keeps its group.
 

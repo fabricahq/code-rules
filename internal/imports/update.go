@@ -72,6 +72,10 @@ type RuleUpdate struct {
 	Summaries []string `json:"summaries"`
 	// ReplacedBy is the library rule that replaces a retired rule, when there is one.
 	ReplacedBy string `json:"replacedBy,omitempty"`
+	// ReplacementRetired reports that the library later retired ReplacedBy too; CurrentReplacement is then the rule
+	// that its replacements lead to, or empty when they lead to none.
+	ReplacementRetired bool   `json:"replacementRetired,omitempty"`
+	CurrentReplacement string `json:"currentReplacement,omitempty"`
 	// LocalRule is the project's local rule that replaces a replaced rule, relative to the Code Rules directory.
 	LocalRule string `json:"localRule,omitempty"`
 	// Pin is the configured pin of a pinned rule, or of a retired rule a pin keeps.
@@ -418,7 +422,11 @@ func retiredRow(id string, current library.ImportedRule, history releaseHistory)
 		return RuleUpdate{}, fail("invalid-release-tag", fmt.Sprintf("Rule %s is missing from library release release/%d, but no library release retired it. Don't create or move release tags by hand.", id, history.newest().number), nil)
 	}
 	last := retired.LastVersion
-	return RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), ReplacedBy: retired.ReplacedBy}, nil
+	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), ReplacedBy: retired.ReplacedBy}
+	if row.ReplacedBy != "" && history.retired(row.ReplacedBy) {
+		row.ReplacementRetired, row.CurrentReplacement = true, history.currentReplacement(row.ReplacedBy)
+	}
+	return row, nil
 }
 
 // versionChange classifies moving from one version to a newer one by the largest component that changed.

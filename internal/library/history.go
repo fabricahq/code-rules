@@ -55,8 +55,10 @@ func (g *libraryGit) withoutUnpublished(number int) *libraryGit {
 type releaseHistory struct {
 	// latest is nil before the first library release.
 	latest *publishedRelease
-	// retired maps every rule a reachable library release retired to that release's number.
-	retired map[string]int
+	// retired maps every rule a reachable library release retired to that release's number, and replacedBy maps
+	// each of those that named a replacement to it.
+	retired    map[string]int
+	replacedBy map[string]string
 }
 
 // publishedRelease is the latest library release reachable from HEAD.
@@ -166,7 +168,7 @@ func (g *libraryGit) requireFullHistory(ctx context.Context) error {
 
 // history reads every reachable release record and lists the latest release's rule and note files.
 func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
-	history := releaseHistory{retired: map[string]int{}}
+	history := releaseHistory{retired: map[string]int{}, replacedBy: map[string]string{}}
 	tags, err := g.releaseTags(ctx)
 	if err != nil || len(tags) == 0 {
 		return history, err
@@ -174,9 +176,12 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	// Only the latest library release's notes and record are kept; the others contribute their retirements.
 	var latestRelease releasetag.Release
 	err = releasetag.Read(ctx, g.runner, g.dir, tags, func(i int, release releasetag.Release) error {
-		for id := range release.Record.Retired {
+		for id, retired := range release.Record.Retired {
 			if _, ok := history.retired[id]; !ok {
 				history.retired[id] = tags[i].Number
+				if retired.ReplacedBy != "" {
+					history.replacedBy[id] = retired.ReplacedBy
+				}
 			}
 		}
 		if i == len(tags)-1 {

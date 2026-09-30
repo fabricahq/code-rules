@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -175,7 +176,27 @@ func (g *libraryGit) compare(ctx context.Context, files map[string][]byte, curre
 			warnings = append(warnings, name+" was deleted after a library release published it. Notes are never deleted; restore it.")
 		}
 	}
-	return changes, warnings, nil
+	return changes, append(warnings, changes.retiredReplacements()...), nil
+}
+
+// retiredReplacements warns about each pending retirement of a rule that an earlier library release named as a
+// retired rule's replacement, since projects still importing the earlier rule would be pointed at a retired one.
+func (c libraryChanges) retiredReplacements() []string {
+	_, retiring := c.namedRules()
+	var warnings []string
+	for _, old := range slices.Sorted(maps.Keys(c.history.replacedBy)) {
+		replacement := c.history.replacedBy[old]
+		changes := retiring[replacement]
+		if len(changes) == 0 {
+			continue
+		}
+		warning := "The pending retirement of " + replacement + " retires the replacement that release/" + strconv.Itoa(c.history.retired[old]) + " named for " + old + ", so projects still importing " + old + " would be pointed at a retired rule."
+		if changes[0].ReplacedBy == "" {
+			warning += " To let them follow it, name a replacement for " + replacement + " as replacedBy in the note that retires it."
+		}
+		warnings = append(warnings, warning)
+	}
+	return warnings
 }
 
 // ruleFiles returns a rule's versioned files among names, in sorted order: its Markdown file and its asset directory's files.

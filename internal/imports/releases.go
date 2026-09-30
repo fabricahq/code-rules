@@ -74,6 +74,20 @@ func (h releaseHistory) retired(id string) bool {
 	return h.retirement(id) != nil
 }
 
+// currentReplacement follows the replacements of retired rule id until one that the newest library release
+// publishes, and returns it, or "" when a retirement names no replacement. A cycle, which only hand-made release
+// tags could record, also returns "".
+func (h releaseHistory) currentReplacement(id string) string {
+	seen := map[string]bool{}
+	for retired := h.retirement(id); retired != nil && retired.ReplacedBy != "" && !seen[id]; retired = h.retirement(id) {
+		seen[id], id = true, retired.ReplacedBy
+		if _, current := h.newest().record.Rules[id]; current {
+			return id
+		}
+	}
+	return ""
+}
+
 // retirement returns how a library release retired rule id, or nil when none did.
 func (h releaseHistory) retirement(id string) *rules.RetiredRule {
 	for _, release := range h.releases {

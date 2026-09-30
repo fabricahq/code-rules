@@ -304,6 +304,32 @@ func TestPlanUpdate_SharedFilesFollowAFullUpdate(t *testing.T) {
 	}
 }
 
+// TestPlanUpdate_SaysWhenARetiredRulesReplacementWasRetiredToo previews b, retired in favor of d, after d is retired
+// in turn: without a replacement for d, and then in favor of a, which the preview names instead.
+func TestPlanUpdate_SaysWhenARetiredRulesReplacementWasRetiredToo(t *testing.T) {
+	for _, test := range []struct {
+		name, retirement, current string
+	}{
+		{"without a replacement", "{lastVersion: 1.0.0, summaries: [Retire d.]}", ""},
+		{"in favor of another rule", "{lastVersion: 1.0.0, replacedBy: techs/go/a, summaries: [Fold d into a.]}", "techs/go/a"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			h := newHistory(t)
+			h.release(t, 4, map[string][]byte{"techs/go/d.md": nil}, "formatVersion: 1\nrelease: 4\nrules:\n  techs/go/a: 2.0.0\n  practices/testing/c: 1.0.0\nretired:\n  techs/go/d: "+test.retirement+"\n")
+			config := h.source(t, `"groups":["techs/go"]`)
+			recorded := h.record(t, config, 1, map[string]string{"techs/go/a": "2.0.0@3", "techs/go/b": "1.0.0@1"})
+			update, err := h.plan(t, config, &recorded)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rows := update.Sources[0].Rules
+			if len(rows) != 1 || rows[0].ID != "techs/go/b" || rows[0].ReplacedBy != "techs/go/d" || !rows[0].ReplacementRetired || rows[0].CurrentReplacement != test.current {
+				t.Fatalf("rows %+v, want b replaced by d, which is retired, leading to %q", rows, test.current)
+			}
+		})
+	}
+}
+
 // TestPlanUpdate_RefSourcesDontMove plans a source that uses ref as sync does, with no rows.
 func TestPlanUpdate_RefSourcesDontMove(t *testing.T) {
 	h := newHistory(t)

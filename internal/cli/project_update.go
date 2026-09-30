@@ -283,7 +283,12 @@ func updateVersions(row imports.RuleUpdate) string {
 // updateDetails returns the lines shown under a row: its replacement, summaries, local rule, pin, and decision.
 func updateDetails(row imports.RuleUpdate) []string {
 	lines := []string{}
-	if row.ReplacedBy != "" {
+	switch {
+	case row.ReplacementRetired && row.CurrentReplacement != "":
+		lines = append(lines, "Replaced by "+row.ReplacedBy+", which the library also retired, in favor of "+row.CurrentReplacement+".")
+	case row.ReplacementRetired:
+		lines = append(lines, "Replaced by "+row.ReplacedBy+", which the library also retired without a replacement.")
+	case row.ReplacedBy != "":
 		lines = append(lines, "Replaced by "+row.ReplacedBy+".")
 	}
 	lines = append(lines, row.Summaries...)
