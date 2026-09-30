@@ -22,10 +22,10 @@ type UpdatePlan struct {
 	options Options
 	git     imports.Options
 	update  imports.Update
-	// configBytes and vendorDigest identify the configuration and vendor output the plan started from; Apply
-	// refuses to install the plan when either changed.
-	configBytes  []byte
-	vendorDigest string
+	// planned is the project the plan started from, and guide the managed guide's bytes then, nil when it was
+	// absent; Apply refuses to install the plan when any of them changed.
+	planned projectState
+	guide   []byte
 }
 
 // UpdateDecision answers one preview row: Keep pins a changed or retired rule at its current version instead of
@@ -61,7 +61,9 @@ func (r UpdateResult) Moves() bool {
 }
 
 // PlanUpdate reads the project and plans moving the rules targets name, or every source's rules when there are
-// no targets, to their newest versions. It refuses to read a project another writer is changing.
+// no targets, to their newest versions. It reads the project under the writer, first recovering an interrupted
+// operation as sync does, and releases the writer before planning, so prompts never hold it. It refuses a project
+// another writer is changing.
 func PlanUpdate(ctx context.Context, options Options, git imports.Options, targets []imports.UpdateTarget) (*UpdatePlan, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -71,10 +73,16 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 		return nil, err
 	}
 	defer root.Close()
-	if err := filetxn.RequireIdle(root); err != nil {
-		return nil, err
-	}
-	state, err := readProject(ctx, root)
+	var state projectState
+	var guide []byte
+	err = filetxn.WithWriter(ctx, root, func(*filetxn.Writer) error {
+		if state, err = readProject(ctx, root); err != nil {
+			return err
+		}
+		name, _ := projectGuide()
+		guide, err = filetxn.ReadOptional(ctx, root, name)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +94,7 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 	if err != nil {
 		return nil, fmt.Errorf("plan project update: %w", err)
 	}
-	return &UpdatePlan{options: options, git: git, update: update, configBytes: state.configBytes, vendorDigest: state.vendor.Digest()}, nil
+	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide}, nil
 }
 
 // Preview returns the planned update with each decided row marked, without writing anything. It fails when a
@@ -103,7 +111,8 @@ func (p *UpdatePlan) Preview(decisions []UpdateDecision) (UpdateResult, error) {
 // Apply installs the planned versions under the writer, adding a pin for each kept rule and an exclusion for each
 // excluded one to config.yaml in the same transaction that replaces vendor and generated output, so recovery
 // restores or finishes all three together. A kept rule stays at its current version. It fails with
-// concurrent-change, writing nothing, when the configuration or vendor output changed after planning.
+// concurrent-change, writing nothing, when the configuration, local rules, vendor or generated output, or managed
+// guide changed after planning.
 func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (UpdateResult, error) {
 	sources, edits, err := p.decide(decisions)
 	if err != nil {
@@ -123,12 +132,12 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		if err != nil {
 			return err
 		}
-		if !bytes.Equal(before.configBytes, p.configBytes) || before.vendor.Digest() != p.vendorDigest {
-			return failure("concurrent-change", "the project's configuration or imported files changed after the update preview; run code-rules project update again", nil)
-		}
 		guide, err := planProjectGuide(ctx, root)
 		if err != nil {
 			return err
+		}
+		if !sameProject(p.planned, before) || (guide.Previous == nil) != (p.guide == nil) || !bytes.Equal(guide.Previous, p.guide) {
+			return failure("concurrent-change", "the project's configuration, local rules, imported files, generated output, or Code Rules guide changed after the update preview; run code-rules project update again", nil)
 		}
 		in := installation{guide: guide, config: before.config, git: p.git, options: p.options}
 		if len(edits) > 0 {

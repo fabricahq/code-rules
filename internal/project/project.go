@@ -245,10 +245,15 @@ func requireUnchanged(ctx context.Context, root *os.Root, before projectState) e
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(before.configBytes, after.configBytes) || before.local.Digest() != after.local.Digest() || before.vendor.Digest() != after.vendor.Digest() || before.generated.Digest() != after.generated.Digest() {
+	if !sameProject(before, after) {
 		return failure("concurrent-change", "project inputs or managed output changed during the operation; retry after edits finish", nil)
 	}
 	return nil
+}
+
+// sameProject reports whether two reads hold the same configuration bytes and local, vendor, and generated trees.
+func sameProject(a, b projectState) bool {
+	return bytes.Equal(a.configBytes, b.configBytes) && a.local.Digest() == b.local.Digest() && a.vendor.Digest() == b.vendor.Digest() && a.generated.Digest() == b.generated.Digest()
 }
 
 // treeFiles projects original bytes while treating an absent directory as an empty inventory.
