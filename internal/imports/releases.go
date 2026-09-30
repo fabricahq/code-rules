@@ -126,7 +126,11 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 	if err != nil {
 		return releaseHistory{}, err
 	}
-	read, err := releasetag.Read(ctx, r.runner, r.directory, tags)
+	// Imports need only the records, so each release's notes are dropped as soon as it is read.
+	err = releasetag.Read(ctx, r.runner, r.directory, tags, func(i int, release releasetag.Release) error {
+		advertised[i].record = release.Record
+		return nil
+	})
 	var invalid *releasetag.RecordError
 	var unsupported *rules.UnsupportedReleaseRecordError
 	switch {
@@ -138,9 +142,8 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 	if err != nil {
 		return releaseHistory{}, err
 	}
-	for i := range advertised {
-		advertised[i].record = read[i].Record
-		r.present[advertised[i].commit] = true
+	for _, release := range advertised {
+		r.present[release.commit] = true
 	}
 	return releaseHistory{releases: advertised}, nil
 }

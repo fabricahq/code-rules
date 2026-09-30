@@ -157,7 +157,19 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	if err != nil || len(tags) == 0 {
 		return history, err
 	}
-	releases, err := releasetag.Read(ctx, g.runner, g.dir, tags)
+	// Only the latest library release's notes and record are kept; the others contribute their retirements.
+	var latestRelease releasetag.Release
+	err = releasetag.Read(ctx, g.runner, g.dir, tags, func(i int, release releasetag.Release) error {
+		for id := range release.Record.Retired {
+			if _, ok := history.retired[id]; !ok {
+				history.retired[id] = tags[i].Number
+			}
+		}
+		if i == len(tags)-1 {
+			latestRelease = release
+		}
+		return nil
+	})
 	var invalid *releasetag.RecordError
 	var unsupported *rules.UnsupportedReleaseRecordError
 	switch {
@@ -169,19 +181,12 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	if err != nil {
 		return releaseHistory{}, fmt.Errorf("read the library's release tags: %w", err)
 	}
-	for i, release := range releases {
-		for id := range release.Record.Retired {
-			if _, ok := history.retired[id]; !ok {
-				history.retired[id] = tags[i].Number
-			}
-		}
-	}
-	latest, published := tags[len(tags)-1], releases[len(releases)-1]
+	latest := tags[len(tags)-1]
 	files, err := g.releaseFiles(ctx, latest.Object)
 	if err != nil {
 		return releaseHistory{}, err
 	}
-	history.latest = &publishedRelease{number: latest.Number, object: latest.Object, commit: latest.Target, notes: published.Notes, record: published.Record, files: files}
+	history.latest = &publishedRelease{number: latest.Number, object: latest.Object, commit: latest.Target, notes: latestRelease.Notes, record: latestRelease.Record, files: files}
 	return history, nil
 }
 

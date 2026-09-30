@@ -101,12 +101,14 @@ func List(ctx context.Context, runner gitexec.Runner, dir, merged string) ([]Tag
 	return tags, nil
 }
 
-// Read returns the release notes and record of each of tags, in the same order. The tags must be annotated tags no
-// larger than MaxBytes, as their listing shows them. It reads tag objects in batches of at most 16 MiB and stops
+// Read passes the release notes and record of each of tags to each, in order, with the tag's index in tags. The
+// tags must be annotated tags no larger than MaxBytes, as their listing shows them. It reads tag objects in
+// batches of at most 16 MiB and keeps nothing it has passed on, so the memory it holds stays within one batch
+// however many releases a library has; callers keep only what they need, such as records without notes. It stops
 // between records when ctx ends, since parsing thousands of large records takes long. An invalid record fails
-// with a *RecordError, and objects that don't match their listing fail with code git-failed.
-func Read(ctx context.Context, runner gitexec.Runner, dir string, tags []Tag) ([]Release, error) {
-	releases := make([]Release, 0, len(tags))
+// with a *RecordError, objects that don't match their listing fail with code git-failed, and an error from each
+// stops reading and is returned as is.
+func Read(ctx context.Context, runner gitexec.Runner, dir string, tags []Tag, each func(int, Release) error) error {
 	for start := 0; start < len(tags); {
 		end, total := start, 0
 		var input strings.Builder
@@ -117,28 +119,31 @@ func Read(ctx context.Context, runner gitexec.Runner, dir string, tags []Tag) ([
 		}
 		result, err := runner.Run(ctx, dir, []string{"cat-file", "--batch"}, total+4096, []byte(input.String()))
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if result.Status != 0 {
-			return nil, gitexec.Fail("git-failed", "Git could not read the library's release tags.", nil)
+			return gitexec.Fail("git-failed", "Git could not read the library's release tags.", nil)
 		}
 		remaining := result.Output
-		for _, tag := range tags[start:end] {
+		for i := start; i < end; i++ {
 			if err := ctx.Err(); err != nil {
-				return nil, gitexec.ContextFailure(err)
+				return gitexec.ContextFailure(err)
 			}
+			tag := tags[i]
 			header, rest, ok := bytes.Cut(remaining, []byte{'\n'})
 			if !ok || string(header) != tag.Object+" tag "+strconv.Itoa(tag.Size) || len(rest) < tag.Size+1 || rest[tag.Size] != '\n' {
-				return nil, gitexec.Fail("git-failed", "Git returned inconsistent or incomplete release tags.", nil)
+				return gitexec.Fail("git-failed", "Git returned inconsistent or incomplete release tags.", nil)
 			}
 			notes, record, err := rules.ParseReleaseTagObject(tag.Name(), rest[:tag.Size])
 			if err != nil {
-				return nil, &RecordError{Tag: tag.Name(), Err: err}
+				return &RecordError{Tag: tag.Name(), Err: err}
 			}
-			releases = append(releases, Release{Notes: notes, Record: record})
+			if err := each(i, Release{Notes: notes, Record: record}); err != nil {
+				return err
+			}
 			remaining = rest[tag.Size+1:]
 		}
 		start = end
 	}
-	return releases, nil
+	return nil
 }
