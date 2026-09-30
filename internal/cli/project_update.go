@@ -4,6 +4,7 @@ package cli
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/imports"
@@ -320,7 +321,14 @@ func updateDetails(row imports.RuleUpdate) []string {
 	case row.ReplacedBy != "":
 		lines = append(lines, "Replaced by "+row.ReplacedBy+".")
 	}
-	lines = append(lines, row.Summaries...)
+	// A row spanning several versions labels each summary with its version, so people can tell which change is which.
+	spans := slices.ContainsFunc(row.SummaryVersions, func(version rules.RuleVersion) bool { return version != row.SummaryVersions[0] })
+	for i, summary := range row.Summaries {
+		if spans && i < len(row.SummaryVersions) {
+			summary = row.SummaryVersions[i].String() + ": " + summary
+		}
+		lines = append(lines, summary)
+	}
 	if row.LocalRule != "" {
 		lines = append(lines, "Your rule: "+row.LocalRule+".")
 	}

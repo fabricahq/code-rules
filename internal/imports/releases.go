@@ -116,18 +116,20 @@ func (h releaseHistory) retirement(id string) *rules.RetiredRule {
 }
 
 // summaries returns, oldest first, the summaries of every version of rule id newer than from, up to and including
-// to, one per change note. A nil from includes every version up to to. The result is empty, never nil, when there
-// are none.
-func (h releaseHistory) summaries(id string, from *rules.RuleVersion, to rules.RuleVersion) []string {
-	result := []string{}
+// to, one per change note, and the version each belongs to, in the same order. A nil from includes every version up
+// to to. Both are empty, never nil, when there are none.
+func (h releaseHistory) summaries(id string, from *rules.RuleVersion, to rules.RuleVersion) ([]string, []rules.RuleVersion) {
+	summaries, versions := []string{}, []rules.RuleVersion{}
 	for _, release := range h.releases {
 		change, changed := release.record.Changes[id]
 		version := release.record.Rules[id]
 		if changed && (from == nil || version.Compare(*from) > 0) && version.Compare(to) <= 0 {
-			result = append(result, change.Summaries...)
+			for _, summary := range change.Summaries {
+				summaries, versions = append(summaries, summary), append(versions, version)
+			}
 		}
 	}
-	return result
+	return summaries, versions
 }
 
 // loadHistory lists the library's release/<number> tags, fetches them without history or blobs, and reads their

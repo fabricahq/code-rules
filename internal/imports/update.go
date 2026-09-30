@@ -68,8 +68,10 @@ type RuleUpdate struct {
 	Newest      *rules.RuleVersion `json:"newest,omitempty"`
 	LastVersion *rules.RuleVersion `json:"lastVersion,omitempty"`
 	// Summaries holds one line per change note, oldest first: every version after From up to To, every version of
-	// a new rule, or the retirement. It is empty, never nil, for a pinned rule.
-	Summaries []string `json:"summaries"`
+	// a new rule, or the retirement. It is empty, never nil, for a pinned rule. SummaryVersions holds the version
+	// each summary belongs to, in the same order, a retired rule's being its last version.
+	Summaries       []string            `json:"summaries"`
+	SummaryVersions []rules.RuleVersion `json:"summaryVersions"`
 	// ReplacedBy is the library rule that replaces a retired rule, when there is one.
 	ReplacedBy string `json:"replacedBy,omitempty"`
 	// ReplacementRetired reports that the library later retired ReplacedBy too; CurrentReplacement is then the rule
@@ -338,7 +340,7 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 			row.Pin = &pin
 			rows = append(rows, row)
 		case pinned && latest.Compare(*current.Version) > 0:
-			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, Pin: &pin})
+			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []rules.RuleVersion{}, Pin: &pin})
 		case pinned:
 		case !published:
 			delete(after, id)
@@ -356,7 +358,8 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 			if !listed {
 				continue
 			}
-			row := RuleUpdate{ID: id, Change: versionChange(*current.Version, latest), From: current.Version, To: &latest, Summaries: history.summaries(id, current.Version, latest)}
+			row := RuleUpdate{ID: id, Change: versionChange(*current.Version, latest), From: current.Version, To: &latest}
+			row.Summaries, row.SummaryVersions = history.summaries(id, current.Version, latest)
 			if excluded {
 				row.Change, row.LocalRule = UpdateReplaced, exclusion.ReplacedBy
 			}
@@ -372,7 +375,9 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 			if after[id], err = p.publishedVersion(id, version); err != nil {
 				return nil, nil, err
 			}
-			rows = append(rows, RuleUpdate{ID: id, Change: UpdateNew, To: &version, Summaries: history.summaries(id, nil, version)})
+			row := RuleUpdate{ID: id, Change: UpdateNew, To: &version}
+			row.Summaries, row.SummaryVersions = history.summaries(id, nil, version)
+			rows = append(rows, row)
 		}
 	}
 	slices.SortFunc(rows, func(a, b RuleUpdate) int {
@@ -423,7 +428,10 @@ func retiredRow(id string, current library.ImportedRule, history releaseHistory)
 		return RuleUpdate{}, fail("invalid-release-tag", fmt.Sprintf("Rule %s is missing from release/%d, but no library release retired it. Don't create or move release tags by hand.", id, history.newest().number), nil)
 	}
 	last := retired.LastVersion
-	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), ReplacedBy: retired.ReplacedBy}
+	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), SummaryVersions: []rules.RuleVersion{}, ReplacedBy: retired.ReplacedBy}
+	for range row.Summaries {
+		row.SummaryVersions = append(row.SummaryVersions, last)
+	}
 	if row.ReplacedBy != "" && history.retired(row.ReplacedBy) {
 		row.ReplacementRetired, row.CurrentReplacement = true, history.currentReplacement(row.ReplacedBy)
 	}

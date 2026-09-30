@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
@@ -185,13 +186,13 @@ func TestUpdate_JSONPreviewReportsEveryRowAndWritesNothing(t *testing.T) {
 		t.Fatalf("value %+v", result.Value)
 	}
 	want := []string{
-		`{"id":"techs/go/errors","change":"major","from":"1.0.0","to":"2.0.0","summaries":["Require wrapping."]}`,
-		`{"id":"techs/go/naming","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Add an example."]}`,
-		`{"id":"techs/go/format","change":"patch","from":"1.0.0","to":"1.0.1","summaries":["Fix a typo."]}`,
-		`{"id":"techs/go/verify","change":"new","to":"1.0.0","summaries":["Add the rule."]}`,
-		`{"id":"techs/go/retry","change":"retired","from":"1.0.0","lastVersion":"1.0.0","summaries":["Covered by verify."],"replacedBy":"techs/go/verify"}`,
-		`{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"localRule":"local/techs/go/use-data-loaders.md"}`,
-		`{"id":"techs/go/backoff","change":"pinned","from":"1.0.0","newest":"2.0.0","summaries":[],"pin":{"version":"1.0.0","reason":"Waiting on #45."}}`,
+		`{"id":"techs/go/errors","change":"major","from":"1.0.0","to":"2.0.0","summaries":["Require wrapping."],"summaryVersions":["2.0.0"]}`,
+		`{"id":"techs/go/naming","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Add an example."],"summaryVersions":["1.1.0"]}`,
+		`{"id":"techs/go/format","change":"patch","from":"1.0.0","to":"1.0.1","summaries":["Fix a typo."],"summaryVersions":["1.0.1"]}`,
+		`{"id":"techs/go/verify","change":"new","to":"1.0.0","summaries":["Add the rule."],"summaryVersions":["1.0.0"]}`,
+		`{"id":"techs/go/retry","change":"retired","from":"1.0.0","lastVersion":"1.0.0","summaries":["Covered by verify."],"summaryVersions":["1.0.0"],"replacedBy":"techs/go/verify"}`,
+		`{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"local/techs/go/use-data-loaders.md"}`,
+		`{"id":"techs/go/backoff","change":"pinned","from":"1.0.0","newest":"2.0.0","summaries":[],"summaryVersions":[],"pin":{"version":"1.0.0","reason":"Waiting on #45."}}`,
 	}
 	got := []string{}
 	for _, row := range result.Value.Sources[0].Rules {
@@ -393,5 +394,18 @@ func TestUpdate_TerminalCancellationWritesNothing(t *testing.T) {
 				t.Fatal("a cancelled update changed the project")
 			}
 		})
+	}
+}
+
+// TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral, and only then.
+func TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral(t *testing.T) {
+	one, two := rules.RuleVersion{Major: 1, Minor: 1}, rules.RuleVersion{Major: 2}
+	spanning := imports.RuleUpdate{Change: imports.UpdateMajor, Summaries: []string{"Add an example.", "Require more."}, SummaryVersions: []rules.RuleVersion{one, two}}
+	if got, want := updateDetails(spanning), []string{"1.1.0: Add an example.", "2.0.0: Require more."}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+	single := imports.RuleUpdate{Change: imports.UpdatePatch, Summaries: []string{"Fix a typo.", "Fix a link."}, SummaryVersions: []rules.RuleVersion{one, one}}
+	if got, want := updateDetails(single), []string{"Fix a typo.", "Fix a link."}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q, want %q", got, want)
 	}
 }
