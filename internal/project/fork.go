@@ -133,11 +133,11 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 	case p.replaces == "" && reason != "":
 		return AuthoringResult{}, &rules.ValidationError{Location: "--reason", Problem: "the project doesn't import this rule, so the fork replaces nothing and has no exclusion to record a reason in"}
 	}
-	return editProject(ctx, p.options, func(root *os.Root, original []byte, _ rules.Configuration) ([]filetxn.File, error) {
+	return editProject(ctx, p.options, func(root *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
 		if !bytes.Equal(original, p.configBytes) {
 			return nil, failure("concurrent-change", "the project's configuration changed after the fork was planned; run the command again", nil)
 		}
-		files, err := p.groupFiles(ctx, root)
+		files, err := p.groupFiles(ctx, root, config)
 		if err != nil {
 			return nil, err
 		}
@@ -162,13 +162,17 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 }
 
 // groupFiles returns the files that create the rule's local group from the library's metadata, and the group's
-// authoring README when it's missing too, or none when the project has local metadata for the group. It fails
-// when the library has no metadata for the group either.
-func (p *ForkPlan) groupFiles(ctx context.Context, root *os.Root) ([]filetxn.File, error) {
+// authoring README when it's missing too. It returns none when the project has local metadata for the group, or
+// when a source the project imports, as its synced record shows, supplies the group, because local metadata would
+// replace that library's description of the group. It fails when the library has no metadata for the group either.
+func (p *ForkPlan) groupFiles(ctx context.Context, root *os.Root, config rules.Configuration) ([]filetxn.File, error) {
 	group := p.group
 	directory := path.Join("local", group)
 	metadata, err := filetxn.ReadOptional(ctx, root, path.Join(directory, "_group.yaml"))
 	if err != nil || metadata != nil {
+		return nil, err
+	}
+	if imported, err := importedGroup(ctx, root, config, group); err != nil || imported {
 		return nil, err
 	}
 	if p.groupMetadata == nil {
@@ -186,6 +190,30 @@ func (p *ForkPlan) groupFiles(ctx context.Context, root *os.Root) ([]filetxn.Fil
 		}
 	}
 	return files, nil
+}
+
+// importedGroup reports whether the synced record of a configured source imports group, as a selected group or
+// the group of an imported rule; either supplies the group's metadata.
+func importedGroup(ctx context.Context, root *os.Root, config rules.Configuration, group string) (bool, error) {
+	vendor, err := filetxn.ReadTree(ctx, root, "vendor")
+	if err != nil {
+		return false, err
+	}
+	recorded, err := recordedSnapshots(config, treeFiles(vendor))
+	if err != nil {
+		return false, err
+	}
+	for _, snapshot := range recorded {
+		if slices.Contains(snapshot.Groups, group) {
+			return true, nil
+		}
+		for id := range snapshot.Rules {
+			if strings.HasPrefix(id, group+"/") {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // checkForkTarget checks that id names a rule path and that local/ doesn't have the rule yet, and returns the

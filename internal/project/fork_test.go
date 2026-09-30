@@ -106,7 +106,8 @@ func (f forkFixture) files(t *testing.T) map[string][]byte {
 
 // TestFork_ReplacesAnImportedRuleWithAnOlderVersion forks 1.0.0 after release/2 published 1.1.0: the fork holds
 // the older text, its assets, and the shared assets it links to with rewritten links, and the exclusion that makes
-// it replace the imported rule when the project builds.
+// it replace the imported rule when the project builds. The imported library supplies the group, so the fork
+// creates no local group metadata.
 func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
 	f := newForkFixture(t, "")
 	before := f.files(t)
@@ -122,7 +123,7 @@ func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
 		}
 	}
 	slices.Sort(added)
-	want := []string{"local/techs/go/README.md", "local/techs/go/_group.yaml", "local/techs/go/assets/errors/data.bin", "local/techs/go/assets/errors/diagrams/flow.svg", "local/techs/go/assets/errors/guide.md", "local/techs/go/assets/errors/more.md", "local/techs/go/assets/errors/notes.md", "local/techs/go/errors.md"}
+	want := []string{"local/techs/go/assets/errors/data.bin", "local/techs/go/assets/errors/diagrams/flow.svg", "local/techs/go/assets/errors/guide.md", "local/techs/go/assets/errors/more.md", "local/techs/go/assets/errors/notes.md", "local/techs/go/errors.md"}
 	if !reflect.DeepEqual(added, want) || len(result.Files) != len(want)+1 {
 		t.Fatalf("added %v, reported %v; want %v and config.yaml", added, result.Files, want)
 	}
@@ -134,9 +135,6 @@ func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
 	}
 	if got := string(after["local/techs/go/assets/errors/guide.md"]); got != "[More](more.md)\n" {
 		t.Fatalf("copied shared asset %q", got)
-	}
-	if got := string(after["local/techs/go/_group.yaml"]); got != "# Go metadata.\n"+projectMetadata+"\n" {
-		t.Fatalf("group metadata %q", got)
 	}
 	config := string(after["config.yaml"])
 	if !strings.HasPrefix(config, "# Team rules.\n") || !strings.Contains(config, "    exclude:\n      techs/go/errors:\n        reason: Our services need the original wording.\n        replacedBy: local/techs/go/errors.md\n") {
@@ -386,6 +384,34 @@ func TestFork_OfARuleARefDoesNotImportWritesNoExclusion(t *testing.T) {
 	}
 	if _, err := Build(context.Background(), f.options); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestFork_KeepsTheLibrarysGroupDescription forks the only rule a source imports from its group, individually:
+// the library still supplies the group, so the fork writes no local metadata, and the generated group page keeps
+// the library's description.
+func TestFork_KeepsTheLibrarysGroupDescription(t *testing.T) {
+	f := newForkFixture(t, "")
+	root, err := openProject(context.Background(), f.options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	writeFixture(t, root, configurationFile, "schemaVersion: 1\nsources:\n  team:\n    repository: "+f.fixture.Repository+"\n    rules:\n      - practices/testing/verify\n")
+	if _, err := Sync(context.Background(), f.options, f.git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.fork(t, "practices/testing/verify", "team@1.0.0", "Ours."); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := f.files(t)["local/practices/testing/_group.yaml"]; ok {
+		t.Fatal("the fork wrote local group metadata")
+	}
+	if _, err := Build(context.Background(), f.options); err != nil {
+		t.Fatal(err)
+	}
+	if page := string(f.files(t)["generated/groups/practices/testing.md"]); !strings.Contains(page, "Tests.") || !strings.Contains(page, "local/practices/testing/verify") {
+		t.Fatalf("group page:\n%s", page)
 	}
 }
 

@@ -81,7 +81,7 @@ func TestForkRule_ReplacesTheImportedRuleInTheBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := "Rule forked from team 1.0.0, published in library release release/1:\n"
-	for _, file := range []string{"local/techs/go/README.md", "local/techs/go/_group.yaml", "local/techs/go/assets/errors/guide.md", "local/techs/go/errors.md", "config.yaml"} {
+	for _, file := range []string{"local/techs/go/assets/errors/guide.md", "local/techs/go/errors.md", "config.yaml"} {
 		want += "  " + filepath.Join(directory, file) + "\n"
 	}
 	want += "\n" +
