@@ -108,11 +108,11 @@ Copy one version of a library rule into `local/` so the project controls its tex
 Metadata options and `--body-file` don't apply to a fork. The command:
 
 1. Finds the library release that published `<VERSION>` from the release records in the library's `release/<number>` tags, and reads the rule and its asset directory at that tag's commit.
-2. Writes them under `local/` and creates the local group from the library's group metadata if it doesn't exist.
-3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL.
-4. When the project imports the rule from `LIBRARY`, adds an `exclude` entry for it with your reason and the fork as `replacedBy`, so agents read only the fork.
+2. Writes them under `local/`. When neither local metadata nor a library the project imports supplies the rule's group, it also creates the local group from the library's group metadata.
+3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL, and the entry links to that address.
+4. When the project imports the rule from `LIBRARY`, as its last sync recorded, adds an `exclude` entry for it with your reason and the fork as `replacedBy`, so agents read only the fork. If you changed that source's configuration since, run `code-rules project sync` first.
 
-If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. Existing local rules are never overwritten. A forked rule has no version; it changes only when you edit it. Run `code-rules project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
+If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing local rules and exclusions are never overwritten. A forked rule has no version; it changes only when you edit it. Run `code-rules project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
 
 ### project sync
 
