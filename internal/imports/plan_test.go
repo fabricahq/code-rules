@@ -703,3 +703,24 @@ func TestVersionList_ListsAtMostTenVersionsNewestFirst(t *testing.T) {
 		t.Fatalf("ten versions: %q", got)
 	}
 }
+
+// TestImport_ExclusionOfADeselectedRetiredRuleOnlyWarns: the last sync imported and excluded b, which release/3
+// retired; deselecting techs/go keeps the exclusion a warning, now and in later syncs, and the record lists b as
+// retired, so offline checks accept the exclusion too.
+func TestImport_ExclusionOfADeselectedRetiredRuleOnlyWarns(t *testing.T) {
+	h := newHistory(t)
+	excluded := `"exclude":{"techs/go/b":{"reason":"Not used."}}`
+	recorded := h.record(t, h.source(t, `"groups":["techs/go","practices/testing"],`+excluded), 1, map[string]string{"techs/go/a": "1.0.0@1", "techs/go/b": "1.0.0@1", "practices/testing/c": "1.0.0@1"})
+	config := h.source(t, `"groups":["practices/testing"],`+excluded)
+	snapshot := recorded
+	for sync := 1; sync <= 2; sync++ {
+		imported, err := h.sync(t, config, &snapshot)
+		if err != nil {
+			t.Fatalf("sync %d: %v", sync, err)
+		}
+		if len(imported.Warnings) != 1 || !strings.HasPrefix(imported.Warnings[0], "sources.team.exclude names techs/go/b") || !slices.Contains(imported.Snapshot.RetiredRules, "techs/go/b") {
+			t.Fatalf("sync %d: warnings %q, retired %v", sync, imported.Warnings, imported.Snapshot.RetiredRules)
+		}
+		snapshot = imported.Snapshot
+	}
+}

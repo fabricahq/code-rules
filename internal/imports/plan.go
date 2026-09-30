@@ -100,8 +100,10 @@ func (p *planner) retiredRules(plan sourcePlan) ([]string, error) {
 	return p.freshRetiredRules()
 }
 
-// freshRetiredRules returns, sorted, the rules the library's release history retired that the source's groups or
-// rules list selects, reading the history when the planner hasn't yet.
+// freshRetiredRules returns, sorted, the rules the library's release history retired that the source would
+// otherwise import, as configuration entries naming them only warn: those its groups or rules list selects, and
+// those recorded imported or listed as retired, so an entry left after deselecting a retired rule stays a warning
+// offline too. It reads the history when the planner hasn't yet.
 func (p *planner) freshRetiredRules() ([]string, error) {
 	history, err := p.releases()
 	if err != nil {
@@ -110,7 +112,7 @@ func (p *planner) freshRetiredRules() ([]string, error) {
 	retired := []string{}
 	for _, release := range history.releases {
 		for id := range release.record.Retired {
-			if p.selected(id) {
+			if p.wouldImport(id) {
 				retired = append(retired, id)
 			}
 		}
@@ -474,8 +476,7 @@ func (p *planner) unimported(field, id string, plan *sourcePlan) error {
 	if err != nil {
 		return err
 	}
-	wouldImport := p.source.Groups.Includes(ruleGroup(id)) || slices.Contains(p.source.Rules, id) || p.recorded != nil && hasRule(p.recorded, id)
-	if wouldImport && history.retired(id) {
+	if p.wouldImport(id) && history.retired(id) {
 		plan.warnings = append(plan.warnings, p.retiredEntry(field, id))
 		return nil
 	}
@@ -484,6 +485,12 @@ func (p *planner) unimported(field, id string, plan *sourcePlan) error {
 		return &rules.ValidationError{Location: "sources." + p.source.Name + ".rules", Problem: "the library has no rule " + id + " to import; check the rule ID"}
 	}
 	return &rules.ValidationError{Location: location, Problem: "rule is not imported by this source; name a rule that its groups or rules select"}
+}
+
+// wouldImport reports whether the source would import rule id if the library still published it: its groups or rules
+// list selects it, or recorded imported it or listed it as retired.
+func (p *planner) wouldImport(id string) bool {
+	return p.selected(id) || p.recorded != nil && (hasRule(p.recorded, id) || slices.Contains(p.recorded.RetiredRules, id))
 }
 
 // retiredEntry warns that a configuration entry names a retired rule.

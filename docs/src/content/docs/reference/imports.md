@@ -112,7 +112,7 @@ Code Rules fetches and validates all selected libraries before replacing your pr
 Validation rejects:
 
 - Invalid or reserved source names, repeated repositories, and duplicate rule IDs that include the same source name.
-- Missing groups, or rules named in an exclusion, pin, or `rules` entry that the source doesn't import. An entry naming a rule the library retired produces a warning instead, when the source would otherwise import that rule: its group is selected, it is listed in `rules`, or the last sync imported it.
+- Missing groups, or rules named in an exclusion, pin, or `rules` entry that the source doesn't import. An entry naming a rule the library retired produces a warning instead, when the source would otherwise import that rule: its group is selected, it is listed in `rules`, or the last sync imported it or recorded it as retired. Offline checks accept the same exclusions, because the snapshot records those retired rules in `retiredRules`.
 - A missing `replacedBy` file, or one local file named as the replacement for more than one rule.
 - Invalid metadata, unsafe file paths, and symbolic links.
 
