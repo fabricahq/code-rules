@@ -372,7 +372,8 @@ func TestImport_RefToADeletedLibraryReleaseFailsForNewlySelectedRules(t *testing
 	}
 }
 
-// TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves restores the commit a tag named when it was recorded.
+// TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves restores the commit a tag named when it was recorded, also
+// when the configuration writes the same ref another way, and records the ref as now written.
 func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	h := newHistory(t)
 	ctx := context.Background()
@@ -390,6 +391,10 @@ func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	again, err := h.sync(t, config, &first.Snapshot)
 	if err != nil || again.Snapshot.Commit != h.commits[1] || !reflect.DeepEqual(versions(again.Snapshot), versions(first.Snapshot)) {
 		t.Fatalf("snapshot %+v, %v", again.Snapshot, err)
+	}
+	respelled, err := h.sync(t, h.source(t, `"groups":["techs/go"],"ref":"refs/tags/candidate"`), &first.Snapshot)
+	if err != nil || respelled.Snapshot.Commit != h.commits[1] || respelled.Snapshot.Ref != "refs/tags/candidate" {
+		t.Fatalf("the same ref written another way: snapshot %+v, %v", respelled.Snapshot, err)
 	}
 }
 
@@ -532,7 +537,7 @@ func TestImport_RefSelectsIndividualRulesAtItsRevision(t *testing.T) {
 func TestImport_WithoutLibraryReleasesFailsWithoutARef(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())
 	config := libraryConfig(t, f.Repository)
-	config.Sources[0].Ref, config.Sources[0].ParsedRef = "", nil
+	config.Sources[0].Ref = ""
 	_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
 	requireCode(t, err, "releases-not-found")
 }

@@ -298,7 +298,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 // "What offline checks can verify": the recorded identity and selections, pinned versions, and ref.
 func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	where := source.Name + "/_source.json"
-	if source.Repository != record.Repository || source.Ref != record.Ref || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
+	if source.Repository != record.Repository || !source.SameRef(record.Ref) || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
 		return invalidSnapshot(where, "source identity or selection changed; run code-rules project sync")
 	}
 	for _, id := range slices.Sorted(maps.Keys(source.Pins)) {
@@ -352,19 +352,20 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 // matchRevision checks the record's library release and commit against how the source chooses versions.
 func matchRevision(source rules.Source, record parsedRecord) error {
 	where := source.Name + "/_source.json"
-	if source.ParsedRef == nil {
+	ref, hasRef := source.GitRef()
+	if !hasRef {
 		if record.Release == 0 {
 			return invalidSnapshot(where+".release", "a source without ref records the library release that supplied its files")
 		}
 		return nil
 	}
-	if source.ParsedRef.Kind == rules.GitRefCommit {
-		if record.Commit != source.ParsedRef.SHA {
+	if ref.Kind == rules.GitRefCommit {
+		if record.Commit != ref.SHA {
 			return invalidSnapshot(where, "resolved commit differs from requested commit")
 		}
 	}
-	number, err := rules.ParseReleaseTag(strings.TrimPrefix(source.ParsedRef.Name, "refs/tags/"))
-	if source.ParsedRef.Kind != rules.GitRefTag || err != nil {
+	number, err := rules.ParseReleaseTag(strings.TrimPrefix(ref.Name, "refs/tags/"))
+	if ref.Kind != rules.GitRefTag || err != nil {
 		if record.Release != 0 {
 			return invalidSnapshot(where+".release", "a ref that isn't a library release tag records no library release")
 		}

@@ -317,7 +317,7 @@ func TestPrepareShowsEachImportedRulesVersion(t *testing.T) {
 		version := rules.RuleVersion{Major: 1, Minor: 3}
 		snapshot.Release = 2
 		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: older}
-		source.Ref, source.ParsedRef = "", nil
+		source.Ref = ""
 		source.Pins = map[string]rules.Pin{"techs/go/errors": {Version: version, Reason: "Waiting on | review."}}
 	})
 	for _, name := range []string{"rules/team/techs/go/errors.md", "groups/techs/go.md"} {

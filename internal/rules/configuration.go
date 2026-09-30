@@ -22,10 +22,8 @@ type Configuration struct {
 type Source struct {
 	Name       string `json:"name"`
 	Repository string `json:"repository"`
-	// Ref is the authored tag or full commit SHA, or empty when the source follows rule versions.
+	// Ref is the authored tag or full commit SHA, or empty when the source follows rule versions. GitRef parses it.
 	Ref string `json:"ref,omitempty"`
-	// ParsedRef is nil exactly when Ref is empty.
-	ParsedRef *GitRef `json:"parsedRef,omitempty"`
 	// Groups is an empty explicit list when the source selects only individual rules.
 	Groups GroupSelection `json:"groups"`
 	// Rules lists individually selected rule IDs in sorted order; it is empty, never nil, when there are none.
@@ -34,6 +32,28 @@ type Source struct {
 	Pins map[string]Pin `json:"pins"`
 	// Exclude is empty, never nil, when the source has no exceptions.
 	Exclude map[string]Exclusion `json:"exclude"`
+}
+
+// GitRef returns the source's ref, parsed and normalized, and false when the source has none.
+// ParseConfiguration already validated Ref, so parsing here can't fail for a configuration it returned.
+func (s Source) GitRef() (GitRef, bool) {
+	if s.Ref == "" {
+		return GitRef{}, false
+	}
+	ref, err := ParseGitRef(s.Ref, "sources."+s.Name+".ref")
+	return ref, err == nil
+}
+
+// SameRef reports whether ref, such as the ref a snapshot recorded for the source, names the same revision as the
+// source's ref once both are parsed, so release/5 and refs/tags/release/5 match. An empty ref matches only a
+// source without one, and text that isn't a valid ref matches nothing.
+func (s Source) SameRef(ref string) bool {
+	if ref == "" || s.Ref == "" {
+		return ref == s.Ref
+	}
+	own, valid := s.GitRef()
+	other, err := ParseGitRef(ref, "ref")
+	return valid && err == nil && other == own
 }
 
 // Pin keeps one rule at an exact published version, with the project's reason.
@@ -122,12 +142,10 @@ func parseSource(name string, input json.RawMessage, repositories map[string]boo
 		if err != nil {
 			return Source{}, err
 		}
-		ref, err := ParseGitRef(text, where+".ref")
-		if err != nil {
+		if _, err := ParseGitRef(text, where+".ref"); err != nil {
 			return Source{}, err
 		}
 		result.Ref = text
-		result.ParsedRef = &ref
 	}
 	if result.Groups, result.Rules, err = parseSelection(fields, where); err != nil {
 		return Source{}, err

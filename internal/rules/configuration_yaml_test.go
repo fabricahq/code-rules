@@ -193,13 +193,6 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 			}
 			want := test.source
 			want.Name = "team"
-			if want.Ref != "" {
-				ref, err := rules.ParseGitRef(want.Ref, "ref")
-				if err != nil {
-					t.Fatal(err)
-				}
-				want.ParsedRef = &ref
-			}
 			if want.Rules == nil {
 				want.Rules = []string{}
 			}

@@ -163,10 +163,7 @@ func (r *repository) fetchCommits(ctx context.Context, commits []string, missing
 // fetchRef fetches an exact tag or full commit SHA and returns its commit. A revision the repository doesn't
 // have fails with code version-not-found.
 func (r *repository) fetchRef(ctx context.Context, source rules.Source) (string, error) {
-	ref, err := rules.ParseGitRef(source.Ref, "sources."+source.Name+".ref")
-	if err != nil {
-		return "", err
-	}
+	ref, _ := source.GitRef()
 	refspec := ref.SHA
 	if ref.Kind == rules.GitRefTag {
 		refspec = "+" + ref.Name + ":" + ref.Name

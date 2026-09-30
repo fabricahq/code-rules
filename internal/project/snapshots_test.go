@@ -398,6 +398,24 @@ func TestSnapshotRefChecks(t *testing.T) {
 	}
 }
 
+// TestSnapshotRefWrittenAnotherWayNeedsNoSync accepts a record of release/2 for a source that now writes the same ref
+// as refs/tags/release/2, and still asks for sync when the ref names another library release.
+func TestSnapshotRefWrittenAnotherWayNeedsNoSync(t *testing.T) {
+	recorded := snapshotConfig(t, `"groups":["techs/go"],"ref":"release/2"`)
+	_, snapshots := snapshotFixture(t)
+	item := snapshots["team"]
+	item.Ref = "release/2"
+	vendor, err := encodeSnapshots(recorded, map[string]snapshot{"team": item})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"ref":"refs/tags/release/2"`), vendor); err != nil {
+		t.Fatal(err)
+	}
+	got, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"ref":"refs/tags/release/3"`), vendor)
+	requireSync(t, got, err)
+}
+
 // TestSnapshotEmptySources encodes and decodes a local-only project and rejects a removed source's record.
 func TestSnapshotEmptySources(t *testing.T) {
 	c, s := snapshotFixture(t)
