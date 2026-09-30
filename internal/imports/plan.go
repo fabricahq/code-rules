@@ -72,7 +72,7 @@ func (p *planner) choose() (sourcePlan, error) {
 		return sourcePlan{}, err
 	}
 	chosen.warnings = append(redundantRules(p.source, chosen.rules), chosen.warnings...)
-	chosen.retired, err = p.retiredRules()
+	chosen.retired, err = p.retiredRules(chosen)
 	return chosen, err
 }
 
@@ -89,13 +89,20 @@ func redundantRules(source rules.Source, imported map[string]library.ImportedRul
 	return warnings
 }
 
-// retiredRules returns, sorted, the rules the library retired that the source's groups or rules list selects. It
-// reads them from the release history once the planner has read it, or when the source selects something recorded
-// didn't; otherwise it keeps recorded's list, so a sync that changes nothing records the same list.
-func (p *planner) retiredRules() ([]string, error) {
-	if p.history == nil && p.recorded != nil && sameGroupSelection(p.recorded.Selection, p.source.Groups) && slices.Equal(p.recorded.RuleSelection, p.source.Rules) {
-		return slices.Clone(p.recorded.RetiredRules), nil
+// retiredRules returns the retired rules a sync that chose plan records: recorded's list, byte for byte, when the
+// source selects what recorded did, from the same revision, with the same shared files, so that a sync changing
+// nothing else, such as only an exclusion, never rewrites the record, whatever the planner happened to read;
+// otherwise, the release history's, as freshRetiredRules returns them.
+func (p *planner) retiredRules(plan sourcePlan) ([]string, error) {
+	if recorded := p.recorded; recorded != nil && sameGroupSelection(recorded.Selection, p.source.Groups) && slices.Equal(recorded.RuleSelection, p.source.Rules) && p.source.Ref.Equal(recorded.Ref) && plan.release == recorded.Release && plan.commit == recorded.Commit {
+		return slices.Clone(recorded.RetiredRules), nil
 	}
+	return p.freshRetiredRules()
+}
+
+// freshRetiredRules returns, sorted, the rules the library's release history retired that the source's groups or
+// rules list selects, reading the history when the planner hasn't yet.
+func (p *planner) freshRetiredRules() ([]string, error) {
 	history, err := p.releases()
 	if err != nil {
 		return nil, err

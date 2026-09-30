@@ -241,6 +241,54 @@ func TestSync_KeepsTheSourceRecordWhenOnlyAPinsReasonChanges(t *testing.T) {
 	requireCurrent(t, options)
 }
 
+// TestSync_KeepsRecordedRetirementsWhenOnlyAnExclusionChanged: the record lists retired errors and imports extra;
+// the library then retires extra; an exclusion of errors, added by hand, builds and checks offline, and a sync that
+// changes nothing else, although checking the exclusion reads the library's releases, writes _source.json byte for
+// byte as before, extra's retirement included only when an update moves the source.
+func TestSync_KeepsRecordedRetirementsWhenOnlyAnExclusionChanged(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	secondRelease(t, f)
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/data.bin": nil}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/extra: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summaries: [Covered by extra.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+	root, err := openProject(ctx, options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	if err := root.RemoveAll("vendor"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if record, versions := recordedVersions(t, options); !slices.Equal(record.RetiredRules, []string{"techs/go/errors"}) || versions["techs/go/extra"] != "1.0.0@2" {
+		t.Fatalf("retired %v, versions %v", record.RetiredRules, versions)
+	}
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 4, "formatVersion: 1\nrelease: 4\nrules: {}\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [No longer needed.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
+	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "exclude": map[string]any{"techs/go/errors": map[string]string{"reason": "Retired upstream."}}})
+	if _, err := Build(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+	requireCurrent(t, options)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if after := projectTree(t, options).Files["vendor/team/_source.json"]; !bytes.Equal(after, recorded) {
+		t.Fatalf("sync rewrote _source.json:\n%s\nwas:\n%s", after, recorded)
+	}
+}
+
 // TestBuild_HandEditedExclusionsKeepTheSourceRecordCurrent adds and removes exclusions by hand, of an imported rule
 // and of a retired one, and runs build, as a fork's next step says: check passes offline, and a sync afterward
 // writes _source.json byte for byte as before.

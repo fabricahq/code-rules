@@ -444,7 +444,8 @@ func (p *planner) settle(plan *sourcePlan) error {
 		return err
 	}
 	var err error
-	plan.retired, err = p.retiredRules()
+	// An update refreshes the recorded retirements, as it refreshes the rules.
+	plan.retired, err = p.freshRetiredRules()
 	return err
 }
 
