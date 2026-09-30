@@ -269,9 +269,18 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed."))})
 			}},
-		{name: "uncommitted changes", code: "uncommitted-changes", message: "the library has changes that aren't committed:\n  - changes/a.yaml isn't committed\n  - practices/testing/a.md has uncommitted changes\n  - practices/testing/b.md was deleted, and the deletion isn't committed\n  - practices/testing/c.md isn't committed\nCommit and push them",
+		{name: "uncommitted changes", code: "uncommitted-changes", message: "the library files check read differ from it:\n  - changes/a.yaml isn't committed\n  - practices/testing/a.md differs from its committed copy\n  - practices/testing/b.md was deleted, and the deletion isn't committed\n  - practices/testing/c.md isn't committed\nCommit and push your changes",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed."), "practices/testing/b.md": "", "practices/testing/c.md": ruleText("New."), "changes/a.yaml": "summary: Change a.\nrules:\n  practices/testing/a: patch\n  practices/testing/b: retired\n  practices/testing/c: new\n"})
+			}},
+		{name: "file a Git filter changes", code: "uncommitted-changes", message: "  - assets/note.txt differs from its committed copy\n",
+			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
+				// Like Git LFS, the clean filter commits other content than the checkout holds, so Git sees no change.
+				run(t, fixture, options.Directory, "config", "filter.upper.clean", "/usr/bin/tr a-z A-Z")
+				commitAndPush(t, fixture, options.Directory, map[string][]byte{".gitattributes": []byte("assets/*.txt filter=upper\n"), "assets/note.txt": []byte("checked content\n")})
+				if status, err := fixture.CommandIn(context.Background(), options.Directory, "-c", "filter.upper.clean=/usr/bin/tr a-z A-Z", "status", "--porcelain"); err != nil || status != "" {
+					t.Fatalf("the filtered file looks changed to Git: %q %v", status, err)
+				}
 			}},
 		{name: "ignored library file", code: "uncommitted-changes", message: "practices/testing/c.md isn't committed",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {

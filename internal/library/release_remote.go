@@ -4,6 +4,9 @@ package library
 
 import (
 	"context"
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"slices"
@@ -321,38 +324,56 @@ func commits(count string) string {
 	return count + " commits"
 }
 
-// requireCommitted refuses when the library files check read differ from head's, so the library release
-// publishes exactly what check validated. It returns head's library-owned files, mapped to their blob IDs.
+// requireCommitted refuses unless head commits exactly the bytes check read, as regular files, so the library
+// release publishes what check validated, even where a Git filter such as Git LFS stores other content. It
+// returns head's library-owned files, mapped to their blob IDs.
 func (g *libraryGit) requireCommitted(ctx context.Context, head string, input checkInput) (map[string]string, error) {
-	committed, err := g.treeFiles(ctx, head, libraryPaths(input.license))
+	entries, err := g.treeEntries(ctx, head, libraryPaths(input.license))
 	if err != nil {
 		return nil, fmt.Errorf("list the files of commit=%s: %w", head, err)
 	}
-	captured := slices.Sorted(maps.Keys(input.tree.Files))
-	captured = append(captured, slices.Sorted(maps.Keys(input.notes))...)
-	hashes, err := g.hashFiles(ctx, captured)
+	format, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--show-object-format"}, 4096)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("find the library's object format: %w", err)
 	}
+	captured := maps.Clone(input.tree.Files)
+	maps.Copy(captured, input.notes)
 	var problems []string
-	for _, name := range captured {
-		switch blob, ok := committed[name]; {
+	committed := map[string]string{}
+	for name, entry := range entries {
+		committed[name] = entry.object
+		data, ok := captured[name]
+		switch {
 		case !ok:
-			problems = append(problems, name+" isn't committed")
-		case blob != hashes[name]:
-			problems = append(problems, name+" has uncommitted changes")
+			problems = append(problems, name+" was deleted, and the deletion isn't committed")
+		case entry.kind != "blob" || (entry.mode != "100644" && entry.mode != "100755"):
+			problems = append(problems, name+" is committed as a symbolic link or submodule, not a file")
+		case entry.object != blobID(strings.TrimSpace(string(format)), data):
+			problems = append(problems, name+" differs from its committed copy")
 		}
 	}
-	for name := range committed {
-		if _, ok := hashes[name]; !ok {
-			problems = append(problems, name+" was deleted, and the deletion isn't committed")
+	for name := range captured {
+		if _, ok := entries[name]; !ok {
+			problems = append(problems, name+" isn't committed")
 		}
 	}
 	if len(problems) > 0 {
 		slices.Sort(problems)
-		return nil, failure("uncommitted-changes", "a library release publishes the checked-out commit, but the library has changes that aren't committed:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push them, or discard them, then run code-rules library release again.", nil)
+		return nil, failure("uncommitted-changes", "a library release publishes the checked-out commit exactly, but the library files check read differ from it:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push your changes, or discard them. Files that a Git filter changes, such as Git LFS files, can't be published. Then run code-rules library release again.", nil)
 	}
 	return committed, nil
+}
+
+// blobID returns the ID Git gives a blob holding exactly data, with no filters or line-ending conversion, in the
+// repository's object format, sha1 or sha256.
+func blobID(format string, data []byte) string {
+	header := "blob " + strconv.Itoa(len(data)) + "\x00"
+	if format == "sha256" {
+		sum := sha256.Sum256(append([]byte(header), data...))
+		return hex.EncodeToString(sum[:])
+	}
+	sum := sha1.Sum(append([]byte(header), data...))
+	return hex.EncodeToString(sum[:])
 }
 
 // libraryPaths are the paths holding every library-owned file and change note, given the declared license.

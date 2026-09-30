@@ -273,11 +273,32 @@ func (g *libraryGit) releaseFiles(ctx context.Context, tag string) (map[string]s
 // treeFiles maps each file at or under paths in a commit's tree, or a tag's, to its blob ID, leaving out other
 // entries, such as submodules.
 func (g *libraryGit) treeFiles(ctx context.Context, treeish string, paths []string) (map[string]string, error) {
-	listing, err := g.runner.Output(ctx, g.dir, append([]string{"ls-tree", "-r", "-z", "--full-tree", treeish, "--"}, paths...), 32*1024*1024)
+	entries, err := g.treeEntries(ctx, treeish, paths)
 	if err != nil {
 		return nil, err
 	}
 	files := map[string]string{}
+	for name, entry := range entries {
+		if entry.kind == "blob" {
+			files[name] = entry.object
+		}
+	}
+	return files, nil
+}
+
+// treeEntry is one entry of a recursive tree listing: a blob, including a symbolic link, or a submodule.
+type treeEntry struct {
+	// mode is the octal Git file mode, such as 100644 for a file or 120000 for a symbolic link.
+	mode, kind, object string
+}
+
+// treeEntries maps each entry at or under paths in a commit's tree, or a tag's, to its mode, kind, and object.
+func (g *libraryGit) treeEntries(ctx context.Context, treeish string, paths []string) (map[string]treeEntry, error) {
+	listing, err := g.runner.Output(ctx, g.dir, append([]string{"ls-tree", "-r", "-z", "--full-tree", treeish, "--"}, paths...), 32*1024*1024)
+	if err != nil {
+		return nil, err
+	}
+	entries := map[string]treeEntry{}
 	for record := range bytes.SplitSeq(bytes.TrimSuffix(listing, []byte{0}), []byte{0}) {
 		if len(record) == 0 {
 			continue
@@ -287,14 +308,12 @@ func (g *libraryGit) treeFiles(ctx context.Context, treeish string, paths []stri
 		if !ok || len(fields) != 3 || !objectID.MatchString(fields[2]) {
 			return nil, failure("git-failed", "Git listed the library's files in an unexpected format", nil)
 		}
-		if fields[1] == "blob" {
-			files[name] = fields[2]
-		}
-		if len(files) > maxFiles {
+		entries[name] = treeEntry{mode: fields[0], kind: fields[1], object: fields[2]}
+		if len(entries) > maxFiles {
 			return nil, failure("limit-exceeded", treeish+": library exceeds 10,000 files", nil)
 		}
 	}
-	return files, nil
+	return entries, nil
 }
 
 // changedRules reports, for each rule in working, whether its versioned files differ from the ones the latest
