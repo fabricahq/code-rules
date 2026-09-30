@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -235,11 +236,11 @@ func planRelease(ctx context.Context, git *libraryGit, checked checkedLibrary, h
 // and record are exactly those of planned, the library release its commit would publish now.
 func (g *libraryGit) requireUnpublishedTag(ctx context.Context, number int, object string, planned plannedRelease) error {
 	name := "release/" + strconv.Itoa(number)
-	body, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "tag", object}, maxFileBytes+64*1024)
+	body, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "tag", object}, releasetag.MaxBytes+64*1024)
 	if err != nil {
 		return fmt.Errorf("read tag=%q: %w", name, err)
 	}
-	notes, record, err := parseReleaseTag(body, number)
+	notes, record, err := rules.ParseReleaseTagObject(name, body)
 	if err == nil && !planned.empty && notes == planned.notes && reflect.DeepEqual(record, planned.record) {
 		return nil
 	}

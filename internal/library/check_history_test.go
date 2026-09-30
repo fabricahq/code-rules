@@ -478,12 +478,3 @@ func TestCheck_RejectsTermsInsideARulesVersion(t *testing.T) {
 		})
 	}
 }
-
-// TestParseReleaseTag_IgnoresASignature reads the record from a signed tag, whose signature follows the message.
-func TestParseReleaseTag_IgnoresASignature(t *testing.T) {
-	object := "object 0123456789012345678901234567890123456789\ntype commit\ntag release/1\ntagger Fixture <fixture@example.invalid> 0 +0000\n\n" + releaseOne + "-----BEGIN SSH SIGNATURE-----\nU1NIU0lH\n-----END SSH SIGNATURE-----\n"
-	notes, record, err := parseReleaseTag([]byte(object), 1)
-	if err != nil || notes != "Library release 1." || record.Release != 1 || len(record.Rules) != 2 {
-		t.Fatal(notes, record, err)
-	}
-}

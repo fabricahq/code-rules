@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -49,11 +50,6 @@ func (r remoteState) latest() int {
 		return 0
 	}
 	return slices.Max(slices.Collect(maps.Keys(r.tags)))
-}
-
-// localTag is a release tag in the author's clone.
-type localTag struct {
-	object, commit string
 }
 
 // upstream finds the checked-out branch and its upstream remote. It fails on a detached HEAD, a branch
@@ -145,7 +141,7 @@ func tagObjectSize(name, commit, tagger string, message []byte) int {
 
 // requireTagSize refuses a release tag object larger than the 8 MiB that reading release tags accepts.
 func requireTagSize(name string, size int) error {
-	if size <= maxFileBytes {
+	if size <= releasetag.MaxBytes {
 		return nil
 	}
 	return failure("release-too-large", name+" would be a tag of "+strconv.Itoa(size)+" bytes, but release tags can be at most 8 MiB (8,388,608 bytes), or later library releases couldn't read it. Publish the pending changes in smaller library releases, or shorten their change notes' summaries, then run code-rules library release again.", nil)
@@ -220,24 +216,15 @@ func parseRemoteListing(listing string, u upstream) (remoteState, error) {
 	return state, nil
 }
 
-// localReleaseTags maps each release/<number> tag in the clone, reachable or not, to its object and commit.
-func (g *libraryGit) localReleaseTags(ctx context.Context) (map[int]localTag, error) {
-	listing, err := g.runner.Output(ctx, g.dir, []string{"for-each-ref", "--format=%(refname)%00%(objectname)%00%(*objectname)", "refs/tags/release/"}, maxRemoteListing)
+// localReleaseTags maps the number of each release/<number> tag in the clone, reachable or not, to the tag.
+func (g *libraryGit) localReleaseTags(ctx context.Context) (map[int]releasetag.Tag, error) {
+	listed, err := g.listReleaseTags(ctx, "")
 	if err != nil {
-		return nil, fmt.Errorf("list the library's release tags: %w", err)
+		return nil, err
 	}
-	tags := map[int]localTag{}
-	for line := range strings.Lines(string(listing)) {
-		fields := strings.Split(strings.TrimSuffix(line, "\n"), "\x00")
-		if len(fields) != 3 {
-			return nil, failure("git-failed", "Git listed release tags in an unexpected format", nil)
-		}
-		if number, err := rules.ParseReleaseTag(strings.TrimPrefix(fields[0], "refs/tags/")); err == nil {
-			tags[number] = localTag{object: fields[1], commit: fields[2]}
-			if len(tags) > maxReleaseTags {
-				return nil, failure("limit-exceeded", "library has more than 20,000 release tags", nil)
-			}
-		}
+	tags := map[int]releasetag.Tag{}
+	for _, tag := range listed {
+		tags[tag.Number] = tag
 	}
 	return tags, nil
 }
@@ -260,7 +247,7 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 		switch {
 		case !ok:
 			refspecs = append(refspecs, "refs/tags/"+name+":refs/tags/"+name)
-		case tag.object != remote.tags[number]:
+		case tag.Object != remote.tags[number]:
 			return 0, "", failure("release-tag-mismatch", name+" in this clone differs from "+name+" on "+u.remote+". Release tags must never change, because projects may have imported them. Find out which one is the original and restore it; to discard this clone's copy, run git tag --delete "+name+".", nil)
 		}
 	}
@@ -270,7 +257,7 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 			continue
 		}
 		name := "release/" + strconv.Itoa(number)
-		if number != remote.latest()+1 || local[number].commit != head {
+		if number != remote.latest()+1 || local[number].Target != head {
 			return 0, "", failure("release-tag-mismatch", name+" exists in this clone but not on "+u.remote+". Only code-rules library release creates release tags; if you created it by hand, delete it with git tag --delete "+name+", then run code-rules library release again.", nil)
 		}
 		unpublished = number
@@ -285,7 +272,7 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 	if err := g.requireFetched(ctx, u, remote); err != nil {
 		return 0, "", err
 	}
-	return unpublished, local[unpublished].object, nil
+	return unpublished, local[unpublished].Object, nil
 }
 
 // requireFetched refuses when what the fetch brought differs from what listing the remote showed: the branch
@@ -304,7 +291,7 @@ func (g *libraryGit) requireFetched(ctx context.Context, u upstream, remote remo
 		return err
 	}
 	for _, number := range slices.Sorted(maps.Keys(remote.tags)) {
-		if local[number].object != remote.tags[number] {
+		if local[number].Object != remote.tags[number] {
 			return failure("remote-changed", changed+"release/"+strconv.Itoa(number)+" changed. Release tags must never change; find out who changed it, then run code-rules library release again.", nil)
 		}
 	}

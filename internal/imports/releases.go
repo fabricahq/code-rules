@@ -3,7 +3,6 @@
 package imports
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -12,12 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
-
-// maxTagBatchBytes bounds the tag messages one Git process reads; more releases use several.
-const maxTagBatchBytes = 16 << 20
 
 // libraryRelease is one library release, read from its release/<number> tag.
 type libraryRelease struct {
@@ -137,15 +133,21 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 		}
 		return releaseHistory{}, fail("git-failed", "Could not fetch the library's release tags.", nil)
 	}
-	sizes, err := r.fetchedReleases(ctx, advertised)
+	tags, err := r.fetchedReleases(ctx, advertised)
 	if err != nil {
 		return releaseHistory{}, err
 	}
-	if err := r.readRecords(ctx, advertised, sizes); err != nil {
+	read, err := releasetag.Read(ctx, r.runner, r.directory, tags)
+	var invalid *releasetag.RecordError
+	if errors.As(err, &invalid) {
+		return releaseHistory{}, fail("invalid-release-tag", fmt.Sprintf("Invalid release record in library release tag %s: %v. Don't create or move release tags by hand.", invalid.Tag, invalid.Err), invalid.Err)
+	}
+	if err != nil {
 		return releaseHistory{}, err
 	}
-	for _, release := range advertised {
-		r.present[release.commit] = true
+	for i := range advertised {
+		advertised[i].record = read[i].Record
+		r.present[advertised[i].commit] = true
 	}
 	return releaseHistory{releases: advertised}, nil
 }
@@ -183,78 +185,32 @@ func (r *repository) listReleases(ctx context.Context) ([]libraryRelease, error)
 	return releases, nil
 }
 
-// fetchedReleases checks that each fetched release tag is the tag object the listing advertised and that it tags
-// the advertised object, which must be a commit, so a tag moved in between or tagging a tree or blob fails. It
-// returns each tag object's size in bytes.
-func (r *repository) fetchedReleases(ctx context.Context, advertised []libraryRelease) (map[string]int, error) {
-	listing, err := r.runner.Output(ctx, r.directory, []string{"for-each-ref", "--format=%(refname) %(objecttype) %(objectname) %(objectsize) %(*objectname) %(*objecttype)", "refs/tags/release/"}, 8<<20)
+// fetchedReleases returns the fetched release tag of each advertised library release, in the same order, checking
+// that it is the tag object the listing advertised and that it tags the advertised object, which must be a commit,
+// so a tag moved in between or tagging a tree or blob fails.
+func (r *repository) fetchedReleases(ctx context.Context, advertised []libraryRelease) ([]releasetag.Tag, error) {
+	listed, err := releasetag.List(ctx, r.runner, r.directory, "")
 	if err != nil {
 		return nil, err
 	}
-	fetched := map[string][]string{}
-	for line := range strings.Lines(string(listing)) {
-		fields := strings.Fields(line)
-		if len(fields) == 6 {
-			fetched[strings.TrimPrefix(fields[0], "refs/tags/")] = fields[1:]
-		}
+	fetched := map[int]releasetag.Tag{}
+	for _, tag := range listed {
+		fetched[tag.Number] = tag
 	}
-	sizes := map[string]int{}
+	tags := make([]releasetag.Tag, 0, len(advertised))
 	for _, release := range advertised {
 		name := "release/" + strconv.Itoa(release.number)
-		fields := fetched[name]
-		if len(fields) != 5 || fields[0] != "tag" || fields[1] != release.tag || fields[3] != release.commit {
+		tag, ok := fetched[release.number]
+		if !ok || tag.Type != "tag" || tag.Object != release.tag || tag.Target != release.commit {
 			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s changed while Code Rules read it; retry. Don't create or move release tags by hand.", name), nil)
 		}
-		if fields[4] != "commit" {
-			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s tags a %s, not a commit. Don't create or move release tags by hand.", name, fields[4]), nil)
+		if tag.TargetType != "commit" {
+			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s tags a %s, not a commit. Don't create or move release tags by hand.", name, tag.TargetType), nil)
 		}
-		size, err := strconv.Atoi(fields[2])
-		if err != nil || size < 0 || size > maxBlobBytes {
+		if tag.Size > releasetag.MaxBytes {
 			return nil, fail("limit-exceeded", fmt.Sprintf("Library release tag %s exceeds 8 MiB.", name), nil)
 		}
-		sizes[release.tag] = size
+		tags = append(tags, tag)
 	}
-	return sizes, nil
-}
-
-// readRecords reads and parses each release tag's record into releases, reading messages in bounded batches. It
-// stops between records when ctx ends, since parsing thousands of large records takes long.
-func (r *repository) readRecords(ctx context.Context, releases []libraryRelease, sizes map[string]int) error {
-	for start := 0; start < len(releases); {
-		end, total := start, 0
-		var input strings.Builder
-		for end < len(releases) && (end == start || total+sizes[releases[end].tag] <= maxTagBatchBytes) {
-			total += sizes[releases[end].tag] + 128
-			input.WriteString(releases[end].tag + "\n")
-			end++
-		}
-		result, err := r.runner.Run(ctx, r.directory, []string{"cat-file", "--batch"}, total+4096, []byte(input.String()))
-		if err != nil {
-			return err
-		}
-		if result.Status != 0 {
-			return fail("git-failed", "Git could not read the library's release tags.", nil)
-		}
-		remaining := result.Output
-		for i := start; i < end; i++ {
-			if err := ctx.Err(); err != nil {
-				return gitexec.ContextFailure(err)
-			}
-			release := &releases[i]
-			name := "release/" + strconv.Itoa(release.number)
-			header, rest, ok := bytes.Cut(remaining, []byte{'\n'})
-			size := sizes[release.tag]
-			if !ok || string(header) != release.tag+" tag "+strconv.Itoa(size) || len(rest) < size+1 || rest[size] != '\n' {
-				return fail("git-failed", "Git returned inconsistent or incomplete release tags.", nil)
-			}
-			_, record, err := rules.ParseReleaseTagObject(name, rest[:size])
-			if err != nil {
-				return fail("invalid-release-tag", fmt.Sprintf("Invalid release record in library release tag %s: %v. Don't create or move release tags by hand.", name, err), err)
-			}
-			release.record = record
-			remaining = rest[size+1:]
-		}
-		start = end
-	}
-	return nil
+	return tags, nil
 }
