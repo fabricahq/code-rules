@@ -159,6 +159,17 @@ Build in slices. Each slice ends with passing validation, atomic commits, and a 
 7. **Forking.** `code-rules project add rule ID --from LIBRARY@VERSION`: find the version's library release, copy the rule, its assets, and linked shared assets with rewritten links, add attribution, and write the exclusion with `replacedBy`.
 8. **Finish.** Rewrite the acceptance scenarios around the new lifecycle, verify every command example in the docs against the built binary, run an independent review of the docs against the implementation, and fix any drift. Delete this file.
 
+## Final review
+
+When every slice is done and its review fixes have landed, run four independent GPT-6 Astra reviews (Codex CLI, read-only) of the whole change, from `main` to the top of the PR stack. Each reports findings without changing code, and each finding states the insight, its severity, a recommendation, and its blast radius:
+
+1. **Security** concerns across the whole change.
+2. **Simplification:** complexity to remove and more elegant abstractions, including ones that alter behavior slightly when that saves considerable complexity.
+3. **Testability** of the code.
+4. **Correctness** of the code.
+
+Then assemble the findings into one set of recommendations for Josh about what, if anything, to change.
+
 ## Testing
 
 - **Parsers:** table fixtures under `internal/rules/testdata/` for configuration, change notes, and release records, covering every documented rejection.
