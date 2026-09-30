@@ -318,8 +318,9 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	if err != nil || result.ExitCode != 0 {
 		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
 	}
-	if strings.Index(result.Transcript, "  pinned    techs/go/backoff") > strings.Index(result.Transcript, "Adopt it, or keep") {
-		t.Fatalf("prompts came before the preview:\n%s", result.Transcript)
+	beforePrompts, _, prompted := strings.Cut(strings.ReplaceAll(result.Transcript, "\r\n", "\n"), "Adopt it, or keep")
+	if !prompted || !strings.HasPrefix(beforePrompts, updatePreview) {
+		t.Fatalf("the complete preview didn't come before the first prompt:\n%s", result.Transcript)
 	}
 	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0", "verify": "1.0.0"}; !reflect.DeepEqual(u.versions(t), want) {
 		t.Fatalf("versions %v", u.versions(t))
