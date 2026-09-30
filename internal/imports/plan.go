@@ -141,9 +141,11 @@ func (p *planner) planVersions() (sourcePlan, error) {
 		if err != nil {
 			return sourcePlan{}, err
 		}
+		// A group is newly selected when the snapshot didn't import it in full, whatever its selector matched:
+		// a wildcard's snapshot lacks the groups later library releases added.
 		for _, id := range slices.Sorted(maps.Keys(history.newest().record.Rules)) {
 			group := ruleGroup(id)
-			if _, imported := plan.rules[id]; !imported && p.source.Groups.Includes(group) && (recorded == nil || !recorded.Selection.Includes(group)) {
+			if _, imported := plan.rules[id]; !imported && p.source.Groups.Includes(group) && (recorded == nil || !slices.Contains(recorded.Groups, group)) {
 				chosen = append(chosen, id)
 			}
 		}

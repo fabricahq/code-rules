@@ -114,6 +114,49 @@ func TestSync_RestoresRecordedVersionsAndMovesOnlyPinnedRules(t *testing.T) {
 	requireCurrent(t, options)
 }
 
+// TestSync_ExplicitSelectionImportsAGroupTheWildcardSnapshotLacked imports the rules of a group that a library
+// release added after a wildcard sync, once the selection names it explicitly, while recorded rules keep their
+// versions, and offline check agrees with the result.
+func TestSync_ExplicitSelectionImportsAGroupTheWildcardSnapshotLacked(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		groups []string
+		want   map[string]string
+	}{
+		{"only the new group", []string{"practices/testing"}, map[string]string{"practices/testing/verify": "1.0.0@2"}},
+		{"the new group and a recorded one", []string{"practices/testing", "techs/go"}, map[string]string{"techs/go/errors": "1.0.0@1", "practices/testing/verify": "1.0.0@2"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			f, options, git := syncProject(t)
+			ctx := context.Background()
+			configure(t, options, f, map[string]any{"groups": "*"})
+			if _, err := Sync(ctx, options, git); err != nil {
+				t.Fatal(err)
+			}
+			files := map[string][]byte{
+				"techs/go/errors.md":            []byte(strings.Replace(projectRule, "Return errors to the caller.", "Return wrapped errors to the caller.", 1)),
+				"practices/testing/_group.yaml": []byte(`{"name":"Testing","description":"Testing guidance.","whenToRead":"When testing."}`),
+				"practices/testing/verify.md":   []byte(projectRule),
+			}
+			if _, err := f.Commit(ctx, f.Worktree(), "Second release", files); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.Release(ctx, 2, "release: 2\nrules:\n  techs/go/errors: 1.1.0\n  practices/testing/verify: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n  practices/testing/verify: {change: new, summary: Add the rule.}\n"); err != nil {
+				t.Fatal(err)
+			}
+			configure(t, options, f, map[string]any{"groups": test.groups})
+			if _, err := Sync(ctx, options, git); err != nil {
+				t.Fatal(err)
+			}
+			record, got := recordedVersions(t, options)
+			if !maps.Equal(got, test.want) || !slices.Equal(record.Groups, test.groups) {
+				t.Fatalf("versions %v in groups %v, want %v in %v", got, record.Groups, test.want, test.groups)
+			}
+			requireCurrent(t, options)
+		})
+	}
+}
+
 // TestSync_RefToAnUnreleasedCommitWarnsAndStillChecks reports the source and its unreleased rules.
 func TestSync_RefToAnUnreleasedCommitWarnsAndStillChecks(t *testing.T) {
 	f, options, git := syncProject(t)
