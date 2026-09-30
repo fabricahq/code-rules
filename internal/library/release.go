@@ -122,8 +122,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		return ReleaseResult{}, err
 	}
 	result.Warnings = checked.result.Warnings
-	committed, err := git.requireCommitted(ctx, result.Commit, checked.input)
-	if err != nil {
+	if err = git.requireCommitted(ctx, result.Commit, checked.input); err != nil {
 		return ReleaseResult{}, err
 	}
 	var object string
@@ -135,13 +134,10 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		if checked.plan.release != remote.latest()+1 {
 			return ReleaseResult{}, failure("release-tag-mismatch", branch.remote+"'s newest library release is release/"+strconv.Itoa(remote.latest())+", but "+branch.branch+"'s history reaches only release/"+strconv.Itoa(checked.plan.release-1)+". Release tags belong on the default branch; don't create them by hand.", nil)
 		}
-		released := map[string]string{}
-		if latest != nil {
-			if released, err = git.treeFiles(ctx, latest.object, libraryPaths(checked.input.license)); err != nil {
-				return ReleaseResult{}, err
-			}
+		libraryFiles, err := git.changedLibraryFiles(ctx, result.Commit, latest, rules.LicensePaths(checked.input.license))
+		if err != nil {
+			return ReleaseResult{}, err
 		}
-		libraryFiles := changedLibraryFiles(committed, released, rules.LicensePaths(checked.input.license))
 		if checked.plan.empty() && len(libraryFiles) == 0 {
 			return result, nil
 		}

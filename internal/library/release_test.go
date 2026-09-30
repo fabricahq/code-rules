@@ -206,6 +206,26 @@ func TestRelease_PublishesLibraryWideChangesWithoutRuleChanges(t *testing.T) {
 	}
 }
 
+// TestRelease_ListsRenamedAndRemovedLicenseFiles compares the license and notice files both library releases
+// declare, so a renamed license and a removed notice are listed under their old paths too.
+func TestRelease_ListsRenamedAndRemovedLicenseFiles(t *testing.T) {
+	files := libraryFiles()
+	files["rule-library.yaml"] = []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.md\n  notices:\n    - NOTICE.md\n")
+	files["LICENSE.md"] = []byte("MIT License\n")
+	files["NOTICE.md"] = []byte("Notice\n")
+	fixture, options := authorClone(t, files, releaseOne)
+	commitAndPush(t, fixture, options.Directory, map[string][]byte{
+		"rule-library.yaml": []byte("formatVersion: 1\nlicense:\n  spdxExpression: MIT\n  file: LICENSE.txt\n  notices: []\n"),
+		"LICENSE.md":        nil,
+		"LICENSE.txt":       []byte("MIT License\n"),
+		"NOTICE.md":         nil,
+	})
+	result, err := Release(context.Background(), ReleaseRequest{Options: options})
+	if want := []string{"LICENSE.md", "LICENSE.txt", "NOTICE.md", "rule-library.yaml"}; err != nil || !slices.Equal(result.LibraryFiles, want) {
+		t.Fatalf("library-wide files %q, want %q: %v", result.LibraryFiles, want, err)
+	}
+}
+
 // TestRelease_ReportsNothingToPublishWithoutNotesOrLibraryWideChanges ignores files outside the library and
 // group READMEs, which projects never receive.
 func TestRelease_ReportsNothingToPublishWithoutNotesOrLibraryWideChanges(t *testing.T) {
@@ -747,11 +767,11 @@ func TestChangedLibraryFiles_ListsAddedChangedAndDeletedLibraryWideFiles(t *test
 		"techs/go/_group.yaml":          "1",
 	}
 	want := []string{"LICENSE.md", "assets/new.svg", "assets/old.svg", "techs/go/_group.yaml"}
-	if files := changedLibraryFiles(head, released, []string{"LICENSE.md"}); !slices.Equal(files, want) {
+	if files := diffLibraryFiles(head, released, []string{"LICENSE.md"}); !slices.Equal(files, want) {
 		t.Fatalf("got %q, want %q", files, want)
 	}
 	want = []string{"LICENSE.md", "assets/new.svg", "practices/testing/_group.yaml", "rule-library.yaml", "techs/go/_group.yaml"}
-	if files := changedLibraryFiles(head, map[string]string{}, []string{"LICENSE.md"}); !slices.Equal(files, want) {
+	if files := diffLibraryFiles(head, map[string]string{}, []string{"LICENSE.md"}); !slices.Equal(files, want) {
 		t.Fatalf("first library release: got %q, want %q", files, want)
 	}
 }

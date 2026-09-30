@@ -340,23 +340,20 @@ func commits(count string) string {
 }
 
 // requireCommitted refuses unless head commits exactly the bytes check read, as regular files, so the library
-// release publishes what check validated, even where a Git filter such as Git LFS stores other content. It
-// returns head's library-owned files, mapped to their blob IDs.
-func (g *libraryGit) requireCommitted(ctx context.Context, head string, input checkInput) (map[string]string, error) {
-	entries, err := g.treeEntries(ctx, head, libraryPaths(input.license))
+// release publishes what check validated, even where a Git filter such as Git LFS stores other content.
+func (g *libraryGit) requireCommitted(ctx context.Context, head string, input checkInput) error {
+	entries, err := g.treeEntries(ctx, head, libraryPaths(rules.LicensePaths(input.license)))
 	if err != nil {
-		return nil, fmt.Errorf("list the files of commit=%s: %w", head, err)
+		return fmt.Errorf("list the files of commit=%s: %w", head, err)
 	}
 	format, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--show-object-format"}, 4096)
 	if err != nil {
-		return nil, fmt.Errorf("find the library's object format: %w", err)
+		return fmt.Errorf("find the library's object format: %w", err)
 	}
 	captured := maps.Clone(input.tree.Files)
 	maps.Copy(captured, input.notes)
 	var problems []string
-	committed := map[string]string{}
 	for name, entry := range entries {
-		committed[name] = entry.object
 		data, ok := captured[name]
 		switch {
 		case !ok:
@@ -374,9 +371,9 @@ func (g *libraryGit) requireCommitted(ctx context.Context, head string, input ch
 	}
 	if len(problems) > 0 {
 		slices.Sort(problems)
-		return nil, failure("uncommitted-changes", "a library release publishes the checked-out commit exactly, but the library files check read differ from it:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push your changes, or discard them. Files that a Git filter changes, such as Git LFS files, can't be published. Then run code-rules library release again.", nil)
+		return failure("uncommitted-changes", "a library release publishes the checked-out commit exactly, but the library files check read differ from it:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push your changes, or discard them. Files that a Git filter changes, such as Git LFS files, can't be published. Then run code-rules library release again.", nil)
 	}
-	return committed, nil
+	return nil
 }
 
 // blobID returns the ID Git gives a blob holding exactly data, with no filters or line-ending conversion, in the
@@ -391,15 +388,56 @@ func blobID(format string, data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// libraryPaths are the paths holding every library-owned file and change note, given the declared license.
-func libraryPaths(license *rules.LicenseDeclaration) []string {
-	return append([]string{"rule-library.yaml", "assets", "practices", "techs", changesDirectory}, rules.LicensePaths(license)...)
+// libraryPaths are the paths holding every library-owned file and change note, given the license and notice
+// files, terms.
+func libraryPaths(terms []string) []string {
+	return append([]string{"rule-library.yaml", "assets", "practices", "techs", changesDirectory}, terms...)
 }
 
-// changedLibraryFiles lists the library-wide files that differ between the latest library release and head,
+// changedLibraryFiles lists the library-wide files that changed between the latest library release, which is
+// nil before the first one, and head. terms are head's declared license and notice files; the latest library
+// release's declared ones count too, so renaming or removing one lists the old path.
+func (g *libraryGit) changedLibraryFiles(ctx context.Context, head string, latest *publishedRelease, terms []string) ([]string, error) {
+	released := map[string]string{}
+	if latest != nil {
+		previous, err := g.releasedTerms(ctx, latest)
+		if err != nil {
+			return nil, err
+		}
+		for _, name := range previous {
+			if !slices.Contains(terms, name) {
+				terms = append(slices.Clip(terms), name)
+			}
+		}
+		if released, err = g.treeFiles(ctx, latest.object, libraryPaths(terms)); err != nil {
+			return nil, fmt.Errorf("list the files of %s: %w", latest.tagName(), err)
+		}
+	}
+	current, err := g.treeFiles(ctx, head, libraryPaths(terms))
+	if err != nil {
+		return nil, fmt.Errorf("list the files of commit=%s: %w", head, err)
+	}
+	return diffLibraryFiles(current, released, terms), nil
+}
+
+// releasedTerms returns the license and notice files the latest library release's rule-library.yaml declared.
+func (g *libraryGit) releasedTerms(ctx context.Context, latest *publishedRelease) ([]string, error) {
+	location := latest.tagName() + ":rule-library.yaml"
+	manifest, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "blob", latest.object + ":rule-library.yaml"}, maxFileBytes)
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", location, err)
+	}
+	license, err := rules.ParseLibraryLicense(manifest, location)
+	if err != nil {
+		return nil, err
+	}
+	return rules.LicensePaths(license), nil
+}
+
+// diffLibraryFiles lists the library-wide files that differ between two trees' files, head and released,
 // including added and deleted files, in path order. Before the first library release, released is empty, so
-// every library-wide file is listed. terms are the declared license and notice files.
-func changedLibraryFiles(head, released map[string]string, terms []string) []string {
+// every library-wide file is listed. terms are the license and notice files either tree declares.
+func diffLibraryFiles(head, released map[string]string, terms []string) []string {
 	files := []string{}
 	for _, name := range slices.Sorted(maps.Keys(head)) {
 		if libraryWide(name, terms) && head[name] != released[name] {
