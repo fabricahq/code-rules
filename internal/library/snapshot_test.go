@@ -1,4 +1,4 @@
-// Check individually selected rules and snapshots that store rules from several library releases.
+// Check individually selected rules loaded from a snapshot's files.
 
 package library_test
 
@@ -34,11 +34,7 @@ func selectionFiles() map[string][]byte {
 // loadFiles loads files in memory, as project builds load vendored snapshots.
 func loadFiles(t *testing.T, files map[string][]byte, groups rules.GroupSelection, ruleIDs []string) (library.Catalog, error) {
 	t.Helper()
-	source, err := library.Snapshot{Files: files}.Source()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return library.LoadSource(context.Background(), source, "team", groups, ruleIDs)
+	return library.LoadSource(context.Background(), library.Snapshot{Files: files}.Source(), "team", groups, ruleIDs)
 }
 
 // TestLoadSource_IndividualRulesBringOnlyThemselvesAndTheirGroupMetadata keeps unselected rules and assets out.
@@ -88,59 +84,5 @@ func TestLoadSource_SkipsInvalidUnselectedRules(t *testing.T) {
 	}
 	if _, err := loadFiles(t, files, rules.GroupSelection{Groups: []string{"techs/go"}}, nil); err == nil {
 		t.Fatal("a selected group accepted an invalid rule")
-	}
-}
-
-// TestSnapshot_StoresRulesFromOtherLibraryReleasesSeparately round-trips files through their stored paths.
-func TestSnapshot_StoresRulesFromOtherLibraryReleasesSeparately(t *testing.T) {
-	v1, v2 := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 2}
-	snapshot := library.Snapshot{Release: 3, Rules: map[string]library.ImportedRule{
-		"techs/go/errors": {Version: &v1, Release: 1, Commit: strings.Repeat("1", 40)},
-		"techs/go/naming": {Version: &v2, Release: 3, Commit: strings.Repeat("3", 40)},
-	}}
-	for file, want := range map[string]string{
-		"techs/go/errors.md":                 "_releases/1/techs/go/errors.md",
-		"techs/go/assets/errors/diagram.bin": "_releases/1/techs/go/assets/errors/diagram.bin",
-		"techs/go/naming.md":                 "techs/go/naming.md",
-		"techs/go/_group.yaml":               "techs/go/_group.yaml",
-		"practices/testing/limits.md":        "practices/testing/limits.md",
-	} {
-		if got := snapshot.StoredPath(file); got != want {
-			t.Errorf("StoredPath(%q) = %q, want %q", file, got, want)
-		}
-	}
-	files := selectionFiles()
-	delete(files, "practices/testing/limits.md")
-	delete(files, "practices/testing/_group.yaml")
-	stored := map[string][]byte{}
-	for file, data := range files {
-		stored[snapshot.StoredPath(file)] = data
-	}
-	snapshot.Files = stored
-	source, err := snapshot.Source()
-	if err != nil {
-		t.Fatal(err)
-	}
-	catalog, err := library.LoadSource(context.Background(), source, "team", rules.GroupSelection{Groups: []string{"techs/go"}}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := snapshot.Store(catalog); !reflect.DeepEqual(got, stored) {
-		t.Fatalf("stored %v, want %v", got, stored)
-	}
-}
-
-// TestSnapshot_SourceRejectsAmbiguousStoredFiles refuses a file stored twice or outside a numbered directory.
-func TestSnapshot_SourceRejectsAmbiguousStoredFiles(t *testing.T) {
-	for name, files := range map[string]map[string][]byte{
-		"stored twice":     {"techs/go/errors.md": {}, "_releases/1/techs/go/errors.md": {}},
-		"unnumbered":       {"_releases/one/techs/go/errors.md": {}},
-		"leading zero":     {"_releases/01/techs/go/errors.md": {}},
-		"no path":          {"_releases/1": {}},
-		"twice in release": {"_releases/1/techs/go/errors.md": {}, "_releases/2/techs/go/errors.md": {}},
-	} {
-		if _, err := (library.Snapshot{Files: files}).Source(); err == nil {
-			t.Errorf("%s: accepted %v", name, files)
-		}
 	}
 }

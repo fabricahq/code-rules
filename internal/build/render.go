@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -43,22 +44,17 @@ func renderRules(resolved resolution) (map[string]string, error) {
 	return output, nil
 }
 
-// renderSourcePaths maps each source's retained library paths to where they are stored, relative to vendor/<source>/
-// or, for local rules, local/, so links reach the right copy.
-func renderSourcePaths(resolved resolution) map[string]map[string]string {
-	local := make(map[string]string, len(resolved.LocalPaths))
-	for _, file := range resolved.LocalPaths {
-		local[file] = file
-	}
-	paths := map[string]map[string]string{"local": local}
+// renderSourcePaths selects the retained inventory by the resolved rule's actual origin.
+func renderSourcePaths(resolved resolution) map[string][]string {
+	paths := map[string][]string{"local": resolved.LocalPaths}
 	for _, source := range resolved.Sources {
-		paths[source.Name] = source.Stored
+		paths[source.Name] = source.Paths
 	}
 	return paths
 }
 
 // renderRule wraps rewritten guidance in applicability, origin, and original frontmatter sections.
-func renderRule(active resolvedRule, paths map[string]string, outputPath string) (string, error) {
+func renderRule(active resolvedRule, paths []string, outputPath string) (string, error) {
 	if !utf8.ValidString(active.Rule.Document) {
 		return "", invalid(active.Rule.ID, "expected UTF-8 text")
 	}
@@ -70,7 +66,7 @@ func renderRule(active resolvedRule, paths map[string]string, outputPath string)
 	if err != nil {
 		return "", err
 	}
-	source, err := sourceLink(active.Origin, paths, outputPath)
+	source, err := sourceLink(active.Origin, outputPath)
 	if err != nil {
 		return "", err
 	}
@@ -146,7 +142,7 @@ func workspaceLink(outputPath, source, file string) string {
 }
 
 // sourceLink prefers a recognized repository's immutable commit URL and falls back to retained source.
-func sourceLink(origin ruleOrigin, paths map[string]string, outputPath string) (string, error) {
+func sourceLink(origin ruleOrigin, outputPath string) (string, error) {
 	if origin.Repository != "" {
 		raw, _ := json.Marshal(origin.Repository)
 		repository, err := rules.ParseRepository(raw, origin.Source)
@@ -157,15 +153,11 @@ func sourceLink(origin ruleOrigin, paths map[string]string, outputPath string) (
 			return link, nil
 		}
 	}
-	stored, ok := paths[origin.File]
-	if !ok {
-		stored = origin.File
-	}
-	return workspaceLink(outputPath, origin.Source, stored), nil
+	return workspaceLink(outputPath, origin.Source, origin.File), nil
 }
 
 // relocatedURL validates ownership and links local destinations to terms or retained files.
-func relocatedURL(destination string, active resolvedRule, paths map[string]string, outputPath string) (string, error) {
+func relocatedURL(destination string, active resolvedRule, paths []string, outputPath string) (string, error) {
 	if strings.HasPrefix(destination, "#") {
 		if outputPath != rulePath(active.Rule) {
 			return relativeURL(outputPath, rulePath(active.Rule)) + destination, nil
@@ -189,8 +181,8 @@ func relocatedURL(destination string, active resolvedRule, paths map[string]stri
 			}
 		}
 	}
-	if stored, ok := paths[target]; ok {
-		return workspaceLink(outputPath, active.Origin.Source, stored) + suffix, nil
+	if slices.Contains(paths, target) {
+		return workspaceLink(outputPath, active.Origin.Source, target) + suffix, nil
 	}
 	if rules.AssetDirectory(target) != "" {
 		return "", invalid(active.Rule.ID, "missing asset link destination: "+destination)

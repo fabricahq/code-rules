@@ -183,16 +183,6 @@ func TestResolveReplacementFileReuse(t *testing.T) {
 	}
 }
 
-// TestResolveToleratesExclusionsOfRulesItDoesntImport leaves validating exclusion targets to sync, which can tell
-// a retired rule from an unknown one; offline builds apply the rest of the configuration.
-func TestResolveToleratesExclusionsOfRulesItDoesntImport(t *testing.T) {
-	config, libraries := fixture(t, `{"techs/go/retired":{"reason":"Not needed"}}`)
-	got, err := resolve(config, libraries, nil)
-	if err != nil || len(got.Groups) != 1 || len(got.Groups[0].Rules) != 1 || got.Groups[0].Rules[0].Rule.ID != "team:techs/go/errors" {
-		t.Fatalf("got %+v, %v", got.Groups, err)
-	}
-}
-
 // TestResolveRecordsEachRulesVersionAndCommit gives each imported rule the version and commit its snapshot records.
 func TestResolveRecordsEachRulesVersionAndCommit(t *testing.T) {
 	config, libraries := fixture(t, `{}`)
@@ -208,9 +198,6 @@ func TestResolveRecordsEachRulesVersionAndCommit(t *testing.T) {
 	origin := got.Groups[0].Rules[0].Origin
 	if origin.Commit != older || origin.Version == nil || *origin.Version != version || origin.Release != 2 {
 		t.Fatalf("origin %+v", origin)
-	}
-	if stored := got.Sources[0].Stored["techs/go/errors.md"]; stored != "_releases/2/techs/go/errors.md" {
-		t.Fatalf("stored at %q", stored)
 	}
 	delete(team.Snapshot.Rules, "techs/go/errors")
 	if _, err := resolve(config, libraries, nil); err == nil {

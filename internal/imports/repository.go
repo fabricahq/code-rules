@@ -220,9 +220,16 @@ func (r *repository) tree(ctx context.Context, commit string) (map[string]treeEn
 	return entries, nil
 }
 
-// prefetch fetches the blobs among objects that aren't present yet in one request, so reading them later needs
-// no request per file. Reading a blob that wasn't prefetched still fetches it on its own.
-func (r *repository) prefetch(ctx context.Context, objects []string) error {
+// prefetch fetches the blobs among entries that aren't present yet in one request, so reading them later needs
+// no request per file. Entries that aren't ordinary files, such as submodules, are skipped for the loader to
+// reject if it reads them. Reading a blob that wasn't prefetched still fetches it on its own.
+func (r *repository) prefetch(ctx context.Context, entries []treeEntry) error {
+	objects := []string{}
+	for _, entry := range entries {
+		if entry.mode.IsRegular() {
+			objects = append(objects, entry.object)
+		}
+	}
 	if len(objects) == 0 {
 		return nil
 	}
@@ -236,7 +243,8 @@ func (r *repository) prefetch(ctx context.Context, objects []string) error {
 	}
 	missing := []string{}
 	for _, object := range objects {
-		if !present[object] && !slices.Contains(missing, object) {
+		if !present[object] {
+			present[object] = true
 			missing = append(missing, object)
 		}
 	}

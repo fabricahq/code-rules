@@ -201,11 +201,10 @@ func TestOfflineRejectsSemanticCorruptionBeyondDigests(t *testing.T) {
 }
 
 // TestOfflineRejectsRuleFilesTheRecordDoesntDescribe detects tampering that keeps every digest consistent: a rule
-// file with no version record, and a rule stored under another library release's directory.
+// file with no version record.
 func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 	for name, move := range map[string][2]string{
-		"unrecorded rule":         {"", "techs/go/extra.md"},
-		"rule in the wrong place": {"techs/go/errors.md", "_releases/1/techs/go/errors.md"},
+		"unrecorded rule": {"", "techs/go/extra.md"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			root, options := importedProject(t)
@@ -234,6 +233,19 @@ func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 			_, err = Check(context.Background(), options)
 			projectCode(t, err, "invalid-snapshot")
 		})
+	}
+}
+
+// TestOfflineRejectsAnExclusionSyncDidntCheck fails build and check for an exclusion naming a rule the snapshot
+// doesn't import, until sync checks it.
+func TestOfflineRejectsAnExclusionSyncDidntCheck(t *testing.T) {
+	root, options := importedProject(t)
+	writeFixture(t, root, "config.yaml", `{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/erorrs":{"reason":"Typo."}}}}}`)
+	if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "run code-rules project sync") {
+		t.Fatalf("check accepted an unchecked exclusion: %v", err)
+	}
+	if _, err := Build(context.Background(), options); err == nil {
+		t.Fatal("build accepted an unchecked exclusion")
 	}
 }
 

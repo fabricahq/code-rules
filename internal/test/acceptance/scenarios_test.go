@@ -324,8 +324,8 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if err != nil {
 			return report, err
 		}
-		if !bytes.Equal(after.Files[".code-rules/vendor/team/techs/go/errors.md"], document) || after.Files[".code-rules/vendor/team/_releases/1/techs/go/naming.md"] == nil {
-			return report, fmt.Errorf("sync did not import the pinned version with the older rule under _releases/1/")
+		if !bytes.Equal(after.Files[".code-rules/vendor/team/techs/go/errors.md"], document) || !bytes.Equal(after.Files[".code-rules/vendor/team/techs/go/naming.md"], libraryTree.Files["techs/go/naming.md"]) {
+			return report, fmt.Errorf("sync did not import the pinned version beside the other rule's recorded version")
 		}
 		if !strings.Contains(string(after.Files[".code-rules/generated/rules/team/techs/go/errors.md"]), "Version: 1.1.0") {
 			return report, fmt.Errorf("pinned version missing from generated guidance")
@@ -333,7 +333,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if err := invoke("Check the pinned version offline", consumer, offline, 0, "project", "check"); err != nil {
 			return report, err
 		}
-		report.Verified = append(report.Verified, "A pin moves one rule up, storing rules from the older library release under _releases/1/, and checks offline")
+		report.Verified = append(report.Verified, "A pin moves one rule up while the other keeps its recorded version, and checks offline")
 		if err := configure("pin techs/go/errors back to 1.0.0", "    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Keep the original wording.\n"); err != nil {
 			return report, err
 		}
@@ -344,7 +344,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if err != nil {
 			return report, err
 		}
-		if !bytes.Equal(after.Files[".code-rules/vendor/team/techs/go/errors.md"], libraryTree.Files["techs/go/errors.md"]) || after.Files[".code-rules/vendor/team/_releases/1/techs/go/naming.md"] != nil {
+		if !bytes.Equal(after.Files[".code-rules/vendor/team/techs/go/errors.md"], libraryTree.Files["techs/go/errors.md"]) {
 			return report, fmt.Errorf("sync did not return the pinned rule to version 1.0.0")
 		}
 		report.Verified = append(report.Verified, "A pin moves one rule back down")

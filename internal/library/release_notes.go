@@ -18,6 +18,11 @@ import (
 // majorChangesAdvice opens the major changes section of every library release's notes.
 const majorChangesAdvice = "Code that complied with the previous rule version could fail\nthe new one, so review these before updating."
 
+// sharedFilesSentence follows the rule sections of a library release that also changes library-wide files,
+// except the first, which adds every file because nothing existed before it. The notes never list those files
+// by path; the release record does.
+const sharedFilesSentence = "This library release also updates shared files, such as group\ndescriptions or shared assets."
+
 // releaseRules lists each rule a release record changed, added, or retired, in ID order.
 func releaseRules(record rules.ReleaseRecord) []PendingRule {
 	list := []PendingRule{}
@@ -35,7 +40,8 @@ func releaseRules(record rules.ReleaseRecord) []PendingRule {
 
 // renderReleaseNotes returns a library release's Markdown notes, without a trailing newline: a line counting
 // the rule changes, a section for each kind of change that has entries, in the order major, minor, patch, new,
-// and retired, and a collapsed table of every rule's version. Summaries keep one line per change note.
+// and retired, a sentence noting shared files when a library release after the first also lists library-wide
+// files, and a collapsed table of every rule's version. Summaries keep one line per change note. Library-wide files are never listed.
 func renderReleaseNotes(record rules.ReleaseRecord) string {
 	var out strings.Builder
 	out.WriteString(countLine(record))
@@ -78,6 +84,9 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 		}
 		out.WriteString(strings.Join(items, "\n"))
 	}
+	if record.Release > 1 && len(record.LibraryFiles) > 0 && len(record.Changes)+len(record.Retired) > 0 {
+		out.WriteString("\n\n" + sharedFilesSentence)
+	}
 	if len(record.Rules) > 0 {
 		out.WriteString("\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n")
 		for _, id := range slices.Sorted(maps.Keys(record.Rules)) {
@@ -89,7 +98,7 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 }
 
 // countLine opens the notes, such as "Library release 4 changes 4 rules:" and a line with each kind's count.
-// A library release that changes only library-wide files says so instead.
+// A library release that changes no rules says it updates shared files instead.
 func countLine(record rules.ReleaseRecord) string {
 	counts := map[rules.Change]int{rules.ChangeRetired: len(record.Retired)}
 	for _, change := range record.Changes {
@@ -98,7 +107,7 @@ func countLine(record rules.ReleaseRecord) string {
 	total := len(record.Changes) + len(record.Retired)
 	heading := "Library release " + strconv.Itoa(record.Release) + " changes "
 	if total == 0 {
-		return heading + "no rules, only library-wide files."
+		return heading + "no rules.\nIt updates shared files, such as group descriptions or shared assets."
 	}
 	var kinds []string
 	for _, change := range []rules.Change{rules.ChangeMajor, rules.ChangeMinor, rules.ChangePatch, rules.ChangeNew, rules.ChangeRetired} {

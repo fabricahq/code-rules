@@ -34,6 +34,8 @@ type planner struct {
 	recorded *library.Snapshot
 	// history is nil until first needed.
 	history *releaseHistory
+	// terms lists the license and notice files a ref's revision declares, which are library-wide.
+	terms []string
 }
 
 // planSource chooses what source imports, as project sync does: recorded versions stay, and versions are chosen
@@ -238,11 +240,10 @@ func (p *planner) planRevision() (sourcePlan, error) {
 	if err != nil {
 		return sourcePlan{}, err
 	}
-	terms, err := p.repo.terms(p.ctx, p.source.Name, tree)
-	if err != nil {
+	if p.terms, err = p.repo.terms(p.ctx, p.source.Name, tree); err != nil {
 		return sourcePlan{}, err
 	}
-	present := rulesInTree(tree, terms)
+	present := rulesInTree(tree, p.terms)
 	imported := []string{}
 	for _, id := range present {
 		if p.source.Groups.Includes(ruleGroup(id)) {
@@ -314,18 +315,22 @@ func (p *planner) revisionVersion(id string, plan sourcePlan) (library.ImportedR
 		return library.ImportedRule{}, err
 	}
 	if plan.release != 0 {
-		version, listed := history.release(plan.release).record.Rules[id]
+		release := history.release(plan.release)
+		if release == nil {
+			return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.ref names library release release/%d, which the library no longer has, so newly selected rule %s has no version to import. Ask the library's maintainer to restore the tag, or change sources.%s.ref.", p.source.Name, plan.release, id, p.source.Name), nil)
+		}
+		version, listed := release.record.Rules[id]
 		if !listed {
 			return library.ImportedRule{}, fail("invalid-release-tag", fmt.Sprintf("Library release release/%d contains rule %s, but its release record doesn't list it. Don't create or move release tags by hand.", plan.release, id), nil)
 		}
 		return p.publishedVersion(id, version)
 	}
-	files, err := p.repo.ruleFiles(p.ctx, plan.commit, id)
+	files, err := p.repo.ruleFiles(p.ctx, plan.commit, id, p.terms)
 	if err != nil {
 		return library.ImportedRule{}, err
 	}
 	for _, release := range history.published(id) {
-		published, err := p.repo.ruleFiles(p.ctx, release.commit, id)
+		published, err := p.repo.ruleFiles(p.ctx, release.commit, id, p.terms)
 		if err != nil {
 			return library.ImportedRule{}, err
 		}
@@ -398,14 +403,16 @@ func (p *planner) requireEntries(plan *sourcePlan) error {
 	return nil
 }
 
-// unimported handles a configuration entry naming a rule the source doesn't import: a warning for a retired
-// rule, and a validation error for any other.
+// unimported handles a configuration entry naming a rule the source doesn't import: a warning for a retired rule
+// the source would otherwise import, through its groups, its rules list, or its recorded snapshot, and a
+// validation error for any other.
 func (p *planner) unimported(field, id string, plan *sourcePlan) error {
 	history, err := p.releases()
 	if err != nil {
 		return err
 	}
-	if history.retired(id) {
+	wouldImport := p.source.Groups.Includes(ruleGroup(id)) || slices.Contains(p.source.Rules, id) || p.recorded != nil && hasRule(p.recorded, id)
+	if wouldImport && history.retired(id) {
 		plan.warnings = append(plan.warnings, p.retiredEntry(field, id))
 		return nil
 	}

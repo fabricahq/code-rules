@@ -118,7 +118,7 @@ func quoteJSON(text string) string {
 	return string(data)
 }
 
-// TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease stores older rules under _releases/<n>/.
+// TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease stores every file at its library path.
 func TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease(t *testing.T) {
 	h := newHistory(t)
 	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"]`), nil)
@@ -132,7 +132,7 @@ func TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease(t *test
 	if snapshot.Release != 3 || snapshot.Commit != h.commits[3] || snapshot.Rules["techs/go/d"].Commit != h.commits[2] {
 		t.Fatalf("snapshot %+v", snapshot)
 	}
-	want := []string{"_releases/2/techs/go/d.md", "rule-library.yaml", "techs/go/_group.yaml", "techs/go/a.md", "techs/go/assets/a/diagram.bin"}
+	want := []string{"rule-library.yaml", "techs/go/_group.yaml", "techs/go/a.md", "techs/go/assets/a/diagram.bin", "techs/go/d.md"}
 	if got := slices.Sorted(maps.Keys(snapshot.Files)); !reflect.DeepEqual(got, want) {
 		t.Fatalf("files %v, want %v", got, want)
 	}
@@ -156,7 +156,7 @@ func TestImport_RecordedVersionsStayWhenNewerOnesExist(t *testing.T) {
 	if want := map[string]string{"techs/go/a": "1.1.0@2", "techs/go/b": "1.0.0@1"}; !reflect.DeepEqual(versions(imported.Snapshot), want) {
 		t.Fatalf("versions %v, want %v", versions(imported.Snapshot), want)
 	}
-	if imported.Snapshot.Release != 2 || string(imported.Snapshot.Files["techs/go/a.md"]) != string(versionedRule("a 1.1.0")) || string(imported.Snapshot.Files["_releases/1/techs/go/b.md"]) != string(versionedRule("b 1.0.0")) {
+	if imported.Snapshot.Release != 2 || string(imported.Snapshot.Files["techs/go/a.md"]) != string(versionedRule("a 1.1.0")) || string(imported.Snapshot.Files["techs/go/b.md"]) != string(versionedRule("b 1.0.0")) {
 		t.Fatalf("snapshot %+v", imported.Snapshot)
 	}
 }
@@ -172,7 +172,7 @@ func TestImport_PinsMoveRulesUpAndDown(t *testing.T) {
 		t.Fatalf("versions %v, want %v", versions(down.Snapshot), want)
 	}
 	// The library-wide files come from the newest library release among the imported rule versions.
-	if down.Snapshot.Release != 2 || string(down.Snapshot.Files["_releases/1/techs/go/assets/a/diagram.bin"]) != string([]byte{1, 0}) {
+	if down.Snapshot.Release != 2 || string(down.Snapshot.Files["techs/go/assets/a/diagram.bin"]) != string([]byte{1, 0}) {
 		t.Fatalf("snapshot release %d, files %v", down.Snapshot.Release, slices.Sorted(maps.Keys(down.Snapshot.Files)))
 	}
 	up, err := h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.1.0","reason":"Ready for the example."}}`), &down.Snapshot)
@@ -245,6 +245,8 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 		{"unknown exclusion", `"groups":["techs/go"],"exclude":{"techs/go/missing":{"reason":"Typo."}}`, "", "sources.team.exclude.techs/go/missing"},
 		{"exclusion of an unselected rule", `"groups":["techs/go"],"exclude":{"practices/testing/c":{"reason":"Not selected."}}`, "", "sources.team.exclude.practices/testing/c"},
 		{"unknown pin", `"groups":["techs/go"],"pins":{"techs/go/missing":{"version":"1.0.0","reason":"Typo."}}`, "", "sources.team.pins.techs/go/missing"},
+		{"exclusion of a retired rule outside the selection", `"groups":["practices/testing"],"exclude":{"techs/go/b":{"reason":"Old."}}`, "", "sources.team.exclude.techs/go/b"},
+		{"pin of a retired rule outside the selection", `"groups":["practices/testing"],"pins":{"techs/go/b":{"version":"1.0.0","reason":"Keep."}}`, "", "sources.team.pins.techs/go/b"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			imported, err := h.sync(t, h.source(t, test.fields), nil)
@@ -257,6 +259,9 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 			}
 			if err != nil || len(imported.Warnings) != 1 || !strings.HasPrefix(imported.Warnings[0], test.warning) {
 				t.Fatalf("warnings %v, %v", imported.Warnings, err)
+			}
+			if strings.Contains(test.fields, "exclude") && !slices.Equal(imported.Snapshot.Exclude, []string{"techs/go/b"}) {
+				t.Fatalf("recorded exclusions %v", imported.Snapshot.Exclude)
 			}
 			if _, ok := imported.Snapshot.Rules["techs/go/b"]; ok {
 				t.Fatal("imported a retired rule")
@@ -328,6 +333,28 @@ func TestImport_RefToAnUnreleasedCommitWarnsAndRecordsNoVersionForChangedRules(t
 	}
 }
 
+// TestImport_RefToADeletedLibraryReleaseFailsForNewlySelectedRules reports version-not-found, with recovery
+// guidance, when the recorded ref's release tag is gone and a newly selected rule needs its release record.
+func TestImport_RefToADeletedLibraryReleaseFailsForNewlySelectedRules(t *testing.T) {
+	h := newHistory(t)
+	first, err := h.sync(t, h.source(t, `"groups":["practices/testing"],"ref":"release/2"`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.fixture.Command(context.Background(), "tag", "--delete", "release/2"); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := h.sync(t, h.source(t, `"groups":["practices/testing"],"ref":"release/2"`), &first.Snapshot)
+	if err != nil || restored.Snapshot.Commit != h.commits[2] {
+		t.Fatalf("restoring without the tag: %+v, %v", restored.Snapshot, err)
+	}
+	_, err = h.sync(t, h.source(t, `"groups":["practices/testing","techs/go"],"ref":"release/2"`), &first.Snapshot)
+	requireCode(t, err, "version-not-found")
+	if !strings.Contains(err.Error(), "change sources.team.ref") {
+		t.Fatalf("no recovery guidance: %v", err)
+	}
+}
+
 // TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves restores the commit a tag named when it was recorded.
 func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	h := newHistory(t)
@@ -346,6 +373,94 @@ func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	again, err := h.sync(t, config, &first.Snapshot)
 	if err != nil || again.Snapshot.Commit != h.commits[1] || !reflect.DeepEqual(versions(again.Snapshot), versions(first.Snapshot)) {
 		t.Fatalf("snapshot %+v, %v", again.Snapshot, err)
+	}
+}
+
+// TestImport_KeptRuleWhoseGroupWasRemovedKeepsItsGroupMetadata takes a retained retired rule's group metadata
+// from its own library release when the library-wide release no longer has the group.
+func TestImport_KeptRuleWhoseGroupWasRemovedKeepsItsGroupMetadata(t *testing.T) {
+	f := newLibraryFixture(t, map[string][]byte{
+		"rule-library.yaml":     []byte(`{"formatVersion":1}`),
+		"techs/old/_group.yaml": []byte(`{"name":"Old","description":"Old rules.","whenToRead":"Rarely."}`),
+		"techs/old/x.md":        versionedRule("x 1.0.0"),
+		"techs/go/_group.yaml":  groupMetadata,
+		"techs/go/y.md":         versionedRule("y 1.0.0"),
+	})
+	h := history{fixture: f, commits: map[int]string{}}
+	h.release(t, 1, nil, "release: 1\nrules:\n  techs/old/x: 1.0.0\n  techs/go/y: 1.0.0\nchanges:\n  techs/old/x: {change: new, summary: Add the rule.}\n  techs/go/y: {change: new, summary: Add the rule.}\n")
+	first, err := h.sync(t, h.source(t, `"groups":["techs/go","techs/old"]`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.release(t, 2, map[string][]byte{"techs/old/x.md": nil, "techs/old/_group.yaml": nil, "techs/go/y.md": versionedRule("y 1.1.0")},
+		"release: 2\nrules:\n  techs/go/y: 1.1.0\nchanges:\n  techs/go/y: {change: minor, from: 1.0.0, summary: Add an example.}\nretired:\n  techs/old/x: {lastVersion: 1.0.0, summary: No longer recommended.}\n")
+	imported, err := h.sync(t, h.source(t, `"groups":["techs/go","techs/old"],"pins":{"techs/go/y":{"version":"1.1.0","reason":"Adopt."}}`), &first.Snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]string{"techs/old/x": "1.0.0@1", "techs/go/y": "1.1.0@2"}; !reflect.DeepEqual(versions(imported.Snapshot), want) || imported.Snapshot.Release != 2 {
+		t.Fatalf("versions %v, release %d", versions(imported.Snapshot), imported.Snapshot.Release)
+	}
+	if !strings.Contains(string(imported.Snapshot.Files["techs/old/_group.yaml"]), "Old rules.") {
+		t.Fatalf("group metadata %q", imported.Snapshot.Files["techs/old/_group.yaml"])
+	}
+}
+
+// TestImport_IgnoresUnselectedGroupMetadata fetches only the metadata of groups the source imports, so an
+// unselected group whose _group.yaml is a submodule doesn't block the import.
+func TestImport_IgnoresUnselectedGroupMetadata(t *testing.T) {
+	ctx := context.Background()
+	f := newLibraryFixture(t, map[string][]byte{
+		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+		"techs/go/_group.yaml": groupMetadata,
+		"techs/go/y.md":        versionedRule("y 1.0.0"),
+	})
+	if _, err := f.Command(ctx, "update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("5", 40)+",techs/rust/_group.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Command(ctx, "commit", "--quiet", "--message", "Add a submodule where metadata belongs"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 1, "release: 1\nrules:\n  techs/go/y: 1.0.0\nchanges:\n  techs/go/y: {change: new, summary: Add the rule.}\n"); err != nil {
+		t.Fatal(err)
+	}
+	h := history{fixture: f, commits: map[int]string{}}
+	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"]`), nil)
+	if err != nil || versions(imported.Snapshot)["techs/go/y"] != "1.0.0@1" {
+		t.Fatalf("versions %v, %v", versions(imported.Snapshot), err)
+	}
+}
+
+// TestImport_LicenseInsideARulesAssetsIsLibraryWide takes a declared license file from the library-wide commit,
+// even inside an older rule's asset directory, and leaves it out when matching a ref's rules to published versions.
+func TestImport_LicenseInsideARulesAssetsIsLibraryWide(t *testing.T) {
+	ctx := context.Background()
+	f := newLibraryFixture(t, map[string][]byte{
+		"rule-library.yaml":             []byte(`{"formatVersion":1,"license":{"file":"techs/go/assets/a/LICENSE","notices":[]}}`),
+		"techs/go/_group.yaml":          groupMetadata,
+		"techs/go/a.md":                 versionedRule("a 1.0.0"),
+		"techs/go/assets/a/diagram.bin": {1, 0},
+		"techs/go/assets/a/LICENSE":     []byte("Terms at release 1.\n"),
+		"techs/go/b.md":                 versionedRule("b 1.0.0"),
+	})
+	h := history{fixture: f, commits: map[int]string{}}
+	h.release(t, 1, nil, "release: 1\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.0.0\nchanges:\n  techs/go/a: {change: new, summary: Add the rule.}\n  techs/go/b: {change: new, summary: Add the rule.}\n")
+	h.release(t, 2, map[string][]byte{"techs/go/b.md": versionedRule("b 1.1.0"), "techs/go/assets/a/LICENSE": []byte("Terms at release 2.\n")},
+		"release: 2\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.1.0\nchanges:\n  techs/go/b: {change: minor, from: 1.0.0, summary: Add an example.}\n")
+	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.0.0","reason":"Keep."}}`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if imported.Snapshot.Release != 2 || string(imported.Snapshot.Files["techs/go/assets/a/LICENSE"]) != "Terms at release 2.\n" || string(imported.Catalog.SupportingFiles["techs/go/assets/a/LICENSE"]) != "Terms at release 2.\n" {
+		t.Fatalf("release %d, license %q", imported.Snapshot.Release, imported.Snapshot.Files["techs/go/assets/a/LICENSE"])
+	}
+	commit, err := f.Commit(ctx, f.Worktree(), "Unreleased terms", map[string][]byte{"techs/go/assets/a/LICENSE": []byte("Unreleased terms.\n")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref, err := h.sync(t, h.source(t, `"groups":["techs/go"],"ref":"`+commit+`"`), nil)
+	if err != nil || versions(ref.Snapshot)["techs/go/a"] != "1.0.0@1" {
+		t.Fatalf("versions %v, %v", versions(ref.Snapshot), err)
 	}
 }
 
@@ -422,6 +537,27 @@ func TestImport_RejectsAReleaseTagWithoutARecord(t *testing.T) {
 				t.Fatal(err)
 			}
 			_, err := h.sync(t, h.source(t, `"groups":["techs/go"]`), nil)
+			requireCode(t, err, "invalid-release-tag")
+		})
+	}
+}
+
+// TestImport_RejectsAReleaseTagOfSomethingOtherThanACommit refuses a release tag with a valid record whose target
+// is a tree or a blob, so a non-commit never becomes a recorded commit.
+func TestImport_RejectsAReleaseTagOfSomethingOtherThanACommit(t *testing.T) {
+	for _, target := range []string{"HEAD^{tree}", "HEAD:rule-library.yaml"} {
+		t.Run(target, func(t *testing.T) {
+			h := newHistory(t)
+			ctx := context.Background()
+			object, err := h.fixture.Command(ctx, "rev-parse", target)
+			if err != nil {
+				t.Fatal(err)
+			}
+			record := "release: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.0\n"
+			if _, err := h.fixture.Command(ctx, "tag", "--annotate", "--cleanup=verbatim", "--message", "Notes.\n\n---\n"+record, "release/4", object); err != nil {
+				t.Fatal(err)
+			}
+			_, err = h.sync(t, h.source(t, `"groups":["techs/go"]`), nil)
 			requireCode(t, err, "invalid-release-tag")
 		})
 	}

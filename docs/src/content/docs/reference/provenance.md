@@ -115,14 +115,14 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | --- | --- |
 | `formatVersion` | The snapshot format version, `2`. |
 | `repository` | The library's repository address. |
-| `pins` and `ref` | The source's pins and `ref` from configuration when the snapshot was recorded. Each is omitted when configuration has none. |
+| `pins`, `exclude`, and `ref` | The source's pins, the rule IDs its `exclude` names, and its `ref`, from configuration when the snapshot was recorded. Each is omitted when configuration has none. Sync records an exclusion only after checking that it names an imported rule or one the library retired, so offline checks accept an exclusion of a rule the snapshot doesn't import only when it's recorded here. |
 | `release` | The newest library release among the imported rule versions, the newest library release when the source imports no rules, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
 | `rules` | Each imported rule's ID, whether imported through a group or individually selected, its `version`, the `release` that published it, and that library release's full `commit`. |
 | `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
 | `ruleSelection` | Your configured list of individually selected rules. Omitted when you select none. |
 | `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
-| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Files of rules from a different library release than `release` are stored under `_releases/<number>/`. |
+| `files` | Each retained path and its SHA-256 checksum, written as lowercase hexadecimal text. Each file is stored at its path in the library, including the files of rules from a library release other than `release`, because the snapshot holds one version of each rule. |
 
 A **checksum** detects whether a file's contents differ from the recorded copy. The `files` map covers the original file bytes and excludes `_source.json` itself.
 
@@ -137,7 +137,7 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 | Choice | What Code Rules verifies offline |
 | --- | --- |
 | Newest versions, the default | Each pinned rule records its pinned version. Other rules may record any published version. |
-| One revision, with `ref` | For a commit SHA, `resolvedCommit` equals it. For a library release, every rule records the version that library release published. A tag's recorded commit is used without checking where the tag points now. |
+| One revision, with `ref` | For a commit SHA, `resolvedCommit` equals it. For a library release `release/N`, the source records release N, and every rule records a published version from library release N or earlier. A tag's recorded commit is used without checking where the tag points now. |
 
 For every source, offline checks also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions.
 

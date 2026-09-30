@@ -22,7 +22,7 @@ type ReleaseRequest struct {
 // ReleaseResult describes a library release that was published, finished, or previewed, or that there was
 // nothing to publish.
 type ReleaseResult struct {
-	// Repository is the upstream remote's URL, without credentials.
+	// Repository is where the library release is pushed, the upstream remote's repository, without credentials.
 	Repository string `json:"repository"`
 	Remote     string `json:"remote"`
 	Branch     string `json:"branch"`
@@ -87,20 +87,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	if err != nil {
 		return ReleaseResult{}, err
 	}
-	result := ReleaseResult{Repository: displayRepository(branch.url), Remote: branch.remote, Branch: branch.branch, GitHubRepository: gitHubRepository(branch.url), DryRun: request.DryRun, Rules: []PendingRule{}, LibraryFiles: []string{}}
-	var gh *gitHubCLI
-	if !request.DryRun {
-		if err = git.requireCommitterIdentity(ctx); err != nil {
-			return ReleaseResult{}, err
-		}
-		if result.GitHubRepository != "" && !request.NoGitHubRelease {
-			cli, err := findGitHubCLI(ctx, request.Git.Environment)
-			if err != nil {
-				return ReleaseResult{}, err
-			}
-			gh = &cli
-		}
-	}
+	result := ReleaseResult{Repository: displayRepository(branch.pushURL), Remote: branch.remote, Branch: branch.branch, GitHubRepository: gitHubRepository(branch.pushURL), DryRun: request.DryRun, Rules: []PendingRule{}, LibraryFiles: []string{}}
 	remote, err := git.readRemote(ctx, branch)
 	if err != nil {
 		return ReleaseResult{}, err
@@ -120,26 +107,38 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		return ReleaseResult{}, err
 	}
 	result.Warnings = checked.result.Warnings
-	committed, err := git.requireCommitted(ctx, result.Commit, checked.input)
-	if err != nil {
+	if err = git.requireCommitted(ctx, result.Commit, checked.input); err != nil {
 		return ReleaseResult{}, err
 	}
+	// gh is nil unless a GitHub Release page applies. It and the tagger are checked only when there's
+	// something to publish, but before anything is created.
+	var gh *gitHubCLI
+	requireGitHubCLI := func() error {
+		if request.DryRun || result.GitHubRepository == "" || request.NoGitHubRelease {
+			return nil
+		}
+		cli, err := findGitHubCLI(ctx, request.Git.Environment, root.Name())
+		gh = &cli
+		return err
+	}
 	var object string
+	// created is set when this run creates the tag, so a failed push deletes only a tag this run made.
+	var created bool
 	if latest := checked.changes.history.latest; latest != nil && latest.commit == result.Commit {
 		describe(&result, latest.record, latest.notes)
 		result.Published = unpushed != latest.number
 		object = latest.object
+		if err = requireGitHubCLI(); err != nil {
+			return ReleaseResult{}, err
+		}
 	} else {
 		if checked.plan.release != remote.latest()+1 {
 			return ReleaseResult{}, failure("release-tag-mismatch", branch.remote+"'s newest library release is release/"+strconv.Itoa(remote.latest())+", but "+branch.branch+"'s history reaches only release/"+strconv.Itoa(checked.plan.release-1)+". Release tags belong on the default branch; don't create them by hand.", nil)
 		}
-		released := map[string]string{}
-		if latest != nil {
-			if released, err = git.treeFiles(ctx, latest.object, libraryPaths(checked.input.license)); err != nil {
-				return ReleaseResult{}, err
-			}
+		libraryFiles, err := git.changedLibraryFiles(ctx, result.Commit, latest, rules.LicensePaths(checked.input.license))
+		if err != nil {
+			return ReleaseResult{}, err
 		}
-		libraryFiles := changedLibraryFiles(committed, released, rules.LicensePaths(checked.input.license))
 		if checked.plan.empty() && len(libraryFiles) == 0 {
 			return result, nil
 		}
@@ -150,6 +149,19 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 			return ReleaseResult{}, err
 		}
 		describe(&result, record, notes)
+		// tagger stays empty on a dry run, which slightly underestimates the tag's size.
+		var tagger string
+		if !request.DryRun {
+			if tagger, err = git.requireCommitterIdentity(ctx); err != nil {
+				return ReleaseResult{}, err
+			}
+			if err = requireGitHubCLI(); err != nil {
+				return ReleaseResult{}, err
+			}
+		}
+		if err = requireTagSize(result.Tag, tagObjectSize(result.Tag, result.Commit, tagger, message)); err != nil {
+			return ReleaseResult{}, err
+		}
 		if request.DryRun {
 			return result, nil
 		}
@@ -162,13 +174,13 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		if object, err = git.createTag(ctx, result.Tag, result.Commit, message); err != nil {
 			return ReleaseResult{}, err
 		}
-		unpushed = record.Release
+		unpushed, created = record.Release, true
 	}
 	if request.DryRun {
 		return result, nil
 	}
 	if unpushed == result.Release {
-		if err = git.pushTag(ctx, branch, result.Tag, object); err != nil {
+		if err = git.pushTag(ctx, branch, result.Tag, object, created); err != nil {
 			return ReleaseResult{}, err
 		}
 		result.TagCreated = true

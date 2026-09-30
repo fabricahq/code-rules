@@ -182,17 +182,18 @@ func (r *repository) listReleases(ctx context.Context) ([]libraryRelease, error)
 	return releases, nil
 }
 
-// fetchedReleases checks that each fetched release tag is the tag object and commit the listing advertised, so
-// a tag moved in between fails, and returns each tag object's size in bytes.
+// fetchedReleases checks that each fetched release tag is the tag object the listing advertised and that it tags
+// the advertised object, which must be a commit, so a tag moved in between or tagging a tree or blob fails. It
+// returns each tag object's size in bytes.
 func (r *repository) fetchedReleases(ctx context.Context, advertised []libraryRelease) (map[string]int, error) {
-	listing, err := r.runner.Output(ctx, r.directory, []string{"for-each-ref", "--format=%(refname) %(objecttype) %(objectname) %(objectsize) %(*objectname)", "refs/tags/release/"}, 8<<20)
+	listing, err := r.runner.Output(ctx, r.directory, []string{"for-each-ref", "--format=%(refname) %(objecttype) %(objectname) %(objectsize) %(*objectname) %(*objecttype)", "refs/tags/release/"}, 8<<20)
 	if err != nil {
 		return nil, err
 	}
 	fetched := map[string][]string{}
 	for line := range strings.Lines(string(listing)) {
 		fields := strings.Fields(line)
-		if len(fields) == 5 {
+		if len(fields) == 6 {
 			fetched[strings.TrimPrefix(fields[0], "refs/tags/")] = fields[1:]
 		}
 	}
@@ -200,8 +201,11 @@ func (r *repository) fetchedReleases(ctx context.Context, advertised []libraryRe
 	for _, release := range advertised {
 		name := "release/" + strconv.Itoa(release.number)
 		fields := fetched[name]
-		if len(fields) != 4 || fields[0] != "tag" || fields[1] != release.tag || fields[3] != release.commit {
+		if len(fields) != 5 || fields[0] != "tag" || fields[1] != release.tag || fields[3] != release.commit {
 			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s changed while Code Rules read it; retry. Don't create or move release tags by hand.", name), nil)
+		}
+		if fields[4] != "commit" {
+			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s tags a %s, not a commit. Don't create or move release tags by hand.", name, fields[4]), nil)
 		}
 		size, err := strconv.Atoi(fields[2])
 		if err != nil || size < 0 || size > maxBlobBytes {
