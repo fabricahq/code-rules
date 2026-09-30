@@ -36,18 +36,20 @@ The tag's message is the library release's permanent record. It has two parts, s
 ```yaml
 release: 4
 rules:
+  practices/code-design/organize-code-by-feature: 1.1.0
   practices/testing/verify-backoff: 1.3.0
   practices/testing/verify-retries: 1.0.0
   practices/testing/verify-retry-limits: 2.0.0
+  techs/react/prefer-server-components: 1.4.0
   techs/react/test-hooks-in-isolation: 2.2.0
 changes:
+  practices/testing/verify-retries:
+    change: new
+    summary: Add a broader rule about testing retries.
   practices/testing/verify-retry-limits:
     change: major
     from: 1.3.0
     summary: Require a test at the limit for every retry policy.
-  practices/testing/verify-retries:
-    change: new
-    summary: Add a broader rule about testing retries.
   techs/react/test-hooks-in-isolation:
     change: minor
     from: 2.1.0

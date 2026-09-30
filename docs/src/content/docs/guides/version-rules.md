@@ -184,7 +184,9 @@ code-rules library check
 `code-rules library check` fails if a changed rule has no note, or if a note doesn't match a change. When it passes, it previews the pending library release:
 
 ```text
-Pending library release 4
+Library is valid: 3 group(s), 6 rule(s).
+
+Pending library release 3
   practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
 ```
 
