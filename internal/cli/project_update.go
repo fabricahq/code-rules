@@ -249,8 +249,10 @@ func updateReport(result project.UpdateResult, cancelled, shown bool) commandRep
 		out.WriteString("Update cancelled. No files were written.\n")
 	case result.Moves():
 		out.WriteString("\nThis is a preview; no files were written. To apply it, run the command again\nwith --yes, or in a terminal to answer each question and confirm.\n")
-	default:
+	case out.Len() > 0:
 		out.WriteString("\nNo rule updates are available. No files were written.\n")
+	default:
+		out.WriteString("No rule updates are available. No files were written.\n")
 	}
 	return commandReport{value: result, human: out.String()}
 }
@@ -259,13 +261,19 @@ func updateReport(result project.UpdateResult, cancelled, shown bool) commandRep
 const updateKindWidth = len(imports.UpdateReplaced)
 
 // formatUpdatePreview lists each source's rows with the change, rule ID, and versions in aligned columns, each
-// row's details indented beneath them, and any move of its shared files.
+// row's details indented beneath them, and any move of its shared files. It writes nothing when no source has
+// anything to show, so the caller's summary stands alone.
 func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 	idWidth := 0
+	listed := false
 	for _, source := range sources {
 		for _, row := range source.Rules {
 			idWidth = max(idWidth, len(row.ID))
 		}
+		listed = listed || len(source.Rules) > 0 || source.Ref != "" || source.SharedFiles != nil
+	}
+	if !listed {
+		return
 	}
 	indent := strings.Repeat(" ", 2+updateKindWidth+2)
 	for _, source := range sources {

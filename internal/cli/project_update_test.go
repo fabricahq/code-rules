@@ -254,6 +254,19 @@ func TestUpdate_YesAppliesWithKeepAndExclude(t *testing.T) {
 	}
 }
 
+// TestUpdate_SaysOnlyThatNothingIsAvailableAfterAnUpdate prints one line, without an empty per-source listing.
+func TestUpdate_SaysOnlyThatNothingIsAvailableAfterAnUpdate(t *testing.T) {
+	u := newUpdateFixture(t)
+	if out, diagnostic, code := u.run(t, "project", "update", "--yes"); code != 0 {
+		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+	}
+	out, diagnostic, code := u.run(t, "project", "update")
+	// The pinned rule still has a newer version, so the preview lists it, and nothing else.
+	if code != 0 || diagnostic != "" || strings.Contains(out, "No rule updates.\n") || !strings.HasSuffix(out, "\nNo rule updates are available. No files were written.\n") {
+		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
+	}
+}
+
 // TestUpdate_ScopedToOneRuleMovesOnlyThatRule leaves the rest of the source where it was.
 func TestUpdate_ScopedToOneRuleMovesOnlyThatRule(t *testing.T) {
 	u := newUpdateFixture(t)
