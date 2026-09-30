@@ -25,7 +25,7 @@ func TestCommandOptionSections(t *testing.T) {
 		{"project build", "", nil, []string{"help", "json"}},
 		{"project check", "", nil, []string{"help", "json"}},
 		{"project add library", "Library options", []string{"repository", "ref", "groups", "rules"}, []string{"help", "json", "non-interactive"}},
-		{"project add rule", "Rule options", []string{"title", "when-to-read", "impact", "impact-description", "body-file"}, []string{"help", "json", "non-interactive"}},
+		{"project add rule", "Rule options", []string{"title", "when-to-read", "impact", "impact-description", "body-file", "from", "reason"}, []string{"help", "json", "non-interactive"}},
 		{"library", "", nil, []string{"help", "json"}},
 		{"library add", "", nil, []string{"help", "json"}},
 		{"library init", "Library options", []string{"spdx", "license-file", "notice-file"}, []string{"directory", "help", "json", "non-interactive"}},

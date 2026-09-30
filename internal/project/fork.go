@@ -131,15 +131,14 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 		if !bytes.Equal(original, p.configBytes) {
 			return nil, failure("concurrent-change", "the project's configuration changed after the fork was planned; run the command again", nil)
 		}
-		files := []filetxn.File{}
-		for _, name := range slices.Sorted(maps.Keys(p.files)) {
-			files = append(files, filetxn.File{Path: path.Join("local", name), Content: p.files[name]})
-		}
-		group, err := p.groupFiles(ctx, root)
+		files, err := p.groupFiles(ctx, root)
 		if err != nil {
 			return nil, err
 		}
-		files = append(files, group...)
+		for name, data := range p.files {
+			files = append(files, filetxn.File{Path: path.Join("local", name), Content: data})
+		}
+		slices.SortFunc(files, func(a, b filetxn.File) int { return strings.Compare(a.Path, b.Path) })
 		for _, file := range files {
 			if err := filetxn.RequireAbsent(ctx, root, file.Path); err != nil {
 				return nil, err

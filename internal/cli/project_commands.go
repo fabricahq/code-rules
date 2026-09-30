@@ -3,6 +3,9 @@
 package cli
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -141,7 +144,16 @@ func projectGroupCommand(options Options, output *commandOutput) *cobra.Command 
 func projectRuleCommand(options Options, output *commandOutput) *cobra.Command {
 	rule, rf := newAuthoringCommand("rule RULE_PATH", "Create a project-only rule or unfinished draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
 	rf.addRuleFlags(rule)
+	rule.Long = strings.TrimSuffix(rule.Long, documentationHelp) + "\n\nTo fork one version of a library rule instead, copying it into this project so\nyou can change what it says, use --from LIBRARY@VERSION (e.g. team@1.3.0) with\nthe library rule's ID as RULE_PATH. When the project imports the rule from that\nlibrary, the fork replaces it, and --reason records why." + documentationHelp
+	rf.add(rule, "from", "Fork `LIBRARY@VERSION` of a library rule, such as team@1.3.0, instead of writing one")
+	rf.add(rule, "reason", "Why the project uses the fork instead of the rule it imports; required when it imports the rule")
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
+		if rf.value("from") != "" {
+			return forkRule(cmd, args[0], rf, options, output)
+		}
+		if rf.value("reason") != "" {
+			return usage(fmt.Errorf("--reason applies only to a fork; add --from LIBRARY@VERSION, or omit --reason"))
+		}
 		target, err := rf.options(cmd.Context(), false)
 		if err != nil {
 			return err
