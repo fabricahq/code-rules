@@ -40,7 +40,7 @@ type Report struct {
 // All writes and Git history belong to disposable directories; no external network or global install is used.
 func Run(ctx context.Context, binary, scenario string) (report Report, err error) {
 	report = Report{Scenario: scenario, Steps: []Step{}, Verified: []string{}}
-	if !slices.Contains([]string{"lifecycle", "versions", "update", "changed-vendor", "failed-sync"}, scenario) {
+	if !slices.Contains([]string{"lifecycle", "stale-output", "versions", "changed-vendor", "failed-sync"}, scenario) {
 		return report, fmt.Errorf("unknown acceptance scenario")
 	}
 	directory, err := os.MkdirTemp("", "code-rules-acceptance-")
@@ -149,11 +149,6 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		return report, err
 	}
 	defer func() { err = errors.Join(err, fixture.Close()) }()
-	firstRelease := "release: 1\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n  techs/go/naming: {change: new, summary: Add the rule.}\n"
-	if err := fixture.Release(ctx, 1, firstRelease); err != nil {
-		return report, err
-	}
-	report.Steps = append(report.Steps, Step{Label: "Fixture edit: publish library release release/1 with every rule at 1.0.0"})
 	gitBin := filepath.Join(directory, "git-only")
 	if err := os.Mkdir(gitBin, 0700); err != nil {
 		return report, err
@@ -168,12 +163,27 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			online = append(online, value)
 		}
 	}
+	author, err := fixture.Clone(ctx)
+	if err != nil {
+		return report, err
+	}
+	report.Steps = append(report.Steps, Step{Label: "Fixture edit: commit the library to its repository and clone it as the author's checkout"})
+	if err := invoke("Publish the first library release", author, online, 0, "library", "release"); err != nil {
+		return report, err
+	}
+	if err := contains("first library release output", report.Steps[len(report.Steps)-1].Stdout, "Published library release 1.", "Tag:                 release/1 (created and pushed to origin)", "  techs/go/errors  new  1.0.0\n", "  techs/go/naming  new  1.0.0\n"); err != nil {
+		return report, err
+	}
+	report.Verified = append(report.Verified, "code-rules library release publishes the first library release, giving every rule 1.0.0")
 	for _, args := range [][]string{{"project", "init"}, {"project", "add", "library", "team", "--repository", fixture.Repository, "--groups", "techs/go"}} {
 		if err := invoke("Configure consumer", consumer, offline, 0, args...); err != nil {
 			return report, err
 		}
 	}
 	if err := invoke("Sync from real Git with no Node/Bun", consumer, online, 0, "project", "sync"); err != nil {
+		return report, err
+	}
+	if err := invoke("Check the first sync offline", consumer, offline, 0, "project", "check"); err != nil {
 		return report, err
 	}
 	files, err := readTree(ctx, consumer)
@@ -221,7 +231,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 	}
 	report.Verified = append(report.Verified, "Local group guidance wins", "Offline build/check work with no runtimes on PATH", "Repeated build is byte-for-byte stable")
 	switch scenario {
-	case "lifecycle":
+	case "stale-output":
 		name := ".code-rules/generated/RULES.md"
 		if err := os.WriteFile(filepath.Join(consumer, name), []byte("Stale output"), 0600); err != nil {
 			return report, err
@@ -258,8 +268,8 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 			return report, fmt.Errorf("failed build changed files")
 		}
 		report.Verified = append(report.Verified, "Changed vendor bytes produce an error and preserve all project files")
-	case "update":
-		if err := updateScenario(ctx, &report, invoke, fixture, directory, consumer, online, offline); err != nil {
+	case "lifecycle":
+		if err := lifecycleScenario(ctx, &report, invoke, fixture, author, directory, consumer, online, offline); err != nil {
 			return report, err
 		}
 	case "versions", "failed-sync":
