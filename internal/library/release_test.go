@@ -870,9 +870,28 @@ func TestGitHubRepository_RecognizesOnlyGitHubDotCom(t *testing.T) {
 		{"git@github-work:acme/rules.git", "", "git@github-work:acme/rules.git"},
 		{"https://github.example.com/acme/rules.git", "", "https://github.example.com/acme/rules.git"},
 		{"/srv/git/rules.git", "", "/srv/git/rules.git"},
+		{"https://review-secret:password@github.com/acme/%zz", "", hiddenRemote},
+		{"https://review-secret:password@host.example:port/library.git", "", hiddenRemote},
 	} {
 		if github, display := gitHubRepository(test.url), displayRepository(test.url); github != test.github || display != test.display {
 			t.Errorf("%s: GitHub repository %q, display %q; want %q, %q", test.url, github, display, test.github, test.display)
+		}
+	}
+}
+
+// TestSameRepository_ComparesURLsItCantParseExactly treats two different URLs it can't parse as different
+// repositories, although both display the same way, and ignores credentials in URLs it can parse.
+func TestSameRepository_ComparesURLsItCantParseExactly(t *testing.T) {
+	for _, test := range []struct {
+		a, b string
+		same bool
+	}{
+		{"https://token@host.example/library.git", "https://host.example/library.git?secret", true},
+		{"https://secret@host.example/%zz", "https://secret@host.example/%zz", true},
+		{"https://secret@host.example/%zz", "https://secret@other.example/%zz", false},
+	} {
+		if got := sameRepository(test.a, test.b); got != test.same {
+			t.Errorf("sameRepository(%q, %q) = %v, want %v", test.a, test.b, got, test.same)
 		}
 	}
 }

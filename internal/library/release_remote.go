@@ -108,14 +108,20 @@ func (g *libraryGit) pushDestination(ctx context.Context, remote, fetchURL strin
 }
 
 // sameRepository reports whether two remote URLs name the same repository, comparing recognized repositories
-// by identity, such as github.com/acme/rules for its HTTPS and SSH URLs, and other URLs without credentials.
+// by identity, such as github.com/acme/rules for its HTTPS and SSH URLs, other URLs without credentials, and
+// URLs that can't be parsed exactly.
 func sameRepository(a, b string) bool {
 	first, firstOK := parseRemote(a)
 	second, secondOK := parseRemote(b)
 	if firstOK && secondOK {
 		return first.Identity == second.Identity
 	}
-	return withoutCredentials(a) == withoutCredentials(b)
+	firstAddress, firstParsed := withoutCredentials(a)
+	secondAddress, secondParsed := withoutCredentials(b)
+	if !firstParsed || !secondParsed {
+		return a == b
+	}
+	return firstAddress == secondAddress
 }
 
 // requireCommitterIdentity fails before anything changes when Git has no tagger identity for the tag.

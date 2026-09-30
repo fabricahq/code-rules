@@ -41,7 +41,12 @@ func gitHubRepository(remoteURL string) string {
 	return path
 }
 
-// displayRepository returns a remote URL to show people, without credentials, a query, or a fragment.
+// hiddenRemote stands in for a remote URL that can't be parsed, whose credentials, if any, can't be found and
+// removed.
+const hiddenRemote = "(a URL that can't be parsed, hidden in case it contains credentials)"
+
+// displayRepository returns a remote URL to show people, without credentials, a query, or a fragment, or
+// hiddenRemote for a URL that can't be parsed.
 func displayRepository(remoteURL string) string {
 	if repository, ok := parseRemote(remoteURL); ok {
 		if repository.Web != nil {
@@ -49,13 +54,20 @@ func displayRepository(remoteURL string) string {
 		}
 		return repository.Identity
 	}
-	return withoutCredentials(remoteURL)
+	if address, ok := withoutCredentials(remoteURL); ok {
+		return address
+	}
+	return hiddenRemote
 }
 
 // parseRemote identifies the repository a remote URL names, ignoring any credentials, query, or fragment in it.
 // It reports false for URLs that project configuration wouldn't accept, such as local paths.
 func parseRemote(remoteURL string) (rules.Repository, bool) {
-	encoded, err := json.Marshal(withoutCredentials(remoteURL))
+	address, ok := withoutCredentials(remoteURL)
+	if !ok {
+		return rules.Repository{}, false
+	}
+	encoded, err := json.Marshal(address)
 	if err != nil {
 		return rules.Repository{}, false
 	}
@@ -64,15 +76,20 @@ func parseRemote(remoteURL string) (rules.Repository, bool) {
 }
 
 // withoutCredentials removes the parts of a remote URL that can carry credentials: a password, an HTTPS user
-// name such as a token, a query, and a fragment. An SSH user name, which names the account, stays.
-func withoutCredentials(remoteURL string) string {
+// name such as a token, a query, and a fragment. An SSH user name, which names the account, stays. It reports
+// false for an address with a scheme, such as https://, that isn't a URL it can parse, because it can't tell
+// where credentials in it are.
+func withoutCredentials(remoteURL string) (string, bool) {
 	parsed, err := url.Parse(remoteURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		if strings.Contains(remoteURL, "://") {
+			return "", false
+		}
 		// A user@host:path address or a local path isn't a URL; Git reads neither a query nor a fragment in it.
 		if end := strings.IndexAny(remoteURL, "?#"); end >= 0 {
-			return remoteURL[:end]
+			return remoteURL[:end], true
 		}
-		return remoteURL
+		return remoteURL, true
 	}
 	if parsed.User != nil && parsed.Scheme == "ssh" {
 		parsed.User = url.User(parsed.User.Username())
@@ -80,7 +97,7 @@ func withoutCredentials(remoteURL string) string {
 		parsed.User = nil
 	}
 	parsed.RawQuery, parsed.ForceQuery, parsed.Fragment, parsed.RawFragment = "", false, "", ""
-	return parsed.String()
+	return parsed.String(), true
 }
 
 // findGitHubCLI locates gh on environment's PATH, or the process's when it's nil, and requires it to be signed
