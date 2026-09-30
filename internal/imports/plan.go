@@ -395,14 +395,16 @@ func (p *planner) requireEntries(plan *sourcePlan) error {
 	return nil
 }
 
-// unimported handles a configuration entry naming a rule the source doesn't import: a warning for a retired
-// rule, and a validation error for any other.
+// unimported handles a configuration entry naming a rule the source doesn't import: a warning for a retired rule
+// the source would otherwise import, through its groups, its rules list, or its recorded snapshot, and a
+// validation error for any other.
 func (p *planner) unimported(field, id string, plan *sourcePlan) error {
 	history, err := p.releases()
 	if err != nil {
 		return err
 	}
-	if history.retired(id) {
+	wouldImport := p.source.Groups.Includes(ruleGroup(id)) || slices.Contains(p.source.Rules, id) || p.recorded != nil && hasRule(p.recorded, id)
+	if wouldImport && history.retired(id) {
 		plan.warnings = append(plan.warnings, p.retiredEntry(field, id))
 		return nil
 	}

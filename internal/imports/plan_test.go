@@ -245,6 +245,8 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 		{"unknown exclusion", `"groups":["techs/go"],"exclude":{"techs/go/missing":{"reason":"Typo."}}`, "", "sources.team.exclude.techs/go/missing"},
 		{"exclusion of an unselected rule", `"groups":["techs/go"],"exclude":{"practices/testing/c":{"reason":"Not selected."}}`, "", "sources.team.exclude.practices/testing/c"},
 		{"unknown pin", `"groups":["techs/go"],"pins":{"techs/go/missing":{"version":"1.0.0","reason":"Typo."}}`, "", "sources.team.pins.techs/go/missing"},
+		{"exclusion of a retired rule outside the selection", `"groups":["practices/testing"],"exclude":{"techs/go/b":{"reason":"Old."}}`, "", "sources.team.exclude.techs/go/b"},
+		{"pin of a retired rule outside the selection", `"groups":["practices/testing"],"pins":{"techs/go/b":{"version":"1.0.0","reason":"Keep."}}`, "", "sources.team.pins.techs/go/b"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			imported, err := h.sync(t, h.source(t, test.fields), nil)
