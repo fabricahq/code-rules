@@ -88,7 +88,7 @@ Checksums detect changes relative to the stored record. They cannot establish th
 
 ## Recover from an interrupted update
 
-Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work.
+Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml` in the same step, so recovery restores or finishes `config.yaml`, `vendor/`, and `generated/` together.
 
 If the update completed but cleanup was interrupted, the next sync or build finishes deleting the backups. The completed update remains complete.
 
@@ -105,7 +105,7 @@ Recovery refuses to overwrite output or backups edited after an interruption. Fo
 
 ## How updates protect your files
 
-Sync and build prepare and validate the complete replacement before installing it. Immediately before replacement, they check that the original input and output files have not changed. If another process changed them, the update stops.
+Sync, update, and build prepare and validate the complete replacement before installing it. Immediately before replacement, they check that the original input and output files have not changed. If another process changed them, the update stops.
 
 Code Rules uses these temporary directories beside your configuration:
 
@@ -117,7 +117,7 @@ Code Rules uses these temporary directories beside your configuration:
 
 After completing an update, Code Rules renames the transaction directory to the cleanup directory before deleting backups. It also discards abandoned staging files when no journal or backups exist.
 
-Avoid editing managed directories during an update. Replacing `vendor/` and `generated/` takes separate filesystem operations, so another program can briefly see a mixture of old and new files. Check detects an active update instead of accepting mixed output as consistent.
+Avoid editing managed directories during an update. Replacing `vendor/`, `generated/`, and, for update, `config.yaml` takes separate filesystem operations, so another program can briefly see a mixture of old and new files. Check detects an active update instead of accepting mixed output as consistent.
 
 Cancellation can stop work before replacement starts. Once replacement begins, the command finishes or rolls back before returning.
 

@@ -19,10 +19,18 @@ import (
 )
 
 const transactionName = ".code-rules-transaction"
+
+// backupNames are the transaction's backups of each target's previous output.
+var backupNames = []string{"old-vendor", "old-generated", "old-README.md", "old-CODE_RULES.md", "old-config.yaml"}
+
+// maxJournalEntries is how many targets a journal of each format version can hold: format 2 holds the two managed
+// trees, format 3 adds a project guide, and format 4 adds the configuration.
+var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4}
+
 const lockName = ".code-rules-lock"
 const cleanupName = ".code-rules-cleanup"
 
-// Target is a managed directory or project guide. Authored rules and configuration are never targets.
+// Target is a managed directory, project guide, or the project configuration. Authored rules are never targets.
 type Target string
 
 const (
@@ -148,7 +156,8 @@ func acquireLock(ctx context.Context, root *os.Root) error {
 }
 
 // Apply stages complete managed targets and rechecks caller inputs before replacing live output.
-// It rolls back on failure when no later edits would be lost. Empty output is a no-op.
+// It rolls back on failure when no later edits would be lost, and recovery restores or finishes every target in
+// the transaction together. Empty output is a no-op.
 // This promises recoverability, not simultaneous visibility of two renames or power-loss durability.
 func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func() error) (err error) {
 	if w == nil || !w.active {
@@ -169,7 +178,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		if !validTarget(target) {
 			return failure("invalid-target", fmt.Sprintf("%q: only managed trees and project guides may be replaced", target), nil)
 		}
-		if guideTarget(target) {
+		if fileTarget(target) {
 			if err := rejectAlias(w.root, string(target)); err != nil {
 				return err
 			}
@@ -197,7 +206,7 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		}
 	}()
 	entries := []journalEntry{}
-	for _, target := range []Target{Vendor, Generated, GuideReadme, GuideStandalone} {
+	for _, target := range []Target{Vendor, Generated, GuideReadme, GuideStandalone, Config} {
 		files, ok := output[target]
 		if !ok {
 			continue
@@ -210,8 +219,8 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		if err := writeTarget(w.ctx, w.root, target, staged, files); err != nil {
 			return err
 		}
-		if guideTarget(target) {
-			if err := w.probeGuideRename(target, staged); err != nil {
+		if fileTarget(target) {
+			if err := w.probeFileRename(target, staged); err != nil {
 				return err
 			}
 		}
@@ -239,7 +248,10 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 	formatVersion := 2
 	for _, entry := range entries {
 		if guideTarget(entry.Name) {
-			formatVersion = 3
+			formatVersion = max(formatVersion, 3)
+		}
+		if entry.Name == Config {
+			formatVersion = 4
 		}
 	}
 	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{formatVersion, entries}); err != nil {
@@ -309,11 +321,11 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	data, hasJournal := tree.Files["journal.json"]
 	if !hasJournal {
 		for _, dir := range tree.Directories {
-			if dir == "old-vendor" || dir == "old-generated" || dir == "old-README.md" || dir == "old-CODE_RULES.md" {
+			if slices.Contains(backupNames, dir) {
 				return failure("recovery-required", "missing journal with retained output; preserve transaction files for manual recovery", nil)
 			}
 		}
-		for _, name := range []string{"old-vendor", "old-generated", "old-README.md", "old-CODE_RULES.md"} {
+		for _, name := range backupNames {
 			if _, ok := tree.Files[name]; ok {
 				return failure("recovery-required", "missing journal with retained backup; preserve transaction files", nil)
 			}
@@ -338,12 +350,12 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		}
 	}
 	var record journalRecord
-	if json.Unmarshal(data, &record) != nil || (record.FormatVersion != 1 && record.FormatVersion != 2 && record.FormatVersion != 3) || len(record.Entries) == 0 || len(record.Entries) > 3 || (record.FormatVersion < 3 && len(record.Entries) > 2) {
+	if json.Unmarshal(data, &record) != nil || record.FormatVersion < 1 || record.FormatVersion > 4 || len(record.Entries) == 0 || len(record.Entries) > maxJournalEntries[record.FormatVersion] {
 		return failure("recovery-required", "invalid transaction journal; preserve it for manual recovery", nil)
 	}
 	seen := map[Target]bool{}
 	for _, entry := range record.Entries {
-		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || entry.After == treeDigest(nil) {
+		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || entry.After == treeDigest(nil) {
 			return failure("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
 		}
 		seen[entry.Name] = true
