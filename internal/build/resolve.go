@@ -122,14 +122,10 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		}
 		snapshot := supplied.Snapshot
 		ref, err := rules.ParseGitRef(snapshot.Commit, source.Name+".resolvedCommit")
-		if err != nil || ref.Kind != rules.GitRefCommit {
+		if err != nil || ref.Kind() != rules.GitRefCommit {
 			return resolution{}, invalid(source.Name, "resolvedCommit must be a full commit SHA")
 		}
-		requested, hasRef, err := source.GitRef()
-		if err != nil {
-			return resolution{}, err
-		}
-		if hasRef && requested.Kind == rules.GitRefCommit && requested.SHA != ref.SHA {
+		if source.Ref.Kind() == rules.GitRefCommit && !source.Ref.Equal(ref) {
 			return resolution{}, invalid(source.Name, "resolved commit differs from configured commit")
 		}
 		candidates := map[string]rules.Rule{}
@@ -187,7 +183,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			if !recorded || !validCommit(version.Commit) {
 				return resolution{}, invalid(parsed.ID, "the source snapshot records no version or commit for this rule; run code-rules project sync")
 			}
-			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref, Commit: version.Commit, Version: version.Version, Release: version.Release}
+			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref.String(), Commit: version.Commit, Version: version.Version, Release: version.Release}
 			active := resolvedRule{Rule: parsed, Origin: origin, License: supplied.Catalog.License}
 			if excluded {
 				file := strings.TrimPrefix(exclusion.ReplacedBy, "local/")
@@ -208,7 +204,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Pins: source.Pins, Release: snapshot.Release, Commit: ref.SHA, Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
+		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {
@@ -234,7 +230,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 // validCommit accepts a full, lowercase commit SHA.
 func validCommit(text string) bool {
 	ref, err := rules.ParseGitRef(text, "commit")
-	return err == nil && ref.Kind == rules.GitRefCommit && ref.SHA == text
+	return err == nil && ref.Kind() == rules.GitRefCommit && ref.Canonical() == text
 }
 
 // ensureGroup returns a group accumulator with explicit empty collections.

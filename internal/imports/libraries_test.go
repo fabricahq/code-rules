@@ -291,7 +291,7 @@ func TestCatalogMutationPreservesSnapshot(t *testing.T) {
 func TestImportBranchRefDiagnostic(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())
 	config := libraryConfig(t, f.Repository)
-	config.Sources[0].Ref = "main"
+	config.Sources[0].Ref = gitRef(t, "main")
 	_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
 	requireCode(t, err, "version-not-found")
 	if want := "sources.team.ref: main is a branch; ref accepts a tag or a full commit SHA, not a branch, so every import can be reproduced."; !strings.HasSuffix(err.Error(), want) {
@@ -303,7 +303,7 @@ func TestImportBranchRefDiagnostic(t *testing.T) {
 func TestImportMissingRefDiagnostic(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())
 	config := libraryConfig(t, f.Repository)
-	config.Sources[0].Ref = "missing"
+	config.Sources[0].Ref = gitRef(t, "missing")
 	result, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
 	requireCode(t, err, "version-not-found")
 	if result != nil {

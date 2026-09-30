@@ -160,12 +160,13 @@ func (r *repository) fetchCommits(ctx context.Context, commits []string, missing
 	return nil
 }
 
-// fetchRef fetches ref, the source's parsed ref, and returns its commit. A revision the repository doesn't have
-// fails with code version-not-found.
-func (r *repository) fetchRef(ctx context.Context, source rules.Source, ref rules.GitRef) (string, error) {
-	refspec := ref.SHA
-	if ref.Kind == rules.GitRefTag {
-		refspec = "+" + ref.Name + ":" + ref.Name
+// fetchRef fetches the source's ref, an exact tag or full commit SHA, and returns its commit. A revision the
+// repository doesn't have fails with code version-not-found.
+func (r *repository) fetchRef(ctx context.Context, source rules.Source) (string, error) {
+	ref := source.Ref
+	refspec := ref.Canonical()
+	if ref.Kind() == rules.GitRefTag {
+		refspec = "+" + ref.Canonical() + ":" + ref.Canonical()
 	}
 	ok, err := r.fetch(ctx, []string{refspec}, true)
 	if err != nil {
@@ -175,8 +176,8 @@ func (r *repository) fetchRef(ctx context.Context, source rules.Source, ref rule
 		if err := r.unreachable(ctx); err != nil {
 			return "", err
 		}
-		if ref.Kind == rules.GitRefTag {
-			branch, err := r.hasBranch(ctx, strings.TrimPrefix(ref.Name, "refs/tags/"))
+		if ref.Kind() == rules.GitRefTag {
+			branch, err := r.hasBranch(ctx, strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
 			if err != nil {
 				return "", err
 			}
@@ -186,15 +187,11 @@ func (r *repository) fetchRef(ctx context.Context, source rules.Source, ref rule
 		}
 		return "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no tag or commit %s; check the ref.", source.Name, source.Ref), nil)
 	}
-	resolve := ref.SHA
-	if ref.Kind == rules.GitRefTag {
-		resolve = ref.Name
-	}
-	commit, err := r.commit(ctx, resolve)
+	commit, err := r.commit(ctx, ref.Canonical())
 	if err != nil {
 		return "", err
 	}
-	if ref.Kind == rules.GitRefCommit && commit != ref.SHA {
+	if ref.Kind() == rules.GitRefCommit && commit != ref.Canonical() {
 		return "", fail("git-failed", "Git returned a different or unsupported commit identity.", nil)
 	}
 	return commit, nil

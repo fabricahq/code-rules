@@ -60,7 +60,7 @@ func newPlanner(ctx context.Context, repo *repository, source rules.Source, reco
 // choose plans what the source imports as project sync does, without fetching the commits the plan names that
 // choosing didn't need.
 func (p *planner) choose() (sourcePlan, error) {
-	if p.source.Ref != "" {
+	if !p.source.Ref.IsZero() {
 		return p.planRevision()
 	}
 	return p.planVersions()
@@ -193,7 +193,7 @@ func (p *planner) libraryWideRelease(plan *sourcePlan, recorded *library.Snapsho
 	if plan.release != 0 {
 		return nil
 	}
-	if recorded != nil && recorded.Ref == "" && recorded.Release != 0 && sameGroupSelection(recorded.Selection, p.source.Groups) && slices.Equal(recorded.RuleSelection, p.source.Rules) {
+	if recorded != nil && recorded.Ref.IsZero() && recorded.Release != 0 && sameGroupSelection(recorded.Selection, p.source.Groups) && slices.Equal(recorded.RuleSelection, p.source.Rules) {
 		plan.release, plan.commit = recorded.Release, recorded.Commit
 		return nil
 	}
@@ -212,14 +212,7 @@ func (p *planner) libraryWideRelease(plan *sourcePlan, recorded *library.Snapsho
 func (p *planner) planRevision() (sourcePlan, error) {
 	plan := sourcePlan{rules: map[string]library.ImportedRule{}, individual: []string{}, warnings: []string{}}
 	recorded := p.recorded
-	same := false
-	if recorded != nil {
-		var err error
-		if same, err = p.source.SameRef(recorded.Ref); err != nil {
-			return sourcePlan{}, fmt.Errorf("compare sources.%s.ref with the ref vendor/%s/_source.json records: %w", p.source.Name, p.source.Name, err)
-		}
-	}
-	if same {
+	if recorded != nil && p.source.Ref.Equal(recorded.Ref) {
 		plan.release, plan.commit = recorded.Release, recorded.Commit
 		if err := p.repo.fetchCommits(p.ctx, []string{plan.commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref is missing from the library's repository. Delete vendor/%s and run code-rules project sync to resolve the ref again.", p.source.Name, p.source.Name, p.source.Name)); err != nil {
 			return sourcePlan{}, err
@@ -281,12 +274,8 @@ func (p *planner) planRevision() (sourcePlan, error) {
 // resolveRef returns the commit the source's ref names and its library release number, or 0 when it isn't a
 // library release tag. A missing tag or commit fails with code version-not-found.
 func (p *planner) resolveRef() (int, string, error) {
-	ref, _, err := p.source.GitRef()
-	if err != nil {
-		return 0, "", err
-	}
-	if ref.Kind == rules.GitRefTag {
-		if number, err := rules.ParseReleaseTag(strings.TrimPrefix(ref.Name, "refs/tags/")); err == nil {
+	if ref := p.source.Ref; ref.Kind() == rules.GitRefTag {
+		if number, err := rules.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/")); err == nil {
 			history, err := p.releases()
 			if err != nil {
 				return 0, "", err
@@ -298,7 +287,7 @@ func (p *planner) resolveRef() (int, string, error) {
 			return number, release.commit, nil
 		}
 	}
-	commit, err := p.repo.fetchRef(p.ctx, p.source, ref)
+	commit, err := p.repo.fetchRef(p.ctx, p.source)
 	return 0, commit, err
 }
 

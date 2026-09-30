@@ -22,8 +22,9 @@ type Configuration struct {
 type Source struct {
 	Name       string `json:"name"`
 	Repository string `json:"repository"`
-	// Ref is the authored tag or full commit SHA, or empty when the source follows rule versions. GitRef parses it.
-	Ref string `json:"ref,omitempty"`
+	// Ref is the tag or full commit SHA the source imports, keeping its authored text, or the zero GitRef when the
+	// source follows rule versions.
+	Ref GitRef `json:"ref,omitzero"`
 	// Groups is an empty explicit list when the source selects only individual rules.
 	Groups GroupSelection `json:"groups"`
 	// Rules lists individually selected rule IDs in sorted order; it is empty, never nil, when there are none.
@@ -32,38 +33,6 @@ type Source struct {
 	Pins map[string]Pin `json:"pins"`
 	// Exclude is empty, never nil, when the source has no exceptions.
 	Exclude map[string]Exclusion `json:"exclude"`
-}
-
-// GitRef returns the source's ref, parsed and normalized. It returns false and no error when the source has no
-// ref. Ref is exported, so a Source built without ParseConfiguration can hold any text; text that isn't a tag or
-// full commit SHA fails with a *ValidationError at sources.<name>.ref.
-func (s Source) GitRef() (GitRef, bool, error) {
-	if s.Ref == "" {
-		return GitRef{}, false, nil
-	}
-	ref, err := ParseGitRef(s.Ref, "sources."+s.Name+".ref")
-	if err != nil {
-		return GitRef{}, false, err
-	}
-	return ref, true, nil
-}
-
-// SameRef reports whether ref, such as the ref a snapshot recorded for the source, and the source's ref are the
-// same normalized reference once parsed, so release/5 and refs/tags/release/5 match. An empty ref matches only a
-// source without one. It fails with a *ValidationError when either ref isn't a tag or full commit SHA.
-func (s Source) SameRef(ref string) (bool, error) {
-	own, hasRef, err := s.GitRef()
-	if err != nil {
-		return false, err
-	}
-	if ref == "" || !hasRef {
-		return ref == "" && !hasRef, nil
-	}
-	other, err := ParseGitRef(ref, "ref")
-	if err != nil {
-		return false, err
-	}
-	return other == own, nil
 }
 
 // Pin keeps one rule at an exact published version, with the project's reason.
@@ -152,10 +121,9 @@ func parseSource(name string, input json.RawMessage, repositories map[string]boo
 		if err != nil {
 			return Source{}, err
 		}
-		if _, err := ParseGitRef(text, where+".ref"); err != nil {
+		if result.Ref, err = ParseGitRef(text, where+".ref"); err != nil {
 			return Source{}, err
 		}
-		result.Ref = text
 	}
 	if result.Groups, result.Rules, err = parseSelection(fields, where); err != nil {
 		return Source{}, err

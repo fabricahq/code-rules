@@ -102,7 +102,7 @@ type plannedSource struct {
 // and exclusions the project decided on: the moved rules, except that a rule source pins keeps its version from
 // before the update. A source that uses ref imports what sync would.
 func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
-	if source.Ref != "" {
+	if !source.Ref.IsZero() {
 		return s.before, nil
 	}
 	plan := sourcePlan{rules: maps.Clone(s.moved), individual: []string{}, warnings: []string{}}
@@ -223,7 +223,7 @@ func updateScopes(configuration rules.Configuration, targets []UpdateTarget) (ma
 		if index < 0 {
 			return nil, &rules.ValidationError{Location: where, Problem: "no source named " + target.Source + " in .code-rules/config.yaml"}
 		}
-		if configuration.Sources[index].Ref != "" {
+		if !configuration.Sources[index].Ref.IsZero() {
 			return nil, &rules.ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run code-rules project sync"}
 		}
 		if target.Rule == "" {
@@ -260,8 +260,8 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	if err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
-	preview := SourceUpdate{Name: source.Name, Ref: source.Ref, Rules: []RuleUpdate{}}
-	if source.Ref != "" {
+	preview := SourceUpdate{Name: source.Name, Ref: source.Ref.String(), Rules: []RuleUpdate{}}
+	if !source.Ref.IsZero() {
 		return plannedSource{before: before}, preview, before.warnings, nil
 	}
 	for _, id := range scope {
