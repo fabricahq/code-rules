@@ -156,8 +156,22 @@ func (u Update) Import(ctx context.Context, configuration rules.Configuration, o
 
 // requireTagsUnmoved fails with code invalid-release-tag when a library release tag that the plan's rules or
 // library-wide files come from now names another commit than the plan recorded, so an update never installs
-// versions its preview read from a tag that has moved since. A tag the library deleted passes, as it does for sync.
+// versions its preview read from a tag that has moved since. A tag the library deleted passes, as it does for sync,
+// and a plan that depends on no library release reads no tags.
 func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source, plan sourcePlan) error {
+	recorded := map[int]string{}
+	if plan.release != 0 {
+		recorded[plan.release] = plan.commit
+	}
+	for _, rule := range plan.rules {
+		if rule.Release != 0 {
+			recorded[rule.Release] = rule.Commit
+		}
+	}
+	// A plan of a commit whose rules are all unreleased depends on no tag, so it reads none, as sync doesn't.
+	if len(recorded) == 0 {
+		return nil
+	}
 	advertised, err := r.listReleases(ctx)
 	if err != nil {
 		return err
@@ -166,12 +180,8 @@ func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source
 	for _, release := range advertised {
 		current[release.number] = release.commit
 	}
-	recorded := map[int]string{plan.release: plan.commit}
-	for _, rule := range plan.rules {
-		recorded[rule.Release] = rule.Commit
-	}
 	for _, number := range slices.Sorted(maps.Keys(recorded)) {
-		if commit, listed := current[number]; number != 0 && listed && commit != recorded[number] {
+		if commit, listed := current[number]; listed && commit != recorded[number] {
 			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than when code-rules project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run code-rules project update again.", number, source.Name), nil)
 		}
 	}

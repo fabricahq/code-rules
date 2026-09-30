@@ -220,6 +220,40 @@ func requireRefusedMove(t *testing.T, plan *UpdatePlan, options Options) {
 	}
 }
 
+// TestUpdate_AppliesAnUnreleasedCommitRefWithoutReadingReleaseTags applies an update of a source whose ref names a
+// commit with only unreleased rules after the library gains an invalid release tag, as sync of the source does,
+// since neither depends on a library release.
+func TestUpdate_AppliesAnUnreleasedCommitRefWithoutReadingReleaseTags(t *testing.T) {
+	ctx := context.Background()
+	f, options, git := syncProject(t)
+	commit, err := f.Commit(ctx, f.Worktree(), "Unreleased change", map[string][]byte{"techs/go/errors.md": []byte(strings.Replace(projectRule, "Return errors to the caller.", "Return errors with context.", 1))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "ref": commit})
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if recorded, got := recordedVersions(t, options); recorded.Release != 0 || !reflect.DeepEqual(got, map[string]string{"techs/go/errors": "unreleased"}) {
+		t.Fatalf("recorded release %d, versions %v", recorded.Release, got)
+	}
+	// A lightweight release tag is invalid, and reading the release history would refuse it.
+	if _, err := f.Command(ctx, "tag", "release/2"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanUpdate(ctx, options, git, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := plan.Apply(ctx, nil); err != nil {
+		t.Fatalf("update of a source that depends on no library release: %v", err)
+	}
+	requireCurrent(t, options)
+}
+
 // TestUpdate_RefusesAProjectChangedAfterThePreview writes nothing when configuration changed in between.
 func TestUpdate_RefusesAProjectChangedAfterThePreview(t *testing.T) {
 	for _, file := range []string{configurationFile, "local/techs/go/errors.md", "vendor/team/techs/go/errors.md", "generated/RULES.md"} {
