@@ -189,7 +189,7 @@ func projectChangesReport(action string, result project.FileChanges) commandRepo
 
 func libraryCheckedReport(result library.CheckResult) commandReport {
 	var out strings.Builder
-	fmt.Fprintf(&out, "Library is valid: %d group(s), %d rule(s).\n", result.Groups, result.Rules)
+	fmt.Fprintf(&out, "Library is valid: %d group(s), %d rule(s).\n", result.GroupCount, result.RuleCount)
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}

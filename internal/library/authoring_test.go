@@ -92,7 +92,7 @@ func TestLibraryLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	check, err := Check(ctx, options)
-	if err != nil || check.Groups != 1 || check.Rules != 1 || len(check.Warnings) != 0 {
+	if err != nil || check.GroupCount != 1 || check.RuleCount != 1 || len(check.Warnings) != 0 {
 		t.Fatal(check, err)
 	}
 	after, _ := filetxn.ReadTree(ctx, root, ".")
@@ -156,7 +156,7 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 			result, err := Check(ctx, options)
 			valid := scenario == "empty" || scenario == "unrelated" || scenario == "binary"
 			if valid {
-				if err != nil || result.Groups != 0 || result.Rules != 0 || len(result.Warnings) != 1 {
+				if err != nil || result.GroupCount != 0 || result.RuleCount != 0 || len(result.Warnings) != 1 {
 					t.Fatal(result, err)
 				}
 			} else if err == nil {

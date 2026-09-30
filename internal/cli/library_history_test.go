@@ -84,16 +84,18 @@ func TestLibraryCheck_PreviewsThePendingLibraryRelease(t *testing.T) {
 	out, diagnostic, code = runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check", "--json")
 	var response struct {
 		OK    bool
-		Value struct {
-			PendingRelease json.RawMessage `json:"pendingRelease"`
-		}
+		Value map[string]json.RawMessage
 	}
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" || !response.OK {
 		t.Fatal(err, code, out, diagnostic)
 	}
 	wantJSON := `{"release":2,"rules":[{"id":"practices/testing/a","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Test one past the limit."]},{"id":"practices/testing/retries","change":"new","to":"1.0.0","summaries":["Add a rule about testing retries."]}]}`
-	if compact := compactJSON(t, response.Value.PendingRelease); compact != wantJSON {
+	if compact := compactJSON(t, response.Value["pendingRelease"]); compact != wantJSON {
 		t.Fatalf("pendingRelease %s, want %s", compact, wantJSON)
+	}
+	// Counts are named for what they count, since rules is a list everywhere else.
+	if string(response.Value["groupCount"]) != "1" || string(response.Value["ruleCount"]) != "3" || response.Value["groups"] != nil || response.Value["rules"] != nil {
+		t.Fatalf("value %s", out)
 	}
 }
 
