@@ -30,6 +30,20 @@ func TestMarkdownDestinations_LocatesEachDestinationOnce(t *testing.T) {
 	}
 }
 
+// TestMarkdownDestinations_ListsDestinationsInDocumentOrder orders destinations by position when the tree visits
+// them in another order: a reference link before an inline link, and an image nested in a link.
+func TestMarkdownDestinations_ListsDestinationsInDocumentOrder(t *testing.T) {
+	for _, text := range []string{
+		"[a][r] [b](two.md)\n\n[r]: one.md\n",
+		"[![alt](image.png)](target.md)\n",
+	} {
+		got, err := rules.MarkdownDestinations(text)
+		if err != nil || len(got) != 2 || got[0].Start >= got[1].Start {
+			t.Errorf("%q: got %+v, %v; want two destinations in document order", text, got, err)
+		}
+	}
+}
+
 // TestMarkdownBodyStart skips only a complete frontmatter envelope, after an optional byte order mark.
 func TestMarkdownBodyStart(t *testing.T) {
 	for _, test := range []struct {

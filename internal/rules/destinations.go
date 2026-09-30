@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/yuin/goldmark/v2/ast"
@@ -66,6 +67,8 @@ func MarkdownDestinations(markdown string) ([]MarkdownDestination, error) {
 		}
 		return ast.WalkContinue, nil
 	})
+	// The tree lists a reference link before its later definition, and a link before an image in its text.
+	slices.SortFunc(destinations, func(a, b MarkdownDestination) int { return a.Start - b.Start })
 	return destinations, err
 }
 

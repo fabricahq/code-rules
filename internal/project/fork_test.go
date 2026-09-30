@@ -350,3 +350,18 @@ func location(want string) func(error) bool {
 func message(want string) func(error) bool {
 	return func(err error) bool { return strings.Contains(err.Error(), want) }
 }
+
+// TestForkFiles_RewritesLinksInDocumentOrder rewrites a reference link that precedes an inline link, and an image
+// nested in a link, whose destinations the Markdown tree lists out of document order.
+func TestForkFiles_RewritesLinksInDocumentOrder(t *testing.T) {
+	published := imports.PublishedRule{Release: 1, Commit: "0123456789abcdef0123456789abcdef01234567", Files: map[string][]byte{
+		"techs/go/errors.md": []byte(forkedRule("See [the guide][g] and [![Flow](../../assets/flow.svg)](../../assets/guide.md).\n\n[g]: ../../assets/guide.md")),
+		"assets/guide.md":    []byte("Guide.\n"),
+		"assets/flow.svg":    []byte("<svg/>"),
+	}}
+	files, err := forkFiles("techs/go/errors", published, nil)
+	want := forkedRule("See [the guide][g] and [![Flow](assets/errors/flow.svg)](assets/errors/guide.md).\n\n[g]: assets/errors/guide.md")
+	if err != nil || string(files["techs/go/errors.md"]) != want {
+		t.Fatalf("got %q, %v; want %q", files["techs/go/errors.md"], err, want)
+	}
+}
