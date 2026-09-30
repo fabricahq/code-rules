@@ -89,7 +89,10 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	if err != nil {
 		return FileChanges{}, err
 	}
-	kept := keptGroupMetadata(in.config, before, imported)
+	kept, err := keptGroupMetadata(in.config, before, imported)
+	if err != nil {
+		return FileChanges{}, err
+	}
 	state := before
 	state.config = in.config
 	if len(kept) > 0 {
@@ -137,8 +140,9 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 // otherwise have none: the project has no local metadata for it, no source now imports it, and a stored source
 // record in vendor/ lists the group's metadata, including the record of a source the configuration no longer has.
 // Each copy comes from the first such record: configured sources in configuration order, then removed sources in
-// name order. Invalid records are skipped. It is empty, never nil, when no group needs one.
-func keptGroupMetadata(config rules.Configuration, before projectState, imported map[string]imports.Library) map[string][]byte {
+// name order. Invalid records are skipped. It is empty, never nil, when no group needs one. It fails when the
+// vendored copy it would use differs from its record's checksum, so modified metadata never becomes local guidance.
+func keptGroupMetadata(config rules.Configuration, before projectState, imported map[string]imports.Library) (map[string][]byte, error) {
 	local := treeFiles(before.local)
 	supplied := map[string]bool{}
 	for _, source := range config.Sources {
@@ -159,13 +163,20 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 			continue
 		}
 		for _, record := range records {
-			if _, listed := record.digests[group+"/_group.yaml"]; listed {
-				kept[group] = vendored[record.name+"/"+group+"/_group.yaml"]
-				break
+			recorded, listed := record.digests[group+"/_group.yaml"]
+			if !listed {
+				continue
 			}
+			file := record.name + "/" + group + "/_group.yaml"
+			data, ok := vendored[file]
+			if !ok || digest(data) != recorded {
+				return nil, invalidSnapshot("vendor/"+file, fmt.Sprintf("missing or modified since sync imported it, so it can't become local/%s/_group.yaml, the metadata your local rules in the group need. Restore it: run code-rules project sync with the previous configuration, then change the configuration and sync again; or write local/%s/_group.yaml yourself", group, group))
+			}
+			kept[group] = data
+			break
 		}
 	}
-	return kept
+	return kept, nil
 }
 
 // storedRecord is a valid source record in vendor/, named by its source.
