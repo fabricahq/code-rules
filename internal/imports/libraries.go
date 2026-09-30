@@ -89,7 +89,7 @@ func importLibrary(ctx context.Context, source rules.Source, recorded *library.S
 	}
 	snapshot := library.Snapshot{
 		Repository:    source.Repository,
-		Pins:          maps.Clone(source.Pins),
+		Pins:          pinnedVersions(source.Pins),
 		Exclude:       slices.Sorted(maps.Keys(source.Exclude)),
 		Ref:           source.Ref,
 		Release:       plan.release,

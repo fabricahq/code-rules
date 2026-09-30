@@ -277,7 +277,7 @@ func TestImport_PinnedRuleTheLibraryRetiredKeepsImporting(t *testing.T) {
 	pinned := `"groups":["techs/go"],"pins":{"techs/go/b":{"version":"1.0.0","reason":"Keep."}}`
 	one := rules.RuleVersion{Major: 1}
 	config := h.source(t, pinned)
-	recorded := library.Snapshot{Repository: h.fixture.Repository, Pins: config.Sources[0].Pins, Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
+	recorded := library.Snapshot{Repository: h.fixture.Repository, Pins: pinnedVersions(config.Sources[0].Pins), Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/b": {Version: &one, Release: 1, Commit: h.commits[1]}}}
 	// Selecting practices/testing makes this sync read the history, which knows b is retired.
 	imported, err := h.sync(t, h.source(t, `"groups":["techs/go","practices/testing"],"pins":{"techs/go/b":{"version":"1.0.0","reason":"Keep."}}`), &recorded)

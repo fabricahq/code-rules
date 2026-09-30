@@ -475,8 +475,17 @@ func hasRule(snapshot *library.Snapshot, id string) bool {
 
 // hasPin reports whether the snapshot recorded a pin of rule id to version.
 func hasPin(snapshot *library.Snapshot, id string, version rules.RuleVersion) bool {
-	pin, ok := snapshot.Pins[id]
-	return ok && pin.Version == version
+	pinned, ok := snapshot.Pins[id]
+	return ok && pinned == version
+}
+
+// pinnedVersions returns the version of each pin, the part of a pin a snapshot records; it is empty, never nil.
+func pinnedVersions(pins map[string]rules.Pin) map[string]rules.RuleVersion {
+	versions := make(map[string]rules.RuleVersion, len(pins))
+	for id, pin := range pins {
+		versions[id] = pin.Version
+	}
+	return versions
 }
 
 // sameGroupSelection reports whether two group selections request the same groups.
