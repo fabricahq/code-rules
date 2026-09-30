@@ -653,13 +653,18 @@ func TestParseRemoteListing_ReadsTheDefaultBranchAndReleaseTagsWithinTheRecordLi
 	}
 }
 
-// TestGitHubRepository_RecognizesOnlyGitHubDotCom and shows remotes without credentials.
+// TestGitHubRepository_RecognizesOnlyGitHubDotCom, with or without credentials in the URL, and shows remotes
+// without credentials, queries, or fragments.
 func TestGitHubRepository_RecognizesOnlyGitHubDotCom(t *testing.T) {
 	for _, test := range []struct{ url, github, display string }{
 		{"git@github.com:Acme/Rules.git", "Acme/Rules", "https://github.com/Acme/Rules"},
 		{"https://github.com/acme/rules", "acme/rules", "https://github.com/acme/rules"},
 		{"ssh://git@github.com/acme/rules.git", "acme/rules", "https://github.com/acme/rules"},
-		{"https://x-access-token:secret@github.com/acme/rules.git", "", "https://github.com/acme/rules.git"},
+		{"https://x-access-token:secret@github.com/acme/rules.git", "acme/rules", "https://github.com/acme/rules"},
+		{"https://secret-token@github.com/acme/rules.git?secret=1#secret", "acme/rules", "https://github.com/acme/rules"},
+		{"https://user:secret@host.example/library.git?access_token=secret#secret", "", "https://host.example/library.git"},
+		{"ssh://git:secret@host.example:2222/library.git?secret", "", "ssh://git@host.example:2222/library.git"},
+		{"git@host.example:library.git?secret", "", "git@host.example:library.git"},
 		{"https://gitlab.com/acme/rules.git", "", "https://gitlab.com/acme/rules"},
 		{"git@github-work:acme/rules.git", "", "git@github-work:acme/rules.git"},
 		{"https://github.example.com/acme/rules.git", "", "https://github.example.com/acme/rules.git"},
