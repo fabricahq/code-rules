@@ -328,8 +328,12 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	transcript := strings.ReplaceAll(result.Transcript, "\r\n", "\n")
 	afterQuestions := transcript[strings.LastIndex(transcript, "Drop it, or keep 1.0.0?"):]
 	revised, _, confirmation := strings.Cut(afterQuestions, "Apply the update? [yes/no]:")
-	if !confirmation || !strings.Contains(revised, "Kept at 1.0.0 by a new pin.\n            Reason: Waiting on review.") || !strings.Contains(revised, "Excluded by a new exclusion.\n            Reason: Covered locally.") {
-		t.Fatalf("the preview with the answers didn't come before the confirmation:\n%s", result.Transcript)
+	if !confirmation || !strings.Contains(revised, "Your answers:\n  Keep team:techs/go/errors at 1.0.0.\n    Reason: Waiting on review.\n  Exclude team:techs/go/verify.\n    Reason: Covered locally.\n") || strings.Contains(revised, "  major ") {
+		t.Fatalf("the answers, without the preview again, didn't come before the confirmation:\n%s", result.Transcript)
+	}
+	// The terminal showed the preview once, so the result lists only what the update changed.
+	if strings.Count(transcript, "  pinned    techs/go/backoff") != 1 || !strings.HasPrefix(result.Stdout, "Update complete: ") {
+		t.Fatalf("the preview was shown more than once, or the result repeats it:\n%s", result.Transcript)
 	}
 	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.1", "loaders": "1.1.0", "naming": "1.1.0", "verify": "1.0.0"}; !reflect.DeepEqual(u.versions(t), want) {
 		t.Fatalf("versions %v", u.versions(t))
@@ -342,7 +346,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if team := config.Sources[0]; team.Pins["techs/go/errors"].Reason != "Waiting on review." || team.Exclude["techs/go/verify"].Reason != "Covered locally." || !strings.Contains(result.Stdout, "Kept at 1.0.0 by a new pin.") {
+	if team := config.Sources[0]; team.Pins["techs/go/errors"].Reason != "Waiting on review." || team.Exclude["techs/go/verify"].Reason != "Covered locally." {
 		t.Fatalf("configuration:\n%s\nstdout:\n%s", data, result.Stdout)
 	}
 	// With nothing left to move, a terminal update applies without questions.

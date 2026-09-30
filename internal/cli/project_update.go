@@ -47,23 +47,22 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		yes, _ := cmd.Flags().GetBool("yes")
 		interactive := !yes && f.interactive()
 		if !yes && !interactive {
-			output.report = updateReport(preview, false)
+			output.report = updateReport(preview, false, false)
 			return nil
 		}
-		if interactive && preview.Moves() {
+		// A terminal shows the preview once, before the questions, so the report after them doesn't repeat it.
+		asked := interactive && preview.Moves()
+		if asked {
 			flagged := len(decisions)
 			if decisions, err = askUpdateDecisions(f, preview, decisions); err != nil {
 				return err
 			}
-			// Answers that keep or exclude rules change the preview, so people confirm what they'll get.
+			// Answers that keep or exclude rules change the update, so people confirm what they'll get.
 			if len(decisions) > flagged {
 				if preview, err = plan.Preview(decisions); err != nil {
 					return err
 				}
-				var revised strings.Builder
-				revised.WriteString("\nWith your answers, the update is:\n\n")
-				formatUpdatePreview(&revised, preview.Sources)
-				f.introduction += revised.String()
+				f.introduction += "\n" + answersSummary(preview.Sources)
 			}
 			f.introduction += "\n"
 			answer, err := askChoice(f, "Apply the update?", [2]string{"yes", "no"})
@@ -71,7 +70,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 				return err
 			}
 			if answer != "yes" {
-				output.report = updateReport(preview, true)
+				output.report = updateReport(preview, true, true)
 				return nil
 			}
 		}
@@ -79,7 +78,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		if err != nil {
 			return err
 		}
-		output.report = updateReport(result, false)
+		output.report = updateReport(result, false, asked)
 		return nil
 	}
 	return cmd
@@ -210,13 +209,35 @@ func askChoice(f *authoringFlags, question string, choices [2]string) (string, e
 	return chosen, err
 }
 
-// updateReport shows the preview and, once applied, the files the update changed. A preview explains how to
-// apply it; cancelled says the user declined to.
-func updateReport(result project.UpdateResult, cancelled bool) commandReport {
+// answersSummary lists the rows the user's answers decided: each kept rule with the version a new pin keeps it
+// at, and each excluded new rule, with the reasons.
+func answersSummary(sources []imports.SourceUpdate) string {
 	var out strings.Builder
-	formatUpdatePreview(&out, result.Sources)
+	out.WriteString("Your answers:\n")
+	for _, source := range sources {
+		for _, row := range source.Rules {
+			switch row.Decision {
+			case "keep":
+				fmt.Fprintf(&out, "  Keep %s:%s at %s.\n    Reason: %s\n", source.Name, row.ID, row.From, row.Reason)
+			case "exclude":
+				fmt.Fprintf(&out, "  Exclude %s:%s.\n    Reason: %s\n", source.Name, row.ID, row.Reason)
+			}
+		}
+	}
+	return out.String()
+}
+
+// updateReport shows the preview, unless shown says a terminal already showed it, and, once applied, the files
+// the update changed. A preview explains how to apply it; cancelled says the user declined to.
+func updateReport(result project.UpdateResult, cancelled, shown bool) commandReport {
+	var out strings.Builder
+	if !shown {
+		formatUpdatePreview(&out, result.Sources)
+	}
 	if result.Applied {
-		out.WriteByte('\n')
+		if out.Len() > 0 {
+			out.WriteByte('\n')
+		}
 		out.WriteString(projectChangesReport("update", result.FileChanges).human)
 		return commandReport{value: result, human: out.String()}
 	}
@@ -225,7 +246,7 @@ func updateReport(result project.UpdateResult, cancelled bool) commandReport {
 	}
 	switch {
 	case cancelled:
-		out.WriteString("\nUpdate cancelled. No files were written.\n")
+		out.WriteString("Update cancelled. No files were written.\n")
 	case result.Moves():
 		out.WriteString("\nThis is a preview; no files were written. To apply it, run the command again\nwith --yes, or in a terminal to answer each question and confirm.\n")
 	default:
