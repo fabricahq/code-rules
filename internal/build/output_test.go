@@ -318,6 +318,7 @@ func TestPrepareShowsEachImportedRulesVersion(t *testing.T) {
 		snapshot.Release = 2
 		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: older}
 		source.Ref, source.ParsedRef = "", nil
+		source.Pins = map[string]rules.Pin{"techs/go/errors": {Version: version, Reason: "Waiting on | review."}}
 	})
 	for _, name := range []string{"rules/team/techs/go/errors.md", "groups/techs/go.md"} {
 		if !strings.Contains(files[name], "Rule ID: `team:techs/go/errors`\n\nVersion: 1.3.0\n\n**When to read:**") {
@@ -349,7 +350,7 @@ func TestPrepareShowsEachImportedRulesVersion(t *testing.T) {
 		t.Errorf("notice %q", provenance.GeneratedNotice)
 	}
 	summary := files["libraries/team/README.md"]
-	for _, text := range []string{"**Library release:** release/2", "| `techs/go/errors` | 1.3.0 | release/1 |"} {
+	for _, text := range []string{"**Library release:** release/2", "| `techs/go/errors` | 1.3.0 | release/1 |", "## Pins\n\n`code-rules project update` keeps these rules at their pinned versions.\n\n- `techs/go/errors`: 1.3.0. Reason: Waiting on \\| review.\n"} {
 		if !strings.Contains(summary, text) {
 			t.Errorf("library summary lacks %q:\n%s", text, summary)
 		}
@@ -378,5 +379,8 @@ func TestPrepareShowsNoVersionForUnreleasedRules(t *testing.T) {
 		if !strings.Contains(summary, text) {
 			t.Errorf("library summary lacks %q:\n%s", text, summary)
 		}
+	}
+	if strings.Contains(summary, "## Pins") {
+		t.Errorf("library summary lists pins the source doesn't have:\n%s", summary)
 	}
 }

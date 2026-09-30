@@ -71,8 +71,8 @@ func prepare(resolved resolution, options Options) (Output, error) {
 	return Output{Files: files}, nil
 }
 
-// libraryReadme summarizes the imported library release, each imported rule's version, and generated terms,
-// without interpreting their legal meaning. It says when the source imports unreleased changes.
+// libraryReadme summarizes the imported library release, each imported rule's version, the source's pins, and
+// generated terms, without interpreting their legal meaning. It says when the source imports unreleased changes.
 func libraryReadme(source resolvedSource) string {
 	file := "libraries/" + source.Name + "/README.md"
 	sections := []string{"# " + escapeText(source.Name), "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.", "**Repository:** " + escapeText(source.Repository)}
@@ -86,7 +86,11 @@ func libraryReadme(source resolvedSource) string {
 	if source.Ref != "" && source.Release == 0 {
 		sections = append(sections, "**Imported from unreleased changes.** This source's ref isn't a library release, so the source doesn't follow rule versions: rules with unreleased changes have no version to cite.")
 	}
-	sections = append(sections, "## Rule versions", ruleVersionTable(source.Versions), "## License terms")
+	sections = append(sections, "## Rule versions", ruleVersionTable(source.Versions))
+	if len(source.Pins) > 0 {
+		sections = append(sections, "## Pins", "`code-rules project update` keeps these rules at their pinned versions.", pinList(source.Pins))
+	}
+	sections = append(sections, "## License terms")
 	if source.License == nil {
 		sections = append(sections, "No library license declaration was supplied.")
 	}
@@ -118,6 +122,15 @@ func ruleVersionTable(versions map[string]library.ImportedRule) string {
 		rows = append(rows, fmt.Sprintf("| `%s` | %s | release/%d |", id, rule.Version, rule.Release))
 	}
 	return strings.Join(rows, "\n")
+}
+
+// pinList lists each pinned rule, in ID order, with its pinned version and the reason the configuration gives.
+func pinList(pins map[string]rules.Pin) string {
+	items := []string{}
+	for _, id := range slices.Sorted(maps.Keys(pins)) {
+		items = append(items, fmt.Sprintf("- `%s`: %s. Reason: %s", id, pins[id].Version, escapeText(pins[id].Reason)))
+	}
+	return strings.Join(items, "\n")
 }
 
 // provenanceLicense records original and generated term locations without copying their contents.
