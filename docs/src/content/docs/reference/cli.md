@@ -138,7 +138,7 @@ When you change `groups`, a group is newly selected if the record didn't import 
 
 These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
-When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything.
+When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything. It also warns about an individually selected rule whose group `groups` already selects, since the entry changes nothing.
 
 ### project update
 

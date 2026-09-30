@@ -671,3 +671,16 @@ func TestImport_ReleaseTagListingLimit(t *testing.T) {
 	_, err = repo.loadHistory(context.Background())
 	requireCode(t, err, "limit-exceeded")
 }
+
+// TestImport_WarnsAboutARuleItsGroupAlreadySelects, which the rules entry doesn't change.
+func TestImport_WarnsAboutARuleItsGroupAlreadySelects(t *testing.T) {
+	h := newHistory(t)
+	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"],"rules":["techs/go/a","practices/testing/c"]`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"sources.team.rules names techs/go/a, whose group techs/go sources.team.groups already selects, so the entry changes nothing; delete it."}
+	if !slices.Equal(imported.Warnings, want) {
+		t.Fatalf("warnings %q, want %q", imported.Warnings, want)
+	}
+}

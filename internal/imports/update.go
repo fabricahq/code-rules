@@ -400,6 +400,7 @@ func (p *planner) sharedFilesAfter(before sourcePlan, moved map[string]library.I
 // settle completes a plan whose rules and library-wide files an update chose: individually selected rules to load,
 // warnings for entries naming rules the library retired, and the retired rules the source selects.
 func (p *planner) settle(plan *sourcePlan) error {
+	plan.warnings = append(plan.warnings, redundantRules(p.source, plan.rules)...)
 	for _, id := range p.source.Rules {
 		if _, imported := plan.rules[id]; imported {
 			plan.individual = append(plan.individual, id)

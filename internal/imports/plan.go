@@ -71,8 +71,22 @@ func (p *planner) choose() (sourcePlan, error) {
 	if err != nil {
 		return sourcePlan{}, err
 	}
+	chosen.warnings = append(redundantRules(p.source, chosen.rules), chosen.warnings...)
 	chosen.retired, err = p.retiredRules()
 	return chosen, err
+}
+
+// redundantRules warns about each imported rule the source selects individually although its groups already select
+// the rule's group, since the entry changes nothing. An entry naming a retired rule gets its own warning instead.
+func redundantRules(source rules.Source, imported map[string]library.ImportedRule) []string {
+	warnings := []string{}
+	for _, id := range source.Rules {
+		if _, ok := imported[id]; ok && source.Groups.Includes(ruleGroup(id)) {
+			group := ruleGroup(id)
+			warnings = append(warnings, fmt.Sprintf("sources.%s.rules names %s, whose group %s sources.%s.groups already selects, so the entry changes nothing; delete it.", source.Name, id, group, source.Name))
+		}
+	}
+	return warnings
 }
 
 // retiredRules returns, sorted, the rules the library retired that the source's groups or rules list selects. It

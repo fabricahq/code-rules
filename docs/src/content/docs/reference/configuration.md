@@ -302,7 +302,7 @@ This imports every rule in `techs/react`, including rules added to it later, plu
 
 - Each entry is a library-relative rule ID that must exist in the library.
 - An individually selected rule brings its group's metadata, so its group appears in the generated index with only the selected rules.
-- The imported rules are the union of both lists: every rule in the selected groups, plus every listed rule. Listing a rule whose group is also selected is allowed and changes nothing.
+- The imported rules are the union of both lists: every rule in the selected groups, plus every listed rule. Listing a rule whose group is also selected is allowed and changes nothing; `code-rules project sync` and `code-rules project update` warn about it so you can delete the entry.
 - `exclude` applies to every imported rule, however it was selected.
 - When the library retires an individually selected rule, `code-rules project update` shows the retirement in its preview. After you confirm, the entry no longer does anything, and later syncs and updates warn about it so you can delete it. To keep the rule instead, pin it to its last version.
 
