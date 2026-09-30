@@ -8,6 +8,28 @@ This guide explains how to manage this project's [Fabrica Code Rules](https://co
 - **Group:** Related rules for a technology, such as `techs/go`, or a practice, such as `practices/testing`. Its description and reading cue help agents select relevant rules.
 - **Library:** A versioned collection of groups in a Git repository. Projects import selected groups from libraries and can also define their own local groups and rules.
 
+## Connect your coding agent
+
+Code Rules generates the rules, but your coding agent reads them only when its instructions say to. If `AGENTS.md`, `CLAUDE.md`, or the instruction file your agent reads doesn't already point to `.code-rules/generated/RULES.md`, add this section to it and keep its existing instructions:
+
+```markdown
+## Engineering rules
+
+Before planning, implementing, reviewing, testing, or debugging a change:
+
+1. Read `.code-rules/generated/RULES.md` and follow its instructions to
+   select relevant groups and read their rules in full, including linked
+   files and additional index pages.
+2. Follow the applicable rules and their exceptions while doing the work.
+3. Before finishing, check your work against those rules and run the
+   relevant validation. Briefly report what you verified and any gaps.
+
+If required rule files are unavailable or give conflicting instructions,
+report the issue rather than silently skipping them or choosing a policy.
+```
+
+Commit that file with `.code-rules/`, so everyone who checks out the project gets the same instructions.
+
 ## Instructions for agents
 
 ### Managing rules
