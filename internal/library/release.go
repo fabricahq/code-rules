@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -235,6 +236,18 @@ func planRelease(ctx context.Context, git *libraryGit, checked checkedLibrary, h
 // and record are exactly those of planned, the library release its commit would publish now.
 func (g *libraryGit) requireUnpublishedTag(ctx context.Context, number int, object string, planned plannedRelease) error {
 	name := "release/" + strconv.Itoa(number)
+	// The whole object counts, including a signature the record's parser ignores, because projects read the object.
+	size, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "-s", object}, 4096)
+	if err != nil {
+		return fmt.Errorf("read the size of tag=%q: %w", name, err)
+	}
+	objectSize, err := strconv.Atoi(strings.TrimSpace(string(size)))
+	if err != nil {
+		return failure("git-failed", "Git reported the size of "+name+" in an unexpected format", nil)
+	}
+	if err := requireTagSize(name, objectSize); err != nil {
+		return fmt.Errorf("%w This clone's %s is that large; delete it with git tag --delete %s", err, name, name)
+	}
 	body, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "tag", object}, maxFileBytes+64*1024)
 	if err != nil {
 		return fmt.Errorf("read tag=%q: %w", name, err)
