@@ -96,6 +96,10 @@ func TestLibraryRelease_DryRunShowsTheLibraryReleaseAndChangesNothing(t *testing
 	if _, ok := response.Value["githubRelease"]; ok {
 		t.Error("a dry run reported a GitHub Release page")
 	}
+	out, diagnostic, code = runCLIWithEnvironment(t, binary, dir, environment, "library", "release", "--dry-run", "--no-github-release")
+	if code != 0 || diagnostic != "" || !strings.HasSuffix(out, "\n\nTo publish it, run:\n  code-rules library release --no-github-release\n") {
+		t.Errorf("the dry run's next step drops --no-github-release: exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
+	}
 	if tags, err := fixture.Command(context.Background(), "tag", "--list", "release/*"); err != nil || tags != "release/1" {
 		t.Fatalf("remote release tags %q: %v", tags, err)
 	}

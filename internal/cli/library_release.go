@@ -79,7 +79,11 @@ func libraryReleaseReport(result library.ReleaseResult, noGitHubRelease bool, sc
 		if result.Published {
 			next = "To create anything that's missing, such as the GitHub Release page, run:"
 		}
-		fmt.Fprintf(&out, "\n%s\n  %s\n", next, scope.command("release"))
+		command := scope.command("release")
+		if noGitHubRelease {
+			command += " --no-github-release"
+		}
+		fmt.Fprintf(&out, "\n%s\n  %s\n", next, command)
 	}
 	return commandReport{value: result, human: out.String()}
 }
