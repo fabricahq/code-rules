@@ -1,0 +1,3 @@
+name: TypeScript
+description: Design TypeScript types, functions, modules, naming, and tests.
+whenToRead: When planning, implementing, changing, or reviewing TypeScript code.
