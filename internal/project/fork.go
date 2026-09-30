@@ -297,9 +297,9 @@ func forkFiles(id string, published imports.PublishedRule, attribution *rules.At
 	return result, requireSelfContained(result)
 }
 
-// relocateLinks returns the Markdown text of the file moving from from to to, with each link whose destination
-// moves, or which is relative and no longer reaches its destination from to, rewritten as a relative link.
-// Self-links, external links, and links that still resolve keep their original text.
+// relocateLinks returns the Markdown text of the file moving from from to to, with each local link rewritten as a
+// relative link when its destination moves or the file itself moves. Self-links, external links, and other links
+// keep their original text.
 func relocateLinks(text, from, to string, moved map[string]string) (string, error) {
 	start := rules.MarkdownBodyStart(text)
 	destinations, err := rules.MarkdownDestinations(text[start:])
