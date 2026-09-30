@@ -466,10 +466,16 @@ func TestForkFiles_RefusesRelativeRawHTMLLinks(t *testing.T) {
 				"assets/guide.md":             []byte(test.guide),
 				"assets/flow.svg":             []byte("<svg/>"),
 			}}
-			_, err := forkFiles("techs/go/errors", published, nil)
+			files, err := forkFiles("techs/go/errors", published, nil)
+			if !test.refused {
+				if err != nil || !strings.Contains(string(files["techs/go/errors.md"]), test.rule) {
+					t.Fatalf("the fork lost its external link: %v\n%s", err, files["techs/go/errors.md"])
+				}
+				return
+			}
 			var validation *rules.ValidationError
-			if refused := errors.As(err, &validation) && strings.Contains(validation.Problem, "raw HTML"); refused != test.refused {
-				t.Fatalf("refused %t, want %t: %v", refused, test.refused, err)
+			if !errors.As(err, &validation) || !strings.Contains(validation.Problem, "raw HTML") {
+				t.Fatalf("got %v, want a refusal of the raw HTML link", err)
 			}
 		})
 	}
