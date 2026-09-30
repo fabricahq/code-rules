@@ -224,7 +224,7 @@ If you don't want a GitHub Release page, or the library isn't hosted on GitHub.c
 
 For a library release that changes four rules and a group description, the generated page, titled `release/4`, looks like this:
 
-```md
+```md wrap
 Library release 4 changes 4 rules: 1 major, 1 minor, 1 new, and 1 retired.
 
 ## Major changes

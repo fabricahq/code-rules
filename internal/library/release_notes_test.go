@@ -51,7 +51,7 @@ func TestRenderReleaseNotes_MatchesTheGuideExample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(guide), "```md\n"+guideNotes+"\n```") {
+	if !strings.Contains(string(guide), "```md wrap\n"+guideNotes+"\n```") {
 		t.Fatal("the version rules guide's example GitHub Release page differs from the rendered notes; update both together")
 	}
 }
