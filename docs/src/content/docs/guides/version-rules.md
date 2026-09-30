@@ -327,7 +327,9 @@ jobs:
       - run: code-rules library check
 ```
 
-The install step downloads that version's Linux archive and `SHA256SUMS` from the Code Rules GitHub Release page, verifies that Code Rules' release workflow built `SHA256SUMS`, and installs the archive only when `SHA256SUMS` lists that exact archive with its checksum. A release whose files were replaced, even with another genuine release's, fails the step instead of installing the wrong version.
+The install step downloads that version's Linux archive and `SHA256SUMS` from the Code Rules GitHub Release page, verifies that Code Rules' release workflow built `SHA256SUMS`, and installs the archive only when `SHA256SUMS` lists that exact archive with its checksum. A release whose files were replaced, even with another genuine release's, fails the step instead of installing the wrong version. The step prints the version it installed, such as `Installed Code Rules 0.2.0.`, in the job's log and summary.
+
+The workflow keeps using that version until you change it; rerunning `code-rules library init` never changes an existing workflow. To check with a newer Code Rules, such as one that checks a feature your library started using, [upgrade Code Rules](/start-here/install/#upgrade), delete `.github/workflows/code-rules.yml`, and run `code-rules library init` again, which writes the workflow for the version you run. Review the difference and commit it.
 
 `code-rules library check` needs every tag and the full history to compare rules with the latest library release, so the workflow checks out with `fetch-depth: 0`.
 
