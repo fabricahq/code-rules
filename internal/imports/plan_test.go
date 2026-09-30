@@ -30,7 +30,8 @@ var groupMetadata = []byte(`{"name":"Group","description":"Rules.","whenToRead":
 
 // history is a library whose release history the tests share:
 //
-//   - release/1: techs/go/a and techs/go/b at 1.0.0, with a's own asset; practices/testing/c at 1.0.0.
+//   - release/1: techs/go/a and techs/go/b at 1.0.0, with a's own asset; practices/testing/c at 1.0.0; the empty
+//     group techs/empty.
 //   - release/2: a minor to 1.1.0, new techs/go/d at 1.0.0.
 //   - release/3: b retired, replaced by d; a major to 2.0.0.
 //
@@ -51,6 +52,7 @@ func newHistory(t *testing.T) history {
 		"techs/go/b.md":                 versionedRule("b 1.0.0"),
 		"practices/testing/_group.yaml": groupMetadata,
 		"practices/testing/c.md":        versionedRule("c 1.0.0"),
+		"techs/empty/_group.yaml":       groupMetadata,
 	})
 	h := history{fixture: f, commits: map[int]string{}}
 	h.release(t, 1, nil, "release: 1\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.0.0\n  practices/testing/c: 1.0.0\nchanges:\n  techs/go/a: {change: new, summary: Add the rule.}\n  techs/go/b: {change: new, summary: Add the rule.}\n  practices/testing/c: {change: new, summary: Add the rule.}\n")
@@ -347,8 +349,63 @@ func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	}
 }
 
-// TestImport_WithoutLibraryReleasesFailsUnlessARefNamesARevision reports releases-not-found.
-func TestImport_WithoutLibraryReleasesFailsUnlessARefNamesARevision(t *testing.T) {
+// TestImport_WildcardSelectsEveryGroupInScope imports each rule's newest version from every group, including
+// empty ones.
+func TestImport_WildcardSelectsEveryGroupInScope(t *testing.T) {
+	h := newHistory(t)
+	imported, err := h.sync(t, h.source(t, `"groups":"*"`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]string{"techs/go/a": "2.0.0@3", "techs/go/d": "1.0.0@2", "practices/testing/c": "1.0.0@1"}; !reflect.DeepEqual(versions(imported.Snapshot), want) {
+		t.Fatalf("versions %v, want %v", versions(imported.Snapshot), want)
+	}
+	if want := []string{"practices/testing", "techs/empty", "techs/go"}; !reflect.DeepEqual(imported.Snapshot.Groups, want) {
+		t.Fatalf("groups %v, want %v", imported.Snapshot.Groups, want)
+	}
+}
+
+// TestImport_SourceWithoutRulesGetsTheNewestLibraryRelease takes library-wide files from the newest library
+// release, and a later sync keeps the recorded one.
+func TestImport_SourceWithoutRulesGetsTheNewestLibraryRelease(t *testing.T) {
+	h := newHistory(t)
+	config := h.source(t, `"groups":["techs/empty"]`)
+	imported, err := h.sync(t, config, nil)
+	if err != nil || imported.Snapshot.Release != 3 || imported.Snapshot.Commit != h.commits[3] || len(imported.Snapshot.Rules) != 0 {
+		t.Fatalf("snapshot %+v, %v", imported.Snapshot, err)
+	}
+	h.release(t, 4, nil, "release: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.0\nlibraryFiles:\n  - techs/empty/_group.yaml\n")
+	again, err := h.sync(t, config, &imported.Snapshot)
+	if err != nil || again.Snapshot.Release != 3 {
+		t.Fatalf("snapshot %+v, %v", again.Snapshot, err)
+	}
+}
+
+// TestImport_RefSelectsIndividualRulesAtItsRevision warns about entries naming rules the revision retired,
+// including an exclusion when a changed ref retires its rule.
+func TestImport_RefSelectsIndividualRulesAtItsRevision(t *testing.T) {
+	h := newHistory(t)
+	earlier, err := h.sync(t, h.source(t, `"groups":["practices/testing"],"rules":["techs/go/b"],"exclude":{"techs/go/b":{"reason":"Replaced."}},"ref":"release/2"`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]string{"techs/go/b": "1.0.0@1", "practices/testing/c": "1.0.0@1"}; !reflect.DeepEqual(versions(earlier.Snapshot), want) || len(earlier.Warnings) != 0 {
+		t.Fatalf("versions %v, want %v; warnings %v", versions(earlier.Snapshot), want, earlier.Warnings)
+	}
+	later, err := h.sync(t, h.source(t, `"groups":["practices/testing"],"rules":["techs/go/b"],"exclude":{"techs/go/b":{"reason":"Replaced."}},"ref":"release/3"`), &earlier.Snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]string{"practices/testing/c": "1.0.0@1"}; !reflect.DeepEqual(versions(later.Snapshot), want) {
+		t.Fatalf("versions %v, want %v", versions(later.Snapshot), want)
+	}
+	if len(later.Warnings) != 2 || !strings.HasPrefix(later.Warnings[0], "sources.team.rules names techs/go/b") || !strings.HasPrefix(later.Warnings[1], "sources.team.exclude names techs/go/b") {
+		t.Fatalf("warnings %v", later.Warnings)
+	}
+}
+
+// TestImport_WithoutLibraryReleasesFailsWithoutARef reports releases-not-found before the first library release.
+func TestImport_WithoutLibraryReleasesFailsWithoutARef(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())
 	config := libraryConfig(t, f.Repository)
 	config.Sources[0].Ref, config.Sources[0].ParsedRef = "", nil
