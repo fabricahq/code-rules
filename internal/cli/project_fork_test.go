@@ -38,7 +38,7 @@ func newForkFixture(t *testing.T) forkFixture {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	if err := f.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.0.0\nchanges:\n  practices/testing/verify: {change: new, summary: Add the rule.}\n  techs/go/errors: {change: new, summary: Add the rule.}\n"); err != nil {
+	if err := f.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.0.0\nchanges:\n  practices/testing/verify: {change: new, summaries: [Add the rule.]}\n  techs/go/errors: {change: new, summaries: [Add the rule.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	u := updateFixture{binary: buildCLI(t), directory: t.TempDir(), fixture: f}
@@ -52,7 +52,7 @@ func newForkFixture(t *testing.T) forkFixture {
 	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": updateRule("Wrap errors.")}); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n"); err != nil {
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	return forkFixture{u}
@@ -115,7 +115,8 @@ func TestForkRule_ReportsJSON(t *testing.T) {
 	type response struct {
 		OK    bool
 		Value struct {
-			Files     []string
+			Added     []string
+			Changed   []string
 			NextSteps []nextStep
 		}
 		Error struct{ Kind, Code, Location string }
@@ -131,8 +132,8 @@ func TestForkRule_ReportsJSON(t *testing.T) {
 	}
 	config := string(f.read(t, "config.yaml"))
 	forked := run(0, "practices/testing/verify", "--from", "team@1.0.0")
-	steps := []nextStep{{Instruction: "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text."}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"code-rules project build", "code-rules project check"}}}
-	if !forked.OK || len(forked.Value.Files) != 3 || !reflect.DeepEqual(forked.Value.NextSteps, steps) || string(f.read(t, "config.yaml")) != config {
+	steps := []nextStep{{Instruction: "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text.", Commands: []string{}}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"code-rules project build", "code-rules project check"}}}
+	if !forked.OK || len(forked.Value.Added) != 3 || len(forked.Value.Changed) != 0 || !reflect.DeepEqual(forked.Value.NextSteps, steps) || string(f.read(t, "config.yaml")) != config {
 		t.Fatalf("fork %+v, configuration:\n%s", forked, f.read(t, "config.yaml"))
 	}
 	for _, test := range []struct {

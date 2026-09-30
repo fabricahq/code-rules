@@ -40,7 +40,7 @@ type FileChanges struct {
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
 	// sources importing a ref that isn't a library release. Then, in group order, each local group metadata file
 	// they wrote. Build reports none.
-	Warnings []string `json:"warnings,omitempty"`
+	Warnings []string `json:"warnings"`
 }
 
 // GuideChange reports a managed-guide update separately from generated-relative file paths.
@@ -268,7 +268,7 @@ func treeFiles(tree *filetxn.Tree) map[string][]byte {
 
 // compareFiles produces deterministic byte-level changes without treating timestamp changes as output changes.
 func compareFiles(before, after map[string][]byte) FileChanges {
-	changes := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}}
+	changes := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: []string{}}
 	for _, name := range slices.Sorted(maps.Keys(after)) {
 		data, ok := before[name]
 		if !ok {

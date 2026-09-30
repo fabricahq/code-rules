@@ -18,8 +18,9 @@ import (
 // Binary content remains bytes; required text is checked by the loader.
 type Snapshot struct {
 	Repository string `json:"repository"`
-	// Pins repeats the source's pins when the snapshot was recorded; it is empty, never nil, when there are none.
-	Pins map[string]rules.Pin `json:"pins"`
+	// Pins maps each rule the source pinned when the snapshot was recorded to its pinned version; it is empty, never
+	// nil, when there are none. A pin's reason stays in configuration only, so rewording it changes no record.
+	Pins map[string]rules.RuleVersion `json:"pins"`
 	// Exclude lists, sorted, the rule IDs the source's exclude named when the snapshot was recorded; it is empty,
 	// never nil, when there are none. An ID it lists that Rules lacks named a rule the library had retired.
 	Exclude []string `json:"exclude"`

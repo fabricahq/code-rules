@@ -113,9 +113,7 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 		warnings = append(warnings, fmt.Sprintf("Wrote %s, the metadata of group %s from the library that last supplied it, because your local rules in the group need it and no imported rule supplies it anymore. It's now yours to edit.", file, group))
 	}
 	slices.Sort(changes.Added)
-	if len(warnings) > 0 {
-		changes.Warnings = warnings
-	}
+	changes.Warnings = warnings
 	if in.edited != nil {
 		targets[filetxn.Config] = map[string][]byte{configurationFile: in.edited}
 		changes.Changed = append(changes.Changed, configurationFile)

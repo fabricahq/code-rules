@@ -58,7 +58,7 @@ func forkRule(cmd *cobra.Command, id string, f *authoringFlags, options Options,
 func ruleForkedReport(result project.AuthoringResult, id string, from project.ForkSource, plan *project.ForkPlan) commandReport {
 	var out strings.Builder
 	fmt.Fprintf(&out, "Rule forked from %s %s, published in library release release/%d:\n", from.Library, from.Version, plan.Release())
-	for _, file := range result.Files {
+	for _, file := range result.Written() {
 		fmt.Fprintf(&out, "  %s\n", file)
 	}
 	for _, warning := range result.Warnings {
@@ -69,5 +69,5 @@ func ruleForkedReport(result project.AuthoringResult, id string, from project.Fo
 		instruction += "\nconfig.yaml now excludes " + source + "'s " + id + " and names the fork as its replacement."
 	}
 	steps := []nextStep{{Instruction: instruction}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"code-rules project build", "code-rules project check"}}}
-	return authoredReport(&out, result.Files, result.Warnings, steps)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }

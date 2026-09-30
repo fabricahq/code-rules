@@ -203,7 +203,15 @@ Every breaking change from `v0.1.0`, with its manual migration, for the release 
 - `code-rules project sync` no longer moves rules to newer versions: it restores the versions in `_source.json`, and chooses versions only for new sources, selections, pins, and `ref` changes. Adopt newer versions with the new `code-rules project update`, which previews them and applies them after confirmation, or with `--yes` in scripts and CI.
 - `code-rules project add library`: `--ref` is optional and rejects version ranges; `--rules` is new. Scripts that passed a range should drop `--ref`, or pass `--ref release/<number>`.
 - New commands: `code-rules project update`, `code-rules project add rule ID --from LIBRARY@VERSION`, `code-rules library change`, and `code-rules library release`.
-- JSON output only gains fields for existing commands: `error.code` now appears for Git and import failures (such as `releases-not-found`, `version-not-found`, `shallow-clone`, and `change-notes`), `code-rules library check` adds `value.pendingRelease`, and `code-rules project sync` adds `value.warnings`. Scripts that treated any `code` as a file-transaction error should check its value.
+- JSON output changes for existing commands:
+  - `error.code` now appears for Git and import failures (such as `releases-not-found`, `version-not-found`, `shallow-clone`, and `change-notes`). Scripts that treated any `code` as a file-transaction error should check its value.
+  - `code-rules library check` adds `value.pendingRelease`, whose rules name versions `from`, `to`, and, for a retired rule, `lastVersion`, with `summaries`, as the release record and `code-rules project update` do; `code-rules library release` reports its `value.rules` the same way.
+  - `code-rules project sync` adds `value.warnings`.
+  - `code-rules library check` renames its counts `value.groups` and `value.rules` to `value.groupCount` and `value.ruleCount`, since `rules` is a list everywhere else.
+  - Authoring results drop the legacy `value.next` text; use `value.nextSteps`. Each `code-rules project check` problem replaces its `nextStep` string with `nextSteps`, a list of the same `{instruction, commands}` objects.
+  - Authoring commands (project and library init, add group, add rule including forks, add library, and library change) replace `value.files` with `value.added` and `value.changed`, so created files are told apart from modified ones such as `config.yaml`.
+  - Every list field is always present, empty when there's nothing to report, including `value.warnings` of sync, build, and authoring commands and a next step's `commands`, which were left out when empty.
+  - Enumerated values are kebab-case: `code-rules project check`'s `value.status` is `up-to-date` or `out-of-date`, its problem kinds are `missing-file`, `stale-contents`, `unexpected-file`, and `outdated-readme`, and a stale check's `error.kind` is `out-of-date`.
 
 **This repository**
 

@@ -282,7 +282,7 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		if _, err := fixture.Commit(ctx, fixture.Worktree(), "Change the errors rule", map[string][]byte{"techs/go/errors.md": document}); err != nil {
 			return report, err
 		}
-		secondRelease := "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\n  techs/go/naming: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add updated wording.}\n"
+		secondRelease := "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\n  techs/go/naming: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add updated wording.]}\n"
 		if err := fixture.Release(ctx, 2, secondRelease); err != nil {
 			return report, err
 		}
@@ -416,9 +416,23 @@ func reportsCheckProblems(data []byte) bool {
 		OK    bool
 		Value struct {
 			Status   string
-			Problems []struct{ Kind, Path, NextStep string }
+			Problems []struct {
+				Kind, Path string
+				NextSteps  []struct {
+					Instruction string
+					Commands    []string
+				}
+			}
 		}
 		Error struct{ Kind string }
 	}
-	return json.Unmarshal(data, &result) == nil && !result.OK && result.Error.Kind == "out_of_date" && result.Value.Status == "out_of_date" && len(result.Value.Problems) > 0
+	if json.Unmarshal(data, &result) != nil || result.OK || result.Error.Kind != "out-of-date" || result.Value.Status != "out-of-date" || len(result.Value.Problems) == 0 {
+		return false
+	}
+	for _, problem := range result.Value.Problems {
+		if len(problem.NextSteps) == 0 || len(problem.NextSteps[0].Commands) == 0 {
+			return false
+		}
+	}
+	return true
 }

@@ -127,7 +127,7 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	}
 	snapshot := library.Snapshot{
 		Repository:    source.Repository,
-		Pins:          maps.Clone(source.Pins),
+		Pins:          pinnedVersions(source.Pins),
 		Exclude:       slices.Sorted(maps.Keys(source.Exclude)),
 		Ref:           source.Ref,
 		Release:       plan.release,

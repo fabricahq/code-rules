@@ -26,18 +26,18 @@ const sourceRecordFormat = 2
 // sourceRecord is the format 2 record in vendor/<source>/_source.json: the source's configuration when it was
 // recorded, the revision that supplied its library-wide files, each imported rule's version, and file digests.
 type sourceRecord struct {
-	FormatVersion int                   `json:"formatVersion"`
-	Repository    string                `json:"repository"`
-	Pins          map[string]rules.Pin  `json:"pins,omitempty"`
-	Exclude       []string              `json:"exclude,omitempty"`
-	Ref           string                `json:"ref,omitempty"`
-	Release       int                   `json:"release,omitempty"`
-	Commit        string                `json:"resolvedCommit"`
-	Selection     json.RawMessage       `json:"groupSelection"`
-	RuleSelection []string              `json:"ruleSelection,omitempty"`
-	Groups        []string              `json:"groups"`
-	Rules         map[string]recordRule `json:"rules"`
-	Files         map[string]string     `json:"files"`
+	FormatVersion int                          `json:"formatVersion"`
+	Repository    string                       `json:"repository"`
+	Pins          map[string]rules.RuleVersion `json:"pins,omitempty"`
+	Exclude       []string                     `json:"exclude,omitempty"`
+	Ref           string                       `json:"ref,omitempty"`
+	Release       int                          `json:"release,omitempty"`
+	Commit        string                       `json:"resolvedCommit"`
+	Selection     json.RawMessage              `json:"groupSelection"`
+	RuleSelection []string                     `json:"ruleSelection,omitempty"`
+	Groups        []string                     `json:"groups"`
+	Rules         map[string]recordRule        `json:"rules"`
+	Files         map[string]string            `json:"files"`
 }
 
 // recordRule is one imported rule's version record; Version and Release are null for an unreleased rule.
@@ -217,7 +217,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if decoder.Decode(&record) != nil {
 		return parsedRecord{}, invalidSnapshot(where, "invalid source record field values")
 	}
-	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Pins: map[string]rules.Pin{}, Ref: record.Ref, Release: record.Release, Commit: record.Commit, Exclude: []string{}, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
+	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Pins: map[string]rules.RuleVersion{}, Ref: record.Ref, Release: record.Release, Commit: record.Commit, Exclude: []string{}, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
 	}
@@ -232,14 +232,11 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if !fullCommit(record.Commit) {
 		return parsedRecord{}, invalidSnapshot(where+".resolvedCommit", "expected a full commit SHA")
 	}
-	for id, pin := range record.Pins {
+	for id, version := range record.Pins {
 		if err := rules.ValidateRuleID(id, where+".pins."+id); err != nil {
 			return parsedRecord{}, err
 		}
-		if strings.TrimSpace(pin.Reason) == "" {
-			return parsedRecord{}, invalidSnapshot(where+".pins."+id, "expected a version and a reason")
-		}
-		result.Pins[id] = pin
+		result.Pins[id] = version
 	}
 	var err error
 	if result.Selection, err = rules.ParseGroupSelection(fields["groupSelection"], where+".groupSelection"); err != nil {
@@ -310,7 +307,7 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 		pin := source.Pins[id]
 		rule, imported := record.Rules[id]
 		recordedPin, recorded := record.Pins[id]
-		if imported && (rule.Version == nil || *rule.Version != pin.Version) || !imported && (!recorded || recordedPin.Version != pin.Version) {
+		if imported && (rule.Version == nil || *rule.Version != pin.Version) || !imported && (!recorded || recordedPin != pin.Version) {
 			return invalidSnapshot(where, "sources."+source.Name+".pins."+id+" names a version the snapshot doesn't import; run code-rules project sync")
 		}
 	}

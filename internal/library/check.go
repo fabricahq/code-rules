@@ -20,8 +20,8 @@ import (
 
 // CheckResult reports complete adoption counts, explicit licensing and change note caveats, and the next library release.
 type CheckResult struct {
-	Groups         int            `json:"groups"`
-	Rules          int            `json:"rules"`
+	GroupCount     int            `json:"groupCount"`
+	RuleCount      int            `json:"ruleCount"`
 	Warnings       []string       `json:"warnings"`
 	PendingRelease PendingRelease `json:"pendingRelease"`
 }
@@ -80,10 +80,10 @@ func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit) (checkedL
 	if err != nil {
 		return checkedLibrary{}, err
 	}
-	result := CheckResult{Groups: len(catalog.Groups), Warnings: []string{}}
+	result := CheckResult{GroupCount: len(catalog.Groups), Warnings: []string{}}
 	current := []string{}
 	for _, group := range catalog.Groups {
-		result.Rules += len(group.Rules)
+		result.RuleCount += len(group.Rules)
 		for _, rule := range group.Rules {
 			current = append(current, strings.TrimSuffix(rule.Path, ".md"))
 		}

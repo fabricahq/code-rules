@@ -136,7 +136,7 @@ func projectGroupCommand(options Options, output *commandOutput) *cobra.Command 
 		if err != nil {
 			return err
 		}
-		output.report = groupCreatedReport(result.Files, result.Warnings, args[0], authoringScope{})
+		output.report = groupCreatedReport(result.Added, result.Changed, result.Warnings, args[0], authoringScope{})
 		return nil
 	}
 	return group
@@ -171,7 +171,7 @@ func projectRuleCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{}, args[0], false)
+		output.report = ruleCreatedReport(result.Added, result.Changed, result.Warnings, body == nil, authoringScope{}, args[0], false)
 		return nil
 	}
 	return rule

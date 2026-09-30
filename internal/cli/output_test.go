@@ -62,7 +62,7 @@ func TestHumanCheckAndJSONStale(t *testing.T) {
 		Value projectCheckResult
 		Error struct{ Kind string }
 	}
-	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "out_of_date" || result.Value.Status != "out_of_date" || len(result.Value.Problems) == 0 {
+	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "out-of-date" || result.Value.Status != "out-of-date" || len(result.Value.Problems) == 0 {
 		t.Fatal(code, out, diagnostic)
 	}
 	for _, args := range [][]string{{"project", "build", "--json", "--bad", "--json=false"}, {"--json=false", "--help"}, {"--json", "--json=false", "--help"}, {"project", "build", "--config=--json"}, {"project", "build", "--", "--json"}} {

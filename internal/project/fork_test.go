@@ -58,7 +58,7 @@ func newForkFixture(t *testing.T, repository string) forkFixture {
 	}
 	t.Cleanup(func() { _ = f.Close() })
 	record := "formatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.0.0\n  techs/go/licensed: 1.0.0\nchanges:\n" +
-		"  practices/testing/verify: {change: new, summary: Add the rule.}\n  techs/go/errors: {change: new, summary: Add the rule.}\n  techs/go/licensed: {change: new, summary: Add the rule.}\n"
+		"  practices/testing/verify: {change: new, summaries: [Add the rule.]}\n  techs/go/errors: {change: new, summaries: [Add the rule.]}\n  techs/go/licensed: {change: new, summaries: [Add the rule.]}\n"
 	if err := f.Release(ctx, 1, record); err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func newForkFixture(t *testing.T, repository string) forkFixture {
 	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": []byte(forkedRule("Wrap errors.")), "techs/go/added.md": []byte(forkedRule("Added."))}); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/errors: 1.1.0\n  techs/go/licensed: 1.0.0\nchanges:\n  techs/go/added: {change: new, summary: Add the rule.}\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n"); err != nil {
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/errors: 1.1.0\n  techs/go/licensed: 1.0.0\nchanges:\n  techs/go/added: {change: new, summaries: [Add the rule.]}\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	return forkFixture{fixture: f, options: options, git: git}
@@ -124,8 +124,8 @@ func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
 	}
 	slices.Sort(added)
 	want := []string{"local/techs/go/assets/errors/data.bin", "local/techs/go/assets/errors/diagrams/flow.svg", "local/techs/go/assets/errors/guide.md", "local/techs/go/assets/errors/more.md", "local/techs/go/assets/errors/notes.md", "local/techs/go/errors.md"}
-	if !reflect.DeepEqual(added, want) || len(result.Files) != len(want)+1 {
-		t.Fatalf("added %v, reported %v; want %v and config.yaml", added, result.Files, want)
+	if !reflect.DeepEqual(added, want) || len(result.Added) != len(want) || len(result.Changed) != 1 || filepath.Base(result.Changed[0]) != "config.yaml" {
+		t.Fatalf("added %v, reported %v created and %v changed; want %v created and config.yaml changed", added, result.Added, result.Changed, want)
 	}
 	if got := string(after["local/techs/go/errors.md"]); got != forkedRule("Read [the guide](assets/errors/guide.md), [notes](assets/errors/notes.md), and [data](assets/errors/data.bin#top).") {
 		t.Fatalf("forked rule %q", got)
@@ -440,7 +440,7 @@ func TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds(t *testing.T) {
 	if _, err := library.Commit(ctx, library.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/notes.md": nil, "techs/go/assets/errors/data.bin": nil}); err != nil {
 		t.Fatal(err)
 	}
-	if err := library.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/licensed: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summary: No longer recommended.}\n"); err != nil {
+	if err := library.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/licensed: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summaries: [No longer recommended.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	plan, err := PlanUpdate(ctx, f.options, f.git, nil)

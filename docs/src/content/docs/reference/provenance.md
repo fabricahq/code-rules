@@ -98,10 +98,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
   "formatVersion": 2,
   "repository": "https://github.com/fabricahq/public-rules.git",
   "pins": {
-    "practices/testing/verify-backoff": {
-      "version": "1.3.0",
-      "reason": "Waiting on the author's response to acme/.code-rules#45."
-    }
+    "practices/testing/verify-backoff": "1.3.0"
   },
   "release": 3,
   "resolvedCommit": "9e07b3d6f0c1a4b85e2d7c3f9a61b04e8d52c7aa",
@@ -142,7 +139,7 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 | --- | --- |
 | `formatVersion` | The snapshot format version, `2`. An older format, such as `1`, fails with advice to delete `.code-rules/vendor/` and run `code-rules project sync`, which records the sources again. A newer format, written by a later Code Rules, fails with `unsupported-source-record` and asks you to upgrade Code Rules instead, since syncing would rewrite the project in the older format. Unknown fields are always rejected. |
 | `repository` | The library's repository address. |
-| `pins`, `exclude`, and `ref` | The source's pins, the rule IDs its `exclude` names, and its `ref`, from configuration when the snapshot was recorded. Each is omitted when configuration has none. Sync records an exclusion only after checking that it names an imported rule or one the library retired, so offline checks accept an exclusion of a rule the snapshot doesn't import only when it's recorded here. |
+| `pins`, `exclude`, and `ref` | Each pinned rule's pinned version, the rule IDs its `exclude` names, and its `ref`, from configuration when the snapshot was recorded. Each is omitted when configuration has none. A pin's reason stays in configuration only, so rewording it changes neither the record nor what sync imports; generated guidance and `generated/provenance.json` show the configured reason. Sync records an exclusion only after checking that it names an imported rule or one the library retired, so offline checks accept an exclusion of a rule the snapshot doesn't import only when it's recorded here. |
 | `release` | The newest library release among the imported rule versions, the newest library release when the source imports no rules, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
 | `rules` | Each imported rule's ID, whether imported through a group or individually selected, its `version`, the `release` that published it, and that library release's full `commit`. |

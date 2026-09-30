@@ -5,6 +5,7 @@ package cli
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/library"
@@ -23,13 +24,14 @@ type commandReport struct {
 // nextStep keeps recovery or follow-up commands separate from their explanation for automation.
 type nextStep struct {
 	Instruction string   `json:"instruction"`
-	Commands    []string `json:"commands,omitempty"`
+	Commands    []string `json:"commands"`
 }
 
+// authoringValue is an authoring command's JSON value: the files it created and changed, as absolute paths.
 type authoringValue struct {
-	Files     []string   `json:"files"`
-	Warnings  []string   `json:"warnings,omitempty"`
-	Next      string     `json:"next"`
+	Added     []string   `json:"added"`
+	Changed   []string   `json:"changed"`
+	Warnings  []string   `json:"warnings"`
 	NextSteps []nextStep `json:"nextSteps"`
 }
 
@@ -50,10 +52,14 @@ func (s authoringScope) command(action string) string {
 	return command
 }
 
-// authoredReport renders each step once and uses the same text in the legacy next field.
-func authoredReport(out *strings.Builder, files, warnings []string, steps []nextStep) commandReport {
+// authoredReport renders each next step once, after the report, and returns the steps in its value. Every list
+// in the value is present, empty when there's nothing to report.
+func authoredReport(out *strings.Builder, added, changed, warnings []string, steps []nextStep) commandReport {
 	var next strings.Builder
-	for _, step := range steps {
+	for i, step := range steps {
+		if step.Commands == nil {
+			steps[i].Commands = []string{}
+		}
 		if next.Len() > 0 {
 			next.WriteByte('\n')
 		}
@@ -66,12 +72,20 @@ func authoredReport(out *strings.Builder, files, warnings []string, steps []next
 		out.WriteByte('\n')
 		out.WriteString(next.String())
 	}
-	return commandReport{value: authoringValue{files, warnings, strings.TrimSpace(next.String()), steps}, human: out.String()}
+	return commandReport{value: authoringValue{nonNil(added), nonNil(changed), nonNil(warnings), steps}, human: out.String()}
+}
+
+// nonNil returns list, or an empty list for nil, so JSON output shows [] rather than null.
+func nonNil(list []string) []string {
+	if list == nil {
+		return []string{}
+	}
+	return list
 }
 
 func projectInitializedReport(result project.AuthoringResult) commandReport {
 	var out strings.Builder
-	if len(result.Files) == 0 {
+	if len(result.Written()) == 0 {
 		out.WriteString("Code Rules is already initialized.\nNo files changed.\n")
 	} else {
 		out.WriteString("Code Rules initialized!\n")
@@ -81,42 +95,42 @@ func projectInitializedReport(result project.AuthoringResult) commandReport {
 	}
 	out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.yaml\n")
 	steps := []nextStep{{Instruction: "Run code-rules project --help to manage this project's rules.", Commands: []string{"code-rules project --help"}}}
-	if len(result.Files) > 0 {
+	if len(result.Written()) > 0 {
 		steps = []nextStep{
 			{Instruction: "Start with a project-only rule (example):", Commands: []string{"code-rules project add group practices/testing", "code-rules project add rule practices/testing/my-rule"}},
 			{Instruction: "Or use a shared library (example):", Commands: []string{"code-rules project add library team", "code-rules project sync"}},
 			{Instruction: "Then connect your coding agent to the rules; see .code-rules/README.md."},
 		}
 	}
-	return authoredReport(&out, result.Files, result.Warnings, steps)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }
 
 func sourceAddedReport(result project.AuthoringResult) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, result.Files, result.Warnings)
-	return authoredReport(&out, result.Files, result.Warnings, []nextStep{{Instruction: "Next: Fetch the library rules and build guidance:", Commands: []string{"code-rules project sync"}}})
+	formatAuthored(&out, result.Written(), result.Warnings)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, []nextStep{{Instruction: "Next: Fetch the library rules and build guidance:", Commands: []string{"code-rules project sync"}}})
 }
 
 func libraryInitializedReport(result library.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, result.Files, result.Warnings)
+	formatAuthored(&out, result.Written(), result.Warnings)
 	steps := []nextStep{}
 	if !result.LicenseDeclared {
 		steps = append(steps, nextStep{Instruction: "License is undeclared. Decide terms before sharing."})
 	}
 	steps = append(steps, nextStep{Instruction: "Next: Add a group and rule, then validate the library:", Commands: []string{scope.command("add group practices/testing"), scope.command("add rule practices/testing/my-rule"), scope.command("check")}})
-	return authoredReport(&out, result.Files, result.Warnings, steps)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }
 
 // ruleCreatedReport explains how to finish the rule; changeNote adds recording id's change note in a released library.
-func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScope, id string, changeNote bool) commandReport {
+func ruleCreatedReport(added, changed, warnings []string, draft bool, scope authoringScope, id string, changeNote bool) commandReport {
 	var out strings.Builder
 	if draft {
 		out.WriteString("Rule draft created:\n")
 	} else {
 		out.WriteString("Rule created from --body-file:\n")
 	}
-	for _, file := range files {
+	for _, file := range append(slices.Clone(added), changed...) {
 		fmt.Fprintf(&out, "  %s\n", file)
 	}
 	for _, warning := range warnings {
@@ -139,12 +153,12 @@ func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScop
 			{Instruction: "Then validate the library:", Commands: commands},
 		}
 	}
-	return authoredReport(&out, files, warnings, steps)
+	return authoredReport(&out, added, changed, warnings, steps)
 }
 
-func groupCreatedReport(files, warnings []string, groupPath string, scope authoringScope) commandReport {
+func groupCreatedReport(added, changed, warnings []string, groupPath string, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, files, warnings)
+	formatAuthored(&out, append(slices.Clone(added), changed...), warnings)
 	action := "build"
 	if scope.library {
 		action = "check"
@@ -153,7 +167,7 @@ func groupCreatedReport(files, warnings []string, groupPath string, scope author
 		{Instruction: "Next: Add a rule to this group (replace my-rule with your rule's slug):", Commands: []string{scope.command("add rule " + groupPath + "/my-rule")}},
 		{Instruction: ruleReadyHeading(scope.library), Commands: []string{scope.command(action)}},
 	}
-	return authoredReport(&out, files, warnings, steps)
+	return authoredReport(&out, added, changed, warnings, steps)
 }
 
 func projectChangesReport(action string, result project.FileChanges) commandReport {
@@ -189,7 +203,7 @@ func projectChangesReport(action string, result project.FileChanges) commandRepo
 
 func libraryCheckedReport(result library.CheckResult) commandReport {
 	var out strings.Builder
-	fmt.Fprintf(&out, "Library is valid: %d group(s), %d rule(s).\n", result.Groups, result.Rules)
+	fmt.Fprintf(&out, "Library is valid: %d group(s), %d rule(s).\n", result.GroupCount, result.RuleCount)
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
@@ -204,26 +218,26 @@ func libraryCheckedReport(result library.CheckResult) commandReport {
 // pendingVersions shows a pending rule's current and next version, or the only one it has.
 func pendingVersions(rule library.PendingRule) string {
 	switch {
-	case rule.CurrentVersion == nil:
-		return rule.NextVersion.String()
-	case rule.NextVersion == nil && rule.ReplacedBy != "":
-		return rule.CurrentVersion.String() + ", replaced by " + rule.ReplacedBy
-	case rule.NextVersion == nil:
-		return rule.CurrentVersion.String()
+	case rule.LastVersion != nil && rule.ReplacedBy != "":
+		return rule.LastVersion.String() + ", replaced by " + rule.ReplacedBy
+	case rule.LastVersion != nil:
+		return rule.LastVersion.String()
+	case rule.From == nil:
+		return rule.To.String()
 	}
-	return rule.CurrentVersion.String() + " -> " + rule.NextVersion.String()
+	return rule.From.String() + " -> " + rule.To.String()
 }
 
 func projectCheckedReport(result projectCheckResult) commandReport {
 	var out strings.Builder
 	report := commandReport{value: result}
-	if result.Status == "up_to_date" {
+	if result.Status == "up-to-date" {
 		out.WriteString("Status: up to date.\nGenerated guidance and the Code Rules guide are current.\nNo files were changed.\n")
 	} else {
-		report.failure = &responseError{Kind: "out_of_date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
+		report.failure = &responseError{Kind: "out-of-date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
 		out.WriteString("Status: out of date.\nNo files were changed.\nPaths are relative to the Code Rules directory: .code-rules\n\nProblems:\n")
 		for _, problem := range result.Problems {
-			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, problem.NextStep)
+			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, strings.Join(problem.NextSteps[0].Commands, "; "))
 		}
 	}
 	report.human = out.String()

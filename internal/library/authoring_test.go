@@ -59,7 +59,7 @@ func TestLibraryLifecycle(t *testing.T) {
 	notice := "Notice\r\n"
 	terms := &Terms{SPDXExpression: "MIT", License: "Original terms\r\n", Notice: &notice}
 	result, err := Initialize(ctx, options, terms, "1.2.3")
-	if err != nil || len(result.Files) != 5 {
+	if err != nil || len(result.Written()) != 5 {
 		t.Fatal(result, err)
 	}
 	data, _ := os.ReadFile(filepath.Join(options.Directory, "LICENSE.md"))
@@ -67,7 +67,7 @@ func TestLibraryLifecycle(t *testing.T) {
 		t.Fatal("changed terms")
 	}
 	result, err = Initialize(ctx, options, nil, "1.2.3")
-	if err != nil || len(result.Files) != 0 {
+	if err != nil || len(result.Written()) != 0 {
 		t.Fatal(result, err)
 	}
 	if _, err = Initialize(ctx, options, terms, "1.2.3"); err == nil {
@@ -92,7 +92,7 @@ func TestLibraryLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	check, err := Check(ctx, options)
-	if err != nil || check.Groups != 1 || check.Rules != 1 || len(check.Warnings) != 0 {
+	if err != nil || check.GroupCount != 1 || check.RuleCount != 1 || len(check.Warnings) != 0 {
 		t.Fatal(check, err)
 	}
 	after, _ := filetxn.ReadTree(ctx, root, ".")
@@ -156,7 +156,7 @@ func TestLibraryCheckUnusedContent(t *testing.T) {
 			result, err := Check(ctx, options)
 			valid := scenario == "empty" || scenario == "unrelated" || scenario == "binary"
 			if valid {
-				if err != nil || result.Groups != 0 || result.Rules != 0 || len(result.Warnings) != 1 {
+				if err != nil || result.GroupCount != 0 || result.RuleCount != 0 || len(result.Warnings) != 1 {
 					t.Fatal(result, err)
 				}
 			} else if err == nil {
@@ -301,7 +301,7 @@ func TestLibraryRulePreservesGroup(t *testing.T) {
 	body := "Return errors.\n"
 	metadata := rules.RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
 	result, err := AddRule(ctx, "techs/go/errors", metadata, RuleOptions{Options: options, Body: &body})
-	if err != nil || len(result.Files) != 1 {
+	if err != nil || len(result.Written()) != 1 {
 		t.Fatal(result, err)
 	}
 	after, err := os.ReadFile(path)

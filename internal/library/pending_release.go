@@ -6,7 +6,6 @@ import (
 	"maps"
 	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -19,16 +18,21 @@ type PendingRelease struct {
 	Rules []PendingRule `json:"rules"`
 }
 
-// PendingRule is one rule's change in the next library release.
+// PendingRule is one rule's change in the next library release, named as the release record and the rows of
+// code-rules project update name them.
 type PendingRule struct {
 	ID     string       `json:"id"`
 	Change rules.Change `json:"change"`
-	// CurrentVersion is nil for a new rule.
-	CurrentVersion *rules.RuleVersion `json:"currentVersion,omitempty"`
-	// NextVersion is nil for a retired rule.
-	NextVersion *rules.RuleVersion `json:"nextVersion,omitempty"`
+	// From is the version the rule had before this library release; it is nil for a new or retired rule.
+	From *rules.RuleVersion `json:"from,omitempty"`
+	// To is the version this library release publishes; it is nil for a retired rule.
+	To *rules.RuleVersion `json:"to,omitempty"`
+	// LastVersion is a retired rule's final version, and nil for every other rule.
+	LastVersion *rules.RuleVersion `json:"lastVersion,omitempty"`
 	// ReplacedBy names a retired rule's replacement, when it has one.
 	ReplacedBy string `json:"replacedBy,omitempty"`
+	// Summaries holds one summary per change note that named the rule, in note order; it is never empty.
+	Summaries []string `json:"summaries"`
 }
 
 // pendingNote is a change note added since the latest library release.
@@ -58,7 +62,7 @@ type releasePlan struct {
 	release int
 	// versions holds every current rule's version after the library release.
 	versions map[string]rules.RuleVersion
-	// changes holds each new or changed rule. A summary joins its notes' summaries, one line per note;
+	// changes holds each new or changed rule, with one summary per note that named it, in note order;
 	// the first library release, which has no notes, gives every rule firstReleaseSummary.
 	changes map[string]rules.RecordedChange
 	retired map[string]rules.RetiredRule
@@ -167,7 +171,7 @@ func (c libraryChanges) plan() (releasePlan, error) {
 	if latest == nil {
 		for _, id := range c.current {
 			plan.versions[id] = rules.FirstRuleVersion
-			plan.changes[id] = rules.RecordedChange{Change: rules.ChangeNew, Summary: firstReleaseSummary}
+			plan.changes[id] = rules.RecordedChange{Change: rules.ChangeNew, Summaries: []string{firstReleaseSummary}}
 		}
 		return plan, nil
 	}
@@ -193,12 +197,12 @@ func (c libraryChanges) plan() (releasePlan, error) {
 		}
 	}
 	for id, retired := range plan.retired {
-		retired.Summary = strings.Join(summaries[id], "\n")
+		retired.Summaries = summaries[id]
 		plan.retired[id] = retired
 		delete(changes, id)
 	}
 	for _, id := range slices.Sorted(maps.Keys(changes)) {
-		recorded := rules.RecordedChange{Change: changes[id], Summary: strings.Join(summaries[id], "\n")}
+		recorded := rules.RecordedChange{Change: changes[id], Summaries: summaries[id]}
 		next := rules.FirstRuleVersion
 		if recorded.Change != rules.ChangeNew {
 			from := latest.record.Rules[id]

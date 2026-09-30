@@ -17,7 +17,7 @@ import (
 )
 
 // releaseOne publishes rules a and b at 1.0.0, as the first library release must.
-const releaseOne = "Library release 1.\n---\nformatVersion: 1\nrelease: 1\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: new\n    summary: Add a.\n  practices/testing/b:\n    change: new\n    summary: Add b.\n"
+const releaseOne = "Library release 1.\n---\nformatVersion: 1\nrelease: 1\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: new\n    summaries:\n      - Add a.\n  practices/testing/b:\n    change: new\n    summaries:\n      - Add b.\n"
 
 // libraryRule returns a complete rule document with one line of guidance.
 func libraryRule(guidance string) string {
@@ -84,16 +84,18 @@ func TestLibraryCheck_PreviewsThePendingLibraryRelease(t *testing.T) {
 	out, diagnostic, code = runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check", "--json")
 	var response struct {
 		OK    bool
-		Value struct {
-			PendingRelease json.RawMessage `json:"pendingRelease"`
-		}
+		Value map[string]json.RawMessage
 	}
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" || !response.OK {
 		t.Fatal(err, code, out, diagnostic)
 	}
-	wantJSON := `{"release":2,"rules":[{"id":"practices/testing/a","change":"minor","currentVersion":"1.0.0","nextVersion":"1.1.0"},{"id":"practices/testing/retries","change":"new","nextVersion":"1.0.0"}]}`
-	if compact := compactJSON(t, response.Value.PendingRelease); compact != wantJSON {
+	wantJSON := `{"release":2,"rules":[{"id":"practices/testing/a","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Test one past the limit."]},{"id":"practices/testing/retries","change":"new","to":"1.0.0","summaries":["Add a rule about testing retries."]}]}`
+	if compact := compactJSON(t, response.Value["pendingRelease"]); compact != wantJSON {
 		t.Fatalf("pendingRelease %s, want %s", compact, wantJSON)
+	}
+	// Counts are named for what they count, since rules is a list everywhere else.
+	if string(response.Value["groupCount"]) != "1" || string(response.Value["ruleCount"]) != "3" || response.Value["groups"] != nil || response.Value["rules"] != nil {
+		t.Fatalf("value %s", out)
 	}
 }
 
@@ -193,7 +195,7 @@ func TestLibraryChange_RecordsNotesThatCheckAccepts(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" || !response.OK {
 		t.Fatal(err, code, out, diagnostic)
 	}
-	if len(response.Value.Files) != 1 || response.Value.Files[0] == note || !generated.MatchString(filepath.Base(response.Value.Files[0])) || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "code-rules library check" {
+	if len(response.Value.Added) != 1 || len(response.Value.Changed) != 0 || response.Value.Added[0] == note || !generated.MatchString(filepath.Base(response.Value.Added[0])) || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "code-rules library check" {
 		t.Fatalf("%+v", response.Value)
 	}
 }

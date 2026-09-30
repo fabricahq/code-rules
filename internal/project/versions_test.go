@@ -3,6 +3,7 @@
 package project
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -27,7 +28,7 @@ func secondRelease(t *testing.T, f *gitfixture.Fixture) {
 	if _, err := f.Commit(ctx, f.Worktree(), "Second release", files); err != nil {
 		t.Fatal(err)
 	}
-	record := "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\n  techs/go/extra: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n  techs/go/extra: {change: new, summary: Add the rule.}\n"
+	record := "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\n  techs/go/extra: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n  techs/go/extra: {change: new, summaries: [Add the rule.]}\n"
 	if err := f.Release(ctx, 2, record); err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +143,7 @@ func TestSync_ExplicitSelectionImportsAGroupTheWildcardSnapshotLacked(t *testing
 			if _, err := f.Commit(ctx, f.Worktree(), "Second release", files); err != nil {
 				t.Fatal(err)
 			}
-			if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\n  practices/testing/verify: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n  practices/testing/verify: {change: new, summary: Add the rule.}\n"); err != nil {
+			if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\n  practices/testing/verify: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n  practices/testing/verify: {change: new, summaries: [Add the rule.]}\n"); err != nil {
 				t.Fatal(err)
 			}
 			configure(t, options, f, map[string]any{"groups": test.groups})
@@ -212,6 +213,32 @@ func TestSync_RefusesModifiedVendoredGroupMetadata(t *testing.T) {
 	if err != nil || after.Digest() != before.Digest() {
 		t.Fatal("a refused sync changed the project", err)
 	}
+}
+
+// TestSync_KeepsTheSourceRecordWhenOnlyAPinsReasonChanges records pins by version only, so rewording a pin's
+// reason leaves _source.json byte for byte unchanged, and the project still checks offline.
+func TestSync_KeepsTheSourceRecordWhenOnlyAPinsReasonChanges(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	pin := func(reason string) map[string]any {
+		return map[string]any{"groups": []string{"techs/go"}, "pins": map[string]any{"techs/go/errors": map[string]string{"version": "1.0.0", "reason": reason}}}
+	}
+	configure(t, options, f, pin("Waiting on #45."))
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	before := projectTree(t, options).Files["vendor/team/_source.json"]
+	if strings.Contains(string(before), "Waiting on #45.") || !strings.Contains(string(before), `"techs/go/errors": "1.0.0"`) {
+		t.Fatalf("the record doesn't hold the pin's version alone:\n%s", before)
+	}
+	configure(t, options, f, pin("Waiting on #46."))
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if after := projectTree(t, options).Files["vendor/team/_source.json"]; !bytes.Equal(after, before) {
+		t.Fatalf("rewording a pin changed _source.json:\n%s\nwas:\n%s", after, before)
+	}
+	requireCurrent(t, options)
 }
 
 // TestSync_RefToAnUnreleasedCommitWarnsAndStillChecks reports the source and its unreleased rules.
@@ -332,13 +359,13 @@ func TestSync_StoresOlderRulesAtTheirLibraryPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	if err := f.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n  techs/go/naming: {change: new, summary: Add the rule.}\n"); err != nil {
+	if err := f.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summaries: [Add the rule.]}\n  techs/go/naming: {change: new, summaries: [Add the rule.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/naming.md": []byte(projectRule + "\nMore.\n")}); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.1.0\nchanges:\n  techs/go/naming: {change: minor, from: 1.0.0, summary: Add more.}\n"); err != nil {
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\n  techs/go/naming: 1.1.0\nchanges:\n  techs/go/naming: {change: minor, from: 1.0.0, summaries: [Add more.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	_, options, _ := syncProject(t)

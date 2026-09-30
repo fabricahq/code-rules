@@ -2,7 +2,7 @@
   {
     "id": "documented-example",
     "tag": "release/4",
-    "message": "## Library release 4\n\nOne major change.\n\n---\n\nMore notes after a rule.\n---\nformatVersion: 1\nrelease: 4\nrules:\n  practices/testing/verify-backoff: 1.3.0\n  practices/testing/verify-retries: 1.0.0\n  practices/testing/verify-retry-limits: 2.0.0\n  techs/react/test-hooks-in-isolation: 2.2.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summary: Require a test at the limit for every retry policy.\n  practices/testing/verify-retries:\n    change: new\n    summary: Add a broader rule about testing retries.\n  techs/react/test-hooks-in-isolation:\n    change: minor\n    from: 2.1.0\n    summary: Add an example for custom hooks.\nretired:\n  practices/testing/check-retry-backoff:\n    lastVersion: 1.2.0\n    replacedBy: practices/testing/verify-retries\n    summary: Covered by the broader rule about testing retries.\nlibraryFiles:\n  - practices/testing/_group.yaml\n",
+    "message": "## Library release 4\n\nOne major change.\n\n---\n\nMore notes after a rule.\n---\nformatVersion: 1\nrelease: 4\nrules:\n  practices/testing/verify-backoff: 1.3.0\n  practices/testing/verify-retries: 1.0.0\n  practices/testing/verify-retry-limits: 2.0.0\n  techs/react/test-hooks-in-isolation: 2.2.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries:\n      - Require a test at the limit for every retry policy.\n  practices/testing/verify-retries:\n    change: new\n    summaries:\n      - Add a broader rule about testing retries.\n  techs/react/test-hooks-in-isolation:\n    change: minor\n    from: 2.1.0\n    summaries:\n      - Add an example for custom hooks.\nretired:\n  practices/testing/check-retry-backoff:\n    lastVersion: 1.2.0\n    replacedBy: practices/testing/verify-retries\n    summaries:\n      - Covered by the broader rule about testing retries.\nlibraryFiles:\n  - practices/testing/_group.yaml\n",
     "expected": {
       "ok": true,
       "notes": "## Library release 4\n\nOne major change.\n\n---\n\nMore notes after a rule.",
@@ -18,23 +18,31 @@
           "practices/testing/verify-retry-limits": {
             "change": "major",
             "from": "1.3.0",
-            "summary": "Require a test at the limit for every retry policy."
+            "summaries": [
+              "Require a test at the limit for every retry policy."
+            ]
           },
           "practices/testing/verify-retries": {
             "change": "new",
-            "summary": "Add a broader rule about testing retries."
+            "summaries": [
+              "Add a broader rule about testing retries."
+            ]
           },
           "techs/react/test-hooks-in-isolation": {
             "change": "minor",
             "from": "2.1.0",
-            "summary": "Add an example for custom hooks."
+            "summaries": [
+              "Add an example for custom hooks."
+            ]
           }
         },
         "retired": {
           "practices/testing/check-retry-backoff": {
             "lastVersion": "1.2.0",
             "replacedBy": "practices/testing/verify-retries",
-            "summary": "Covered by the broader rule about testing retries."
+            "summaries": [
+              "Covered by the broader rule about testing retries."
+            ]
           }
         },
         "libraryFiles": [
@@ -46,7 +54,7 @@
   {
     "id": "first-release-minimal",
     "tag": "release/1",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: new\n    summary: Add the rule.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: new\n    summaries:\n      - Add the rule.\n",
     "expected": {
       "ok": true,
       "notes": "Notes.",
@@ -58,7 +66,9 @@
         "changes": {
           "practices/testing/verify-retry-limits": {
             "change": "new",
-            "summary": "Add the rule."
+            "summaries": [
+              "Add the rule."
+            ]
           }
         },
         "retired": {},
@@ -154,7 +164,7 @@
   {
     "id": "unknown-fields-are-ignored",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\n  practices/testing/verify-retries: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summary: Require a test at the limit.\n    severity: high\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summary: Covered elsewhere.\n    removedIn: [2]\nversion: 4\nsignedBy:\n  name: A future field\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\n  practices/testing/verify-retries: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries:\n      - Require a test at the limit.\n    severity: high\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summaries:\n      - Covered elsewhere.\n    removedIn: [2]\nversion: 4\nsignedBy:\n  name: A future field\n",
     "expected": {
       "ok": true,
       "notes": "Notes.",
@@ -168,13 +178,17 @@
           "practices/testing/verify-retry-limits": {
             "change": "major",
             "from": "1.3.0",
-            "summary": "Require a test at the limit."
+            "summaries": [
+              "Require a test at the limit."
+            ]
           }
         },
         "retired": {
           "practices/testing/old": {
             "lastVersion": "1.0.0",
-            "summary": "Covered elsewhere."
+            "summaries": [
+              "Covered elsewhere."
+            ]
           }
         },
         "libraryFiles": []
@@ -220,7 +234,7 @@
   {
     "id": "change-for-unknown-rule",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/other:\n    change: new\n    summary: Add.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/other:\n    change: new\n    summaries:\n      - Add.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -232,7 +246,7 @@
   {
     "id": "new-rule-not-first-version",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: new\n    summary: Add.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: new\n    summaries:\n      - Add.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -244,7 +258,7 @@
   {
     "id": "new-rule-with-from",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: new\n    from: 0.9.0\n    summary: Add.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: new\n    from: 0.9.0\n    summaries:\n      - Add.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -256,7 +270,7 @@
   {
     "id": "version-change-without-from",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    summary: Stricter.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    summaries:\n      - Stricter.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -268,7 +282,7 @@
   {
     "id": "inconsistent-major",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 2.0.0\n    summary: Stricter.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 2.0.0\n    summaries:\n      - Stricter.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -280,7 +294,7 @@
   {
     "id": "inconsistent-minor",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: minor\n    from: 1.3.0\n    summary: More.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: minor\n    from: 1.3.0\n    summaries:\n      - More.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -292,7 +306,7 @@
   {
     "id": "retired-change-in-changes",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: retired\n    summary: Gone.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: retired\n    summaries:\n      - Gone.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -302,21 +316,21 @@
     }
   },
   {
-    "id": "change-without-summary",
+    "id": "change-without-summaries",
     "tag": "release/2",
     "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.0.0\n",
     "expected": {
       "ok": false,
       "error": {
-        "location": "release/2.changes.practices/testing/verify-retry-limits.summary",
-        "message": "release/2.changes.practices/testing/verify-retry-limits.summary: expected nonempty text"
+        "location": "release/2.changes.practices/testing/verify-retry-limits.summaries",
+        "message": "release/2.changes.practices/testing/verify-retry-limits.summaries: expected a list with one summary per change note"
       }
     }
   },
   {
     "id": "retired-still-current",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nretired:\n  practices/testing/verify-retry-limits:\n    lastVersion: 2.0.0\n    summary: Gone.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nretired:\n  practices/testing/verify-retry-limits:\n    lastVersion: 2.0.0\n    summaries:\n      - Gone.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -328,7 +342,7 @@
   {
     "id": "retired-replacement-not-current",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    replacedBy: practices/testing/missing\n    summary: Gone.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    replacedBy: practices/testing/missing\n    summaries:\n      - Gone.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -340,7 +354,7 @@
   {
     "id": "retired-without-last-version",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nretired:\n  practices/testing/old:\n    summary: Gone.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nretired:\n  practices/testing/old:\n    summaries:\n      - Gone.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -376,7 +390,7 @@
   {
     "id": "first-release-rule-without-change",
     "tag": "release/1",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\n  practices/testing/verify-retries: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: new\n    summary: Add the rule.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\n  practices/testing/verify-retries: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: new\n    summaries:\n      - Add the rule.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -400,7 +414,7 @@
   {
     "id": "first-release-version-change",
     "tag": "release/1",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.0.0\n    summary: Stricter.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 1\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.0.0\n    summaries:\n      - Stricter.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -412,7 +426,7 @@
   {
     "id": "first-release-retires",
     "tag": "release/1",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 1\nrules: {}\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summary: Gone.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 1\nrules: {}\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summaries:\n      - Gone.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -424,7 +438,7 @@
   {
     "id": "version-change-past-the-largest-number",
     "tag": "release/2",
-    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: patch\n    from: 1.0.999999999\n    summary: Fix.\n",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 1.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: patch\n    from: 1.0.999999999\n    summaries:\n      - Fix.\n",
     "expected": {
       "ok": false,
       "error": {
@@ -575,6 +589,66 @@
       "error": {
         "location": "release/2.formatVersion",
         "message": "release/2.formatVersion: expected the release record format, a whole number such as 1"
+      }
+    }
+  },
+  {
+    "id": "empty-summaries",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries: []\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/2.changes.practices/testing/verify-retry-limits.summaries",
+        "message": "release/2.changes.practices/testing/verify-retry-limits.summaries: expected a list with one summary per change note"
+      }
+    }
+  },
+  {
+    "id": "summaries-not-a-list",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries: Require a test.\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/2.changes.practices/testing/verify-retry-limits.summaries",
+        "message": "release/2.changes.practices/testing/verify-retry-limits.summaries: expected a list with one summary per change note"
+      }
+    }
+  },
+  {
+    "id": "blank-summary-item",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries: [Require a test., ' ']\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/2.changes.practices/testing/verify-retry-limits.summaries[1]",
+        "message": "release/2.changes.practices/testing/verify-retry-limits.summaries[1]: expected nonempty text"
+      }
+    }
+  },
+  {
+    "id": "multi-line-summary-item",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries: [\"Require a test.\\nAnd another.\"]\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/2.changes.practices/testing/verify-retry-limits.summaries[0]",
+        "message": "release/2.changes.practices/testing/verify-retry-limits.summaries[0]: expected one line"
+      }
+    }
+  },
+  {
+    "id": "control-character-in-summary-item",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries: [\"Require\\ta test.\"]\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/2.changes.practices/testing/verify-retry-limits.summaries[0]",
+        "message": "release/2.changes.practices/testing/verify-retry-limits.summaries[0]: expected text without control characters, such as tabs or escape sequences"
       }
     }
   }

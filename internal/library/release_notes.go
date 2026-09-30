@@ -28,11 +28,11 @@ func releaseRules(record rules.ReleaseRecord) []PendingRule {
 	list := []PendingRule{}
 	for id, change := range record.Changes {
 		next := record.Rules[id]
-		list = append(list, PendingRule{ID: id, Change: change.Change, CurrentVersion: change.From, NextVersion: &next})
+		list = append(list, PendingRule{ID: id, Change: change.Change, From: change.From, To: &next, Summaries: slices.Clone(change.Summaries)})
 	}
 	for id, retired := range record.Retired {
 		last := retired.LastVersion
-		list = append(list, PendingRule{ID: id, Change: rules.ChangeRetired, CurrentVersion: &last, ReplacedBy: retired.ReplacedBy})
+		list = append(list, PendingRule{ID: id, Change: rules.ChangeRetired, LastVersion: &last, ReplacedBy: retired.ReplacedBy, Summaries: slices.Clone(retired.Summaries)})
 	}
 	slices.SortFunc(list, func(a, b PendingRule) int { return strings.Compare(a.ID, b.ID) })
 	return list
@@ -60,7 +60,7 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 			if change.From != nil {
 				item += "`" + change.From.String() + "` → "
 			}
-			items = append(items, item+"`"+record.Rules[id].String()+"`"+summaryLines(change.Summary))
+			items = append(items, item+"`"+record.Rules[id].String()+"`"+summaryLines(change.Summaries))
 		}
 		if len(items) == 0 {
 			continue
@@ -76,7 +76,7 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 		var items []string
 		for _, id := range slices.Sorted(maps.Keys(record.Retired)) {
 			retired := record.Retired[id]
-			item := "- **" + id + "**, last version `" + retired.LastVersion.String() + "`" + summaryLines(retired.Summary)
+			item := "- **" + id + "**, last version `" + retired.LastVersion.String() + "`" + summaryLines(retired.Summaries)
 			if retired.ReplacedBy != "" {
 				item += "\n  Replaced by **" + retired.ReplacedBy + "**."
 			}
@@ -133,11 +133,11 @@ func series(items []string) string {
 	return strings.Join(items[:len(items)-1], ", ") + ", and " + items[len(items)-1]
 }
 
-// summaryLines indents each line of a summary as a continuation of its list item.
-func summaryLines(summary string) string {
+// summaryLines writes each summary on a line of its own, indented as a continuation of its list item.
+func summaryLines(summaries []string) string {
 	var out strings.Builder
-	for line := range strings.SplitSeq(summary, "\n") {
-		out.WriteString("\n  " + line)
+	for _, summary := range summaries {
+		out.WriteString("\n  " + summary)
 	}
 	return out.String()
 }
@@ -191,6 +191,13 @@ func encodeReleaseRecord(record rules.ReleaseRecord) ([]byte, error) {
 	number := func(value int) *yaml.Node {
 		return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!int", Value: strconv.Itoa(value)}
 	}
+	list := func(values []string) *yaml.Node {
+		sequence := &yaml.Node{Kind: yaml.SequenceNode}
+		for _, value := range values {
+			sequence.Content = append(sequence.Content, text(value))
+		}
+		return sequence
+	}
 	document := mapping(text("formatVersion"), number(rules.ReleaseRecordFormat), text("release"), number(record.Release), text("rules"), versions)
 	if len(record.Changes) > 0 {
 		changes := mapping()
@@ -200,7 +207,7 @@ func encodeReleaseRecord(record rules.ReleaseRecord) ([]byte, error) {
 			if change.From != nil {
 				entry.Content = append(entry.Content, text("from"), text(change.From.String()))
 			}
-			entry.Content = append(entry.Content, text("summary"), text(change.Summary))
+			entry.Content = append(entry.Content, text("summaries"), list(change.Summaries))
 			changes.Content = append(changes.Content, text(id), entry)
 		}
 		document.Content = append(document.Content, text("changes"), changes)
@@ -213,18 +220,14 @@ func encodeReleaseRecord(record rules.ReleaseRecord) ([]byte, error) {
 			if rule.ReplacedBy != "" {
 				entry.Content = append(entry.Content, text("replacedBy"), text(rule.ReplacedBy))
 			}
-			entry.Content = append(entry.Content, text("summary"), text(rule.Summary))
+			entry.Content = append(entry.Content, text("summaries"), list(rule.Summaries))
 			retired.Content = append(retired.Content, text(id), entry)
 		}
 		document.Content = append(document.Content, text("retired"), retired)
 	}
 	if len(record.LibraryFiles) > 0 {
-		files := &yaml.Node{Kind: yaml.SequenceNode}
-		for _, name := range record.LibraryFiles {
-			files.Content = append(files.Content, text(name))
-		}
-		document.Content = append(document.Content, text("libraryFiles"), files)
+		document.Content = append(document.Content, text("libraryFiles"), list(record.LibraryFiles))
 	}
-	// A width of -1 keeps each summary line whole.
+	// A width of -1 keeps each summary whole.
 	return yaml.Dump(document, yaml.WithV3Defaults(), yaml.WithIndent(2), yaml.WithLineWidth(-1))
 }

@@ -29,6 +29,15 @@ func snapshotConfig(t *testing.T, fields string) rules.Configuration {
 	return config
 }
 
+// pinVersions returns each configured pin's version, as a snapshot records it.
+func pinVersions(pins map[string]rules.Pin) map[string]rules.RuleVersion {
+	versions := map[string]rules.RuleVersion{}
+	for id, pin := range pins {
+		versions[id] = pin.Version
+	}
+	return versions
+}
+
 // snapshotFixture supplies a source that follows rule versions: errors at 1.1.0 from library release 2, which
 // supplies the library-wide files, and naming at 1.0.0 from library release 1.
 // Files include original binary and CRLF bytes.
@@ -36,7 +45,7 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
 	config := snapshotConfig(t, `"groups":["techs/go"]`)
 	one, two := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 1, Minor: 1}
-	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Pins: map[string]rules.Pin{}, Exclude: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
+	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Pins: map[string]rules.RuleVersion{}, Exclude: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne}},
 		Files: map[string][]byte{
 			"rule-library.yaml":    []byte(`{"formatVersion":1}`),
@@ -157,7 +166,7 @@ func TestSnapshotPinsThatMoveNothingNeedNoSync(t *testing.T) {
 	config, snapshots := snapshotFixture(t)
 	pinned := snapshotConfig(t, `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Waiting on #45."}}`)
 	item := snapshots["team"]
-	item.Pins = pinned.Sources[0].Pins
+	item.Pins = pinVersions(pinned.Sources[0].Pins)
 	snapshots["team"] = item
 	vendor, err := encodeSnapshots(pinned, snapshots)
 	if err != nil {
@@ -181,7 +190,7 @@ func TestSnapshotRetiredEntriesRecordedAtSyncNeedNoSync(t *testing.T) {
 	config := snapshotConfig(t, `"groups":["techs/go"],"rules":["practices/testing/retired"],"pins":{"techs/go/gone":{"version":"1.0.0","reason":"Keep."}}`)
 	_, snapshots := snapshotFixture(t)
 	item := snapshots["team"]
-	item.Pins, item.RuleSelection = config.Sources[0].Pins, config.Sources[0].Rules
+	item.Pins, item.RuleSelection = pinVersions(config.Sources[0].Pins), config.Sources[0].Rules
 	snapshots["team"] = item
 	vendor, err := encodeSnapshots(config, snapshots)
 	if err != nil {
@@ -300,9 +309,11 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 		{"traversal", func(r map[string]any) { r["files"].(map[string]any)["../outside"] = strings.Repeat("a", 64) }},
 		{"missing manifest", func(r map[string]any) { delete(r["files"].(map[string]any), "rule-library.yaml") }},
 		{"missing metadata", func(r map[string]any) { delete(r["files"].(map[string]any), "techs/go/_group.yaml") }},
-		{"pin without reason", func(r map[string]any) {
-			r["pins"] = map[string]any{"techs/go/errors": map[string]any{"version": "1.1.0", "reason": " "}}
+		{"pin with a reason", func(r map[string]any) {
+			r["pins"] = map[string]any{"techs/go/errors": map[string]any{"version": "1.1.0", "reason": "Keep."}}
 		}},
+		{"pin with an invalid version", func(r map[string]any) { r["pins"] = map[string]any{"techs/go/errors": "1.1"} }},
+		{"pin of an invalid rule ID", func(r map[string]any) { r["pins"] = map[string]any{"Go": "1.1.0"} }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -389,7 +400,7 @@ func TestSnapshotRefChecks(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			config := snapshotConfig(t, `"groups":["techs/go"],"ref":"`+test.ref+`"`)
 			files := map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(`{}`)}
-			item := snapshot{Repository: config.Sources[0].Repository, Pins: map[string]rules.Pin{}, Ref: test.ref, Release: test.release, Commit: test.commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{}, Rules: test.rules, Files: files}
+			item := snapshot{Repository: config.Sources[0].Repository, Pins: map[string]rules.RuleVersion{}, Ref: test.ref, Release: test.release, Commit: test.commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{}, Rules: test.rules, Files: files}
 			_, err := encodeSnapshots(config, map[string]snapshot{"team": item})
 			if (err == nil) != test.ok {
 				t.Fatalf("got %v, want ok %v", err, test.ok)
