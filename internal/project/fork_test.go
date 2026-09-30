@@ -1,0 +1,352 @@
+// Fork published rule versions from a real library into local/, and check what the fork writes and refuses.
+
+package project
+
+import (
+	"context"
+	"errors"
+	"maps"
+	"path/filepath"
+	"reflect"
+	"slices"
+	"strings"
+	"testing"
+
+	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/imports"
+	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+)
+
+// forkedRule is a rule document whose body is text.
+func forkedRule(text string) string {
+	return "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Preserve failures.\nwhenToRead: When calling functions.\n---\n" + text + "\n"
+}
+
+// forkFixture is a project synced from a library whose release/1 publishes techs/go/errors, which links to shared
+// assets directly and through its own asset, techs/go/licensed, which links to the library's license, and
+// practices/testing/verify, which the project doesn't import. Its release/2 moves errors to 1.1.0.
+type forkFixture struct {
+	fixture *gitfixture.Fixture
+	options Options
+	git     imports.Options
+}
+
+// newForkFixture publishes both library releases after syncing the project at release/1. The project's source is
+// team, selecting techs/go from repository, or from the fixture's own address when repository is empty. The
+// fixture's transport serves every SSH address.
+func newForkFixture(t *testing.T, repository string) forkFixture {
+	t.Helper()
+	ctx := context.Background()
+	f, err := gitfixture.New(ctx, map[string][]byte{
+		"rule-library.yaml":               []byte(`{"formatVersion":1,"license":{"file":"LICENSE","notices":[]}}`),
+		"LICENSE":                         []byte("Terms\n"),
+		"techs/go/_group.yaml":            []byte("# Go metadata.\n" + projectMetadata + "\n"),
+		"techs/go/errors.md":              []byte(forkedRule("Read [the guide](../../assets/guide.md), [notes](assets/errors/notes.md), and [data](assets/errors/data.bin#top).")),
+		"techs/go/assets/errors/notes.md": []byte("![Flow](../../../../assets/diagrams/flow.svg) [Data](data.bin)\n"),
+		"techs/go/assets/errors/data.bin": {0, 255},
+		"techs/go/licensed.md":            []byte(forkedRule("See [the terms](../../LICENSE).")),
+		"practices/testing/_group.yaml":   []byte(`{"name":"Testing","description":"Tests.","whenToRead":"When testing."}`),
+		"practices/testing/verify.md":     []byte(forkedRule("Verify.")),
+		"assets/guide.md":                 []byte("[More](more.md)\n"),
+		"assets/more.md":                  []byte("More.\n"),
+		"assets/diagrams/flow.svg":        []byte("<svg/>"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	record := "release: 1\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.0.0\n  techs/go/licensed: 1.0.0\nchanges:\n" +
+		"  practices/testing/verify: {change: new, summary: Add the rule.}\n  techs/go/errors: {change: new, summary: Add the rule.}\n  techs/go/licensed: {change: new, summary: Add the rule.}\n"
+	if err := f.Release(ctx, 1, record); err != nil {
+		t.Fatal(err)
+	}
+	if repository == "" {
+		repository = f.Repository
+	}
+	root := openTestProject(t)
+	options := Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}
+	if _, err := Initialize(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, configurationFile, "# Team rules.\nschemaVersion: 1\nsources:\n  team:\n    repository: "+repository+"\n    groups:\n      - techs/go\n")
+	git := imports.Options{GitPath: f.GitPath, Environment: f.Environment}
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": []byte(forkedRule("Wrap errors."))}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 2, "release: 2\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/errors: 1.1.0\n  techs/go/licensed: 1.0.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: Add wrapping.}\n"); err != nil {
+		t.Fatal(err)
+	}
+	return forkFixture{fixture: f, options: options, git: git}
+}
+
+// fork plans and commits a fork of id from library@version with reason.
+func (f forkFixture) fork(t *testing.T, id, from, reason string) (AuthoringResult, error) {
+	t.Helper()
+	source, err := ParseForkSource(from)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanFork(context.Background(), id, source, f.options, f.git)
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	return plan.Commit(context.Background(), reason)
+}
+
+// files returns every file of the project's Code Rules directory.
+func (f forkFixture) files(t *testing.T) map[string][]byte {
+	t.Helper()
+	return projectTree(t, f.options).Files
+}
+
+// TestFork_ReplacesAnImportedRuleWithAnOlderVersion forks 1.0.0 after release/2 published 1.1.0: the fork holds
+// the older text, its assets, and the shared assets it links to with rewritten links, and the exclusion that makes
+// it replace the imported rule when the project builds.
+func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
+	f := newForkFixture(t, "")
+	before := f.files(t)
+	result, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Our services need the original wording.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := f.files(t)
+	added := []string{}
+	for file := range after {
+		if _, existed := before[file]; !existed {
+			added = append(added, file)
+		}
+	}
+	slices.Sort(added)
+	want := []string{"local/techs/go/README.md", "local/techs/go/_group.yaml", "local/techs/go/assets/errors/data.bin", "local/techs/go/assets/errors/diagrams/flow.svg", "local/techs/go/assets/errors/guide.md", "local/techs/go/assets/errors/more.md", "local/techs/go/assets/errors/notes.md", "local/techs/go/errors.md"}
+	if !reflect.DeepEqual(added, want) || len(result.Files) != len(want)+1 {
+		t.Fatalf("added %v, reported %v; want %v and config.yaml", added, result.Files, want)
+	}
+	if got := string(after["local/techs/go/errors.md"]); got != forkedRule("Read [the guide](assets/errors/guide.md), [notes](assets/errors/notes.md), and [data](assets/errors/data.bin#top).") {
+		t.Fatalf("forked rule %q", got)
+	}
+	if got := string(after["local/techs/go/assets/errors/notes.md"]); got != "![Flow](diagrams/flow.svg) [Data](data.bin)\n" {
+		t.Fatalf("forked asset %q", got)
+	}
+	if got := string(after["local/techs/go/assets/errors/guide.md"]); got != "[More](more.md)\n" {
+		t.Fatalf("copied shared asset %q", got)
+	}
+	if got := string(after["local/techs/go/_group.yaml"]); got != "# Go metadata.\n"+projectMetadata+"\n" {
+		t.Fatalf("group metadata %q", got)
+	}
+	config := string(after["config.yaml"])
+	if !strings.HasPrefix(config, "# Team rules.\n") || !strings.Contains(config, "    exclude:\n      techs/go/errors:\n        reason: Our services need the original wording.\n        replacedBy: local/techs/go/errors.md\n") {
+		t.Fatalf("configuration %q", config)
+	}
+	if _, err := Build(context.Background(), f.options); err != nil {
+		t.Fatal(err)
+	}
+	generated := f.files(t)
+	if _, ok := generated["generated/rules/local/techs/go/errors.md"]; !ok {
+		t.Fatal("the build has no fork")
+	}
+	if _, ok := generated["generated/rules/team/techs/go/errors.md"]; ok {
+		t.Fatal("the build still has the imported rule")
+	}
+}
+
+// TestFork_OfARuleTheProjectDoesNotImportWritesNoExclusion forks a rule of a group the source doesn't select, and
+// a rule through a repository address that no source uses: neither changes the configuration.
+func TestFork_OfARuleTheProjectDoesNotImportWritesNoExclusion(t *testing.T) {
+	f := newForkFixture(t, "")
+	for _, test := range []struct{ id, from string }{
+		{"practices/testing/verify", "team@1.0.0"},
+		{"techs/go/errors", "ssh://git@fixture.invalid/rules@1.1.0"},
+	} {
+		before := f.files(t)
+		source, err := ParseForkSource(test.from)
+		if err != nil {
+			t.Fatal(err)
+		}
+		plan, err := PlanFork(context.Background(), test.id, source, f.options, f.git)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if plan.Replaces() != "" {
+			t.Fatalf("%s: the fork replaces source %s", test.id, plan.Replaces())
+		}
+		if _, err := plan.Commit(context.Background(), "No reason is recorded."); err == nil {
+			t.Fatalf("%s: a reason with nothing to replace was accepted", test.id)
+		}
+		if _, err := plan.Commit(context.Background(), ""); err != nil {
+			t.Fatal(err)
+		}
+		after := f.files(t)
+		if string(after["config.yaml"]) != string(before["config.yaml"]) {
+			t.Fatalf("%s: configuration changed to %q", test.id, after["config.yaml"])
+		}
+	}
+	files := f.files(t)
+	if string(files["local/techs/go/errors.md"]) != forkedRule("Wrap errors.") || !strings.Contains(string(files["local/practices/testing/_group.yaml"]), "Testing") {
+		t.Fatalf("forked files %v", slices.Sorted(maps.Keys(files)))
+	}
+	if _, err := Build(context.Background(), f.options); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestFork_OfAnImportedRuleByRepositoryAddressExcludesIt matches an address to the source that uses it.
+func TestFork_OfAnImportedRuleByRepositoryAddressExcludesIt(t *testing.T) {
+	f := newForkFixture(t, "")
+	source, err := ParseForkSource(f.fixture.Repository + "@1.1.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanFork(context.Background(), "techs/go/errors", source, f.options, f.git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Replaces() != "team" || plan.Release() != 2 {
+		t.Fatalf("replaces %q from release %d", plan.Replaces(), plan.Release())
+	}
+	if _, err := plan.Commit(context.Background(), " "); err == nil {
+		t.Fatal("a blank reason was accepted")
+	}
+	if _, err := plan.Commit(context.Background(), "Ours."); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(f.files(t)["config.yaml"]), "replacedBy: local/techs/go/errors.md") {
+		t.Fatal("no exclusion")
+	}
+}
+
+// TestFork_AttributesGitHubRulesAtTheReleaseCommit links the fork to the rule's file at the commit of the library
+// release that published the version.
+func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
+	f := newForkFixture(t, "git@github.com:acme/rules.git")
+	commit, err := f.fixture.Command(context.Background(), "rev-parse", "release/1^{commit}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
+		t.Fatal(err)
+	}
+	rule, err := rules.Parse(string(f.files(t)["local/techs/go/errors.md"]), "techs/go/errors.md", "local")
+	want := []rules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release release/1 at commit " + commit + "."}}
+	if err != nil || !reflect.DeepEqual(rule.Attribution, want) {
+		t.Fatalf("attribution %+v, %v; want %+v", rule.Attribution, err, want)
+	}
+}
+
+// TestForkAttribution_DependsOnTheHost links GitHub.com and GitLab.com rules at the commit, cites other hosts'
+// HTTPS addresses, and gives other addresses no entry.
+func TestForkAttribution_DependsOnTheHost(t *testing.T) {
+	published := imports.PublishedRule{Release: 4, Commit: "0123456789abcdef0123456789abcdef01234567"}
+	version, _ := rules.ParseRuleVersion("1.3.0", "version")
+	for _, test := range []struct{ repository, url string }{
+		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/techs/go/errors.md"},
+		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/techs/go/errors.md"},
+		{"https://git.example.org/srv/rules.git", "https://git.example.org/srv/rules.git"},
+		{"git@git.example.org:srv/rules.git", ""},
+	} {
+		got, err := forkAttribution(test.repository, "techs/go/errors", version, published)
+		if err != nil || (got == nil) != (test.url == "") || got != nil && (got.URL != test.url || got.Description != "Forked from version 1.3.0 of techs/go/errors, published in library release release/4 at commit "+published.Commit+".") {
+			t.Errorf("%s: got %+v, %v; want %q", test.repository, got, err, test.url)
+		}
+	}
+}
+
+// TestFork_RefusesWithoutWriting refuses unknown versions, existing local rules and exclusions, a missing reason,
+// links a fork can't copy, and a configuration changed after planning, leaving the project unchanged.
+func TestFork_RefusesWithoutWriting(t *testing.T) {
+	f := newForkFixture(t, "")
+	root, err := openProject(context.Background(), f.options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	writeFixture(t, root, "local/techs/go/existing.md", forkedRule("Ours."))
+	before := f.files(t)
+	unreachable := f.git
+	unreachable.GitPath = "/nonexistent/git"
+	for _, test := range []struct {
+		name, id, from, reason string
+		git                    imports.Options
+		edit                   string
+		check                  func(error) bool
+	}{
+		{"unknown version", "techs/go/errors", "team@1.2.0", "Ours.", f.git, "", code("version-not-found")},
+		{"existing local rule, before reading the library", "techs/go/existing", "team@1.0.0", "Ours.", unreachable, "", code("already-exists")},
+		{"unknown source", "techs/go/errors", "other@1.0.0", "Ours.", f.git, "", location("--from")},
+		{"license link", "techs/go/licensed", "team@1.0.0", "Ours.", f.git, "", message("links to LICENSE")},
+		{"missing reason", "techs/go/errors", "team@1.0.0", "", f.git, "", location("--reason")},
+		{"configuration changed after planning", "techs/go/errors", "team@1.0.0", "Ours.", f.git, "# Edited.\n", code("concurrent-change")},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			source, err := ParseForkSource(test.from)
+			if err != nil {
+				t.Fatal(err)
+			}
+			plan, err := PlanFork(context.Background(), test.id, source, f.options, test.git)
+			if err == nil {
+				if test.edit != "" {
+					writeFixture(t, root, configurationFile, test.edit+string(before["config.yaml"]))
+					defer writeFixture(t, root, configurationFile, string(before["config.yaml"]))
+				}
+				_, err = plan.Commit(context.Background(), test.reason)
+			}
+			if err == nil || !test.check(err) {
+				t.Fatalf("got %v", err)
+			}
+			after := f.files(t)
+			delete(after, "config.yaml")
+			wanted := maps.Clone(before)
+			delete(wanted, "config.yaml")
+			if !reflect.DeepEqual(slices.Sorted(maps.Keys(after)), slices.Sorted(maps.Keys(wanted))) {
+				t.Fatalf("files changed: %v", slices.Sorted(maps.Keys(after)))
+			}
+		})
+	}
+}
+
+// TestFork_NeverReplacesAnExistingExclusion refuses before reading the library when the source already excludes
+// the rule.
+func TestFork_NeverReplacesAnExistingExclusion(t *testing.T) {
+	f := newForkFixture(t, "")
+	root, err := openProject(context.Background(), f.options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	config := string(f.files(t)["config.yaml"]) + "    exclude:\n      techs/go/errors:\n        reason: Not for us.\n"
+	writeFixture(t, root, configurationFile, config)
+	source, _ := ParseForkSource("team@1.0.0")
+	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
+	var invalid *rules.ValidationError
+	if !errors.As(err, &invalid) || invalid.Location != "sources.team.exclude.techs/go/errors" {
+		t.Fatalf("got %v", err)
+	}
+	if got := string(f.files(t)["config.yaml"]); got != config {
+		t.Fatalf("configuration changed to %q", got)
+	}
+}
+
+// code matches a failure with a stable code.
+func code(want string) func(error) bool {
+	return func(err error) bool {
+		var domain *filetxn.Error
+		var git *imports.Error
+		return errors.As(err, &domain) && domain.Code == want || errors.As(err, &git) && git.Code == want
+	}
+}
+
+// location matches a validation error at a location.
+func location(want string) func(error) bool {
+	return func(err error) bool {
+		var invalid *rules.ValidationError
+		return errors.As(err, &invalid) && invalid.Location == want
+	}
+}
+
+// message matches an error whose text contains want.
+func message(want string) func(error) bool {
+	return func(err error) bool { return strings.Contains(err.Error(), want) }
+}
