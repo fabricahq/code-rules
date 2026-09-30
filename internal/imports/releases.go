@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -216,7 +217,8 @@ func (r *repository) fetchedReleases(ctx context.Context, advertised []libraryRe
 	return sizes, nil
 }
 
-// readRecords reads and parses each release tag's record into releases, reading messages in bounded batches.
+// readRecords reads and parses each release tag's record into releases, reading messages in bounded batches. It
+// stops between records when ctx ends, since parsing thousands of large records takes long.
 func (r *repository) readRecords(ctx context.Context, releases []libraryRelease, sizes map[string]int) error {
 	for start := 0; start < len(releases); {
 		end, total := start, 0
@@ -235,6 +237,9 @@ func (r *repository) readRecords(ctx context.Context, releases []libraryRelease,
 		}
 		remaining := result.Output
 		for i := start; i < end; i++ {
+			if err := ctx.Err(); err != nil {
+				return gitexec.ContextFailure(err)
+			}
 			release := &releases[i]
 			name := "release/" + strconv.Itoa(release.number)
 			header, rest, ok := bytes.Cut(remaining, []byte{'\n'})

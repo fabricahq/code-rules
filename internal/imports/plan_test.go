@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -603,6 +604,31 @@ func TestImport_FailsWhenARecordedLibraryReleaseMoved(t *testing.T) {
 	}
 	_, err = h.sync(t, h.source(t, `"groups":["techs/go","practices/testing"]`), &first.Snapshot)
 	requireCode(t, err, "invalid-release-tag")
+}
+
+// TestImport_RefusesAHostileReleaseRecordWithinTheDeadline refuses a small release tag whose record lists 100,000
+// library-wide files, reporting the limit instead of spending longer than the import's deadline on it.
+func TestImport_RefusesAHostileReleaseRecordWithinTheDeadline(t *testing.T) {
+	h := newHistory(t)
+	var message strings.Builder
+	message.WriteString("Library release 4.\n\n---\nrelease: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.0\nlibraryFiles:\n")
+	for i := range 100_000 {
+		fmt.Fprintf(&message, "  - assets/f%d.md\n", i)
+	}
+	// The message is too long for a command-line argument.
+	file := filepath.Join(t.TempDir(), "message")
+	if err := os.WriteFile(file, []byte(message.String()), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.fixture.Command(context.Background(), "tag", "--annotate", "--cleanup=verbatim", "--file="+file, "release/4"); err != nil {
+		t.Fatal(err)
+	}
+	config := h.source(t, `"groups":["techs/go"]`)
+	_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment, Timeout: 10 * time.Second})
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Code != "invalid-release-tag" || !strings.Contains(failure.Problem, "libraryFiles: expected at most 20,000 entries") {
+		t.Fatalf("got %v", err)
+	}
 }
 
 // TestImport_ReleaseTagListingLimit refuses more release tags than the documented listing limit.

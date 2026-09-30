@@ -43,6 +43,31 @@ type RetiredRule struct {
 // releaseSeparator divides a release tag's Markdown notes from its YAML record.
 const releaseSeparator = "---"
 
+// Limits on a release record's collections bound the work of reading a record from a library nobody vetted. A
+// library holds at most 10,000 files, so a library release can't list more rules, changes, or retirements, and its
+// libraryFiles can name at most every file of the previous library release and of the new one.
+const (
+	maxRecordedRules = 10_000
+	maxLibraryFiles  = 20_000
+)
+
+// requireAtMost fails when a collection at location holds more than limit entries.
+func requireAtMost(count, limit int, location string) error {
+	if count > limit {
+		return invalid(location, "expected at most "+thousands(limit)+" entries")
+	}
+	return nil
+}
+
+// thousands writes a positive count with comma separators, such as 10,000.
+func thousands(count int) string {
+	text := strconv.Itoa(count)
+	for i := len(text) - 3; i > 0; i -= 3 {
+		text = text[:i] + "," + text[i:]
+	}
+	return text
+}
+
 var releaseTagPattern = regexp.MustCompile(`^release/([1-9][0-9]{0,8})$`)
 
 // ParseReleaseTag returns the library release number of a tag named release/<number>, such as release/4.
@@ -110,6 +135,7 @@ func ParseReleaseTagObject(tag string, object []byte) (string, ReleaseRecord, er
 }
 
 // ParseReleaseRecord validates a release record's YAML, including that each change leads to the version in rules.
+// It refuses more than 10,000 entries in rules, changes, or retired, and more than 20,000 in libraryFiles.
 func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
 	_, data, err := authoredYAML(input, location)
 	if err != nil {
@@ -181,6 +207,9 @@ func recordedVersions(input json.RawMessage, location string) (map[string]RuleVe
 	if err != nil {
 		return nil, err
 	}
+	if err := requireAtMost(len(entries), maxRecordedRules, location); err != nil {
+		return nil, err
+	}
 	versions := map[string]RuleVersion{}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		if err := ValidateRuleID(id, location+"."+id); err != nil {
@@ -199,6 +228,9 @@ func recordedVersions(input json.RawMessage, location string) (map[string]RuleVe
 func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, location string) (map[string]RecordedChange, error) {
 	entries, err := jsonObject(input, location)
 	if err != nil {
+		return nil, err
+	}
+	if err := requireAtMost(len(entries), maxRecordedRules, location); err != nil {
 		return nil, err
 	}
 	changes := map[string]RecordedChange{}
@@ -266,6 +298,9 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 	if err != nil {
 		return nil, err
 	}
+	if err := requireAtMost(len(entries), maxRecordedRules, location); err != nil {
+		return nil, err
+	}
 	retired := map[string]RetiredRule{}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		entryLocation := location + "." + id
@@ -309,18 +344,23 @@ func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 	if json.Unmarshal(input, &items) != nil || items == nil {
 		return nil, invalid(location, "expected a list of file paths")
 	}
-	paths := []string{}
+	if err := requireAtMost(len(items), maxLibraryFiles, location); err != nil {
+		return nil, err
+	}
+	paths := make([]string, 0, len(items))
+	seen := make(map[string]bool, len(items))
 	for i, item := range items {
 		path, err := jsonPath(item, location+"["+strconv.Itoa(i)+"]")
 		if err != nil {
 			return nil, err
 		}
-		if slices.Contains(paths, path) {
+		if seen[path] {
 			return nil, invalid(location+"["+strconv.Itoa(i)+"]", "duplicate path "+quote(path))
 		}
 		if isRuleContent(path) {
 			return nil, invalid(location+"["+strconv.Itoa(i)+"]", quote(path)+" belongs to a rule's version, not the library-wide files")
 		}
+		seen[path] = true
 		paths = append(paths, path)
 	}
 	return paths, nil

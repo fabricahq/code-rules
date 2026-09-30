@@ -182,7 +182,7 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 }
 
 // releaseRecords parses each tag's release record, in tag order, reading messages in bounded batches.
-// It also returns the last tag's release notes.
+// It also returns the last tag's release notes. It stops between records when ctx ends.
 func (g *libraryGit) releaseRecords(ctx context.Context, tags []releaseTag) (string, []rules.ReleaseRecord, error) {
 	var notes string
 	records := make([]rules.ReleaseRecord, 0, len(tags))
@@ -203,6 +203,9 @@ func (g *libraryGit) releaseRecords(ctx context.Context, tags []releaseTag) (str
 		}
 		remaining := result.Output
 		for _, tag := range tags[start:end] {
+			if err := ctx.Err(); err != nil {
+				return "", nil, err
+			}
 			var body []byte
 			body, remaining, err = batchObject(remaining, tag.object, "tag", tag.size)
 			if err != nil {

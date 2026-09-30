@@ -5,8 +5,10 @@ package rules_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -63,5 +65,71 @@ func TestParseReleaseTagObject_SkipsHeadersAndSignature(t *testing.T) {
 	}
 	if _, _, err := rules.ParseReleaseTagObject("release/3", []byte(object)); err == nil {
 		t.Fatal("accepted a record for another library release")
+	}
+}
+
+// recordWith returns a release/2 record whose section, one of rules, changes, retired, or libraryFiles, has count
+// entries, with the rules entries the changes need, up to the 10,000 rules allows.
+func recordWith(section string, count int) []byte {
+	var record strings.Builder
+	record.WriteString("release: 2\n")
+	if section == "rules" || section == "changes" {
+		ruleCount := count
+		if section == "changes" {
+			ruleCount = min(count, 10_000)
+		}
+		record.WriteString("rules:\n")
+		for i := range ruleCount {
+			fmt.Fprintf(&record, "  techs/go/r%d: 1.0.0\n", i)
+		}
+	} else {
+		record.WriteString("rules: {}\n")
+	}
+	switch section {
+	case "changes":
+		record.WriteString("changes:\n")
+		for i := range count {
+			fmt.Fprintf(&record, "  techs/go/r%d: {change: new, summary: Add.}\n", i)
+		}
+	case "retired":
+		record.WriteString("retired:\n")
+		for i := range count {
+			fmt.Fprintf(&record, "  techs/go/r%d: {lastVersion: 1.0.0, summary: Gone.}\n", i)
+		}
+	case "libraryFiles":
+		record.WriteString("libraryFiles:\n")
+		for i := range count {
+			fmt.Fprintf(&record, "  - assets/f%d.md\n", i)
+		}
+	}
+	return []byte(record.String())
+}
+
+// TestParseReleaseRecord_LimitsEachCollection accepts each collection at its documented limit and refuses one
+// more entry, naming the limit.
+func TestParseReleaseRecord_LimitsEachCollection(t *testing.T) {
+	for section, limit := range map[string]int{"rules": 10_000, "changes": 10_000, "retired": 10_000, "libraryFiles": 20_000} {
+		t.Run(section, func(t *testing.T) {
+			if _, err := rules.ParseReleaseRecord(recordWith(section, limit), "release/2"); err != nil {
+				t.Fatalf("refused %d entries: %v", limit, err)
+			}
+			_, err := rules.ParseReleaseRecord(recordWith(section, limit+1), "release/2")
+			var invalid *rules.ValidationError
+			want := fmt.Sprintf("expected at most %d,000 entries", limit/1000)
+			if !errors.As(err, &invalid) || invalid.Location != "release/2."+section || invalid.Problem != want {
+				t.Fatalf("got %v; want %q", err, want)
+			}
+		})
+	}
+}
+
+// TestParseReleaseRecord_RefusesDuplicateLibraryFilesInLargeLists finds a duplicate path at the end of the
+// longest list the limit allows.
+func TestParseReleaseRecord_RefusesDuplicateLibraryFilesInLargeLists(t *testing.T) {
+	record := append(recordWith("libraryFiles", 19_999), "  - assets/f0.md\n"...)
+	_, err := rules.ParseReleaseRecord(record, "release/2")
+	var invalid *rules.ValidationError
+	if !errors.As(err, &invalid) || invalid.Location != "release/2.libraryFiles[19999]" || !strings.Contains(invalid.Problem, "duplicate path") {
+		t.Fatalf("got %v", err)
 	}
 }

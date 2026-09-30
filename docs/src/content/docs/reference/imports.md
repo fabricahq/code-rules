@@ -159,6 +159,8 @@ Each library import has these limits:
 | Each retained file | 8 MiB. |
 | All retained files combined | 64 MiB. |
 | Git's listing of release tags | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. |
+| Each release tag | 8 MiB. |
+| Each [release record](/reference/rule-versions/#release-record) | 10,000 entries each in `rules`, `changes`, and `retired`, and 20,000 in `libraryFiles`. A record over a limit fails with `invalid-release-tag`. |
 
 The retained-file limits apply after fetching. They do not cap network traffic or Git's temporary disk use. Finding rule versions uses the same Git access settings and deadline as fetching.
 
