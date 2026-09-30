@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // defaultIndexMaxLines keeps ordinary summaries together before pagination.
@@ -69,7 +71,7 @@ func indexPages(file, header string, entries []string, footer string, maxLines i
 		partFile := indexPartPath(file, page)
 		navigation := indexPageNavigation(file, page, len(parts))
 		output[partFile] = indexDocument(navigation+"\n\n"+header, entries, indexPageFooter(footer, navigation))
-		links = append(links, fmt.Sprintf("- [Page %d of %d](%s)", page, len(parts), encodedPath(path.Base(partFile))))
+		links = append(links, fmt.Sprintf("- [Page %d of %d](%s)", page, len(parts), rules.EncodeLinkPath(path.Base(partFile))))
 	}
 	directory := indexDocument(header, append([]string{"Read every numbered page to inspect this complete index. Rule bodies remain in their linked files."}, links...), footer)
 	if strings.Count(directory, "\n") > maxLines {
@@ -86,12 +88,12 @@ func indexPartPath(file string, page int) string {
 
 // indexPageNavigation identifies the page and links directly to its neighbors and directory.
 func indexPageNavigation(file string, page, total int) string {
-	links := []string{fmt.Sprintf("**Page %d of %d**", page, total), "[All pages](" + encodedPath(path.Base(file)) + ")"}
+	links := []string{fmt.Sprintf("**Page %d of %d**", page, total), "[All pages](" + rules.EncodeLinkPath(path.Base(file)) + ")"}
 	if page > 1 {
-		links = append(links, "[Previous page]("+encodedPath(path.Base(indexPartPath(file, page-1)))+")")
+		links = append(links, "[Previous page]("+rules.EncodeLinkPath(path.Base(indexPartPath(file, page-1)))+")")
 	}
 	if page < total {
-		links = append(links, "[Next page]("+encodedPath(path.Base(indexPartPath(file, page+1)))+")")
+		links = append(links, "[Next page]("+rules.EncodeLinkPath(path.Base(indexPartPath(file, page+1)))+")")
 	}
 	return strings.Join(links, " | ")
 }
@@ -133,7 +135,7 @@ func renderIndexes(resolved resolution, maxLines, inlineMaxBytes int) (map[strin
 		file := "groups/" + group.ID + ".md"
 		name := groupTitle(group)
 		cues := groupReadingGuidance(group)
-		groupEntries = append(groupEntries, "### "+name+"\n\n"+cues+"\n\n**Open group:** ["+name+"]("+encodedPath(file)+")")
+		groupEntries = append(groupEntries, "### "+name+"\n\n"+cues+"\n\n**Open group:** ["+name+"]("+rules.EncodeLinkPath(file)+")")
 		footer := "For other technology and practice groups, open [RULES.md](../../RULES.md). These files are generated. Edit source rules or configuration and rebuild to change them."
 		if inlineMaxBytes > 0 && len(group.Rules) > 0 {
 			page, fits, err := inlineGroupPage(group, paths, file, footer, inlineMaxBytes)
@@ -152,7 +154,7 @@ func renderIndexes(resolved resolution, maxLines, inlineMaxBytes int) (map[strin
 			if active.Origin.Version != nil {
 				version = "Version: " + active.Origin.Version.String() + "\n\n"
 			}
-			entries = append(entries, "### "+escapeText(r.Title)+"\n\nRule ID: `"+r.ID+"`\n\n"+version+"**When to read:** "+escapeText(r.WhenToRead)+"\n\n**Impact:** "+escapeText(string(r.Impact))+"\n\n**Why it matters:** "+escapeText(r.ImpactDescription)+"\n\n**Read full rule:** ["+escapeText(r.Title)+"]("+relativeURL(file, rulePath(r))+")")
+			entries = append(entries, "### "+escapeText(r.Title)+"\n\nRule ID: `"+r.ID+"`\n\n"+version+"**When to read:** "+escapeText(r.WhenToRead)+"\n\n**Impact:** "+escapeText(string(r.Impact))+"\n\n**Why it matters:** "+escapeText(r.ImpactDescription)+"\n\n**Read full rule:** ["+escapeText(r.Title)+"]("+rules.RelativeLink(file, rulePath(r))+")")
 		}
 		if len(entries) == 0 {
 			entries = append(entries, "No active rules in this group.")

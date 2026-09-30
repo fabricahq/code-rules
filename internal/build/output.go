@@ -95,7 +95,7 @@ func libraryReadme(source resolvedSource) string {
 			sections = append(sections, "**Declared license:** "+escapeText(*license.SPDXExpression))
 		}
 		for _, mapping := range licenseMappings(source.Name, license) {
-			sections = append(sections, "- ["+escapeText(path.Base(mapping.Generated))+"]("+relativeURL(file, mapping.Generated)+")")
+			sections = append(sections, "- ["+escapeText(path.Base(mapping.Generated))+"]("+rules.RelativeLink(file, mapping.Generated)+")")
 		}
 	}
 	sections = append(sections, "[provenance.json](../../provenance.json) records source revisions, origins, and original and generated term paths.", "Use [RULES.md](../../RULES.md) to find resolved rules. These files are generated; edit source inputs and rebuild.")

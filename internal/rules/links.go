@@ -24,14 +24,7 @@ func markdownLinks(document string) ([]string, error) {
 	if !utf8.ValidString(document) {
 		return nil, invalid("document", "expected UTF-8 text")
 	}
-	offset := 0
-	withoutBOM := strings.TrimPrefix(document, "\ufeff")
-	if strings.HasPrefix(withoutBOM, "---\n") || strings.HasPrefix(withoutBOM, "---\r\n") {
-		if split, err := SplitDocument(withoutBOM, "document"); err == nil {
-			offset = len(document) - len(split.Body)
-		}
-	}
-	source := []byte(document[offset:])
+	source := []byte(document[MarkdownBodyStart(document):])
 	root := parser.New().Parse(source)
 	links := []string{}
 	var rawHTML strings.Builder
