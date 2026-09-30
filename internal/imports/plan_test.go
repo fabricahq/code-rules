@@ -331,6 +331,28 @@ func TestImport_RefToAnUnreleasedCommitWarnsAndRecordsNoVersionForChangedRules(t
 	}
 }
 
+// TestImport_RefToADeletedLibraryReleaseFailsForNewlySelectedRules reports version-not-found, with recovery
+// guidance, when the recorded ref's release tag is gone and a newly selected rule needs its release record.
+func TestImport_RefToADeletedLibraryReleaseFailsForNewlySelectedRules(t *testing.T) {
+	h := newHistory(t)
+	first, err := h.sync(t, h.source(t, `"groups":["practices/testing"],"ref":"release/2"`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.fixture.Command(context.Background(), "tag", "--delete", "release/2"); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := h.sync(t, h.source(t, `"groups":["practices/testing"],"ref":"release/2"`), &first.Snapshot)
+	if err != nil || restored.Snapshot.Commit != h.commits[2] {
+		t.Fatalf("restoring without the tag: %+v, %v", restored.Snapshot, err)
+	}
+	_, err = h.sync(t, h.source(t, `"groups":["practices/testing","techs/go"],"ref":"release/2"`), &first.Snapshot)
+	requireCode(t, err, "version-not-found")
+	if !strings.Contains(err.Error(), "change sources.team.ref") {
+		t.Fatalf("no recovery guidance: %v", err)
+	}
+}
+
 // TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves restores the commit a tag named when it was recorded.
 func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	h := newHistory(t)

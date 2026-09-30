@@ -307,7 +307,11 @@ func (p *planner) revisionVersion(id string, plan sourcePlan) (library.ImportedR
 		return library.ImportedRule{}, err
 	}
 	if plan.release != 0 {
-		version, listed := history.release(plan.release).record.Rules[id]
+		release := history.release(plan.release)
+		if release == nil {
+			return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.ref names library release release/%d, which the library no longer has, so newly selected rule %s has no version to import. Ask the library's maintainer to restore the tag, or change sources.%s.ref.", p.source.Name, plan.release, id, p.source.Name), nil)
+		}
+		version, listed := release.record.Rules[id]
 		if !listed {
 			return library.ImportedRule{}, fail("invalid-release-tag", fmt.Sprintf("Library release release/%d contains rule %s, but its release record doesn't list it. Don't create or move release tags by hand.", plan.release, id), nil)
 		}
