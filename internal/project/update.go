@@ -205,6 +205,11 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		}
 		edits[decision.Source] = edit
 	}
+	// Keeping a rule a scoped update would move can leave the shared files where they are, so they follow the
+	// decisions.
+	for i := range sources {
+		sources[i].SharedFiles = p.update.SharedFiles(sources[i].Name, slices.Collect(maps.Keys(edits[sources[i].Name].Pins)))
+	}
 	return sources, edits, nil
 }
 

@@ -457,3 +457,28 @@ func TestUpdate_RetiringAnExcludedRuleKeepsTheExclusionValidOffline(t *testing.T
 	}
 	requireCurrent(t, options)
 }
+
+// TestUpdate_ScopedUpdateThatKeepsItsRuleLeavesTheSharedFiles: a scoped update would move techs/go/errors to its
+// release/2 version and the shared files with it, but keeping the rule moves nothing, so the shared files stay.
+func TestUpdate_ScopedUpdateThatKeepsItsRuleLeavesTheSharedFiles(t *testing.T) {
+	options, git, _ := syncedProject(t)
+	ctx := context.Background()
+	plan, err := PlanUpdate(ctx, options, git, []imports.UpdateTarget{{Source: "team", Rule: "techs/go/errors"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview, err := plan.Preview(nil); err != nil || preview.Sources[0].SharedFiles == nil {
+		t.Fatalf("without a decision the shared files move with the rule: %+v, %v", preview.Sources, err)
+	}
+	keep := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Keep: true, Reason: "Not yet."}}
+	preview, err := plan.Preview(keep)
+	if err != nil || preview.Sources[0].SharedFiles != nil || preview.Moves() {
+		t.Fatalf("keeping the only moved rule still moves shared files: %+v, %v", preview.Sources, err)
+	}
+	if _, err := plan.Apply(ctx, keep); err != nil {
+		t.Fatal(err)
+	}
+	if record, versions := recordedVersions(t, options); record.Release != 1 || versions["techs/go/errors"] != "1.0.0@1" {
+		t.Fatalf("shared files from release %d, versions %v", record.Release, versions)
+	}
+}

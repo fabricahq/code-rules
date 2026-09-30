@@ -109,12 +109,42 @@ type plannedSource struct {
 	// moved maps every rule the source imports after the update, before the project's decisions, to its version.
 	// It is nil for a source that uses ref, which the update doesn't move.
 	moved map[string]library.ImportedRule
-	// release and commit name the library release that supplies the library-wide files after the update, whatever
-	// the project decides, since it is at least as new as every moved rule. They are unset for a source that uses ref.
-	release  int
-	commit   string
+	// scoped reports that the update names some of the source's rules rather than the whole source.
+	scoped   bool
 	recorded *library.Snapshot
 	history  releaseHistory
+}
+
+// sharedFiles returns the library release, and its commit, that supplies the library-wide files once the update
+// installs rules: the newest library release for an update of the whole source; for an update scoped to some
+// rules, before's, raised only as far as the newest library release among the rules the update actually moves,
+// since a rule version can rely on the shared files its library release published.
+func (s plannedSource) sharedFiles(rules map[string]library.ImportedRule) (int, string) {
+	if !s.scoped {
+		return s.history.newest().number, s.history.newest().commit
+	}
+	shared := sourcePlan{release: s.before.release, commit: s.before.commit, rules: rules}
+	raiseSharedFiles(&shared)
+	return shared.release, shared.commit
+}
+
+// SharedFiles returns how the update moves the shared files of source, which it names, once the rules kept lists
+// stay at their versions from before the update, or nil when they stay.
+func (u Update) SharedFiles(source string, kept []string) *SharedFilesUpdate {
+	planned, named := u.plans[source]
+	if !named || planned.moved == nil {
+		return nil
+	}
+	decided := maps.Clone(planned.moved)
+	for _, id := range kept {
+		if rule, ok := planned.before.rules[id]; ok {
+			decided[id] = rule
+		}
+	}
+	if release, _ := planned.sharedFiles(decided); release != planned.before.release {
+		return &SharedFilesUpdate{From: planned.before.release, To: release}
+	}
+	return nil
 }
 
 // decided returns what the source imports once the update is applied with source, its configuration plus the pins
@@ -124,12 +154,13 @@ func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
 	if !source.Ref.IsZero() {
 		return s.before, nil
 	}
-	plan := sourcePlan{release: s.release, commit: s.commit, rules: maps.Clone(s.moved), individual: []string{}, warnings: []string{}}
+	plan := sourcePlan{rules: maps.Clone(s.moved), individual: []string{}, warnings: []string{}}
 	for id := range source.Pins {
 		if rule, ok := s.before.rules[id]; ok {
 			plan.rules[id] = rule
 		}
 	}
+	plan.release, plan.commit = s.sharedFiles(plan.rules)
 	// Settling reads nothing but the history, which planning already read, so this planner needs no repository.
 	p := &planner{source: source, recorded: s.recorded, history: &s.history}
 	return plan, p.settle(&plan)
@@ -302,10 +333,9 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	if err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
-	planned := plannedSource{before: before, moved: moved, recorded: p.recorded, history: *p.history}
-	planned.release, planned.commit = p.sharedFilesAfter(before, moved, scope)
-	if planned.release != before.release {
-		preview.SharedFiles = &SharedFilesUpdate{From: before.release, To: planned.release}
+	planned := plannedSource{before: before, moved: moved, scoped: scope != nil, recorded: p.recorded, history: *p.history}
+	if release, _ := planned.sharedFiles(moved); release != before.release {
+		preview.SharedFiles = &SharedFilesUpdate{From: before.release, To: release}
 	}
 	after, err := planned.decided(source)
 	if err != nil {
@@ -397,19 +427,6 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 		return strings.Compare(a.ID, b.ID)
 	})
 	return after, rows, nil
-}
-
-// sharedFilesAfter returns the library release, and its commit, that supplies the library-wide files after an
-// update from before that moves rules to moved: the newest library release for an update of every rule, or, for an
-// update scoped to some rules, before's, raised to the newest library release among the moved rule versions, since
-// a rule version can rely on the shared files its library release published.
-func (p *planner) sharedFilesAfter(before sourcePlan, moved map[string]library.ImportedRule, scope []string) (int, string) {
-	if scope == nil {
-		return p.history.newest().number, p.history.newest().commit
-	}
-	shared := sourcePlan{release: before.release, commit: before.commit, rules: moved}
-	raiseSharedFiles(&shared)
-	return shared.release, shared.commit
 }
 
 // settle completes a plan whose rules and library-wide files an update chose: individually selected rules to load,
