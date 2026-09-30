@@ -64,6 +64,7 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 
 func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 	initialize, f := newAuthoringCommand("init", "Set up Code Rules in this project", cobra.NoArgs, options.Directory)
+	initialize.Long = initialize.Short + "\n\nCreates the .code-rules/ directory at the Git repository root, with the project\nconfiguration, config.yaml, and a guide, README.md, that explains how to manage\nrules and how to connect your coding agent to them. Run it from the repository\nroot; outside Git, run it from the project root. Running it again keeps your\nconfiguration and rules, and refreshes an outdated, unedited guide.\n\nLearn more: https://code-rules.fabricahq.com/start-here/set-up-project/"
 	initialize.RunE = func(cmd *cobra.Command, _ []string) error {
 		target, err := f.options(cmd.Context(), true)
 		if err != nil {
