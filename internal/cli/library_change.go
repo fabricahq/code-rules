@@ -91,12 +91,12 @@ func changeIntroduction(ids []string, versioned, retire bool) string {
 func changeRecordedReport(result library.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
 	out.WriteString("Change note created:\n")
-	for _, file := range result.Files {
+	for _, file := range result.Written() {
 		fmt.Fprintf(&out, "  %s\n", file)
 	}
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
 	steps := []nextStep{{Instruction: "Next: Commit the note with the rule change, then validate the library:", Commands: []string{scope.command("check")}}}
-	return authoredReport(&out, result.Files, result.Warnings, steps)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }

@@ -384,12 +384,17 @@ func publicationComplete(err error) bool {
 	return err == nil || errors.As(err, &cleanup)
 }
 
-// Changes reports absolute paths in publication order and cleanup warnings after a committed edit.
-// An error returns no changes; a warning means every requested file was committed.
+// Changes reports the absolute paths of the files an edit created, Added, and replaced, Changed, each in the
+// order the edit listed them, and cleanup warnings after a committed edit. An error returns no changes; a warning
+// means every requested file was committed.
 type Changes struct {
-	Files    []string `json:"files"`
+	Added    []string `json:"added"`
+	Changed  []string `json:"changed"`
 	Warnings []string `json:"warnings,omitempty"`
 }
+
+// Written returns every path the edit wrote: its created files, then its replaced ones.
+func (c Changes) Written() []string { return append(slices.Clone(c.Added), c.Changed...) }
 
 // Edit acquires writer ownership, prepares files against current state, and publishes them safely.
 // Preparation must not write; the owned callback revalidates input before file creation or replacement.
@@ -416,11 +421,15 @@ func finishPublication(root *os.Root, files []File, committed bool, err error) (
 	if err != nil && !committed {
 		return Changes{}, err
 	}
-	paths := make([]string, 0, len(files))
+	result := Changes{Added: []string{}, Changed: []string{}}
 	for _, file := range files {
-		paths = append(paths, filepath.Join(root.Name(), filepath.FromSlash(file.Path)))
+		path := filepath.Join(root.Name(), filepath.FromSlash(file.Path))
+		if file.Previous == nil {
+			result.Added = append(result.Added, path)
+		} else {
+			result.Changed = append(result.Changed, path)
+		}
 	}
-	result := Changes{Files: paths}
 	if err != nil {
 		result.Warnings = []string{"All requested files were committed. Cleanup needs attention before another authoring operation: " + err.Error()}
 	}

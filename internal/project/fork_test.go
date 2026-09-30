@@ -124,8 +124,8 @@ func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
 	}
 	slices.Sort(added)
 	want := []string{"local/techs/go/assets/errors/data.bin", "local/techs/go/assets/errors/diagrams/flow.svg", "local/techs/go/assets/errors/guide.md", "local/techs/go/assets/errors/more.md", "local/techs/go/assets/errors/notes.md", "local/techs/go/errors.md"}
-	if !reflect.DeepEqual(added, want) || len(result.Files) != len(want)+1 {
-		t.Fatalf("added %v, reported %v; want %v and config.yaml", added, result.Files, want)
+	if !reflect.DeepEqual(added, want) || len(result.Added) != len(want) || len(result.Changed) != 1 || filepath.Base(result.Changed[0]) != "config.yaml" {
+		t.Fatalf("added %v, reported %v created and %v changed; want %v created and config.yaml changed", added, result.Added, result.Changed, want)
 	}
 	if got := string(after["local/techs/go/errors.md"]); got != forkedRule("Read [the guide](assets/errors/guide.md), [notes](assets/errors/notes.md), and [data](assets/errors/data.bin#top).") {
 		t.Fatalf("forked rule %q", got)

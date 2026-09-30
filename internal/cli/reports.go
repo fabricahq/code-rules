@@ -5,6 +5,7 @@ package cli
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/library"
@@ -26,8 +27,10 @@ type nextStep struct {
 	Commands    []string `json:"commands,omitempty"`
 }
 
+// authoringValue is an authoring command's JSON value: the files it created and changed, as absolute paths.
 type authoringValue struct {
-	Files     []string   `json:"files"`
+	Added     []string   `json:"added"`
+	Changed   []string   `json:"changed"`
 	Warnings  []string   `json:"warnings,omitempty"`
 	NextSteps []nextStep `json:"nextSteps"`
 }
@@ -50,7 +53,7 @@ func (s authoringScope) command(action string) string {
 }
 
 // authoredReport renders each next step once, after the report, and returns the steps in its value.
-func authoredReport(out *strings.Builder, files, warnings []string, steps []nextStep) commandReport {
+func authoredReport(out *strings.Builder, added, changed, warnings []string, steps []nextStep) commandReport {
 	var next strings.Builder
 	for _, step := range steps {
 		if next.Len() > 0 {
@@ -65,12 +68,12 @@ func authoredReport(out *strings.Builder, files, warnings []string, steps []next
 		out.WriteByte('\n')
 		out.WriteString(next.String())
 	}
-	return commandReport{value: authoringValue{files, warnings, steps}, human: out.String()}
+	return commandReport{value: authoringValue{added, changed, warnings, steps}, human: out.String()}
 }
 
 func projectInitializedReport(result project.AuthoringResult) commandReport {
 	var out strings.Builder
-	if len(result.Files) == 0 {
+	if len(result.Written()) == 0 {
 		out.WriteString("Code Rules is already initialized.\nNo files changed.\n")
 	} else {
 		out.WriteString("Code Rules initialized!\n")
@@ -80,42 +83,42 @@ func projectInitializedReport(result project.AuthoringResult) commandReport {
 	}
 	out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.yaml\n")
 	steps := []nextStep{{Instruction: "Run code-rules project --help to manage this project's rules.", Commands: []string{"code-rules project --help"}}}
-	if len(result.Files) > 0 {
+	if len(result.Written()) > 0 {
 		steps = []nextStep{
 			{Instruction: "Start with a project-only rule (example):", Commands: []string{"code-rules project add group practices/testing", "code-rules project add rule practices/testing/my-rule"}},
 			{Instruction: "Or use a shared library (example):", Commands: []string{"code-rules project add library team", "code-rules project sync"}},
 			{Instruction: "Then connect your coding agent to the rules; see .code-rules/README.md."},
 		}
 	}
-	return authoredReport(&out, result.Files, result.Warnings, steps)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }
 
 func sourceAddedReport(result project.AuthoringResult) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, result.Files, result.Warnings)
-	return authoredReport(&out, result.Files, result.Warnings, []nextStep{{Instruction: "Next: Fetch the library rules and build guidance:", Commands: []string{"code-rules project sync"}}})
+	formatAuthored(&out, result.Written(), result.Warnings)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, []nextStep{{Instruction: "Next: Fetch the library rules and build guidance:", Commands: []string{"code-rules project sync"}}})
 }
 
 func libraryInitializedReport(result library.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, result.Files, result.Warnings)
+	formatAuthored(&out, result.Written(), result.Warnings)
 	steps := []nextStep{}
 	if !result.LicenseDeclared {
 		steps = append(steps, nextStep{Instruction: "License is undeclared. Decide terms before sharing."})
 	}
 	steps = append(steps, nextStep{Instruction: "Next: Add a group and rule, then validate the library:", Commands: []string{scope.command("add group practices/testing"), scope.command("add rule practices/testing/my-rule"), scope.command("check")}})
-	return authoredReport(&out, result.Files, result.Warnings, steps)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }
 
 // ruleCreatedReport explains how to finish the rule; changeNote adds recording id's change note in a released library.
-func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScope, id string, changeNote bool) commandReport {
+func ruleCreatedReport(added, changed, warnings []string, draft bool, scope authoringScope, id string, changeNote bool) commandReport {
 	var out strings.Builder
 	if draft {
 		out.WriteString("Rule draft created:\n")
 	} else {
 		out.WriteString("Rule created from --body-file:\n")
 	}
-	for _, file := range files {
+	for _, file := range append(slices.Clone(added), changed...) {
 		fmt.Fprintf(&out, "  %s\n", file)
 	}
 	for _, warning := range warnings {
@@ -138,12 +141,12 @@ func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScop
 			{Instruction: "Then validate the library:", Commands: commands},
 		}
 	}
-	return authoredReport(&out, files, warnings, steps)
+	return authoredReport(&out, added, changed, warnings, steps)
 }
 
-func groupCreatedReport(files, warnings []string, groupPath string, scope authoringScope) commandReport {
+func groupCreatedReport(added, changed, warnings []string, groupPath string, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, files, warnings)
+	formatAuthored(&out, append(slices.Clone(added), changed...), warnings)
 	action := "build"
 	if scope.library {
 		action = "check"
@@ -152,7 +155,7 @@ func groupCreatedReport(files, warnings []string, groupPath string, scope author
 		{Instruction: "Next: Add a rule to this group (replace my-rule with your rule's slug):", Commands: []string{scope.command("add rule " + groupPath + "/my-rule")}},
 		{Instruction: ruleReadyHeading(scope.library), Commands: []string{scope.command(action)}},
 	}
-	return authoredReport(&out, files, warnings, steps)
+	return authoredReport(&out, added, changed, warnings, steps)
 }
 
 func projectChangesReport(action string, result project.FileChanges) commandReport {

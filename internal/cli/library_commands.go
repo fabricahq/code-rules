@@ -123,7 +123,7 @@ func libraryGroupCommand(options Options, output *commandOutput) *cobra.Command 
 		if err != nil {
 			return err
 		}
-		output.report = groupCreatedReport(result.Files, result.Warnings, args[0], authoringScope{library: true, directory: f.value("directory")})
+		output.report = groupCreatedReport(result.Added, result.Changed, result.Warnings, args[0], authoringScope{library: true, directory: f.value("directory")})
 		return nil
 	}
 	return cmd
@@ -150,7 +150,7 @@ func libraryRuleCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{library: true, directory: f.value("directory")}, args[0], plan.NeedsChangeNote())
+		output.report = ruleCreatedReport(result.Added, result.Changed, result.Warnings, body == nil, authoringScope{library: true, directory: f.value("directory")}, args[0], plan.NeedsChangeNote())
 		return nil
 	}
 	return cmd

@@ -195,7 +195,7 @@ func TestLibraryChange_RecordsNotesThatCheckAccepts(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" || !response.OK {
 		t.Fatal(err, code, out, diagnostic)
 	}
-	if len(response.Value.Files) != 1 || response.Value.Files[0] == note || !generated.MatchString(filepath.Base(response.Value.Files[0])) || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "code-rules library check" {
+	if len(response.Value.Added) != 1 || len(response.Value.Changed) != 0 || response.Value.Added[0] == note || !generated.MatchString(filepath.Base(response.Value.Added[0])) || len(response.Value.NextSteps) != 1 || response.Value.NextSteps[0].Commands[0] != "code-rules library check" {
 		t.Fatalf("%+v", response.Value)
 	}
 }

@@ -59,7 +59,7 @@ func TestLibraryLifecycle(t *testing.T) {
 	notice := "Notice\r\n"
 	terms := &Terms{SPDXExpression: "MIT", License: "Original terms\r\n", Notice: &notice}
 	result, err := Initialize(ctx, options, terms, "1.2.3")
-	if err != nil || len(result.Files) != 5 {
+	if err != nil || len(result.Written()) != 5 {
 		t.Fatal(result, err)
 	}
 	data, _ := os.ReadFile(filepath.Join(options.Directory, "LICENSE.md"))
@@ -67,7 +67,7 @@ func TestLibraryLifecycle(t *testing.T) {
 		t.Fatal("changed terms")
 	}
 	result, err = Initialize(ctx, options, nil, "1.2.3")
-	if err != nil || len(result.Files) != 0 {
+	if err != nil || len(result.Written()) != 0 {
 		t.Fatal(result, err)
 	}
 	if _, err = Initialize(ctx, options, terms, "1.2.3"); err == nil {
@@ -301,7 +301,7 @@ func TestLibraryRulePreservesGroup(t *testing.T) {
 	body := "Return errors.\n"
 	metadata := rules.RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling functions."}
 	result, err := AddRule(ctx, "techs/go/errors", metadata, RuleOptions{Options: options, Body: &body})
-	if err != nil || len(result.Files) != 1 {
+	if err != nil || len(result.Written()) != 1 {
 		t.Fatal(result, err)
 	}
 	after, err := os.ReadFile(path)

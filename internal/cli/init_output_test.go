@@ -64,7 +64,7 @@ func TestProjectInitGuidance(t *testing.T) {
 			OK    bool
 			Value map[string]json.RawMessage
 		}
-		if code != 0 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || !result.OK || len(result.Value) != 2 || result.Value["files"] == nil || result.Value["nextSteps"] == nil {
+		if code != 0 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || !result.OK || len(result.Value) != 3 || result.Value["added"] == nil || result.Value["changed"] == nil || result.Value["nextSteps"] == nil {
 			t.Fatal("JSON contract changed", code, out, diagnostic)
 		}
 	})

@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -20,13 +21,18 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// AuthoringResult lists published library files and any post-commit cleanup warnings.
+// AuthoringResult lists the absolute paths of the library files an operation created and changed, and any
+// post-commit cleanup warnings.
 type AuthoringResult struct {
-	Files []string `json:"files"`
+	Added   []string `json:"added"`
+	Changed []string `json:"changed"`
 	// LicenseDeclared describes the manifest after initialization.
-	LicenseDeclared bool
+	LicenseDeclared bool     `json:"-"`
 	Warnings        []string `json:"warnings,omitempty"`
 }
+
+// Written returns every path the operation wrote: its created files, then its changed ones.
+func (r AuthoringResult) Written() []string { return append(slices.Clone(r.Added), r.Changed...) }
 
 // Options locates the library itself, independently of any consumer project.
 type Options struct {
@@ -325,7 +331,7 @@ func authoringResult(changes filetxn.Changes, err error) (AuthoringResult, error
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return AuthoringResult{Files: changes.Files, Warnings: changes.Warnings}, nil
+	return AuthoringResult{Added: changes.Added, Changed: changes.Changed, Warnings: changes.Warnings}, nil
 }
 
 func yamlText(value any) ([]byte, error) {

@@ -83,6 +83,13 @@ func TestAuthoringReportSharesNextSteps(t *testing.T) {
 				if !result.OK || len(result.Value.NextSteps) == 0 || strings.Contains(results[1], `"next":`) {
 					t.Fatal(results)
 				}
+				// Created and modified files are reported apart: adding a library only changes config.yaml.
+				if action == "source" && (len(result.Value.Added) != 0 || len(result.Value.Changed) != 1 || filepath.Base(result.Value.Changed[0]) != "config.yaml") {
+					t.Fatal("add library files", results[1])
+				}
+				if action != "source" && (len(result.Value.Added) == 0 || len(result.Value.Changed) != 0) {
+					t.Fatal("created files", results[1])
+				}
 				for _, step := range result.Value.NextSteps {
 					if !strings.Contains(results[0], step.Instruction) {
 						t.Fatal("human output lost instruction", step)

@@ -30,14 +30,14 @@ func recordChange(t *testing.T, options Options, request ChangeRequest) (string,
 	if err != nil {
 		return "", "", err
 	}
-	if len(result.Files) != 1 {
-		t.Fatalf("wrote %q, want one note", result.Files)
+	if len(result.Written()) != 1 {
+		t.Fatalf("wrote %q, want one note", result.Written())
 	}
-	name, err := filepath.Rel(options.Directory, result.Files[0])
+	name, err := filepath.Rel(options.Directory, result.Written()[0])
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := os.ReadFile(result.Files[0])
+	data, err := os.ReadFile(result.Written()[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,7 +267,7 @@ func TestChange_WarnsWhenTheReplacementIsntARuleYet(t *testing.T) {
 			t.Fatal(err)
 		}
 		result, err := plan.Commit(ctx, "", "Replace b.", noteDay)
-		if err != nil || len(result.Files) != 1 || slices.Contains(result.Warnings, warning) != test.warned || len(result.Warnings) > 1 {
+		if err != nil || len(result.Written()) != 1 || slices.Contains(result.Warnings, warning) != test.warned || len(result.Warnings) > 1 {
 			t.Fatalf("%s: %+v %v", test.replacement, result, err)
 		}
 	}

@@ -209,6 +209,7 @@ Every breaking change from `v0.1.0`, with its manual migration, for the release 
   - `code-rules project sync` adds `value.warnings`.
   - `code-rules library check` renames its counts `value.groups` and `value.rules` to `value.groupCount` and `value.ruleCount`, since `rules` is a list everywhere else.
   - Authoring results drop the legacy `value.next` text; use `value.nextSteps`. Each `code-rules project check` problem replaces its `nextStep` string with `nextSteps`, a list of the same `{instruction, commands}` objects.
+  - Authoring commands (project and library init, add group, add rule including forks, add library, and library change) replace `value.files` with `value.added` and `value.changed`, so created files are told apart from modified ones such as `config.yaml`.
 
 **This repository**
 

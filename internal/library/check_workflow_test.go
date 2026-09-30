@@ -19,8 +19,8 @@ func TestInitialize_WritesTheDocumentedCheckWorkflow(t *testing.T) {
 		t.Fatal(err)
 	}
 	path := filepath.Join(options.Directory, ".github", "workflows", "code-rules.yml")
-	if !strings.Contains(strings.Join(result.Files, "\n"), path) {
-		t.Fatalf("files %q omit the workflow", result.Files)
+	if !strings.Contains(strings.Join(result.Written(), "\n"), path) {
+		t.Fatalf("files %q omit the workflow", result.Written())
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -72,7 +72,7 @@ func TestInitialize_KeepsAnExistingWorkflow(t *testing.T) {
 	custom := "name: Custom\n"
 	edit(t, options.Directory, map[string]string{".github/workflows/code-rules.yml": custom})
 	result, err := Initialize(context.Background(), options, nil, "0.2.0")
-	if err != nil || strings.Contains(strings.Join(result.Files, "\n"), "code-rules.yml") {
+	if err != nil || strings.Contains(strings.Join(result.Written(), "\n"), "code-rules.yml") {
 		t.Fatal(result, err)
 	}
 	if data, err := os.ReadFile(filepath.Join(options.Directory, ".github/workflows/code-rules.yml")); err != nil || string(data) != custom {
