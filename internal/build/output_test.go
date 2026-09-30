@@ -360,6 +360,20 @@ func TestPrepareShowsEachImportedRulesVersion(t *testing.T) {
 	}
 }
 
+// TestPrepareOmitsTheUnreleasedNoteWhenEveryRuleIsPublished covers a ref that isn't a library release tag but
+// names a revision whose rules all match published versions.
+func TestPrepareOmitsTheUnreleasedNoteWhenEveryRuleIsPublished(t *testing.T) {
+	files := generateWith(t, func(snapshot *library.Snapshot, _ *rules.Source) {
+		version := rules.RuleVersion{Major: 1}
+		snapshot.Release = 0
+		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: commit}
+	})
+	summary := files["libraries/team/README.md"]
+	if strings.Contains(summary, "unreleased") || !strings.Contains(summary, "| `techs/go/errors` | 1.0.0 | release/1 |") || !strings.Contains(summary, "**Requested revision:** v1.0.0") {
+		t.Errorf("library summary:\n%s", summary)
+	}
+}
+
 // TestPrepareShowsNoVersionForUnreleasedRules records null versions and says the source imports unreleased changes.
 func TestPrepareShowsNoVersionForUnreleasedRules(t *testing.T) {
 	files := generateWith(t, func(snapshot *library.Snapshot, _ *rules.Source) {

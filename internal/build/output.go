@@ -83,7 +83,7 @@ func libraryReadme(source resolvedSource) string {
 		sections = append(sections, "**Requested revision:** "+escapeText(source.Ref))
 	}
 	sections = append(sections, "**Resolved commit:** `"+source.Commit+"`")
-	if source.Ref != "" && source.Release == 0 {
+	if source.Ref != "" && source.Release == 0 && slices.ContainsFunc(slices.Collect(maps.Values(source.Versions)), func(rule library.ImportedRule) bool { return rule.Version == nil }) {
 		sections = append(sections, "**Imported from unreleased changes.** This source's ref isn't a library release, so the source doesn't follow rule versions: rules with unreleased changes have no version to cite.")
 	}
 	sections = append(sections, "## Rule versions", ruleVersionTable(source.Versions))

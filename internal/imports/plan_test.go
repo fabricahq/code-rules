@@ -302,6 +302,22 @@ func TestImport_RefToALibraryReleaseImportsWhatItPublished(t *testing.T) {
 	requireCode(t, err, "version-not-found")
 }
 
+// TestImport_RefToALibraryReleaseCommitDoesNotWarn names a release's commit by its SHA: the source records no
+// library release, but every rule matches a published version, so nothing is unreleased to warn about.
+func TestImport_RefToALibraryReleaseCommitDoesNotWarn(t *testing.T) {
+	h := newHistory(t)
+	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"],"ref":"`+h.commits[2]+`"`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]string{"techs/go/a": "1.1.0@2", "techs/go/b": "1.0.0@1", "techs/go/d": "1.0.0@2"}; !reflect.DeepEqual(versions(imported.Snapshot), want) {
+		t.Fatalf("versions %v, want %v", versions(imported.Snapshot), want)
+	}
+	if imported.Snapshot.Release != 0 || len(imported.Warnings) != 0 {
+		t.Fatalf("release %d, warnings %v", imported.Snapshot.Release, imported.Warnings)
+	}
+}
+
 // TestImport_RefToAnUnreleasedCommitWarnsAndRecordsNoVersionForChangedRules matches the rest to published versions.
 func TestImport_RefToAnUnreleasedCommitWarnsAndRecordsNoVersionForChangedRules(t *testing.T) {
 	h := newHistory(t)

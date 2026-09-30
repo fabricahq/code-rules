@@ -279,7 +279,9 @@ func (p *planner) planRevision() (sourcePlan, error) {
 		return sourcePlan{}, err
 	}
 	if plan.release == 0 {
-		plan.warnings = append(plan.warnings, unreleasedWarning(p.source, plan.rules))
+		if warning := unreleasedWarning(p.source, plan.rules); warning != "" {
+			plan.warnings = append(plan.warnings, warning)
+		}
 	}
 	return plan, nil
 }
@@ -448,6 +450,7 @@ func (p *planner) selected(id string) bool {
 }
 
 // unreleasedWarning names a source that imports a revision other than a library release, and its unreleased rules.
+// It is empty when every imported rule matches a published version, as at a library release's commit.
 func unreleasedWarning(source rules.Source, imported map[string]library.ImportedRule) string {
 	unreleased := []string{}
 	for _, id := range slices.Sorted(maps.Keys(imported)) {
@@ -455,11 +458,10 @@ func unreleasedWarning(source rules.Source, imported map[string]library.Imported
 			unreleased = append(unreleased, id)
 		}
 	}
-	warning := fmt.Sprintf("Source %s imports %s, which isn't a library release, so rules with unreleased changes have no version.", source.Name, source.Ref)
-	if len(unreleased) > 0 {
-		warning += " Unreleased rules: " + strings.Join(unreleased, ", ") + "."
+	if len(unreleased) == 0 {
+		return ""
 	}
-	return warning
+	return fmt.Sprintf("Source %s imports %s, which isn't a library release, so rules with unreleased changes have no version. Unreleased rules: %s.", source.Name, source.Ref, strings.Join(unreleased, ", "))
 }
 
 // ruleGroup returns the group of a valid library rule ID.
