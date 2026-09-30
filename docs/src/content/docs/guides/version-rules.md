@@ -169,7 +169,7 @@ Projects see the old rule retired, with the new rule as its replacement.
 
 ### Change a shared file or group description
 
-Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. The next library release publishes them, even if no rule changed.
+Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. `code-rules library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
 
 A project receives library-wide files from one library release at a time. `code-rules project update` moves them to the newest library release, even when no rule moves, so a library release that changes only shared files reaches projects with their next update. A project that starts importing your library, or selects more of it, also gets them from the newest library release.
 
@@ -191,6 +191,8 @@ Library is valid: 3 group(s), 6 rule(s).
 Pending library release 3
   practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
 ```
+
+When you changed library-wide files, such as a group description, the preview lists them under `Library-wide files changed since release/2:`, so you know the next library release publishes them even if no rule changed.
 
 Commit each rule and its note together. Reviewers can then review the rule and the wording of its note in the same pull request.
 

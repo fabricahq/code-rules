@@ -16,6 +16,10 @@ type PendingRelease struct {
 	Release int `json:"release"`
 	// Rules is sorted by rule ID and empty when no rule has a pending change.
 	Rules []PendingRule `json:"rules"`
+	// LibraryFiles lists, in path order, the library-wide files in the working tree that differ from the latest
+	// library release, including deleted ones, which the next library release would publish once committed. It is
+	// empty before the first library release, which adds every file.
+	LibraryFiles []string `json:"libraryFiles"`
 }
 
 // PendingRule is one rule's change in the next library release, named as the release record and the rows of
@@ -225,7 +229,7 @@ func (p releasePlan) record(libraryFiles []string) rules.ReleaseRecord {
 
 // preview lists each changed, new, and retired rule in ID order.
 func (p releasePlan) preview() PendingRelease {
-	return PendingRelease{Release: p.release, Rules: releaseRules(p.record(nil))}
+	return PendingRelease{Release: p.release, Rules: releaseRules(p.record(nil)), LibraryFiles: []string{}}
 }
 
 // empty reports whether the plan changes, adds, and retires no rules.

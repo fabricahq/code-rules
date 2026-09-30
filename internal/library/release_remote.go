@@ -414,6 +414,40 @@ func (g *libraryGit) changedLibraryFiles(ctx context.Context, head string, lates
 	return diffLibraryFiles(current, released, terms), nil
 }
 
+// pendingLibraryFiles lists the library-wide files among files, the working tree's, that differ from the latest
+// library release, including deleted ones, in path order, as changedLibraryFiles would once they're committed.
+// terms are the working tree's declared license and notice files. It lists none for a library outside Git, which g
+// is nil for, and before the first library release, when latest is nil.
+func (g *libraryGit) pendingLibraryFiles(ctx context.Context, latest *publishedRelease, files map[string][]byte, terms []string) ([]string, error) {
+	if g == nil || latest == nil {
+		return []string{}, nil
+	}
+	previous, err := g.releasedTerms(ctx, latest)
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range previous {
+		if !slices.Contains(terms, name) {
+			terms = append(slices.Clip(terms), name)
+		}
+	}
+	released, err := g.treeFiles(ctx, latest.object, libraryPaths(terms))
+	if err != nil {
+		return nil, fmt.Errorf("list the files of %s: %w", latest.tagName(), err)
+	}
+	names := []string{}
+	for _, name := range slices.Sorted(maps.Keys(files)) {
+		if libraryWide(name, terms) {
+			names = append(names, name)
+		}
+	}
+	current, err := g.hashFiles(ctx, names)
+	if err != nil {
+		return nil, err
+	}
+	return diffLibraryFiles(current, released, terms), nil
+}
+
 // releasedTerms returns the license and notice files the latest library release's rule-library.yaml declared.
 func (g *libraryGit) releasedTerms(ctx context.Context, latest *publishedRelease) ([]string, error) {
 	location := latest.tagName() + ":rule-library.yaml"

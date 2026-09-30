@@ -102,6 +102,9 @@ func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit) (checkedL
 		return checkedLibrary{}, err
 	}
 	result.PendingRelease = plan.preview()
+	if result.PendingRelease.LibraryFiles, err = git.pendingLibraryFiles(ctx, changes.history.latest, input.tree.Files, rules.LicensePaths(input.license)); err != nil {
+		return checkedLibrary{}, err
+	}
 	if input.license == nil {
 		result.Warnings = append(result.Warnings, "License is undeclared. Decide terms before sharing this library.")
 	} else if input.license.SPDXExpression == nil {

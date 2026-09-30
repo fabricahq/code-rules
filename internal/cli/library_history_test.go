@@ -75,9 +75,10 @@ func TestLibraryCheck_PreviewsThePendingLibraryRelease(t *testing.T) {
 		"practices/testing/retries.md": libraryRule("Test every retry."),
 		"changes/a.yaml":               "summary: Test one past the limit.\nrules:\n  practices/testing/a: minor\n",
 		"changes/retries.yaml":         "summary: Add a rule about testing retries.\nrules:\n  practices/testing/retries: new\n",
+		"practices/testing/_group.yaml": "name: Testing\ndescription: Guidance for testing.\nwhenToRead: When testing.\n",
 	})
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check")
-	want := "Library is valid: 1 group(s), 3 rule(s).\nWarning: License is undeclared. Decide terms before sharing this library.\n\nPending library release 2\n  practices/testing/a        minor  1.0.0 -> 1.1.0\n  practices/testing/retries  new    1.0.0\n"
+	want := "Library is valid: 1 group(s), 3 rule(s).\nWarning: License is undeclared. Decide terms before sharing this library.\n\nPending library release 2\n  practices/testing/a        minor  1.0.0 -> 1.1.0\n  practices/testing/retries  new    1.0.0\nLibrary-wide files changed since release/1:\n  practices/testing/_group.yaml\n"
 	if code != 0 || diagnostic != "" || out != want {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s\nwant:\n%s", code, diagnostic, out, want)
 	}
@@ -89,7 +90,7 @@ func TestLibraryCheck_PreviewsThePendingLibraryRelease(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" || !response.OK {
 		t.Fatal(err, code, out, diagnostic)
 	}
-	wantJSON := `{"release":2,"rules":[{"id":"practices/testing/a","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Test one past the limit."]},{"id":"practices/testing/retries","change":"new","to":"1.0.0","summaries":["Add a rule about testing retries."]}]}`
+	wantJSON := `{"release":2,"rules":[{"id":"practices/testing/a","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Test one past the limit."]},{"id":"practices/testing/retries","change":"new","to":"1.0.0","summaries":["Add a rule about testing retries."]}],"libraryFiles":["practices/testing/_group.yaml"]}`
 	if compact := compactJSON(t, response.Value["pendingRelease"]); compact != wantJSON {
 		t.Fatalf("pendingRelease %s, want %s", compact, wantJSON)
 	}

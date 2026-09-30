@@ -212,6 +212,9 @@ func libraryCheckedReport(result library.CheckResult) commandReport {
 		out.WriteString("  No rule changes are pending.\n")
 	}
 	formatPendingRules(&out, result.PendingRelease.Rules)
+	if files := result.PendingRelease.LibraryFiles; len(files) > 0 {
+		fmt.Fprintf(&out, "Library-wide files changed since release/%d:\n  %s\n", result.PendingRelease.Release-1, strings.Join(files, "\n  "))
+	}
 	return commandReport{value: result, human: out.String()}
 }
 
