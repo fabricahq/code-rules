@@ -73,7 +73,7 @@ func importLibrary(ctx context.Context, source rules.Source, recorded *library.S
 	if err != nil {
 		return Library{}, err
 	}
-	input, err := repo.snapshotFiles(ctx, source.Name, plan)
+	input, err := repo.snapshotFiles(ctx, source, plan)
 	if err != nil {
 		return Library{}, err
 	}
@@ -116,26 +116,32 @@ func importLibrary(ctx context.Context, source rules.Source, recorded *library.S
 
 // snapshotFiles assembles the files the plan imports: library-wide files from the plan's commit, and each rule's
 // Markdown file and asset directory from its own commit. Other rules' files are left out. It first fetches, in
-// one request, the blobs the catalog loader will read, except shared assets, which rules name only in their text.
-func (r *repository) snapshotFiles(ctx context.Context, source string, plan sourcePlan) (*gitFiles, error) {
+// one request, the blobs the catalog loader will read, except shared assets, which rules name only in their text:
+// the manifest, terms, the metadata of the groups the source imports, and the imported rules' files.
+func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, plan sourcePlan) (*gitFiles, error) {
 	main, err := r.tree(ctx, plan.commit)
 	if err != nil {
 		return nil, err
 	}
-	terms, err := r.terms(ctx, source, main)
+	terms, err := r.terms(ctx, source.Name, main)
 	if err != nil {
 		return nil, err
 	}
+	imported := map[string]bool{}
+	for id := range plan.rules {
+		imported[ruleGroup(id)+"/_group.yaml"] = true
+	}
 	files := map[string]treeEntry{}
-	prefetch := []string{}
+	prefetch := []treeEntry{}
 	for file, entry := range main {
 		_, versioned := rules.VersionedRule(file)
 		if versioned && !slices.Contains(terms, file) {
 			continue
 		}
 		files[file] = entry
-		if file == "rule-library.yaml" || slices.Contains(terms, file) || strings.HasSuffix(file, "/_group.yaml") {
-			prefetch = append(prefetch, entry.object)
+		group, metadata := strings.CutSuffix(file, "/_group.yaml")
+		if file == "rule-library.yaml" || slices.Contains(terms, file) || metadata && (imported[file] || source.Groups.Includes(group)) {
+			prefetch = append(prefetch, entry)
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
@@ -148,7 +154,7 @@ func (r *repository) snapshotFiles(ctx context.Context, source string, plan sour
 		}
 		for file, entry := range owned {
 			files[file] = entry
-			prefetch = append(prefetch, entry.object)
+			prefetch = append(prefetch, entry)
 		}
 	}
 	restored, err := r.missingGroupMetadata(ctx, files, plan)
@@ -157,7 +163,7 @@ func (r *repository) snapshotFiles(ctx context.Context, source string, plan sour
 	}
 	for file, entry := range restored {
 		files[file] = entry
-		prefetch = append(prefetch, entry.object)
+		prefetch = append(prefetch, entry)
 	}
 	if err := r.prefetch(ctx, prefetch); err != nil {
 		return nil, err

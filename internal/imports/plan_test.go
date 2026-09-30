@@ -404,6 +404,31 @@ func TestImport_KeptRuleWhoseGroupWasRemovedKeepsItsGroupMetadata(t *testing.T) 
 	}
 }
 
+// TestImport_IgnoresUnselectedGroupMetadata fetches only the metadata of groups the source imports, so an
+// unselected group whose _group.yaml is a submodule doesn't block the import.
+func TestImport_IgnoresUnselectedGroupMetadata(t *testing.T) {
+	ctx := context.Background()
+	f := newLibraryFixture(t, map[string][]byte{
+		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+		"techs/go/_group.yaml": groupMetadata,
+		"techs/go/y.md":        versionedRule("y 1.0.0"),
+	})
+	if _, err := f.Command(ctx, "update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("5", 40)+",techs/rust/_group.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Command(ctx, "commit", "--quiet", "--message", "Add a submodule where metadata belongs"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 1, "release: 1\nrules:\n  techs/go/y: 1.0.0\nchanges:\n  techs/go/y: {change: new, summary: Add the rule.}\n"); err != nil {
+		t.Fatal(err)
+	}
+	h := history{fixture: f, commits: map[int]string{}}
+	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"]`), nil)
+	if err != nil || versions(imported.Snapshot)["techs/go/y"] != "1.0.0@1" {
+		t.Fatalf("versions %v, %v", versions(imported.Snapshot), err)
+	}
+}
+
 // TestImport_LicenseInsideARulesAssetsIsLibraryWide takes a declared license file from the library-wide commit,
 // even inside an older rule's asset directory, and leaves it out when matching a ref's rules to published versions.
 func TestImport_LicenseInsideARulesAssetsIsLibraryWide(t *testing.T) {
