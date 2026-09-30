@@ -348,8 +348,8 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 		commits[rule.Release] = rule.Commit
 		newest = max(newest, rule.Release)
 	}
-	if source.Ref == "" && newest != 0 && record.Release != newest {
-		return invalidSnapshot(where+".release", "expected the newest library release among the imported rule versions")
+	if source.Ref == "" && record.Release < newest {
+		return invalidSnapshot(where+".release", "expected the library release that supplies the shared files to be at least as new as every imported rule version's library release")
 	}
 	return nil
 }

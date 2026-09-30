@@ -145,6 +145,7 @@ const updatePreview = `team
   pinned    techs/go/backoff  1.0.0
             Newest version: 2.0.0.
             Reason: Waiting on #45.
+  Shared files: release 1 -> 2
 `
 
 // TestUpdate_PreviewsWithoutATerminalAndWritesNothing exits 0 with the preview and how to apply it.
@@ -257,7 +258,8 @@ func TestUpdate_YesAppliesWithKeepAndExclude(t *testing.T) {
 func TestUpdate_ScopedToOneRuleMovesOnlyThatRule(t *testing.T) {
 	u := newUpdateFixture(t)
 	out, diagnostic, code := u.run(t, "project", "update", "team:techs/go/naming", "--yes")
-	if code != 0 || !strings.HasPrefix(out, "team\n  minor     techs/go/naming  1.0.0 -> 1.1.0\n            Add an example.\n\nUpdate complete: ") {
+	// The rule's new version comes from release 2, so the shared files move with it, and no further.
+	if code != 0 || !strings.HasPrefix(out, "team\n  minor     techs/go/naming  1.0.0 -> 1.1.0\n            Add an example.\n  Shared files: release 1 -> 2\n\nUpdate complete: ") {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
 	if want := map[string]string{"backoff": "1.0.0", "errors": "1.0.0", "format": "1.0.0", "loaders": "1.0.0", "naming": "1.1.0", "retry": "1.0.0"}; !reflect.DeepEqual(u.versions(t), want) {

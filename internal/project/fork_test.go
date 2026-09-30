@@ -417,7 +417,8 @@ func TestFork_KeepsTheLibrarysGroupDescription(t *testing.T) {
 
 // TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds forks an individually selected rule, whose import alone
 // supplies the group's metadata, then updates past the rule's retirement: the update applies, writes the group's
-// last imported metadata to local/ in the same transaction, says so, and the fork still builds.
+// metadata from the library release that now supplies the shared files to local/ in the same transaction, says so,
+// and the fork still builds.
 func TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds(t *testing.T) {
 	f := newForkFixture(t, "")
 	ctx := context.Background()
@@ -437,7 +438,7 @@ func TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds(t *testing.T) {
 		t.Fatal(err)
 	}
 	library := f.fixture
-	if _, err := library.Commit(ctx, library.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/notes.md": nil, "techs/go/assets/errors/data.bin": nil}); err != nil {
+	if _, err := library.Commit(ctx, library.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/notes.md": nil, "techs/go/assets/errors/data.bin": nil, "techs/go/_group.yaml": []byte("# Go metadata, described again.\n" + projectMetadata + "\n")}); err != nil {
 		t.Fatal(err)
 	}
 	if err := library.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/licensed: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summaries: [No longer recommended.]}\n"); err != nil {
@@ -455,8 +456,8 @@ func TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds(t *testing.T) {
 	if !slices.Contains(applied.Added, metadata) || !slices.ContainsFunc(applied.Warnings, func(warning string) bool { return strings.HasPrefix(warning, "Wrote "+metadata) }) {
 		t.Fatalf("added %v, warnings %v", applied.Added, applied.Warnings)
 	}
-	if got := string(f.files(t)[metadata]); got != "# Go metadata.\n"+projectMetadata+"\n" {
-		t.Fatalf("metadata %q", got)
+	if got := string(f.files(t)[metadata]); got != "# Go metadata, described again.\n"+projectMetadata+"\n" {
+		t.Fatalf("metadata %q, want release 3's", got)
 	}
 	if page := string(f.files(t)["generated/groups/techs/go.md"]); !strings.Contains(page, "Go guidance.") || !strings.Contains(page, "local/techs/go/errors") {
 		t.Fatalf("group page:\n%s", page)

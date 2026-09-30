@@ -160,19 +160,57 @@ func TestUpdate_RefusesALibraryReleaseTagMovedAfterThePreview(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	object, err := f.Command(ctx, "cat-file", "tag", "release/2")
+	moveReleaseTag(t, f, "release/2")
+	requireRefusedMove(t, plan, options)
+}
+
+// TestUpdate_RefusesASharedFilesReleaseTagMovedAfterThePreview refuses an update that moves only the shared files
+// when their library release tag moved after the preview.
+func TestUpdate_RefusesASharedFilesReleaseTagMovedAfterThePreview(t *testing.T) {
+	ctx := context.Background()
+	f, options, git := syncProject(t)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Commit(ctx, f.Worktree(), "Describe the group", map[string][]byte{"techs/go/_group.yaml": []byte(strings.Replace(projectMetadata, "Go guidance.", "Guidance for Go code.", 1))}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\nchanges: {}\nlibraryFiles: [techs/go/_group.yaml]\n"); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanUpdate(ctx, options, git, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview, err := plan.Preview(nil); err != nil || !preview.Moves() {
+		t.Fatalf("an update of shared files alone doesn't move anything: %+v, %v", preview, err)
+	}
+	moveReleaseTag(t, f, "release/2")
+	requireRefusedMove(t, plan, options)
+}
+
+// moveReleaseTag moves the fixture's release tag name, keeping its message, to a new commit.
+func moveReleaseTag(t *testing.T, f *gitfixture.Fixture, name string) {
+	t.Helper()
+	ctx := context.Background()
+	object, err := f.Command(ctx, "cat-file", "tag", name)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, message, _ := strings.Cut(object, "\n\n")
-	if _, err := f.Commit(ctx, f.Worktree(), "After the second release", map[string][]byte{"README.md": []byte("Moved.\n")}); err != nil {
+	if _, err := f.Commit(ctx, f.Worktree(), "After "+name, map[string][]byte{"README.md": []byte("Moved.\n")}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.Command(ctx, "tag", "--force", "--annotate", "--cleanup=verbatim", "--message", message+"\n", "release/2"); err != nil {
+	if _, err := f.Command(ctx, "tag", "--force", "--annotate", "--cleanup=verbatim", "--message", message+"\n", name); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// requireRefusedMove applies plan and requires invalid-release-tag with the project unchanged.
+func requireRefusedMove(t *testing.T, plan *UpdatePlan, options Options) {
+	t.Helper()
 	before := projectTree(t, options)
-	_, err = plan.Apply(ctx, nil)
+	_, err := plan.Apply(context.Background(), nil)
 	var failure *imports.Error
 	if !errors.As(err, &failure) || failure.Code != "invalid-release-tag" {
 		t.Fatalf("wanted invalid-release-tag, got %v", err)

@@ -25,6 +25,10 @@ type Options struct {
 	GitPath     string
 	Environment []string
 	Timeout     time.Duration
+	// GroupMetadata lists groups whose metadata each import also returns, in Library.GroupMetadata, when the
+	// revision that supplies the source's library-wide files has it, such as the groups of local rules that have no
+	// local metadata. The import reads nothing else for them.
+	GroupMetadata []string
 }
 
 // repository owns a temporary bare repository that fetches one library as a partial clone: commits and trees

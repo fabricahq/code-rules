@@ -47,10 +47,13 @@ type UpdateResult struct {
 	FileChanges
 }
 
-// Moves reports whether the update changes any imported rule: every row except pinned rules, retirements a pin
-// keeps, and rows the project decided to keep.
+// Moves reports whether the update changes anything it imports: a source's library-wide files, or a rule of any row
+// except pinned rules, retirements a pin keeps, and rows the project decided to keep.
 func (r UpdateResult) Moves() bool {
 	for _, source := range r.Sources {
+		if source.SharedFiles != nil {
+			return true
+		}
 		for _, row := range source.Rules {
 			if row.Change != imports.UpdatePinned && row.Pin == nil && row.Decision != "keep" {
 				return true
@@ -146,7 +149,9 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 				return err
 			}
 		}
-		if in.imported, err = p.update.Import(ctx, in.config, p.git); err != nil {
+		git := p.git
+		git.GroupMetadata = groupsWithoutLocalMetadata(before)
+		if in.imported, err = p.update.Import(ctx, in.config, git); err != nil {
 			return err
 		}
 		changes, err = install(ctx, root, w, before, in)

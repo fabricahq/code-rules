@@ -44,6 +44,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		if err != nil {
 			return err
 		}
+		git.GroupMetadata = groupsWithoutLocalMetadata(before)
 		imported, err := imports.ImportLibraries(ctx, before.config, recorded, git)
 		if err != nil {
 			return err
@@ -132,14 +133,33 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	return changes, nil
 }
 
+// groupsWithoutLocalMetadata returns, sorted, the groups of the project's local rules that have no local metadata.
+func groupsWithoutLocalMetadata(state projectState) []string {
+	local := treeFiles(state.local)
+	groups := []string{}
+	for file := range local {
+		id, versioned := rules.VersionedRule(file)
+		if !versioned || file != id+".md" {
+			continue
+		}
+		group := strings.Join(strings.SplitN(id, "/", 3)[:2], "/")
+		if _, ok := local[group+"/_group.yaml"]; !ok && !slices.Contains(groups, group) {
+			groups = append(groups, group)
+		}
+	}
+	slices.Sort(groups)
+	return groups
+}
+
 // keptGroupMetadata returns, by group ID, the metadata to write to local/ for each group whose local rules would
 // otherwise have none: the project has no local metadata for it, no source now imports it, and a stored source
 // record in vendor/ lists the group's metadata, including the record of a source the configuration no longer has.
 // Each copy comes from the first such record: configured sources in configuration order, then removed sources in
-// name order. Invalid records are skipped. It is empty, never nil, when no group needs one. It fails when the
+// name order. A configured source's copy is the metadata in the library release that now supplies its shared
+// files, from imported, when that release still has the group; otherwise, and for a removed source, it is the
+// vendored copy. Invalid records are skipped. It is empty, never nil, when no group needs one. It fails when the
 // vendored copy it would use differs from its record's checksum, so modified metadata never becomes local guidance.
 func keptGroupMetadata(config rules.Configuration, before projectState, imported map[string]imports.Library) (map[string][]byte, error) {
-	local := treeFiles(before.local)
 	supplied := map[string]bool{}
 	for _, source := range config.Sources {
 		for _, group := range imported[source.Name].Catalog.Groups {
@@ -149,19 +169,18 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 	vendored := treeFiles(before.vendor)
 	records := storedRecords(before.config, vendored)
 	kept := map[string][]byte{}
-	for file := range local {
-		id, versioned := rules.VersionedRule(file)
-		if !versioned || file != id+".md" {
-			continue
-		}
-		group := strings.Join(strings.SplitN(id, "/", 3)[:2], "/")
-		if _, ok := local[group+"/_group.yaml"]; ok || supplied[group] || kept[group] != nil {
+	for _, group := range groupsWithoutLocalMetadata(before) {
+		if supplied[group] {
 			continue
 		}
 		for _, record := range records {
 			recorded, listed := record.digests[group+"/_group.yaml"]
 			if !listed {
 				continue
+			}
+			if current, ok := imported[record.name].GroupMetadata[group]; ok {
+				kept[group] = current
+				break
 			}
 			file := record.name + "/" + group + "/_group.yaml"
 			data, ok := vendored[file]

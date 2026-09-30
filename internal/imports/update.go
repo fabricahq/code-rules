@@ -45,6 +45,15 @@ type SourceUpdate struct {
 	// Rules is sorted by change, in the order of the UpdateChange constants, then by rule ID. It is empty, never
 	// nil, when nothing changes.
 	Rules []RuleUpdate `json:"rules"`
+	// SharedFiles is how the update moves the source's library-wide files, or nil when they stay.
+	SharedFiles *SharedFilesUpdate `json:"sharedFiles,omitempty"`
+}
+
+// SharedFilesUpdate moves a source's library-wide files, such as group metadata and shared assets, from the library
+// release that supplies them to a newer one.
+type SharedFilesUpdate struct {
+	From int `json:"from"`
+	To   int `json:"to"`
 }
 
 // RuleUpdate is one row of the update preview.
@@ -93,7 +102,11 @@ type plannedSource struct {
 	before sourcePlan
 	// moved maps every rule the source imports after the update, before the project's decisions, to its version.
 	// It is nil for a source that uses ref, which the update doesn't move.
-	moved    map[string]library.ImportedRule
+	moved map[string]library.ImportedRule
+	// release and commit name the library release that supplies the library-wide files after the update, whatever
+	// the project decides, since it is at least as new as every moved rule. They are unset for a source that uses ref.
+	release  int
+	commit   string
 	recorded *library.Snapshot
 	history  releaseHistory
 }
@@ -105,7 +118,7 @@ func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
 	if source.Ref != "" {
 		return s.before, nil
 	}
-	plan := sourcePlan{rules: maps.Clone(s.moved), individual: []string{}, warnings: []string{}}
+	plan := sourcePlan{release: s.release, commit: s.commit, rules: maps.Clone(s.moved), individual: []string{}, warnings: []string{}}
 	for id := range source.Pins {
 		if rule, ok := s.before.rules[id]; ok {
 			plan.rules[id] = rule
@@ -274,6 +287,10 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 		return plannedSource{}, SourceUpdate{}, nil, err
 	}
 	planned := plannedSource{before: before, moved: moved, recorded: p.recorded, history: *p.history}
+	planned.release, planned.commit = p.sharedFilesAfter(before, moved, scope)
+	if planned.release != before.release {
+		preview.SharedFiles = &SharedFilesUpdate{From: before.release, To: planned.release}
+	}
 	after, err := planned.decided(source)
 	if err != nil {
 		return plannedSource{}, SourceUpdate{}, nil, err
@@ -363,9 +380,21 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 	return after, rows, nil
 }
 
-// settle completes a plan whose rules an update chose: individually selected rules to load, warnings for entries
-// naming rules the library retired, and the library release that supplies library-wide files, which a plan without
-// rules takes from the newest library release.
+// sharedFilesAfter returns the library release, and its commit, that supplies the library-wide files after an
+// update from before that moves rules to moved: the newest library release for an update of every rule, or, for an
+// update scoped to some rules, before's, raised to the newest library release among the moved rule versions, since
+// a rule version can rely on the shared files its library release published.
+func (p *planner) sharedFilesAfter(before sourcePlan, moved map[string]library.ImportedRule, scope []string) (int, string) {
+	if scope == nil {
+		return p.history.newest().number, p.history.newest().commit
+	}
+	shared := sourcePlan{release: before.release, commit: before.commit, rules: moved}
+	raiseSharedFiles(&shared)
+	return shared.release, shared.commit
+}
+
+// settle completes a plan whose rules and library-wide files an update chose: individually selected rules to load,
+// warnings for entries naming rules the library retired, and the retired rules the source selects.
 func (p *planner) settle(plan *sourcePlan) error {
 	for _, id := range p.source.Rules {
 		if _, imported := plan.rules[id]; imported {
@@ -378,10 +407,8 @@ func (p *planner) settle(plan *sourcePlan) error {
 		return err
 	}
 	var err error
-	if plan.retired, err = p.retiredRules(); err != nil {
-		return err
-	}
-	return p.libraryWideRelease(plan, nil)
+	plan.retired, err = p.retiredRules()
+	return err
 }
 
 // retiredRow previews the retirement of rule id, which the project imports at current.

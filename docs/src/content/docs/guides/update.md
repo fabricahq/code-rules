@@ -59,6 +59,8 @@ team
 | `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule). Your rule doesn't change. |
 | `pinned` | A newer version exists, but your [pin](#keep-a-rule-at-its-current-version) keeps the rule where it is. |
 
+When a library release changed [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group descriptions or shared diagrams, the preview ends the source with a line such as `Shared files: release 3 -> 4`. The update brings them in even when no rule changes.
+
 Read the major changes, new rules, and retirements closely: each can change what your code must do. For each replaced rule, check whether your own rule needs the same change. Then confirm, and the update applies exactly the changes the preview showed.
 
 In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` with `--yes` to do the same.
@@ -118,7 +120,7 @@ code-rules project update team
 code-rules project update team:techs/react/prefer-server-components
 ```
 
-The first updates only the `team` library. The second moves only that rule; nothing else changes, including new rules. The rest waits for your next full update. Nothing is recorded in configuration, so use a pin when you want the decision to last.
+The first updates only the `team` library. The second moves only that rule; nothing else changes, including new rules and shared files, unless the rule's new version comes from a newer library release than your shared files: they then move to that library release. The rest waits for your next full update. Nothing is recorded in configuration, so use a pin when you want the decision to last.
 
 ## Handle retirements
 
@@ -158,7 +160,7 @@ Edit the relevant `sources.<name>.groups` or `sources.<name>.rules` and run `cod
 `code-rules project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
-You don't need to create group metadata before deselecting, or removing, the last library supplying a local rule's group: sync writes the group's last imported metadata, from that library's copy in `vendor/`, to `local/<group-id>/_group.yaml` and warns that it did. See [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group). Review the file afterward; it's now yours to edit. If `local/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
+You don't need to create group metadata before deselecting, or removing, the last library supplying a local rule's group: sync writes the group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the group, from its last imported copy in `vendor/`, to `local/<group-id>/_group.yaml` and warns that it did. See [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group). Review the file afterward; it's now yours to edit. If `local/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
 
 ## Recover from a failed update
 

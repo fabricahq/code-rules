@@ -172,16 +172,17 @@ func TestImport_PinsMoveRulesUpAndDown(t *testing.T) {
 	if want := map[string]string{"techs/go/a": "1.0.0@1", "techs/go/d": "1.0.0@2"}; !reflect.DeepEqual(versions(down.Snapshot), want) {
 		t.Fatalf("versions %v, want %v", versions(down.Snapshot), want)
 	}
-	// The library-wide files come from the newest library release among the imported rule versions.
-	if down.Snapshot.Release != 2 || string(down.Snapshot.Files["techs/go/assets/a/diagram.bin"]) != string([]byte{1, 0}) {
+	// A new source takes its library-wide files from the newest library release, and each rule's own files from the
+	// library release that published its version.
+	if down.Snapshot.Release != 3 || string(down.Snapshot.Files["techs/go/assets/a/diagram.bin"]) != string([]byte{1, 0}) {
 		t.Fatalf("snapshot release %d, files %v", down.Snapshot.Release, slices.Sorted(maps.Keys(down.Snapshot.Files)))
 	}
 	up, err := h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.1.0","reason":"Ready for the example."}}`), &down.Snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := map[string]string{"techs/go/a": "1.1.0@2", "techs/go/d": "1.0.0@2"}; !reflect.DeepEqual(versions(up.Snapshot), want) {
-		t.Fatalf("versions %v, want %v", versions(up.Snapshot), want)
+	if want := map[string]string{"techs/go/a": "1.1.0@2", "techs/go/d": "1.0.0@2"}; !reflect.DeepEqual(versions(up.Snapshot), want) || up.Snapshot.Release != 3 {
+		t.Fatalf("versions %v, want %v; shared files from release %d, want 3", versions(up.Snapshot), want, up.Snapshot.Release)
 	}
 	// Removing the pin keeps the recorded version.
 	unpinned, err := h.sync(t, h.source(t, `"groups":["techs/go"]`), &up.Snapshot)
@@ -228,7 +229,7 @@ func TestImport_IndividuallySelectedRuleComesWithoutTheRestOfItsGroup(t *testing
 	if want := []string{"rule-library.yaml", "techs/go/_group.yaml", "techs/go/d.md"}; !reflect.DeepEqual(slices.Sorted(maps.Keys(imported.Snapshot.Files)), want) {
 		t.Fatalf("files %v", slices.Sorted(maps.Keys(imported.Snapshot.Files)))
 	}
-	if imported.Snapshot.Release != 2 || len(imported.Snapshot.Groups) != 0 || !reflect.DeepEqual(imported.Snapshot.RuleSelection, []string{"techs/go/d"}) {
+	if imported.Snapshot.Release != 3 || len(imported.Snapshot.Groups) != 0 || !reflect.DeepEqual(imported.Snapshot.RuleSelection, []string{"techs/go/d"}) {
 		t.Fatalf("snapshot %+v", imported.Snapshot)
 	}
 }

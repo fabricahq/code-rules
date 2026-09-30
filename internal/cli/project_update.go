@@ -237,8 +237,8 @@ func updateReport(result project.UpdateResult, cancelled bool) commandReport {
 // updateKindWidth fits the longest change name, replaced.
 const updateKindWidth = len(imports.UpdateReplaced)
 
-// formatUpdatePreview lists each source's rows with the change, rule ID, and versions in aligned columns, and
-// each row's details indented beneath them.
+// formatUpdatePreview lists each source's rows with the change, rule ID, and versions in aligned columns, each
+// row's details indented beneath them, and any move of its shared files.
 func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 	idWidth := 0
 	for _, source := range sources {
@@ -252,7 +252,7 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 		switch {
 		case source.Ref != "":
 			fmt.Fprintf(out, "  Imports %s with ref, so update doesn't move it.\n", source.Ref)
-		case len(source.Rules) == 0:
+		case len(source.Rules) == 0 && source.SharedFiles == nil:
 			out.WriteString("  No rule updates.\n")
 		}
 		for _, row := range source.Rules {
@@ -260,6 +260,9 @@ func formatUpdatePreview(out *strings.Builder, sources []imports.SourceUpdate) {
 			for _, line := range updateDetails(row) {
 				fmt.Fprintf(out, "%s%s\n", indent, line)
 			}
+		}
+		if shared := source.SharedFiles; shared != nil {
+			fmt.Fprintf(out, "  Shared files: release %d -> %d\n", shared.From, shared.To)
 		}
 	}
 }

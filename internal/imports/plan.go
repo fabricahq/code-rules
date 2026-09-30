@@ -18,6 +18,7 @@ import (
 // importing it fetches the commits it names and reads their files.
 type sourcePlan struct {
 	// release is the library release that supplies the library-wide files, or 0 when ref isn't a library release.
+	// For a source without ref, it is never older than the library release of a rule the plan imports.
 	release int
 	commit  string
 	rules   map[string]library.ImportedRule
@@ -207,33 +208,60 @@ func (p *planner) planVersions() (sourcePlan, error) {
 	if err := p.requireEntries(&plan); err != nil {
 		return sourcePlan{}, err
 	}
-	return plan, p.libraryWideRelease(&plan, recorded)
+	if recorded == nil || len(chosen) > 0 || selectsMore(recorded, p.source) {
+		return plan, p.newestSharedFiles(&plan)
+	}
+	plan.release, plan.commit = recorded.Release, recorded.Commit
+	if plan.release == 0 {
+		// Only a removed ref that named a revision other than a library release records none.
+		return plan, p.newestSharedFiles(&plan)
+	}
+	raiseSharedFiles(&plan)
+	return plan, nil
 }
 
-// libraryWideRelease sets the library release that supplies the library-wide files of a plan for a source without
-// ref, whose ref names that revision instead: the newest library release among the plan's rule versions. A plan
-// that imports no rules keeps recorded's library release while the source selects what recorded did; otherwise, and
-// when recorded is nil, it gets the newest library release.
-func (p *planner) libraryWideRelease(plan *sourcePlan, recorded *library.Snapshot) error {
-	plan.release, plan.commit = 0, ""
-	for _, rule := range plan.rules {
-		if rule.Release > plan.release {
-			plan.release, plan.commit = rule.Release, rule.Commit
-		}
-	}
-	if plan.release != 0 {
-		return nil
-	}
-	if recorded != nil && recorded.Ref == "" && recorded.Release != 0 && sameGroupSelection(recorded.Selection, p.source.Groups) && slices.Equal(recorded.RuleSelection, p.source.Rules) {
-		plan.release, plan.commit = recorded.Release, recorded.Commit
-		return nil
-	}
+// newestSharedFiles takes the plan's library-wide files from the newest library release, which is at least as new
+// as every rule version.
+func (p *planner) newestSharedFiles(plan *sourcePlan) error {
 	history, err := p.versioned()
 	if err != nil {
 		return err
 	}
 	plan.release, plan.commit = history.newest().number, history.newest().commit
 	return nil
+}
+
+// raiseSharedFiles moves the plan's library-wide files to the newest library release among its rule versions when
+// that is newer, such as after a pin moved a rule up, because a rule version can rely on the shared files and group
+// metadata its own library release published.
+func raiseSharedFiles(plan *sourcePlan) {
+	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
+		if rule := plan.rules[id]; rule.Release > plan.release {
+			plan.release, plan.commit = rule.Release, rule.Commit
+		}
+	}
+}
+
+// selectsMore reports whether source selects a rule or group that recorded's selection didn't: an individually
+// selected rule recorded's lacks, a listed group recorded didn't import in full, or a wildcard wider than recorded's.
+func selectsMore(recorded *library.Snapshot, source rules.Source) bool {
+	for _, id := range source.Rules {
+		if !slices.Contains(recorded.RuleSelection, id) {
+			return true
+		}
+	}
+	if sameGroupSelection(recorded.Selection, source.Groups) {
+		return false
+	}
+	if source.Groups.Pattern != "" {
+		return recorded.Selection.Pattern != "*"
+	}
+	for _, group := range source.Groups.Groups {
+		if !slices.Contains(recorded.Groups, group) {
+			return true
+		}
+	}
+	return false
 }
 
 // planRevision plans a source that imports one revision with ref. A recorded snapshot of the same ref, however it

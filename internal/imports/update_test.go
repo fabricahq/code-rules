@@ -124,8 +124,8 @@ func TestPlanUpdate_KeptRulesStayAtTheirVersionsWhenPinned(t *testing.T) {
 	if want := map[string]string{"techs/go/a": "1.0.0@1", "techs/go/b": "1.0.0@1", "techs/go/d": "1.0.0@2"}; !reflect.DeepEqual(versions(installed.Snapshot), want) || len(installed.Warnings) != 0 {
 		t.Fatalf("installed %v, want %v; warnings %v", versions(installed.Snapshot), want, installed.Warnings)
 	}
-	if installed.Snapshot.Release != 2 {
-		t.Fatalf("library-wide files from release %d, want the newest among the imported versions, 2", installed.Snapshot.Release)
+	if installed.Snapshot.Release != 3 {
+		t.Fatalf("library-wide files from release %d, want the newest library release, 3, although no rule version comes from it", installed.Snapshot.Release)
 	}
 	// The next update lists both pins: the major change as pinned, and the retirement the pin keeps.
 	again, err := h.plan(t, kept, &installed.Snapshot)
@@ -252,6 +252,55 @@ func TestPlanUpdate_WarnsAboutEntriesTheUpdateLeavesNamingRetiredRules(t *testin
 	}
 	if len(update.Warnings) != 1 || !strings.HasPrefix(update.Warnings[0], "sources.team.exclude names techs/go/b") {
 		t.Fatalf("warnings %v", update.Warnings)
+	}
+}
+
+// TestPlanUpdate_SharedFilesFollowAFullUpdate publishes a library release that changes only a group description:
+// a full update moves the shared files to it without moving a rule, a scoped update and sync leave them, and a new
+// import takes them from it.
+func TestPlanUpdate_SharedFilesFollowAFullUpdate(t *testing.T) {
+	h := newHistory(t)
+	described := []byte(`{"name":"Group","description":"Rules, newly described.","whenToRead":"Always."}`)
+	h.release(t, 4, map[string][]byte{"techs/go/_group.yaml": described},
+		"formatVersion: 1\nrelease: 4\nrules:\n  techs/go/a: 2.0.0\n  techs/go/d: 1.0.0\n  practices/testing/c: 1.0.0\nchanges: {}\nlibraryFiles: [techs/go/_group.yaml]\n")
+	config := h.source(t, `"groups":["techs/go"]`)
+	recorded := h.record(t, config, 3, map[string]string{"techs/go/a": "2.0.0@3", "techs/go/d": "1.0.0@2"})
+
+	synced, err := h.sync(t, config, &recorded)
+	if err != nil || synced.Snapshot.Release != 3 || string(synced.Snapshot.Files["techs/go/_group.yaml"]) != string(groupMetadata) {
+		t.Fatalf("sync moved the shared files to release %d, %v", synced.Snapshot.Release, err)
+	}
+	scoped, err := h.plan(t, config, &recorded, UpdateTarget{Source: "team", Rule: "techs/go/a"})
+	if err != nil || scoped.Sources[0].SharedFiles != nil || h.install(t, scoped, config).Snapshot.Release != 3 {
+		t.Fatalf("a scoped update moved the shared files: %+v, %v", scoped.Sources, err)
+	}
+
+	update, err := h.plan(t, config, &recorded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if shared := update.Sources[0].SharedFiles; len(rows(update)) != 0 || shared == nil || *shared != (SharedFilesUpdate{From: 3, To: 4}) {
+		t.Fatalf("rows %q, shared files %+v; want only shared files from release 3 to 4", rows(update), shared)
+	}
+	installed := h.install(t, update, config)
+	if installed.Snapshot.Release != 4 || installed.Snapshot.Commit != h.commits[4] || string(installed.Snapshot.Files["techs/go/_group.yaml"]) != string(described) {
+		t.Fatalf("installed shared files from release %d: %q", installed.Snapshot.Release, installed.Snapshot.Files["techs/go/_group.yaml"])
+	}
+	if want := map[string]string{"techs/go/a": "2.0.0@3", "techs/go/d": "1.0.0@2"}; !reflect.DeepEqual(versions(installed.Snapshot), want) {
+		t.Fatalf("installed %v, want %v", versions(installed.Snapshot), want)
+	}
+	again, err := h.plan(t, config, &installed.Snapshot)
+	if err != nil || again.Sources[0].SharedFiles != nil || len(rows(again)) != 0 {
+		t.Fatalf("an update after the update still moves something: %+v, %v", again.Sources, err)
+	}
+
+	fresh, err := h.sync(t, config, nil)
+	if err != nil || fresh.Snapshot.Release != 4 || string(fresh.Snapshot.Files["techs/go/_group.yaml"]) != string(described) {
+		t.Fatalf("a new import took shared files from release %d, %v", fresh.Snapshot.Release, err)
+	}
+	selected, err := h.sync(t, h.source(t, `"groups":["techs/go","practices/testing"]`), &recorded)
+	if err != nil || selected.Snapshot.Release != 4 {
+		t.Fatalf("a newly selected group took shared files from release %d, %v", selected.Snapshot.Release, err)
 	}
 }
 
