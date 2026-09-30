@@ -50,10 +50,10 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 	repairs := map[string]bool{}
 	for _, problem := range result.Value.Problems {
 		kinds[problem.Kind] = problem.Path
-		if problem.Message == "" || problem.NextStep == "" {
+		if problem.Message == "" {
 			t.Fatal(problem)
 		}
-		repairs[problem.NextStep] = true
+		repairs[repairCommand(t, problem)] = true
 	}
 	want := map[string]string{
 		"missing_file":    "generated/groups/README.md",
@@ -78,7 +78,7 @@ func TestCheckReportsCurrentProblems(t *testing.T) {
 		t.Fatal(code, human, diagnostic)
 	}
 	for _, problem := range result.Value.Problems {
-		if !strings.Contains(human, problem.Message) || !strings.Contains(human, problem.NextStep) {
+		if !strings.Contains(human, problem.Message) || !strings.Contains(human, repairCommand(t, problem)) {
 			t.Fatal("human and JSON reports disagree", human, problem)
 		}
 	}
@@ -142,10 +142,10 @@ func TestGuideRepairFromSubdirectory(t *testing.T) {
 				t.Fatal(problem)
 			}
 			human, diagnostic, code := runCLI(t, binary, child, "project", "check")
-			if code != 1 || diagnostic != "" || !strings.Contains(human, problem.NextStep) {
+			if code != 1 || diagnostic != "" || !strings.Contains(human, repairCommand(t, problem)) {
 				t.Fatal(code, human, diagnostic)
 			}
-			script := strings.Replace(problem.NextStep, "code-rules", shellDirectory(binary), 1)
+			script := strings.Replace(repairCommand(t, problem), "code-rules", shellDirectory(binary), 1)
 			repair := func() ([]byte, error) {
 				cmd := exec.Command("/bin/sh", "-eu", "-c", script)
 				cmd.Dir = child
@@ -165,11 +165,20 @@ func TestGuideRepairFromSubdirectory(t *testing.T) {
 				}
 			}
 			if output, err := repair(); err != nil {
-				t.Fatal(problem.NextStep, err, string(output))
+				t.Fatal(repairCommand(t, problem), err, string(output))
 			}
 			if out, diagnostic, code := runCLI(t, binary, child, "project", "check"); code != 0 {
 				t.Fatal(code, out, diagnostic)
 			}
 		})
 	}
+}
+
+// repairCommand returns the one command of a check problem's one next step, failing the test for any other shape.
+func repairCommand(t *testing.T, problem checkProblem) string {
+	t.Helper()
+	if len(problem.NextSteps) != 1 || problem.NextSteps[0].Instruction == "" || len(problem.NextSteps[0].Commands) != 1 {
+		t.Fatalf("problem %+v: want one next step with one command", problem)
+	}
+	return problem.NextSteps[0].Commands[0]
 }

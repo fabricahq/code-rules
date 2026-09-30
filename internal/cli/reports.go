@@ -29,7 +29,6 @@ type nextStep struct {
 type authoringValue struct {
 	Files     []string   `json:"files"`
 	Warnings  []string   `json:"warnings,omitempty"`
-	Next      string     `json:"next"`
 	NextSteps []nextStep `json:"nextSteps"`
 }
 
@@ -50,7 +49,7 @@ func (s authoringScope) command(action string) string {
 	return command
 }
 
-// authoredReport renders each step once and uses the same text in the legacy next field.
+// authoredReport renders each next step once, after the report, and returns the steps in its value.
 func authoredReport(out *strings.Builder, files, warnings []string, steps []nextStep) commandReport {
 	var next strings.Builder
 	for _, step := range steps {
@@ -66,7 +65,7 @@ func authoredReport(out *strings.Builder, files, warnings []string, steps []next
 		out.WriteByte('\n')
 		out.WriteString(next.String())
 	}
-	return commandReport{value: authoringValue{files, warnings, strings.TrimSpace(next.String()), steps}, human: out.String()}
+	return commandReport{value: authoringValue{files, warnings, steps}, human: out.String()}
 }
 
 func projectInitializedReport(result project.AuthoringResult) commandReport {
@@ -223,7 +222,7 @@ func projectCheckedReport(result projectCheckResult) commandReport {
 		report.failure = &responseError{Kind: "out_of_date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
 		out.WriteString("Status: out of date.\nNo files were changed.\nPaths are relative to the Code Rules directory: .code-rules\n\nProblems:\n")
 		for _, problem := range result.Problems {
-			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, problem.NextStep)
+			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, strings.Join(problem.NextSteps[0].Commands, "; "))
 		}
 	}
 	report.human = out.String()

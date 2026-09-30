@@ -416,9 +416,23 @@ func reportsCheckProblems(data []byte) bool {
 		OK    bool
 		Value struct {
 			Status   string
-			Problems []struct{ Kind, Path, NextStep string }
+			Problems []struct {
+				Kind, Path string
+				NextSteps  []struct {
+					Instruction string
+					Commands    []string
+				}
+			}
 		}
 		Error struct{ Kind string }
 	}
-	return json.Unmarshal(data, &result) == nil && !result.OK && result.Error.Kind == "out_of_date" && result.Value.Status == "out_of_date" && len(result.Value.Problems) > 0
+	if json.Unmarshal(data, &result) != nil || result.OK || result.Error.Kind != "out_of_date" || result.Value.Status != "out_of_date" || len(result.Value.Problems) == 0 {
+		return false
+	}
+	for _, problem := range result.Value.Problems {
+		if len(problem.NextSteps) == 0 || len(problem.NextSteps[0].Commands) == 0 {
+			return false
+		}
+	}
+	return true
 }

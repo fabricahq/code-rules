@@ -79,7 +79,8 @@ func TestAuthoringReportSharesNextSteps(t *testing.T) {
 				if err := json.Unmarshal([]byte(results[1]), &result); err != nil {
 					t.Fatal(err)
 				}
-				if !result.OK || len(result.Value.NextSteps) == 0 || result.Value.Next == "" || !strings.Contains(results[0], result.Value.Next) {
+				// nextSteps replaced the legacy next text.
+				if !result.OK || len(result.Value.NextSteps) == 0 || strings.Contains(results[1], `"next":`) {
 					t.Fatal(results)
 				}
 				for _, step := range result.Value.NextSteps {
