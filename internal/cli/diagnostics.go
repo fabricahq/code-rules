@@ -22,7 +22,7 @@ func humanError(destination io.Writer, err error) string {
 	}
 	var validation *rules.ValidationError
 	if errors.As(err, &validation) && err == validation {
-		return fmt.Sprintf("\n%s %s\n\nLocation: %s\n", label, terminalText(validation.Problem), terminalText(validation.Location))
+		return fmt.Sprintf("%s %s\n\nLocation: %s\n", label, terminalText(validation.Problem), terminalText(validation.Location))
 	}
-	return fmt.Sprintf("\n%s %s\n", label, terminalText(err.Error()))
+	return fmt.Sprintf("%s %s\n", label, terminalText(err.Error()))
 }
