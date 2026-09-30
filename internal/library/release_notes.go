@@ -28,11 +28,11 @@ func releaseRules(record rules.ReleaseRecord) []PendingRule {
 	list := []PendingRule{}
 	for id, change := range record.Changes {
 		next := record.Rules[id]
-		list = append(list, PendingRule{ID: id, Change: change.Change, CurrentVersion: change.From, NextVersion: &next})
+		list = append(list, PendingRule{ID: id, Change: change.Change, From: change.From, To: &next, Summaries: slices.Clone(change.Summaries)})
 	}
 	for id, retired := range record.Retired {
 		last := retired.LastVersion
-		list = append(list, PendingRule{ID: id, Change: rules.ChangeRetired, CurrentVersion: &last, ReplacedBy: retired.ReplacedBy})
+		list = append(list, PendingRule{ID: id, Change: rules.ChangeRetired, LastVersion: &last, ReplacedBy: retired.ReplacedBy, Summaries: slices.Clone(retired.Summaries)})
 	}
 	slices.SortFunc(list, func(a, b PendingRule) int { return strings.Compare(a.ID, b.ID) })
 	return list

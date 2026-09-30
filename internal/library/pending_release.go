@@ -18,16 +18,21 @@ type PendingRelease struct {
 	Rules []PendingRule `json:"rules"`
 }
 
-// PendingRule is one rule's change in the next library release.
+// PendingRule is one rule's change in the next library release, named as the release record and the rows of
+// code-rules project update name them.
 type PendingRule struct {
 	ID     string       `json:"id"`
 	Change rules.Change `json:"change"`
-	// CurrentVersion is nil for a new rule.
-	CurrentVersion *rules.RuleVersion `json:"currentVersion,omitempty"`
-	// NextVersion is nil for a retired rule.
-	NextVersion *rules.RuleVersion `json:"nextVersion,omitempty"`
+	// From is the version the rule had before this library release; it is nil for a new or retired rule.
+	From *rules.RuleVersion `json:"from,omitempty"`
+	// To is the version this library release publishes; it is nil for a retired rule.
+	To *rules.RuleVersion `json:"to,omitempty"`
+	// LastVersion is a retired rule's final version, and nil for every other rule.
+	LastVersion *rules.RuleVersion `json:"lastVersion,omitempty"`
 	// ReplacedBy names a retired rule's replacement, when it has one.
 	ReplacedBy string `json:"replacedBy,omitempty"`
+	// Summaries holds one summary per change note that named the rule, in note order; it is never empty.
+	Summaries []string `json:"summaries"`
 }
 
 // pendingNote is a change note added since the latest library release.

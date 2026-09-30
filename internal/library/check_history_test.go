@@ -88,11 +88,14 @@ func previewRows(preview PendingRelease) []string {
 	rows := []string{}
 	for _, rule := range preview.Rules {
 		current, next := "-", "-"
-		if rule.CurrentVersion != nil {
-			current = rule.CurrentVersion.String()
+		if rule.From != nil {
+			current = rule.From.String()
 		}
-		if rule.NextVersion != nil {
-			next = rule.NextVersion.String()
+		if rule.LastVersion != nil {
+			current = rule.LastVersion.String()
+		}
+		if rule.To != nil {
+			next = rule.To.String()
 		}
 		row := rule.ID + " " + string(rule.Change) + " " + current + " " + next
 		if rule.ReplacedBy != "" {

@@ -83,7 +83,7 @@ func TestLibraryRelease_DryRunShowsTheLibraryReleaseAndChangesNothing(t *testing
 	for field, want := range map[string]string{
 		"repository": `"git@fixture.invalid:rules"`, "remote": `"origin"`, "branch": `"main"`, "commit": `"` + commit + `"`,
 		"dryRun": "true", "release": "2", "tag": `"release/2"`, "published": "false", "tagCreated": "false", "libraryFiles": "[]",
-		"rules": `[{"id":"practices/testing/a","change":"patch","currentVersion":"1.0.0","nextVersion":"1.0.1"}]`,
+		"rules": `[{"id":"practices/testing/a","change":"patch","from":"1.0.0","to":"1.0.1","summaries":["Clarify the retry-limit rule."]}]`,
 	} {
 		if got := compactJSON(t, response.Value[field]); got != want {
 			t.Errorf("%s: %s, want %s", field, got, want)

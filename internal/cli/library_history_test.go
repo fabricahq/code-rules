@@ -91,7 +91,7 @@ func TestLibraryCheck_PreviewsThePendingLibraryRelease(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" || !response.OK {
 		t.Fatal(err, code, out, diagnostic)
 	}
-	wantJSON := `{"release":2,"rules":[{"id":"practices/testing/a","change":"minor","currentVersion":"1.0.0","nextVersion":"1.1.0"},{"id":"practices/testing/retries","change":"new","nextVersion":"1.0.0"}]}`
+	wantJSON := `{"release":2,"rules":[{"id":"practices/testing/a","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Test one past the limit."]},{"id":"practices/testing/retries","change":"new","to":"1.0.0","summaries":["Add a rule about testing retries."]}]}`
 	if compact := compactJSON(t, response.Value.PendingRelease); compact != wantJSON {
 		t.Fatalf("pendingRelease %s, want %s", compact, wantJSON)
 	}

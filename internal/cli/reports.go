@@ -204,14 +204,14 @@ func libraryCheckedReport(result library.CheckResult) commandReport {
 // pendingVersions shows a pending rule's current and next version, or the only one it has.
 func pendingVersions(rule library.PendingRule) string {
 	switch {
-	case rule.CurrentVersion == nil:
-		return rule.NextVersion.String()
-	case rule.NextVersion == nil && rule.ReplacedBy != "":
-		return rule.CurrentVersion.String() + ", replaced by " + rule.ReplacedBy
-	case rule.NextVersion == nil:
-		return rule.CurrentVersion.String()
+	case rule.LastVersion != nil && rule.ReplacedBy != "":
+		return rule.LastVersion.String() + ", replaced by " + rule.ReplacedBy
+	case rule.LastVersion != nil:
+		return rule.LastVersion.String()
+	case rule.From == nil:
+		return rule.To.String()
 	}
-	return rule.CurrentVersion.String() + " -> " + rule.NextVersion.String()
+	return rule.From.String() + " -> " + rule.To.String()
 }
 
 func projectCheckedReport(result projectCheckResult) commandReport {
