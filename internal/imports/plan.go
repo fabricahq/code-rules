@@ -40,17 +40,8 @@ type planner struct {
 // only for new sources, changed repositories, newly selected rules, added or changed pins, and a changed ref.
 // Every commit the plan names is fetched when it returns.
 func planSource(ctx context.Context, repo *repository, source rules.Source, recorded *library.Snapshot) (sourcePlan, error) {
-	if recorded != nil && recorded.Repository != source.Repository {
-		recorded = nil
-	}
-	p := &planner{ctx: ctx, repo: repo, source: source, recorded: recorded}
-	var plan sourcePlan
-	var err error
-	if source.Ref != "" {
-		plan, err = p.planRevision()
-	} else {
-		plan, err = p.planVersions()
-	}
+	p := newPlanner(ctx, repo, source, recorded)
+	plan, err := p.choose()
 	if err != nil {
 		return sourcePlan{}, err
 	}
@@ -66,6 +57,23 @@ func planSource(ctx context.Context, repo *repository, source rules.Source, reco
 	}
 	slices.Sort(plan.individual)
 	return plan, nil
+}
+
+// newPlanner plans source against recorded, which it ignores when it records another repository.
+func newPlanner(ctx context.Context, repo *repository, source rules.Source, recorded *library.Snapshot) *planner {
+	if recorded != nil && recorded.Repository != source.Repository {
+		recorded = nil
+	}
+	return &planner{ctx: ctx, repo: repo, source: source, recorded: recorded}
+}
+
+// choose plans what the source imports as project sync does, without fetching the commits the plan names that
+// choosing didn't need.
+func (p *planner) choose() (sourcePlan, error) {
+	if p.source.Ref != "" {
+		return p.planRevision()
+	}
+	return p.planVersions()
 }
 
 // releases returns the library's release history, reading it on first use; it may be empty.

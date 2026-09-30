@@ -75,12 +75,42 @@ func (h releaseHistory) published(id string) []*libraryRelease {
 
 // retired reports whether any library release retired rule id.
 func (h releaseHistory) retired(id string) bool {
+	return h.retirement(id) != nil
+}
+
+// retirement returns how a library release retired rule id, or nil when none did.
+func (h releaseHistory) retirement(id string) *rules.RetiredRule {
 	for _, release := range h.releases {
-		if _, ok := release.record.Retired[id]; ok {
-			return true
+		if retired, ok := release.record.Retired[id]; ok {
+			return &retired
 		}
 	}
-	return false
+	return nil
+}
+
+// summaries returns, oldest first, the summary lines of every version of rule id newer than from, up to and
+// including to. A nil from includes every version up to to. The result is empty, never nil, when there are none.
+func (h releaseHistory) summaries(id string, from *rules.RuleVersion, to rules.RuleVersion) []string {
+	result := []string{}
+	for _, release := range h.releases {
+		change, changed := release.record.Changes[id]
+		version := release.record.Rules[id]
+		if changed && (from == nil || version.Compare(*from) > 0) && version.Compare(to) <= 0 {
+			result = append(result, summaryLines(change.Summary)...)
+		}
+	}
+	return result
+}
+
+// summaryLines splits a recorded summary, which holds one line per change note, into its nonblank lines.
+func summaryLines(summary string) []string {
+	lines := []string{}
+	for line := range strings.Lines(summary) {
+		if line = strings.TrimSpace(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return lines
 }
 
 // loadHistory lists the library's release/<number> tags, fetches them without history or blobs, and reads their
