@@ -34,7 +34,7 @@ In a Git repository, project commands find the nearest repository root and use i
 | --- | --- | --- |
 | `config.yaml` | Your selected libraries, groups, rules, pins, and exceptions. | Sync, build, and check read it without changing it. Update reads it, and writes a pin when you keep a rule at its current version, or an exclusion when you decline a new rule. |
 | `README.md` | The managed Code Rules guide. | Init, build, and sync refresh an older, unedited guide. Check verifies it without changing it. |
-| `local/` | Rules and replacements you author for this project. | Sync, build, and check preserve these files. |
+| `local/` | Rules and replacements you author for this project. | Sync, build, and check preserve these files. Sync and update add `local/<group-id>/_group.yaml` only when your local rules in a group would otherwise lose the group's metadata; see [Keep a local rule's group](#keep-a-local-rules-group). |
 | `vendor/` | Original files copied from the selected rule versions. | Sync and update replace this directory. Build and check validate it without changing it. |
 | `generated/` | Rules and reading indexes for your agents. | Sync, update, and build replace this directory. Check compares it with the expected output. |
 
@@ -52,7 +52,7 @@ code-rules project check --json
 
 Sync, update, and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`.
 
-- Sync and update paths start with `vendor/` or `generated/`. Update also lists `config.yaml` when it writes a pin or an exclusion.
+- Sync and update paths start with `vendor/` or `generated/`. Update also lists `config.yaml` when it writes a pin or an exclusion, and both list a `local/<group-id>/_group.yaml` they add.
 - Build paths are relative to `generated/`.
 
 `code-rules project update` also reports each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
@@ -86,9 +86,13 @@ Build and check work offline. They reject missing, changed, or unexpected import
 
 Checksums detect changes relative to the stored record. They cannot establish that files are authentic if someone also changed that record. For record fields and rule origins, see [Provenance](/reference/provenance/).
 
+## Keep a local rule's group
+
+A local rule needs its group's metadata, from `local/<group-id>/_group.yaml` or an imported library. Sometimes only an imported rule supplied it, such as when you [fork](/reference/cli/#fork-a-library-rule) an individually selected rule and the library later retires it. When a sync or update would leave your local rules in a group with no metadata, it writes the group's last imported `_group.yaml` to `local/<group-id>/_group.yaml` in the same step that replaces `vendor/` and `generated/`, lists the file as added, and prints a warning naming it. The file is then yours to edit like any local group metadata.
+
 ## Recover from an interrupted update
 
-Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml` in the same step, so recovery restores or finishes `config.yaml`, `vendor/`, and `generated/` together.
+Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml` in the same step, so recovery restores or finishes `config.yaml`, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `local/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`.
 
 If the update completed but cleanup was interrupted, the next sync or build finishes deleting the backups. The completed update remains complete.
 

@@ -276,7 +276,7 @@ A local `_group.yaml` defines a group, including an empty group, without any con
 If local metadata exists for an imported group, its complete description and reading cues take precedence for project discovery.
 Otherwise, descriptions from every contributing library remain source-labeled.
 Provenance retains all group metadata and identifies the sources supplying the effective discovery guidance.
-Local rules without either local or imported group metadata are errors, with the missing `_group.yaml` path in the diagnostic.
+Local rules without either local or imported group metadata are errors, with the missing `_group.yaml` path in the diagnostic. When a sync or update removes the last import supplying a local rule's group, it writes the group's last imported metadata to `local/<group-id>/_group.yaml` instead of failing; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group).
 The root `local/README.md` and each group-root `README.md` are authoring documentation, not rules; other misplaced Markdown files are still validated.
 
 The generated index shows group names, applicability guidance, and explicit **Open group** links. Without local metadata, guidance from multiple libraries remains labeled by source.

@@ -415,6 +415,55 @@ func TestFork_KeepsTheLibrarysGroupDescription(t *testing.T) {
 	}
 }
 
+// TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds forks an individually selected rule, whose import alone
+// supplies the group's metadata, then updates past the rule's retirement: the update applies, writes the group's
+// last imported metadata to local/ in the same transaction, says so, and the fork still builds.
+func TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds(t *testing.T) {
+	f := newForkFixture(t, "")
+	ctx := context.Background()
+	root, err := openProject(ctx, f.options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	writeFixture(t, root, configurationFile, "schemaVersion: 1\nsources:\n  team:\n    repository: "+f.fixture.Repository+"\n    rules:\n      - techs/go/errors\n")
+	if _, err := Sync(ctx, f.options, f.git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.fork(t, "techs/go/errors", "team@1.1.0", "Ours."); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Build(ctx, f.options); err != nil {
+		t.Fatal(err)
+	}
+	library := f.fixture
+	if _, err := library.Commit(ctx, library.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/notes.md": nil, "techs/go/assets/errors/data.bin": nil}); err != nil {
+		t.Fatal(err)
+	}
+	if err := library.Release(ctx, 3, "release: 3\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/licensed: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summary: No longer recommended.}\n"); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanUpdate(ctx, f.options, f.git, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	applied, err := plan.Apply(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	metadata := "local/techs/go/_group.yaml"
+	if !slices.Contains(applied.Added, metadata) || !slices.ContainsFunc(applied.Warnings, func(warning string) bool { return strings.HasPrefix(warning, "Wrote "+metadata) }) {
+		t.Fatalf("added %v, warnings %v", applied.Added, applied.Warnings)
+	}
+	if got := string(f.files(t)[metadata]); got != "# Go metadata.\n"+projectMetadata+"\n" {
+		t.Fatalf("metadata %q", got)
+	}
+	if page := string(f.files(t)["generated/groups/techs/go.md"]); !strings.Contains(page, "Go guidance.") || !strings.Contains(page, "local/techs/go/errors") {
+		t.Fatalf("group page:\n%s", page)
+	}
+	requireCurrent(t, f.options)
+}
+
 // TestFork_OfASelectedRuleNeedsASyncedRecord refuses, before reading the library, to fork a rule the source
 // selects when the project hasn't synced the source's current configuration, since whether it imports the rule
 // isn't known.

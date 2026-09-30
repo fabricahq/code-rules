@@ -124,7 +124,7 @@ The first updates only the `team` library. The second moves only that rule; noth
 
 A retired rule appears in the preview with its last version, the summary explaining why, and its replacement if it has one. When you confirm, the rule is dropped. For a rule with a replacement, read the replacement, and check that you import its group.
 
-To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it.
+To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only import supplying its group's metadata, the update writes that metadata to `local/<group-id>/_group.yaml` so the fork keeps its group.
 
 ## Import one library release
 
@@ -158,8 +158,7 @@ Edit the relevant `sources.<name>.groups` or `sources.<name>.rules` and run `cod
 `code-rules project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
-Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.yaml` exists.
-If it already exists, keep the local files unchanged. Otherwise author group metadata, or move or remove the local rules.
+When you deselect the last library supplying a local rule's group, sync writes the group's last imported metadata to `local/<group-id>/_group.yaml` and warns that it did; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group). Review that file, or author your own metadata first.
 
 ## Recover from a failed update
 

@@ -5,8 +5,11 @@ package project
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
+	"path"
 	"slices"
+	"strings"
 
 	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/filetxn"
@@ -17,7 +20,8 @@ import (
 
 // Sync imports the rule versions each source's snapshot records, choosing versions only where configuration asks
 // for something a snapshot doesn't have, then validates and renders everything before replacing managed trees.
-// Git settings are trusted caller options. Any failure returns no change report; authored files stay untouched.
+// Git settings are trusted caller options. Any failure returns no change report. Authored files stay untouched,
+// except that it adds the metadata of a group whose local rules would otherwise lose it, as install does.
 func Sync(ctx context.Context, options Options, git imports.Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
@@ -63,8 +67,10 @@ type installation struct {
 
 // install imports every source of the installation's configuration from its recorded snapshots, renders the
 // project, and replaces vendor and generated output, an older managed guide, and config.yaml when edited, in one
-// transaction of w. before is the project as read under w; any change to it before replacement fails with
-// concurrent-change. The report lists vendor and generated paths, and config.yaml when edited.
+// transaction of w. When local rules would lose the only imported copy of their group's metadata, the transaction
+// also writes that copy to local/<group>/_group.yaml, with a warning. before is the project as read under w; any
+// change to it before replacement fails with concurrent-change. The report lists vendor and generated paths,
+// config.yaml when edited, and local group metadata it adds.
 func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before projectState, in installation) (FileChanges, error) {
 	imported, err := imports.ImportLibraries(ctx, in.config, in.recorded, in.git)
 	if err != nil {
@@ -83,17 +89,32 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	if err != nil {
 		return FileChanges{}, err
 	}
+	kept := keptGroupMetadata(in.config, before, imported)
 	state := before
 	state.config = in.config
+	if len(kept) > 0 {
+		local := maps.Clone(treeFiles(before.local))
+		for group, data := range kept {
+			local[group+"/_group.yaml"] = data
+		}
+		state.local = &filetxn.Tree{Files: local}
+	}
 	output, err := renderProject(ctx, state, libraries, in.options)
 	if err != nil {
 		return FileChanges{}, err
 	}
 	changes := compareFiles(managedFiles(treeFiles(before.vendor), treeFiles(before.generated)), managedFiles(vendor, output.Files))
+	targets := map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}
+	for _, group := range slices.Sorted(maps.Keys(kept)) {
+		file := path.Join("local", group, "_group.yaml")
+		targets[filetxn.LocalGroupMetadata(group)] = map[string][]byte{file: kept[group]}
+		changes.Added = append(changes.Added, file)
+		warnings = append(warnings, fmt.Sprintf("Wrote %s, the metadata of group %s from the library that last supplied it, because your local rules in the group need it and no imported rule supplies it anymore. It's now yours to edit.", file, group))
+	}
+	slices.Sort(changes.Added)
 	if len(warnings) > 0 {
 		changes.Warnings = warnings
 	}
-	targets := map[filetxn.Target]map[string][]byte{filetxn.Vendor: vendor, filetxn.Generated: output.Files}
 	if in.edited != nil {
 		targets[filetxn.Config] = map[string][]byte{configurationFile: in.edited}
 		changes.Changed = append(changes.Changed, configurationFile)
@@ -110,6 +131,39 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 		return FileChanges{}, err
 	}
 	return changes, nil
+}
+
+// keptGroupMetadata returns, by group ID, the metadata to write to local/ for each group whose local rules would
+// otherwise have none: the project has no local metadata for it, no source now imports it, and a source configured
+// before supplied it, as its vendored copy shows. Each copy comes from the first such source in configuration
+// order. It is empty, never nil, when no group needs one.
+func keptGroupMetadata(config rules.Configuration, before projectState, imported map[string]imports.Library) map[string][]byte {
+	local := treeFiles(before.local)
+	supplied := map[string]bool{}
+	for _, source := range config.Sources {
+		for _, group := range imported[source.Name].Catalog.Groups {
+			supplied[group.ID] = true
+		}
+	}
+	vendored := treeFiles(before.vendor)
+	kept := map[string][]byte{}
+	for file := range local {
+		id, versioned := rules.VersionedRule(file)
+		if !versioned || file != id+".md" {
+			continue
+		}
+		group := strings.Join(strings.SplitN(id, "/", 3)[:2], "/")
+		if _, ok := local[group+"/_group.yaml"]; ok || supplied[group] || kept[group] != nil {
+			continue
+		}
+		for _, source := range before.config.Sources {
+			if data, ok := vendored[source.Name+"/"+group+"/_group.yaml"]; ok {
+				kept[group] = data
+				break
+			}
+		}
+	}
+	return kept
 }
 
 // managedFiles prefixes source-relative and generated-relative paths for an unambiguous combined change report.
