@@ -116,7 +116,7 @@ func TestLibraryRelease_PublishesTheTagAndGitHubReleasePage(t *testing.T) {
 	auth := ghfixture.Response{Args: []string{"auth", "status", "--hostname", "github.com"}}
 	view := []string{"release", "view", "release/2", "--repo", "github.com/acme/rules", "--json", "url", "--jq", ".url"}
 	page := "https://github.com/acme/rules/releases/tag/release/2"
-	environment, fake := releaseEnvironment(t, fixture, []ghfixture.Response{auth, {Args: view, ExitCode: 1},
+	environment, fake := releaseEnvironment(t, fixture, []ghfixture.Response{auth, {Args: view, Stderr: "release not found\n", ExitCode: 1},
 		{Args: []string{"release", "create", "release/2", "--repo", "github.com/acme/rules", "--verify-tag", "--title", "release/2", "--notes-file", "-"}, Stdout: page + "\n"}})
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, environment, "library", "release")
 	want := "Published library release 2.\n  Repository:          https://github.com/acme/rules\n  Branch:              main\n  Commit:              " + commit + "\n  Tag:                 release/2 (created and pushed to origin)\n  GitHub Release page: " + page + " (created)\nWarning: License is undeclared. Decide terms before sharing this library.\n\nRules:\n  practices/testing/a  patch  1.0.0 -> 1.0.1\n"

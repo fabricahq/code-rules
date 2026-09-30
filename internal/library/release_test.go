@@ -100,7 +100,7 @@ func withFakeGitHubCLI(t *testing.T, options *Options, responses []ghfixture.Res
 func gitHubCalls(tag string, code int) []ghfixture.Response {
 	return []ghfixture.Response{
 		{Args: []string{"auth", "status", "--hostname", "github.com"}},
-		{Args: []string{"release", "view", tag, "--repo", "github.com/acme/rules", "--json", "url", "--jq", ".url"}, ExitCode: 1},
+		{Args: []string{"release", "view", tag, "--repo", "github.com/acme/rules", "--json", "url", "--jq", ".url"}, Stderr: "release not found\n", ExitCode: 1},
 		{Args: []string{"release", "create", tag, "--repo", "github.com/acme/rules", "--verify-tag", "--title", tag, "--notes-file", "-"}, Stdout: "https://github.com/acme/rules/releases/tag/" + tag + "\n", ExitCode: code},
 	}
 }
@@ -421,6 +421,20 @@ func TestRelease_CreatesTheGitHubReleasePageAndFinishesAfterItFails(t *testing.T
 		t.Fatal(result, err)
 	}
 	requireCalls(t, fake, []ghfixture.Call{{Args: calls[0].Args}, {Args: calls[1].Args}})
+}
+
+// TestRelease_FailsWithoutCreatingAPageGHCouldNotLookUp treats only gh's "release not found" as a missing page,
+// so an API failure never leads to creating a second page.
+func TestRelease_FailsWithoutCreatingAPageGHCouldNotLookUp(t *testing.T) {
+	fixture, options := authorClone(t, libraryFiles())
+	responses := gitHubCalls("release/1", 0)
+	responses[1].Stderr = "HTTP 502: Bad Gateway (https://api.github.com/repos/acme/rules/releases/tags/release/1)\n"
+	fake := withGitHub(t, fixture, &options, responses)
+	_, err := Release(context.Background(), ReleaseRequest{Options: options})
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1 (HTTP 502: Bad Gateway") {
+		t.Fatal(err)
+	}
+	requireCalls(t, fake, []ghfixture.Call{{Args: responses[0].Args}, {Args: responses[1].Args}})
 }
 
 // TestRelease_SkipsTheGitHubReleasePageWhenAsked publishes the tag without calling gh.

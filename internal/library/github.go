@@ -84,14 +84,27 @@ func findGitHubCLI(ctx context.Context, environment []string, dir string) (gitHu
 	return cli, nil
 }
 
-// releasePage returns the URL of tag's GitHub Release page in repository, or false when gh can't show one,
-// usually because it doesn't exist yet.
+// releaseNotFound is how gh reports that a repository has no GitHub Release page for a tag.
+const releaseNotFound = "release not found"
+
+// releasePage returns the URL of tag's GitHub Release page in repository, or false when gh reports that it
+// doesn't exist. Any other failure, such as an API error, fails with github-release-failed, so a page that
+// can't be read is never created again.
 func (c gitHubCLI) releasePage(ctx context.Context, repository, tag string) (string, bool, error) {
-	stdout, _, status, err := c.run(ctx, "", "release", "view", tag, "--repo", "github.com/"+repository, "--json", "url", "--jq", ".url")
-	if err != nil || status != 0 {
+	stdout, stderr, status, err := c.run(ctx, "", "release", "view", tag, "--repo", "github.com/"+repository, "--json", "url", "--jq", ".url")
+	switch {
+	case err != nil:
 		return "", false, err
+	case status == 0:
+		return strings.TrimSpace(stdout), true, nil
+	case strings.Contains(stderr, releaseNotFound):
+		return "", false, nil
 	}
-	return strings.TrimSpace(stdout), true, nil
+	problem := "the GitHub CLI couldn't look up the GitHub Release page for " + tag
+	if reason := diagnosticLine(stderr); reason != "" {
+		problem += " (" + reason + ")"
+	}
+	return "", false, failure("github-release-failed", problem+". The tag is published; run code-rules library release again to finish.", nil)
 }
 
 // createReleasePage creates tag's GitHub Release page in repository, titled with the tag and with notes as its
