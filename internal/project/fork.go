@@ -298,8 +298,8 @@ func forkFiles(id string, published imports.PublishedRule, attribution *rules.At
 }
 
 // relocateLinks returns the Markdown text of the file moving from from to to, with each local link rewritten as a
-// relative link when its destination moves or the file itself moves. Self-links, external links, and other links
-// keep their original text.
+// relative link when its destination moves or the file itself moves, including links that name the file itself.
+// Pathless links, such as #top, external links, and other links keep their original text.
 func relocateLinks(text, from, to string, moved map[string]string) (string, error) {
 	start := rules.MarkdownBodyStart(text)
 	destinations, err := rules.MarkdownDestinations(text[start:])
@@ -312,7 +312,8 @@ func relocateLinks(text, from, to string, moved map[string]string) (string, erro
 		if err != nil {
 			return "", err
 		}
-		if !local || target == from {
+		// A pathless link, such as #top, reaches its own document wherever the document moves.
+		if !local || strings.IndexAny(destination.Value, "?#") == 0 || destination.Value == "" {
 			continue
 		}
 		relocated, ok := moved[target]

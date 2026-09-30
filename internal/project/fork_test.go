@@ -351,6 +351,19 @@ func message(want string) func(error) bool {
 	return func(err error) bool { return strings.Contains(err.Error(), want) }
 }
 
+// TestForkFiles_RelocatesExplicitSelfLinks rewrites a moved shared asset's root-relative and relative links to
+// itself, and keeps its pathless ones.
+func TestForkFiles_RelocatesExplicitSelfLinks(t *testing.T) {
+	published := imports.PublishedRule{Release: 1, Commit: "0123456789abcdef0123456789abcdef01234567", Files: map[string][]byte{
+		"techs/go/errors.md": []byte(forkedRule("See [the guide](../../assets/guide.md).")),
+		"assets/guide.md":    []byte("[Root](/assets/guide.md#top) [Relative](../assets/guide.md) [Here](#top)\n"),
+	}}
+	files, err := forkFiles("techs/go/errors", published, nil)
+	if want := "[Root](guide.md#top) [Relative](guide.md) [Here](#top)\n"; err != nil || string(files["techs/go/assets/errors/guide.md"]) != want {
+		t.Fatalf("got %q, %v; want %q", files["techs/go/assets/errors/guide.md"], err, want)
+	}
+}
+
 // TestForkFiles_RewritesLinksInDocumentOrder rewrites a reference link that precedes an inline link, and an image
 // nested in a link, whose destinations the Markdown tree lists out of document order.
 func TestForkFiles_RewritesLinksInDocumentOrder(t *testing.T) {
