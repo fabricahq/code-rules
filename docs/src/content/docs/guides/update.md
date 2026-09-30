@@ -158,7 +158,7 @@ Edit the relevant `sources.<name>.groups` or `sources.<name>.rules` and run `cod
 `code-rules project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
-When you deselect the last library supplying a local rule's group, sync writes the group's last imported metadata to `local/<group-id>/_group.yaml` and warns that it did; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group). Review that file, or author your own metadata first.
+You don't need to create group metadata before deselecting, or removing, the last library supplying a local rule's group: sync writes the group's last imported metadata, from that library's copy in `vendor/`, to `local/<group-id>/_group.yaml` and warns that it did. See [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group). Review the file afterward; it's now yours to edit. If `local/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
 
 ## Recover from a failed update
 
