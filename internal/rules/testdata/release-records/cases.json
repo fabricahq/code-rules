@@ -651,5 +651,99 @@
         "message": "release/2.changes.practices/testing/verify-retry-limits.summaries[0]: expected text without control characters, such as tabs or escape sequences"
       }
     }
+  },
+  {
+    "id": "unknown-fields-with-implicit-types-are-ignored",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries:\n      - Require a test at the limit.\n    reviewedAt: 2026-09-30T12:00:00Z\n    score: -.inf\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summaries:\n      - Covered elsewhere.\n    retiredOn: 2026-09-30\npublishedAt: 2026-09-30T12:00:00Z\nweight: .inf\nlater:\n  when: 2026-09-30\n  ratio: .nan\n",
+    "expected": {
+      "ok": true,
+      "notes": "Notes.",
+      "value": {
+        "release": 2,
+        "rules": {
+          "practices/testing/verify-retry-limits": "2.0.0"
+        },
+        "changes": {
+          "practices/testing/verify-retry-limits": {
+            "change": "major",
+            "from": "1.3.0",
+            "summaries": [
+              "Require a test at the limit."
+            ]
+          }
+        },
+        "retired": {
+          "practices/testing/old": {
+            "lastVersion": "1.0.0",
+            "summaries": [
+              "Covered elsewhere."
+            ]
+          }
+        },
+        "libraryFiles": []
+      }
+    }
+  },
+  {
+    "id": "newer-format-with-implicit-types",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 2\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries:\n      - Require a test at the limit.\n    reviewedAt: 2026-09-30T12:00:00Z\n    score: -.inf\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summaries:\n      - Covered elsewhere.\n    retiredOn: 2026-09-30\npublishedAt: 2026-09-30T12:00:00Z\nweight: .inf\nlater:\n  when: 2026-09-30\n  ratio: .nan\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "kind": "unsupported",
+        "location": "release/2.formatVersion",
+        "message": "release/2.formatVersion: the release record uses format 2, but this version of Code Rules reads only format 1; upgrade Code Rules to read this library release"
+      }
+    }
+  },
+  {
+    "id": "known-field-with-an-implicit-timestamp",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries:\n      - 2026-09-30T12:00:00Z\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summaries:\n      - Covered elsewhere.\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/2.changes.practices/testing/verify-retry-limits.summaries",
+        "message": "release/2.changes.practices/testing/verify-retry-limits.summaries: unsupported YAML value; quote strings such as dates and wildcard selectors"
+      }
+    }
+  },
+  {
+    "id": "anchor-in-an-unknown-field",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries:\n      - Require a test at the limit.\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summaries:\n      - Covered elsewhere.\nlater: &shared {when: soon}\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/2.later",
+        "message": "release/2.later: anchors, aliases, and explicit tags are not supported"
+      }
+    }
+  },
+  {
+    "id": "duplicate-key-in-an-unknown-field",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries:\n      - Require a test at the limit.\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summaries:\n      - Covered elsewhere.\nlater:\n  when: soon\n  when: later\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/2.later.when",
+        "message": "release/2.later.when: duplicate field"
+      }
+    }
+  },
+  {
+    "id": "explicit-tag-in-an-unknown-entry-field",
+    "tag": "release/2",
+    "message": "Notes.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/verify-retry-limits: 2.0.0\nchanges:\n  practices/testing/verify-retry-limits:\n    change: major\n    from: 1.3.0\n    summaries:\n      - Require a test at the limit.\n    reviewedAt: !!timestamp 2026-09-30\nretired:\n  practices/testing/old:\n    lastVersion: 1.0.0\n    summaries:\n      - Covered elsewhere.\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "release/2.changes.practices/testing/verify-retry-limits.reviewedAt",
+        "message": "release/2.changes.practices/testing/verify-retry-limits.reviewedAt: anchors, aliases, and explicit tags are not supported"
+      }
+    }
   }
 ]

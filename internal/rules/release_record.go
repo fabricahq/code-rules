@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+
+	"go.yaml.in/yaml/v4"
 )
 
 // ReleaseRecord is the permanent record of one library release, read from its release/<number> tag.
@@ -159,15 +161,25 @@ func ParseReleaseTagObject(tag string, object []byte) (string, ReleaseRecord, er
 // formatVersion above ReleaseRecordFormat fails with *UnsupportedReleaseRecordError; a missing or invalid one
 // with *ValidationError.
 func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
-	_, data, err := authoredYAML(input, location)
+	document, err := authoredDocument(input, location)
 	if err != nil {
 		return ReleaseRecord{}, err
 	}
-	fields, err := jsonObject(data, location)
-	if err != nil {
+	root := document.Content[0]
+	if root.Kind != yaml.MappingNode {
+		return ReleaseRecord{}, invalid(location, "expected an object")
+	}
+	// The format comes first: a later format may hold content this version can't interpret at all.
+	var format json.RawMessage
+	if node := field(root, "formatVersion"); node != nil {
+		// A value that isn't a plain scalar leaves format empty, which recordFormat reports as invalid.
+		format, _ = strictJSON(node, location+".formatVersion")
+	}
+	if err := recordFormat(format, location+".formatVersion"); err != nil {
 		return ReleaseRecord{}, err
 	}
-	if err := recordFormat(fields["formatVersion"], location+".formatVersion"); err != nil {
+	fields, err := knownFields(root, location, map[string][]string{"release": nil, "rules": nil, "libraryFiles": nil, "changes": {"change", "from", "summaries"}, "retired": {"lastVersion", "replacedBy", "summaries"}})
+	if err != nil {
 		return ReleaseRecord{}, err
 	}
 	record := ReleaseRecord{Changes: map[string]RecordedChange{}, Retired: map[string]RetiredRule{}, LibraryFiles: []string{}}
@@ -198,6 +210,71 @@ func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
 		}
 	}
 	return record, nil
+}
+
+// field returns the value of mapping's field name, or nil when it has none.
+func field(mapping *yaml.Node, name string) *yaml.Node {
+	for i := 0; i+1 < len(mapping.Content); i += 2 {
+		if key := mapping.Content[i]; key.Tag == "!!str" && key.Value == name {
+			return mapping.Content[i+1]
+		}
+	}
+	return nil
+}
+
+// knownFields converts to JSON, strictly, the fields of mapping that known names, in document order, and ignores
+// every other field, whatever its value. A known field with entry field names holds a mapping from IDs to entries,
+// whose named fields are converted the same way; an entry, or a known field, of any other shape converts whole,
+// so its validator reports the wrong type.
+func knownFields(mapping *yaml.Node, location string, known map[string][]string) (map[string]json.RawMessage, error) {
+	fields := map[string]json.RawMessage{}
+	for i := 0; i+1 < len(mapping.Content); i += 2 {
+		key, value := mapping.Content[i], mapping.Content[i+1]
+		entryFields, isKnown := known[key.Value]
+		if key.Tag != "!!str" || !isKnown {
+			continue
+		}
+		where := location + "." + key.Value
+		var err error
+		if entryFields == nil || value.Kind != yaml.MappingNode {
+			fields[key.Value], err = strictJSON(value, where)
+		} else {
+			fields[key.Value], err = knownEntries(value, where, entryFields)
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return fields, nil
+}
+
+// knownEntries converts a mapping from IDs to entries to a JSON object, keeping only each entry's named fields.
+func knownEntries(mapping *yaml.Node, location string, names []string) (json.RawMessage, error) {
+	entries := map[string]json.RawMessage{}
+	for i := 0; i+1 < len(mapping.Content); i += 2 {
+		key, value := mapping.Content[i], mapping.Content[i+1]
+		if key.Tag != "!!str" {
+			return nil, invalid(location, "mapping keys must be strings; quote wildcard selectors")
+		}
+		where := location + "." + key.Value
+		var err error
+		if value.Kind != yaml.MappingNode {
+			entries[key.Value], err = strictJSON(value, where)
+		} else {
+			known := map[string][]string{}
+			for _, name := range names {
+				known[name] = nil
+			}
+			var fields map[string]json.RawMessage
+			if fields, err = knownFields(value, where, known); err == nil {
+				entries[key.Value], err = json.Marshal(fields)
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return json.Marshal(entries)
 }
 
 // requireFirstRelease requires the first library release to publish every rule as new, so each rule's history
