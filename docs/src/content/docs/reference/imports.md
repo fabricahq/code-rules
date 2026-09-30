@@ -182,4 +182,4 @@ When Code Rules can't read the library's repository, it can report:
 | `object-fetch-refused` | The server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; a self-hosted server needs Git protocol version 2 or `uploadpack.allowAnySHA1InWant`. |
 | `git-failed` | Another Git failure. The message quotes Git's last error line. |
 
-Messages that quote Git replace credentials, such as a password in the repository address or a token, with `[redacted]`.
+Messages that quote Git replace credentials, such as a password in the repository address or a token, with `[redacted]`, and quote nothing when a known password or token is wrapped across Git's lines.

@@ -7,9 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -38,6 +40,29 @@ func TestGitFailure_ExplainsTheCauseFromGitsDiagnostics(t *testing.T) {
 	}
 	requireCode(t, repo.remoteFailure([]byte("remote: Repository not found.\nfatal: repository 'https://example.com/acme/rules.git/' not found\n")), "not-found-or-no-access")
 	requireCode(t, repo.remoteFailure([]byte("fatal: unable to access 'https://example.com/': Could not resolve host: example.com\n")), "connection-failed")
+}
+
+// TestGitFailure_QuotesNoKnownCredentialHoweverItIsSplit: a token split by a control character is redacted after
+// the control character goes, and a token wrapped across lines withholds Git's text rather than quote a fragment.
+func TestGitFailure_QuotesNoKnownCredentialHoweverItIsSplit(t *testing.T) {
+	runner, err := gitexec.Isolated(gitexec.Options{Environment: []string{"PATH=" + os.Getenv("PATH"), "GH_TOKEN=opaque-secret-value"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := &repository{url: "https://reader:pw@example.com/acme/rules.git", runner: runner}
+	for _, diagnostics := range []string{
+		"fatal: token opaque-\tsecret-value rejected\n",
+		"error: token opaque-\nfatal: secret-value rejected\n",
+		"fatal: password pw rejected\n",
+		"fatal: unable to access 'https://example.com/': Could not resolve host: opaque-\x1bsecret-value\n",
+	} {
+		err := repo.gitFailure("git-failed", "Could not read library files.", []byte(diagnostics))
+		for _, fragment := range []string{"opaque", "secret-value", " pw "} {
+			if strings.Contains(err.Error(), fragment) {
+				t.Errorf("diagnostics %q: the failure quotes %q: %v", diagnostics, fragment, err)
+			}
+		}
+	}
 }
 
 // TestImport_ReportsAHostItCantConnectToApartFromAMissingRepository syncs a source whose host refuses connections,

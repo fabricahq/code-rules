@@ -12,8 +12,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -534,52 +534,68 @@ const (
 
 // serverRejection returns the server's reason for refusing a push, from Git's diagnostics: the lines a server
 // hook printed, which Git prefixes with remote:, and each ! [remote rejected] line, which names the ref and the
-// server's reason. Git's other diagnostics can hold the remote's URL with credentials, so they stay hidden, and
-// credentials are redacted from the lines shown. It returns at most maxRejectionLines lines, each indented and at
-// most maxRejectionLineRunes long, or "" when the server gave no reason, such as when the push never reached it.
+// server's reason. Git's other diagnostics can hold the remote's URL with credentials, so they stay hidden. The
+// server's lines go through gitexec's Lines as a whole, before any is selected or cut: when they hold a known
+// password or token, on one line or across lines, they're withheld, with a note saying so, since a credential
+// the server wrapped or split can't be redacted reliably. Other credential formats are redacted. It returns at most
+// maxRejectionLines lines, each indented and at most maxRejectionLineRunes long, or "" when the server gave no
+// reason, such as when the push never reached it.
 func (g *libraryGit) serverRejection(diagnostics []byte, u upstream) string {
-	lines := []string{}
+	var remote, rejected []string
 	for _, line := range strings.FieldsFunc(string(diagnostics), func(r rune) bool { return r == '\n' || r == '\r' }) {
 		line = strings.TrimSpace(line)
-		text, remote := strings.CutPrefix(line, "remote:")
-		if remote && strings.TrimSpace(text) == "" || !remote && !strings.HasPrefix(line, "! [remote rejected]") {
-			continue
+		if text, ok := strings.CutPrefix(line, "remote:"); ok {
+			remote = append(remote, text)
+		} else if strings.HasPrefix(line, "! [remote rejected]") {
+			rejected = append(rejected, line)
 		}
-		if len(lines) == maxRejectionLines {
-			lines = append(lines, "  ...")
-			break
+	}
+	credentials := g.runner.Credentials(u.url, u.pushURL)
+	remote, known, _ := credentials.Lines(remote)
+	rejected, _, split := credentials.Lines(rejected)
+	lines := []string{}
+	if !known {
+		for _, text := range remote {
+			if text != "" {
+				lines = append(lines, "remote: "+text)
+			}
 		}
-		line = g.runner.Redact(line, u.url, u.pushURL)
-		if runes := []rune(line); len(runes) > maxRejectionLineRunes {
-			line = string(runes[:maxRejectionLineRunes]) + "..."
-		}
-		lines = append(lines, "  "+line)
+	}
+	if !split {
+		lines = append(lines, rejected...)
+	}
+	if len(lines) > maxRejectionLines {
+		lines = append(lines[:maxRejectionLines], "...")
+	}
+	for i, line := range lines {
+		lines[i] = "  " + gitexec.Shorten(line, maxRejectionLineRunes)
+	}
+	if known && len(remote) > 0 {
+		lines = append(lines, withheldServerMessage)
 	}
 	return strings.Join(lines, "\n")
 }
 
+// withheldServerMessage stands in for a refused push's remote: lines that held a known credential.
+const withheldServerMessage = "  The server's messages were withheld, because they contained a credential."
+
 // gitReason returns Git's first fatal: or error: line from diagnostics, usually the most specific, as
-// " (Git: reason)", with credentials redacted, control characters removed, and at most maxRejectionLineRunes long,
-// or "" when there is none.
+// " (Git: reason)", made safe by gitexec's Lines and at most maxRejectionLineRunes long, or "" when there is none,
+// or when a known password or token spans lines of the diagnostics.
 func (g *libraryGit) gitReason(diagnostics []byte, u upstream) string {
-	for line := range strings.SplitSeq(string(diagnostics), "\n") {
-		line = strings.TrimSpace(line)
-		reason, fatal := strings.CutPrefix(line, "fatal:")
-		if !fatal {
-			if reason, fatal = strings.CutPrefix(line, "error:"); !fatal {
-				continue
-			}
+	lines := strings.Split(string(diagnostics), "\n")
+	prefixes := make([]string, len(lines))
+	for i, line := range lines {
+		lines[i], prefixes[i] = gitexec.WithoutPrefix(line)
+	}
+	lines, _, split := g.runner.Credentials(u.url, u.pushURL).Lines(lines)
+	if split {
+		return ""
+	}
+	for i, reason := range lines {
+		if prefixes[i] == "fatal:" || prefixes[i] == "error:" {
+			return " (Git: " + strings.TrimRight(gitexec.Shorten(reason, maxRejectionLineRunes), ". ") + ")"
 		}
-		reason = strings.Map(func(r rune) rune {
-			if unicode.IsControl(r) {
-				return -1
-			}
-			return r
-		}, g.runner.Redact(strings.TrimSpace(reason), u.url, u.pushURL))
-		if runes := []rune(reason); len(runes) > maxRejectionLineRunes {
-			reason = string(runes[:maxRejectionLineRunes]) + "..."
-		}
-		return " (Git: " + strings.TrimRight(reason, ". ") + ")"
 	}
 	return ""
 }
