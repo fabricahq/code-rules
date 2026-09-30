@@ -360,13 +360,8 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			}},
 		{name: "unknown committer", code: "git-identity", message: "Git doesn't know your name and email",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
-				environment := []string{}
-				for _, item := range options.Git.Environment {
-					if !strings.HasPrefix(item, "GIT_COMMITTER_") && !strings.HasPrefix(item, "GIT_AUTHOR_") && !strings.HasPrefix(item, "EMAIL=") {
-						environment = append(environment, item)
-					}
-				}
-				options.Git.Environment = append(environment, "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=user.useConfigOnly", "GIT_CONFIG_VALUE_0=true")
+				commitAndPush(t, fixture, options.Directory, changedA)
+				withoutIdentity(options)
 			}},
 		{name: "GitHub CLI not installed", code: "github-cli-missing", message: "Install it from https://cli.github.com", github: true,
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
@@ -411,6 +406,34 @@ func run(t *testing.T, fixture *gitfixture.Fixture, dir string, args ...string) 
 	if _, err := fixture.CommandIn(context.Background(), dir, args...); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// withoutIdentity leaves Git no committer name or email to record as a tag's tagger.
+func withoutIdentity(options *Options) {
+	environment := []string{}
+	for _, item := range options.Git.Environment {
+		if !strings.HasPrefix(item, "GIT_COMMITTER_") && !strings.HasPrefix(item, "GIT_AUTHOR_") && !strings.HasPrefix(item, "EMAIL=") {
+			environment = append(environment, item)
+		}
+	}
+	options.Git.Environment = append(environment, "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=user.useConfigOnly", "GIT_CONFIG_VALUE_0=true")
+}
+
+// TestRelease_ReportsNothingToPublishWithoutTheToolsPublishingNeeds needs neither a tagger identity nor gh
+// when there's nothing to publish.
+func TestRelease_ReportsNothingToPublishWithoutTheToolsPublishingNeeds(t *testing.T) {
+	fixture, options := authorClone(t, libraryFiles(), releaseOne)
+	commitAndPush(t, fixture, options.Directory, map[string][]byte{"README.md": []byte("About the library.\n")})
+	fake := withGitHub(t, fixture, &options, nil)
+	if err := os.Remove(filepath.Join(pathOf(&options), "gh")); err != nil {
+		t.Fatal(err)
+	}
+	withoutIdentity(&options)
+	result, err := Release(context.Background(), ReleaseRequest{Options: options})
+	if err != nil || result.Release != 0 {
+		t.Fatal(result, err)
+	}
+	requireCalls(t, fake, []ghfixture.Call{})
 }
 
 // pathOf returns the PATH in options' environment.
