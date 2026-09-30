@@ -111,6 +111,7 @@ func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
 			plan.rules[id] = rule
 		}
 	}
+	// Settling reads nothing but the history, which planning already read, so this planner needs no repository.
 	p := &planner{source: source, recorded: s.recorded, history: &s.history}
 	return plan, p.settle(&plan)
 }

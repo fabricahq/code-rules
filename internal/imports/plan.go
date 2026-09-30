@@ -27,7 +27,6 @@ type sourcePlan struct {
 }
 
 // planner chooses versions for one source, reading the library's release history only when a choice needs it.
-// A planner whose history is already read never uses its context or repository.
 type planner struct {
 	ctx    context.Context
 	repo   *repository
