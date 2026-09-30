@@ -36,7 +36,11 @@ func fetchRevision(ctx context.Context, source rules.Source, options Options) (*
 	if err != nil {
 		return nil, "", err
 	}
-	commit, err := repo.fetchRef(ctx, source)
+	ref, _, err := source.GitRef()
+	if err != nil {
+		return nil, "", errors.Join(err, repo.Close())
+	}
+	commit, err := repo.fetchRef(ctx, source, ref)
 	if err != nil {
 		return nil, "", errors.Join(err, repo.Close())
 	}

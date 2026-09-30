@@ -300,7 +300,11 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 // "What offline checks can verify": the recorded identity and selections, pinned versions, and ref.
 func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	where := source.Name + "/_source.json"
-	if source.Repository != record.Repository || !source.SameRef(record.Ref) || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
+	sameRef, err := source.SameRef(record.Ref)
+	if err != nil {
+		return fmt.Errorf("compare sources.%s.ref with the ref %s records: %w", source.Name, where, err)
+	}
+	if source.Repository != record.Repository || !sameRef || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
 		return invalidSnapshot(where, "source identity or selection changed; run code-rules project sync")
 	}
 	for _, id := range slices.Sorted(maps.Keys(source.Pins)) {
@@ -354,7 +358,10 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 // matchRevision checks the record's library release and commit against how the source chooses versions.
 func matchRevision(source rules.Source, record parsedRecord) error {
 	where := source.Name + "/_source.json"
-	ref, hasRef := source.GitRef()
+	ref, hasRef, err := source.GitRef()
+	if err != nil {
+		return err
+	}
 	if !hasRef {
 		if record.Release == 0 {
 			return invalidSnapshot(where+".release", "a source without ref records the library release that supplied its files")

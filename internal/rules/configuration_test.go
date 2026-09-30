@@ -20,11 +20,16 @@ type projectedSource struct {
 }
 
 // projection returns config with each source's parsed ref, for comparison with a fixture's expected value.
-func projection(config rules.Configuration) map[string][]projectedSource {
+func projection(t *testing.T, config rules.Configuration) map[string][]projectedSource {
+	t.Helper()
 	sources := make([]projectedSource, 0, len(config.Sources))
 	for _, source := range config.Sources {
 		projected := projectedSource{Source: source}
-		if ref, ok := source.GitRef(); ok {
+		ref, ok, err := source.GitRef()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
 			projected.ParsedRef = &ref
 		}
 		sources = append(sources, projected)
@@ -66,7 +71,7 @@ func TestConfigurationFixtures(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			encoded, err := json.Marshal(projection(got))
+			encoded, err := json.Marshal(projection(t, got))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -84,7 +89,7 @@ func TestConfigurationFixtures(t *testing.T) {
 	}
 }
 
-// TestSourceSameRef matches a recorded ref to the source's ref by the revision they name, not their spelling.
+// TestSourceSameRef matches a recorded ref to the source's ref by their normalized form, not their spelling.
 func TestSourceSameRef(t *testing.T) {
 	for _, test := range []struct {
 		source, recorded string
@@ -98,10 +103,30 @@ func TestSourceSameRef(t *testing.T) {
 		{"release/5", "release/6", false},
 		{"release/5", "", false},
 		{"", "release/5", false},
-		{"release/5", "refs/heads/release/5", false},
 	} {
-		if got := (rules.Source{Name: "team", Ref: test.source}).SameRef(test.recorded); got != test.same {
-			t.Errorf("source ref %q, recorded %q: same %v, want %v", test.source, test.recorded, got, test.same)
+		if got, err := (rules.Source{Name: "team", Ref: test.source}).SameRef(test.recorded); err != nil || got != test.same {
+			t.Errorf("source ref %q, recorded %q: same %v, %v; want %v", test.source, test.recorded, got, err, test.same)
 		}
+	}
+}
+
+// TestSourceRefsThatArentValid fails, naming the field, for a Ref that a struct literal sets without the
+// configuration parser's validation, and for a recorded ref that isn't valid, instead of treating either as no ref.
+func TestSourceRefsThatArentValid(t *testing.T) {
+	invalid := rules.Source{Name: "team", Ref: "refs/heads/main"}
+	var validation *rules.ValidationError
+	if ref, ok, err := invalid.GitRef(); !errors.As(err, &validation) || validation.Location != "sources.team.ref" || ok || ref != (rules.GitRef{}) {
+		t.Fatalf("GitRef of an invalid ref: %+v, %v, %v", ref, ok, err)
+	}
+	for _, recorded := range []string{"", "release/5", "refs/heads/main"} {
+		if same, err := invalid.SameRef(recorded); err == nil || same {
+			t.Errorf("SameRef(%q) of an invalid source ref: %v, %v", recorded, same, err)
+		}
+	}
+	if same, err := (rules.Source{Name: "team", Ref: "release/5"}).SameRef("refs/heads/release/5"); err == nil || same {
+		t.Errorf("SameRef of an invalid recorded ref: %v, %v", same, err)
+	}
+	if ref, ok, err := (rules.Source{Name: "team"}).GitRef(); err != nil || ok || ref != (rules.GitRef{}) {
+		t.Errorf("GitRef without a ref: %+v, %v, %v", ref, ok, err)
 	}
 }

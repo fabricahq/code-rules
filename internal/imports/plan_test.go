@@ -398,6 +398,19 @@ func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	}
 }
 
+// TestImport_RefusesARefThatIsntValid fails at sources.team.ref for a ref assigned to a parsed configuration,
+// which skips the parser's validation, instead of importing as though the source had no ref.
+func TestImport_RefusesARefThatIsntValid(t *testing.T) {
+	h := newHistory(t)
+	config := h.source(t, `"groups":["techs/go"]`)
+	config.Sources[0].Ref = "refs/heads/main"
+	_, err := h.sync(t, config, nil)
+	var validation *rules.ValidationError
+	if !errors.As(err, &validation) || validation.Location != "sources.team.ref" {
+		t.Fatalf("got %v; want a failure at sources.team.ref", err)
+	}
+}
+
 // TestImport_KeptRuleWhoseGroupWasRemovedKeepsItsGroupMetadata takes a retained retired rule's group metadata
 // from its own library release when the library-wide release no longer has the group.
 func TestImport_KeptRuleWhoseGroupWasRemovedKeepsItsGroupMetadata(t *testing.T) {
