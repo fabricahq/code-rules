@@ -109,6 +109,9 @@ func pageStatus(result library.ReleaseResult, noGitHubRelease bool) string {
 		return "none, because " + result.Remote + " isn't on GitHub.com"
 	case noGitHubRelease:
 		return "skipped (--no-github-release)"
+	case result.DryRun && result.Published:
+		// A dry run doesn't ask gh whether the page exists.
+		return "created with gh for " + result.GitHubRepository + " if it's missing"
 	case result.DryRun:
 		return "created with gh for " + result.GitHubRepository + " when published"
 	case result.GitHubRelease.Created:

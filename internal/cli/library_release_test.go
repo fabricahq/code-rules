@@ -147,6 +147,11 @@ func TestLibraryRelease_PublishesTheTagAndGitHubReleasePage(t *testing.T) {
 	if got := compactJSON(t, response.Value.GitHubRelease); got != `{"created":false,"url":"`+page+`"}` {
 		t.Fatalf("githubRelease %s", got)
 	}
+	// A dry run doesn't ask gh whether the page exists, so it claims no more than a rerun would do.
+	out, diagnostic, code = runCLIWithEnvironment(t, binary, dir, environment, "library", "release", "--dry-run")
+	if code != 0 || diagnostic != "" || !strings.Contains(out, "\n  GitHub Release page: created with gh for acme/rules if it's missing\n") {
+		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
+	}
 }
 
 // TestLibraryRelease_ReportsRefusalsWithCodes explains the repair in human output and gives the code in JSON.
