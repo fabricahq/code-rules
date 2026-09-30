@@ -65,11 +65,8 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error) i
 		encoder.SetIndent("", "  ")
 		writeErr = encoder.Encode(result)
 	} else {
+		// A report that is itself a failure, such as an out-of-date check, says so in its own text and exit status.
 		var text strings.Builder
-		if err == nil && problem != nil {
-			text.WriteString(humanError(streams.Out, errors.New(problem.Message)))
-			text.WriteByte('\n')
-		}
 		// A post-commit presentation failure must not hide the completed operation's receipt. Reports show library
 		// text, such as change summaries, so control characters are escaped.
 		text.WriteString(terminalText(o.report.human))

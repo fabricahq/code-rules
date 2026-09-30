@@ -53,7 +53,7 @@ func TestHumanCheckAndJSONStale(t *testing.T) {
 		t.Fatal(code, diagnostic)
 	}
 	out, diagnostic, code := runCLI(t, binary, dir, "project", "check")
-	if code != 1 || diagnostic != "" || !strings.Contains(out, "No files were changed.") || !strings.Contains(out, "Missing generated file:") || !strings.HasPrefix(out, "\nError: ") {
+	if code != 1 || diagnostic != "" || !strings.Contains(out, "No files were changed.") || !strings.Contains(out, "Missing generated file:") || !strings.HasPrefix(out, "Status: out of date.\n") || strings.Contains(out, "Error:") {
 		t.Fatal(code, out, diagnostic)
 	}
 	out, diagnostic, code = runCLI(t, binary, dir, "project", "check", "--json")

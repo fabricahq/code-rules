@@ -60,7 +60,7 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 func requireSync(t *testing.T, got map[string]snapshot, err error) {
 	t.Helper()
 	var validation *rules.ValidationError
-	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.Location, "team/_source.json") || !strings.Contains(validation.Problem, "run code-rules project sync") {
+	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.Location, "vendor/team/_source.json") || !strings.Contains(validation.Problem, "run code-rules project sync") {
 		t.Fatalf("got %v, %v; want a failure that asks for sync", got, err)
 	}
 }

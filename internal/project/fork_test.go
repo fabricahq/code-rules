@@ -479,7 +479,7 @@ func TestFork_OfASelectedRuleNeedsASyncedRecord(t *testing.T) {
 	source, _ := ParseForkSource("team@1.0.0")
 	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
 	var invalid *rules.ValidationError
-	if !errors.As(err, &invalid) || invalid.Location != "team/_source.json" || !strings.Contains(invalid.Problem, "run code-rules project sync") {
+	if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json" || !strings.Contains(invalid.Problem, "run code-rules project sync") {
 		t.Fatalf("got %v", err)
 	}
 }

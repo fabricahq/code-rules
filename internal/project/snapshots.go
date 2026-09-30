@@ -61,7 +61,7 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 	for _, source := range config.Sources {
 		snapshot, ok := snapshots[source.Name]
 		if !ok {
-			return nil, invalidSnapshot(source.Name, "missing source snapshot; run code-rules project sync")
+			return nil, invalidSnapshot("vendor/"+source.Name, "missing source snapshot; run code-rules project sync")
 		}
 		selection, err := json.Marshal(snapshot.Selection)
 		if err != nil {
@@ -87,7 +87,7 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		}
 		for _, file := range slices.Sorted(maps.Keys(snapshot.Files)) {
 			if file == "_source.json" {
-				return nil, invalidSnapshot(source.Name, "_source.json is reserved for the source record")
+				return nil, invalidSnapshot("vendor/"+source.Name, "_source.json is reserved for the source record")
 			}
 			record.Files[file] = digest(snapshot.Files[file])
 			output[source.Name+"/"+file] = bytes.Clone(snapshot.Files[file])
@@ -129,7 +129,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		recordPath := source.Name + "/_source.json"
 		data, ok := vendor[recordPath]
 		if !ok {
-			return nil, invalidSnapshot(recordPath, "missing source record; run code-rules project sync")
+			return nil, invalidSnapshot("vendor/"+recordPath, "missing source record; run code-rules project sync")
 		}
 		record, err := parseSourceRecord(data, source.Name)
 		if err != nil {
@@ -144,7 +144,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 			full := source.Name + "/" + file
 			data, ok := vendor[full]
 			if !ok || digest(data) != record.digests[file] {
-				return nil, invalidSnapshot(full, "missing or modified imported content; run code-rules project sync")
+				return nil, invalidSnapshot("vendor/"+full, "missing or modified imported content; run code-rules project sync")
 			}
 			record.Files[file] = bytes.Clone(data)
 			expected[full] = true
@@ -153,7 +153,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 	}
 	for _, file := range slices.Sorted(maps.Keys(vendor)) {
 		if !expected[file] {
-			return nil, invalidSnapshot(file, "unexpected imported file or removed source; run code-rules project sync")
+			return nil, invalidSnapshot("vendor/"+file, "unexpected imported file or removed source; run code-rules project sync")
 		}
 	}
 	return result, nil
@@ -188,7 +188,7 @@ type parsedRecord struct {
 // Relationships to configuration are matchSnapshotSource's. An older format, such as 1, fails validation with advice
 // to import the source again; a newer one fails with code unsupported-source-record, asking to upgrade Code Rules.
 func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
-	where := name + "/_source.json"
+	where := "vendor/" + name + "/_source.json"
 	var fields map[string]json.RawMessage
 	if !utf8.Valid(data) || json.Unmarshal(data, &fields) != nil || fields == nil {
 		return parsedRecord{}, invalidSnapshot(where, "expected a UTF-8 source record object")
@@ -299,7 +299,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 // matchSnapshotSource checks a record against its source's configuration without fetching Git, as documented in
 // "What offline checks can verify": the recorded identity and selections, pinned versions, and ref.
 func matchSnapshotSource(source rules.Source, record parsedRecord) error {
-	where := source.Name + "/_source.json"
+	where := "vendor/" + source.Name + "/_source.json"
 	if source.Repository != record.Repository || !source.Ref.Equal(record.Ref) || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
 		return invalidSnapshot(where, "source identity or selection changed; run code-rules project sync")
 	}
@@ -353,7 +353,7 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 
 // matchRevision checks the record's library release and commit against how the source chooses versions.
 func matchRevision(source rules.Source, record parsedRecord) error {
-	where := source.Name + "/_source.json"
+	where := "vendor/" + source.Name + "/_source.json"
 	ref := source.Ref
 	if ref.IsZero() {
 		if record.Release == 0 {
