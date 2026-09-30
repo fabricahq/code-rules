@@ -26,10 +26,10 @@ func TestTerminalText_EscapesControlCharactersAndKeepsNewlines(t *testing.T) {
 	}
 }
 
-// TestUpdate_EscapesControlCharactersFromTheLibrary shows a library release's summary with an escape sequence, and
-// a diagnostic naming an argument with one, as visible text through the real binary, so a library can't clear or
-// rewrite the preview people approve.
-func TestUpdate_EscapesControlCharactersFromTheLibrary(t *testing.T) {
+// TestUpdate_KeepsControlCharactersOffTheTerminal refuses a library release whose summary holds an escape sequence,
+// and shows a diagnostic naming an argument with one as visible text, through the real binary, so a library can't
+// clear or rewrite the preview people approve.
+func TestUpdate_KeepsControlCharactersOffTheTerminal(t *testing.T) {
 	ctx := context.Background()
 	f, err := gitfixture.New(ctx, map[string][]byte{
 		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
@@ -40,7 +40,7 @@ func TestUpdate_EscapesControlCharactersFromTheLibrary(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = f.Close() })
-	if err := f.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/errors: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n"); err != nil {
+	if err := f.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/errors: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summaries: [Add the rule.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	u := updateFixture{binary: buildCLI(t), directory: t.TempDir(), fixture: f}
@@ -54,11 +54,12 @@ func TestUpdate_EscapesControlCharactersFromTheLibrary(t *testing.T) {
 	if _, err := f.Commit(ctx, f.Worktree(), "Second release", map[string][]byte{"techs/go/errors.md": updateRule("errors 1.1.0")}); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summary: \"\\e[2J\\e[HNo risky changes.\\x9b\"}\n"); err != nil {
+	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.1.0\nchanges:\n  techs/go/errors: {change: minor, from: 1.0.0, summaries: [\"\\e[2J\\e[HNo risky changes.\\x9b\"]}\n"); err != nil {
 		t.Fatal(err)
 	}
+	// A release record's summaries can't hold control characters, so the library release is refused.
 	out, diagnostic, code := u.run(t, "project", "update")
-	if code != 0 || strings.ContainsAny(out+diagnostic, "\x1b\u009b") || !strings.Contains(out, `            \x1b[2J\x1b[HNo risky changes.\u009b`+"\n") {
+	if code != 1 || strings.ContainsAny(out+diagnostic, "\x1b\u009b") || !strings.Contains(diagnostic, "release/2.changes.techs/go/errors.summaries[0]: expected text without control characters") {
 		t.Fatalf("exit %d, stderr %q, stdout %q", code, diagnostic, out)
 	}
 	out, diagnostic, code = u.run(t, "project", "update", "team:techs/go/\x1b[2Jerrors")

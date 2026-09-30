@@ -46,20 +46,24 @@ rules:
 changes:
   practices/testing/verify-retries:
     change: new
-    summary: Add a broader rule about testing retries.
+    summaries:
+      - Add a broader rule about testing retries.
   practices/testing/verify-retry-limits:
     change: major
     from: 1.3.0
-    summary: Require a test at the limit for every retry policy.
+    summaries:
+      - Require a test at the limit for every retry policy.
   techs/react/test-hooks-in-isolation:
     change: minor
     from: 2.1.0
-    summary: Add an example for custom hooks.
+    summaries:
+      - Add an example for custom hooks.
 retired:
   practices/testing/check-retry-backoff:
     lastVersion: 1.2.0
     replacedBy: practices/testing/verify-retries
-    summary: Covered by the broader rule about testing retries.
+    summaries:
+      - Covered by the broader rule about testing retries.
 libraryFiles:
   - practices/testing/_group.yaml
 ```
@@ -69,9 +73,11 @@ libraryFiles:
 | `formatVersion` | The release record format, `1`. Required. |
 | `release` | The release number. |
 | `rules` | Every current rule and its version after this library release. |
-| `changes` | Each rule this library release changed or added: its `change` (`new`, `major`, `minor`, or `patch`), its previous version as `from` (absent for a new rule), and its `summary`. When several notes named the rule, the summary has one line per note. |
-| `retired` | Each rule this library release retired: its `lastVersion`, its `summary`, and its `replacedBy` rule when there is one. |
+| `changes` | Each rule this library release changed or added: its `change` (`new`, `major`, `minor`, or `patch`), its previous version as `from` (absent for a new rule), and its `summaries`: a list with one summary per change note that named the rule, in note order. |
+| `retired` | Each rule this library release retired: its `lastVersion`, its `summaries`, as in `changes`, and its `replacedBy` rule when there is one. |
 | `libraryFiles` | Library-wide files this library release changed, such as group metadata and shared assets. |
+
+Each `summaries` list has at least one item, and each item follows the rules of a [change note's](#change-notes) `summary`: one non-blank line without control characters.
 
 Release records are read by every later version of Code Rules, so the format is forward compatible. Readers ignore fields they don't know, at any level, so a later Code Rules can add fields that older versions skip. `formatVersion` changes only for an incompatible change; a Code Rules that finds a higher `formatVersion` than it reads stops with `unsupported-release-record` and asks you to upgrade it. The record still uses one YAML document without duplicate keys, anchors, aliases, or explicit tags, and every field above keeps its rules. Change notes, which people write by hand, stay strict: unknown fields fail.
 

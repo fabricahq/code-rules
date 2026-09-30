@@ -50,7 +50,7 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 	for _, name := range names {
 		files["techs/go/"+name+".md"] = updateRule(name + " 1.0.0")
 		record += "  techs/go/" + name + ": 1.0.0\n"
-		changes += "  techs/go/" + name + ": {change: new, summary: Add the rule.}\n"
+		changes += "  techs/go/" + name + ": {change: new, summaries: [Add the rule.]}\n"
 	}
 	f, err := gitfixture.New(ctx, files)
 	if err != nil {
@@ -77,9 +77,9 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 		t.Fatal(err)
 	}
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/backoff: 2.0.0\n  techs/go/errors: 2.0.0\n  techs/go/format: 1.0.1\n  techs/go/loaders: 1.1.0\n  techs/go/naming: 1.1.0\n  techs/go/verify: 1.0.0\n"+
-		"changes:\n  techs/go/backoff: {change: major, from: 1.0.0, summary: Require jitter.}\n  techs/go/errors: {change: major, from: 1.0.0, summary: Require wrapping.}\n  techs/go/format: {change: patch, from: 1.0.0, summary: Fix a typo.}\n"+
-		"  techs/go/loaders: {change: minor, from: 1.0.0, summary: Add pagination.}\n  techs/go/naming: {change: minor, from: 1.0.0, summary: Add an example.}\n  techs/go/verify: {change: new, summary: Add the rule.}\n"+
-		"retired:\n  techs/go/retry: {lastVersion: 1.0.0, replacedBy: techs/go/verify, summary: Covered by verify.}\n"); err != nil {
+		"changes:\n  techs/go/backoff: {change: major, from: 1.0.0, summaries: [Require jitter.]}\n  techs/go/errors: {change: major, from: 1.0.0, summaries: [Require wrapping.]}\n  techs/go/format: {change: patch, from: 1.0.0, summaries: [Fix a typo.]}\n"+
+		"  techs/go/loaders: {change: minor, from: 1.0.0, summaries: [Add pagination.]}\n  techs/go/naming: {change: minor, from: 1.0.0, summaries: [Add an example.]}\n  techs/go/verify: {change: new, summaries: [Add the rule.]}\n"+
+		"retired:\n  techs/go/retry: {lastVersion: 1.0.0, replacedBy: techs/go/verify, summaries: [Covered by verify.]}\n"); err != nil {
 		t.Fatal(err)
 	}
 	return u

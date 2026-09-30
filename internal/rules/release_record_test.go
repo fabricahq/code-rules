@@ -98,12 +98,12 @@ func recordWith(section string, count int) []byte {
 	case "changes":
 		record.WriteString("changes:\n")
 		for i := range count {
-			fmt.Fprintf(&record, "  techs/go/r%d: {change: new, summary: Add.}\n", i)
+			fmt.Fprintf(&record, "  techs/go/r%d: {change: new, summaries: [Add.]}\n", i)
 		}
 	case "retired":
 		record.WriteString("retired:\n")
 		for i := range count {
-			fmt.Fprintf(&record, "  techs/go/r%d: {lastVersion: 1.0.0, summary: Gone.}\n", i)
+			fmt.Fprintf(&record, "  techs/go/r%d: {lastVersion: 1.0.0, summaries: [Gone.]}\n", i)
 		}
 	case "libraryFiles":
 		record.WriteString("libraryFiles:\n")

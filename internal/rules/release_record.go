@@ -29,15 +29,17 @@ type ReleaseRecord struct {
 type RecordedChange struct {
 	Change Change       `json:"change"`
 	From   *RuleVersion `json:"from,omitempty"`
-	// Summary has one line per change note that named the rule.
-	Summary string `json:"summary"`
+	// Summaries holds one summary per change note that named the rule, in note order; it is never empty, and each
+	// is one line of text without control characters.
+	Summaries []string `json:"summaries"`
 }
 
-// RetiredRule is a rule a library release retired. ReplacedBy is empty when nothing replaces it.
+// RetiredRule is a rule a library release retired. ReplacedBy is empty when nothing replaces it. Summaries is
+// as in RecordedChange.
 type RetiredRule struct {
 	LastVersion RuleVersion `json:"lastVersion"`
 	ReplacedBy  string      `json:"replacedBy,omitempty"`
-	Summary     string      `json:"summary"`
+	Summaries   []string    `json:"summaries"`
 }
 
 // releaseSeparator divides a release tag's Markdown notes from its YAML record.
@@ -281,7 +283,7 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 			return nil, invalid(entryLocation+".change", "expected new, major, minor, or patch")
 		}
 		change.Change = Change(name)
-		if change.Summary, err = summaryText(fields["summary"], entryLocation+".summary"); err != nil {
+		if change.Summaries, err = recordSummaries(fields["summaries"], entryLocation+".summaries"); err != nil {
 			return nil, err
 		}
 		current, ok := versions[id]
@@ -347,7 +349,7 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 		if rule.LastVersion, err = versionField(fields["lastVersion"], entryLocation+".lastVersion"); err != nil {
 			return nil, err
 		}
-		if rule.Summary, err = summaryText(fields["summary"], entryLocation+".summary"); err != nil {
+		if rule.Summaries, err = recordSummaries(fields["summaries"], entryLocation+".summaries"); err != nil {
 			return nil, err
 		}
 		if raw, ok := fields["replacedBy"]; ok {

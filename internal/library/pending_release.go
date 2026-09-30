@@ -6,7 +6,6 @@ import (
 	"maps"
 	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -58,7 +57,7 @@ type releasePlan struct {
 	release int
 	// versions holds every current rule's version after the library release.
 	versions map[string]rules.RuleVersion
-	// changes holds each new or changed rule. A summary joins its notes' summaries, one line per note;
+	// changes holds each new or changed rule, with one summary per note that named it, in note order;
 	// the first library release, which has no notes, gives every rule firstReleaseSummary.
 	changes map[string]rules.RecordedChange
 	retired map[string]rules.RetiredRule
@@ -167,7 +166,7 @@ func (c libraryChanges) plan() (releasePlan, error) {
 	if latest == nil {
 		for _, id := range c.current {
 			plan.versions[id] = rules.FirstRuleVersion
-			plan.changes[id] = rules.RecordedChange{Change: rules.ChangeNew, Summary: firstReleaseSummary}
+			plan.changes[id] = rules.RecordedChange{Change: rules.ChangeNew, Summaries: []string{firstReleaseSummary}}
 		}
 		return plan, nil
 	}
@@ -193,12 +192,12 @@ func (c libraryChanges) plan() (releasePlan, error) {
 		}
 	}
 	for id, retired := range plan.retired {
-		retired.Summary = strings.Join(summaries[id], "\n")
+		retired.Summaries = summaries[id]
 		plan.retired[id] = retired
 		delete(changes, id)
 	}
 	for _, id := range slices.Sorted(maps.Keys(changes)) {
-		recorded := rules.RecordedChange{Change: changes[id], Summary: strings.Join(summaries[id], "\n")}
+		recorded := rules.RecordedChange{Change: changes[id], Summaries: summaries[id]}
 		next := rules.FirstRuleVersion
 		if recorded.Change != rules.ChangeNew {
 			from := latest.record.Rules[id]

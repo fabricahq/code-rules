@@ -3,6 +3,7 @@
 package library
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -15,7 +16,7 @@ func TestPlan_FirstLibraryReleaseAddsEveryRuleWithASummary(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, id := range []string{"practices/testing/a", "practices/testing/b"} {
-		if change := plan.changes[id]; change.Change != rules.ChangeNew || change.Summary != "Add the rule." || plan.versions[id] != rules.FirstRuleVersion {
+		if change := plan.changes[id]; change.Change != rules.ChangeNew || !slices.Equal(change.Summaries, []string{"Add the rule."}) || plan.versions[id] != rules.FirstRuleVersion {
 			t.Fatalf("%s: %+v at %s", id, change, plan.versions[id])
 		}
 	}
@@ -44,7 +45,7 @@ func TestPlan_LaterLibraryReleaseIsAValidRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a := plan.changes["practices/testing/a"]; a.Change != rules.ChangeMajor || a.Summary != "Fix a typo.\nReplace b with c." || plan.versions["practices/testing/a"] != (rules.RuleVersion{Major: 2}) {
+	if a := plan.changes["practices/testing/a"]; a.Change != rules.ChangeMajor || !slices.Equal(a.Summaries, []string{"Fix a typo.", "Replace b with c."}) || plan.versions["practices/testing/a"] != (rules.RuleVersion{Major: 2}) {
 		t.Fatalf("%+v at %s", a, plan.versions["practices/testing/a"])
 	}
 	encoded, err := encodeReleaseRecord(plan.record(nil))
