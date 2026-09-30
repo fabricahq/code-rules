@@ -137,7 +137,7 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 | Choice | What Code Rules verifies offline |
 | --- | --- |
 | Newest versions, the default | Each pinned rule records its pinned version. Other rules may record any published version. |
-| One revision, with `ref` | For a commit SHA, `resolvedCommit` equals it. For a library release, every rule records the version that library release published. A tag's recorded commit is used without checking where the tag points now. |
+| One revision, with `ref` | For a commit SHA, `resolvedCommit` equals it. For a library release `release/N`, the source records release N, and every rule records a published version from library release N or earlier. A tag's recorded commit is used without checking where the tag points now. |
 
 For every source, offline checks also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions.
 
