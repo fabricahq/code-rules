@@ -4,6 +4,7 @@ package imports
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"reflect"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
 // record returns a snapshot of config's only source that imports each rule at its version@release.
@@ -266,6 +268,28 @@ func TestPlanUpdate_RefSourcesDontMove(t *testing.T) {
 	}
 	if want := map[string]string{"techs/go/a": "1.0.0@1", "techs/go/b": "1.0.0@1"}; !reflect.DeepEqual(versions(h.install(t, update, config).Snapshot), want) {
 		t.Fatalf("installed %v", versions(h.install(t, update, config).Snapshot))
+	}
+}
+
+// TestPlanUpdate_NamesTheSourceWhoseLibraryHasAnInvalidReleaseRecord keeps the source in a failure that its
+// library causes, even when the failure wraps a validation error from parsing a release record.
+func TestPlanUpdate_NamesTheSourceWhoseLibraryHasAnInvalidReleaseRecord(t *testing.T) {
+	alpha, beta := newHistory(t), newHistory(t)
+	if err := beta.fixture.Tag(context.Background(), beta.fixture.Worktree(), "release/4", "Notes.\n\n---\nrelease: 4\nunknown: true\n"); err != nil {
+		t.Fatal(err)
+	}
+	environment, err := alpha.fixture.Route(map[string]*gitfixture.Fixture{"alpha": alpha.fixture, "beta": beta.fixture})
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := rules.ParseConfiguration(json.RawMessage(`{"schemaVersion":1,"sources":{"alpha":{"repository":"git@fixture.invalid:alpha","groups":["techs/go"]},"beta":{"repository":"git@fixture.invalid:beta","groups":["techs/go"]}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = PlanUpdate(context.Background(), config, map[string]library.Snapshot{}, nil, Options{GitPath: alpha.fixture.GitPath, Environment: environment})
+	requireCode(t, err, "invalid-release-tag")
+	if !strings.HasPrefix(err.Error(), `update source "beta": `) {
+		t.Fatalf("the failure doesn't name its source: %v", err)
 	}
 }
 

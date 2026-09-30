@@ -115,9 +115,7 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 			previous = &snapshot
 		}
 		planned, preview, err := planSourceUpdate(ctx, source, previous, scope, options)
-		var validation *rules.ValidationError
-		if errors.As(err, &validation) {
-			// Its location already names the source, or the SOURCE:RULE argument.
+		if sourceQualified(err, source.Name) {
 			return Update{}, err
 		}
 		if err != nil {
@@ -128,6 +126,18 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 		update.Warnings = append(update.Warnings, planned.after.warnings...)
 	}
 	return update, nil
+}
+
+// sourceQualified reports whether err is a validation error of the source's configuration or of a SOURCE:RULE
+// argument naming it, whose location already names the source. Other failures, such as an invalid release
+// record in the library, need the source's name added.
+func sourceQualified(err error, source string) bool {
+	var validation *rules.ValidationError
+	if !errors.As(err, &validation) || err != error(validation) {
+		return false
+	}
+	location := validation.Location
+	return location == "sources."+source || strings.HasPrefix(location, "sources."+source+".") || strings.HasPrefix(location, source+":")
 }
 
 // updateScopes maps each source the targets name to the rules they name, or to nil for every rule. No targets
