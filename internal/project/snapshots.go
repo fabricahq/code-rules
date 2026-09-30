@@ -67,7 +67,7 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		if err != nil {
 			return nil, fmt.Errorf("encode selection for %s: %v", source.Name, err)
 		}
-		record := sourceRecord{FormatVersion: sourceRecordFormat, Repository: snapshot.Repository, Ref: snapshot.Ref, Release: snapshot.Release, Commit: snapshot.Commit, Selection: selection, RuleSelection: snapshot.RuleSelection, Groups: snapshot.Groups, Rules: map[string]recordRule{}, Files: map[string]string{}}
+		record := sourceRecord{FormatVersion: sourceRecordFormat, Repository: snapshot.Repository, Ref: snapshot.Ref.String(), Release: snapshot.Release, Commit: snapshot.Commit, Selection: selection, RuleSelection: snapshot.RuleSelection, Groups: snapshot.Groups, Rules: map[string]recordRule{}, Files: map[string]string{}}
 		if len(snapshot.Pins) > 0 {
 			record.Pins = snapshot.Pins
 		}
@@ -218,12 +218,13 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if decoder.Decode(&record) != nil {
 		return parsedRecord{}, invalidSnapshot(where, "invalid source record field values")
 	}
-	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Pins: map[string]rules.RuleVersion{}, Ref: record.Ref, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
+	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Pins: map[string]rules.RuleVersion{}, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
 	}
 	if record.Ref != "" {
-		if _, err := rules.ParseGitRef(record.Ref, where+".ref"); err != nil {
+		var err error
+		if result.Ref, err = rules.ParseGitRef(record.Ref, where+".ref"); err != nil {
 			return parsedRecord{}, err
 		}
 	}
@@ -299,11 +300,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 // "What offline checks can verify": the recorded identity and selections, pinned versions, and ref.
 func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	where := source.Name + "/_source.json"
-	sameRef, err := source.SameRef(record.Ref)
-	if err != nil {
-		return fmt.Errorf("compare sources.%s.ref with the ref %s records: %w", source.Name, where, err)
-	}
-	if source.Repository != record.Repository || !sameRef || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
+	if source.Repository != record.Repository || !source.Ref.Equal(record.Ref) || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
 		return invalidSnapshot(where, "source identity or selection changed; run code-rules project sync")
 	}
 	for _, id := range slices.Sorted(maps.Keys(source.Pins)) {
@@ -348,7 +345,7 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 		commits[rule.Release] = rule.Commit
 		newest = max(newest, rule.Release)
 	}
-	if source.Ref == "" && record.Release < newest {
+	if source.Ref.IsZero() && record.Release < newest {
 		return invalidSnapshot(where+".release", "expected the library release that supplies the shared files to be at least as new as every imported rule version's library release")
 	}
 	return nil
@@ -357,23 +354,20 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 // matchRevision checks the record's library release and commit against how the source chooses versions.
 func matchRevision(source rules.Source, record parsedRecord) error {
 	where := source.Name + "/_source.json"
-	ref, hasRef, err := source.GitRef()
-	if err != nil {
-		return err
-	}
-	if !hasRef {
+	ref := source.Ref
+	if ref.IsZero() {
 		if record.Release == 0 {
 			return invalidSnapshot(where+".release", "a source without ref records the library release that supplied its files")
 		}
 		return nil
 	}
-	if ref.Kind == rules.GitRefCommit {
-		if record.Commit != ref.SHA {
+	if ref.Kind() == rules.GitRefCommit {
+		if record.Commit != ref.Canonical() {
 			return invalidSnapshot(where, "resolved commit differs from requested commit")
 		}
 	}
-	number, err := rules.ParseReleaseTag(strings.TrimPrefix(ref.Name, "refs/tags/"))
-	if ref.Kind != rules.GitRefTag || err != nil {
+	number, err := rules.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
+	if ref.Kind() != rules.GitRefTag || err != nil {
 		if record.Release != 0 {
 			return invalidSnapshot(where+".release", "a ref that isn't a library release tag records no library release")
 		}
@@ -384,7 +378,7 @@ func matchRevision(source rules.Source, record parsedRecord) error {
 	}
 	for _, id := range slices.Sorted(maps.Keys(record.Rules)) {
 		if record.Rules[id].Release > number {
-			return invalidSnapshot(where+".rules."+id, "a rule imported from "+source.Ref+" can't come from a later library release")
+			return invalidSnapshot(where+".rules."+id, "a rule imported from "+source.Ref.String()+" can't come from a later library release")
 		}
 	}
 	return nil
@@ -393,7 +387,7 @@ func matchRevision(source rules.Source, record parsedRecord) error {
 // fullCommit accepts a lowercase 40-digit commit SHA.
 func fullCommit(text string) bool {
 	ref, err := rules.ParseGitRef(text, "commit")
-	return err == nil && ref.Kind == rules.GitRefCommit && ref.SHA == text
+	return err == nil && ref.Kind() == rules.GitRefCommit && ref.Canonical() == text
 }
 
 // digest hashes exact bytes, preserving binary data and line endings.

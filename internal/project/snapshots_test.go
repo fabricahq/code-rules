@@ -292,6 +292,7 @@ func TestSnapshotRecordRelationships(t *testing.T) {
 		{"older release", func(r map[string]any) { r["release"] = 1 }},
 		{"invalid commit", func(r map[string]any) { r["resolvedCommit"] = "main" }},
 		{"changed ref", func(r map[string]any) { r["ref"] = "v2.0.0" }},
+		{"invalid ref", func(r map[string]any) { r["ref"] = "refs/heads/main" }},
 		{"changed selection", func(r map[string]any) { r["groupSelection"] = "*" }},
 		{"missing group", func(r map[string]any) { r["groups"] = []string{} }},
 		{"duplicate group", func(r map[string]any) { r["groups"] = []string{"techs/go", "techs/go"} }},
@@ -400,7 +401,7 @@ func TestSnapshotRefChecks(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			config := snapshotConfig(t, `"groups":["techs/go"],"ref":"`+test.ref+`"`)
 			files := map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(`{}`)}
-			item := snapshot{Repository: config.Sources[0].Repository, Pins: map[string]rules.RuleVersion{}, Ref: test.ref, Release: test.release, Commit: test.commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{}, Rules: test.rules, Files: files}
+			item := snapshot{Repository: config.Sources[0].Repository, Pins: map[string]rules.RuleVersion{}, Ref: gitRef(t, test.ref), Release: test.release, Commit: test.commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{}, Rules: test.rules, Files: files}
 			_, err := encodeSnapshots(config, map[string]snapshot{"team": item})
 			if (err == nil) != test.ok {
 				t.Fatalf("got %v, want ok %v", err, test.ok)
@@ -415,7 +416,7 @@ func TestSnapshotRefWrittenAnotherWayNeedsNoSync(t *testing.T) {
 	recorded := snapshotConfig(t, `"groups":["techs/go"],"ref":"release/2"`)
 	_, snapshots := snapshotFixture(t)
 	item := snapshots["team"]
-	item.Ref = "release/2"
+	item.Ref = gitRef(t, "release/2")
 	vendor, err := encodeSnapshots(recorded, map[string]snapshot{"team": item})
 	if err != nil {
 		t.Fatal(err)
@@ -425,22 +426,6 @@ func TestSnapshotRefWrittenAnotherWayNeedsNoSync(t *testing.T) {
 	}
 	got, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"ref":"refs/tags/release/3"`), vendor)
 	requireSync(t, got, err)
-}
-
-// TestSnapshotRefThatIsntValidFails reports an invalid ref assigned to a parsed configuration at sources.team.ref,
-// instead of comparing it with the recorded ref as though the source had none.
-func TestSnapshotRefThatIsntValidFails(t *testing.T) {
-	config, snapshots := snapshotFixture(t)
-	vendor, err := encodeSnapshots(config, snapshots)
-	if err != nil {
-		t.Fatal(err)
-	}
-	config.Sources[0].Ref = "refs/heads/main"
-	got, err := decodeSnapshots(config, vendor)
-	var validation *rules.ValidationError
-	if got != nil || !errors.As(err, &validation) || validation.Location != "sources.team.ref" {
-		t.Fatalf("got %v, %v; want a failure at sources.team.ref", got, err)
-	}
 }
 
 // TestSnapshotEmptySources encodes and decodes a local-only project and rejects a removed source's record.

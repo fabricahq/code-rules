@@ -394,21 +394,8 @@ func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 		t.Fatalf("snapshot %+v, %v", again.Snapshot, err)
 	}
 	respelled, err := h.sync(t, h.source(t, `"groups":["techs/go"],"ref":"refs/tags/candidate"`), &first.Snapshot)
-	if err != nil || respelled.Snapshot.Commit != h.commits[1] || respelled.Snapshot.Ref != "refs/tags/candidate" {
+	if err != nil || respelled.Snapshot.Commit != h.commits[1] || respelled.Snapshot.Ref.String() != "refs/tags/candidate" {
 		t.Fatalf("the same ref written another way: snapshot %+v, %v", respelled.Snapshot, err)
-	}
-}
-
-// TestImport_RefusesARefThatIsntValid fails at sources.team.ref for a ref assigned to a parsed configuration,
-// which skips the parser's validation, instead of importing as though the source had no ref.
-func TestImport_RefusesARefThatIsntValid(t *testing.T) {
-	h := newHistory(t)
-	config := h.source(t, `"groups":["techs/go"]`)
-	config.Sources[0].Ref = "refs/heads/main"
-	_, err := h.sync(t, config, nil)
-	var validation *rules.ValidationError
-	if !errors.As(err, &validation) || validation.Location != "sources.team.ref" {
-		t.Fatalf("got %v; want a failure at sources.team.ref", err)
 	}
 }
 
@@ -551,7 +538,7 @@ func TestImport_RefSelectsIndividualRulesAtItsRevision(t *testing.T) {
 func TestImport_WithoutLibraryReleasesFailsWithoutARef(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())
 	config := libraryConfig(t, f.Repository)
-	config.Sources[0].Ref = ""
+	config.Sources[0].Ref = rules.GitRef{}
 	_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
 	requireCode(t, err, "releases-not-found")
 }

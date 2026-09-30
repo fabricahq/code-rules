@@ -25,8 +25,8 @@ type Snapshot struct {
 	// source's groups or rules list selects; it is empty, never nil, when there are none. It is a fact about the
 	// library, not the source's configuration, so offline checks can tell an exclusion of a retired rule from a typo.
 	RetiredRules []string `json:"retiredRules"`
-	// Ref repeats the source's ref when the snapshot was recorded, or is empty.
-	Ref string `json:"ref,omitempty"`
+	// Ref repeats the source's ref when the snapshot was recorded, or is the zero GitRef.
+	Ref rules.GitRef `json:"ref,omitzero"`
 	// Release is the library release that supplied the library-wide files, or 0 when Ref names a revision other
 	// than a library release.
 	Release int `json:"release,omitempty"`

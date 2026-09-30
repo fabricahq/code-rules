@@ -48,7 +48,7 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 		Groups     any      `yaml:"groups,omitempty"`
 		Rules      []string `yaml:"rules,omitempty"`
 		Ref        string   `yaml:"ref,omitempty"`
-	}{source.Repository, groups, source.Rules, source.Ref}
+	}{source.Repository, groups, source.Rules, source.Ref.String()}
 	var entry yaml.Node
 	if err := entry.Encode(declaration); err != nil {
 		return nil, err
