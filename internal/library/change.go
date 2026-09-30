@@ -149,7 +149,7 @@ func checkChange(ctx context.Context, root *os.Root, options Options, request Ch
 		return false, nil, err
 	}
 	if history.latest == nil {
-		return false, nil, failure("no-library-release", "this library has no library release yet, so rules need no change notes. Its first library release gives every rule version 1.0.0", nil)
+		return false, nil, failure("no-library-release", "this library has no library release yet, so rules need no change notes. Its first library release gives every rule version 1.0.0. If the library has published one, this clone lacks its release/<number> tags: fetch them, such as with git fetch --tags, then run the command again.", nil)
 	}
 	var versioned, unversioned []string
 	for _, id := range request.IDs {

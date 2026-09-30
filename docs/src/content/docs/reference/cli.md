@@ -259,7 +259,7 @@ Create a rule in an existing library group. `ID` includes the group path and rul
 | `--body-file PATH` | Optional UTF-8 Markdown body, without frontmatter. Relative paths start at your working directory. Omit to create an unfinished draft. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Create the group first with `code-rules library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `code-rules:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `code-rules library change`. Like `code-rules library check`, it fails with instructions in a shallow clone, where it can't tell whether the library has a library release.
+Create the group first with `code-rules library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `code-rules:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `code-rules library change`. Like `code-rules library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
 
 ### library change
 
@@ -309,7 +309,7 @@ After the first library release, check compares each rule's [versioned content](
 
 Check warns when a note that a library release already published was edited, because the edit has no effect. It also warns when such a note was deleted, because notes are never deleted; restore it.
 
-This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone; in CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
+This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
 When checks pass, the result previews the pending library release: each rule, its change, and its current and next version. JSON output includes this preview in `value.pendingRelease`, with its `release` number and a `rules` list. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `code-rules project update` name them. `code-rules library release` reports the rules it publishes in `value.rules` the same way.
 

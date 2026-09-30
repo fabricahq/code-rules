@@ -386,6 +386,25 @@ func TestCheck_RejectsHistoryItCannotCompare(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+	t.Run("clone without tags", func(t *testing.T) {
+		files := libraryFiles()
+		files["changes/clarify-a.yaml"] = []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")
+		fixture, options := authorClone(t, files, releaseOne)
+		untagged := filepath.Join(t.TempDir(), "untagged")
+		if _, err := fixture.CommandIn(ctx, filepath.Dir(untagged), "clone", "--quiet", "--no-tags", "--template=", fixture.Repository, untagged); err != nil {
+			t.Fatal(err)
+		}
+		options.Directory = untagged
+		if _, err := Check(ctx, options); errorCode(err) != "missing-release-tags" || !strings.Contains(err.Error(), "git fetch --tags") || !strings.Contains(err.Error(), "fetch-depth: 0") {
+			t.Fatal(err)
+		}
+		if _, err := fixture.CommandIn(ctx, untagged, "fetch", "--quiet", "--tags"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Check(ctx, options); err != nil {
+			t.Fatalf("check after fetching the tags: %v", err)
+		}
+	})
 	// Every hand-made release tag fails with one code; an invalid record also keeps the parser's location.
 	for name, test := range map[string]struct {
 		tag      func(*gitfixture.Fixture, string) error

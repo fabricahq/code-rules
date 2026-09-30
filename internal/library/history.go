@@ -28,7 +28,11 @@ const maxReleaseTags = 20_000
 var objectID = regexp.MustCompile(`^(?:[0-9a-f]{40}|[0-9a-f]{64})$`)
 
 // shallowClone tells the author how to get the history that comparing with a library release needs.
-const shallowClone = "this clone has partial history, so it can't be compared with the latest library release. Fetch the full history and tags, such as with git fetch --unshallow --tags; in CI, check out with fetch-depth: 0"
+const shallowClone = "this clone has partial history, so it can't be compared with the latest library release. Fetch the full history and tags, such as with git fetch --unshallow --tags; in CI, check out with fetch-depth: 0."
+
+// missingReleaseTags explains a clone whose commit has change notes but no release tags, such as a clone made with
+// git clone --no-tags, which would otherwise look like a library that never published a library release.
+const missingReleaseTags = "changes/ holds change notes, but this clone has no release/<number> tags, so it can't be compared with the latest library release. Fetch the tags, such as with git fetch --tags; in CI, check out with fetch-depth: 0. If the library has never published a library release, delete the notes in changes/, which the first library release doesn't need."
 
 // libraryGit runs Git in the library author's own repository, honoring their Git configuration.
 type libraryGit struct {
@@ -89,8 +93,9 @@ func openLibraryGit(ctx context.Context, dir string, options gitexec.Options) (*
 }
 
 // releaseTags lists the annotated release tags of commits reachable from HEAD in ascending number order, except
-// the unpublished one. It fails in a shallow clone, which may lack tags and history, and returns none on an unborn
-// branch. A nil receiver, a library outside Git, has no release tags.
+// the unpublished one. It fails in a shallow clone, which may lack tags and history, and with missing-release-tags
+// when none is reachable but HEAD has change notes, which only a library release makes necessary. It returns none
+// on an unborn branch. A nil receiver, a library outside Git, has no release tags.
 func (g *libraryGit) releaseTags(ctx context.Context) ([]releasetag.Tag, error) {
 	if g == nil {
 		return nil, nil
@@ -121,6 +126,15 @@ func (g *libraryGit) releaseTags(ctx context.Context) ([]releasetag.Tag, error) 
 			return nil, failure("limit-exceeded", tag.Name()+": tag message exceeds 8 MiB", nil)
 		}
 		tags = append(tags, tag)
+	}
+	if len(tags) == 0 && g.unpublished == 0 {
+		notes, err := g.runner.Run(ctx, g.dir, []string{"ls-tree", "--name-only", "HEAD", "--", changesDirectory}, 4096, nil)
+		if err != nil {
+			return nil, fmt.Errorf("list the library's committed change notes: %w", err)
+		}
+		if notes.Status == 0 && len(bytes.TrimSpace(notes.Output)) > 0 {
+			return nil, failure("missing-release-tags", missingReleaseTags, nil)
+		}
 	}
 	return tags, nil
 }

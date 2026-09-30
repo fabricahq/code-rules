@@ -343,6 +343,7 @@ To make the check required before merging, add a branch ruleset in **Settings > 
 | The remote refused the tag push, such as a server hook or a GitHub tag ruleset. | The error shows the server's reason: the lines its hook printed and Git's `[remote rejected]` line, with credentials hidden. Fix what it asks for, such as getting permission to create `release/<number>` tags, then run `code-rules library release` again. The command deleted the tag it created, so the rerun starts over. |
 | A release tag points to a different commit. | Someone created or moved a `release/<number>` tag by hand. Don't move published tags; projects may have imported them. Ask the tag's author, then restore it to its original commit. |
 | Check fails in a shallow clone. | Fetch the full history and tags, such as with `git fetch --unshallow --tags`, or `fetch-depth: 0` in CI. |
+| Check fails because the clone has change notes but no release tags, such as a clone made with `git clone --no-tags`. | Fetch the tags with `git fetch --tags`, or check out with `fetch-depth: 0` in CI. Without them, the library would look as if it had never published a library release. |
 
 ## Next steps
 
