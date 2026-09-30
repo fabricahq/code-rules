@@ -26,7 +26,7 @@ From the project root, run:
 code-rules project update
 ```
 
-The command previews every change in each library, with each [rule version](/concepts/rule/#how-a-rule-is-versioned)'s summary, then asks you to confirm. When a rule moves through several versions, each summary starts with the version it belongs to, such as `1.4.0: Add an example.`:
+The command previews every change in each library, with each [rule version](/concepts/rule/#how-a-rule-is-versioned)'s summary, then asks you to confirm:
 
 ```text
 team
@@ -48,6 +48,8 @@ team
             Newest version: 2.0.0.
             Reason: Waiting on the author's response to acme/.code-rules#45.
 ```
+
+When a rule moves through several versions, each summary starts with the version it belongs to, such as `1.4.0: Add an example.`
 
 | Change | What it means for your project |
 | --- | --- |
