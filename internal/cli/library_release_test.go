@@ -192,3 +192,57 @@ func TestLibraryRelease_ReportsNothingToPublish(t *testing.T) {
 		t.Fatal(code, out, diagnostic)
 	}
 }
+
+// TestLibraryRelease_ShowsTheServersReasonWithoutCredentials pushes to a remote whose URL carries credentials and
+// whose pre-receive hook prints them, an environment token, and several token formats before refusing the tag:
+// the output shows the hook's reason and Git's rejection line, and none of the credentials.
+func TestLibraryRelease_ShowsTheServersReasonWithoutCredentials(t *testing.T) {
+	binary := buildCLI(t)
+	fixture, dir := releasedLibrary(t)
+	ctx := context.Background()
+	remote := "ssh://fixture-user:fixture-secret%2Fpass@fixture.invalid/rules"
+	if _, err := fixture.CommandIn(ctx, dir, "remote", "set-url", "origin", remote); err != nil {
+		t.Fatal(err)
+	}
+	pendingPatch(t, fixture, dir)
+	hook := "#!/bin/sh\n" +
+		"echo 'Release tags need approval from the maintainers.' >&2\n" +
+		"echo 'Clone https://fixture-user:fixture-secret%2Fpass@fixture.invalid/rules or https://someone:hunter22@mirror.invalid/rules' >&2\n" +
+		"echo 'Password fixture-secret/pass, user fixture-user, token environment-token-1234' >&2\n" +
+		"echo 'Tokens ghp_classic1234 github_pat_11AB_cd34 glpat-gitlab_56-ef' >&2\n" +
+		"echo 'Authorization: Basic c2VjcmV0' >&2\n" +
+		"echo 'Sent Bearer bearer-token-5678' >&2\n" +
+		"exit 1\n"
+	hooks := filepath.Join(fixture.Worktree(), ".git", "hooks")
+	if err := os.MkdirAll(hooks, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hooks, "pre-receive"), []byte(hook), 0700); err != nil {
+		t.Fatal(err)
+	}
+	environment, _ := releaseEnvironment(t, fixture, nil)
+	environment = append(environment, "GH_TOKEN=environment-token-1234")
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, environment, "library", "release")
+	if code != 1 || out != "" {
+		t.Fatalf("exit %d, stdout %q, stderr:\n%s", code, out, diagnostic)
+	}
+	for _, shown := range []string{
+		"Git couldn't push release/2 to origin, which refused it:\n",
+		"  remote: Release tags need approval from the maintainers.\n",
+		"  remote: Clone https://[redacted]@fixture.invalid/rules or https://[redacted]@mirror.invalid/rules\n",
+		"  remote: Password [redacted], user [redacted], token [redacted]\n",
+		"  remote: Tokens [redacted] [redacted] [redacted]\n",
+		"  remote: Authorization: [redacted]\n",
+		"  remote: Sent Bearer [redacted]\n",
+		"  ! [remote rejected] release/2 -> release/2 (pre-receive hook declined)\n",
+	} {
+		if !strings.Contains(diagnostic, shown) {
+			t.Errorf("stderr lacks %q:\n%s", shown, diagnostic)
+		}
+	}
+	for _, secret := range []string{"fixture-user", "fixture-secret", "hunter22", "environment-token-1234", "ghp_", "github_pat_", "glpat-", "c2VjcmV0", "bearer-token", "To ssh:"} {
+		if strings.Contains(diagnostic, secret) {
+			t.Errorf("stderr shows %q:\n%s", secret, diagnostic)
+		}
+	}
+}

@@ -342,6 +342,8 @@ If a run stops after pushing the tag, such as when the GitHub Release page can't
 
 The tag uses Git's configured identity as its tagger, including the `GIT_COMMITTER_*` environment variables.
 
+When the remote refuses the tag push, such as through a pre-receive hook or a GitHub tag ruleset, the command fails with `push-failed` and shows the server's reason: the lines the server printed, which Git prefixes with `remote:`, and Git's `! [remote rejected]` line naming the tag and the reason, at most 20 lines. Git's other output stays hidden because it can contain the remote's URL with credentials. Credentials in the lines shown are replaced with `[redacted]`: the user name and password in the remote's URL, the values of `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, and `GITHUB_ENTERPRISE_TOKEN`, and anything that looks like a credential, such as user information in a URL, GitHub and GitLab tokens, `Authorization` header values, and Bearer tokens. The command deletes the tag it created, so a rerun starts over.
+
 **GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, with the release notes as its body. Before changing anything, `code-rules library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. Repositories hosted elsewhere get tags only.
 
 <span id="help-and-version"></span>

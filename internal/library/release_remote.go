@@ -491,6 +491,38 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 	return object, nil
 }
 
+// Limits on the server's reason for refusing a push that serverRejection shows.
+const (
+	maxRejectionLines     = 20
+	maxRejectionLineRunes = 200
+)
+
+// serverRejection returns the server's reason for refusing a push, from Git's diagnostics: the lines a server
+// hook printed, which Git prefixes with remote:, and each ! [remote rejected] line, which names the ref and the
+// server's reason. Git's other diagnostics can hold the remote's URL with credentials, so they stay hidden, and
+// credentials are redacted from the lines shown. It returns at most maxRejectionLines lines, each indented and at
+// most maxRejectionLineRunes long, or "" when the server gave no reason, such as when the push never reached it.
+func (g *libraryGit) serverRejection(diagnostics []byte, u upstream) string {
+	lines := []string{}
+	for _, line := range strings.FieldsFunc(string(diagnostics), func(r rune) bool { return r == '\n' || r == '\r' }) {
+		line = strings.TrimSpace(line)
+		text, remote := strings.CutPrefix(line, "remote:")
+		if remote && strings.TrimSpace(text) == "" || !remote && !strings.HasPrefix(line, "! [remote rejected]") {
+			continue
+		}
+		if len(lines) == maxRejectionLines {
+			lines = append(lines, "  ...")
+			break
+		}
+		line = g.runner.Redact(line, u.url, u.pushURL)
+		if runes := []rune(line); len(runes) > maxRejectionLineRunes {
+			line = string(runes[:maxRejectionLineRunes]) + "..."
+		}
+		lines = append(lines, "  "+line)
+	}
+	return strings.Join(lines, "\n")
+}
+
 // pushTag pushes only the tag, running the author's pre-push hook. If the push fails, it deletes the local tag
 // when this run created it, so the clone doesn't keep a release tag the remote lacks; a tag an interrupted run
 // left stays, with its signature, for the next run to push. A remote that already has a different tag of that
@@ -502,6 +534,9 @@ func (g *libraryGit) pushTag(ctx context.Context, u upstream, name, object strin
 		return nil
 	}
 	problem := failure("push-failed", "Git couldn't push "+name+" to "+u.remote+". Check your access to the repository and any pre-push hook, then run code-rules library release again.", err)
+	if reason := g.serverRejection(pushed.Diagnostics, u); err == nil && reason != "" {
+		problem = failure("push-failed", "Git couldn't push "+name+" to "+u.remote+", which refused it:\n"+reason+"\nCheck your access to the repository and its rules for tags, then run code-rules library release again.", nil)
+	}
 	if err == nil {
 		switch remote, listErr := g.runner.Run(ctx, g.dir, []string{"ls-remote", "--", u.remote, ref}, 64*1024, nil); {
 		case listErr != nil || remote.Status != 0:
