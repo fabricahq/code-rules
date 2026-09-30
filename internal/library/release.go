@@ -4,6 +4,7 @@ package library
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -246,6 +247,11 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 		return fmt.Errorf("read tag=%q: %w", name, err)
 	}
 	notes, record, err := rules.ParseReleaseTagObject(name, body)
+	// A newer Code Rules may have created the tag and stopped before pushing it; this version can't compare it.
+	var unsupported *rules.UnsupportedReleaseRecordError
+	if errors.As(err, &unsupported) {
+		return unsupportedRecord(name, unsupported.FormatVersion)
+	}
 	if err == nil && !planned.empty && notes == planned.notes && reflect.DeepEqual(record, planned.record) {
 		return nil
 	}
