@@ -119,15 +119,30 @@ func sameRepository(a, b string) bool {
 }
 
 // requireCommitterIdentity fails before anything changes when Git has no tagger identity for the tag.
-func (g *libraryGit) requireCommitterIdentity(ctx context.Context) error {
+// It returns the identity as the tag's tagger line records it, such as "Name <email> 1727640000 -0700".
+func (g *libraryGit) requireCommitterIdentity(ctx context.Context) (string, error) {
 	result, err := g.runner.Run(ctx, g.dir, []string{"var", "GIT_COMMITTER_IDENT"}, 64*1024, nil)
 	if err != nil {
-		return fmt.Errorf("find Git's committer identity: %w", err)
+		return "", fmt.Errorf("find Git's committer identity: %w", err)
 	}
 	if result.Status != 0 {
-		return failure("git-identity", "Git doesn't know your name and email, which the release tag records as its tagger. Set user.name and user.email, or GIT_COMMITTER_NAME and GIT_COMMITTER_EMAIL, then run code-rules library release again.", nil)
+		return "", failure("git-identity", "Git doesn't know your name and email, which the release tag records as its tagger. Set user.name and user.email, or GIT_COMMITTER_NAME and GIT_COMMITTER_EMAIL, then run code-rules library release again.", nil)
 	}
-	return nil
+	return strings.TrimSpace(string(result.Output)), nil
+}
+
+// tagObjectSize is the size of the unsigned annotated tag Git writes for message on commit, with tagger as
+// its tagger line.
+func tagObjectSize(name, commit, tagger string, message []byte) int {
+	return len("object "+commit+"\ntype commit\ntag "+name+"\ntagger "+tagger+"\n\n") + len(message)
+}
+
+// requireTagSize refuses a release tag object larger than the 8 MiB that reading release tags accepts.
+func requireTagSize(name string, size int) error {
+	if size <= maxFileBytes {
+		return nil
+	}
+	return failure("release-too-large", name+" would be a tag of "+strconv.Itoa(size)+" bytes, but release tags can be at most 8 MiB (8,388,608 bytes), or later library releases couldn't read it. Publish the pending changes in smaller library releases, or shorten their change notes' summaries, then run code-rules library release again.", nil)
 }
 
 // headCommit returns the checked-out commit; a branch without commits fails.
@@ -421,11 +436,27 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 	if result.Status != 0 {
 		return "", failure("tag-failed", "Git couldn't create the tag "+name+". Check that it doesn't already exist and that tag signing, if configured, works, then run code-rules library release again.", nil)
 	}
-	object, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--verify", "refs/tags/" + name}, 4096)
+	listing, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--verify", "refs/tags/" + name}, 4096)
 	if err != nil {
 		return "", fmt.Errorf("read tag=%q: %w", name, err)
 	}
-	return strings.TrimSpace(string(object)), nil
+	object := strings.TrimSpace(string(listing))
+	// A signature can make the tag larger than its message suggested, so the created object is checked too.
+	size, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "-s", object}, 4096)
+	if err != nil {
+		return "", fmt.Errorf("read the size of tag=%q: %w", name, err)
+	}
+	objectSize, err := strconv.Atoi(strings.TrimSpace(string(size)))
+	if err != nil {
+		return "", failure("git-failed", "Git reported the size of "+name+" in an unexpected format", nil)
+	}
+	if err := requireTagSize(name, objectSize); err != nil {
+		if _, deleteErr := g.runner.Run(context.WithoutCancel(ctx), g.dir, []string{"update-ref", "-d", "refs/tags/" + name, object}, 4096, nil); deleteErr != nil {
+			return "", fmt.Errorf("%w The local tag remains; delete it with git tag --delete %s", err, name)
+		}
+		return "", err
+	}
+	return object, nil
 }
 
 // pushTag pushes only the tag, running the author's pre-push hook. If the push fails, it deletes the local

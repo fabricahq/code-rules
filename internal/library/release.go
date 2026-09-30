@@ -89,8 +89,10 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	}
 	result := ReleaseResult{Repository: displayRepository(branch.pushURL), Remote: branch.remote, Branch: branch.branch, GitHubRepository: gitHubRepository(branch.pushURL), DryRun: request.DryRun, Rules: []PendingRule{}, LibraryFiles: []string{}}
 	var gh *gitHubCLI
+	// tagger stays empty on a dry run, which slightly underestimates the tag's size.
+	var tagger string
 	if !request.DryRun {
-		if err = git.requireCommitterIdentity(ctx); err != nil {
+		if tagger, err = git.requireCommitterIdentity(ctx); err != nil {
 			return ReleaseResult{}, err
 		}
 		if result.GitHubRepository != "" && !request.NoGitHubRelease {
@@ -150,6 +152,9 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 			return ReleaseResult{}, err
 		}
 		describe(&result, record, notes)
+		if err = requireTagSize(result.Tag, tagObjectSize(result.Tag, result.Commit, tagger, message)); err != nil {
+			return ReleaseResult{}, err
+		}
 		if request.DryRun {
 			return result, nil
 		}

@@ -577,6 +577,67 @@ func TestRelease_RefusesWhenTheRemoteChangesBetweenListingAndFetching(t *testing
 	}
 }
 
+// TestRequireTagSize_AcceptsTagsUpToTheReadersLimit refuses one byte more than reading release tags accepts.
+func TestRequireTagSize_AcceptsTagsUpToTheReadersLimit(t *testing.T) {
+	if err := requireTagSize("release/2", maxFileBytes); err != nil {
+		t.Fatal(err)
+	}
+	if err := requireTagSize("release/2", maxFileBytes+1); errorCode(err) != "release-too-large" || !strings.Contains(err.Error(), "release/2 would be a tag of 8388609 bytes") {
+		t.Fatal(err)
+	}
+}
+
+// TestCreateTag_SizesTagsLikeGitAndDeletesOneTooLarge predicts an unsigned tag's size exactly, and deletes a
+// created tag larger than the limit, as a signature could make it, instead of leaving it to be pushed.
+func TestCreateTag_SizesTagsLikeGitAndDeletesOneTooLarge(t *testing.T) {
+	ctx := context.Background()
+	fixture, options := authorClone(t, libraryFiles())
+	git, err := openLibraryGit(ctx, options.Directory, options.Git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tagger, err := git.requireCommitterIdentity(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	message := []byte("Notes.\n---\nrelease: 1\nrules: {}\n")
+	object, err := git.createTag(ctx, "release/1", fixture.LatestCommit, message)
+	if err != nil {
+		t.Fatal(err)
+	}
+	size, err := fixture.CommandIn(ctx, options.Directory, "cat-file", "-s", object)
+	if err != nil || size != strconv.Itoa(tagObjectSize("release/1", fixture.LatestCommit, tagger, message)) {
+		t.Fatalf("Git's tag has %s bytes, predicted %d: %v", size, tagObjectSize("release/1", fixture.LatestCommit, tagger, message), err)
+	}
+	large := []byte(strings.Repeat("x", maxFileBytes-tagObjectSize("release/2", fixture.LatestCommit, tagger, nil)+1))
+	before := tags(t, fixture, options.Directory)
+	if _, err := git.createTag(ctx, "release/2", fixture.LatestCommit, large); errorCode(err) != "release-too-large" {
+		t.Fatal(err)
+	}
+	if tags(t, fixture, options.Directory) != before {
+		t.Fatal("kept a tag too large to read")
+	}
+}
+
+// TestRelease_RefusesATagTooLargeToRead stops before tagging when the notes and record exceed 8 MiB, here
+// through one long summary that both rules repeat in the notes and in the record.
+func TestRelease_RefusesATagTooLargeToRead(t *testing.T) {
+	fixture, options := authorClone(t, libraryFiles(), releaseOne)
+	summary := strings.Repeat("Explain the retry change. ", 90_000)
+	commitAndPush(t, fixture, options.Directory, map[string][]byte{
+		"practices/testing/a.md": []byte(ruleText("Changed a.")),
+		"practices/testing/b.md": []byte(ruleText("Changed b.")),
+		"changes/both.yaml":      []byte("summary: " + summary + "\nrules:\n  practices/testing/a: patch\n  practices/testing/b: patch\n"),
+	})
+	local, remote := tags(t, fixture, options.Directory), tags(t, fixture, remoteDir(fixture))
+	if _, err := Release(context.Background(), ReleaseRequest{Options: options}); errorCode(err) != "release-too-large" {
+		t.Fatal(err)
+	}
+	if tags(t, fixture, options.Directory) != local || tags(t, fixture, remoteDir(fixture)) != remote {
+		t.Fatal("tagged a library release too large to read")
+	}
+}
+
 // TestRelease_DeletesItsTagWhenThePushFails runs the author's pre-push hook, which refuses the push, and
 // leaves no release tag in the clone or on the remote, so a rerun starts over.
 func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
