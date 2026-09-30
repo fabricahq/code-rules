@@ -398,3 +398,15 @@ func TestPrepareShowsNoVersionForUnreleasedRules(t *testing.T) {
 		t.Errorf("library summary lists pins the source doesn't have:\n%s", summary)
 	}
 }
+
+// TestPrepareMarksExcludedRulesInTheLibrarySummary, which the source still imports but agents don't read.
+func TestPrepareMarksExcludedRulesInTheLibrarySummary(t *testing.T) {
+	files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
+		version := rules.RuleVersion{Major: 1}
+		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: commit}
+		source.Exclude = map[string]rules.Exclusion{"techs/go/errors": {Reason: "Not for us."}}
+	})
+	if summary := files["libraries/team/README.md"]; !strings.Contains(summary, "| Rule | Version | Library release | Status |\n") || !strings.Contains(summary, "| `techs/go/errors` | 1.0.0 | release/1 | Excluded |") {
+		t.Errorf("library summary:\n%s", summary)
+	}
+}

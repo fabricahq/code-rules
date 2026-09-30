@@ -64,9 +64,11 @@ type resolvedSource struct {
 	Rules      []string                        `json:"ruleSelection"`
 	Groups     []string                        `json:"groups"`
 	Versions   map[string]library.ImportedRule `json:"rules"`
-	License    *rules.LicenseDeclaration       `json:"license"`
-	Paths      []string                        `json:"paths"`
-	Files      map[string][]byte               `json:"retainedFiles"`
+	// Exclude is the source's configured exclusions, which the library README marks in its rule versions table.
+	Exclude map[string]rules.Exclusion `json:"-"`
+	License *rules.LicenseDeclaration  `json:"license"`
+	Paths   []string                   `json:"paths"`
+	Files   map[string][]byte          `json:"retainedFiles"`
 }
 
 // resolution owns effective rules; supporting bytes are shared read-only with the input catalogs.
@@ -204,7 +206,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
+		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, Exclude: source.Exclude, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {
