@@ -33,6 +33,12 @@ type updateFixture struct {
 // verify new, and retry retired in favor of verify.
 func newUpdateFixture(t *testing.T) updateFixture {
 	t.Helper()
+	return newUpdateFixtureWith(t, buildCLI(t))
+}
+
+// newUpdateFixtureWith is newUpdateFixture with an already built CLI.
+func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
+	t.Helper()
 	ctx := context.Background()
 	files := map[string][]byte{
 		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
@@ -54,7 +60,7 @@ func newUpdateFixture(t *testing.T) updateFixture {
 	if err := f.Release(ctx, 1, record+changes); err != nil {
 		t.Fatal(err)
 	}
-	u := updateFixture{binary: buildCLI(t), directory: t.TempDir(), fixture: f}
+	u := updateFixture{binary: binary, directory: t.TempDir(), fixture: f}
 	if out, diagnostic, code := runCLI(t, u.binary, u.directory, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}

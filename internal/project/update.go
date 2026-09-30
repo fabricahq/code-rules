@@ -61,7 +61,9 @@ func (r UpdateResult) Moves() bool {
 }
 
 // PlanUpdate reads the project and plans moving the rules targets name, or every source's rules when there are
-// no targets, to their newest versions. It refuses to read a project another writer is changing.
+// no targets, to their newest versions. It reads the project under the writer, first recovering an interrupted
+// operation as sync does, and releases the writer before planning, so prompts never hold it. It refuses a project
+// another writer is changing.
 func PlanUpdate(ctx context.Context, options Options, git imports.Options, targets []imports.UpdateTarget) (*UpdatePlan, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -71,15 +73,16 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 		return nil, err
 	}
 	defer root.Close()
-	if err := filetxn.RequireIdle(root); err != nil {
-		return nil, err
-	}
-	state, err := readProject(ctx, root)
-	if err != nil {
-		return nil, err
-	}
-	name, _ := projectGuide()
-	guide, err := filetxn.ReadOptional(ctx, root, name)
+	var state projectState
+	var guide []byte
+	err = filetxn.WithWriter(ctx, root, func(*filetxn.Writer) error {
+		if state, err = readProject(ctx, root); err != nil {
+			return err
+		}
+		name, _ := projectGuide()
+		guide, err = filetxn.ReadOptional(ctx, root, name)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
