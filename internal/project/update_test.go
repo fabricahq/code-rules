@@ -147,6 +147,41 @@ func TestUpdate_AppliesThePreviewedVersionsAfterANewerLibraryRelease(t *testing.
 	}
 }
 
+// TestUpdate_RefusesALibraryReleaseTagMovedAfterThePreview writes nothing when the release tag the preview chose
+// versions from names another commit by the time the update is applied, although the original commit remains.
+func TestUpdate_RefusesALibraryReleaseTagMovedAfterThePreview(t *testing.T) {
+	ctx := context.Background()
+	f, options, git := syncProject(t)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	secondRelease(t, f)
+	plan, err := PlanUpdate(ctx, options, git, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	object, err := f.Command(ctx, "cat-file", "tag", "release/2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, message, _ := strings.Cut(object, "\n\n")
+	if _, err := f.Commit(ctx, f.Worktree(), "After the second release", map[string][]byte{"README.md": []byte("Moved.\n")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Command(ctx, "tag", "--force", "--annotate", "--cleanup=verbatim", "--message", message+"\n", "release/2"); err != nil {
+		t.Fatal(err)
+	}
+	before := projectTree(t, options)
+	_, err = plan.Apply(ctx, nil)
+	var failure *imports.Error
+	if !errors.As(err, &failure) || failure.Code != "invalid-release-tag" {
+		t.Fatalf("wanted invalid-release-tag, got %v", err)
+	}
+	if after := projectTree(t, options); after.Digest() != before.Digest() {
+		t.Fatal("a refused update changed the project")
+	}
+}
+
 // TestUpdate_RefusesAProjectChangedAfterThePreview writes nothing when configuration changed in between.
 func TestUpdate_RefusesAProjectChangedAfterThePreview(t *testing.T) {
 	for _, file := range []string{configurationFile, "local/techs/go/errors.md", "vendor/team/techs/go/errors.md", "generated/RULES.md"} {
