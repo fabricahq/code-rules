@@ -109,7 +109,7 @@ code-rules library change practices/testing/verify-retry-limits \
 Omit `--bump` for a new rule. [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule) explains how to choose between `major`, `minor`, and `patch`, and [Version your rules](/guides/version-rules/) covers publishing. Local project rules have no versions and need no notes.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.
-Builds carries that attribution into the individual generated rule file; no separate attribution file is required.
+Builds carry that attribution into the individual generated rule file; no separate attribution file is required.
 Unknown frontmatter fields, including `source:`, are rejected. Use `attribution` to record adaptation sources, and configuration to declare replacements. Generated provenance records the resolved origin.
 When publishing or adapting rules, follow [License rules](/guides/license-rules/) to make permissions and attribution explicit.
 
