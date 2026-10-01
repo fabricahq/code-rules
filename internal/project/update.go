@@ -135,10 +135,10 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide, recovered: recovered}, nil
 }
 
-// Preview returns the planned update with each decided row marked, without writing anything. It fails when a
-// decision names a rule twice, keeps a rule the update doesn't move or retire, or excludes a rule the update doesn't
-// add, or when a pin or exclusion has no reason, and with invalid-arguments when a fork update names a rule the
-// preview doesn't list as replaced or has a reason.
+// Preview returns the planned update with each decided row marked, without writing anything. It fails with
+// invalid-arguments, naming the decision's flag and rule, when a decision names a rule twice, keeps a rule the
+// update doesn't move or retire, excludes a rule the update doesn't add, or updates a fork the preview doesn't list
+// as replaced, or when a pin or exclusion has no reason or a fork update has one.
 func (p *UpdatePlan) Preview(decisions []UpdateDecision) (UpdateResult, error) {
 	sources, _, _, err := p.decide(decisions)
 	if err != nil {
@@ -223,19 +223,23 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 	decided := map[string]bool{}
 	for _, decision := range decisions {
 		where := decision.Source + ":" + decision.Rule
+		// refuse names the flag that makes the decision, so the refusal reads like the command line that gave it.
+		refuse := func(problem string) error {
+			return invalidArguments(decisionFlags[decision.Kind] + " " + where + ": " + problem)
+		}
 		if decided[where] {
-			return nil, nil, nil, &rules.ValidationError{Location: where, Problem: "the update received more than one decision for this rule"}
+			return nil, nil, nil, refuse("the update received more than one decision for this rule")
 		}
 		decided[where] = true
 		if decision.Kind != DecisionUpdateFork && strings.TrimSpace(decision.Reason) == "" {
-			return nil, nil, nil, &rules.ValidationError{Location: where, Problem: "give a reason to record with the decision"}
+			return nil, nil, nil, refuse("give a reason to record with the decision")
 		}
 		row := previewRow(sources, decision.Source, decision.Rule)
 		edit := edits[decision.Source]
 		switch decision.Kind {
 		case DecisionKeep:
 			if row == nil || !keepable(*row) {
-				return nil, nil, nil, &rules.ValidationError{Location: where, Problem: "the update doesn't move or retire this rule, so there's nothing to keep; name a rule the preview lists as major, minor, patch, retired, or replaced"}
+				return nil, nil, nil, refuse("the update doesn't move or retire this rule, so there's nothing to keep; name a rule the preview lists as major, minor, patch, retired, or replaced")
 			}
 			row.Decision, row.Reason = string(DecisionKeep), decision.Reason
 			if edit.Pins == nil {
@@ -248,9 +252,9 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 			}
 			switch {
 			case row != nil && row.Change == imports.UpdateRetired:
-				return nil, nil, nil, invalidArguments("--update-fork " + where + ": the library retired this rule, so it has no newest version to fork; keep your local rule as it is")
+				return nil, nil, nil, refuse("the library retired this rule, so it has no newest version to fork; keep your local rule as it is")
 			case row == nil || row.Change != imports.UpdateReplaced:
-				return nil, nil, nil, invalidArguments("--update-fork " + where + ": the update doesn't list this rule as replaced, because the library has no version newer than the one your local rule is based on, or the update doesn't include the rule; name a rule the preview lists as replaced")
+				return nil, nil, nil, refuse("the update doesn't list this rule as replaced, because the library has no version newer than the one your local rule is based on, or the update doesn't include the rule; name a rule the preview lists as replaced")
 			}
 			version := *row.ReviewedVersion()
 			row.Decision, row.Overwrites = string(DecisionUpdateFork), p.Overwrites(row.LocalRule)
@@ -261,7 +265,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 			forks = append(forks, forkUpdate{source: decision.Source, id: decision.Rule, version: version, file: strings.TrimPrefix(row.LocalRule, "local/")})
 		case DecisionExclude:
 			if row == nil || row.Change != imports.UpdateNew {
-				return nil, nil, nil, &rules.ValidationError{Location: where, Problem: "the update doesn't add this rule, so there's nothing to exclude; name a rule the preview lists as new"}
+				return nil, nil, nil, refuse("the update doesn't add this rule, so there's nothing to exclude; name a rule the preview lists as new")
 			}
 			row.Decision, row.Reason = string(DecisionExclude), decision.Reason
 			if edit.Exclude == nil {
@@ -269,7 +273,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 			}
 			edit.Exclude[decision.Rule] = rules.Exclusion{Reason: decision.Reason}
 		default:
-			return nil, nil, nil, &rules.ValidationError{Location: where, Problem: fmt.Sprintf("unknown update decision %q", decision.Kind)}
+			return nil, nil, nil, refuse(fmt.Sprintf("unknown update decision %q", decision.Kind))
 		}
 		edits[decision.Source] = edit
 	}
@@ -309,6 +313,10 @@ func forkUpdateRefusal(configuration rules.Configuration, decision UpdateDecisio
 	}
 	return nil
 }
+
+// decisionFlags names the code-rules project update flag that makes each kind of decision; a terminal answer
+// makes the same decision.
+var decisionFlags = map[UpdateDecisionKind]string{DecisionKeep: "--keep", DecisionExclude: "--exclude", DecisionUpdateFork: "--update-fork"}
 
 // invalidArguments is a refusal of the command's arguments, which the CLI reports as a usage error.
 func invalidArguments(problem string) error { return failure("invalid-arguments", problem, nil) }

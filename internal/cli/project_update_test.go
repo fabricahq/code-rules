@@ -363,8 +363,8 @@ func TestUpdate_ScopedToOneRuleMovesOnlyThatRule(t *testing.T) {
 	}
 }
 
-// TestUpdate_RejectsInvalidRequestsWithoutWriting separates usage errors (exit 2) from requests the project can't
-// satisfy (exit 1).
+// TestUpdate_RejectsInvalidRequestsWithoutWriting separates usage errors (exit 2), including decision flags the
+// preview doesn't offer, from requests the project can't satisfy (exit 1).
 func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
 	u := newUpdateFixture(t)
 	before := projectFileContents(t, u.directory)
@@ -380,9 +380,11 @@ func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
 		{[]string{"team:Techs/Go"}, 2, "team:Techs/Go"},
 		{[]string{"other"}, 1, "Error: no source named other in .code-rules/config.yaml. No files were written.\n\nLocation: other\n"},
 		{[]string{"team:techs/go/missing"}, 1, "Error: source team doesn't import this rule; name a rule it imports. No files were written.\n\nLocation: team:techs/go/missing\n"},
-		{[]string{"--exclude", "team:techs/go/errors", "--reason", "Why.", "--yes"}, 1, "nothing to exclude"},
-		{[]string{"--keep", "team:techs/go/verify", "--reason", "Why.", "--yes"}, 1, "nothing to keep"},
-		{[]string{"--keep", "team:techs/go/backoff", "--reason", "Why.", "--yes"}, 1, "nothing to keep"},
+		{[]string{"--exclude", "team:techs/go/errors", "--reason", "Why.", "--yes"}, 2, "Error: --exclude team:techs/go/errors: the update doesn't add this rule, so there's nothing to exclude"},
+		{[]string{"--keep", "team:techs/go/verify", "--reason", "Why.", "--yes"}, 2, "Error: --keep team:techs/go/verify: the update doesn't move or retire this rule, so there's nothing to keep"},
+		{[]string{"--keep", "team:techs/go/backoff", "--reason", "Why.", "--yes"}, 2, "nothing to keep"},
+		{[]string{"--keep", "other:techs/go/errors", "--reason", "Why.", "--yes"}, 2, "--keep other:techs/go/errors: the update doesn't move or retire this rule"},
+		{[]string{"--keep", "team:techs/go/errors", "--reason", "Why.", "team:techs/go/naming"}, 2, "--keep team:techs/go/errors: the update doesn't move or retire this rule"},
 		{[]string{"--update-fork", "team:techs/go/loaders", "--reason", "Why."}, 2, "--reason requires --keep or --exclude"},
 		{[]string{"--update-fork", "team:techs/go/loaders", "--keep", "team:techs/go/loaders", "--reason", "Why."}, 2, "--keep and --update-fork both name team:techs/go/loaders"},
 		{[]string{"--update-fork", "team:techs/go/loaders", "--exclude", "team:techs/go/loaders", "--reason", "Why."}, 2, "--exclude and --update-fork both name team:techs/go/loaders"},

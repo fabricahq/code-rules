@@ -286,7 +286,8 @@ func TestUpdate_RefusesAProjectChangedAfterThePreview(t *testing.T) {
 	}
 }
 
-// TestUpdate_RejectsDecisionsThePreviewDoesntOffer names the rule in each failure and writes nothing.
+// TestUpdate_RejectsDecisionsThePreviewDoesntOffer refuses each as invalid arguments, naming its flag and rule, and
+// writes nothing.
 func TestUpdate_RejectsDecisionsThePreviewDoesntOffer(t *testing.T) {
 	options, git, _ := syncedProject(t)
 	plan, err := PlanUpdate(context.Background(), options, git, nil, nil)
@@ -305,9 +306,11 @@ func TestUpdate_RejectsDecisionsThePreviewDoesntOffer(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			_, previewErr := plan.Preview(decisions)
 			_, applyErr := plan.Apply(context.Background(), decisions)
-			var validation *rules.ValidationError
+			last := decisions[len(decisions)-1]
+			flag := map[UpdateDecisionKind]string{DecisionKeep: "--keep", DecisionExclude: "--exclude"}[last.Kind]
 			for _, err := range []error{previewErr, applyErr} {
-				if !errors.As(err, &validation) || validation.Location != decisions[len(decisions)-1].Source+":"+decisions[len(decisions)-1].Rule {
+				var failure *filetxn.Error
+				if !errors.As(err, &failure) || failure.Code != "invalid-arguments" || !strings.HasPrefix(failure.Problem, flag+" "+last.Source+":"+last.Rule+": ") {
 					t.Fatalf("got %v", err)
 				}
 			}
