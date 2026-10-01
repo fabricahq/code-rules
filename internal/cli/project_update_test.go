@@ -501,8 +501,8 @@ func TestLibraryReadme_MentionsRetainedTermsOnlyWhenTheLibraryDeclaresThem(t *te
 	}
 }
 
-// TestBuild_NamesItsPathsRelativeToTheWorkingDirectory: build from a subdirectory says where its paths are from
-// there, as authoring commands do.
+// TestBuild_NamesItsPathsRelativeToTheWorkingDirectory: check and build from a subdirectory say where their paths
+// are from there, as authoring commands do.
 func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 	u := newUpdateFixture(t)
 	if err := os.Remove(filepath.Join(u.directory, ".code-rules", "generated", "RULES.md")); err != nil {
@@ -515,6 +515,10 @@ func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 	}
 	if err := os.MkdirAll(sub, 0700); err != nil {
 		t.Fatal(err)
+	}
+	out, _, code := runCLI(t, u.binary, sub, "project", "check")
+	if code != 1 || !strings.Contains(out, "Paths relative to ../../.code-rules:\n") {
+		t.Fatalf("check: exit %d, stdout:\n%s", code, out)
 	}
 	out, diagnostic, code := runCLI(t, u.binary, sub, "project", "build")
 	if code != 0 || diagnostic != "" || !strings.Contains(out, "Paths relative to ../../.code-rules/generated:\n  Add: RULES.md\n") {

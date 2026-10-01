@@ -39,7 +39,7 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 			case "check":
 				report, checkErr := checkProject(cmd.Context(), projectOptions)
 				if checkErr == nil {
-					output.report = projectCheckedReport(report)
+					output.report = projectCheckedReport(report, directory, options.Directory)
 				}
 				return checkErr
 			}

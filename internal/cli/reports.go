@@ -240,14 +240,16 @@ func pendingVersions(rule library.PendingRule) string {
 	return rule.From.String() + " -> " + rule.To.String()
 }
 
-func projectCheckedReport(result projectCheckResult) commandReport {
+// projectCheckedReport reports a project check of the project at root, naming its paths' directory relative to
+// workdir.
+func projectCheckedReport(result projectCheckResult, root, workdir string) commandReport {
 	var out strings.Builder
 	report := commandReport{value: result}
 	if result.Status == "up-to-date" {
 		out.WriteString("Status: up to date.\nGenerated guidance and the Code Rules guide are current.\nNo files were changed.\n")
 	} else {
 		report.failure = &responseError{Kind: "out-of-date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
-		out.WriteString("Status: out of date.\nNo files were changed.\nPaths relative to .code-rules:\n\nProblems:\n")
+		fmt.Fprintf(&out, "Status: out of date.\nNo files were changed.\nPaths relative to %s:\n\nProblems:\n", relativeDirectory(filepath.Join(root, ".code-rules"), workdir))
 		for _, problem := range result.Problems {
 			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, strings.Join(problem.NextSteps[0].Commands, "; "))
 		}
