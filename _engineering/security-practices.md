@@ -94,7 +94,8 @@ The release build tests the release source and builds its assets without write a
 Actions in that job can access its job token; step-level environment variables do not isolate the token from other actions in the job.
 SHA pins and minimal permissions protect against compromised actions as well as compromised publication code.
 
-Dependency updates do not publish releases. A maintainer approves a release by merging its release-note PR, as described in [Releases](releasing.md).
+Dependency updates do not publish releases. A maintainer approves a release by merging its release-note PR, as [Make a release](https://release-planner.fabricahq.com/start-here/release/) describes.
+Resolve repository permission restrictions before releasing; do not work around them with a personal token. The protection and environment settings in [GitHub setup](#github-setup-and-activation) authenticate the release workflow and preserve published artifacts; they cannot detect malicious code approved into that workflow.
 
 ### PR preview downloads
 
