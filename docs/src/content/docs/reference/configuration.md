@@ -252,7 +252,7 @@ exclude:
 An excluded rule is still imported into `vendor/`, so you can review its changes. The `code-rules project update` preview lists a replaced rule as `replaced` so you can decide whether your local rule needs the same change:
 
 - With `basedOn`, whenever the library's newest version of the rule is newer than `basedOn`, whatever version the project imports. The preview lists every change after `basedOn`. Once your local rule has them, record that with `code-rules project update --incorporated SOURCE:RULE`, or the terminal question, which sets `basedOn` to the newest version, or edit `basedOn` yourself. Code Rules never advances it on its own, because only you know whether your rule took the changes in.
-- Without `basedOn`, such as for a replacement you wrote yourself, when the update moves the imported copy to a newer version. The preview lists the changes since the version the project imports, which your rule may already have.
+- Without `basedOn`, such as for a replacement you wrote yourself, whenever the library's newest version of the rule is newer than the version the project imports, also when a pin keeps the imported copy there. The preview lists the changes since the imported version, which your rule may already have.
 
 ### Source-scoped exceptions
 

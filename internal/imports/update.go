@@ -375,9 +375,8 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 // ones, except that pins keep rules where they are. A nil scope also adds the rules the library added to the
 // selected groups. It returns every rule the source then imports, with its version, and a preview row for each
 // change: none for a rule excluded without a replacement, and replaced for one with a replacement. A replacement
-// that records basedOn is listed whenever the newest version is newer than basedOn, with the changes after it, even
-// when the imported copy doesn't move; one that doesn't is listed when the imported copy moves, with the changes
-// since the imported version.
+// is listed whenever the newest version is newer than its basedOn, or the imported version when it records none,
+// with the changes after that version, even when a pin keeps the imported copy where it is.
 func (p *planner) update(before sourcePlan, scope []string) (map[string]library.ImportedRule, []RuleUpdate, error) {
 	history, err := p.versioned()
 	if err != nil {
@@ -397,19 +396,24 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 		listed := !excluded || exclusion.ReplacedBy != ""
 		pin, pinned := p.source.Pins[id]
 		switch {
-		// A replacement's basedOn is its own review baseline: a pin keeps the imported copy, not the review.
-		case published && excluded && exclusion.BasedOn != nil:
+		// A replacement is reviewed against its basedOn, or else the imported version, and a pin keeps only the
+		// imported copy, never the review.
+		case published && excluded && exclusion.ReplacedBy != "":
 			if !pinned && latest.Compare(*current.Version) > 0 {
 				if after[id], err = p.publishedVersion(id, latest); err != nil {
 					return nil, nil, err
 				}
 			}
-			if latest.Compare(*exclusion.BasedOn) > 0 {
+			baseline := current.Version
+			if exclusion.BasedOn != nil {
+				baseline = exclusion.BasedOn
+			}
+			if latest.Compare(*baseline) > 0 {
 				row := RuleUpdate{ID: id, Change: UpdateReplaced, From: current.Version, To: &latest, LocalRule: exclusion.ReplacedBy, BasedOn: exclusion.BasedOn}
 				if pinned {
 					row.To, row.Newest, row.Pin = nil, &latest, &pin
 				}
-				row.Summaries, row.SummaryVersions = history.summaries(id, exclusion.BasedOn, latest)
+				row.Summaries, row.SummaryVersions = history.summaries(id, baseline, latest)
 				rows = append(rows, row)
 			}
 		case pinned && !listed:
@@ -441,9 +445,6 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 			}
 			row := RuleUpdate{ID: id, Change: versionChange(*current.Version, latest), From: current.Version, To: &latest}
 			row.Summaries, row.SummaryVersions = history.summaries(id, current.Version, latest)
-			if excluded {
-				row.Change, row.LocalRule = UpdateReplaced, exclusion.ReplacedBy
-			}
 			rows = append(rows, row)
 		}
 	}

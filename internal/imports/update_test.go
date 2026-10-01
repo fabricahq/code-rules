@@ -532,6 +532,34 @@ func TestPlanUpdate_ListsAPinnedReplacementsChangesAfterItsBasedOnVersion(t *tes
 	}
 }
 
+// TestPlanUpdate_ListsAPinnedReplacementWithoutBasedOnAsReplaced: without basedOn, a replaced row compares with the
+// imported version, and a pin that keeps the imported copy hides no changes, since the pin governs only that copy.
+func TestPlanUpdate_ListsAPinnedReplacementWithoutBasedOnAsReplaced(t *testing.T) {
+	h := newHistory(t)
+	for _, test := range []struct {
+		name, pin, imported string
+		want                []string
+	}{
+		{"pinned at an older version", "1.0.0", "1.0.0@1", []string{"replaced techs/go/a from 1.0.0 newest 2.0.0 local local/techs/go/a.md pin 1.0.0 (Keep.): Add an example. | Require more."}},
+		{"pinned at the newest version", "2.0.0", "2.0.0@3", []string{}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config := h.source(t, `"rules":["techs/go/a"],"pins":{"techs/go/a":{"version":"`+test.pin+`","reason":"Keep."}},"exclude":{"techs/go/a":{"reason":"Ours.","replacedBy":"local/techs/go/a.md"}}`)
+			recorded := h.record(t, config, 3, map[string]string{"techs/go/a": test.imported})
+			update, err := h.plan(t, config, &recorded)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := rows(update); !reflect.DeepEqual(got, test.want) {
+				t.Fatalf("rows %q, want %q", got, test.want)
+			}
+			if got := versions(h.install(t, update, config).Snapshot)["techs/go/a"]; got != test.imported {
+				t.Fatalf("the pin didn't keep the imported copy: %s", got)
+			}
+		})
+	}
+}
+
 // TestPlanUpdate_SaysWhenTheProjectAlreadyReplacedARetiredRulesReplacement: release/3 retires b in favor of d,
 // which the project replaces with a local rule, so the retired row names that local rule.
 func TestPlanUpdate_SaysWhenTheProjectAlreadyReplacedARetiredRulesReplacement(t *testing.T) {
