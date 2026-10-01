@@ -163,10 +163,12 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 	if err := ctx.Err(); err != nil {
 		return UpdateResult{}, unchanged(err, p.recovered || recovered)
 	}
+	forked := []imports.ForkedRule{}
 	for i := range forks {
-		if err := forks[i].read(ctx, p.planned.config, p.git); err != nil {
+		if err := forks[i].read(ctx, p.update, p.planned.config, p.git); err != nil {
 			return UpdateResult{}, unchanged(err, p.recovered || recovered)
 		}
+		forked = append(forked, imports.ForkedRule{Source: forks[i].source, ID: forks[i].id, Version: forks[i].version})
 	}
 	root, err := openProject(ctx, p.options, false)
 	if err != nil {
@@ -195,7 +197,7 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		}
 		git := p.git
 		git.GroupMetadata = groupsWithoutLocalMetadata(before)
-		if in.imported, err = p.update.Import(ctx, in.config, git); err != nil {
+		if in.imported, err = p.update.Import(ctx, in.config, git, forked); err != nil {
 			return err
 		}
 		changes, err = install(ctx, root, w, before, in)
@@ -330,12 +332,13 @@ type forkUpdate struct {
 	files map[string][]byte
 }
 
-// read reads the forked version from the library of the source in configuration and prepares the fork's files at
-// the local rule's path, exactly as code-rules project add rule --from writes a fork there.
-func (f *forkUpdate) read(ctx context.Context, configuration rules.Configuration, options imports.Options) error {
+// read reads the forked version from the library of the source in configuration, from the library release that
+// planning the update found published it, and prepares the fork's files at the local rule's path, exactly as
+// code-rules project add rule --from writes a fork there.
+func (f *forkUpdate) read(ctx context.Context, update imports.Update, configuration rules.Configuration, options imports.Options) error {
 	index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == f.source })
 	library := rules.Source{Name: f.source, Repository: configuration.Sources[index].Repository}
-	published, err := imports.ReadPublishedRule(ctx, library, f.id, f.version, options)
+	published, err := update.ReadFork(ctx, library, f.id, f.version, options)
 	if err != nil {
 		return fmt.Errorf("fork %s@%s: %w", f.id, f.version, err)
 	}

@@ -191,12 +191,18 @@ func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
 	return plan, p.settle(&plan)
 }
 
+// ForkedRule is a version of a rule that a project forks during an update, from a source the update names.
+type ForkedRule struct {
+	Source, ID string
+	Version    rules.RuleVersion
+}
+
 // Import imports every source of configuration, the planned configuration plus the pins and exclusions the
 // project decided on, or returns no partial result, as ImportLibraries does. Each source the update names imports
 // exactly its planned versions, except that a rule configuration pins keeps its version from before the update,
-// and fails when a library release tag those versions come from has moved since planning; any other source imports
-// what sync would.
-func (u Update) Import(ctx context.Context, configuration rules.Configuration, options Options) (map[string]Library, error) {
+// and fails when a library release tag those versions, or the versions in forked, come from has moved since
+// planning; any other source imports what sync would.
+func (u Update) Import(ctx context.Context, configuration rules.Configuration, options Options, forked []ForkedRule) (map[string]Library, error) {
 	return importSources(ctx, configuration, options, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
 		planned, named := u.plans[source.Name]
 		if !named {
@@ -206,16 +212,50 @@ func (u Update) Import(ctx context.Context, configuration rules.Configuration, o
 		if err != nil {
 			return sourcePlan{}, err
 		}
-		return plan, repo.requireTagsUnmoved(ctx, source, plan)
+		// A fork's library release needs the same check even when a pin or the update's scope keeps the imported copy
+		// at an older one.
+		releases := map[int]string{}
+		for _, fork := range forked {
+			if fork.Source != source.Name {
+				continue
+			}
+			release, err := publishingRelease(planned.history, fork.ID, fork.Version)
+			if err != nil {
+				return sourcePlan{}, err
+			}
+			releases[release.number] = release.commit
+		}
+		return plan, repo.requireTagsUnmoved(ctx, source, plan, releases)
+	})
+}
+
+// ReadFork reads version of rule id from source, which the update names, as ReadPublishedRule does, from the
+// library release that planning found published it. It fails with invalid-release-tag, before reading the rule's
+// files, when that release's tag now names another commit, so a fork never holds content the preview didn't plan.
+func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, version rules.RuleVersion, options Options) (PublishedRule, error) {
+	planned, named := u.plans[source.Name]
+	if !named {
+		return PublishedRule{}, fmt.Errorf("source %s isn't part of the update", source.Name)
+	}
+	expected, err := publishingRelease(planned.history, id, version)
+	if err != nil {
+		return PublishedRule{}, err
+	}
+	return readPublishedRule(ctx, source, id, version, options, func(release *libraryRelease) error {
+		if release.number != expected.number || release.commit != expected.commit {
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d, which published version %s of %s, now names a different commit than when code-rules project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run code-rules project update again.", expected.number, version, id, source.Name), nil)
+		}
+		return nil
 	})
 }
 
 // requireTagsUnmoved fails with code invalid-release-tag when a library release tag that the plan's rules or
-// library-wide files come from now names another commit than the plan recorded, so an update never installs
-// versions its preview read from a tag that has moved since. A tag the library deleted passes, as it does for sync,
-// and a plan that depends on no library release reads no tags.
-func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source, plan sourcePlan) error {
-	recorded := map[int]string{}
+// library-wide files come from, or one of releases, which maps library release numbers to the commits planning
+// read, now names another commit than recorded, so an update never installs versions its preview read from a tag
+// that has moved since. A tag the library deleted passes, as it does for sync, and a plan that depends on no library
+// release reads no tags.
+func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source, plan sourcePlan, releases map[int]string) error {
+	recorded := maps.Clone(releases)
 	if plan.release != 0 {
 		recorded[plan.release] = plan.commit
 	}

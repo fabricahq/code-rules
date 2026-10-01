@@ -80,7 +80,7 @@ func rows(update Update) []string {
 // install imports config as the update plans it, as project update does after its preview.
 func (h history) install(t *testing.T, update Update, config rules.Configuration) Library {
 	t.Helper()
-	result, err := update.Import(context.Background(), config, Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment})
+	result, err := update.Import(context.Background(), config, Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -327,6 +327,71 @@ func TestUpdate_RefusesToUpdateAForkItCant(t *testing.T) {
 	})
 }
 
+// TestUpdate_RefusesAForkWhoseReleaseTagMovedAfterThePreview: release/3, which published the fork's version, moves
+// to changed content between the preview and the apply. Whether the update moves the imported copy from that
+// release, as a whole-source or scoped update does, or a pin keeps the imported copy at an older release, the update
+// refuses with invalid-release-tag and writes nothing, rather than forking the moved content.
+func TestUpdate_RefusesAForkWhoseReleaseTagMovedAfterThePreview(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		pinned  bool
+		targets []imports.UpdateTarget
+	}{
+		{"whole source", false, nil},
+		{"scoped", false, []imports.UpdateTarget{{Source: "team", Rule: "techs/go/errors"}}},
+		{"pinned", true, nil},
+		{"scoped and pinned", true, []imports.UpdateTarget{{Source: "team", Rule: "techs/go/errors"}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			f := forkedProject(t, "")
+			ctx := context.Background()
+			if test.pinned {
+				root, err := openProject(ctx, f.options, false)
+				if err != nil {
+					t.Fatal(err)
+				}
+				config := string(f.files(t)["config.yaml"])
+				writeFixture(t, root, configurationFile, strings.Replace(config, "    exclude:\n", "    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Not yet.\n    exclude:\n", 1))
+				root.Close()
+			}
+			plan, err := PlanUpdate(ctx, f.options, f.git, test.targets, updateFork)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := plan.Preview(updateFork); err != nil {
+				t.Fatal(err)
+			}
+			moveReleaseTagTo(t, f.fixture, "release/3", map[string][]byte{"techs/go/errors.md": []byte(forkedRule("Moved content."))})
+			before := f.files(t)
+			_, err = plan.Apply(ctx, updateFork)
+			var failure *imports.Error
+			if !errors.As(err, &failure) || failure.Code != "invalid-release-tag" {
+				t.Fatalf("wanted invalid-release-tag, got %v", err)
+			}
+			if after := f.files(t); !reflect.DeepEqual(after, before) {
+				t.Fatalf("a refused update changed the project; the fork is now:\n%s", after["local/techs/go/errors.md"])
+			}
+		})
+	}
+}
+
+// moveReleaseTagTo commits files on top of the library and moves the tag name to that commit, keeping its message.
+func moveReleaseTagTo(t *testing.T, f *gitfixture.Fixture, name string, files map[string][]byte) {
+	t.Helper()
+	ctx := context.Background()
+	object, err := f.Command(ctx, "cat-file", "tag", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, message, _ := strings.Cut(object, "\n\n")
+	if _, err := f.Commit(ctx, f.Worktree(), "Move "+name, files); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Command(ctx, "tag", "--force", "--annotate", "--cleanup=verbatim", "--message", message+"\n", name); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestUpdate_ForkUpdateWritesNothingWhenTheUpdateFails leaves every file as it was when a library release tag moved
 // after the preview, or the fork changed after it.
 func TestUpdate_ForkUpdateWritesNothingWhenTheUpdateFails(t *testing.T) {
