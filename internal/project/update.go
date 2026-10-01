@@ -216,6 +216,7 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 	if err != nil {
 		return UpdateResult{}, unchanged(err, p.recovered || recovered)
 	}
+	changes.Recovered = p.recovered || recovered
 	return UpdateResult{Applied: true, Sources: sources, FileChanges: changes}, nil
 }
 

@@ -50,7 +50,7 @@ Commands print human-readable output by default. Add `--json` when another tool 
 code-rules project check --json
 ```
 
-Sync, update, and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`.
+Sync, update, and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`. When the command first [recovered an interrupted one](#recover-from-an-interrupted-update), it says so before the counts, which don't include the files the recovery restored or finished, and JSON output sets `recovered` to `true`.
 
 - Sync and update paths start with `vendor/` or `generated/`. Update also lists `config.yaml` when it writes a pin or an exclusion, and both list a `local/<group-id>/_group.yaml` they add.
 - Build paths are relative to `generated/`.

@@ -179,6 +179,10 @@ func groupCreatedReport(added, changed, warnings []string, groupPath string, sco
 func projectChangesReport(action string, result project.FileChanges, root, workdir string) commandReport {
 	var out strings.Builder
 	codeRules := relativeDirectory(filepath.Join(root, ".code-rules"), workdir)
+	// The counts below are the command's own, so a recovery that came first is said separately.
+	if result.Recovered {
+		out.WriteString("First recovered an interrupted earlier command, which restored or finished that command's files.\n")
+	}
 	if result.Guide != nil {
 		status := "updated"
 		if result.Guide.Created {

@@ -59,6 +59,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 	if err != nil {
 		return FileChanges{}, unchanged(err, recovered)
 	}
+	changes.Recovered = recovered
 	return changes, nil
 }
 
