@@ -36,7 +36,13 @@ Releases depend on the branch, ruleset, environment, and immutable-release setti
 
 ## Testing PR preview builds
 
-After a successful build, PRs opened from a branch in this repository by someone with write access automatically receive preview links. For fork PRs and other contributors, a maintainer approves the exact commit by running the **CLI preview downloads** workflow with the build's run ID and the full commit SHA.
+After a successful build, PRs opened from a branch in this repository by someone with write or admin access automatically receive preview links. Forks, including maintainer-owned forks, and other contributors need a maintainer to approve the exact commit:
+
+1. Review the current PR commit, including source, dependencies, tests, and build workflow changes, for isolated testing.
+2. Find its successful **Package CLI binaries** run. Copy the numeric run ID from its URL and the PR's full 40-character commit SHA.
+3. In Actions, select **CLI preview downloads**, then **Run workflow** from the default branch. Enter that run ID and commit SHA.
+
+A new commit needs a new approval.
 
 **Warning: These executables run code from the PR. Use a disposable test environment without credentials or private files. Even `--help` executes the program.**
 
