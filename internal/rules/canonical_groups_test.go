@@ -52,6 +52,12 @@ func TestParseCanonicalGroupsRejectsInvalidLists(t *testing.T) {
 		{"missing description", "techs/go:\n  name: Go\n", "list.techs/go.description", "expected nonempty text"},
 		{"multiline description", "techs/go:\n  name: Go\n  description: |\n    The Go\n    language.\n", "list.techs/go.description", "expected one line"},
 		{"multiline name", "techs/go:\n  name: \"G\\no\"\n  description: Go.\n", "list.techs/go.name", "expected one line"},
+		{"vertical tab in name", "techs/go:\n  name: \"Go\\vLang\"\n  description: Go.\n", "list.techs/go.name", "expected one line"},
+		{"form feed in name", "techs/go:\n  name: \"Go\\fLang\"\n  description: Go.\n", "list.techs/go.name", "expected one line"},
+		{"next line in description", "techs/go:\n  name: Go\n  description: \"The Go\\Nlanguage.\"\n", "list.techs/go.description", "expected one line"},
+		{"line separator in description", "techs/go:\n  name: Go\n  description: \"The Go\\Llanguage.\"\n", "list.techs/go.description", "expected one line"},
+		{"paragraph separator in description", "techs/go:\n  name: Go\n  description: \"The Go\\Planguage.\"\n", "list.techs/go.description", "expected one line"},
+		{"tab in name", "techs/go:\n  name: \"Go\\tLang\"\n  description: Go.\n", "list.techs/go.name", "expected one line"},
 		{"duplicate name", testingEntry + "techs/go:\n  name: testing\n  description: Go.\n", "list.techs/go.name", `"testing" is already the name of "practices/testing"`},
 		{"duplicate folded name", "practices/sigma:\n  name: Σ\n  description: Upper.\n" + "techs/sigma:\n  name: ς\n  description: Final.\n", "list.techs/sigma.name", `"ς" is already the name of "practices/sigma"`},
 	} {

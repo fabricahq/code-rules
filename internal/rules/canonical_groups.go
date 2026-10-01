@@ -5,6 +5,7 @@ package rules
 import (
 	"encoding/json"
 	"strings"
+	"unicode"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -85,13 +86,19 @@ func canonicalGroup(id string, input json.RawMessage, location string) (Canonica
 }
 
 // canonicalText returns trimmed, nonempty text that fits on one line of a catalog or warning.
+// It rejects every control character, including tabs and the vertical separators LF, VT, FF, CR, and NEL,
+// as well as the Unicode line and paragraph separators.
 func canonicalText(input json.RawMessage, location string) (string, error) {
 	text, err := metadataText(input, location)
 	if err != nil {
 		return "", err
 	}
-	if strings.ContainsAny(text, "\n\r  ") {
-		return "", invalid(location, "expected one line of text")
+	if strings.ContainsFunc(text, controlOrLineSeparator) {
+		return "", invalid(location, "expected one line of text without control characters")
 	}
 	return text, nil
+}
+
+func controlOrLineSeparator(r rune) bool {
+	return unicode.IsControl(r) || unicode.In(r, unicode.Zl, unicode.Zp)
 }
