@@ -1,4 +1,6 @@
 // Package cli implements the native command boundary without owning process exit or signal handlers.
+// It collects flags and prompt answers before calling the domain packages, and owns human output, --json
+// responses, and exit statuses.
 package cli
 
 import (
