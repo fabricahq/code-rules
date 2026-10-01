@@ -3,7 +3,6 @@
 package imports
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -12,11 +11,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
-
-// maxTagBatchBytes bounds the tag messages one Git process reads; more releases use several.
-const maxTagBatchBytes = 16 << 20
 
 // libraryRelease is one library release, read from its release/<number> tag.
 type libraryRelease struct {
@@ -73,9 +70,39 @@ func (h releaseHistory) published(id string) []*libraryRelease {
 	return result
 }
 
+// maxListedVersions bounds how many versions an error lists, so a long-lived rule's history stays readable.
+const maxListedVersions = 10
+
+// versionList lists, newest first, the versions rule id published, at most maxListedVersions of them followed by
+// how many older ones there are, or "" when it published none.
+func (h releaseHistory) versionList(id string) string {
+	versions := []string{}
+	for _, release := range h.published(id) {
+		versions = append(versions, release.record.Rules[id].String())
+	}
+	if len(versions) > maxListedVersions {
+		return strings.Join(versions[:maxListedVersions], ", ") + fmt.Sprintf(", and %d older", len(versions)-maxListedVersions)
+	}
+	return strings.Join(versions, ", ")
+}
+
 // retired reports whether any library release retired rule id.
 func (h releaseHistory) retired(id string) bool {
 	return h.retirement(id) != nil
+}
+
+// currentReplacement follows the replacements of retired rule id until one that the newest library release
+// publishes, and returns it, or "" when a retirement names no replacement. A cycle, which only hand-made release
+// tags could record, also returns "".
+func (h releaseHistory) currentReplacement(id string) string {
+	seen := map[string]bool{}
+	for retired := h.retirement(id); retired != nil && retired.ReplacedBy != "" && !seen[id]; retired = h.retirement(id) {
+		seen[id], id = true, retired.ReplacedBy
+		if _, current := h.newest().record.Rules[id]; current {
+			return id
+		}
+	}
+	return ""
 }
 
 // retirement returns how a library release retired rule id, or nil when none did.
@@ -88,29 +115,21 @@ func (h releaseHistory) retirement(id string) *rules.RetiredRule {
 	return nil
 }
 
-// summaries returns, oldest first, the summary lines of every version of rule id newer than from, up to and
-// including to. A nil from includes every version up to to. The result is empty, never nil, when there are none.
-func (h releaseHistory) summaries(id string, from *rules.RuleVersion, to rules.RuleVersion) []string {
-	result := []string{}
+// summaries returns, oldest first, the summaries of every version of rule id newer than from, up to and including
+// to, one per change note, and the version each belongs to, in the same order. A nil from includes every version up
+// to to. Both are empty, never nil, when there are none.
+func (h releaseHistory) summaries(id string, from *rules.RuleVersion, to rules.RuleVersion) ([]string, []rules.RuleVersion) {
+	summaries, versions := []string{}, []rules.RuleVersion{}
 	for _, release := range h.releases {
 		change, changed := release.record.Changes[id]
 		version := release.record.Rules[id]
 		if changed && (from == nil || version.Compare(*from) > 0) && version.Compare(to) <= 0 {
-			result = append(result, summaryLines(change.Summary)...)
+			for _, summary := range change.Summaries {
+				summaries, versions = append(summaries, summary), append(versions, version)
+			}
 		}
 	}
-	return result
-}
-
-// summaryLines splits a recorded summary, which holds one line per change note, into its nonblank lines.
-func summaryLines(summary string) []string {
-	lines := []string{}
-	for line := range strings.Lines(summary) {
-		if line = strings.TrimSpace(line); line != "" {
-			lines = append(lines, line)
-		}
-	}
-	return lines
+	return summaries, versions
 }
 
 // loadHistory lists the library's release/<number> tags, fetches them without history or blobs, and reads their
@@ -126,21 +145,34 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 		name := "refs/tags/release/" + strconv.Itoa(release.number)
 		refspecs = append(refspecs, "+"+name+":"+name)
 	}
-	ok, err := r.fetch(ctx, refspecs, true)
+	fetched, err := r.fetch(ctx, refspecs, true)
 	if err != nil {
 		return releaseHistory{}, err
 	}
-	if !ok {
+	if fetched.Status != 0 {
 		if err := r.unreachable(ctx); err != nil {
 			return releaseHistory{}, err
 		}
-		return releaseHistory{}, fail("git-failed", "Could not fetch the library's release tags.", nil)
+		return releaseHistory{}, gitFailure("git-failed", "Could not fetch the library's release tags.", fetched.Diagnostics)
 	}
-	sizes, err := r.fetchedReleases(ctx, advertised)
+	tags, err := r.fetchedReleases(ctx, advertised)
 	if err != nil {
 		return releaseHistory{}, err
 	}
-	if err := r.readRecords(ctx, advertised, sizes); err != nil {
+	// Imports need only the records, so each release's notes are dropped as soon as it is read.
+	err = releasetag.Read(ctx, r.runner, r.directory, tags, func(i int, release releasetag.Release) error {
+		advertised[i].record = release.Record
+		return nil
+	})
+	var invalid *releasetag.RecordError
+	var unsupported *rules.UnsupportedReleaseRecordError
+	switch {
+	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
+		return releaseHistory{}, fail("unsupported-release-record", fmt.Sprintf("Library release tag %s uses release record format %d, which this version of Code Rules can't read. Upgrade Code Rules, then run the command again.", invalid.Tag, unsupported.FormatVersion), nil)
+	case invalid != nil:
+		return releaseHistory{}, fail("invalid-release-tag", "Invalid release record: "+invalid.Problem()+". Don't create or move release tags by hand.", invalid.Err)
+	}
+	if err != nil {
 		return releaseHistory{}, err
 	}
 	for _, release := range advertised {
@@ -156,7 +188,7 @@ func (r *repository) listReleases(ctx context.Context) ([]libraryRelease, error)
 		return nil, err
 	}
 	if result.Status != 0 {
-		return nil, fail("not-found-or-no-access", "Repository not found or no access; check its address and Git credentials.", nil)
+		return nil, remoteFailure(result.Diagnostics)
 	}
 	tags, err := rules.ParseTagAdvertisement(string(result.Output))
 	if err != nil {
@@ -182,74 +214,32 @@ func (r *repository) listReleases(ctx context.Context) ([]libraryRelease, error)
 	return releases, nil
 }
 
-// fetchedReleases checks that each fetched release tag is the tag object the listing advertised and that it tags
-// the advertised object, which must be a commit, so a tag moved in between or tagging a tree or blob fails. It
-// returns each tag object's size in bytes.
-func (r *repository) fetchedReleases(ctx context.Context, advertised []libraryRelease) (map[string]int, error) {
-	listing, err := r.runner.Output(ctx, r.directory, []string{"for-each-ref", "--format=%(refname) %(objecttype) %(objectname) %(objectsize) %(*objectname) %(*objecttype)", "refs/tags/release/"}, 8<<20)
+// fetchedReleases returns the fetched release tag of each advertised library release, in the same order, checking
+// that it is the tag object the listing advertised and that it tags the advertised object, which must be a commit,
+// so a tag moved in between or tagging a tree or blob fails.
+func (r *repository) fetchedReleases(ctx context.Context, advertised []libraryRelease) ([]releasetag.Tag, error) {
+	listed, err := releasetag.List(ctx, r.runner, r.directory, "")
 	if err != nil {
 		return nil, err
 	}
-	fetched := map[string][]string{}
-	for line := range strings.Lines(string(listing)) {
-		fields := strings.Fields(line)
-		if len(fields) == 6 {
-			fetched[strings.TrimPrefix(fields[0], "refs/tags/")] = fields[1:]
-		}
+	fetched := map[int]releasetag.Tag{}
+	for _, tag := range listed {
+		fetched[tag.Number] = tag
 	}
-	sizes := map[string]int{}
+	tags := make([]releasetag.Tag, 0, len(advertised))
 	for _, release := range advertised {
 		name := "release/" + strconv.Itoa(release.number)
-		fields := fetched[name]
-		if len(fields) != 5 || fields[0] != "tag" || fields[1] != release.tag || fields[3] != release.commit {
+		tag, ok := fetched[release.number]
+		if !ok || tag.Type != "tag" || tag.Object != release.tag || tag.Target != release.commit {
 			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s changed while Code Rules read it; retry. Don't create or move release tags by hand.", name), nil)
 		}
-		if fields[4] != "commit" {
-			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s tags a %s, not a commit. Don't create or move release tags by hand.", name, fields[4]), nil)
+		if tag.TargetType != "commit" {
+			return nil, fail("invalid-release-tag", fmt.Sprintf("Library release tag %s tags a %s, not a commit. Don't create or move release tags by hand.", name, tag.TargetType), nil)
 		}
-		size, err := strconv.Atoi(fields[2])
-		if err != nil || size < 0 || size > maxBlobBytes {
+		if tag.Size > releasetag.MaxBytes {
 			return nil, fail("limit-exceeded", fmt.Sprintf("Library release tag %s exceeds 8 MiB.", name), nil)
 		}
-		sizes[release.tag] = size
+		tags = append(tags, tag)
 	}
-	return sizes, nil
-}
-
-// readRecords reads and parses each release tag's record into releases, reading messages in bounded batches.
-func (r *repository) readRecords(ctx context.Context, releases []libraryRelease, sizes map[string]int) error {
-	for start := 0; start < len(releases); {
-		end, total := start, 0
-		var input strings.Builder
-		for end < len(releases) && (end == start || total+sizes[releases[end].tag] <= maxTagBatchBytes) {
-			total += sizes[releases[end].tag] + 128
-			input.WriteString(releases[end].tag + "\n")
-			end++
-		}
-		result, err := r.runner.Run(ctx, r.directory, []string{"cat-file", "--batch"}, total+4096, []byte(input.String()))
-		if err != nil {
-			return err
-		}
-		if result.Status != 0 {
-			return fail("git-failed", "Git could not read the library's release tags.", nil)
-		}
-		remaining := result.Output
-		for i := start; i < end; i++ {
-			release := &releases[i]
-			name := "release/" + strconv.Itoa(release.number)
-			header, rest, ok := bytes.Cut(remaining, []byte{'\n'})
-			size := sizes[release.tag]
-			if !ok || string(header) != release.tag+" tag "+strconv.Itoa(size) || len(rest) < size+1 || rest[size] != '\n' {
-				return fail("git-failed", "Git returned inconsistent or incomplete release tags.", nil)
-			}
-			_, record, err := rules.ParseReleaseTagObject(name, rest[:size])
-			if err != nil {
-				return fail("invalid-release-tag", fmt.Sprintf("Invalid release record in library release tag %s: %v. Don't create or move release tags by hand.", name, err), err)
-			}
-			release.record = record
-			remaining = rest[size+1:]
-		}
-		start = end
-	}
-	return nil
+	return tags, nil
 }

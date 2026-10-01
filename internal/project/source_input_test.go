@@ -23,12 +23,12 @@ func TestParseSourceRefAcceptsOnlyExactRevisions(t *testing.T) {
 		t.Run(tc.input, func(t *testing.T) {
 			ref, err := ParseSourceRef(tc.input)
 			if tc.want == "" {
-				if err == nil || ref != "" {
+				if err == nil || !ref.IsZero() {
 					t.Fatal(ref, err)
 				}
 				return
 			}
-			if err != nil || ref != tc.want {
+			if err != nil || ref.String() != tc.want {
 				t.Fatal(ref, err)
 			}
 		})

@@ -19,7 +19,7 @@ import (
 )
 
 // firstRelease is the release record of the sync fixture's first library release.
-const firstRelease = "release: 1\nrules:\n  techs/go/errors: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summary: Add the rule.}\n"
+const firstRelease = "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/errors: 1.0.0\nchanges:\n  techs/go/errors: {change: new, summaries: [Add the rule.]}\n"
 
 // syncProject initializes a project and a library, with exact binary and license content, whose first library
 // release publishes techs/go/errors at 1.0.0. The project selects techs/go.
@@ -158,5 +158,43 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 				t.Fatal("failed sync changed project", err)
 			}
 		})
+	}
+}
+
+// TestSyncAndUpdate_SayNoFilesWereWrittenWhenTheyFail: a cancelled sync or update says it was cancelled and wrote
+// nothing, still reporting the cancellation, and a failed one adds that it wrote nothing to its reason, without
+// naming internal steps.
+func TestSyncAndUpdate_SayNoFilesWereWrittenWhenTheyFail(t *testing.T) {
+	_, options, git := syncProject(t)
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, syncErr := Sync(cancelled, options, git)
+	_, planErr := PlanUpdate(cancelled, options, git, nil, nil)
+	for name, err := range map[string]error{"sync": syncErr, "update": planErr} {
+		if err == nil || err.Error() != "cancelled; no files were written" || !errors.Is(err, context.Canceled) {
+			t.Errorf("cancelled %s: %v", name, err)
+		}
+	}
+	git.GitPath = "/nonexistent/git"
+	_, err := Sync(context.Background(), options, git)
+	if err == nil || !strings.HasSuffix(err.Error(), " No files were written.") || strings.Contains(err.Error(), "sync project") || strings.Contains(err.Error(), "no libraries were returned") {
+		t.Fatalf("failed sync: %v", err)
+	}
+}
+
+// TestSync_SaysItRecoveredAnInterruptedCommandBeforeFailing, rather than that it wrote no files: sync first cleans
+// up what an interrupted earlier command left, then fails on invalid configuration.
+func TestSync_SaysItRecoveredAnInterruptedCommandBeforeFailing(t *testing.T) {
+	_, options, git := syncProject(t)
+	root, err := openProject(context.Background(), options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, ".code-rules-transaction/staged", "left by an interrupted command")
+	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{},"unknown":true}`)
+	root.Close()
+	_, err = Sync(context.Background(), options, git)
+	if err == nil || strings.Contains(err.Error(), "No files were written") || !strings.Contains(err.Error(), "recovered an interrupted earlier command") {
+		t.Fatalf("got %v", err)
 	}
 }

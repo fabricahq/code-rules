@@ -21,24 +21,48 @@ var externalScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
 
 // markdownLinks finds Markdown destinations and HTML href/src attributes, excluding code and complete frontmatter envelopes.
 func markdownLinks(document string) ([]string, error) {
+	links, rawHTML, err := documentLinks(document)
+	if err != nil {
+		return nil, err
+	}
+	links = append(links, htmlLinks(rawHTML)...)
+	slices.Sort(links)
+	return slices.Compact(links), nil
+}
+
+// RawHTMLLinks returns the href and src attribute values of the raw HTML in a Markdown document, excluding code
+// and complete frontmatter envelopes, sorted and without duplicates. Generation rejects the relative ones.
+func RawHTMLLinks(document string) ([]string, error) {
+	_, rawHTML, err := documentLinks(document)
+	if err != nil {
+		return nil, err
+	}
+	links := htmlLinks(rawHTML)
+	slices.Sort(links)
+	return slices.Compact(links), nil
+}
+
+// documentLinks returns a Markdown document's link, image, and reference destinations, and its raw HTML joined
+// for one tokenizer, excluding code and complete frontmatter envelopes.
+func documentLinks(document string) (links []string, rawHTML string, err error) {
 	if !utf8.ValidString(document) {
-		return nil, invalid("document", "expected UTF-8 text")
+		return nil, "", invalid("document", "expected UTF-8 text")
 	}
 	source := []byte(document[MarkdownBodyStart(document):])
 	root := parser.New().Parse(source)
-	links := []string{}
-	var rawHTML strings.Builder
-	err := ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+	links = []string{}
+	var raw strings.Builder
+	err = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
 		switch n := node.(type) {
 		case *ast.RawHTML:
-			rawHTML.WriteString(n.Value.Value(source))
-			rawHTML.WriteByte('\n')
+			raw.WriteString(n.Value.Value(source))
+			raw.WriteByte('\n')
 		case *ast.HTMLBlock:
-			rawHTML.Write(n.Value.Bytes(source))
-			rawHTML.WriteByte('\n')
+			raw.Write(n.Value.Bytes(source))
+			raw.WriteByte('\n')
 		}
 		var destination text.SingleLineValue
 		switch n := node.(type) {
@@ -55,11 +79,9 @@ func markdownLinks(document string) ([]string, error) {
 		return ast.WalkContinue, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	links = append(links, htmlLinks(rawHTML.String())...)
-	slices.Sort(links)
-	return slices.Compact(links), nil
+	return links, raw.String(), nil
 }
 
 // htmlLinks reads real href/src attributes; one tokenizer preserves script and textarea context across inline nodes.

@@ -928,5 +928,74 @@
       }
     },
     "difference": "User-approved adoption of the SPDX identifier and exception lists bundled with go-spdx v2.7.0 instead of the older TypeScript dependency lists. The reference result remains unchanged."
+  },
+  {
+    "id": "license-file-is-a-rule",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"techs/go/errors.md\", \"notices\": []}}"
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.yaml: license.file: \"techs/go/errors.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root",
+        "location": "library/rule-library.yaml: license.file"
+      }
+    }
+  },
+  {
+    "id": "license-file-in-a-group-assets-directory",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"techs/go/assets/LICENSE\", \"notices\": []}}"
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.yaml: license.file: \"techs/go/assets/LICENSE\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root",
+        "location": "library/rule-library.yaml: license.file"
+      }
+    }
+  },
+  {
+    "id": "license-notice-in-a-rules-assets",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"LICENSE\", \"notices\": [\"NOTICE\", \"practices/testing/assets/verify/nested/NOTICE.md\"]}}"
+    },
+    "location": "library",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "library/rule-library.yaml: license.notices[1]: \"practices/testing/assets/verify/nested/NOTICE.md\" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root",
+        "location": "library/rule-library.yaml: license.notices[1]"
+      }
+    }
+  },
+  {
+    "id": "license-library-wide-paths-in-groups",
+    "operation": "licenses",
+    "input": {
+      "manifest": "{\"formatVersion\": 1, \"license\": {\"file\": \"techs/go/LICENSE.md\", \"notices\": [\"assets/NOTICE.md\", \"techs/go/README.md\"]}}"
+    },
+    "location": "library",
+    "expected": {
+      "ok": true,
+      "value": {
+        "spdxExpression": null,
+        "files": [
+          "techs/go/LICENSE.md"
+        ],
+        "attributionFiles": [
+          "assets/NOTICE.md",
+          "techs/go/README.md"
+        ]
+      }
+    }
   }
 ]

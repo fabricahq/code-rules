@@ -25,6 +25,11 @@ func libraryReleaseCommand(options Options, output *commandOutput) *cobra.Comman
 		noGitHubRelease, _ := cmd.Flags().GetBool("no-github-release")
 		result, err := library.Release(cmd.Context(), library.ReleaseRequest{Options: target, DryRun: dryRun, NoGitHubRelease: noGitHubRelease})
 		if err != nil {
+			// A published tag whose GitHub Release page failed is part of the JSON result; the error explains it to
+			// people.
+			if result.Release > 0 {
+				output.report = commandReport{value: result}
+			}
 			return err
 		}
 		output.report = libraryReleaseReport(result, noGitHubRelease, authoringScope{library: true, directory: f.value("directory")})
@@ -79,7 +84,11 @@ func libraryReleaseReport(result library.ReleaseResult, noGitHubRelease bool, sc
 		if result.Published {
 			next = "To create anything that's missing, such as the GitHub Release page, run:"
 		}
-		fmt.Fprintf(&out, "\n%s\n  %s\n", next, scope.command("release"))
+		command := scope.command("release")
+		if noGitHubRelease {
+			command += " --no-github-release"
+		}
+		fmt.Fprintf(&out, "\n%s\n  %s\n", next, command)
 	}
 	return commandReport{value: result, human: out.String()}
 }
@@ -105,6 +114,9 @@ func pageStatus(result library.ReleaseResult, noGitHubRelease bool) string {
 		return "none, because " + result.Remote + " isn't on GitHub.com"
 	case noGitHubRelease:
 		return "skipped (--no-github-release)"
+	case result.DryRun && result.Published:
+		// A dry run doesn't ask gh whether the page exists.
+		return "created with gh for " + result.GitHubRepository + " if it's missing"
 	case result.DryRun:
 		return "created with gh for " + result.GitHubRepository + " when published"
 	case result.GitHubRelease.Created:

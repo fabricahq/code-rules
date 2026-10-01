@@ -9,10 +9,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -49,11 +52,6 @@ func (r remoteState) latest() int {
 		return 0
 	}
 	return slices.Max(slices.Collect(maps.Keys(r.tags)))
-}
-
-// localTag is a release tag in the author's clone.
-type localTag struct {
-	object, commit string
 }
 
 // upstream finds the checked-out branch and its upstream remote. It fails on a detached HEAD, a branch
@@ -108,14 +106,20 @@ func (g *libraryGit) pushDestination(ctx context.Context, remote, fetchURL strin
 }
 
 // sameRepository reports whether two remote URLs name the same repository, comparing recognized repositories
-// by identity, such as github.com/acme/rules for its HTTPS and SSH URLs, and other URLs without credentials.
+// by identity, such as github.com/acme/rules for its HTTPS and SSH URLs, other URLs without credentials, and
+// URLs that can't be parsed exactly.
 func sameRepository(a, b string) bool {
 	first, firstOK := parseRemote(a)
 	second, secondOK := parseRemote(b)
 	if firstOK && secondOK {
 		return first.Identity == second.Identity
 	}
-	return withoutCredentials(a) == withoutCredentials(b)
+	firstAddress, firstParsed := withoutCredentials(a)
+	secondAddress, secondParsed := withoutCredentials(b)
+	if !firstParsed || !secondParsed {
+		return a == b
+	}
+	return firstAddress == secondAddress
 }
 
 // requireCommitterIdentity fails before anything changes when Git has no tagger identity for the tag.
@@ -139,7 +143,7 @@ func tagObjectSize(name, commit, tagger string, message []byte) int {
 
 // requireTagSize refuses a release tag object larger than the 8 MiB that reading release tags accepts.
 func requireTagSize(name string, size int) error {
-	if size <= maxFileBytes {
+	if size <= releasetag.MaxBytes {
 		return nil
 	}
 	return failure("release-too-large", name+" would be a tag of "+strconv.Itoa(size)+" bytes, but release tags can be at most 8 MiB (8,388,608 bytes), or later library releases couldn't read it. Publish the pending changes in smaller library releases, or shorten their change notes' summaries, then run code-rules library release again.", nil)
@@ -166,7 +170,7 @@ func (g *libraryGit) readRemote(ctx context.Context, u upstream) (remoteState, e
 		return remoteState{}, fmt.Errorf("list the branches and release tags of remote=%q: %w", u.remote, err)
 	}
 	if result.Status != 0 {
-		return remoteState{}, failure("fetch-failed", "Git couldn't read "+u.remote+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
+		return remoteState{}, fetchFailure("read", u.remote, result.Diagnostics)
 	}
 	return parseRemoteListing(string(result.Output), u)
 }
@@ -174,6 +178,7 @@ func (g *libraryGit) readRemote(ctx context.Context, u upstream) (remoteState, e
 // parseRemoteListing reads git ls-remote --symref output for the remote's HEAD, the upstream branch, and its
 // release tags. It fails when the listing is malformed, has more than 20,000 tag records, or shows that the
 // upstream branch isn't the remote's default branch.
+// The advertised default branch's name comes from the server, so a refusal never shows it.
 func parseRemoteListing(listing string, u upstream) (remoteState, error) {
 	state := remoteState{tags: map[int]string{}}
 	records := 0
@@ -209,42 +214,34 @@ func parseRemoteListing(listing string, u upstream) (remoteState, error) {
 		return remoteState{}, failure("not-default-branch", u.remote+" doesn't report a default branch, so code-rules library release can't confirm it's publishing from it.", nil)
 	}
 	if u.ref != state.defaultBranch {
-		return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, "+strings.TrimPrefix(state.defaultBranch, "refs/heads/")+", but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+". Check out "+strings.TrimPrefix(state.defaultBranch, "refs/heads/")+", then run code-rules library release again.", nil)
+		return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+", which isn't it. Check out the default branch, which git remote show "+u.remote+" names, then run code-rules library release again.", nil)
 	}
 	return state, nil
 }
 
-// localReleaseTags maps each release/<number> tag in the clone, reachable or not, to its object and commit.
-func (g *libraryGit) localReleaseTags(ctx context.Context) (map[int]localTag, error) {
-	listing, err := g.runner.Output(ctx, g.dir, []string{"for-each-ref", "--format=%(refname)%00%(objectname)%00%(*objectname)", "refs/tags/release/"}, maxRemoteListing)
+// localReleaseTags maps the number of each release/<number> tag in the clone, reachable or not, to the tag.
+func (g *libraryGit) localReleaseTags(ctx context.Context) (map[int]releasetag.Tag, error) {
+	listed, err := g.listReleaseTags(ctx, "")
 	if err != nil {
-		return nil, fmt.Errorf("list the library's release tags: %w", err)
+		return nil, err
 	}
-	tags := map[int]localTag{}
-	for line := range strings.Lines(string(listing)) {
-		fields := strings.Split(strings.TrimSuffix(line, "\n"), "\x00")
-		if len(fields) != 3 {
-			return nil, failure("git-failed", "Git listed release tags in an unexpected format", nil)
-		}
-		if number, err := rules.ParseReleaseTag(strings.TrimPrefix(fields[0], "refs/tags/")); err == nil {
-			tags[number] = localTag{object: fields[1], commit: fields[2]}
-			if len(tags) > maxReleaseTags {
-				return nil, failure("limit-exceeded", "library has more than 20,000 release tags", nil)
-			}
-		}
+	tags := map[int]releasetag.Tag{}
+	for _, tag := range listed {
+		tags[tag.Number] = tag
 	}
 	return tags, nil
 }
 
 // syncReleaseTags fetches the upstream branch and every release tag the clone lacks. It refuses when a
 // release tag in the clone differs from the remote's, or when the clone has a release tag the remote lacks,
-// unless that tag is on head and numbered one past the remote's latest: a run that stopped before pushing its
-// tag. It also refuses when the fetch brings a branch tip or release tag other than the ones remote lists, so
-// every later comparison uses what was fetched. It returns the unpushed tag's number, or 0.
-func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote remoteState, head string) (int, error) {
+// unless that tag is on head and numbered one past the remote's latest, as a run that stopped before pushing its
+// tag leaves it; the caller must still check that tag's content. It also refuses when the fetch brings a branch
+// tip or release tag other than the ones remote lists, so every later comparison uses what was fetched. It
+// returns the unpushed tag, or a zero Tag when there is none.
+func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote remoteState, head string) (releasetag.Tag, error) {
 	local, err := g.localReleaseTags(ctx)
 	if err != nil {
-		return 0, err
+		return releasetag.Tag{}, err
 	}
 	refspecs := []string{"+" + u.ref + ":" + u.tracking}
 	for _, number := range slices.Sorted(maps.Keys(remote.tags)) {
@@ -253,8 +250,8 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 		switch {
 		case !ok:
 			refspecs = append(refspecs, "refs/tags/"+name+":refs/tags/"+name)
-		case tag.object != remote.tags[number]:
-			return 0, failure("release-tag-mismatch", name+" in this clone differs from "+name+" on "+u.remote+". Release tags must never change, because projects may have imported them. Find out which one is the original and restore it; to discard this clone's copy, run git tag --delete "+name+".", nil)
+		case tag.Object != remote.tags[number]:
+			return releasetag.Tag{}, failure("release-tag-mismatch", name+" in this clone differs from "+name+" on "+u.remote+". Release tags must never change, because projects may have imported them. Find out which one is the original and restore it; to discard this clone's copy, run git tag --delete "+name+".", nil)
 		}
 	}
 	unpublished := 0
@@ -263,22 +260,22 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 			continue
 		}
 		name := "release/" + strconv.Itoa(number)
-		if number != remote.latest()+1 || local[number].commit != head {
-			return 0, failure("release-tag-mismatch", name+" exists in this clone but not on "+u.remote+". Only code-rules library release creates release tags; if you created it by hand, delete it with git tag --delete "+name+", then run code-rules library release again.", nil)
+		if number != remote.latest()+1 || local[number].Target != head {
+			return releasetag.Tag{}, failure("release-tag-mismatch", name+" exists in this clone but not on "+u.remote+". Only code-rules library release creates release tags; if you created it by hand, delete it with git tag --delete "+name+", then run code-rules library release again.", nil)
 		}
 		unpublished = number
 	}
 	result, err := g.runner.Run(ctx, g.dir, []string{"fetch", "--no-tags", "--stdin", "--", u.remote}, 1024*1024, []byte(strings.Join(refspecs, "\n")+"\n"))
 	if err != nil {
-		return 0, fmt.Errorf("fetch remote=%q: %w", u.remote, err)
+		return releasetag.Tag{}, fmt.Errorf("fetch remote=%q: %w", u.remote, err)
 	}
 	if result.Status != 0 {
-		return 0, failure("fetch-failed", "Git couldn't fetch from "+u.remote+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
+		return releasetag.Tag{}, fetchFailure("fetch from", u.remote, result.Diagnostics)
 	}
 	if err := g.requireFetched(ctx, u, remote); err != nil {
-		return 0, err
+		return releasetag.Tag{}, err
 	}
-	return unpublished, nil
+	return local[unpublished], nil
 }
 
 // requireFetched refuses when what the fetch brought differs from what listing the remote showed: the branch
@@ -297,7 +294,7 @@ func (g *libraryGit) requireFetched(ctx context.Context, u upstream, remote remo
 		return err
 	}
 	for _, number := range slices.Sorted(maps.Keys(remote.tags)) {
-		if local[number].object != remote.tags[number] {
+		if local[number].Object != remote.tags[number] {
 			return failure("remote-changed", changed+"release/"+strconv.Itoa(number)+" changed. Release tags must never change; find out who changed it, then run code-rules library release again.", nil)
 		}
 	}
@@ -321,22 +318,26 @@ func (g *libraryGit) requireCurrent(ctx context.Context, u upstream, remoteHead,
 	if len(fields) != 2 {
 		return failure("git-failed", "Git compared the branches in an unexpected format", nil)
 	}
-	ahead, behind := fields[0], fields[1]
+	ahead, aheadErr := strconv.ParseUint(fields[0], 10, 63)
+	behind, behindErr := strconv.ParseUint(fields[1], 10, 63)
+	if aheadErr != nil || behindErr != nil {
+		return failure("git-failed", "Git compared the branches in an unexpected format", nil)
+	}
 	switch {
-	case behind == "0":
+	case behind == 0:
 		return failure("branch-differs", u.branch+" has "+commits(ahead)+" that "+remoteName+" doesn't. A library release publishes only pushed commits: push them, then run code-rules library release again.", nil)
-	case ahead == "0":
+	case ahead == 0:
 		return failure("branch-differs", remoteName+" has "+commits(behind)+" that "+u.branch+" doesn't. Pull them, then run code-rules library release again.", nil)
 	}
 	return failure("branch-differs", u.branch+" and "+remoteName+" have diverged: each has commits the other doesn't. Reconcile them, then run code-rules library release again.", nil)
 }
 
 // commits counts commits in prose, such as "1 commit" or "3 commits".
-func commits(count string) string {
-	if count == "1" {
+func commits(count uint64) string {
+	if count == 1 {
 		return "1 commit"
 	}
-	return count + " commits"
+	return strconv.FormatUint(count, 10) + " commits"
 }
 
 // requireCommitted refuses unless head commits exactly the bytes check read, as regular files, so the library
@@ -371,7 +372,7 @@ func (g *libraryGit) requireCommitted(ctx context.Context, head string, input ch
 	}
 	if len(problems) > 0 {
 		slices.Sort(problems)
-		return failure("uncommitted-changes", "a library release publishes the checked-out commit exactly, but the library files check read differ from it:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push your changes, or discard them. Files that a Git filter changes, such as Git LFS files, can't be published. Then run code-rules library release again.", nil)
+		return failure("uncommitted-changes", "a library release publishes the checked-out commit exactly, but these library files differ from it:\n  - "+strings.Join(problems, "\n  - ")+"\nCommit and push your changes, or discard them. Files that a Git filter changes, such as Git LFS files, can't be published. Then run code-rules library release again.", nil)
 	}
 	return nil
 }
@@ -416,6 +417,40 @@ func (g *libraryGit) changedLibraryFiles(ctx context.Context, head string, lates
 	current, err := g.treeFiles(ctx, head, libraryPaths(terms))
 	if err != nil {
 		return nil, fmt.Errorf("list the files of commit=%s: %w", head, err)
+	}
+	return diffLibraryFiles(current, released, terms), nil
+}
+
+// pendingLibraryFiles lists the library-wide files among files, the working tree's, that differ from the latest
+// library release, including deleted ones, in path order, as changedLibraryFiles would once they're committed.
+// terms are the working tree's declared license and notice files. It lists none for a library outside Git, which g
+// is nil for, and before the first library release, when latest is nil.
+func (g *libraryGit) pendingLibraryFiles(ctx context.Context, latest *publishedRelease, files map[string][]byte, terms []string) ([]string, error) {
+	if g == nil || latest == nil {
+		return []string{}, nil
+	}
+	previous, err := g.releasedTerms(ctx, latest)
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range previous {
+		if !slices.Contains(terms, name) {
+			terms = append(slices.Clip(terms), name)
+		}
+	}
+	released, err := g.treeFiles(ctx, latest.object, libraryPaths(terms))
+	if err != nil {
+		return nil, fmt.Errorf("list the files of %s: %w", latest.tagName(), err)
+	}
+	names := []string{}
+	for _, name := range slices.Sorted(maps.Keys(files)) {
+		if libraryWide(name, terms) {
+			names = append(names, name)
+		}
+	}
+	current, err := g.hashFiles(ctx, names)
+	if err != nil {
+		return nil, err
 	}
 	return diffLibraryFiles(current, released, terms), nil
 }
@@ -479,6 +514,9 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 		return "", fmt.Errorf("read tag=%q: %w", name, err)
 	}
 	object := strings.TrimSpace(string(listing))
+	if !objectID.MatchString(object) {
+		return "", failure("git-failed", "Git reported the object ID of "+name+" in an unexpected format", nil)
+	}
 	// A signature can make the tag larger than its message suggested, so the created object is checked too.
 	size, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "-s", object}, 4096)
 	if err != nil {
@@ -497,6 +535,81 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 	return object, nil
 }
 
+// noExternalText ends each failure that Git's or a server's messages would explain, which Code Rules never shows.
+const noExternalText = "Code Rules doesn't show messages from Git or the server; to read them, "
+
+// ruleRefusals are the texts servers print when a repository rule or tag protection refuses a tag, such as
+// GitHub's rulesets and GitLab's protected tags.
+var ruleRefusals = []string{"rule violation", "ruleset", "protected tag", "tag protection"}
+
+// gitHubErrorCode matches the codes GitHub gives the rules a push breaks, such as GH013 for a repository rule. A
+// match is one of a fixed set of codes, so a message may name it.
+var gitHubErrorCode = regexp.MustCompile(`\bGH0[0-9]{2}\b`)
+
+// gitHubRuleCodes are the GitHub error codes for a rule that protects the tag: GH006 for a protected branch or
+// tag, and GH013 for a repository rule violation. Other codes, such as GH001 for large files, mean other refusals.
+var gitHubRuleCodes = []string{"GH006", "GH013"}
+
+// Static explanations of a server Git couldn't verify.
+const (
+	certificateFailure = ": the HTTPS server's certificate couldn't be verified. Check that your system trusts it: Git's http.sslCAInfo setting, your system's certificate store, and any proxy that intercepts TLS"
+	hostKeyFailure     = ": the SSH host key couldn't be verified. Check the server's entry in your known_hosts file"
+)
+
+// pushRefusal explains why Git couldn't push the tag name to remote, with a static cause chosen from Git's
+// diagnostics, which it never shows: a repository rule or tag protection, naming GitHub's error code when there is
+// one; another GitHub error code, which it names; a server Git couldn't verify or reach; refused access or
+// authentication; a server hook; another refusal from the server; or no answer from the server, such as when a
+// pre-push hook stopped the push.
+func pushRefusal(name, remote string, diagnostics []byte) string {
+	problem := "Git couldn't push " + name + " to " + remote
+	// A server that refused the tag was reached, whatever its message says about connections.
+	refused := gitexec.Mentions(diagnostics, "[remote rejected]", "remote:")
+	switch code := string(gitHubErrorCode.Find(diagnostics)); {
+	case slices.Contains(gitHubRuleCodes, code):
+		problem += ": a repository rule refused the tag (GitHub error " + code + "). Check the repository's rulesets and tag protection rules, and that they let you create release/<number> tags"
+	case code != "":
+		problem += ": the server refused the tag for a reason Code Rules doesn't recognize (GitHub error " + code + "). Check the repository's rules for tags and its server-side hooks"
+	case gitexec.Mentions(diagnostics, ruleRefusals...):
+		problem += ": a repository rule or tag protection refused the tag. Check the repository's rulesets and tag protection rules, and that they let you create release/<number> tags"
+	case !refused && gitexec.Mentions(diagnostics, gitexec.HTTPSCertificateFailures...):
+		problem += certificateFailure
+	case !refused && gitexec.Mentions(diagnostics, gitexec.SSHHostKeyFailures...):
+		problem += hostKeyFailure
+	case !refused && gitexec.Mentions(diagnostics, gitexec.ConnectionFailures...):
+		problem += ": Git couldn't connect to the server. Check the repository address and your network connection"
+	case gitexec.Mentions(diagnostics, gitexec.AccessFailures...):
+		problem += ": the server denied access, or authentication failed. Check your Git credentials and that they let you push tags to the repository"
+	case gitexec.Mentions(diagnostics, "hook declined"):
+		problem += ": a hook on the server declined the tag. Check the repository's server-side hooks, such as pre-receive and update hooks, or ask its administrator"
+	case refused:
+		problem += ": the server refused the tag for a reason Code Rules doesn't recognize. Check the repository's rules for tags and its server-side hooks"
+	default:
+		problem += ". Check your network connection, your access to the repository, and any pre-push hook"
+	}
+	return problem + ", then run code-rules library release again. " + noExternalText + "push a test tag with git push."
+}
+
+// fetchFailure explains why Git couldn't read or fetch from remote, as action says, with a static cause chosen
+// from Git's diagnostics, which it never shows: a server Git couldn't verify or reach, or refused access or a
+// missing repository.
+func fetchFailure(action, remote string, diagnostics []byte) error {
+	problem := "Git couldn't " + action + " " + remote
+	switch {
+	case gitexec.Mentions(diagnostics, gitexec.HTTPSCertificateFailures...):
+		problem += certificateFailure
+	case gitexec.Mentions(diagnostics, gitexec.SSHHostKeyFailures...):
+		problem += hostKeyFailure
+	case gitexec.Mentions(diagnostics, gitexec.ConnectionFailures...):
+		problem += ": Git couldn't connect to the server. Check the repository address and your network connection"
+	case gitexec.Mentions(diagnostics, gitexec.AccessFailures...):
+		problem += ": the server denied access, or the repository doesn't exist. Check the repository address, your Git credentials, and your access to the repository"
+	default:
+		problem += ". Check your network connection and access to the repository"
+	}
+	return failure("fetch-failed", problem+", then run code-rules library release again. "+noExternalText+"run git fetch "+remote+".", nil)
+}
+
 // pushTag pushes only the tag, running the author's pre-push hook. If the push fails, it deletes the local tag
 // when this run created it, so the clone doesn't keep a release tag the remote lacks; a tag an interrupted run
 // left stays, with its signature, for the next run to push. A remote that already has a different tag of that
@@ -507,7 +620,10 @@ func (g *libraryGit) pushTag(ctx context.Context, u upstream, name, object strin
 	if err == nil && pushed.Status == 0 {
 		return nil
 	}
-	problem := failure("push-failed", "Git couldn't push "+name+" to "+u.remote+". Check your access to the repository and any pre-push hook, then run code-rules library release again.", err)
+	problem := failure("push-failed", "Git couldn't push "+name+" to "+u.remote+". Check your network connection, your access to the repository, and any pre-push hook, then run code-rules library release again.", err)
+	if err == nil {
+		problem = failure("push-failed", pushRefusal(name, u.remote, pushed.Diagnostics), nil)
+	}
 	if err == nil {
 		switch remote, listErr := g.runner.Run(ctx, g.dir, []string{"ls-remote", "--", u.remote, ref}, 64*1024, nil); {
 		case listErr != nil || remote.Status != 0:

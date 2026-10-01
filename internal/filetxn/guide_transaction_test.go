@@ -76,7 +76,7 @@ func TestGuideTransactionRecovery(t *testing.T) {
 			writeFixture(t, root, transactionName+"/old-README.md", "old guide")
 			writeFixture(t, root, "README.md", "new guide")
 			if state != "missing-journal" {
-				if err := durableJSON(root, transactionName+"/journal.json", journalRecord{3, []journalEntry{{GuideReadme, treeDigest(before), treeDigest(after), true}}}); err != nil {
+				if err := durableJSON(root, transactionName+"/journal.json", journalRecord{FormatVersion: 3, Entries: []journalEntry{{GuideReadme, treeDigest(before), treeDigest(after), true}}}); err != nil {
 					t.Fatal(err)
 				}
 			}

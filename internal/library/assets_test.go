@@ -6,16 +6,21 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// TestLoadAssets retains complete owned/shared trees while leaving unrelated rules unselected.
+// TestLoadAssets retains complete owned trees and the shared assets that retained Markdown links reach, following
+// links between shared files, while leaving unrelated rules and unlinked shared assets out.
 func TestLoadAssets(t *testing.T) {
 	files := validFiles()
 	files["techs/go/errors.md"] += "\n![image](assets/errors/image.bin) [shared](/assets/guide.md)\n"
@@ -33,13 +38,15 @@ func TestLoadAssets(t *testing.T) {
 	if len(got.Groups) != 1 || len(got.Groups[0].Rules) != 1 {
 		t.Fatalf("adopted another rule: %+v", got.Groups)
 	}
-	for _, file := range []string{"techs/go/assets/errors/image.bin", "techs/go/assets/errors/unused.bin", "assets/guide.md", "assets/next.md", "assets/unreferenced.bin"} {
+	for _, file := range []string{"techs/go/assets/errors/image.bin", "techs/go/assets/errors/unused.bin", "assets/guide.md", "assets/next.md"} {
 		if string(got.SupportingFiles[file]) != files[file] {
 			t.Errorf("lost bytes: %s", file)
 		}
 	}
-	if _, ok := got.SupportingFiles["techs/rust/other.md"]; ok {
-		t.Fatal("retained unselected rule")
+	for _, file := range []string{"techs/rust/other.md", "assets/unreferenced.bin"} {
+		if _, ok := got.SupportingFiles[file]; ok {
+			t.Errorf("retained %s, which nothing selected links to", file)
+		}
 	}
 }
 
@@ -125,57 +132,103 @@ func TestLoadRejectsRuleLinks(t *testing.T) {
 	}
 }
 
-// TestLoadAllowsDeclaredGroupTerms treats declared license Markdown as supporting text, not an independent rule.
+// TestLoadAllowsDeclaredGroupTerms treats declared license Markdown whose path can't be a rule as supporting text,
+// not an invalid rule.
 func TestLoadAllowsDeclaredGroupTerms(t *testing.T) {
 	files := validFiles()
-	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"techs/go/terms.md","notices":[]}}`
-	files["techs/go/terms.md"] = "License terms."
-	files["techs/go/errors.md"] += "\n[terms](terms.md)\n"
+	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"techs/go/LICENSE.md","notices":[]}}`
+	files["techs/go/LICENSE.md"] = "License terms."
+	files["techs/go/errors.md"] += "\n[terms](LICENSE.md)\n"
 	_, root := fixture(t, files)
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Groups[0].Rules) != 1 || string(got.SupportingFiles["techs/go/terms.md"]) != "License terms." {
+	if len(got.Groups[0].Rules) != 1 || string(got.SupportingFiles["techs/go/LICENSE.md"]) != "License terms." {
 		t.Fatalf("did not retain terms separately from rules: %+v", got)
 	}
 }
 
-// TestLoadAssetTerms treats declared terms consistently with or without selecting their containing group.
-func TestLoadAssetTerms(t *testing.T) {
-	for _, term := range []string{"techs/go/assets/LICENSE", "techs/go/assets/legal/nested/LICENSE", "techs/go/assets/errors/LICENSE"} {
+// TestLoadRejectsTermsInsideRuleContent refuses a license or notice declared at a rule's path or inside an asset
+// directory in a group, whether or not the source selects that group, because those files belong to a rule's version.
+func TestLoadRejectsTermsInsideRuleContent(t *testing.T) {
+	for _, term := range []string{"techs/go/terms.md", "techs/go/assets/LICENSE", "techs/go/assets/legal/nested/LICENSE", "techs/go/assets/errors/LICENSE"} {
 		for _, groups := range [][]string{{}, {"techs/go"}} {
 			t.Run(term+strings.Join(groups, ","), func(t *testing.T) {
 				files := validFiles()
-				manifest, err := json.Marshal(map[string]any{"formatVersion": 1, "license": map[string]any{"file": term, "notices": []string{term + ".notice"}}})
+				manifest, err := json.Marshal(map[string]any{"formatVersion": 1, "license": map[string]any{"file": "LICENSE", "notices": []string{term}}})
 				if err != nil {
 					t.Fatal(err)
 				}
 				files["rule-library.yaml"] = string(manifest)
-				files[term], files[term+".notice"] = "License\r\n", "Notice\n"
+				files["LICENSE"], files[term] = "License\r\n", "Notice\n"
 				_, root := fixture(t, files)
 				got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: groups})
-				if err != nil {
-					t.Fatal(err)
-				}
-				if got.License == nil || string(got.SupportingFiles[term]) != files[term] || string(got.SupportingFiles[term+".notice"]) != files[term+".notice"] {
-					t.Fatalf("lost declared terms: %+v", got)
+				var invalid *rules.ValidationError
+				if !errors.As(err, &invalid) || invalid.Location != "team/rule-library.yaml: license.notices[0]" || got.Groups != nil {
+					t.Fatalf("got %+v, %v; want the notice path refused", got, err)
 				}
 			})
 		}
 	}
 }
 
-// TestLoadRejectsUndeclaredFilesBesideAssetTerms keeps the term exemption from hiding ownerless attachments.
-func TestLoadRejectsUndeclaredFilesBesideAssetTerms(t *testing.T) {
-	files := validFiles()
-	files["rule-library.yaml"] = `{"formatVersion":1,"license":{"file":"techs/go/assets/legal/LICENSE","notices":[]}}`
-	files["techs/go/assets/legal/LICENSE"] = "Terms"
-	files["techs/go/assets/legal/extra.txt"] = "Undeclared attachment"
-	_, root := fixture(t, files)
-	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
-	if err == nil || !strings.Contains(err.Error(), "no adjacent owning rule") || got.Groups != nil {
-		t.Fatalf("accepted ownerless attachment: %+v, %v", got, err)
+// caseInsensitiveFiles finds files under any spelling, as the default macOS and Windows filesystems do, while
+// ReadDir reports each entry's real name.
+type caseInsensitiveFiles struct{ files fstest.MapFS }
+
+// resolve returns name spelled as the files spell it, or name itself when nothing matches.
+func (c caseInsensitiveFiles) resolve(name string) string {
+	resolved := "."
+	for _, part := range strings.Split(name, "/") {
+		entries, err := fs.ReadDir(c.files, resolved)
+		if err != nil {
+			return name
+		}
+		index := slices.IndexFunc(entries, func(entry fs.DirEntry) bool { return strings.EqualFold(entry.Name(), part) })
+		if index < 0 {
+			return name
+		}
+		resolved = path.Join(resolved, entries[index].Name())
+	}
+	return resolved
+}
+
+func (c caseInsensitiveFiles) Lstat(name string) (fs.FileInfo, error) {
+	return fs.Stat(c.files, c.resolve(name))
+}
+func (c caseInsensitiveFiles) ReadFile(name string) ([]byte, error) {
+	return fs.ReadFile(c.files, c.resolve(name))
+}
+func (c caseInsensitiveFiles) ReadDir(name string) ([]fs.DirEntry, error) {
+	return fs.ReadDir(c.files, c.resolve(name))
+}
+
+// TestLoadRejectsSharedAssetLinksSpelledDifferently refuses a shared asset link whose spelling differs from the
+// file's in any component, including the root assets directory, even where the filesystem would find the file:
+// Git and other checkouts wouldn't.
+func TestLoadRejectsSharedAssetLinksSpelledDifferently(t *testing.T) {
+	for _, test := range []struct {
+		name, file string
+		valid      bool
+	}{
+		{"same spelling", "assets/diagram.png", true},
+		{"root directory", "Assets/diagram.png", false},
+		{"file", "assets/Diagram.png", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			files := fstest.MapFS{}
+			for name, text := range validFiles() {
+				files[name] = &fstest.MapFile{Data: []byte(text)}
+			}
+			files["techs/go/errors.md"] = &fstest.MapFile{Data: []byte(document + "\n![Diagram](/assets/diagram.png)\n")}
+			files[test.file] = &fstest.MapFile{Data: []byte("shared")}
+			_, err := library.LoadSource(context.Background(), caseInsensitiveFiles{files}, "team", rules.GroupSelection{Groups: []string{"techs/go"}}, nil)
+			var validation *rules.ValidationError
+			if test.valid && err != nil || !test.valid && (!errors.As(err, &validation) || !strings.Contains(validation.Problem, "spelled differently")) {
+				t.Fatalf("got %v, valid %t", err, test.valid)
+			}
+		})
 	}
 }
 

@@ -37,6 +37,9 @@ func configuration(ctx context.Context, root *os.Root) ([]byte, rules.Configurat
 	if data == nil {
 		return nil, rules.Configuration{}, failure("needs-init", fmt.Sprintf(".code-rules/config.yaml: missing configuration; run code-rules project init first from %s", filepath.Dir(root.Name())), nil)
 	}
+	if err := rules.RequireResolvedMerge(data, ".code-rules/config.yaml", "run the command again"); err != nil {
+		return nil, rules.Configuration{}, err
+	}
 	config, err := rules.ParseConfigurationYAML(data)
 	return data, config, err
 }
