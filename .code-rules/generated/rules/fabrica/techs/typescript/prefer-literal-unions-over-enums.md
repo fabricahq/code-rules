@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/typescript/prefer-literal-unions-over-enums`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, or reviewing a TypeScript type for a fixed set of values, such as roles, statuses, or modes, or code that declares an enum.
 
 **Impact:** MEDIUM
@@ -63,7 +65,7 @@ Enums in generated code or third-party types are not a violation.
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/typescript/prefer-literal-unions-over-enums.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/prefer-literal-unions-over-enums.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(prefer-literal-unions-over-enums; MIT, notice retained in NOTICE.md\): restructured to the rule template, fixed an example that did not parse, and added the type-stripping rationale.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

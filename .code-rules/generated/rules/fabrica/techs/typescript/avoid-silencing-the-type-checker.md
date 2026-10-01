@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/typescript/avoid-silencing-the-type-checker`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, or reviewing TypeScript code that uses type assertions such as as, non-null assertions such as !, or @ts-ignore and @ts-expect-error comments.
 
 **Impact:** HIGH
@@ -80,7 +82,7 @@ A documented assertion inside a type guard or adapter, after the checks that jus
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/typescript/avoid-silencing-the-type-checker.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/avoid-silencing-the-type-checker.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(avoid-type-and-non-null-assertions, use-ts-expect-error-with-description; MIT, notice retained in NOTICE.md\): merged the assertion and ts-expect-error rules into one rule about silencing the type checker, restructured to the rule template, and added the narrowing alternatives.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

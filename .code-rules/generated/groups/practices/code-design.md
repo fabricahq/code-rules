@@ -19,7 +19,7 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 
 3. **Follow every applicable rule.** Apply its guidance and respect its exceptions, regardless of impact. When present, use Implementation guidance for planning or code changes and Validation guidance for reviews, tests, or diagnosis. Use both when the task includes both activities.
 
-4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
+4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID, its version when the rule lists one, and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
 
 5. **Recheck after changes.** When the task’s scope changes, reassess which rules apply. After compaction, reread the rules needed for the current task before continuing.
 
@@ -28,6 +28,8 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 ### Express operations as meaningful steps
 
 Rule ID: `fabrica:practices/code-design/express-operations-as-meaningful-steps`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, changing, or reviewing a function that coordinates multiple steps, such as parsing input, validating it, calling another operation, or constructing a result.
 
@@ -41,6 +43,8 @@ Rule ID: `fabrica:practices/code-design/express-operations-as-meaningful-steps`
 
 Rule ID: `fabrica:practices/code-design/organize-code-by-feature`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, moving, or reviewing where files live in a project, such as adding a feature, creating shared components or utilities, or choosing import paths.
 
 **Impact:** MEDIUM
@@ -52,6 +56,8 @@ Rule ID: `fabrica:practices/code-design/organize-code-by-feature`
 ### Separate pure computation from effects
 
 Rule ID: `fabrica:practices/code-design/separate-pure-computation-from-effects`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, changing, or reviewing functions that transform data, especially ones that also read global state, mutate their inputs, or perform I/O such as network, storage, or UI updates.
 

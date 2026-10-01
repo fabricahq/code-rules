@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/javascript/defer-non-critical-work-to-idle-time`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, changing, or reviewing browser code that does secondary work in response to user input or page load, such as analytics, persisting drafts, prefetching, or processing large data.
 
 **Impact:** MEDIUM
@@ -70,7 +72,7 @@ Running work immediately is not a violation when the user is waiting for its res
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/javascript/defer-non-critical-work-to-idle-time.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/javascript/defer-non-critical-work-to-idle-time.md)
 
 **Attribution:** [Adapted from the Vercel Agent Skills rule js-request-idle-callback: moved from the React group, restructured to the rule template, and generalized the browser support guidance.](<https://github.com/vercel-labs/agent-skills/blob/4ec6f84b61cd3c931046c3e6e398f3ae7de372f7/skills/react-best-practices/rules/js-request-idle-callback.md>)
 

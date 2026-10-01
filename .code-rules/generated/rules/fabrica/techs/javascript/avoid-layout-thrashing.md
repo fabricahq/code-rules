@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/javascript/avoid-layout-thrashing`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, reviewing, or diagnosing browser code that changes element styles and also reads layout, such as measuring elements with getBoundingClientRect, offsetWidth, or getComputedStyle, including code in UI framework Effects.
 
 **Impact:** MEDIUM
@@ -65,7 +67,7 @@ A single read after all writes is not a violation.
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/javascript/avoid-layout-thrashing.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/javascript/avoid-layout-thrashing.md)
 
 **Attribution:** [Adapted from the Vercel Agent Skills rule js-batch-dom-css: moved from the React group, restructured to the rule template, and shortened the examples.](<https://github.com/vercel-labs/agent-skills/blob/4ec6f84b61cd3c931046c3e6e398f3ae7de372f7/skills/react-best-practices/rules/js-batch-dom-css.md>)
 

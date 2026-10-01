@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/javascript/start-independent-async-work-concurrently`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, changing, or reviewing code that awaits several asynchronous operations, such as request handlers, server functions, or data loaders that call multiple services or queries.
 
 **Impact:** HIGH
@@ -98,7 +100,7 @@ Sequential awaits where each operation needs the previous result, or where order
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/javascript/start-independent-async-work-concurrently.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/javascript/start-independent-async-work-concurrently.md)
 
 **Attribution:** [Adapted from four Vercel Agent Skills rules \(async-parallel, async-api-routes, async-dependencies, and server-parallel-nested-fetching\): merged four rules on Promise.all, API route waterfalls, dependency-based parallelization, and nested fetching; restructured to the rule template; and added failure, rejection, and concurrency-limit guidance.](<https://github.com/vercel-labs/agent-skills/tree/4ec6f84b61cd3c931046c3e6e398f3ae7de372f7/skills/react-best-practices/rules>)
 

@@ -15,7 +15,7 @@ Before planning, implementing, reviewing, testing, or diagnosing, complete these
 
 3. **Read every rule in each opened group completely.** Follow the group’s **How to use this group** instructions. Read full rules on the page, or follow every **Read full rule** link when the page contains summaries. Follow pagination links until you have read every rule in that group. Retrieve any truncated text before continuing. If a required file cannot be read, report the missing guidance before proceeding with work that depends on it.
 
-4. **Apply the rules that govern your task.** Determine applicability from each rule’s reading cue, full guidance, and exceptions. Follow every applicable rule regardless of impact. For each reported violation, cite the rule ID and concrete evidence. Determine finding severity from actual consequences; selecting a group or rule does not establish a violation.
+4. **Apply the rules that govern your task.** Determine applicability from each rule’s reading cue, full guidance, and exceptions. Follow every applicable rule regardless of impact. For each reported violation, cite the rule ID, its version when the rule lists one, and concrete evidence. Determine finding severity from actual consequences; selecting a group or rule does not establish a violation.
 
 5. **Reassess when context changes.** When the task’s scope changes, repeat group selection and read any newly relevant groups. After compaction, reread this file and the rules needed for the current task before continuing.
 
@@ -55,9 +55,9 @@ Before planning, implementing, reviewing, testing, or diagnosing, complete these
 
 ### Go
 
-**Description:** Document Go struct fields and packages, and give errors useful context and deliberate contracts.
+**Description:** Write clear, maintainable Go that follows the language's conventions.
 
-**When to read this group:** Before planning, writing, or reviewing Go packages, structs, comments, or error handling.
+**When to read this group:** Before planning, writing, or reviewing Go code.
 
 **Open group:** [Go](groups/techs/go.md)
 

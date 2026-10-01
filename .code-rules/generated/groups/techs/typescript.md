@@ -19,7 +19,7 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 
 3. **Follow every applicable rule.** Apply its guidance and respect its exceptions, regardless of impact. When present, use Implementation guidance for planning or code changes and Validation guidance for reviews, tests, or diagnosis. Use both when the task includes both activities.
 
-4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
+4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID, its version when the rule lists one, and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
 
 5. **Recheck after changes.** When the task’s scope changes, reassess which rules apply. After compaction, reread the rules needed for the current task before continuing.
 
@@ -28,6 +28,8 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 ### Annotate types at module boundaries and where they narrow
 
 Rule ID: `fabrica:techs/typescript/annotate-types-at-boundaries`
+
+Version: 1.0.0
 
 **When to read:** Before writing, changing, or reviewing TypeScript type annotations on exported functions, variables, state, or collections, or deciding whether to rely on inference.
 
@@ -41,6 +43,8 @@ Rule ID: `fabrica:techs/typescript/annotate-types-at-boundaries`
 
 Rule ID: `fabrica:techs/typescript/avoid-silencing-the-type-checker`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, or reviewing TypeScript code that uses type assertions such as as, non-null assertions such as !, or @ts-ignore and @ts-expect-error comments.
 
 **Impact:** HIGH
@@ -52,6 +56,8 @@ Rule ID: `fabrica:techs/typescript/avoid-silencing-the-type-checker`
 ### Comment the role, the result, and the hidden constraint
 
 Rule ID: `fabrica:techs/typescript/comment-role-result-and-constraints`
+
+Version: 1.0.0
 
 **When to read:** Before writing, changing, or reviewing TypeScript files, exported functions, types, components, or code whose purpose, behavior, or constraints are not obvious from names and types.
 
@@ -65,6 +71,8 @@ Rule ID: `fabrica:techs/typescript/comment-role-result-and-constraints`
 
 Rule ID: `fabrica:techs/typescript/declare-constants-with-as-const`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, or reviewing TypeScript constants, such as configuration objects, lists of allowed values, or lookup tables.
 
 **Impact:** MEDIUM
@@ -76,6 +84,8 @@ Rule ID: `fabrica:techs/typescript/declare-constants-with-as-const`
 ### Distinguish null from undefined
 
 Rule ID: `fabrica:techs/typescript/distinguish-null-from-undefined`
+
+Version: 1.0.0
 
 **When to read:** Before writing, changing, or reviewing TypeScript types, function results, request payloads, or database updates where a value can be absent or empty.
 
@@ -89,6 +99,8 @@ Rule ID: `fabrica:techs/typescript/distinguish-null-from-undefined`
 
 Rule ID: `fabrica:techs/typescript/generate-service-types-from-contracts`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, changing, or reviewing TypeScript types for external APIs, message formats, or database schemas, such as REST, GraphQL, or queue payloads.
 
 **Impact:** HIGH
@@ -100,6 +112,8 @@ Rule ID: `fabrica:techs/typescript/generate-service-types-from-contracts`
 ### Model distinct states as discriminated unions
 
 Rule ID: `fabrica:techs/typescript/model-variants-as-discriminated-unions`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, changing, or reviewing TypeScript types, function parameters, or code for values that can be in one of several states with different data, such as operation results, loading states, status flags, or events with kind-specific fields.
 
@@ -113,6 +127,8 @@ Rule ID: `fabrica:techs/typescript/model-variants-as-discriminated-unions`
 
 Rule ID: `fabrica:techs/typescript/narrow-unknown-values`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, changing, or reviewing TypeScript code that receives data whose shape the compiler cannot guarantee, such as parsed JSON, network responses, storage reads, message events, or caught errors.
 
 **Impact:** HIGH
@@ -124,6 +140,8 @@ Rule ID: `fabrica:techs/typescript/narrow-unknown-values`
 ### Prefer literal unions over enums
 
 Rule ID: `fabrica:techs/typescript/prefer-literal-unions-over-enums`
+
+Version: 1.0.0
 
 **When to read:** Before writing, changing, or reviewing a TypeScript type for a fixed set of values, such as roles, statuses, or modes, or code that declares an enum.
 
@@ -137,6 +155,8 @@ Rule ID: `fabrica:techs/typescript/prefer-literal-unions-over-enums`
 
 Rule ID: `fabrica:techs/typescript/prefer-type-aliases`
 
+Version: 1.0.0
+
 **When to read:** Before declaring or reviewing TypeScript object types, or when choosing between type and interface.
 
 **Impact:** LOW
@@ -148,6 +168,8 @@ Rule ID: `fabrica:techs/typescript/prefer-type-aliases`
 ### Preserve caller-owned data
 
 Rule ID: `fabrica:techs/typescript/preserve-caller-owned-data`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, changing, or reviewing TypeScript functions that transform arrays, objects, maps, or sets received from a caller or from shared state, such as sorting, filtering, or updating fields.
 
@@ -161,6 +183,8 @@ Rule ID: `fabrica:techs/typescript/preserve-caller-owned-data`
 
 Rule ID: `fabrica:techs/typescript/require-properties-and-name-parameters`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, changing, or reviewing TypeScript object types or function signatures, especially ones with many optional properties or several positional parameters.
 
 **Impact:** MEDIUM-HIGH
@@ -172,6 +196,8 @@ Rule ID: `fabrica:techs/typescript/require-properties-and-name-parameters`
 ### Import types with import type
 
 Rule ID: `fabrica:techs/typescript/separate-type-imports`
+
+Version: 1.0.0
 
 **When to read:** Before writing, changing, or reviewing TypeScript imports of types, interfaces, or other declarations used only in type positions.
 
@@ -185,6 +211,8 @@ Rule ID: `fabrica:techs/typescript/separate-type-imports`
 
 Rule ID: `fabrica:techs/typescript/use-boolean-for-explicit-boolean-coercion`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, or reviewing TypeScript code that converts a value to a boolean, such as !!value, or tests a value's truthiness.
 
 **Impact:** LOW
@@ -196,6 +224,8 @@ Rule ID: `fabrica:techs/typescript/use-boolean-for-explicit-boolean-coercion`
 ### Follow consistent naming conventions
 
 Rule ID: `fabrica:techs/typescript/use-consistent-naming`
+
+Version: 1.0.0
 
 **When to read:** Before naming or reviewing names of TypeScript variables, constants, functions, types, generic parameters, React components, props, event handlers, or Hooks.
 
@@ -209,6 +239,8 @@ Rule ID: `fabrica:techs/typescript/use-consistent-naming`
 
 Rule ID: `fabrica:techs/typescript/use-generic-array-types`
 
+Version: 1.0.0
+
 **When to read:** Before writing or reviewing TypeScript array type annotations.
 
 **Impact:** LOW
@@ -220,6 +252,8 @@ Rule ID: `fabrica:techs/typescript/use-generic-array-types`
 ### Use named exports
 
 Rule ID: `fabrica:techs/typescript/use-named-exports`
+
+Version: 1.0.0
 
 **When to read:** Before writing, changing, or reviewing TypeScript module exports and imports.
 
@@ -233,6 +267,8 @@ Rule ID: `fabrica:techs/typescript/use-named-exports`
 
 Rule ID: `fabrica:techs/typescript/use-predictable-file-names`
 
+Version: 1.0.0
+
 **When to read:** Before creating, renaming, or reviewing TypeScript source files, including components, hooks, tests, and generated files.
 
 **Impact:** LOW
@@ -244,6 +280,8 @@ Rule ID: `fabrica:techs/typescript/use-predictable-file-names`
 ### Use template literal types for patterned strings
 
 Rule ID: `fabrica:techs/typescript/use-template-literal-types-for-patterned-strings`
+
+Version: 1.0.0
 
 **When to read:** Before writing, changing, or reviewing TypeScript types for strings that follow a pattern, such as API paths, translation keys, CSS class or color tokens, or event names.
 
