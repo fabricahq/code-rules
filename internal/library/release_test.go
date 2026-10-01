@@ -454,7 +454,7 @@ func TestRelease_CreatesTheGitHubReleasePageAndFinishesAfterItFails(t *testing.T
 	commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed.")), "changes/a.yaml": []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")})
 	fake := withGitHub(t, fixture, &options, gitHubCalls("release/2", 1))
 	_, err := Release(ctx, ReleaseRequest{Options: options})
-	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; run gh release view release/2 --repo github.com/acme/rules to see gh's message, then run code-rules library release again to create the page.") {
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; run code-rules library release again, which creates the page only if it's still missing.") || strings.Contains(err.Error(), "gh release view") {
 		t.Fatal(err)
 	}
 	message := tagMessage(t, fixture, remoteDir(fixture), "release/2")
@@ -497,7 +497,7 @@ func TestRelease_FailsWithoutCreatingAPageGHCouldNotLookUp(t *testing.T) {
 	responses[1].Stderr = "HTTP 502: Bad Gateway (https://api.github.com/repos/acme/rules/releases/tags/release/1)\n"
 	fake := withGitHub(t, fixture, &options, responses)
 	_, err := Release(context.Background(), ReleaseRequest{Options: options})
-	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1: gh failed for a reason Code Rules doesn't recognize.") || strings.Contains(err.Error(), "Bad Gateway") {
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1: gh failed for a reason Code Rules doesn't recognize. The tag is published; run gh release view release/1 --repo github.com/acme/rules to read gh's message") || strings.Contains(err.Error(), "Bad Gateway") {
 		t.Fatal(err)
 	}
 	requireCalls(t, fake, []ghfixture.Call{{Args: responses[0].Args}, {Args: responses[1].Args}})

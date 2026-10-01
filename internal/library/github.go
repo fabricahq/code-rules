@@ -144,7 +144,7 @@ func (c gitHubCLI) releasePage(ctx context.Context, repository, tag string) (str
 	case gitexec.Mentions([]byte(stderr), releaseNotFound):
 		return "", false, nil
 	}
-	return "", false, failure("github-release-failed", "the GitHub CLI couldn't look up the GitHub Release page for "+tag+": "+gitHubCLIFailure(repository, tag, stderr)+", then run code-rules library release again to finish.", nil)
+	return "", false, failure("github-release-failed", "the GitHub CLI couldn't look up the GitHub Release page for "+tag+": "+gitHubCLIFailure(true, repository, tag, stderr), nil)
 }
 
 // createReleasePage creates tag's GitHub Release page in repository, titled with the tag and with notes as its
@@ -155,7 +155,7 @@ func (c gitHubCLI) createReleasePage(ctx context.Context, repository, tag, notes
 		return "", err
 	}
 	if status != 0 {
-		return "", failure("github-release-failed", "the GitHub CLI couldn't create the GitHub Release page for "+tag+": "+gitHubCLIFailure(repository, tag, stderr)+", then run code-rules library release again to create the page.", nil)
+		return "", failure("github-release-failed", "the GitHub CLI couldn't create the GitHub Release page for "+tag+": "+gitHubCLIFailure(false, repository, tag, stderr), nil)
 	}
 	return releasePageURL(repository, tag), nil
 }
@@ -166,23 +166,29 @@ func releasePageURL(repository, tag string) string {
 	return "https://github.com/" + repository + "/releases/tag/" + tag
 }
 
-// gitHubCLIFailure explains why gh failed for tag's GitHub Release page in repository, and what to do before
-// running code-rules library release again, with a static cause chosen from gh's diagnostics, which it never
-// shows: GitHub's rate limit, gh signed out or its credentials refused, permission denied, a repository GitHub
-// can't find, or a cause it doesn't recognize.
-func gitHubCLIFailure(repository, tag, stderr string) string {
+// gitHubCLIFailure explains why gh failed to look up, when lookup is true, or create tag's GitHub Release page in
+// repository, and what to do next, with a static cause chosen from gh's diagnostics, which it never shows:
+// GitHub's rate limit, gh signed out or its credentials refused, permission denied, a repository GitHub can't
+// find, or a cause it doesn't recognize, for which it says how to read gh's message without risking a second page.
+func gitHubCLIFailure(lookup bool, repository, tag, stderr string) string {
+	verb, finish := "create", ", then run code-rules library release again to create the page."
+	if lookup {
+		verb, finish = "read", ", then run code-rules library release again to finish."
+	}
 	diagnostics := []byte(stderr)
 	switch {
 	case gitexec.Mentions(diagnostics, "rate limit", "http 429"):
-		return "GitHub's API rate limit was reached. The tag is published; wait for the limit to reset"
+		return "GitHub's API rate limit was reached. The tag is published; wait for the limit to reset" + finish
 	case gitexec.Mentions(diagnostics, "http 401", "bad credentials", "gh auth login", "not logged in"):
-		return "gh isn't signed in to GitHub.com, or GitHub refused its credentials. The tag is published; sign in with gh auth login"
+		return "gh isn't signed in to GitHub.com, or GitHub refused its credentials. The tag is published; sign in with gh auth login" + finish
 	case gitexec.Mentions(diagnostics, "http 403", "resource not accessible", "permission"):
-		return "GitHub denied permission to create releases in " + repository + ". The tag is published; check that your GitHub account can create releases there"
+		return "GitHub denied permission to " + verb + " releases in " + repository + ". The tag is published; check that your GitHub account can " + verb + " releases there" + finish
 	case gitexec.Mentions(diagnostics, "http 404", "not found", "could not resolve to a repository"):
-		return "GitHub couldn't find " + repository + ", or your account can't see it. The tag is published; check the repository and your access to it"
+		return "GitHub couldn't find " + repository + ", or your account can't see it. The tag is published; check the repository and your access to it" + finish
+	case lookup:
+		return "gh failed for a reason Code Rules doesn't recognize. The tag is published; run gh release view " + tag + " --repo github.com/" + repository + " to read gh's message" + finish
 	}
-	return "gh failed for a reason Code Rules doesn't recognize. The tag is published; run gh release view " + tag + " --repo github.com/" + repository + " to see gh's message"
+	return "gh failed for a reason Code Rules doesn't recognize. The tag is published; run code-rules library release again, which creates the page only if it's still missing. If creating it keeps failing, run gh release create " + tag + " --repo github.com/" + repository + " --verify-tag to read gh's message; GitHub allows one release page per tag, so this can't create a second one."
 }
 
 // run executes gh with args and stdin, returning its stdout, its stderr, and its exit status. Output beyond

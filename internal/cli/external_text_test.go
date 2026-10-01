@@ -175,22 +175,35 @@ var (
 	ghCreate = []string{"release", "create", "release/2", "--repo", "github.com/acme/rules", "--verify-tag", "--title", "release/2", "--notes-file", "-"}
 )
 
-// TestLibraryRelease_ShowsNoTextFromTheGitHubCLI when creating the GitHub Release page fails: gh's diagnostics,
-// marked with marker, never appear, and the static explanation names the cause.
+// TestLibraryRelease_ShowsNoTextFromTheGitHubCLI when looking up or creating the GitHub Release page fails: gh's
+// diagnostics, marked with marker, never appear, and the static explanation names the cause and a next step that
+// fits the failed operation.
 func TestLibraryRelease_ShowsNoTextFromTheGitHubCLI(t *testing.T) {
 	binary := buildCLI(t)
-	for _, test := range []struct{ name, stderr, explanation string }{
-		{"rate limited", "HTTP 403: API rate limit exceeded for " + marker + "\n", "GitHub's API rate limit was reached. The tag is published; wait for the limit to reset"},
-		{"signed out", "HTTP 401: Bad credentials " + marker + "\n", "gh isn't signed in to GitHub.com, or GitHub refused its credentials. The tag is published; sign in with gh auth login"},
-		{"permission denied", "HTTP 403: Resource not accessible by integration " + marker + "\n", "GitHub denied permission to create releases in acme/rules. The tag is published; check that your GitHub account can create releases there"},
-		{"not found", "HTTP 404: Not Found " + marker + "\n", "GitHub couldn't find acme/rules, or your account can't see it. The tag is published; check the repository and your access to it"},
-		{"other", "token opaque-secret-value rejected " + marker + "\n", "gh failed for a reason Code Rules doesn't recognize. The tag is published; run gh release view release/2 --repo github.com/acme/rules to see gh's message"},
+	createFinish := ", then run code-rules library release again to create the page."
+	for _, test := range []struct {
+		name   string
+		lookup bool
+		stderr string
+		want   string
+	}{
+		{"rate limited", false, "HTTP 403: API rate limit exceeded for " + marker + "\n", "create the GitHub Release page for release/2: GitHub's API rate limit was reached. The tag is published; wait for the limit to reset" + createFinish},
+		{"signed out", false, "HTTP 401: Bad credentials " + marker + "\n", "create the GitHub Release page for release/2: gh isn't signed in to GitHub.com, or GitHub refused its credentials. The tag is published; sign in with gh auth login" + createFinish},
+		{"permission denied", false, "HTTP 403: Resource not accessible by integration " + marker + "\n", "create the GitHub Release page for release/2: GitHub denied permission to create releases in acme/rules. The tag is published; check that your GitHub account can create releases there" + createFinish},
+		{"not found", false, "HTTP 404: Not Found " + marker + "\n", "create the GitHub Release page for release/2: GitHub couldn't find acme/rules, or your account can't see it. The tag is published; check the repository and your access to it" + createFinish},
+		{"other creation failure", false, "token opaque-secret-value rejected " + marker + "\n", "create the GitHub Release page for release/2: gh failed for a reason Code Rules doesn't recognize. The tag is published; run code-rules library release again, which creates the page only if it's still missing. If creating it keeps failing, run gh release create release/2 --repo github.com/acme/rules --verify-tag to read gh's message; GitHub allows one release page per tag, so this can't create a second one."},
+		{"permission denied looking up", true, "HTTP 403: Resource not accessible by integration " + marker + "\n", "look up the GitHub Release page for release/2: GitHub denied permission to read releases in acme/rules. The tag is published; check that your GitHub account can read releases there, then run code-rules library release again to finish."},
+		{"other lookup failure", true, "HTTP 502: Bad Gateway " + marker + "\n", "look up the GitHub Release page for release/2: gh failed for a reason Code Rules doesn't recognize. The tag is published; run gh release view release/2 --repo github.com/acme/rules to read gh's message, then run code-rules library release again to finish."},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			fixture, dir := gitHubLibrary(t)
-			environment, _ := releaseEnvironment(t, fixture, []ghfixture.Response{{Args: ghAuth}, {Args: ghView, Stderr: "release not found\n", ExitCode: 1}, {Args: ghCreate, Stderr: test.stderr, ExitCode: 1}})
+			responses := []ghfixture.Response{{Args: ghAuth}, {Args: ghView, Stderr: "release not found\n", ExitCode: 1}, {Args: ghCreate, Stderr: test.stderr, ExitCode: 1}}
+			if test.lookup {
+				responses = []ghfixture.Response{{Args: ghAuth}, {Args: ghView, Stderr: test.stderr, ExitCode: 1}}
+			}
+			environment, _ := releaseEnvironment(t, fixture, responses)
 			human, structured, failure := failureOutput(t, binary, dir, append(environment, "GH_TOKEN=opaque-secret-value"), "github-release-failed", "library", "release")
-			requireStatic(t, human, structured, failure, []string{"the GitHub CLI couldn't create the GitHub Release page for release/2: " + test.explanation}, []string{marker, "HTTP", "opaque", "Bad credentials", "integration"})
+			requireStatic(t, human, structured, failure, []string{"the GitHub CLI couldn't " + test.want}, []string{marker, "HTTP", "opaque", "Bad credentials", "integration", "Gateway"})
 		})
 	}
 }
