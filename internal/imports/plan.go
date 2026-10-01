@@ -105,7 +105,7 @@ func redundantRules(source rules.Source, imported map[string]library.ImportedRul
 func (p *planner) retiredRules(plan sourcePlan) ([]string, error) {
 	recorded := p.recorded
 	if recorded == nil || !sameGroupSelection(recorded.Selection, p.source.Groups) || !slices.Equal(recorded.RuleSelection, p.source.Rules) || !p.source.Ref.Equal(recorded.Ref) || plan.release != recorded.Release || plan.commit != recorded.Commit {
-		return p.freshRetiredRules(plan)
+		return p.freshRetiredRules()
 	}
 	retired := slices.Clone(recorded.RetiredRules)
 	for _, id := range slices.Concat(slices.Sorted(maps.Keys(p.source.Pins)), slices.Sorted(maps.Keys(p.source.Exclude))) {
@@ -121,9 +121,9 @@ func (p *planner) retiredRules(plan sourcePlan) ([]string, error) {
 // freshRetiredRules returns, sorted, the rules the library's release history retired that the source would
 // otherwise import, as configuration entries naming them only warn: those its groups or rules list selects, and
 // those recorded imported or listed as retired, so an entry left after deselecting a retired rule stays a warning
-// offline too. It leaves out the rules plan still imports, such as one a pin keeps or a scoped update didn't move,
-// so no rule is both imported and retired in the record. It reads the history when the planner hasn't yet.
-func (p *planner) freshRetiredRules(plan sourcePlan) ([]string, error) {
+// offline too. A retired rule the plan still imports, such as one a pin keeps at its last version, is listed too, so
+// the record says it's retired. It reads the history when the planner hasn't yet.
+func (p *planner) freshRetiredRules() ([]string, error) {
 	history, err := p.releases()
 	if err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ func (p *planner) freshRetiredRules(plan sourcePlan) ([]string, error) {
 	retired := []string{}
 	for _, release := range history.releases {
 		for id := range release.record.Retired {
-			if _, imported := plan.rules[id]; !imported && p.wouldImport(id) {
+			if p.wouldImport(id) {
 				retired = append(retired, id)
 			}
 		}

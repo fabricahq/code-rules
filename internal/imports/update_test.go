@@ -490,9 +490,9 @@ func TestUpdateChangeClassifiesByTheLargestChangedComponent(t *testing.T) {
 	}
 }
 
-// TestPlanUpdate_NeverRecordsAnImportedRuleAsRetired: an update scoped to a leaves b, which the library retired,
-// imported, so the record lists b among its rules but not among its retired rules.
-func TestPlanUpdate_NeverRecordsAnImportedRuleAsRetired(t *testing.T) {
+// TestPlanUpdate_RecordsAnImportedRetiredRuleAsRetired: an update scoped to a leaves b, which the library retired,
+// imported, so the record lists b both among its rules and among its retired rules, which marks it as kept.
+func TestPlanUpdate_RecordsAnImportedRetiredRuleAsRetired(t *testing.T) {
 	h := newHistory(t)
 	config := h.source(t, `"groups":["techs/go"]`)
 	recorded := h.record(t, config, 1, map[string]string{"techs/go/a": "1.0.0@1", "techs/go/b": "1.0.0@1"})
@@ -501,7 +501,7 @@ func TestPlanUpdate_NeverRecordsAnImportedRuleAsRetired(t *testing.T) {
 		t.Fatal(err)
 	}
 	installed := h.install(t, update, config).Snapshot
-	if _, imported := installed.Rules["techs/go/b"]; !imported || slices.Contains(installed.RetiredRules, "techs/go/b") {
+	if _, imported := installed.Rules["techs/go/b"]; !imported || !slices.Contains(installed.RetiredRules, "techs/go/b") {
 		t.Fatalf("rules %v, retired rules %v", versions(installed), installed.RetiredRules)
 	}
 }

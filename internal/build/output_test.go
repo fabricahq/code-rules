@@ -410,3 +410,30 @@ func TestPrepareMarksExcludedRulesInTheLibrarySummary(t *testing.T) {
 		t.Errorf("library summary:\n%s", summary)
 	}
 }
+
+// TestLibraryReadme_ShowsAKeptRetiredRuleAsRetired: a rule the library retired that a pin keeps at its last version,
+// listed both in rules and in retiredRules, is marked retired and pinned, not active; one an update didn't move yet
+// is marked retired.
+func TestLibraryReadme_ShowsAKeptRetiredRuleAsRetired(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		pinned bool
+		status string
+	}{{"pinned", true, "Retired, pinned at 1.3.0"}, {"not yet dropped", false, "Retired; the next update drops it"}} {
+		t.Run(test.name, func(t *testing.T) {
+			files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
+				version := rules.RuleVersion{Major: 1, Minor: 3}
+				snapshot.Release = 2
+				snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: strings.Repeat("b", 40)}
+				snapshot.RetiredRules = []string{"techs/go/errors"}
+				source.Ref = rules.GitRef{}
+				if test.pinned {
+					source.Pins = map[string]rules.Pin{"techs/go/errors": {Version: version, Reason: "Still useful."}}
+				}
+			})
+			if row := "| `techs/go/errors` | 1.3.0 | release/1 | " + test.status + " |"; !strings.Contains(files["libraries/team/README.md"], row) {
+				t.Errorf("README lacks %q:\n%s", row, files["libraries/team/README.md"])
+			}
+		})
+	}
+}

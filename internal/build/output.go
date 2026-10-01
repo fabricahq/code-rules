@@ -91,7 +91,7 @@ func libraryReadme(source resolvedSource) string {
 	if source.Ref != "" && source.Release == 0 && slices.ContainsFunc(slices.Collect(maps.Values(source.Versions)), func(rule library.ImportedRule) bool { return rule.Version == nil }) {
 		sections = append(sections, "**Imported from unreleased changes.** This source's ref isn't a library release, so the source doesn't follow rule versions: rules with unreleased changes have no version to cite.")
 	}
-	sections = append(sections, "## Rule versions", ruleVersionTable(source.Versions, source.Exclude))
+	sections = append(sections, "## Rule versions", ruleVersionTable(source))
 	if len(source.Pins) > 0 {
 		sections = append(sections, "## Pins", "`code-rules project update` keeps these rules at their pinned versions.", pinList(source.Pins))
 	}
@@ -111,10 +111,12 @@ func libraryReadme(source resolvedSource) string {
 	return strings.Join(sections, "\n\n") + "\n"
 }
 
-// ruleVersionTable lists each imported rule with its version, the library release that published it, and whether
-// agents read it: an excluded rule, which the source still imports so updates can report its changes, is marked
-// excluded, or replaced by its local rule.
-func ruleVersionTable(versions map[string]library.ImportedRule, exclude map[string]rules.Exclusion) string {
+// ruleVersionTable lists each imported rule of source with its version, the library release that published it, and
+// whether agents read it: an excluded rule, which the source still imports so updates can report its changes, is
+// marked excluded, or replaced by its local rule, and a retired rule the source still imports is marked retired,
+// with the pin that keeps it.
+func ruleVersionTable(source resolvedSource) string {
+	versions, exclude := source.Versions, source.Exclude
 	if len(versions) == 0 {
 		return "This source imports no rules."
 	}
@@ -122,10 +124,16 @@ func ruleVersionTable(versions map[string]library.ImportedRule, exclude map[stri
 	for _, id := range slices.Sorted(maps.Keys(versions)) {
 		rule := versions[id]
 		status := "Active"
-		if exclusion, excluded := exclude[id]; excluded && exclusion.ReplacedBy != "" {
+		pin, pinned := source.Pins[id]
+		switch exclusion, excluded := exclude[id]; {
+		case excluded && exclusion.ReplacedBy != "":
 			status = "Replaced by `" + exclusion.ReplacedBy + "`"
-		} else if excluded {
+		case excluded:
 			status = "Excluded"
+		case slices.Contains(source.Retired, id) && pinned:
+			status = "Retired, pinned at " + pin.Version.String()
+		case slices.Contains(source.Retired, id):
+			status = "Retired; the next update drops it"
 		}
 		if rule.Version == nil {
 			rows = append(rows, "| `"+id+"` | No version | Unreleased | "+status+" |")
