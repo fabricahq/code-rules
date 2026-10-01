@@ -27,6 +27,10 @@ type sourcePlan struct {
 	warnings   []string
 	// retired lists, sorted, the rules the library retired that the source selects; it is empty, never nil.
 	retired []string
+	// ref is the source's ref as the snapshot records it: the recorded spelling when it names the same revision as
+	// the configured one, such as release/2 for refs/tags/release/2, so an equivalent spelling never rewrites the
+	// record; otherwise the configured one.
+	ref rules.GitRef
 }
 
 // planner chooses versions for one source, reading the library's release history only when a choice needs it.
@@ -72,6 +76,10 @@ func (p *planner) choose() (sourcePlan, error) {
 		return sourcePlan{}, err
 	}
 	chosen.warnings = append(redundantRules(p.source, chosen.rules), chosen.warnings...)
+	chosen.ref = p.source.Ref
+	if p.recorded != nil && p.recorded.Ref.Equal(p.source.Ref) {
+		chosen.ref = p.recorded.Ref
+	}
 	chosen.retired, err = p.retiredRules(chosen)
 	return chosen, err
 }

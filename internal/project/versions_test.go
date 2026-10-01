@@ -635,3 +635,27 @@ func TestSync_RefusesARecordedVersionOrReleaseTheLibraryDoesntHave(t *testing.T)
 		})
 	}
 }
+
+// TestBuild_AnEquivalentRefSpellingLeavesTheSourceRecordUnchanged: changing ref: release/1 to refs/tags/release/1
+// names the same revision, so build and an offline check pass, and sync keeps the recorded spelling byte for byte.
+func TestBuild_AnEquivalentRefSpellingLeavesTheSourceRecordUnchanged(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "ref": "release/1"})
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
+	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "ref": "refs/tags/release/1"})
+	if _, err := Build(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+	requireCurrent(t, options)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if after := projectTree(t, options).Files["vendor/team/_source.json"]; !bytes.Equal(after, recorded) {
+		t.Fatalf("sync rewrote _source.json:\n%s\nwas:\n%s", after, recorded)
+	}
+	requireCurrent(t, options)
+}

@@ -130,10 +130,15 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	if loaded := catalogRules(catalog); !slices.Equal(loaded, slices.Sorted(maps.Keys(plan.rules))) {
 		return Library{}, fail("unsupported-content", "The library's files don't match the rules its release records list. Don't create or move release tags by hand.", nil)
 	}
+	// A plan that update decided on keeps no ref, which the source's own stands in for.
+	ref := source.Ref
+	if plan.ref.Equal(source.Ref) {
+		ref = plan.ref
+	}
 	snapshot := library.Snapshot{
 		Repository:    source.Repository,
 		RetiredRules:  plan.retired,
-		Ref:           source.Ref,
+		Ref:           ref,
 		Release:       plan.release,
 		Commit:        plan.commit,
 		Selection:     rules.GroupSelection{Pattern: source.Groups.Pattern, Groups: slices.Clone(source.Groups.Groups)},
