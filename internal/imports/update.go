@@ -271,13 +271,13 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 }
 
 // sourceError names source before err, a failure importing or updating it, unless err already names it or is a
-// cancellation: a validation error of the source's configuration or of a SOURCE:RULE argument naming it, or a
-// message about one of its fields. Other failures, such as an invalid release record in the library, need it.
+// cancellation: a validation error of the source's configuration, of its source record, or of a SOURCE:RULE argument
+// naming it, or a message about one of its fields. Other failures, such as an invalid release record in the library, need it.
 func sourceError(source string, err error) error {
 	var validation *rules.ValidationError
 	if errors.As(err, &validation) && err == error(validation) {
 		location := validation.Location
-		if location == "sources."+source || strings.HasPrefix(location, "sources."+source+".") || strings.HasPrefix(location, source+":") {
+		if location == "sources."+source || strings.HasPrefix(location, "sources."+source+".") || strings.HasPrefix(location, source+":") || strings.HasPrefix(location, "vendor/"+source+"/") {
 			return err
 		}
 	}

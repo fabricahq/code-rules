@@ -55,6 +55,13 @@ type ImportedRule struct {
 	Commit string `json:"commit"`
 }
 
+// UnconfirmedRecord refuses to record again the source record of source, which was changed outside sync, because
+// sync can't confirm what, and names both ways out.
+func UnconfirmedRecord(source, what string) error {
+	record := ".code-rules/vendor/" + source + "/_source.json"
+	return &rules.ValidationError{Location: "vendor/" + source + "/_source.json", Problem: "was changed outside code-rules project sync, such as by hand or in a merge, and sync can't confirm " + what + "; restore it from version control, such as with git checkout -- " + record + ", or delete .code-rules/vendor/" + source + "/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions"}
+}
+
 // Source returns the snapshot's files for the catalog loader to read.
 func (s Snapshot) Source() FileSource {
 	return newMemoryFiles(s.Files)

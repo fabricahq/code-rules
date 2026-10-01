@@ -192,9 +192,56 @@ func recordedSnapshots(config rules.Configuration, vendor map[string][]byte) (ma
 		if err != nil {
 			return nil, err
 		}
+		if record.Unverified {
+			if err := requireConfirmedInventory(source.Name, record, vendor); err != nil {
+				return nil, err
+			}
+		}
 		result[source.Name] = record.Snapshot
 	}
 	return result, nil
+}
+
+// requireConfirmedInventory confirms what a record changed outside sync says about the files vendored for source:
+// every file it lists has the recorded checksum, no other file is vendored, and it records a rule for each rule file
+// it lists and lists the file of each rule it records, so sync never mistakes a missing entry for a removed rule.
+func requireConfirmedInventory(name string, record parsedRecord, vendor map[string][]byte) error {
+	prefix := name + "/"
+	for file, data := range vendor {
+		path, ok := strings.CutPrefix(file, prefix)
+		if !ok || path == "_source.json" {
+			continue
+		}
+		if expected, listed := record.digests[path]; !listed || digest(data) != expected {
+			return library.UnconfirmedRecord(name, "its file inventory, which doesn't match the vendored file "+path)
+		}
+	}
+	for path := range record.digests {
+		if _, ok := vendor[prefix+path]; !ok {
+			return library.UnconfirmedRecord(name, "its file inventory, which lists "+path+", a file that isn't vendored")
+		}
+		if id, isRule := ruleOfFile(path); isRule {
+			if _, recorded := record.Rules[id]; !recorded {
+				return library.UnconfirmedRecord(name, "its rules, which leave out "+id+" although its file is vendored")
+			}
+		}
+	}
+	for _, id := range slices.Sorted(maps.Keys(record.Rules)) {
+		if _, listed := record.digests[id+".md"]; !listed {
+			return library.UnconfirmedRecord(name, "rule "+id+", whose file it doesn't list")
+		}
+	}
+	return nil
+}
+
+// ruleOfFile returns the rule whose Markdown file path is, and true, or false for a path that isn't a rule file,
+// such as group metadata, a rule's or the library's assets, or license files.
+func ruleOfFile(path string) (string, bool) {
+	parts := strings.Split(path, "/")
+	if len(parts) < 3 || (parts[0] != "techs" && parts[0] != "practices") || !strings.HasSuffix(path, ".md") || slices.Contains(parts[1:], "assets") {
+		return "", false
+	}
+	return strings.TrimSuffix(path, ".md"), true
 }
 
 // parsedRecord is a validated source record: its snapshot, without files, and its file digests by stored path.
