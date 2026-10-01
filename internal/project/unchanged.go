@@ -49,16 +49,6 @@ func (e *UnchangedError) Error() string {
 // Unwrap returns why the command failed, so callers still recognize its code, location, and cancellation.
 func (e *UnchangedError) Unwrap() error { return e.Err }
 
-// keptWarnings explains each directory, in kept, that an interrupted earlier command created and that recovering it
-// kept, because another process has since changed it, so it no longer is that command's to remove.
-func keptWarnings(kept []string) []string {
-	warnings := []string{}
-	for _, directory := range kept {
-		warnings = append(warnings, "Kept "+directory+", which an interrupted earlier command created, because another process has since put files in it or replaced it; check what it holds, and remove it if nothing needs it.")
-	}
-	return warnings
-}
-
 // unchanged reports err, a failure of a command that changes files only in a transaction that rolls back, as one
 // that wrote no files of its own, noting when it first recovered an interrupted earlier command, unless the
 // rollback itself left files to recover.

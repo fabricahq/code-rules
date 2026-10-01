@@ -17,7 +17,6 @@ import (
 	"syscall"
 
 	"github.com/fabricahq/code-rules/internal/rules"
-	"golang.org/x/sys/unix"
 )
 
 const transactionName = ".code-rules-transaction"
@@ -56,19 +55,11 @@ type Writer struct {
 	active bool
 	// recovered reports that WithWriter first recovered an interrupted earlier operation, changing project files.
 	recovered bool
-	// kept lists the directories an interrupted transaction created that recovery kept, because they no longer are
-	// empty directories.
-	kept []string
 }
 
 // Recovered reports whether, before handing over the writer, WithWriter recovered an interrupted earlier operation,
 // restoring or finishing its files, so the project changed even if the caller's own operation writes nothing.
 func (w *Writer) Recovered() bool { return w.recovered }
-
-// Kept returns the directories an interrupted earlier operation created that recovering it kept, because another
-// process had put files in them or replaced them; they are no longer the operation's to remove. It is empty when
-// nothing was kept.
-func (w *Writer) Kept() []string { return slices.Clone(w.kept) }
 
 // lockOwner records host, process, and invocation identity. Ambiguous or remote owners are never reclaimed.
 type lockOwner struct {
@@ -87,9 +78,6 @@ type journalEntry struct {
 type journalRecord struct {
 	FormatVersion int            `json:"formatVersion"`
 	Entries       []journalEntry `json:"entries"`
-	// Parents lists, outermost first, the missing parent directories of local rule targets that the transaction
-	// creates after writing the journal; recovery removes those that are empty when it rolls back. Format 6 only.
-	Parents []string `json:"parents,omitempty"`
 }
 
 // RequireIdle refuses read-only operations while writing or recovery could expose mixed output.
@@ -126,11 +114,10 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 		}
 	}()
 	recovered := pendingTransaction(root)
-	kept, err := recoverChanges(root)
-	if err != nil {
+	if err := recoverChanges(root); err != nil {
 		return err
 	}
-	w := &Writer{ctx: ctx, root: root, active: true, recovered: recovered, kept: kept, rename: func(from, to string) error { return renameManaged(root, from, to) }, mkdir: func(name string) error { return root.Mkdir(name, 0755) }}
+	w := &Writer{ctx: ctx, root: root, active: true, recovered: recovered, rename: func(from, to string) error { return renameManaged(root, from, to) }, mkdir: func(name string) error { return root.Mkdir(name, 0755) }}
 	defer func() { w.active = false }()
 	return operation(w)
 }
@@ -191,8 +178,8 @@ func acquireLock(ctx context.Context, root *os.Root) error {
 // It rolls back on failure when no later edits would be lost, and recovery restores or finishes every target in
 // the transaction together. Empty output is a no-op. A nil file map removes a local rule's asset directory, and
 // does nothing when it is absent. It changes nothing outside its transaction directory until assertUnchanged has
-// passed and the journal is written; only then does it create the missing parent directories of local rule targets,
-// which the journal lists, so recovery removes them again when it rolls back.
+// passed and the journal is written; only then does it create the missing parent directories of local rule targets.
+// A rollback leaves those directories in place, empty, since nothing proves who made a directory at that path.
 // This promises recoverability, not simultaneous visibility of two renames or power-loss durability.
 func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func() error) (err error) {
 	if w == nil || !w.active {
@@ -250,26 +237,20 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 	}
 	prepared := false
 	// parents lists, outermost first, the missing parent directories of local rule targets to create once the
-	// journal holds them.
+	// journal is written. Nothing removes them again, so a rollback leaves them, empty.
 	parents := []string{}
 	defer func() {
 		if err == nil {
 			return
 		}
 		var recoveryErr error
-		var kept []string
 		if prepared {
-			kept, recoveryErr = recoverChanges(w.root)
+			recoveryErr = recoverChanges(w.root)
 		} else {
 			recoveryErr = w.root.RemoveAll(transactionName)
 		}
 		if recoveryErr != nil {
 			err = failure("recovery-required", "update failed and rollback could not finish; preserve .code-rules-transaction for recovery", errors.Join(err, recoveryErr))
-			return
-		}
-		if len(kept) > 0 {
-			w.kept = append(w.kept, kept...)
-			err = fmt.Errorf("%w; it kept %s, which it created but which another process has since changed", err, strings.Join(kept, ", "))
 		}
 	}()
 	entries := []journalEntry{}
@@ -352,12 +333,12 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			formatVersion = 6
 		}
 	}
-	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{formatVersion, entries, parents}); err != nil {
+	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{formatVersion, entries}); err != nil {
 		return err
 	}
 	prepared = true
-	for i, directory := range parents {
-		if err := w.createParent(i, directory); err != nil {
+	for _, directory := range parents {
+		if err := w.createParent(directory); err != nil {
 			return err
 		}
 	}
@@ -422,102 +403,33 @@ func missingParents(root *os.Root, directory string) ([]string, error) {
 	return missing, nil
 }
 
-// createParent creates directory, the missing parent of a local rule target at index i of the journal's list, and
-// then durably records that it created it, which is recovery's only proof that the directory is the transaction's
-// to remove. It refuses a name that collides with an existing spelling, and, with concurrent-change, a directory or
-// file that appeared after the inputs were checked, which belongs to another process and is never claimed. A crash
-// between creating and recording leaves an empty directory behind, rather than risk removing another's.
-func (w *Writer) createParent(i int, directory string) error {
+// createParent creates directory, a missing parent of a local rule target, refusing a name that collides with an
+// existing spelling. A directory that appeared meanwhile is used as it is, since nothing removes parents; anything
+// else there, such as a file or a symbolic link, is refused.
+func (w *Writer) createParent(directory string) error {
 	if err := rejectAlias(w.root, directory); err != nil {
 		return err
 	}
 	err := w.mkdir(directory)
-	if errors.Is(err, fs.ErrExist) {
-		return failure("concurrent-change", directory+": appeared after the operation checked its inputs; retry the command", nil)
+	if !errors.Is(err, fs.ErrExist) {
+		return err
 	}
+	info, err := w.root.Lstat(directory)
 	if err != nil {
 		return err
 	}
-	return durableJSON(w.root, path.Join(transactionName, parentRecord(i)), directory)
-}
-
-// parentRecord names the record, in the transaction directory, that the parent at index i of the journal's list
-// was created by the transaction.
-func parentRecord(i int) string { return fmt.Sprintf("parent-%d.created", i) }
-
-// parentRecordContent is what the record of creating directory holds, as durableJSON writes it, so recovery
-// accepts only a record of the directory the journal lists at that index.
-func parentRecordContent(directory string) string {
-	data, _ := json.Marshal(directory)
-	return string(data) + "\n"
-}
-
-// removeCreatedParent removes directory, which the transaction created, only while it is an empty directory, with
-// an operation that can't remove anything else. It reports whether something stays at the path: a directory another
-// process put files in, or a file or link that replaced it. An absent directory is already gone.
-func removeCreatedParent(root *os.Root, directory string) (bool, error) {
-	if err := requireRealParents(root, Target(directory)); err != nil {
-		var unsafe *Error
-		if errors.As(err, &unsafe) {
-			return true, nil
-		}
-		return false, err
+	if !info.IsDir() {
+		return failure("unsafe-path", directory+": expected a directory without symlinks", nil)
 	}
-	parent, err := root.Open(path.Dir(directory))
-	if errors.Is(err, fs.ErrNotExist) {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	defer parent.Close()
-	err = unix.Unlinkat(int(parent.Fd()), path.Base(directory), unix.AT_REMOVEDIR)
-	switch {
-	case err == nil, errors.Is(err, unix.ENOENT):
-		return false, nil
-	case errors.Is(err, unix.ENOTEMPTY), errors.Is(err, unix.EEXIST), errors.Is(err, unix.ENOTDIR):
-		return true, nil
-	}
-	return false, err
-}
-
-// validParents reports whether parents, from a journal of format version, are the outermost-first missing parents
-// of its local rule entries: each under local/ and an ancestor of an entry, and, of its own ancestors, those listed
-// are listed before it and form a contiguous chain up from an ancestor that existed, since a missing directory's
-// subdirectories are missing too.
-func validParents(version int, parents []string, entries []journalEntry) bool {
-	if len(parents) > 0 && version < 6 {
-		return false
-	}
-	for i, directory := range parents {
-		if !strings.HasPrefix(directory, "local/") || path.Clean(directory) != directory || slices.Contains(parents[:i], directory) {
-			return false
-		}
-		// Walking up from directory, listed ancestors come first, each listed earlier, then only unlisted ones.
-		existed := false
-		for ancestor := path.Dir(directory); ancestor != "local" && ancestor != "."; ancestor = path.Dir(ancestor) {
-			listed := slices.Contains(parents, ancestor)
-			if listed && (existed || !slices.Contains(parents[:i], ancestor)) {
-				return false
-			}
-			existed = existed || !listed
-		}
-		if !slices.ContainsFunc(entries, func(entry journalEntry) bool {
-			return (localRuleTarget(entry.Name) || localRuleAssetsTarget(entry.Name)) && strings.HasPrefix(string(entry.Name), directory+"/")
-		}) {
-			return false
-		}
-	}
-	return true
+	return nil
 }
 
 // removes reports whether entry removes its target rather than replacing it, which only a local rule's asset
 // directory can.
 func removes(entry journalEntry) bool { return entry.After == treeDigest(nil) }
 
-// recoverChanges validates every restoration before mutating any target and ignores caller cancellation. It returns
-// the directories the interrupted transaction created that it kept, because they no longer are empty directories.
-func recoverChanges(root *os.Root) ([]string, error) {
+// recoverChanges validates every restoration before mutating any target and ignores caller cancellation.
+func recoverChanges(root *os.Root) error {
 	return recoverWithRename(root, func(from, to string) error { return renameManaged(root, from, to) })
 }
 
@@ -528,110 +440,102 @@ func pendingTransaction(root *os.Root) bool {
 }
 
 // recoverWithRename owns recovery renames; tests use this boundary to reproduce late edits and interruptions.
-func recoverWithRename(root *os.Root, rename func(string, string) error) ([]string, error) {
+func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	ctx := context.Background()
 	garbage, err := readTree(ctx, root, cleanupName, recoveryLimits)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if garbage != nil {
 		if err := root.RemoveAll(cleanupName); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	tree, err := readTree(ctx, root, transactionName, recoveryLimits)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if tree == nil {
-		return nil, nil
+		return nil
 	}
 	data, hasJournal := tree.Files["journal.json"]
 	if !hasJournal {
 		for _, dir := range tree.Directories {
 			if strings.HasPrefix(dir, backupPrefix) {
-				return nil, failure("recovery-required", "missing journal with retained output; preserve transaction files for manual recovery", nil)
+				return failure("recovery-required", "missing journal with retained output; preserve transaction files for manual recovery", nil)
 			}
 		}
 		for name := range tree.Files {
 			if strings.HasPrefix(name, backupPrefix) && !strings.Contains(name, "/") {
-				return nil, failure("recovery-required", "missing journal with retained backup; preserve transaction files", nil)
+				return failure("recovery-required", "missing journal with retained backup; preserve transaction files", nil)
 			}
 		}
 		if _, ok := tree.Files["committed.json"]; ok {
-			return nil, failure("recovery-required", "missing journal with commit marker; preserve transaction files", nil)
+			return failure("recovery-required", "missing journal with commit marker; preserve transaction files", nil)
 		}
-		return nil, root.RemoveAll(transactionName)
+		return root.RemoveAll(transactionName)
 	}
 	var raw struct {
 		Entries []map[string]json.RawMessage `json:"entries"`
 	}
 	if json.Unmarshal(data, &raw) != nil {
-		return nil, failure("recovery-required", "invalid transaction journal", nil)
+		return failure("recovery-required", "invalid transaction journal", nil)
 	}
 	for _, entry := range raw.Entries {
 		for _, key := range []string{"name", "before", "after", "existed"} {
 			value, ok := entry[key]
 			if !ok || string(value) == "null" {
-				return nil, failure("recovery-required", "incomplete transaction entry; preserve journal", nil)
+				return failure("recovery-required", "incomplete transaction entry; preserve journal", nil)
 			}
 		}
 	}
 	var record journalRecord
 	if json.Unmarshal(data, &record) != nil || record.FormatVersion < 1 || record.FormatVersion > maxJournalFormat || len(record.Entries) == 0 || len(record.Entries) > maxJournalEntries[record.FormatVersion] {
-		return nil, failure("recovery-required", "invalid transaction journal; preserve it for manual recovery", nil)
+		return failure("recovery-required", "invalid transaction journal; preserve it for manual recovery", nil)
 	}
 	seen := map[Target]bool{}
 	for _, entry := range record.Entries {
 		localRule := localRuleTarget(entry.Name) || localRuleAssetsTarget(entry.Name)
 		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4) || (localGroupMetadataTarget(entry.Name) && record.FormatVersion < 5) || (localRule && record.FormatVersion < 6)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || (removes(entry) && (!localRuleAssetsTarget(entry.Name) || !entry.Existed)) {
-			return nil, failure("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
+			return failure("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
 		}
 		seen[entry.Name] = true
 		// A symbolic link in a parent could make recovery inspect, discard, or replace another file.
 		if err := requireRealParents(root, entry.Name); err != nil {
-			return nil, failure("recovery-required", string(entry.Name)+": a parent directory changed into a symbolic link or file after interruption; preserve the transaction and restore the directory", err)
+			return failure("recovery-required", string(entry.Name)+": a parent directory changed into a symbolic link or file after interruption; preserve the transaction and restore the directory", err)
 		}
 	}
 	if seen[GuideReadme] && seen[GuideStandalone] {
-		return nil, failure("recovery-required", "multiple project guides in transaction; preserve journal", nil)
-	}
-	if !validParents(record.FormatVersion, record.Parents, record.Entries) {
-		return nil, failure("recovery-required", "invalid parent directories in transaction journal; preserve it for manual recovery", nil)
-	}
-	for _, directory := range record.Parents {
-		if err := requireRealParents(root, Target(directory+"/x")); err != nil {
-			return nil, failure("recovery-required", directory+": a directory changed into a symbolic link or file after interruption; preserve the transaction and restore the directory", err)
-		}
+		return failure("recovery-required", "multiple project guides in transaction; preserve journal", nil)
 	}
 	marker, committed := tree.Files["committed.json"]
 	if committed && string(marker) != "true\n" {
-		return nil, failure("recovery-required", "invalid commit marker; preserve transaction files", nil)
+		return failure("recovery-required", "invalid commit marker; preserve transaction files", nil)
 	}
 	for _, entry := range record.Entries {
 		current, err := readTarget(ctx, root, entry.Name, string(entry.Name))
 		if err != nil {
-			return nil, err
+			return err
 		}
 		backup, err := readTarget(ctx, root, entry.Name, path.Join(transactionName, backupPrefix+entryName(entry.Name)))
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if backup != nil && !entry.Existed {
-			return nil, failure("recovery-required", "unexpected backup for an originally absent target; preserve transaction files", nil)
+			return failure("recovery-required", "unexpected backup for an originally absent target; preserve transaction files", nil)
 		}
 		if committed {
 			continue
 		}
 		discarded, err := readTarget(ctx, root, entry.Name, path.Join(transactionName, "discarded-"+entryName(entry.Name)))
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if discarded != nil && treeDigest(discarded) != entry.After {
-			return nil, failure("recovery-required", string(entry.Name)+": displaced output changed; preserve transaction files", nil)
+			return failure("recovery-required", string(entry.Name)+": displaced output changed; preserve transaction files", nil)
 		}
 		if backup != nil && treeDigest(backup) != entry.Before {
-			return nil, failure("recovery-required", string(entry.Name)+": backup changed; manual recovery required", nil)
+			return failure("recovery-required", string(entry.Name)+": backup changed; manual recovery required", nil)
 		}
 		currentHash := treeDigest(current)
 		safe := currentHash == entry.Before || (!entry.Existed && currentHash == entry.After)
@@ -639,11 +543,11 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) ([]stri
 			safe = current == nil || currentHash == entry.After
 		}
 		if !safe {
-			return nil, failure("recovery-required", string(entry.Name)+": changed after interruption; preserve current files and transaction backups", nil)
+			return failure("recovery-required", string(entry.Name)+": changed after interruption; preserve current files and transaction backups", nil)
 		}
 	}
 	if committed {
-		return nil, finishCommitted(root)
+		return finishCommitted(root)
 	}
 	// Older TypeScript recovery cannot understand quarantined output. Upgrade before
 	// introducing it so that either runtime refuses to discard unknown state.
@@ -651,71 +555,58 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) ([]stri
 		record.FormatVersion = 2
 		next := path.Join(transactionName, "journal-next.json")
 		if err := root.Remove(next); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return nil, err
+			return err
 		}
 		if err := durableJSON(root, next, record); err != nil {
-			return nil, err
+			return err
 		}
 		if err := root.Rename(next, path.Join(transactionName, "journal.json")); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	for _, entry := range slices.Backward(record.Entries) {
 		backup := path.Join(transactionName, backupPrefix+entryName(entry.Name))
 		present, err := exists(root, backup)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if present || !entry.Existed {
 			// Move live output into our transaction before inspecting or deleting it.
 			// A path-based edit before this rename is retained on mismatch, never removed.
 			current, err := exists(root, string(entry.Name))
 			if err != nil {
-				return nil, err
+				return err
 			}
 			if current {
 				discardedPath := path.Join(transactionName, "discarded-"+entryName(entry.Name))
 				already, err := exists(root, discardedPath)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				if already {
-					return nil, failure("recovery-required", "both live and displaced output exist; preserve transaction files", nil)
+					return failure("recovery-required", "both live and displaced output exist; preserve transaction files", nil)
 				}
 				if err := rename(string(entry.Name), discardedPath); err != nil {
-					return nil, err
+					return err
 				}
 				discarded, err := readTarget(ctx, root, entry.Name, discardedPath)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				if treeDigest(discarded) != entry.After {
-					return nil, failure("recovery-required", string(entry.Name)+": output changed during recovery; preserve displaced files and backup", nil)
+					return failure("recovery-required", string(entry.Name)+": output changed during recovery; preserve displaced files and backup", nil)
 				}
 			}
 		}
 		if present {
 			if err := rename(backup, string(entry.Name)); err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
-	// Only a directory the transaction recorded creating is its own to remove, and only while it is still an empty
-	// directory; anything else at its path is kept and reported.
-	kept := []string{}
-	for i, directory := range slices.Backward(record.Parents) {
-		if string(tree.Files[parentRecord(i)]) != parentRecordContent(directory) {
-			continue
-		}
-		stays, err := removeCreatedParent(root, directory)
-		if err != nil {
-			return nil, err
-		}
-		if stays {
-			kept = append(kept, directory)
-		}
-	}
-	return kept, root.RemoveAll(transactionName)
+	// Parent directories the transaction created stay, even when empty: a path proves nothing about who made the
+	// directory there now, and an empty directory under local/ is harmless.
+	return root.RemoveAll(transactionName)
 }
 
 // finishCommitted retires the journal before deleting backups, preventing interrupted cleanup rollback.

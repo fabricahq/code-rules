@@ -65,9 +65,8 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	defer root.Close()
 	var changes FileChanges
 	recovered := false
-	var kept []string
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
-		recovered, kept = w.Recovered(), w.Kept()
+		recovered = w.Recovered()
 		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
@@ -94,7 +93,6 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		return FileChanges{}, err
 	}
 	changes.Recovered = recovered
-	changes.Warnings = append(changes.Warnings, keptWarnings(kept)...)
 	return changes, nil
 }
 
