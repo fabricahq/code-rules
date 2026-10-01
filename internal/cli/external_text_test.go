@@ -97,6 +97,8 @@ func TestLibraryRelease_ShowsNoTextFromTheServerThatRefusedTheTag(t *testing.T) 
 			[]string{hookDeclined}, []string{"abcdefgh", "ijklmnop", "qrstuvwx", "mirror.invalid"}},
 		{"GitHub rule violation", "", "echo 'error: GH013: Repository rule violations found for refs/tags/release/2. " + marker + "' >&2\necho '- Cannot create ref due to creations being restricted.' >&2\n",
 			[]string{"Git couldn't push release/2 to origin: a repository rule refused the tag (GitHub error GH013).", "Check the repository's rulesets and tag protection rules"}, []string{"Repository rule violations", "creations being restricted"}},
+		{"GitHub code Code Rules doesn't map to a cause", "", "echo 'error: GH001: Large files detected. " + marker + "' >&2\n",
+			[]string{"Git couldn't push release/2 to origin: the server refused the tag for a reason Code Rules doesn't recognize (GitHub error GH001)."}, []string{"Large files", "rulesets"}},
 		{"protected tag", "", "echo '" + marker + ": You are not allowed to create protected tags on this project.' >&2\n",
 			[]string{"Git couldn't push release/2 to origin: a repository rule or tag protection refused the tag."}, []string{"not allowed", "GH0"}},
 		{"permission denied", "", "echo 'ERROR: Permission to acme/rules.git denied to " + marker + ".' >&2\n",
@@ -267,6 +269,7 @@ func TestSync_ExplainsImportFailuresWithoutGitsText(t *testing.T) {
 	for _, test := range []struct{ name, shim, code, explanation string }{
 		{"unresolvable host", "ssh: Could not resolve hostname fixture.invalid: " + marker + " opaque-url-secret", "connection-failed", connection},
 		{"missing repository", "ERROR: Repository not found. " + marker + " opaque-url-secret", "not-found-or-no-access", "Repository not found or no access; check its address and Git credentials."},
+		{"unknown host key", "Host key verification failed. " + marker + " opaque-url-secret", "host-key-failed", "Git couldn't verify the library server's SSH host key."},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			home := t.TempDir()

@@ -177,9 +177,11 @@ When Code Rules can't read the library's repository, it can report:
 
 | Error | Meaning and next step |
 | --- | --- |
-| `connection-failed` | Git couldn't reach the repository's host, such as when the host name doesn't resolve, the connection is refused or times out, or TLS fails. Check the repository address and your network connection. |
-| `not-found-or-no-access` | The host answered, but the repository doesn't exist or your Git credentials can't read it; servers report both the same way. Check the address and your credentials. |
+| `connection-failed` | Git couldn't reach the repository's host, such as when the host name doesn't resolve, the connection is refused or times out, or the TLS connection fails. Check the repository address and your network connection. |
+| `certificate-failed` | Git couldn't verify the server's TLS certificate. Check that your system trusts it: Git's `http.sslCAInfo` setting, your system's certificate store, and any proxy that intercepts TLS. |
+| `host-key-failed` | Git couldn't verify the server's SSH host key. Check the server's entry in your `known_hosts` file. |
+| `not-found-or-no-access` | Git or the server reported that the repository doesn't exist or that your Git credentials can't read it; servers report both the same way. Check the address and your credentials. |
 | `object-fetch-refused` | The server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; a self-hosted server needs Git protocol version 2 or `uploadpack.allowAnySHA1InWant`. |
-| `git-failed` | Another Git failure. The message says which step failed, such as fetching library files. |
+| `git-failed` | Another Git failure, including one whose cause Code Rules doesn't recognize. The message says which step failed, such as fetching library files. |
 
 These messages never include what Git or the server printed, which can hold credentials, such as one that `url.*.insteadOf` rewriting adds to the repository address. Code Rules reads that text only to choose the code and message, as [Text from Git, servers, and the GitHub CLI](/reference/cli/#text-from-git-servers-and-the-github-cli) describes. To read Git's message, run `git ls-remote` with the repository address yourself.

@@ -9,21 +9,40 @@ import (
 	"unicode"
 )
 
+// CertificateFailures are the texts Git's TLS libraries print when they can't verify a server's certificate, such
+// as OpenSSL's "SSL certificate problem", GnuTLS's "server certificate verification failed", and Secure
+// Transport's "SSL: certificate verification failed".
+var CertificateFailures = []string{
+	"certificate verification failed", "ssl certificate problem", "certificate verify failed",
+	"unable to get local issuer certificate", "self-signed certificate", "self signed certificate",
+	"certificate has expired", "no alternative certificate subject name",
+}
+
+// HostKeyFailures are the texts SSH prints when it can't verify a server's host key.
+var HostKeyFailures = []string{
+	"host key verification failed", "remote host identification has changed", "host key is known",
+	"no matching host key",
+}
+
 // ConnectionFailures are the texts Git and its transports print when they can't reach a host at all, such as when
-// the host name doesn't resolve, nothing listens, or TLS fails, as opposed to a server that answers and refuses.
+// the host name doesn't resolve, nothing listens, or the TLS connection fails, as opposed to a server that answers
+// and refuses. Check CertificateFailures and HostKeyFailures first: a failed verification also ends the connection.
 var ConnectionFailures = []string{
 	"could not resolve host", "couldn't resolve host", "could not resolve hostname", "temporary failure in name resolution",
 	"nodename nor servname provided", "name or service not known", "failed to connect", "could not connect to server",
 	"connection refused", "connection timed out", "operation timed out", "connection reset", "network is unreachable",
-	"no route to host", "ssl certificate problem", "ssl connect error", "host key verification failed",
+	"no route to host", "ssl connect error",
 }
 
 // AccessFailures are the texts Git and Git servers print when a server refuses the credentials or their access,
-// such as GitHub's "Permission to OWNER/REPO denied to USER" and SSH's "Permission denied (publickey)".
+// or reports a repository that doesn't exist, which servers often report the same way, such as GitHub's
+// "Permission to OWNER/REPO denied to USER", SSH's "Permission denied (publickey)", and "Repository not found".
+// SSH's "Could not read from remote repository" follows other failures too, so check those first.
 var AccessFailures = []string{
 	"permission denied", "permission to", "authentication failed", "access denied", "returned error: 401",
-	"returned error: 403", "could not read username", "could not read password", "not allowed to push",
-	"insufficient permission",
+	"returned error: 403", "returned error: 404", "could not read username", "could not read password",
+	"not allowed to push", "insufficient permission", "don't have permission", "not found", "could not be found",
+	"does not appear to be a git repository", "could not read from remote repository",
 }
 
 // Mentions reports whether text contains any of phrases, ignoring case, terminal escape sequences, and other

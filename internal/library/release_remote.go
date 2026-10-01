@@ -538,16 +538,6 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 // noExternalText ends each failure that Git's or a server's messages would explain, which Code Rules never shows.
 const noExternalText = "Code Rules doesn't show messages from Git or the server; to read them, "
 
-// accessFailures are the texts Git and Git servers print when a server refuses the credentials or their access, or
-// reports a repository that doesn't exist, such as GitHub's "Permission to OWNER/REPO denied to USER" and SSH's
-// "Permission denied (publickey)".
-var accessFailures = []string{
-	"permission denied", "permission to", "authentication failed", "access denied", "returned error: 401",
-	"returned error: 403", "could not read username", "could not read password", "not allowed to push",
-	"insufficient permission", "repository not found", "does not appear to be a git repository",
-	"could not read from remote repository",
-}
-
 // ruleRefusals are the texts servers print when a repository rule or tag protection refuses a tag, such as
 // GitHub's rulesets and GitLab's protected tags.
 var ruleRefusals = []string{"rule violation", "ruleset", "protected tag", "tag protection"}
@@ -556,22 +546,39 @@ var ruleRefusals = []string{"rule violation", "ruleset", "protected tag", "tag p
 // match is one of a fixed set of codes, so a message may name it.
 var gitHubErrorCode = regexp.MustCompile(`\bGH0[0-9]{2}\b`)
 
+// gitHubRuleCodes are the GitHub error codes for a rule that protects the tag: GH006 for a protected branch or
+// tag, and GH013 for a repository rule violation. Other codes, such as GH001 for large files, mean other refusals.
+var gitHubRuleCodes = []string{"GH006", "GH013"}
+
+// Static explanations of a server Git couldn't verify.
+const (
+	certificateFailure = ": Git couldn't verify the server's TLS certificate. Check that your system trusts it: Git's http.sslCAInfo setting, your system's certificate store, and any proxy that intercepts TLS"
+	hostKeyFailure     = ": Git couldn't verify the server's SSH host key. Check the server's entry in your known_hosts file"
+)
+
 // pushRefusal explains why Git couldn't push the tag name to remote, with a static cause chosen from Git's
 // diagnostics, which it never shows: a repository rule or tag protection, naming GitHub's error code when there is
-// one; a host Git couldn't reach; refused access or authentication; a server hook; another refusal from the
-// server; or no answer from the server, such as when a pre-push hook stopped the push.
+// one; another GitHub error code, which it names; a server Git couldn't verify or reach; refused access or
+// authentication; a server hook; another refusal from the server; or no answer from the server, such as when a
+// pre-push hook stopped the push.
 func pushRefusal(name, remote string, diagnostics []byte) string {
 	problem := "Git couldn't push " + name + " to " + remote
 	// A server that refused the tag was reached, whatever its message says about connections.
 	refused := gitexec.Mentions(diagnostics, "[remote rejected]", "remote:")
-	switch code := gitHubErrorCode.Find(diagnostics); {
-	case code != nil:
-		problem += ": a repository rule refused the tag (GitHub error " + string(code) + "). Check the repository's rulesets and tag protection rules, and that they let you create release/ tags"
+	switch code := string(gitHubErrorCode.Find(diagnostics)); {
+	case slices.Contains(gitHubRuleCodes, code):
+		problem += ": a repository rule refused the tag (GitHub error " + code + "). Check the repository's rulesets and tag protection rules, and that they let you create release/ tags"
+	case code != "":
+		problem += ": the server refused the tag for a reason Code Rules doesn't recognize (GitHub error " + code + "). Check the repository's rules for tags and its server-side hooks"
 	case gitexec.Mentions(diagnostics, ruleRefusals...):
 		problem += ": a repository rule or tag protection refused the tag. Check the repository's rulesets and tag protection rules, and that they let you create release/ tags"
+	case !refused && gitexec.Mentions(diagnostics, gitexec.CertificateFailures...):
+		problem += certificateFailure
+	case !refused && gitexec.Mentions(diagnostics, gitexec.HostKeyFailures...):
+		problem += hostKeyFailure
 	case !refused && gitexec.Mentions(diagnostics, gitexec.ConnectionFailures...):
 		problem += ": Git couldn't connect to the server. Check the repository address and your network connection"
-	case gitexec.Mentions(diagnostics, accessFailures...):
+	case gitexec.Mentions(diagnostics, gitexec.AccessFailures...):
 		problem += ": the server denied access, or authentication failed. Check your Git credentials and that they let you push tags to the repository"
 	case gitexec.Mentions(diagnostics, "hook declined"):
 		problem += ": a hook on the server declined the tag. Check the repository's server-side hooks, such as pre-receive and update hooks, or ask its administrator"
@@ -584,14 +591,18 @@ func pushRefusal(name, remote string, diagnostics []byte) string {
 }
 
 // fetchFailure explains why Git couldn't read or fetch from remote, as action says, with a static cause chosen
-// from Git's diagnostics, which it never shows: a host Git couldn't reach, or refused access or a missing
-// repository.
+// from Git's diagnostics, which it never shows: a server Git couldn't verify or reach, or refused access or a
+// missing repository.
 func fetchFailure(action, remote string, diagnostics []byte) error {
 	problem := "Git couldn't " + action + " " + remote
 	switch {
+	case gitexec.Mentions(diagnostics, gitexec.CertificateFailures...):
+		problem += certificateFailure
+	case gitexec.Mentions(diagnostics, gitexec.HostKeyFailures...):
+		problem += hostKeyFailure
 	case gitexec.Mentions(diagnostics, gitexec.ConnectionFailures...):
 		problem += ": Git couldn't connect to the server. Check the repository address and your network connection"
-	case gitexec.Mentions(diagnostics, accessFailures...):
+	case gitexec.Mentions(diagnostics, gitexec.AccessFailures...):
 		problem += ": the server denied access, or the repository doesn't exist. Check the repository address, your Git credentials, and your access to the repository"
 	default:
 		problem += ". Check your network connection and access to the repository"

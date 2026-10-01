@@ -344,11 +344,12 @@ The tag uses Git's configured identity as its tagger, including the `GIT_COMMITT
 
 When the push fails, the command fails with `push-failed` and deletes the tag it created, so a rerun starts over. Code Rules doesn't show what Git or the server printed, as [Text from Git, servers, and the GitHub CLI](#text-from-git-servers-and-the-github-cli) explains; its message names the cause it recognizes in that text instead:
 
-- a repository rule or tag protection, such as a GitHub ruleset or a GitLab protected tag, with GitHub's error code, such as `GH013`, when the server gave one,
+- a repository rule or tag protection, such as a GitHub ruleset or a GitLab protected tag, with GitHub's error code when the server gave `GH006` or `GH013`,
+- Git couldn't verify the server's TLS certificate or SSH host key,
+- Git couldn't connect to the server,
 - the server denied access, or authentication failed,
 - a hook on the server, such as a pre-receive or update hook, declined the tag,
-- the server refused the tag for a reason Code Rules doesn't recognize,
-- Git couldn't connect to the server, or
+- the server refused the tag for a reason Code Rules doesn't recognize, with GitHub's error code when the server gave another one, such as `GH001` for large files, or
 - the push failed before the server answered, such as when your pre-push hook stopped it.
 
 To read the server's own message, push a test tag that your tag rules cover yourself, such as `release/0`, which isn't a library release tag:
@@ -371,7 +372,7 @@ If that push succeeds, delete the test tag from the remote with `git push origin
 | `detached-head` | `HEAD` isn't on a branch. |
 | `no-upstream` | The branch has no upstream branch on a remote. |
 | `push-destination` | The remote pushes to several URLs, or to another repository than it fetches from. |
-| `fetch-failed` | Git couldn't read or fetch from the remote. The message says whether Git couldn't connect to the server, or the server denied access or has no such repository, when it recognizes either; run `git fetch` with the remote's name to read Git's message. |
+| `fetch-failed` | Git couldn't read or fetch from the remote. The message says whether Git couldn't verify the server's TLS certificate or SSH host key, couldn't connect to the server, or the server denied access or has no such repository, when it recognizes one of them; run `git fetch` with the remote's name to read Git's message. |
 | `not-default-branch` | The branch doesn't track the remote's default branch, or the remote reports none. |
 | `no-commits` | The library has no commits yet. |
 | `branch-differs` | The branch has commits the remote lacks, the remote has commits the branch lacks, or the remote branch doesn't exist. |

@@ -18,6 +18,8 @@ import (
 func TestGitFailure_ExplainsTheCauseWithoutGitsText(t *testing.T) {
 	const marker = "EXTERNAL-TEXT-MARKER"
 	connection := "Could not connect to the library's repository. Check the repository address and your network connection."
+	certificate := "Git couldn't verify the library server's TLS certificate. Check that your system trusts it: Git's http.sslCAInfo setting, your system's certificate store, and any proxy that intercepts TLS."
+	hostKey := "Git couldn't verify the library server's SSH host key. Check the server's entry in your known_hosts file."
 	refused := "The library's server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; ask the administrator of a self-hosted server to enable Git protocol version 2 or uploadpack.allowAnySHA1InWant."
 	for _, test := range []struct {
 		name, diagnostics, code, message string
@@ -25,6 +27,9 @@ func TestGitFailure_ExplainsTheCauseWithoutGitsText(t *testing.T) {
 		{"unresolvable HTTPS host", "fatal: unable to access 'https://reader:s3cret@example.com/acme/rules.git/': Could not resolve host: " + marker + "\n", "connection-failed", connection},
 		{"unresolvable SSH host", "ssh: Could not resolve hostname " + marker + ": nodename nor servname provided, or not known\nfatal: Could not read from remote repository.\n", "connection-failed", connection},
 		{"refused connection, with a terminal sequence inside the phrase", "fatal: unable to access '" + marker + "': Failed to connect to example.com port 443 after 3 ms: Connection \x1b[31mrefused\n", "connection-failed", connection},
+		{"untrusted certificate", "fatal: unable to access '" + marker + "': SSL certificate problem: self-signed certificate in certificate chain\n", "certificate-failed", certificate},
+		{"certificate verification with GnuTLS", "fatal: unable to access '" + marker + "': server certificate verification failed. CAfile: none CRLfile: none\n", "certificate-failed", certificate},
+		{"unknown SSH host key", "Host key verification failed.\r\nfatal: Could not read from remote repository. " + marker + "\n", "host-key-failed", hostKey},
 		{"object refused by ID", "error: Server does not allow request for unadvertised object " + marker + "\nfatal: could not fetch 33e1b731 from promisor remote\n", "object-fetch-refused", refused},
 		{"object refused as not our ref", "fatal: remote error: upload-pack: not our ref " + marker + "\n", "object-fetch-refused", refused},
 		{"other failure", "warning: something\nfatal: bad object " + marker + "\n", "git-failed", "Could not read library files."},
@@ -41,6 +46,12 @@ func TestGitFailure_ExplainsTheCauseWithoutGitsText(t *testing.T) {
 	for _, test := range []struct{ diagnostics, code, message string }{
 		{"remote: Repository not found " + marker + ".\nfatal: repository 'https://example.com/acme/rules.git/' not found\n", "not-found-or-no-access", "Repository not found or no access; check its address and Git credentials."},
 		{"fatal: unable to access 'https://example.com/': Could not resolve host: " + marker + "\n", "connection-failed", connection},
+		{"fatal: unable to access '" + marker + "': SSL: certificate verification failed (result: 5)\n", "certificate-failed", certificate},
+		{"Host key verification failed.\nfatal: Could not read from remote repository. " + marker + "\n", "host-key-failed", hostKey},
+		{"fatal: Authentication failed for '" + marker + "'\n", "not-found-or-no-access", "Repository not found or no access; check its address and Git credentials."},
+		{"fatal: could not read Username for '" + marker + "': terminal prompts disabled\n", "not-found-or-no-access", "Repository not found or no access; check its address and Git credentials."},
+		{"fatal: " + marker + "\n", "git-failed", "Could not read the library's repository for a reason Code Rules doesn't recognize. Run git ls-remote with the repository address to read Git's message."},
+		{"", "git-failed", "Could not read the library's repository for a reason Code Rules doesn't recognize. Run git ls-remote with the repository address to read Git's message."},
 	} {
 		err := remoteFailure([]byte(test.diagnostics))
 		requireCode(t, err, test.code)
