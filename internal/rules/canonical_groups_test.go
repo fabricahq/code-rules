@@ -53,6 +53,7 @@ func TestParseCanonicalGroupsRejectsInvalidLists(t *testing.T) {
 		{"multiline description", "techs/go:\n  name: Go\n  description: |\n    The Go\n    language.\n", "list.techs/go.description", "expected one line"},
 		{"multiline name", "techs/go:\n  name: \"G\\no\"\n  description: Go.\n", "list.techs/go.name", "expected one line"},
 		{"duplicate name", testingEntry + "techs/go:\n  name: testing\n  description: Go.\n", "list.techs/go.name", `"testing" is already the name of "practices/testing"`},
+		{"duplicate folded name", "practices/sigma:\n  name: Σ\n  description: Upper.\n" + "techs/sigma:\n  name: ς\n  description: Final.\n", "list.techs/sigma.name", `"ς" is already the name of "practices/sigma"`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := rules.ParseCanonicalGroups([]byte(test.input), "list")

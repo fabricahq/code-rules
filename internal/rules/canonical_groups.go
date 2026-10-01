@@ -12,7 +12,7 @@ import (
 // CanonicalGroup is one entry on the canonical group list. Text has no surrounding whitespace.
 type CanonicalGroup struct {
 	ID string
-	// Name is the group's display name, unique on the list regardless of case.
+	// Name is the group's display name, unique on the list under Unicode case folding.
 	Name string
 	// Description is one line saying which rules belong in the group.
 	Description string
@@ -21,7 +21,7 @@ type CanonicalGroup struct {
 // ParseCanonicalGroups validates a canonical group list and returns its entries in file order.
 // The list is one strict YAML mapping from group ID to an entry with exactly a name and a description.
 // IDs follow ValidateGroupID and must be in ascending byte order, so a list has no duplicates.
-// Names and descriptions are single lines, and names are unique ignoring case.
+// Names and descriptions are single lines, and names are unique under Unicode case folding.
 // On error, the result is nil.
 func ParseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, error) {
 	document, data, err := authoredYAML(input, location)
@@ -40,7 +40,6 @@ func ParseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, erro
 		return nil, err
 	}
 	groups := make([]CanonicalGroup, 0, len(entries))
-	owners := map[string]string{}
 	// The YAML node keeps the authored key order, which the decoded JSON object loses.
 	for i := 0; i < len(root.Content); i += 2 {
 		id := root.Content[i].Value
@@ -55,11 +54,12 @@ func ParseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, erro
 		if err != nil {
 			return nil, err
 		}
-		key := strings.ToLower(group.Name)
-		if owner, taken := owners[key]; taken {
-			return nil, invalid(entryLocation+".name", quote(group.Name)+" is already the name of "+quote(owner))
+		// Unicode case folding equates names that lowercasing keeps apart, such as Σ and ς.
+		for _, earlier := range groups {
+			if strings.EqualFold(group.Name, earlier.Name) {
+				return nil, invalid(entryLocation+".name", quote(group.Name)+" is already the name of "+quote(earlier.ID))
+			}
 		}
-		owners[key] = id
 		groups = append(groups, group)
 	}
 	return groups, nil
