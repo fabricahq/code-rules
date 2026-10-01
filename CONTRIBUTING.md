@@ -1,6 +1,6 @@
 # Contributing to Code Rules
 
-Thanks for helping build Code Rules. This guide covers building the CLI, validating changes, working on the documentation website, and packaging releases.
+Thanks for helping build Code Rules. This guide covers building the CLI, validating changes, working on the documentation website, testing PR builds, and releases.
 The [README](README.md) introduces the product; [AGENTS.md](AGENTS.md) holds the product context and decisions that guide changes.
 
 ## Build the CLI
@@ -46,9 +46,48 @@ bun run docs:dev
 
 TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser require its compiler API. [TypeScript 7 does not yet provide that API](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0); revisit this pin when both tools support it.
 
-## Package binaries
+## Test a PR build
 
-[Release instructions](_engineering/releasing.md) explain release assets, candidate archives, and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. [Release Planner](https://release-planner.fabricahq.com) publishes releases: a release PR supplies editable notes and the version in `releases/v<version>.md`, and builds and tests the release assets; merging it publishes them.
+The [PR packaging workflow](.github/workflows/package-binaries.yml) builds preview executables for every PR. After a successful build, PRs opened from a branch in this repository by someone with write or admin access automatically receive a comment with preview links. Forks, including maintainer-owned forks, and other contributors need a maintainer to approve the exact commit:
+
+1. Review the current PR commit, including source, dependencies, tests, and build workflow changes, for isolated testing.
+2. Find its successful **Package CLI binaries** run. Copy the numeric run ID from its URL and the PR's full 40-character commit SHA.
+3. In Actions, select **CLI preview downloads**, then **Run workflow** from the default branch. Enter that run ID and commit SHA.
+
+A new commit needs a new approval.
+
+**Warning: These executables run code from the PR. Use a disposable test environment without credentials or private files. Even `--help` executes the program.**
+
+The comment offers direct executable downloads for macOS (Apple Silicon or Intel) and Linux (ARM or Intel/AMD), and a one-line command that uses the signed-in GitHub CLI to download the file for your computer as `./code-rules` in the current directory, replacing any existing file there. The command runs [`_tools/install-preview.sh`](_tools/install-preview.sh) from the default branch's workflow commit, never from the PR. To download by hand instead, rename the file to `code-rules`, then run:
+
+```sh
+chmod +x code-rules
+./code-rules --help
+```
+
+Each preview command prints this warning to stderr before command output, including help, version, and JSON commands:
+
+```text
+WARNING: Unreleased preview from commit <full SHA>. For testing only; not for production use.
+```
+
+JSON output on stdout remains unchanged. The warning is a reminder, not proof of authenticity: someone modifying the binary could remove it. Preview binaries are not publisher-signed or attested by Code Rules.
+
+No extraction or global installation is needed. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, whether the PR is open, closed, or merged.
+
+### Candidate archives
+
+To build unreleased archives locally, commit your changes first: packaging builds committed source. Release builds take an explicit version; candidate versions default to a source commit identifier.
+
+```sh
+go run ./cmd/package-binaries --candidate --output /tmp/code-rules-artifacts
+```
+
+Use a new output directory for each attempt. Verify archive checksums against a trusted manifest before extraction. Describe these builds as unpublished review candidates, and claim platform compatibility only where testing supports it. Read the [packaging command](cmd/package-binaries/) for options.
+
+## Releases
+
+[Release instructions](_engineering/releasing.md) explain the release process. [Release Planner](https://release-planner.fabricahq.com) publishes releases: a release PR supplies editable notes and the version in `releases/v<version>.md`, and builds and tests the release assets; merging it publishes them.
 
 ## Implementation map
 

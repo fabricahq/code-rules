@@ -98,7 +98,7 @@ Dependency updates do not publish releases. A maintainer approves a release by m
 
 ### PR preview downloads
 
-[Testing PR preview builds](releasing.md#testing-pr-preview-builds) describes who receives preview links, how to approve one, and how to run a preview safely.
+[Test a PR build](../CONTRIBUTING.md#test-a-pr-build) describes who receives preview links, how to approve one, and how to run a preview safely.
 
 The packaging workflow builds PR code with read-only repository permissions. Successful builds do not establish that the code is safe.
 The separate **CLI preview downloads** workflow runs from the default branch and only reads GitHub metadata and posts comments. It never checks out PR code or downloads or runs an artifact.
