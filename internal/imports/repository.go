@@ -129,8 +129,8 @@ func (r *repository) hasBranch(ctx context.Context, name string) (bool, error) {
 	return result.Status == 0, nil
 }
 
-// fetchCommits fetches each commit that isn't present yet. A commit the repository doesn't have fails with
-// code version-not-found and missing's explanation.
+// fetchCommits fetches each commit that isn't present yet. A commit the server says it doesn't have fails with
+// code version-not-found and missing's explanation; any other failure is explained as commitFetchFailure does.
 func (r *repository) fetchCommits(ctx context.Context, commits []string, missing string) error {
 	wanted := []string{}
 	for _, commit := range commits {
@@ -147,10 +147,7 @@ func (r *repository) fetchCommits(ctx context.Context, commits []string, missing
 		return err
 	}
 	if fetched.Status != 0 {
-		if err := r.unreachable(ctx); err != nil {
-			return err
-		}
-		return fail("version-not-found", missing, nil)
+		return commitFetchFailure(fetched.Diagnostics, missing)
 	}
 	for _, commit := range wanted {
 		if _, err := r.commit(ctx, commit); err != nil {
