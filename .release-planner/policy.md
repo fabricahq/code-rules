@@ -58,3 +58,11 @@ The notes present changes in this order, leaving out any with nothing to say:
 - Always credit external contributors by GitHub handle.
 - Never present internal refactors, CI changes, or website-only changes as new CLI features.
 - Never mention dependency updates unless they fix a security issue.
+
+## Release pipeline
+
+[build-release.yml](../.github/workflows/build-release.yml) builds the release files on the release pull request, and fails when their names differ from the ones the contract above lists.
+
+After a stable release publishes, the `downstream` job runs **Update Code Rules** (`update-code-rules.yml`) in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap). Prereleases don't update the formula. The job authenticates through **Fabrica Homebrew Releaser**, a shared App installed only on the tap with Actions write and Metadata read permissions. Its credentials are the `DOWNSTREAM_APP_CLIENT_ID` variable and `DOWNSTREAM_APP_PRIVATE_KEY` secret in this repository's `downstream` environment. The tap's own publishing App key never leaves the tap. [CR-7](https://linear.app/ohmygoshjosh/issue/CR-7/replace-shared-homebrew-trigger-keys-with-an-oidc-dispatch-service) tracks replacing shared keys with an OIDC dispatch service.
+
+If the dispatch fails, use **Re-run failed jobs** on the Release run. If the tap update fails, fix the reported problem and run the tap's **Update Code Rules** workflow manually. A tap failure doesn't change the published release.
