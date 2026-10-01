@@ -171,21 +171,24 @@ func groupCreatedReport(added, changed, warnings []string, groupPath string, sco
 	return authoredReport(&out, added, changed, warnings, steps)
 }
 
-func projectChangesReport(action string, result project.FileChanges) commandReport {
+// projectChangesReport lists the files sync, build, or update changed in the project at root, naming their directory
+// relative to workdir, as authoring reports name paths.
+func projectChangesReport(action string, result project.FileChanges, root, workdir string) commandReport {
 	var out strings.Builder
+	codeRules := relativeDirectory(filepath.Join(root, ".code-rules"), workdir)
 	if result.Guide != nil {
 		status := "updated"
 		if result.Guide.Created {
 			status = "created"
 		}
-		fmt.Fprintf(&out, "Code Rules guide %s: %s\n", status, filepath.Join(".code-rules", result.Guide.Path))
+		fmt.Fprintf(&out, "Code Rules guide %s: %s\n", status, filepath.Join(codeRules, result.Guide.Path))
 	}
 	fmt.Fprintf(&out, "%s complete: %d added, %d changed, %d removed.\n", strings.ToUpper(action[:1])+action[1:], len(result.Added), len(result.Changed), len(result.Removed))
 	if len(result.Added)+len(result.Changed)+len(result.Removed) > 0 {
 		if action == "build" {
-			out.WriteString("Paths relative to .code-rules/generated:\n")
+			fmt.Fprintf(&out, "Paths relative to %s:\n", filepath.Join(codeRules, "generated"))
 		} else {
-			out.WriteString("Paths relative to .code-rules:\n")
+			fmt.Fprintf(&out, "Paths relative to %s:\n", codeRules)
 		}
 	}
 	for _, group := range []struct {
@@ -251,4 +254,24 @@ func projectCheckedReport(result projectCheckResult) commandReport {
 	}
 	report.human = out.String()
 	return report
+}
+
+// relativeDirectory returns directory, which is absolute, relative to workdir, resolving symbolic links so a working
+// directory reached through one, such as macOS's /var for /private/var, still compares. It returns directory as is
+// when no relative path leads there.
+func relativeDirectory(directory, workdir string) string {
+	if absolute, err := filepath.Abs(workdir); err == nil {
+		workdir = absolute
+	}
+	if resolved, err := filepath.EvalSymlinks(workdir); err == nil {
+		workdir = resolved
+	}
+	if resolved, err := filepath.EvalSymlinks(directory); err == nil {
+		directory = resolved
+	}
+	relative, err := filepath.Rel(workdir, directory)
+	if err != nil {
+		return directory
+	}
+	return relative
 }

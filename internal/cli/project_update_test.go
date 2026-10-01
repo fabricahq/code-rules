@@ -500,3 +500,24 @@ func TestLibraryReadme_MentionsRetainedTermsOnlyWhenTheLibraryDeclaresThem(t *te
 		t.Fatalf("README:\n%s", data)
 	}
 }
+
+// TestBuild_NamesItsPathsRelativeToTheWorkingDirectory: build from a subdirectory says where its paths are from
+// there, as authoring commands do.
+func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
+	u := newUpdateFixture(t)
+	if err := os.Remove(filepath.Join(u.directory, ".code-rules", "generated", "RULES.md")); err != nil {
+		t.Fatal(err)
+	}
+	// A .git directory makes the project a repository, whose root commands find from a subdirectory.
+	sub := filepath.Join(u.directory, "services", "api")
+	if err := os.MkdirAll(filepath.Join(u.directory, ".git"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(sub, 0700); err != nil {
+		t.Fatal(err)
+	}
+	out, diagnostic, code := runCLI(t, u.binary, sub, "project", "build")
+	if code != 0 || diagnostic != "" || !strings.Contains(out, "Paths relative to ../../.code-rules/generated:\n  Add: RULES.md\n") {
+		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
+	}
+}

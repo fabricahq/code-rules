@@ -49,7 +49,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		yes, _ := cmd.Flags().GetBool("yes")
 		interactive := !yes && f.interactive()
 		if !yes && !interactive {
-			output.report = updateReport(preview, false, false)
+			output.report = updateReport(preview, false, false, directory, options.Directory)
 			return nil
 		}
 		// A terminal shows the preview once, before the questions, so the report after them doesn't repeat it.
@@ -72,7 +72,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 				return err
 			}
 			if answer != "yes" {
-				output.report = updateReport(preview, true, true)
+				output.report = updateReport(preview, true, true, directory, options.Directory)
 				return nil
 			}
 		}
@@ -80,7 +80,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		if err != nil {
 			return err
 		}
-		output.report = updateReport(result, false, asked)
+		output.report = updateReport(result, false, asked, directory, options.Directory)
 		return nil
 	}
 	return cmd
@@ -249,8 +249,9 @@ func answersSummary(sources []imports.SourceUpdate) string {
 }
 
 // updateReport shows the preview, unless shown says a terminal already showed it, and, once applied, the files
-// the update changed. A preview explains how to apply it; cancelled says the user declined to.
-func updateReport(result project.UpdateResult, cancelled, shown bool) commandReport {
+// the update changed in the project at root, relative to workdir. A preview explains how to apply it; cancelled
+// says the user declined to.
+func updateReport(result project.UpdateResult, cancelled, shown bool, root, workdir string) commandReport {
 	var out strings.Builder
 	if !shown {
 		formatUpdatePreview(&out, result.Sources)
@@ -261,7 +262,7 @@ func updateReport(result project.UpdateResult, cancelled, shown bool) commandRep
 		if out.Len() > 0 {
 			out.WriteByte('\n')
 		}
-		out.WriteString(projectChangesReport("update", result.FileChanges).human)
+		out.WriteString(projectChangesReport("update", result.FileChanges, root, workdir).human)
 		return commandReport{value: result, human: out.String()}
 	}
 	for _, warning := range result.Warnings {
