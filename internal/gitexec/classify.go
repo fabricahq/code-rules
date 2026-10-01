@@ -9,24 +9,25 @@ import (
 	"unicode"
 )
 
-// CertificateFailures are the texts Git's TLS libraries print when they can't verify a server's certificate, such
-// as OpenSSL's "SSL certificate problem", GnuTLS's "server certificate verification failed", and Secure
-// Transport's "SSL: certificate verification failed".
-var CertificateFailures = []string{
+// HTTPSCertificateFailures are the texts Git's TLS libraries print when they can't verify an HTTPS server's
+// certificate, such as OpenSSL's "SSL certificate problem", GnuTLS's "server certificate verification failed", and
+// Secure Transport's "SSL: certificate verification failed".
+var HTTPSCertificateFailures = []string{
 	"certificate verification failed", "ssl certificate problem", "certificate verify failed",
 	"unable to get local issuer certificate", "self-signed certificate", "self signed certificate",
 	"certificate has expired", "no alternative certificate subject name",
 }
 
-// HostKeyFailures are the texts SSH prints when it can't verify a server's host key.
-var HostKeyFailures = []string{
+// SSHHostKeyFailures are the texts SSH prints when it can't verify a server's host key.
+var SSHHostKeyFailures = []string{
 	"host key verification failed", "remote host identification has changed", "host key is known",
 	"no matching host key",
 }
 
 // ConnectionFailures are the texts Git and its transports print when they can't reach a host at all, such as when
 // the host name doesn't resolve, nothing listens, or the TLS connection fails, as opposed to a server that answers
-// and refuses. Check CertificateFailures and HostKeyFailures first: a failed verification also ends the connection.
+// and refuses. Check HTTPSCertificateFailures and SSHHostKeyFailures first: a failed verification also ends the
+// connection.
 var ConnectionFailures = []string{
 	"could not resolve host", "couldn't resolve host", "could not resolve hostname", "temporary failure in name resolution",
 	"nodename nor servname provided", "name or service not known", "failed to connect", "could not connect to server",

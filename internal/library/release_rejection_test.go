@@ -37,9 +37,9 @@ func TestPushRefusal_ExplainsTheCauseWithoutTheServersText(t *testing.T) {
 		{"unrecognized rejection", " ! [remote rejected] release/2 -> release/2 (" + marker + ")\n",
 			"the server refused the tag for a reason Code Rules doesn't recognize."},
 		{"untrusted certificate", "fatal: unable to access '" + marker + "': server certificate verification failed. CAfile: none CRLfile: none\n",
-			"Git couldn't verify the server's TLS certificate."},
+			"the HTTPS server's certificate couldn't be verified."},
 		{"unknown SSH host key", "Host key verification failed.\r\nfatal: Could not read from remote repository. " + marker + "\n",
-			"Git couldn't verify the server's SSH host key."},
+			"the SSH host key couldn't be verified."},
 		{"unreachable host", "ssh: Could not resolve hostname " + marker + ": nodename nor servname provided, or not known\nfatal: Could not read from remote repository.\n",
 			"Git couldn't connect to the server."},
 		{"no server response", "error: failed to push some refs to '" + marker + "'\n",
@@ -64,9 +64,9 @@ func TestPushRefusal_ExplainsTheCauseWithoutTheServersText(t *testing.T) {
 func TestFetchFailure_ExplainsTheCauseWithoutGitsText(t *testing.T) {
 	const marker = "EXTERNAL-TEXT-MARKER"
 	for _, test := range []struct{ name, diagnostics, explanation string }{
-		{"untrusted certificate", "fatal: unable to access '" + marker + "': SSL certificate problem: unable to get local issuer certificate\n", "Git couldn't read origin: Git couldn't verify the server's TLS certificate."},
-		{"certificate verification", "fatal: unable to access '" + marker + "': SSL: certificate verification failed (result: 5)\n", "Git couldn't read origin: Git couldn't verify the server's TLS certificate."},
-		{"unknown SSH host key", "Host key verification failed.\nfatal: Could not read from remote repository. " + marker + "\n", "Git couldn't read origin: Git couldn't verify the server's SSH host key."},
+		{"untrusted certificate", "fatal: unable to access '" + marker + "': SSL certificate problem: unable to get local issuer certificate\n", "Git couldn't read origin: the HTTPS server's certificate couldn't be verified."},
+		{"certificate verification", "fatal: unable to access '" + marker + "': SSL: certificate verification failed (result: 5)\n", "Git couldn't read origin: the HTTPS server's certificate couldn't be verified."},
+		{"unknown SSH host key", "Host key verification failed.\nfatal: Could not read from remote repository. " + marker + "\n", "Git couldn't read origin: the SSH host key couldn't be verified."},
 		{"unreachable host", "fatal: unable to access '" + marker + "': Could not resolve host: example.com\n", "Git couldn't read origin: Git couldn't connect to the server."},
 		{"missing repository", "remote: Repository not found. " + marker + "\n", "Git couldn't read origin: the server denied access, or the repository doesn't exist."},
 		{"other", "fatal: " + marker + "\n", "Git couldn't read origin. Check your network connection"},

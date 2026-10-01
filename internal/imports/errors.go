@@ -44,15 +44,15 @@ func gitFailure(code, problem string, diagnostics []byte) error {
 	return fail(code, problem, nil)
 }
 
-// unreachable explains diagnostics that show Git never reached a server it could trust: a TLS certificate it
-// couldn't verify, with code certificate-failed; an SSH host key it couldn't verify, with code host-key-failed; or a
-// host it couldn't connect to, with code connection-failed. It returns nil for other diagnostics.
+// unreachable explains diagnostics that show Git never reached a server it could trust: an HTTPS server certificate
+// it couldn't verify, with code https-certificate-failed; an SSH host key it couldn't verify, with code
+// ssh-host-key-failed; or a host it couldn't connect to, with code connection-failed. It returns nil for other diagnostics.
 func unreachable(diagnostics []byte) error {
 	switch {
-	case gitexec.Mentions(diagnostics, gitexec.CertificateFailures...):
-		return fail("certificate-failed", "Git couldn't verify the library server's TLS certificate. Check that your system trusts it: Git's http.sslCAInfo setting, your system's certificate store, and any proxy that intercepts TLS.", nil)
-	case gitexec.Mentions(diagnostics, gitexec.HostKeyFailures...):
-		return fail("host-key-failed", "Git couldn't verify the library server's SSH host key. Check the server's entry in your known_hosts file.", nil)
+	case gitexec.Mentions(diagnostics, gitexec.HTTPSCertificateFailures...):
+		return fail("https-certificate-failed", "The library's HTTPS server certificate couldn't be verified. Check that your system trusts it: Git's http.sslCAInfo setting, your system's certificate store, and any proxy that intercepts TLS.", nil)
+	case gitexec.Mentions(diagnostics, gitexec.SSHHostKeyFailures...):
+		return fail("ssh-host-key-failed", "The library's SSH host key couldn't be verified. Check the server's entry in your known_hosts file.", nil)
 	case gitexec.Mentions(diagnostics, gitexec.ConnectionFailures...):
 		return fail("connection-failed", "Could not connect to the library's repository. Check the repository address and your network connection.", nil)
 	}
