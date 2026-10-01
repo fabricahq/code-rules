@@ -17,10 +17,11 @@ A version covers the rule's Markdown file and its own supporting files. Library-
 
 ### How a rule gets a new version
 
-Releasing a new version of a rule takes two steps, and in neither do you type a version number:
+Releasing a new version of a rule takes three steps, and in none of them do you type a version number:
 
-1. **Change the rule and record a change note.** Edit the rule's files, then run `code-rules library change` in the same pull request to say how large the change is, [major, minor, or patch](#semantic-versions), and to summarize it. Once the pull request merges, the change is **pending**: it's on your default branch, but the rule keeps its old version, and projects don't receive the change.
-2. **Publish a library release.** `code-rules library release` turns the pending change notes into new versions. If the rule was at `1.3.0` and its note says `minor`, the library release publishes the rule as `1.4.0`, with your summary.
+1. **Update the rule.** Edit the rule's Markdown file, and its supporting files if it has any, as needed.
+2. **Run `code-rules library change` with the rule's ID**, such as `code-rules library change practices/testing/verify-retry-limits`. The command asks how large the change was, [major, minor, or patch](#semantic-versions), and for a one-line summary of what changed, then saves your answers in a **change note** in the library's `changes/` directory. In a script, pass `--bump` and `--summary` instead of answering. Commit the note in the same pull request as the rule edit. Once the pull request merges, the change is **pending**: it's on your default branch, but the rule keeps its old version, and projects don't receive the change.
+3. **Publish a library release.** `code-rules library release` turns the pending change notes into new versions. If the rule was at `1.3.0` and its note says `minor`, the library release publishes the rule as `1.4.0`, with your summary.
 
 The new version is then available to every project that imports the rule, and each project adopts it when someone runs `code-rules project update`. You can't release one rule on its own, but a [library release](#library-releases) can contain a single changed rule, so you can publish as soon as a change is ready. Before your library's first library release, rules have no versions and need no change notes; the first library release gives every rule `1.0.0`.
 
