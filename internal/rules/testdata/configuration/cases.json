@@ -668,7 +668,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.z: repository git@github.com:fixture/team.git is declared more than once: sources.team imports it too. Import each repository with one source",
+        "message": "sources.z: repository git@github.com:fixture/team.git is declared more than once: sources.team imports it too; import each repository with one source",
         "location": "sources.z"
       }
     }

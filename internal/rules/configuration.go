@@ -111,7 +111,7 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 		return Source{}, err
 	}
 	if other, declared := repositories[address.Identity]; declared {
-		return Source{}, invalid(where, "repository "+repository+" is declared more than once: sources."+other+" imports it too. Import each repository with one source")
+		return Source{}, invalid(where, "repository "+repository+" is declared more than once: sources."+other+" imports it too; import each repository with one source")
 	}
 	repositories[address.Identity] = name
 	result := Source{Name: name, Repository: repository}
