@@ -196,7 +196,7 @@ Run sync first if the imported repository, selection, pins, or `ref` no longer m
 code-rules project check [options]
 ```
 
-Check generated guidance and the managed Code Rules guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs.
+Check generated guidance and the managed Code Rules guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including a source record in `vendor/` that was changed outside `code-rules project sync`, which only sync can check against the library; see [the source record's checksum](/reference/provenance/#inspect-the-original-imported-files).
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 

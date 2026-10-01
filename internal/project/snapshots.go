@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -26,7 +27,10 @@ const sourceRecordFormat = 2
 // sourceRecord is the format 2 record in vendor/<source>/_source.json: the source's configuration when it was
 // recorded, the revision that supplied its library-wide files, each imported rule's version, and file digests.
 type sourceRecord struct {
-	FormatVersion int                   `json:"formatVersion"`
+	FormatVersion int `json:"formatVersion"`
+	// Checksum is the SHA-256 of the record's other fields, so offline checks can tell a record changed outside
+	// sync, such as by hand or in a merge, from one sync wrote.
+	Checksum      string                `json:"checksum,omitempty"`
 	Repository    string                `json:"repository"`
 	Ref           string                `json:"ref,omitempty"`
 	Release       int                   `json:"release,omitempty"`
@@ -47,7 +51,22 @@ type recordRule struct {
 }
 
 // unsupportedRecord explains how to replace a source record this version can't read.
-const unsupportedRecord = "unsupported source record; delete .code-rules/vendor/ and run code-rules project sync to import it again"
+const unsupportedRecord = "unsupported source record; delete .code-rules/vendor/ and run code-rules project sync to import it again, which imports unpinned rules at their newest versions"
+
+// reimport is the next step for a source record sync can't read: importing the source again, as if it were new.
+func reimport(name string) string {
+	return "delete .code-rules/vendor/" + name + "/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions"
+}
+
+// recordChecksum returns the SHA-256 of record's fields other than its checksum, encoded as sync writes them.
+func recordChecksum(record sourceRecord) string {
+	record.Checksum = ""
+	encoded, err := json.Marshal(record)
+	if err != nil {
+		return ""
+	}
+	return digest(encoded)
+}
 
 // encodeSnapshots prepares complete vendor bytes for parsed configuration, without writing files. Each snapshot
 // must satisfy the same checks offline builds apply. Inputs stay unchanged; returned maps and byte slices belong
@@ -88,6 +107,7 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 			record.Files[file] = digest(snapshot.Files[file])
 			output[source.Name+"/"+file] = bytes.Clone(snapshot.Files[file])
 		}
+		record.Checksum = recordChecksum(record)
 		var encoded bytes.Buffer
 		encoder := json.NewEncoder(&encoded)
 		encoder.SetEscapeHTML(false)
@@ -130,6 +150,9 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		record, err := parseSourceRecord(data, source.Name)
 		if err != nil {
 			return nil, err
+		}
+		if record.Unverified {
+			return nil, invalidSnapshot("vendor/"+recordPath, "was changed outside code-rules project sync, such as by hand or in a merge, so its versions and releases can't be trusted offline; run code-rules project sync, which checks them against the library and records them again")
 		}
 		if err := matchSnapshotSource(source, record); err != nil {
 			return nil, err
@@ -180,10 +203,22 @@ type parsedRecord struct {
 	digests map[string]string
 }
 
-// parseSourceRecord validates a format 2 record's exact fields, value syntax, and complete digest inventory.
-// Relationships to configuration are matchSnapshotSource's. An older format, such as 1, fails validation with advice
-// to import the source again; a newer one fails with code unsupported-source-record, asking to upgrade Code Rules.
+// parseSourceRecord validates a format 2 record's exact fields, value syntax, and complete digest inventory, and
+// marks its snapshot Unverified when its checksum, missing or not, doesn't match its fields. Relationships to
+// configuration are matchSnapshotSource's. A record it can't read fails validation with advice to import the source
+// again, and so does an older format, such as 1; a newer one fails with code unsupported-source-record, asking to
+// upgrade Code Rules.
 func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
+	record, err := readSourceRecord(data, name)
+	var invalid *rules.ValidationError
+	if errors.As(err, &invalid) && err == error(invalid) && !strings.Contains(invalid.Problem, "code-rules project sync") {
+		return parsedRecord{}, &rules.ValidationError{Location: invalid.Location, Problem: invalid.Problem + "; " + reimport(name)}
+	}
+	return record, err
+}
+
+// readSourceRecord is parseSourceRecord without the next step its validation errors share.
+func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	where := "vendor/" + name + "/_source.json"
 	var fields map[string]json.RawMessage
 	if !utf8.Valid(data) || json.Unmarshal(data, &fields) != nil || fields == nil {
@@ -197,7 +232,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if format != sourceRecordFormat {
 		return parsedRecord{}, invalidSnapshot(where, unsupportedRecord)
 	}
-	allowed := []string{"formatVersion", "repository", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "files"}
+	allowed := []string{"formatVersion", "checksum", "repository", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "files"}
 	for _, key := range slices.Sorted(maps.Keys(fields)) {
 		if !slices.Contains(allowed, key) || bytes.Equal(bytes.TrimSpace(fields[key]), []byte("null")) {
 			return parsedRecord{}, invalidSnapshot(where+"."+key, "unknown or null source record field")
@@ -214,7 +249,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if decoder.Decode(&record) != nil {
 		return parsedRecord{}, invalidSnapshot(where, "invalid source record field values")
 	}
-	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
+	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}, Unverified: record.Checksum != recordChecksum(record)}, digests: record.Files}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
 	}

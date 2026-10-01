@@ -614,6 +614,7 @@ func TestSync_RefusesARecordedVersionOrReleaseTheLibraryDoesntHave(t *testing.T)
 			}
 			writeFixture(t, root, "vendor/team/_source.json", strings.Replace(recorded, test.from, test.to, 1))
 			root.Close()
+			requireEditedRecord(t, options)
 			before := projectTree(t, options)
 			_, err = Sync(ctx, options, git)
 			var invalid *rules.ValidationError
@@ -658,4 +659,107 @@ func TestBuild_AnEquivalentRefSpellingLeavesTheSourceRecordUnchanged(t *testing.
 		t.Fatalf("sync rewrote _source.json:\n%s\nwas:\n%s", after, recorded)
 	}
 	requireCurrent(t, options)
+}
+
+// requireEditedRecord requires offline build and check to refuse team's source record as changed outside sync,
+// pointing to sync, never to build.
+func requireEditedRecord(t *testing.T, options Options) {
+	t.Helper()
+	t.Setenv("PATH", t.TempDir())
+	_, buildErr := Build(context.Background(), options)
+	_, checkErr := Check(context.Background(), options)
+	for name, err := range map[string]error{"build": buildErr, "check": checkErr} {
+		var invalid *rules.ValidationError
+		if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json" || !strings.Contains(invalid.Problem, "changed outside code-rules project sync") || !strings.Contains(invalid.Problem, "run code-rules project sync") || strings.Contains(invalid.Problem, "project build") {
+			t.Errorf("offline %s: %v", name, err)
+		}
+	}
+}
+
+// TestSync_RecordsAgainARecordWithoutItsChecksum, which offline build and check refuse as changed outside sync,
+// restoring the record byte for byte, since the library confirms what it records.
+func TestSync_RecordsAgainARecordWithoutItsChecksum(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	secondRelease(t, f)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	recorded := string(projectTree(t, options).Files["vendor/team/_source.json"])
+	start := strings.Index(recorded, "  \"checksum\": ")
+	if start < 0 {
+		t.Fatalf("the record has no checksum:\n%s", recorded)
+	}
+	end := start + strings.Index(recorded[start:], "\n") + 1
+	root, err := openProject(ctx, options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, "vendor/team/_source.json", recorded[:start]+recorded[end:])
+	root.Close()
+	requireEditedRecord(t, options)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if after := string(projectTree(t, options).Files["vendor/team/_source.json"]); after != recorded {
+		t.Fatalf("sync wrote:\n%s\nwant:\n%s", after, recorded)
+	}
+	requireCurrent(t, options)
+}
+
+// TestSync_SaysItRaisesARecordedSharedFilesReleaseOlderThanItsRules: a record edited to take the shared files from
+// library release 1, while errors comes from release 2, is repaired, with a warning saying so.
+func TestSync_SaysItRaisesARecordedSharedFilesReleaseOlderThanItsRules(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	secondRelease(t, f)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	recorded := string(projectTree(t, options).Files["vendor/team/_source.json"])
+	root, err := openProject(ctx, options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	one, err := f.Command(ctx, "rev-parse", "release/1^{commit}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, _ := recordedVersions(t, options)
+	from := "\"release\": 2,\n  \"resolvedCommit\": \"" + record.Commit
+	if !strings.Contains(recorded, from) {
+		t.Fatalf("the record lacks %q:\n%s", from, recorded)
+	}
+	writeFixture(t, root, "vendor/team/_source.json", strings.Replace(recorded, from, "\"release\": 1,\n  \"resolvedCommit\": \""+strings.TrimSpace(one), 1))
+	root.Close()
+	changes, err := Sync(ctx, options, git)
+	if err != nil || !slices.ContainsFunc(changes.Warnings, func(w string) bool {
+		return strings.Contains(w, "vendor/team/_source.json recorded library release 1 for the shared files, older than library release 2")
+	}) {
+		t.Fatalf("sync: %+v, %v", changes, err)
+	}
+	if record, _ := recordedVersions(t, options); record.Release != 2 {
+		t.Fatalf("shared files from release %d", record.Release)
+	}
+}
+
+// TestSourceRecord_AnUnreadableRecordSaysHowToImportTheSourceAgain, and what that does to unpinned rules.
+func TestSourceRecord_AnUnreadableRecordSaysHowToImportTheSourceAgain(t *testing.T) {
+	_, options, git := syncProject(t)
+	ctx := context.Background()
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	recorded := string(projectTree(t, options).Files["vendor/team/_source.json"])
+	root, err := openProject(ctx, options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, "vendor/team/_source.json", strings.Replace(recorded, "{\n", "{\n  \"pins\": {},\n", 1))
+	root.Close()
+	_, err = Sync(ctx, options, git)
+	var invalid *rules.ValidationError
+	if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json.pins" || !strings.Contains(invalid.Problem, "delete .code-rules/vendor/team/ and run code-rules project sync") || !strings.Contains(invalid.Problem, "newest versions") {
+		t.Fatalf("got %v", err)
+	}
 }

@@ -229,6 +229,15 @@ func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// The tampering also recomputes the record's checksum, so only the catalog can catch it.
+			var typed sourceRecord
+			if err := json.Unmarshal(encoded, &typed); err != nil {
+				t.Fatal(err)
+			}
+			typed.Checksum = recordChecksum(typed)
+			if encoded, err = json.Marshal(typed); err != nil {
+				t.Fatal(err)
+			}
 			writeFixture(t, root, "vendor/team/_source.json", string(encoded))
 			_, err = Check(context.Background(), options)
 			projectCode(t, err, "invalid-snapshot")

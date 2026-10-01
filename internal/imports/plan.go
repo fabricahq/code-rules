@@ -258,6 +258,17 @@ func (p *planner) planVersions() (sourcePlan, error) {
 		// Only a removed ref that named a revision other than a library release records none.
 		return plan, p.newestSharedFiles(&plan)
 	}
+	// Only a record changed outside sync takes the shared files from a release older than its rules', which sync
+	// repairs, saying so.
+	oldest := recorded.Release
+	for _, rule := range recorded.Rules {
+		if rule.Release > oldest {
+			oldest = rule.Release
+		}
+	}
+	if oldest > recorded.Release {
+		plan.warnings = append(plan.warnings, fmt.Sprintf("vendor/%s/_source.json recorded library release %d for the shared files, older than library release %d that its rules come from, so sync takes them from release %d.", p.source.Name, recorded.Release, oldest, oldest))
+	}
 	raiseSharedFiles(&plan)
 	return plan, nil
 }
@@ -546,11 +557,12 @@ func (p *planner) retiredEntry(field, id string) string {
 // edit or a merge resolution of _source.json can leave it, and a library release tag that now names a different
 // commit than the plan records fails with invalid-release-tag. A source that uses ref keeps the commit its ref named
 // when recorded, even after the tag moves or is gone, so it reads the history only when choosing versions needed it,
-// and then checks only the versions of library releases the history has.
+// or when its record was changed outside sync, and then checks only the versions of library releases the history has.
 func (p *planner) requireUnmoved(plan sourcePlan) error {
 	usesRef := !p.source.Ref.IsZero()
 	versioned := plan.release != 0 || slices.ContainsFunc(slices.Collect(maps.Values(plan.rules)), func(rule library.ImportedRule) bool { return rule.Version != nil })
-	if !versioned || usesRef && p.history == nil {
+	unverified := p.recorded != nil && p.recorded.Unverified
+	if !versioned || usesRef && p.history == nil && !unverified {
 		return nil
 	}
 	history, err := p.releases()

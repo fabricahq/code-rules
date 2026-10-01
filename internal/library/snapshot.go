@@ -40,6 +40,9 @@ type Snapshot struct {
 	// Files maps each library path to its original bytes, excluding _source.json. The snapshot holds one version of
 	// each imported rule, so every file is stored at its library path.
 	Files map[string][]byte `json:"files"`
+	// Unverified reports a recorded snapshot whose record was changed outside sync, such as by hand or in a merge,
+	// so sync must confirm what it records against the library before trusting it.
+	Unverified bool `json:"-"`
 }
 
 // ImportedRule records one imported rule's version and the library release that published it.
