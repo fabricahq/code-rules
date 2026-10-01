@@ -164,7 +164,7 @@ It shows the release notes that will be published: this is your first library re
 code-rules library release
 ```
 
-The command tags your commit `release/1`, recording `practices/error-handling/make-errors-actionable` at version `1.0.0`, and pushes the tag. On GitHub.com, it also creates a GitHub Release page that announces the library release, using the [GitHub CLI](https://cli.github.com/). If your library isn't on GitHub.com, it creates the tag only. No files change.
+The command tags your commit `release/1`, recording `practices/error-handling/make-errors-actionable` at version `1.0.0`, and pushes the tag. On GitHub.com, it also creates a GitHub Release page that announces the library release, using the [GitHub CLI](https://cli.github.com/), which must be installed and signed in; to publish the tag without the page, pass `--no-github-release`. If your library isn't on GitHub.com, it creates the tag only. No files change.
 
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
 

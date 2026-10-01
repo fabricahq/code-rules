@@ -67,6 +67,7 @@ func RenderRule(id string, metadata RuleMetadata, body *string) ([]byte, error) 
 		content = *body
 	} else {
 		_, content, _ = strings.Cut(ruleTemplate[4:], "\n---\n")
+		content = strings.TrimLeft(content, "\n")
 		content = strings.Replace(content, "## <Short action-oriented title>", "## "+strings.NewReplacer("\r", " ", "\n", " ").Replace(metadata.Title), 1)
 	}
 	text := "---\n" + string(header) + "---\n\n" + content

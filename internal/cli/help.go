@@ -82,7 +82,7 @@ func writeCommandGroup(out *strings.Builder, cmd *cobra.Command, title, id strin
 func commandsInHelpOrder(cmd *cobra.Command) []*cobra.Command {
 	order := map[string][]string{
 		"code-rules": {"project", "library"},
-		"project":    {"init", "add", "sync", "build", "check"},
+		"project":    {"init", "add", "sync", "update", "build", "check"},
 		"library":    {"init", "add", "check"},
 		"add":        {"rule", "group", "library"},
 	}[cmd.Name()]

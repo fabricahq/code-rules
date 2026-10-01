@@ -19,14 +19,10 @@ type SourceInput struct {
 	Rules      []string
 }
 
-// ParseSourceRef returns the tag or full commit SHA without surrounding whitespace.
+// ParseSourceRef returns the tag or full commit SHA, without surrounding whitespace, as a validated ref.
 // Branch names, abbreviated commits, and version ranges are rejected.
-func ParseSourceRef(input string) (string, error) {
-	value := strings.TrimSpace(input)
-	if _, err := rules.ParseGitRef(value, "--ref"); err != nil {
-		return "", err
-	}
-	return value, nil
+func ParseSourceRef(input string) (rules.GitRef, error) {
+	return rules.ParseGitRef(strings.TrimSpace(input), "--ref")
 }
 
 // ParseSourceGroups validates explicit paths or one wildcard without interpreting comma-separated prompt text.

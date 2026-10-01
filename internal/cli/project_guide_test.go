@@ -62,24 +62,27 @@ func TestInitCreatesAgentGuide(t *testing.T) {
 // TestProjectGuideExamples executes every shell example from the generated README against the real CLI and an isolated Git publisher.
 func TestProjectGuideExamples(t *testing.T) {
 	binary := buildCLI(t)
-	fixture, err := gitfixture.New(context.Background(), map[string][]byte{
-		"rule-library.yaml":    []byte(`{"formatVersion":1}`),
-		"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Shared Go guidance.","whenToRead":"When writing Go."}`),
-		"techs/go/shared.md":   []byte("---\ntitle: Preserve errors\nimpact: HIGH\nimpactDescription: Keep failures visible.\nwhenToRead: When calling fallible functions.\n---\nReturn errors to the caller.\n"),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := fixture.Close(); err != nil {
-			t.Error(err)
-		}
-	})
-	if err := fixture.Release(context.Background(), 1, "release: 1\nrules:\n  techs/go/shared: 1.0.0\nchanges:\n  techs/go/shared: {change: new, summary: Add the rule.}\n"); err != nil {
-		t.Fatal(err)
-	}
+	rule := "---\ntitle: Preserve errors\nimpact: HIGH\nimpactDescription: Keep failures visible.\nwhenToRead: When calling fallible functions.\n---\nReturn errors to the caller.\n"
 	for _, projectName := range []string{"project", "project 'quoted'"} {
 		t.Run(projectName, func(t *testing.T) {
+			ctx := context.Background()
+			fixture, err := gitfixture.New(ctx, map[string][]byte{
+				"rule-library.yaml":    []byte(`{"formatVersion":1}`),
+				"techs/go/_group.yaml": []byte(`{"name":"Go","description":"Shared Go guidance.","whenToRead":"When writing Go."}`),
+				"techs/go/shared.md":   []byte(rule),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := fixture.Close(); err != nil {
+					t.Error(err)
+				}
+			})
+			if err := fixture.Release(ctx, 1, "formatVersion: 1\nrelease: 1\nrules:\n  techs/go/shared: 1.0.0\nchanges:\n  techs/go/shared: {change: new, summaries: [Add the rule.]}\n"); err != nil {
+				t.Fatal(err)
+			}
+			updated := false
 			directory := filepath.Join(t.TempDir(), projectName)
 			if err := os.Mkdir(directory, 0700); err != nil {
 				t.Fatal(err)
@@ -103,6 +106,16 @@ func TestProjectGuideExamples(t *testing.T) {
 			for index, block := range blocks {
 				script := strings.ReplaceAll(string(block[1]), "code-rules ", gitfixture.Quote(binary)+" ")
 				script = strings.ReplaceAll(script, "https://github.com/example/engineering-rules", fixture.Repository)
+				// The library publishes a newer version before the update example, so the example has something to apply.
+				if strings.Contains(script, "project update") && !updated {
+					if _, err := fixture.Commit(ctx, fixture.Worktree(), "Clarify shared", map[string][]byte{"techs/go/shared.md": []byte(rule + "\nWrap them with context.\n")}); err != nil {
+						t.Fatal(err)
+					}
+					if err := fixture.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/shared: 1.1.0\nchanges:\n  techs/go/shared: {change: minor, from: 1.0.0, summaries: [Add wrapping.]}\n"); err != nil {
+						t.Fatal(err)
+					}
+					updated = true
+				}
 				command := exec.Command("/bin/sh", "-eu", "-c", script)
 				command.Dir = directory
 				command.Env = fixture.Environment
@@ -124,6 +137,9 @@ func TestProjectGuideExamples(t *testing.T) {
 				if _, err := os.Stat(filepath.Join(directory, ".code-rules", path)); err != nil {
 					t.Fatalf("README did not produce %s: %v", path, err)
 				}
+			}
+			if shared, err := os.ReadFile(filepath.Join(directory, ".code-rules", "vendor/team/techs/go/shared.md")); err != nil || !updated || !strings.Contains(string(shared), "Wrap them with context.") {
+				t.Fatalf("the update example didn't apply the newer version: %v", err)
 			}
 		})
 	}
@@ -192,7 +208,7 @@ func TestCheckVerifiesGuideAndGeneratedOutput(t *testing.T) {
 						for _, problem := range result.Value.Problems {
 							kinds[problem.Kind] = true
 						}
-						if kinds["outdated_readme"] != (guideState != "current") || kinds["stale_contents"] != stale {
+						if kinds["outdated-readme"] != (guideState != "current") || kinds["stale-contents"] != stale {
 							t.Fatal(out)
 						}
 					} else {

@@ -384,7 +384,7 @@ func (r *reader) rulePaths(directory, metadata string, terms []string, only map[
 		}
 		if entry.IsDir() {
 			if entry.Name() == "assets" {
-				if err := r.ownedAssets(path, terms, only); err != nil {
+				if err := r.ownedAssets(path, only); err != nil {
 					return err
 				}
 				continue

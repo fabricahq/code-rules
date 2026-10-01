@@ -4,9 +4,13 @@ package library
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"reflect"
 	"strconv"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -63,7 +67,9 @@ type GitHubReleasePage struct {
 // It fetches first, and refuses unless the checked-out branch is the remote's default branch, matches the
 // remote exactly, and has no uncommitted library changes, and library check passes. When a release tag
 // already tags the commit, it creates only what's missing, such as the GitHub Release page after gh failed.
-// A dry run fetches, checks, and describes the library release without creating anything.
+// A dry run fetches, checks, and describes the library release without creating anything. When the tag is
+// published but the GitHub Release page fails, it returns the result so far, without GitHubRelease, with the error;
+// every other failure returns a zero result.
 func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error) {
 	root, err := openLibrary(ctx, request.Options, false)
 	if err != nil {
@@ -95,13 +101,17 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	if result.Commit, err = git.headCommit(ctx); err != nil {
 		return ReleaseResult{}, err
 	}
-	unpushed, err := git.syncReleaseTags(ctx, branch, remote, result.Commit)
+	unpushedTag, err := git.syncReleaseTags(ctx, branch, remote, result.Commit)
 	if err != nil {
 		return ReleaseResult{}, err
 	}
+	unpushed := unpushedTag.Number
 	if err = git.requireCurrent(ctx, branch, remote.head, result.Commit); err != nil {
 		return ReleaseResult{}, err
 	}
+	// A release tag only this clone has is checked against the library release this commit would publish after
+	// the latest one the remote published, instead of serving as the baseline itself.
+	git = git.withoutUnpublished(unpushed)
 	checked, err := checkLibrary(ctx, root, git)
 	if err != nil {
 		return ReleaseResult{}, err
@@ -111,10 +121,11 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		return ReleaseResult{}, err
 	}
 	// gh is nil unless a GitHub Release page applies. It and the tagger are checked only when there's
-	// something to publish, but before anything is created.
+	// something to publish, but before anything is created; a dry run checks gh too, so it refuses as the real run
+	// would.
 	var gh *gitHubCLI
 	requireGitHubCLI := func() error {
-		if request.DryRun || result.GitHubRepository == "" || request.NoGitHubRelease {
+		if result.GitHubRepository == "" || request.NoGitHubRelease {
 			return nil
 		}
 		cli, err := findGitHubCLI(ctx, request.Git.Environment, root.Name())
@@ -124,42 +135,49 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	var object string
 	// created is set when this run creates the tag, so a failed push deletes only a tag this run made.
 	var created bool
-	if latest := checked.changes.history.latest; latest != nil && latest.commit == result.Commit {
+	switch latest := checked.changes.history.latest; {
+	case unpushed == 0 && latest != nil && latest.commit == result.Commit:
+		// The remote already has this commit's library release; finish only what's missing.
 		describe(&result, latest.record, latest.notes)
-		result.Published = unpushed != latest.number
+		result.Published = true
 		object = latest.object
 		if err = requireGitHubCLI(); err != nil {
 			return ReleaseResult{}, err
 		}
-	} else {
-		if checked.plan.release != remote.latest()+1 {
-			return ReleaseResult{}, failure("release-tag-mismatch", branch.remote+"'s newest library release is release/"+strconv.Itoa(remote.latest())+", but "+branch.branch+"'s history reaches only release/"+strconv.Itoa(checked.plan.release-1)+". Release tags belong on the default branch; don't create them by hand.", nil)
-		}
-		libraryFiles, err := git.changedLibraryFiles(ctx, result.Commit, latest, rules.LicensePaths(checked.input.license))
+	case checked.plan.release != remote.latest()+1:
+		return ReleaseResult{}, failure("release-tag-mismatch", branch.remote+"'s newest library release is release/"+strconv.Itoa(remote.latest())+", but "+branch.branch+"'s history reaches only release/"+strconv.Itoa(checked.plan.release-1)+". Release tags belong on the default branch; don't create them by hand.", nil)
+	default:
+		planned, err := planRelease(ctx, git, checked, result.Commit)
 		if err != nil {
 			return ReleaseResult{}, err
 		}
-		if checked.plan.empty() && len(libraryFiles) == 0 {
+		if unpushed != 0 {
+			// An interrupted run left its tag on this commit; push it only if it publishes what this run would.
+			if err = git.requireUnpublishedTag(ctx, unpushedTag, planned); err != nil {
+				return ReleaseResult{}, err
+			}
+			describe(&result, planned.record, planned.notes)
+			object = unpushedTag.Object
+			if err = requireGitHubCLI(); err != nil {
+				return ReleaseResult{}, err
+			}
+			break
+		}
+		if planned.empty {
 			return result, nil
 		}
-		record := checked.plan.record(libraryFiles)
-		notes := renderReleaseNotes(record)
-		message, err := releaseMessage(notes, record)
-		if err != nil {
-			return ReleaseResult{}, err
-		}
-		describe(&result, record, notes)
+		describe(&result, planned.record, planned.notes)
 		// tagger stays empty on a dry run, which slightly underestimates the tag's size.
 		var tagger string
 		if !request.DryRun {
 			if tagger, err = git.requireCommitterIdentity(ctx); err != nil {
 				return ReleaseResult{}, err
 			}
-			if err = requireGitHubCLI(); err != nil {
-				return ReleaseResult{}, err
-			}
 		}
-		if err = requireTagSize(result.Tag, tagObjectSize(result.Tag, result.Commit, tagger, message)); err != nil {
+		if err = requireGitHubCLI(); err != nil {
+			return ReleaseResult{}, err
+		}
+		if err = requireTagSize(result.Tag, tagObjectSize(result.Tag, result.Commit, tagger, planned.message)); err != nil {
 			return ReleaseResult{}, err
 		}
 		if request.DryRun {
@@ -171,10 +189,10 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		if err = filetxn.RequireIdle(root); err != nil {
 			return ReleaseResult{}, err
 		}
-		if object, err = git.createTag(ctx, result.Tag, result.Commit, message); err != nil {
+		if object, err = git.createTag(ctx, result.Tag, result.Commit, planned.message); err != nil {
 			return ReleaseResult{}, err
 		}
-		unpushed, created = record.Release, true
+		unpushed, created = planned.record.Release, true
 	}
 	if request.DryRun {
 		return result, nil
@@ -188,11 +206,60 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	if gh != nil {
 		page, err := publishReleasePage(ctx, *gh, result.GitHubRepository, result.Tag, result.Notes)
 		if err != nil {
-			return ReleaseResult{}, err
+			// The tag is published, so the result says so beside the error.
+			return result, err
 		}
 		result.GitHubRelease = &page
 	}
 	return result, nil
+}
+
+// plannedRelease is the library release a commit publishes after the latest library release in its history.
+type plannedRelease struct {
+	record  rules.ReleaseRecord
+	notes   string
+	message []byte
+	// empty reports that the commit changes no rules and no library-wide files, so there's nothing to publish.
+	empty bool
+}
+
+// planRelease computes the record, notes, and tag message of the library release that head, which checked
+// validated, publishes after the latest library release in checked's history.
+func planRelease(ctx context.Context, git *libraryGit, checked checkedLibrary, head string) (plannedRelease, error) {
+	libraryFiles, err := git.changedLibraryFiles(ctx, head, checked.changes.history.latest, rules.LicensePaths(checked.input.license))
+	if err != nil {
+		return plannedRelease{}, err
+	}
+	planned := plannedRelease{record: checked.plan.record(libraryFiles), empty: checked.plan.empty() && len(libraryFiles) == 0}
+	planned.notes = renderReleaseNotes(planned.record)
+	if planned.message, err = releaseMessage(planned.notes, planned.record); err != nil {
+		return plannedRelease{}, err
+	}
+	return planned, nil
+}
+
+// requireUnpublishedTag refuses to publish tag, a release tag only this clone has, unless its release notes and
+// record are exactly those of planned, the library release its commit would publish now.
+func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.Tag, planned plannedRelease) error {
+	name := tag.Name()
+	// The whole object counts, including a signature the record's parser ignores, because projects read the object.
+	if err := requireTagSize(name, tag.Size); err != nil {
+		return fmt.Errorf("%w This clone's %s is that large; delete it with git tag --delete %s", err, name, name)
+	}
+	body, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "tag", tag.Object}, releasetag.MaxBytes+64*1024)
+	if err != nil {
+		return fmt.Errorf("read tag=%q: %w", name, err)
+	}
+	notes, record, err := rules.ParseReleaseTagObject(name, body)
+	// A newer Code Rules may have created the tag and stopped before pushing it; this version can't compare it.
+	var unsupported *rules.UnsupportedReleaseRecordError
+	if errors.As(err, &unsupported) {
+		return unsupportedRecord(name, unsupported.FormatVersion)
+	}
+	if err == nil && !planned.empty && notes == planned.notes && reflect.DeepEqual(record, planned.record) {
+		return nil
+	}
+	return failure("release-tag-mismatch", name+" exists only in this clone, and it isn't the library release this commit publishes: its release notes or record differ from what code-rules library release computes from the change notes since the remote's latest library release. Only code-rules library release creates release tags; delete this one with git tag --delete "+name+", then run code-rules library release again.", nil)
 }
 
 // describe fills in what a library release publishes.

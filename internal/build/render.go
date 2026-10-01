@@ -5,9 +5,7 @@ package build
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"path"
-	"path/filepath"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -82,7 +80,7 @@ func renderRule(active resolvedRule, paths []string, outputPath string) (string,
 	}
 	lines = append(lines, "**When to read:** "+escapeText(r.WhenToRead), "", "**Impact:** "+escapeText(string(r.Impact)), "", "**Why it matters:** "+escapeText(r.ImpactDescription), "", sectionHeading+" Guidance", "", body, "", sectionHeading+" Source and attribution", "", "**Rule source:** [Original rule]("+source+")")
 	if outputPath != rulePath(r) {
-		lines = append(lines, "", "**Separate rule file:** ["+escapeText(r.Title)+"]("+relativeURL(outputPath, rulePath(r))+")")
+		lines = append(lines, "", "**Separate rule file:** ["+escapeText(r.Title)+"]("+rules.RelativeLink(outputPath, rulePath(r))+")")
 	}
 	for _, attribution := range r.Attribution {
 		lines = append(lines, "", "**Attribution:** ["+escapeText(attribution.Description)+"](<"+strings.NewReplacer("<", "%3C", ">", "%3E").Replace(attribution.URL)+">)")
@@ -92,7 +90,7 @@ func renderRule(active resolvedRule, paths []string, outputPath string) (string,
 			lines = append(lines, "", "**Declared license:** "+escapeText(*license.SPDXExpression))
 		}
 		for _, mapping := range licenseMappings(active.Origin.Source, license) {
-			lines = append(lines, "", "- ["+escapeText(path.Base(mapping.Generated))+"]("+relativeURL(outputPath, mapping.Generated)+")")
+			lines = append(lines, "", "- ["+escapeText(path.Base(mapping.Generated))+"]("+rules.RelativeLink(outputPath, mapping.Generated)+")")
 		}
 	}
 	fence := "```"
@@ -117,28 +115,13 @@ func escapeText(value string) string {
 	return result.String()
 }
 
-// encodedPath escapes URL segments without turning directory separators into data.
-func encodedPath(file string) string {
-	parts := strings.Split(file, "/")
-	for i, part := range parts {
-		parts[i] = url.PathEscape(part)
-	}
-	return strings.Join(parts, "/")
-}
-
-// relativeURL derives a portable Markdown link between generated-root-relative paths.
-func relativeURL(from, to string) string {
-	relative, _ := filepath.Rel(filepath.FromSlash(path.Dir(from)), filepath.FromSlash(to))
-	return encodedPath(filepath.ToSlash(relative))
-}
-
 // workspaceLink links from generated output back to retained local or vendor input.
 func workspaceLink(outputPath, source, file string) string {
 	root := "vendor/" + source
 	if source == "local" {
 		root = "local"
 	}
-	return relativeURL("generated/"+outputPath, root+"/"+file)
+	return rules.RelativeLink("generated/"+outputPath, root+"/"+file)
 }
 
 // sourceLink prefers a recognized repository's immutable commit URL and falls back to retained source.
@@ -160,7 +143,7 @@ func sourceLink(origin ruleOrigin, outputPath string) (string, error) {
 func relocatedURL(destination string, active resolvedRule, paths []string, outputPath string) (string, error) {
 	if strings.HasPrefix(destination, "#") {
 		if outputPath != rulePath(active.Rule) {
-			return relativeURL(outputPath, rulePath(active.Rule)) + destination, nil
+			return rules.RelativeLink(outputPath, rulePath(active.Rule)) + destination, nil
 		}
 		return destination, nil
 	}
@@ -177,7 +160,7 @@ func relocatedURL(destination string, active resolvedRule, paths []string, outpu
 	if license := active.License; license != nil {
 		for _, mapping := range licenseMappings(active.Origin.Source, license) {
 			if mapping.Source == target {
-				return relativeURL(outputPath, mapping.Generated) + suffix, nil
+				return rules.RelativeLink(outputPath, mapping.Generated) + suffix, nil
 			}
 		}
 	}

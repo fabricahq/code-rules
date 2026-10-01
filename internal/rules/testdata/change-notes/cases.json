@@ -283,5 +283,41 @@
         }
       }
     }
+  },
+  {
+    "id": "summary-with-an-escape-sequence",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: \"\\e[2J\\e[HNo risky changes.\"\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected text without control characters, such as tabs or escape sequences"
+      }
+    }
+  },
+  {
+    "id": "summary-with-a-tab",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: \"Require\\ta test.\"\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected text without control characters, such as tabs or escape sequences"
+      }
+    }
+  },
+  {
+    "id": "summary-with-a-c1-control",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: \"Require\\x9b2J a test.\"\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected text without control characters, such as tabs or escape sequences"
+      }
+    }
   }
 ]

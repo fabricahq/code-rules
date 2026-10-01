@@ -109,12 +109,27 @@ pins:
     reason: Waiting on the author's response to our question.
 ```
 
-Then run `code-rules project sync`. A pin can also move a rule to another published version, up or down.
+Then run `code-rules project sync`. A pin can also move a rule to another published version, up or down. During an update, `--keep` writes the same pin for you.
+
+#### Update rules
+
+`code-rules project sync` never moves a rule to a newer version. Adopt newer rule versions, new rules, and retirements only when the person you work for asks, never as part of another task. Preview the update first, then apply it:
+
+```sh
+code-rules project update
+code-rules project update --yes
+code-rules project check
+```
+
+The preview lists each library's changes with the summary of every version in between: `major`, `minor`, and `patch` changes, `new` rules, `retired` rules, `replaced` rules (library rules the project replaced with a local rule), and `pinned` rules that a pin keeps where they are. Major changes, new rules, and retirements can change what the code must do: show them to the person who asked, and don't apply a major change without their consent. Without a terminal, `code-rules project update` only previews and exits 0; `--yes` applies exactly the previewed versions. Add `--json` for the preview's rows in `value.sources`.
+
+To keep a rule at its current version, add `--keep team:<rule-id> --reason '<why>'`, which writes a pin. To decline a new rule, add `--exclude team:<rule-id> --reason '<why>'`, which writes an exclusion. Name `team` to update only that library, or `team:<rule-id>` to move only that rule. The update writes pins and exclusions to `.code-rules/config.yaml` together with `vendor/` and `generated/`; review all three before committing.
 
 #### Maintain and verify the project
 
 - After editing local rules, run `code-rules project build`, then `code-rules project check`. In Git repositories, both work from any subdirectory.
 - After changing a library's repository, selected groups or rules, pins, or ref, run `code-rules project sync`, then `code-rules project check`. Sync imports the recorded versions of the other rules and chooses versions only for what changed; inspect the changes in `vendor/` before committing them.
+- To adopt newer rule versions, run `code-rules project update` as described above; sync and check never do.
 - Review configuration, local rules, vendor snapshots, and generated output together. Keep project-specific notes in a separate file.
 - Use `code-rules library --help` when authoring a separately published library. Project-local authoring and publisher authoring use different command trees.
 

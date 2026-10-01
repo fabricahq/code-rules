@@ -28,16 +28,22 @@ type Options struct {
 	GroupInlineMaxBytes *int
 }
 
-// FileChanges lists sorted changed paths. Build uses generated-relative paths; Sync prefixes managed tree names.
+// FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
+// names, list local/<group>/_group.yaml when they add a local group's metadata, and update also lists config.yaml
+// when it writes pins or exclusions.
 // Empty lists mean matching tree output; Guide reports a separate managed-guide update.
 type FileChanges struct {
 	Added   []string     `json:"added"`
 	Changed []string     `json:"changed"`
 	Removed []string     `json:"removed"`
 	Guide   *GuideChange `json:"guide,omitempty"`
-	// Warnings explain configuration sync tolerated, in source order: entries naming retired rules, and sources
-	// importing a ref that isn't a library release. Build reports none.
-	Warnings []string `json:"warnings,omitempty"`
+	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
+	// sources importing a ref that isn't a library release. Then, in group order, each local group metadata file
+	// they wrote. Build reports none.
+	Warnings []string `json:"warnings"`
+	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
+	// that command's files, which the lists above don't include.
+	Recovered bool `json:"recovered"`
 }
 
 // GuideChange reports a managed-guide update separately from generated-relative file paths.
@@ -58,7 +64,9 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	}
 	defer root.Close()
 	var changes FileChanges
+	recovered := false
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		recovered = w.Recovered()
 		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
@@ -84,6 +92,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err != nil {
 		return FileChanges{}, err
 	}
+	changes.Recovered = recovered
 	return changes, nil
 }
 
@@ -244,10 +253,15 @@ func requireUnchanged(ctx context.Context, root *os.Root, before projectState) e
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(before.configBytes, after.configBytes) || before.local.Digest() != after.local.Digest() || before.vendor.Digest() != after.vendor.Digest() || before.generated.Digest() != after.generated.Digest() {
+	if !sameProject(before, after) {
 		return failure("concurrent-change", "project inputs or managed output changed during the operation; retry after edits finish", nil)
 	}
 	return nil
+}
+
+// sameProject reports whether two reads hold the same configuration bytes and local, vendor, and generated trees.
+func sameProject(a, b projectState) bool {
+	return bytes.Equal(a.configBytes, b.configBytes) && a.local.Digest() == b.local.Digest() && a.vendor.Digest() == b.vendor.Digest() && a.generated.Digest() == b.generated.Digest()
 }
 
 // treeFiles projects original bytes while treating an absent directory as an empty inventory.
@@ -260,7 +274,7 @@ func treeFiles(tree *filetxn.Tree) map[string][]byte {
 
 // compareFiles produces deterministic byte-level changes without treating timestamp changes as output changes.
 func compareFiles(before, after map[string][]byte) FileChanges {
-	changes := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}}
+	changes := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: []string{}}
 	for _, name := range slices.Sorted(maps.Keys(after)) {
 		data, ok := before[name]
 		if !ok {

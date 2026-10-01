@@ -15,14 +15,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          version=CODE_RULES_VERSION
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          archive="code-rules_${version}_linux_amd64.tar.gz"
           dir="$RUNNER_TEMP/code-rules"
           mkdir -p "$dir" && cd "$dir"
-          gh release download CODE_RULES_TAG --repo fabricahq/code-rules \
-            --pattern SHA256SUMS --pattern 'code-rules_*_linux_amd64.tar.gz'
+          gh release download "v$version" --repo fabricahq/code-rules \
+            --pattern SHA256SUMS --pattern "$archive"
           gh attestation verify SHA256SUMS --repo fabricahq/code-rules \
             --signer-workflow fabricahq/code-rules/.github/workflows/release-planner.yml \
             --source-ref refs/heads/main
-          sha256sum --check --ignore-missing SHA256SUMS
-          tar -xzf code-rules_*_linux_amd64.tar.gz code-rules
+          checksum=$(sha256sum "$archive")
+          grep -qxF "$checksum" SHA256SUMS
+          tar -xzf "$archive" code-rules
+          installed="Installed Code Rules $("$dir/code-rules" --version)."
+          echo "$installed" && echo "$installed" >> "$GITHUB_STEP_SUMMARY"
           echo "$dir" >> "$GITHUB_PATH"
       - run: code-rules library check

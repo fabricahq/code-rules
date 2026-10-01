@@ -85,6 +85,7 @@ func RunWithEnvironment(ctx context.Context, binary, directory string, environme
 	readErr := capture(ctx, master, command, exited, steps, &transcript, &sent, &offset)
 	if readErr != nil {
 		cancel()
+		drain(master, exited)
 	}
 	<-exited
 	result := Result{Stdout: stdout.String(), Transcript: transcript.String(), AnswersSent: sent}
@@ -186,6 +187,28 @@ func capture(ctx context.Context, master *os.File, command *exec.Cmd, exited <-c
 		}
 		if err != nil {
 			return err
+		}
+	}
+}
+
+// drain discards terminal output until the process exits. On macOS a process can't finish exiting while its
+// terminal output waits for a reader, so a stopped capture must keep reading or the process never ends.
+func drain(master *os.File, exited <-chan struct{}) {
+	fd := int(master.Fd())
+	buffer := make([]byte, 4096)
+	for {
+		select {
+		case <-exited:
+			return
+		default:
+		}
+		ready := []unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN}}
+		if n, err := unix.Poll(ready, 100); err != nil && err != unix.EINTR || n > 0 && ready[0].Revents&(unix.POLLIN|unix.POLLHUP|unix.POLLERR) != 0 {
+			if _, err := unix.Read(fd, buffer); err != nil && err != unix.EAGAIN && err != unix.EINTR {
+				// The terminal is gone, so nothing can block the exit any longer.
+				<-exited
+				return
+			}
 		}
 	}
 }

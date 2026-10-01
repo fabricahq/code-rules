@@ -26,11 +26,14 @@ func TestNativeLifecycle(t *testing.T) {
 	if err := os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
-	for _, scenario := range []string{"lifecycle", "versions", "changed-vendor", "failed-sync"} {
+	for _, scenario := range []string{"lifecycle", "stale-output", "versions", "changed-vendor", "failed-sync"} {
 		t.Run(scenario, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 			defer cancel()
+			started := time.Now()
 			report, err := Run(ctx, wrapper, scenario)
+			// The duration shows how close a scenario came to its deadline under the machine's load.
+			t.Logf("scenario %s took %s in %d steps", scenario, time.Since(started).Round(time.Millisecond), len(report.Steps))
 			if err != nil {
 				t.Fatalf("%v\n%+v", err, report.Steps)
 			}
@@ -56,7 +59,7 @@ func TestPilotRejectsWritingChecks(t *testing.T) {
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 			defer cancel()
-			report, err := Run(ctx, wrapper, "lifecycle")
+			report, err := Run(ctx, wrapper, "stale-output")
 			if err == nil || !strings.Contains(err.Error(), "read-only check changed project") {
 				t.Fatal("mutation not detected", err)
 			}

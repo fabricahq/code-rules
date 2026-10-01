@@ -58,7 +58,7 @@ Before adapting material from a book, article, or another library, establish the
 
 ## What imports preserve
 
-Imports copies license and declared notice files from the same resolved commit as the rules.
+Imports copy license and declared notice files, like other library-wide files, from the library release that supplies the source's library-wide files, which `code-rules project update` moves to the newest library release, or from the revision a source's `ref` names. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
 The offline builder accepts preassembled snapshots and checks that declared files are present.
 It returns unchanged license and notice copies at generated paths, but does not fetch source files or write them to disk.
 The consuming workspace retains them alongside the imported rules:
@@ -95,8 +95,6 @@ The repository and commit in this example are illustrative.
 
 **Rule source:** [Original rule](https://github.com/example/rules/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/practices/testing/verify-retry-limits.md)
 
-Library license and notices:
-
 **Declared license:** MIT
 
 - [LICENSE.md](../../../../libraries/fabrica/licenses/LICENSE.md)
@@ -129,6 +127,6 @@ Private libraries can document internal permissions without adopting a public li
 The builder validates declared paths, preserves text and notices, records provenance, and constructs links to the retained files.
 It rejects unsafe or unresolved local Markdown references, but does not check whether external URLs are reachable.
 It cannot establish ownership, decide legal compatibility, or certify that the chosen terms permit a consumer's intended use.
-Imports preserves original files. Sync applies changes safely, reports changed files, and persists digests for offline integrity checks.
+Imports preserve original files. Sync applies changes safely, reports changed files, and persists digests for offline integrity checks.
 
 For source material that does not use this format, follow [Adapt third-party rules](/guides/write-rules/#adapt-third-party-rules). Keep a separate adapted definition with its source citation and retained terms; do not relabel edited content as an unchanged upstream snapshot.
