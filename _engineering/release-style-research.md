@@ -1,6 +1,6 @@
 # Release style and workflow research
 
-Research date: 2026-09-18. Recommendations below are design guidance, not a claim that publication is enabled.
+Research date: 2026-09-18. Recommendations below are design guidance recorded before adopting Release Planner; [Releases](releasing.md) describes the current process.
 
 ## Runbooks release style
 
@@ -27,7 +27,7 @@ Examples:
 - [beta-v0.6.0](https://github.com/gruntwork-io/runbooks/releases/tag/beta-v0.6.0): a major feature walkthrough uses commands, code, and screenshots; smaller improvements and fixes use bullets.
 - [beta-v0.5.0](https://github.com/gruntwork-io/runbooks/releases/tag/beta-v0.5.0): features explain the problem they solve, then list capabilities and links. Separate improvements, bugs, and breaking changes follow.
 
-Copy the editorial pattern, but avoid incidental errors in the examples. The `beta-v0.8.0` comparison link ends at a different tag; some older notes repeat the generated changelog. Generate one final comparison link from the actual released tags. Use `v0.1.0` for this project's first tag, not Runbooks' `beta-v` prefix.
+Copy the editorial pattern, but avoid incidental errors in the examples. The `beta-v0.8.0` comparison link ends at a different tag; some older notes repeat the generated changelog. Generate one final comparison link from the actual released tags. Tag this project's releases `v<version>`, not with Runbooks' `beta-v` prefix.
 
 ## Human editing and publication
 
