@@ -46,8 +46,12 @@ type ForkPlan struct {
 	// configBytes is the configuration planning read; Commit refuses to write when it changed.
 	configBytes []byte
 	// replaces is the configured source whose imported rule the fork replaces, or empty when no source imports it.
+	// pin is that source's pin of the rule, which Commit removes, or nil when it has none.
 	replaces string
-	release  int
+	pin      *rules.Pin
+	// version is the forked version, which the exclusion records as basedOn.
+	version rules.RuleVersion
+	release int
 	// files holds the fork's files by path relative to local/, and groupMetadata the library's metadata for the
 	// rule's group, which Commit copies when the project has no local metadata for it.
 	files         map[string][]byte
@@ -60,7 +64,7 @@ type ForkPlan struct {
 // source already excludes it, since existing local rules and exclusions are never replaced, or when the source
 // selects the rule but the project hasn't synced the source's current configuration.
 func PlanFork(ctx context.Context, id string, from ForkSource, options Options, git imports.Options) (*ForkPlan, error) {
-	plan := &ForkPlan{id: id}
+	plan := &ForkPlan{id: id, version: from.Version}
 	var library rules.Source
 	options, err := planProjectAuthoring(ctx, options, func(root *os.Root, _ rules.Configuration) error {
 		original, config, err := configuration(ctx, root)
@@ -84,6 +88,9 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 				return &rules.ValidationError{Location: "sources." + replaces.Name + ".exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
 			}
 			plan.replaces = replaces.Name
+			if pin, pinned := replaces.Pins[id]; pinned {
+				plan.pin = &pin
+			}
 		}
 		return nil
 	})
@@ -99,11 +106,11 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 	if err != nil {
 		return nil, err
 	}
-	if plan.files, err = forkFiles(id, published, attribution); err != nil {
+	if plan.files, err = forkFiles(id, id+".md", published, attribution); err != nil {
 		return nil, fmt.Errorf("fork %s@%s: %w", id, from.Version, err)
 	}
 	if published.GroupMetadata != nil {
-		if _, err := rules.ParseGroupMetadataYAML(published.GroupMetadata, fmt.Sprintf("library release release/%d: %s/_group.yaml", published.Release, plan.group)); err != nil {
+		if _, err := rules.ParseGroupMetadataYAML(published.GroupMetadata, fmt.Sprintf("release/%d: %s/_group.yaml", published.Release, plan.group)); err != nil {
 			return nil, err
 		}
 	}
@@ -120,7 +127,9 @@ func (p *ForkPlan) Release() int { return p.release }
 
 // Commit writes the fork under writer ownership, creating the local group from the library's group metadata when
 // the project has no local metadata for it. When the fork replaces an imported rule, the same edit adds the
-// source's exclusion with reason and the fork as replacedBy. It writes nothing when reason is blank for a
+// source's exclusion with reason, the fork as replacedBy, and the forked version as basedOn, so updates list the
+// library's later changes, and removes the source's pin of the rule, with a
+// warning, since the fork, not a pinned import, now decides what agents read. It writes nothing when reason is blank for a
 // replacement or given without one, when the configuration changed after planning, or when any file exists.
 func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, error) {
 	if p == nil || p.id == "" {
@@ -133,7 +142,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 	case p.replaces == "" && reason != "":
 		return AuthoringResult{}, &rules.ValidationError{Location: "--reason", Problem: "the project doesn't import this rule, so the fork replaces nothing and has no exclusion to record a reason in"}
 	}
-	return editProject(ctx, p.options, func(root *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
+	result, err := editProject(ctx, p.options, func(root *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
 		if !bytes.Equal(original, p.configBytes) {
 			return nil, failure("concurrent-change", "the project's configuration changed after the fork was planned; run the command again", nil)
 		}
@@ -151,7 +160,11 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 			}
 		}
 		if p.replaces != "" {
-			edited, err := rules.EditConfigurationSource(original, p.replaces, rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: replacedBy}}})
+			edit := rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: replacedBy, BasedOn: &p.version}}}
+			if p.pin != nil {
+				edit.Unpin = []string{p.id}
+			}
+			edited, err := rules.EditConfigurationSource(original, p.replaces, edit)
 			if err != nil {
 				return nil, err
 			}
@@ -159,6 +172,10 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 		}
 		return files, nil
 	})
+	if err == nil && p.pin != nil {
+		result.Warnings = append(result.Warnings, fmt.Sprintf("Removed sources.%s.pins.%s, which kept the rule at %s, because the fork replaces the imported rule. Updates now list the library's changes after %s, the version the fork is based on, for you to compare with the fork.", p.replaces, p.id, p.pin.Version, p.version))
+	}
+	return result, err
 }
 
 // groupFiles returns the files that create the rule's local group from the library's metadata, and the group's
@@ -176,7 +193,7 @@ func (p *ForkPlan) groupFiles(ctx context.Context, root *os.Root, config rules.C
 		return nil, err
 	}
 	if p.groupMetadata == nil {
-		return nil, failure("missing-group", fmt.Sprintf("library release release/%d has no metadata for group %s; create the group with code-rules project add group %s, then retry the fork", p.release, group, group), nil)
+		return nil, failure("missing-group", fmt.Sprintf("release/%d has no metadata for group %s; create the group with code-rules project add group %s, then retry the fork", p.release, group, group), nil)
 	}
 	guideName, _ := projectGuide()
 	files := []filetxn.File{}
@@ -306,22 +323,32 @@ func forkAttribution(repository, id string, version rules.RuleVersion, published
 		}
 		url = repository
 	}
-	return &rules.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release release/%d at commit %s.", version, id, published.Release, published.Commit)}, nil
+	return &rules.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release %d at commit %s.", version, id, published.Release, published.Commit)}, nil
 }
 
-// forkFiles returns the fork's files by path relative to local/. The rule and its asset directory keep their
-// library paths; each shared asset moves from assets/ into the rule's asset directory, keeping its path below
-// assets/. Markdown links to moved files are rewritten, and attribution, when not nil, is added to the rule. It
-// fails when two files would share a path, or when a Markdown file links to anything outside the fork, such as
-// a declared license file, because local rules can't depend on library files.
-func forkFiles(id string, published imports.PublishedRule, attribution *rules.Attribution) (map[string][]byte, error) {
-	rulePath := id + ".md"
+// forkFiles returns the files of a fork of rule id at rulePath, by path relative to local/: the rule moves to
+// rulePath and its asset directory to rulePath's, so a fork at the rule's own path, id.md, keeps their library
+// paths; each shared asset moves from assets/ into that asset directory, keeping its path below assets/. Markdown
+// links to moved files are rewritten, and attribution, when not nil, is added to the rule. It fails when two files
+// would share a path, or when a Markdown file links to anything outside the fork, such as a declared license file,
+// because local rules can't depend on library files.
+func forkFiles(id, rulePath string, published imports.PublishedRule, attribution *rules.Attribution) (map[string][]byte, error) {
+	libraryAssets, assets := rules.RuleAssetDirectory(id+".md"), rules.RuleAssetDirectory(rulePath)
 	moved := map[string]string{}
 	sources := map[string]string{}
 	for _, file := range slices.Sorted(maps.Keys(published.Files)) {
-		target := file
-		if shared, ok := strings.CutPrefix(file, "assets/"); ok {
-			target = rules.RuleAssetDirectory(rulePath) + shared
+		owned, isOwned := strings.CutPrefix(file, libraryAssets)
+		shared, isShared := strings.CutPrefix(file, "assets/")
+		var target string
+		switch {
+		case file == id+".md":
+			target = rulePath
+		case isOwned:
+			target = assets + owned
+		case isShared:
+			target = assets + shared
+		default:
+			return nil, &rules.ValidationError{Location: id + ".md", Problem: fmt.Sprintf("the library's %s is neither the rule, its asset, nor a shared asset, so a fork can't place it", file)}
 		}
 		if other, taken := sources[target]; taken {
 			return nil, &rules.ValidationError{Location: rulePath, Problem: fmt.Sprintf("the library's %s and %s would both become %s in the fork; rename one in the library", other, file, target)}

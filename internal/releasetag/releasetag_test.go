@@ -151,3 +151,19 @@ func TestRead_HandsOverEachBatchBeforeReadingTheNext(t *testing.T) {
 		t.Fatalf("batches read before each release was handed over: %v, want [1 1 2]", seen)
 	}
 }
+
+// TestRecordError_NamesTheTagOnce whether or not the parser's location already starts with it.
+func TestRecordError_NamesTheTagOnce(t *testing.T) {
+	for _, test := range []struct {
+		location, want string
+	}{
+		{"release/3", "invalid release record: release/3: expected a mapping"},
+		{"release/3.release", "invalid release record: release/3.release: expected a mapping"},
+		{"record", "invalid release record: release/3: record: expected a mapping"},
+	} {
+		err := &releasetag.RecordError{Tag: "release/3", Err: &rules.ValidationError{Location: test.location, Problem: "expected a mapping"}}
+		if got := err.Error(); got != test.want {
+			t.Errorf("location %s: got %q, want %q", test.location, got, test.want)
+		}
+	}
+}

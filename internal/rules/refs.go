@@ -99,7 +99,7 @@ func ParseGitRef(ref, location string) (GitRef, error) {
 		}
 	}
 	if shortCommitRef.MatchString(ref) {
-		return GitRef{}, invalid(location, "abbreviated commits are unsupported; use a full SHA or refs/tags/<name>")
+		return GitRef{}, invalid(location, "abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2")
 	}
 	return GitRef{kind: GitRefTag, canonical: "refs/tags/" + tag, text: ref}, nil
 }

@@ -76,18 +76,11 @@ func TestForkRule_ReplacesTheImportedRuleInTheBuild(t *testing.T) {
 	if code != 0 || diagnostic != "" {
 		t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
 	}
-	directory, err := filepath.EvalSymlinks(filepath.Join(f.directory, ".code-rules"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := "Rule forked from team 1.0.0, published in library release release/1:\n"
-	for _, file := range []string{"local/techs/go/assets/errors/guide.md", "local/techs/go/errors.md", "config.yaml"} {
-		want += "  " + filepath.Join(directory, file) + "\n"
-	}
-	want += "\n" +
+	want := "Rule forked from team 1.0.0, published in library release 1.\nAdded:\n  .code-rules/local/techs/go/assets/errors/guide.md\n  .code-rules/local/techs/go/errors.md\nChanged:\n  .code-rules/config.yaml\n\n" +
 		"Next: Edit the forked rule to change what it says. A fork has no version: it changes\n" +
 		"only when you edit it. The library's license still applies to the copied text.\n" +
-		"config.yaml now excludes team's techs/go/errors and names the fork as its replacement.\n\n" +
+		"config.yaml now excludes team's techs/go/errors and names the fork as its replacement,\n" +
+		"based on 1.0.0; code-rules project update lists the library's later changes to it.\n\n" +
 		"Then rebuild this project's guidance:\n  code-rules project build\n  code-rules project check\n"
 	if out != want {
 		t.Fatalf("output:\n%s\nwant:\n%s", out, want)
@@ -95,7 +88,7 @@ func TestForkRule_ReplacesTheImportedRuleInTheBuild(t *testing.T) {
 	if got := string(f.read(t, "local/techs/go/errors.md")); got != string(updateRule("Read [the guide](assets/errors/guide.md).")) {
 		t.Fatalf("fork %q", got)
 	}
-	if !strings.Contains(string(f.read(t, "config.yaml")), "exclude:\n      techs/go/errors:\n        reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n") {
+	if !strings.Contains(string(f.read(t, "config.yaml")), "exclude:\n      techs/go/errors:\n        reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", f.read(t, "config.yaml"))
 	}
 	for _, command := range [][]string{{"project", "build"}, {"project", "check"}} {
@@ -143,7 +136,7 @@ func TestForkRule_ReportsJSON(t *testing.T) {
 	}{
 		{[]string{"techs/go/errors", "--from", "team@1.2.0", "--reason", "Ours."}, 1, "operation", "version-not-found", ""},
 		{[]string{"practices/testing/verify", "--from", "team@1.0.0"}, 1, "operation", "already-exists", ""},
-		{[]string{"techs/go/errors", "--from", "team@1.0.0"}, 2, "usage", "", ""},
+		{[]string{"techs/go/errors", "--from", "team@1.0.0"}, 2, "usage", "invalid-arguments", ""},
 		{[]string{"techs/go/errors", "--from", "other@1.0.0", "--reason", "Ours."}, 1, "validation", "", "--from"},
 	} {
 		failed := run(test.exit, test.args...)
@@ -200,7 +193,7 @@ func TestForkRule_AsksForTheReasonInATerminal(t *testing.T) {
 		{Prompt: "provide a value for --reason", Answer: "Our wording."},
 	}
 	result, err := terminalfixture.RunWithEnvironment(context.Background(), f.binary, f.directory, f.fixture.Environment, args, steps)
-	if err != nil || result.ExitCode != 0 || !strings.Contains(result.Stdout, "Rule forked from team 1.1.0, published in library release release/2:") {
+	if err != nil || result.ExitCode != 0 || !strings.Contains(result.Stdout, "Rule forked from team 1.1.0, published in library release 2.") {
 		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
 	}
 	if !strings.Contains(string(f.read(t, "config.yaml")), "reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n") || string(f.read(t, "local/techs/go/errors.md")) != string(updateRule("Wrap errors.")) {

@@ -23,6 +23,14 @@ func (f *authoringFlags) interactive() bool {
 	return !disabled && !structured && inputFile && outputFile && term.IsTerminal(int(in.Fd())) && term.IsTerminal(int(out.Fd()))
 }
 
+// status tells a person at a terminal, on its own line of stderr, what the command is about to wait on, such as
+// reading libraries, so a slow network doesn't look like a hang. It writes nothing without a terminal or with --json.
+func (f *authoringFlags) status(text string) {
+	if f.interactive() {
+		_, _ = fmt.Fprintln(f.command.ErrOrStderr(), text)
+	}
+}
+
 // ask uses Go's terminal editor for pasted text and restores terminal settings on every return path.
 func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if !f.interactive() {
@@ -41,7 +49,11 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() { err = errors.Join(err, term.Restore(fd, state)) }()
+	defer func() {
+		if restoreErr := term.Restore(fd, state); restoreErr != nil {
+			err = errors.Join(err, restoreErr)
+		}
+	}()
 	terminal := term.NewTerminal(&promptStream{ctx: f.command.Context(), fd: fd, output: f.command.ErrOrStderr()}, terminalText(label)+" ")
 	if width, height, sizeErr := term.GetSize(fd); sizeErr == nil && width > 0 && height > 0 {
 		if err := terminal.SetSize(width, height); err != nil {
@@ -50,15 +62,28 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 	}
 	answer, err = terminal.ReadLine()
 	if err != nil {
-		ended := fmt.Errorf("terminal input ended; no files were written: %w", err)
-		if errors.Is(err, io.EOF) {
-			return "", usage(ended)
-		}
-		return "", ended
+		// An interrupted or ended answer leaves the cursor after the prompt, so the error starts a line of its own.
+		_, _ = io.WriteString(f.command.ErrOrStderr(), "\r\n")
+	}
+	switch {
+	case errors.Is(err, context.Canceled):
+		return "", &cancelled{}
+	case errors.Is(err, io.EOF):
+		return "", usage(errors.New("terminal input ended; no files were written"))
+	case err != nil:
+		return "", fmt.Errorf("read the answer from the terminal; no files were written: %w", err)
 	}
 	f.prompted = true
 	return strings.TrimSpace(answer), nil
 }
+
+// cancelled reports an interrupt, such as Ctrl-C at a prompt, before the command wrote anything.
+type cancelled struct{}
+
+func (*cancelled) Error() string { return "cancelled; no files were written" }
+
+// Unwrap lets callers recognize the interrupt as context cancellation.
+func (*cancelled) Unwrap() error { return context.Canceled }
 
 // promptStream preserves stderr output while polling input for cancellation without a background reader.
 type promptStream struct {

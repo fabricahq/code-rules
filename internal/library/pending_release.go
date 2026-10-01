@@ -16,6 +16,10 @@ type PendingRelease struct {
 	Release int `json:"release"`
 	// Rules is sorted by rule ID and empty when no rule has a pending change.
 	Rules []PendingRule `json:"rules"`
+	// LibraryFiles lists, in path order, the library-wide files in the working tree that differ from the latest
+	// library release, including deleted ones, which the next library release would publish once committed. It is
+	// empty before the first library release, which adds every file.
+	LibraryFiles []string `json:"libraryFiles"`
 }
 
 // PendingRule is one rule's change in the next library release, named as the release record and the rows of
@@ -87,14 +91,14 @@ func (c libraryChanges) review() []string {
 		case retired:
 			problems = append(problems, id+" reuses the ID of a rule that release/"+strconv.Itoa(release)+" retired. Retired IDs can't be reused; give the rule a new ID.")
 		case !published && !named[id]:
-			problems = append(problems, id+" is a new rule, and no pending change note names it. Record it with: code-rules library change "+id)
+			problems = append(problems, id+" is a new rule, and no pending change note names it. Record it with: code-rules library change "+id+" --summary '<what the rule adds>'")
 		case published && c.changed[id] && !named[id]:
-			problems = append(problems, id+" changed since "+latest.tagName()+", where its version is "+version.String()+", and no pending change note names it. Record it with: code-rules library change "+id)
+			problems = append(problems, id+" changed since "+latest.tagName()+", where its version is "+version.String()+", and no pending change note names it. Record it with: code-rules library change "+id+" --bump <major|minor|patch> --summary '<what changed>'")
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(latest.record.Rules)) {
 		if !current[id] && len(retiring[id]) == 0 {
-			problems = append(problems, id+", version "+latest.record.Rules[id].String()+", was deleted, and no pending change note retires it. Restore it, or record the retirement with: code-rules library change "+id+" --retire")
+			problems = append(problems, id+", version "+latest.record.Rules[id].String()+", was deleted, and no pending change note retires it. Restore it, or record the retirement with: code-rules library change "+id+" --retire --summary '<why it's retired>'")
 		}
 	}
 	for _, pending := range c.pending {
@@ -225,7 +229,7 @@ func (p releasePlan) record(libraryFiles []string) rules.ReleaseRecord {
 
 // preview lists each changed, new, and retired rule in ID order.
 func (p releasePlan) preview() PendingRelease {
-	return PendingRelease{Release: p.release, Rules: releaseRules(p.record(nil))}
+	return PendingRelease{Release: p.release, Rules: releaseRules(p.record(nil)), LibraryFiles: []string{}}
 }
 
 // empty reports whether the plan changes, adds, and retires no rules.

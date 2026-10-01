@@ -172,16 +172,17 @@ func TestImport_PinsMoveRulesUpAndDown(t *testing.T) {
 	if want := map[string]string{"techs/go/a": "1.0.0@1", "techs/go/d": "1.0.0@2"}; !reflect.DeepEqual(versions(down.Snapshot), want) {
 		t.Fatalf("versions %v, want %v", versions(down.Snapshot), want)
 	}
-	// The library-wide files come from the newest library release among the imported rule versions.
-	if down.Snapshot.Release != 2 || string(down.Snapshot.Files["techs/go/assets/a/diagram.bin"]) != string([]byte{1, 0}) {
+	// A new source takes its library-wide files from the newest library release, and each rule's own files from the
+	// library release that published its version.
+	if down.Snapshot.Release != 3 || string(down.Snapshot.Files["techs/go/assets/a/diagram.bin"]) != string([]byte{1, 0}) {
 		t.Fatalf("snapshot release %d, files %v", down.Snapshot.Release, slices.Sorted(maps.Keys(down.Snapshot.Files)))
 	}
 	up, err := h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.1.0","reason":"Ready for the example."}}`), &down.Snapshot)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := map[string]string{"techs/go/a": "1.1.0@2", "techs/go/d": "1.0.0@2"}; !reflect.DeepEqual(versions(up.Snapshot), want) {
-		t.Fatalf("versions %v, want %v", versions(up.Snapshot), want)
+	if want := map[string]string{"techs/go/a": "1.1.0@2", "techs/go/d": "1.0.0@2"}; !reflect.DeepEqual(versions(up.Snapshot), want) || up.Snapshot.Release != 3 {
+		t.Fatalf("versions %v, want %v; shared files from release %d, want 3", versions(up.Snapshot), want, up.Snapshot.Release)
 	}
 	// Removing the pin keeps the recorded version.
 	unpinned, err := h.sync(t, h.source(t, `"groups":["techs/go"]`), &up.Snapshot)
@@ -190,6 +191,9 @@ func TestImport_PinsMoveRulesUpAndDown(t *testing.T) {
 	}
 	_, err = h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.2.0","reason":"Typo."}}`), &up.Snapshot)
 	requireCode(t, err, "version-not-found")
+	if !strings.Contains(err.Error(), "the rule never published version 1.2.0; check the pin. Its published versions, newest first: 2.0.0, 1.1.0, 1.0.0.") {
+		t.Fatalf("the failure doesn't list the published versions: %v", err)
+	}
 }
 
 // TestImport_NewlySelectedRulesGetTheirNewestVersion leaves recorded rules and adds only the new selection.
@@ -228,7 +232,7 @@ func TestImport_IndividuallySelectedRuleComesWithoutTheRestOfItsGroup(t *testing
 	if want := []string{"rule-library.yaml", "techs/go/_group.yaml", "techs/go/d.md"}; !reflect.DeepEqual(slices.Sorted(maps.Keys(imported.Snapshot.Files)), want) {
 		t.Fatalf("files %v", slices.Sorted(maps.Keys(imported.Snapshot.Files)))
 	}
-	if imported.Snapshot.Release != 2 || len(imported.Snapshot.Groups) != 0 || !reflect.DeepEqual(imported.Snapshot.RuleSelection, []string{"techs/go/d"}) {
+	if imported.Snapshot.Release != 3 || len(imported.Snapshot.Groups) != 0 || !reflect.DeepEqual(imported.Snapshot.RuleSelection, []string{"techs/go/d"}) {
 		t.Fatalf("snapshot %+v", imported.Snapshot)
 	}
 }
@@ -261,8 +265,8 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 			if err != nil || len(imported.Warnings) != 1 || !strings.HasPrefix(imported.Warnings[0], test.warning) {
 				t.Fatalf("warnings %v, %v", imported.Warnings, err)
 			}
-			if strings.Contains(test.fields, "exclude") && !slices.Equal(imported.Snapshot.Exclude, []string{"techs/go/b"}) {
-				t.Fatalf("recorded exclusions %v", imported.Snapshot.Exclude)
+			if !slices.Equal(imported.Snapshot.RetiredRules, []string{"techs/go/b"}) {
+				t.Fatalf("recorded retired rules %v, want techs/go/b", imported.Snapshot.RetiredRules)
 			}
 			if _, ok := imported.Snapshot.Rules["techs/go/b"]; ok {
 				t.Fatal("imported a retired rule")
@@ -271,13 +275,14 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 	}
 }
 
-// TestImport_PinnedRuleTheLibraryRetiredKeepsImporting restores a pin recorded before the retirement.
+// TestImport_PinnedRuleTheLibraryRetiredKeepsImporting keeps importing a pinned rule, at the version the record
+// imported before the library retired it.
 func TestImport_PinnedRuleTheLibraryRetiredKeepsImporting(t *testing.T) {
 	h := newHistory(t)
 	pinned := `"groups":["techs/go"],"pins":{"techs/go/b":{"version":"1.0.0","reason":"Keep."}}`
 	one := rules.RuleVersion{Major: 1}
 	config := h.source(t, pinned)
-	recorded := library.Snapshot{Repository: h.fixture.Repository, Pins: pinnedVersions(config.Sources[0].Pins), Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
+	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/b": {Version: &one, Release: 1, Commit: h.commits[1]}}}
 	// Selecting practices/testing makes this sync read the history, which knows b is retired.
 	imported, err := h.sync(t, h.source(t, `"groups":["techs/go","practices/testing"],"pins":{"techs/go/b":{"version":"1.0.0","reason":"Keep."}}`), &recorded)
@@ -373,7 +378,7 @@ func TestImport_RefToADeletedLibraryReleaseFailsForNewlySelectedRules(t *testing
 }
 
 // TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves restores the commit a tag named when it was recorded, also
-// when the configuration writes the same ref another way, and records the ref as now written.
+// when the configuration writes the same ref another way, and keeps the recorded spelling of that ref.
 func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	h := newHistory(t)
 	ctx := context.Background()
@@ -393,7 +398,7 @@ func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 		t.Fatalf("snapshot %+v, %v", again.Snapshot, err)
 	}
 	respelled, err := h.sync(t, h.source(t, `"groups":["techs/go"],"ref":"refs/tags/candidate"`), &first.Snapshot)
-	if err != nil || respelled.Snapshot.Commit != h.commits[1] || respelled.Snapshot.Ref.String() != "refs/tags/candidate" {
+	if err != nil || respelled.Snapshot.Commit != h.commits[1] || respelled.Snapshot.Ref.String() != "candidate" {
 		t.Fatalf("the same ref written another way: snapshot %+v, %v", respelled.Snapshot, err)
 	}
 }
@@ -669,4 +674,99 @@ func TestImport_ReleaseTagListingLimit(t *testing.T) {
 	defer repo.Close()
 	_, err = repo.loadHistory(context.Background())
 	requireCode(t, err, "limit-exceeded")
+}
+
+// TestImport_WarnsAboutARuleItsGroupAlreadySelects, which the rules entry doesn't change.
+func TestImport_WarnsAboutARuleItsGroupAlreadySelects(t *testing.T) {
+	h := newHistory(t)
+	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"],"rules":["techs/go/a","practices/testing/c"]`), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"sources.team.rules names techs/go/a, whose group techs/go sources.team.groups already selects, so the entry changes nothing; delete it."}
+	if !slices.Equal(imported.Warnings, want) {
+		t.Fatalf("warnings %q, want %q", imported.Warnings, want)
+	}
+}
+
+// TestVersionList_ListsAtMostTenVersionsNewestFirst and counts the older ones.
+func TestVersionList_ListsAtMostTenVersionsNewestFirst(t *testing.T) {
+	history := releaseHistory{}
+	for number := 1; number <= 12; number++ {
+		version := rules.RuleVersion{Major: 1, Minor: number - 1}
+		history.releases = append(history.releases, libraryRelease{number: number, record: rules.ReleaseRecord{Rules: map[string]rules.RuleVersion{"techs/go/a": version}, Changes: map[string]rules.RecordedChange{"techs/go/a": {Change: rules.ChangeMinor}}}})
+	}
+	if got, want := history.versionList("techs/go/a"), "1.11.0, 1.10.0, 1.9.0, 1.8.0, 1.7.0, 1.6.0, 1.5.0, 1.4.0, 1.3.0, 1.2.0, and 2 older"; got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+	history.releases = history.releases[:10]
+	if got := history.versionList("techs/go/a"); strings.Contains(got, "older") || !strings.HasSuffix(got, "1.0.0") {
+		t.Fatalf("ten versions: %q", got)
+	}
+}
+
+// TestImport_ExclusionOfADeselectedRetiredRuleOnlyWarns: the last sync imported and excluded b, which release/3
+// retired; deselecting techs/go keeps the exclusion a warning, now and in later syncs, and the record lists b as
+// retired, so offline checks accept the exclusion too.
+func TestImport_ExclusionOfADeselectedRetiredRuleOnlyWarns(t *testing.T) {
+	h := newHistory(t)
+	excluded := `"exclude":{"techs/go/b":{"reason":"Not used."}}`
+	recorded := h.record(t, h.source(t, `"groups":["techs/go","practices/testing"],`+excluded), 1, map[string]string{"techs/go/a": "1.0.0@1", "techs/go/b": "1.0.0@1", "practices/testing/c": "1.0.0@1"})
+	config := h.source(t, `"groups":["practices/testing"],`+excluded)
+	snapshot := recorded
+	for sync := 1; sync <= 2; sync++ {
+		imported, err := h.sync(t, config, &snapshot)
+		if err != nil {
+			t.Fatalf("sync %d: %v", sync, err)
+		}
+		if len(imported.Warnings) != 1 || !strings.HasPrefix(imported.Warnings[0], "sources.team.exclude names techs/go/b") || !slices.Contains(imported.Snapshot.RetiredRules, "techs/go/b") {
+			t.Fatalf("sync %d: warnings %q, retired %v", sync, imported.Warnings, imported.Snapshot.RetiredRules)
+		}
+		snapshot = imported.Snapshot
+	}
+}
+
+// TestImport_RejectsABasedOnVersionTheRuleNeverPublished, listing the versions it did publish, newest first.
+func TestImport_RejectsABasedOnVersionTheRuleNeverPublished(t *testing.T) {
+	h := newHistory(t)
+	_, err := h.sync(t, h.source(t, `"groups":["techs/go"],"exclude":{"techs/go/a":{"reason":"Ours.","replacedBy":"local/techs/go/a.md","basedOn":"3.0.0"}}`), nil)
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Code != "version-not-found" || !strings.Contains(err.Error(), "sources.team.exclude.techs/go/a.basedOn: the rule never published version 3.0.0; check basedOn. Its published versions, newest first: 2.0.0, 1.1.0, 1.0.0.") {
+		t.Fatalf("got %v", err)
+	}
+	if _, err := h.sync(t, h.source(t, `"groups":["techs/go"],"exclude":{"techs/go/a":{"reason":"Ours.","replacedBy":"local/techs/go/a.md","basedOn":"1.1.0"}}`), nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestImport_RefKeepsItsRecordedCommitAfterAReleaseTagMoves: a source whose ref names release/1, or a commit whose
+// rules record versions from release/1, keeps importing its recorded commit after release/1 moves to another
+// commit, while its original commit stays fetchable.
+func TestImport_RefKeepsItsRecordedCommitAfterAReleaseTagMoves(t *testing.T) {
+	for _, test := range []struct{ name, ref string }{{"library release", "release/1"}, {"commit", ""}} {
+		t.Run(test.name, func(t *testing.T) {
+			h := newHistory(t)
+			ctx := context.Background()
+			ref := test.ref
+			if ref == "" {
+				ref = h.commits[1]
+			}
+			config := h.source(t, `"groups":["techs/go"],"ref":"`+ref+`"`)
+			first, err := h.sync(t, config, nil)
+			if err != nil || first.Snapshot.Commit != h.commits[1] {
+				t.Fatalf("snapshot %+v, %v", first.Snapshot, err)
+			}
+			message, err := h.fixture.Command(ctx, "tag", "--list", "--format=%(contents)", "release/1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := h.fixture.Command(ctx, "tag", "--force", "--annotate", "--cleanup=verbatim", "--message", message+"\n", "release/1", h.commits[3]); err != nil {
+				t.Fatal(err)
+			}
+			again, err := h.sync(t, config, &first.Snapshot)
+			if err != nil || again.Snapshot.Commit != h.commits[1] || !reflect.DeepEqual(versions(again.Snapshot), versions(first.Snapshot)) {
+				t.Fatalf("after release/1 moved: snapshot %+v, %v", again.Snapshot, err)
+			}
+		})
+	}
 }

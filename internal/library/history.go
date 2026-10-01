@@ -28,7 +28,11 @@ const maxReleaseTags = 20_000
 var objectID = regexp.MustCompile(`^(?:[0-9a-f]{40}|[0-9a-f]{64})$`)
 
 // shallowClone tells the author how to get the history that comparing with a library release needs.
-const shallowClone = "this clone has partial history, so it can't be compared with the latest library release. Fetch the full history and tags, such as with git fetch --unshallow --tags; in CI, check out with fetch-depth: 0"
+const shallowClone = "this clone has partial history, so it can't be compared with the latest library release. Fetch the full history and tags, such as with git fetch --unshallow --tags; in CI, check out with fetch-depth: 0."
+
+// missingReleaseTags explains a clone whose commit has change notes but no release tags, such as a clone made with
+// git clone --no-tags, which would otherwise look like a library that never published a library release.
+const missingReleaseTags = "changes/ holds change notes, but this clone has no release/<number> tags, so it can't be compared with the latest library release. Fetch the tags, such as with git fetch --tags; in CI, check out with fetch-depth: 0. If the library has never published a library release, delete the notes in changes/, which the first library release doesn't need."
 
 // libraryGit runs Git in the library author's own repository, honoring their Git configuration.
 type libraryGit struct {
@@ -51,8 +55,10 @@ func (g *libraryGit) withoutUnpublished(number int) *libraryGit {
 type releaseHistory struct {
 	// latest is nil before the first library release.
 	latest *publishedRelease
-	// retired maps every rule a reachable library release retired to that release's number.
-	retired map[string]int
+	// retired maps every rule a reachable library release retired to that release's number, and replacedBy maps
+	// each of those that named a replacement to it.
+	retired    map[string]int
+	replacedBy map[string]string
 }
 
 // publishedRelease is the latest library release reachable from HEAD.
@@ -89,8 +95,9 @@ func openLibraryGit(ctx context.Context, dir string, options gitexec.Options) (*
 }
 
 // releaseTags lists the annotated release tags of commits reachable from HEAD in ascending number order, except
-// the unpublished one. It fails in a shallow clone, which may lack tags and history, and returns none on an unborn
-// branch. A nil receiver, a library outside Git, has no release tags.
+// the unpublished one. It fails in a shallow clone, which may lack tags and history, and with missing-release-tags
+// when none is reachable but HEAD has change notes, which only a library release makes necessary. It returns none
+// on an unborn branch. A nil receiver, a library outside Git, has no release tags.
 func (g *libraryGit) releaseTags(ctx context.Context) ([]releasetag.Tag, error) {
 	if g == nil {
 		return nil, nil
@@ -115,12 +122,21 @@ func (g *libraryGit) releaseTags(ctx context.Context) ([]releasetag.Tag, error) 
 			continue
 		}
 		if tag.Type != "tag" || tag.TargetType != "commit" {
-			return nil, failure("invalid-release-tag", tag.Name()+": expected an annotated tag on a commit, with a release record; don't create release tags by hand", nil)
+			return nil, failure("invalid-release-tag", tag.Name()+": expected an annotated tag on a commit, with a release record. Don't create release tags by hand; if you created "+tag.Name()+" by hand, delete it with git tag --delete "+tag.Name()+", then run the command again.", nil)
 		}
 		if tag.Size > releasetag.MaxBytes {
 			return nil, failure("limit-exceeded", tag.Name()+": tag message exceeds 8 MiB", nil)
 		}
 		tags = append(tags, tag)
+	}
+	if len(tags) == 0 && g.unpublished == 0 {
+		notes, err := g.runner.Run(ctx, g.dir, []string{"ls-tree", "--name-only", "HEAD", "--", changesDirectory}, 4096, nil)
+		if err != nil {
+			return nil, fmt.Errorf("list the library's committed change notes: %w", err)
+		}
+		if notes.Status == 0 && len(bytes.TrimSpace(notes.Output)) > 0 {
+			return nil, failure("missing-release-tags", missingReleaseTags, nil)
+		}
 	}
 	return tags, nil
 }
@@ -152,7 +168,7 @@ func (g *libraryGit) requireFullHistory(ctx context.Context) error {
 
 // history reads every reachable release record and lists the latest release's rule and note files.
 func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
-	history := releaseHistory{retired: map[string]int{}}
+	history := releaseHistory{retired: map[string]int{}, replacedBy: map[string]string{}}
 	tags, err := g.releaseTags(ctx)
 	if err != nil || len(tags) == 0 {
 		return history, err
@@ -160,9 +176,12 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	// Only the latest library release's notes and record are kept; the others contribute their retirements.
 	var latestRelease releasetag.Release
 	err = releasetag.Read(ctx, g.runner, g.dir, tags, func(i int, release releasetag.Release) error {
-		for id := range release.Record.Retired {
+		for id, retired := range release.Record.Retired {
 			if _, ok := history.retired[id]; !ok {
 				history.retired[id] = tags[i].Number
+				if retired.ReplacedBy != "" {
+					history.replacedBy[id] = retired.ReplacedBy
+				}
 			}
 		}
 		if i == len(tags)-1 {
@@ -176,7 +195,7 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
 		return releaseHistory{}, unsupportedRecord(invalid.Tag, unsupported.FormatVersion)
 	case invalid != nil:
-		return releaseHistory{}, failure("invalid-release-tag", invalid.Error()+". Don't create or move release tags by hand", invalid.Err)
+		return releaseHistory{}, failure("invalid-release-tag", invalid.Error()+". Don't create or move release tags by hand; if you created "+invalid.Tag+" by hand, delete it with git tag --delete "+invalid.Tag+", then run the command again.", invalid.Err)
 	}
 	if err != nil {
 		return releaseHistory{}, fmt.Errorf("read the library's release tags: %w", err)
@@ -193,7 +212,7 @@ func (g *libraryGit) history(ctx context.Context) (releaseHistory, error) {
 // unsupportedRecord fails with unsupported-release-record for release tag tag, whose record a newer Code Rules
 // wrote in release record format version, asking the author to upgrade.
 func unsupportedRecord(tag string, version int) error {
-	return failure("unsupported-release-record", tag+" uses release record format "+strconv.Itoa(version)+", which this version of Code Rules can't read. Upgrade Code Rules, then run the command again", nil)
+	return failure("unsupported-release-record", tag+" uses release record format "+strconv.Itoa(version)+", which this version of Code Rules can't read. Upgrade Code Rules, then run the command again.", nil)
 }
 
 // releaseFiles lists the blobs under practices/, techs/, and changes/ at a release tag's commit.

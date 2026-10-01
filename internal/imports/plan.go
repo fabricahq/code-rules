@@ -18,12 +18,19 @@ import (
 // importing it fetches the commits it names and reads their files.
 type sourcePlan struct {
 	// release is the library release that supplies the library-wide files, or 0 when ref isn't a library release.
+	// For a source without ref, it is never older than the library release of a rule the plan imports.
 	release int
 	commit  string
 	rules   map[string]library.ImportedRule
 	// individual lists the individually selected rules to load; it omits entries naming retired rules.
 	individual []string
 	warnings   []string
+	// retired lists, sorted, the rules the library retired that the source selects; it is empty, never nil.
+	retired []string
+	// ref is the source's ref as the snapshot records it: the recorded spelling when it names the same revision as
+	// the configured one, such as release/2 for refs/tags/release/2, so an equivalent spelling never rewrites the
+	// record; otherwise the configured one.
+	ref rules.GitRef
 }
 
 // planner chooses versions for one source, reading the library's release history only when a choice needs it.
@@ -60,10 +67,77 @@ func newPlanner(ctx context.Context, repo *repository, source rules.Source, reco
 // choose plans what the source imports as project sync does, without fetching the commits the plan names that
 // choosing didn't need.
 func (p *planner) choose() (sourcePlan, error) {
+	choose := p.planVersions
 	if !p.source.Ref.IsZero() {
-		return p.planRevision()
+		choose = p.planRevision
 	}
-	return p.planVersions()
+	chosen, err := choose()
+	if err != nil {
+		return sourcePlan{}, err
+	}
+	chosen.warnings = append(redundantRules(p.source, chosen.rules), chosen.warnings...)
+	chosen.ref = p.source.Ref
+	if p.recorded != nil && p.recorded.Ref.Equal(p.source.Ref) {
+		chosen.ref = p.recorded.Ref
+	}
+	chosen.retired, err = p.retiredRules(chosen)
+	return chosen, err
+}
+
+// redundantRules warns about each imported rule the source selects individually although its groups already select
+// the rule's group, since the entry changes nothing. An entry naming a retired rule gets its own warning instead.
+func redundantRules(source rules.Source, imported map[string]library.ImportedRule) []string {
+	warnings := []string{}
+	for _, id := range source.Rules {
+		if _, ok := imported[id]; ok && source.Groups.Includes(ruleGroup(id)) {
+			group := ruleGroup(id)
+			warnings = append(warnings, fmt.Sprintf("sources.%s.rules names %s, whose group %s sources.%s.groups already selects, so the entry changes nothing; delete it.", source.Name, id, group, source.Name))
+		}
+	}
+	return warnings
+}
+
+// retiredRules returns the retired rules a sync that chose plan records. When the source selects what recorded did,
+// from the same revision, with the same shared files, it keeps recorded's list, so that a sync changing nothing
+// else, such as an exclusion the list already covers, never rewrites the record, whatever the planner happened to
+// read; it adds only the retired rules of pins and exclusions that sync just found retired, which the record didn't
+// cover, so offline checks accept them too. Otherwise it returns the release history's, as freshRetiredRules does.
+func (p *planner) retiredRules(plan sourcePlan) ([]string, error) {
+	recorded := p.recorded
+	if recorded == nil || !sameGroupSelection(recorded.Selection, p.source.Groups) || !slices.Equal(recorded.RuleSelection, p.source.Rules) || !p.source.Ref.Equal(recorded.Ref) || plan.release != recorded.Release || plan.commit != recorded.Commit {
+		return p.freshRetiredRules()
+	}
+	retired := slices.Clone(recorded.RetiredRules)
+	for _, id := range slices.Concat(slices.Sorted(maps.Keys(p.source.Pins)), slices.Sorted(maps.Keys(p.source.Exclude))) {
+		// Validating such a pin or exclusion read the history, which records why it only warns.
+		if _, imported := plan.rules[id]; !imported && !slices.Contains(retired, id) && p.history != nil && p.history.retired(id) {
+			retired = append(retired, id)
+		}
+	}
+	slices.Sort(retired)
+	return retired, nil
+}
+
+// freshRetiredRules returns, sorted, the rules the library's release history retired that the source would
+// otherwise import, as configuration entries naming them only warn: those its groups or rules list selects, and
+// those recorded imported or listed as retired, so an entry left after deselecting a retired rule stays a warning
+// offline too. A retired rule the plan still imports, such as one a pin keeps at its last version, is listed too, so
+// the record says it's retired. It reads the history when the planner hasn't yet.
+func (p *planner) freshRetiredRules() ([]string, error) {
+	history, err := p.releases()
+	if err != nil {
+		return nil, err
+	}
+	retired := []string{}
+	for _, release := range history.releases {
+		for id := range release.record.Retired {
+			if p.wouldImport(id) {
+				retired = append(retired, id)
+			}
+		}
+	}
+	slices.Sort(retired)
+	return slices.Compact(retired), nil
 }
 
 // releases returns the library's release history, reading it on first use; it may be empty.
@@ -176,33 +250,60 @@ func (p *planner) planVersions() (sourcePlan, error) {
 	if err := p.requireEntries(&plan); err != nil {
 		return sourcePlan{}, err
 	}
-	return plan, p.libraryWideRelease(&plan, recorded)
+	if recorded == nil || len(chosen) > 0 || selectsMore(recorded, p.source) {
+		return plan, p.newestSharedFiles(&plan)
+	}
+	plan.release, plan.commit = recorded.Release, recorded.Commit
+	if plan.release == 0 {
+		// Only a removed ref that named a revision other than a library release records none.
+		return plan, p.newestSharedFiles(&plan)
+	}
+	raiseSharedFiles(&plan)
+	return plan, nil
 }
 
-// libraryWideRelease sets the library release that supplies the library-wide files of a plan for a source without
-// ref, whose ref names that revision instead: the newest library release among the plan's rule versions. A plan
-// that imports no rules keeps recorded's library release while the source selects what recorded did; otherwise, and
-// when recorded is nil, it gets the newest library release.
-func (p *planner) libraryWideRelease(plan *sourcePlan, recorded *library.Snapshot) error {
-	plan.release, plan.commit = 0, ""
-	for _, rule := range plan.rules {
-		if rule.Release > plan.release {
-			plan.release, plan.commit = rule.Release, rule.Commit
-		}
-	}
-	if plan.release != 0 {
-		return nil
-	}
-	if recorded != nil && recorded.Ref.IsZero() && recorded.Release != 0 && sameGroupSelection(recorded.Selection, p.source.Groups) && slices.Equal(recorded.RuleSelection, p.source.Rules) {
-		plan.release, plan.commit = recorded.Release, recorded.Commit
-		return nil
-	}
+// newestSharedFiles takes the plan's library-wide files from the newest library release, which is at least as new
+// as every rule version.
+func (p *planner) newestSharedFiles(plan *sourcePlan) error {
 	history, err := p.versioned()
 	if err != nil {
 		return err
 	}
 	plan.release, plan.commit = history.newest().number, history.newest().commit
 	return nil
+}
+
+// raiseSharedFiles moves the plan's library-wide files to the newest library release among its rule versions when
+// that is newer, such as after a pin moved a rule up, because a rule version can rely on the shared files and group
+// metadata its own library release published.
+func raiseSharedFiles(plan *sourcePlan) {
+	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
+		if rule := plan.rules[id]; rule.Release > plan.release {
+			plan.release, plan.commit = rule.Release, rule.Commit
+		}
+	}
+}
+
+// selectsMore reports whether source selects a rule or group that recorded's selection didn't: an individually
+// selected rule recorded's lacks, a listed group recorded didn't import in full, or a wildcard wider than recorded's.
+func selectsMore(recorded *library.Snapshot, source rules.Source) bool {
+	for _, id := range source.Rules {
+		if !slices.Contains(recorded.RuleSelection, id) {
+			return true
+		}
+	}
+	if sameGroupSelection(recorded.Selection, source.Groups) {
+		return false
+	}
+	if source.Groups.Pattern != "" {
+		return recorded.Selection.Pattern != "*"
+	}
+	for _, group := range source.Groups.Groups {
+		if !slices.Contains(recorded.Groups, group) {
+			return true
+		}
+	}
+	return false
 }
 
 // planRevision plans a source that imports one revision with ref. A recorded snapshot of the same ref, however it
@@ -214,7 +315,7 @@ func (p *planner) planRevision() (sourcePlan, error) {
 	recorded := p.recorded
 	if recorded != nil && p.source.Ref.Equal(recorded.Ref) {
 		plan.release, plan.commit = recorded.Release, recorded.Commit
-		if err := p.repo.fetchCommits(p.ctx, []string{plan.commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref is missing from the library's repository. Delete vendor/%s and run code-rules project sync to resolve the ref again.", p.source.Name, p.source.Name, p.source.Name)); err != nil {
+		if err := p.repo.fetchCommits(p.ctx, []string{plan.commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or set sources.%s.ref to a tag or commit the library still has, then run code-rules project sync. As a last resort, delete vendor/%s and run code-rules project sync to resolve the ref again, which may import different content.", p.source.Name, p.source.Name, p.source.Name, p.source.Name)); err != nil {
 			return sourcePlan{}, err
 		}
 	} else {
@@ -282,7 +383,7 @@ func (p *planner) resolveRef() (int, string, error) {
 			}
 			release := history.release(number)
 			if release == nil {
-				return 0, "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no library release %s; check the ref.", p.source.Name, p.source.Ref), nil)
+				return 0, "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no %s; check the ref.", p.source.Name, p.source.Ref), nil)
 			}
 			return number, release.commit, nil
 		}
@@ -300,7 +401,7 @@ func (p *planner) revisionVersion(id string, plan sourcePlan) (library.ImportedR
 	if plan.release != 0 {
 		release := history.release(plan.release)
 		if release == nil {
-			return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.ref names library release release/%d, which the library no longer has, so newly selected rule %s has no version to import. Ask the library's maintainer to restore the tag, or change sources.%s.ref.", p.source.Name, plan.release, id, p.source.Name), nil)
+			return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.ref names release/%d, which the library no longer has, so newly selected rule %s has no version to import. Ask the library's maintainer to restore the tag, or change sources.%s.ref.", p.source.Name, plan.release, id, p.source.Name), nil)
 		}
 		version, listed := release.record.Rules[id]
 		if !listed {
@@ -333,7 +434,7 @@ func (p *planner) pinnedVersion(id string, pin rules.Pin) (library.ImportedRule,
 		return library.ImportedRule{}, err
 	}
 	if history.publisher(id, pin.Version) == nil {
-		return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.pins.%s: the rule never published version %s; check the pin.", p.source.Name, id, pin.Version), nil)
+		return library.ImportedRule{}, fail("version-not-found", fmt.Sprintf("sources.%s.pins.%s: the rule never published version %s; check the pin. Its published versions, newest first: %s.", p.source.Name, id, pin.Version, history.versionList(id)), nil)
 	}
 	return p.publishedVersion(id, pin.Version)
 }
@@ -360,15 +461,18 @@ func (p *planner) publishedVersion(id string, version rules.RuleVersion) (librar
 	return library.ImportedRule{Version: &version, Release: release.number, Commit: release.commit}, nil
 }
 
-// requireEntries checks that each pin and exclusion names an imported rule. An entry naming a retired rule adds a
-// warning; any other fails.
+// requireEntries checks that each pin and exclusion names an imported rule, and that the library published each
+// replacement's basedOn version. An entry naming a retired rule adds a warning; any other fails.
 func (p *planner) requireEntries(plan *sourcePlan) error {
+	if err := p.requireBasedOn(); err != nil {
+		return err
+	}
 	for _, id := range slices.Sorted(maps.Keys(p.source.Pins)) {
 		if _, imported := plan.rules[id]; imported {
 			continue
 		}
-		// A pin that the last sync recorded without importing its rule already named a retired rule.
-		if recorded := p.recorded; recorded != nil && !hasRule(recorded, id) && hasPin(recorded, id, p.source.Pins[id].Version) {
+		// A pin of a rule the last sync recorded as retired, and didn't import, needs no release history to warn.
+		if recorded := p.recorded; recorded != nil && !hasRule(recorded, id) && slices.Contains(recorded.RetiredRules, id) {
 			plan.warnings = append(plan.warnings, p.retiredEntry("pins", id))
 			continue
 		}
@@ -386,6 +490,25 @@ func (p *planner) requireEntries(plan *sourcePlan) error {
 	return nil
 }
 
+// requireBasedOn fails with code version-not-found when a replacement's basedOn names a version its rule never
+// published, listing the versions it did. It reads the release history only when a replacement records basedOn.
+func (p *planner) requireBasedOn() error {
+	for _, id := range slices.Sorted(maps.Keys(p.source.Exclude)) {
+		based := p.source.Exclude[id].BasedOn
+		if based == nil {
+			continue
+		}
+		history, err := p.releases()
+		if err != nil {
+			return err
+		}
+		if history.publisher(id, *based) == nil {
+			return fail("version-not-found", fmt.Sprintf("sources.%s.exclude.%s.basedOn: the rule never published version %s; check basedOn. Its published versions, newest first: %s.", p.source.Name, id, based, history.versionList(id)), nil)
+		}
+	}
+	return nil
+}
+
 // unimported handles a configuration entry naming a rule the source doesn't import: a warning for a retired rule
 // the source would otherwise import, through its groups, its rules list, or its recorded snapshot, and a
 // validation error for any other.
@@ -394,8 +517,7 @@ func (p *planner) unimported(field, id string, plan *sourcePlan) error {
 	if err != nil {
 		return err
 	}
-	wouldImport := p.source.Groups.Includes(ruleGroup(id)) || slices.Contains(p.source.Rules, id) || p.recorded != nil && hasRule(p.recorded, id)
-	if wouldImport && history.retired(id) {
+	if p.wouldImport(id) && history.retired(id) {
 		plan.warnings = append(plan.warnings, p.retiredEntry(field, id))
 		return nil
 	}
@@ -406,19 +528,73 @@ func (p *planner) unimported(field, id string, plan *sourcePlan) error {
 	return &rules.ValidationError{Location: location, Problem: "rule is not imported by this source; name a rule that its groups or rules select"}
 }
 
+// wouldImport reports whether the source would import rule id if the library still published it: its groups or rules
+// list selects it, or recorded imported it or listed it as retired.
+func (p *planner) wouldImport(id string) bool {
+	return p.selected(id) || p.recorded != nil && (hasRule(p.recorded, id) || slices.Contains(p.recorded.RetiredRules, id))
+}
+
 // retiredEntry warns that a configuration entry names a retired rule.
 func (p *planner) retiredEntry(field, id string) string {
 	return fmt.Sprintf("sources.%s.%s names %s, a rule the library retired, so the entry no longer does anything; delete it.", p.source.Name, field, id)
 }
 
-// requireUnmoved fails when a rule's recorded library release tag now names a different commit than the record.
+// requireUnmoved checks the plan's library releases and versions, which it may have kept from the source record,
+// against the library's release history. For a source that follows rule versions, it reads the history when the
+// planner hasn't yet: a rule version its library release doesn't publish, or a library release that supplies a rule
+// or the plan's library-wide files but that the library doesn't have, fails as an invalid source record, as a hand
+// edit or a merge resolution of _source.json can leave it, and a library release tag that now names a different
+// commit than the plan records fails with invalid-release-tag. A source that uses ref keeps the commit its ref named
+// when recorded, even after the tag moves or is gone, so it reads the history only when choosing versions needed it,
+// and then checks only the versions of library releases the history has. Sync reads only records it wrote, whose
+// checksum matches, so these exemptions never cover a record changed outside sync.
 func (p *planner) requireUnmoved(plan sourcePlan) error {
-	if p.history == nil {
+	usesRef := !p.source.Ref.IsZero()
+	versioned := plan.release != 0 || slices.ContainsFunc(slices.Collect(maps.Values(plan.rules)), func(rule library.ImportedRule) bool { return rule.Version != nil })
+	if !versioned || usesRef && p.history == nil {
 		return nil
+	}
+	history, err := p.releases()
+	if err != nil {
+		return err
+	}
+	record := "vendor/" + p.source.Name + "/_source.json"
+	missing := func(location string, number int) error {
+		return &rules.ValidationError{Location: location, Problem: fmt.Sprintf("records library release %d, which the library doesn't have; restore %s, such as from version control, or, if the library deleted its release/%d tag, ask the library's maintainer to restore it; then run code-rules project sync again", number, record, number)}
 	}
 	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
 		rule := plan.rules[id]
-		if release := p.history.release(rule.Release); release != nil && release.commit != rule.Commit {
+		if rule.Version == nil {
+			continue
+		}
+		release := history.release(rule.Release)
+		if release == nil {
+			if usesRef {
+				continue
+			}
+			return missing(record+".rules."+id, rule.Release)
+		}
+		if published, ok := release.record.Rules[id]; !ok || published != *rule.Version {
+			publishes := "which doesn't publish the rule"
+			if ok {
+				publishes = "which publishes version " + published.String() + " of the rule"
+			}
+			return &rules.ValidationError{Location: record + ".rules." + id, Problem: fmt.Sprintf("records version %s from library release %d, %s; restore %s, such as from version control, then run code-rules project sync again", rule.Version, rule.Release, publishes, record)}
+		}
+	}
+	if plan.release != 0 && history.release(plan.release) == nil && !usesRef {
+		return missing(record+".release", plan.release)
+	}
+	// A recorded ref keeps its commit, wherever its tags point now.
+	if usesRef && p.recorded != nil && p.recorded.Ref.Equal(p.source.Ref) {
+		return nil
+	}
+	if release := history.release(plan.release); plan.release != 0 && release != nil && release.commit != plan.commit {
+		return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for the library's shared files. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run code-rules project sync to use the tag's current commit.", plan.release, p.source.Name, p.source.Name), nil)
+	}
+	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
+		rule := plan.rules[id]
+		if release := history.release(rule.Release); release != nil && release.commit != rule.Commit {
 			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for %s. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run code-rules project sync to use the tag's current commit.", rule.Release, p.source.Name, id, p.source.Name), nil)
 		}
 	}
@@ -455,21 +631,6 @@ func ruleGroup(id string) string {
 func hasRule(snapshot *library.Snapshot, id string) bool {
 	_, ok := snapshot.Rules[id]
 	return ok
-}
-
-// hasPin reports whether the snapshot recorded a pin of rule id to version.
-func hasPin(snapshot *library.Snapshot, id string, version rules.RuleVersion) bool {
-	pinned, ok := snapshot.Pins[id]
-	return ok && pinned == version
-}
-
-// pinnedVersions returns the version of each pin, the part of a pin a snapshot records; it is empty, never nil.
-func pinnedVersions(pins map[string]rules.Pin) map[string]rules.RuleVersion {
-	versions := make(map[string]rules.RuleVersion, len(pins))
-	for id, pin := range pins {
-		versions[id] = pin.Version
-	}
-	return versions
 }
 
 // sameGroupSelection reports whether two group selections request the same groups.

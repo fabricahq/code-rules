@@ -39,14 +39,14 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 			case "check":
 				report, checkErr := checkProject(cmd.Context(), projectOptions)
 				if checkErr == nil {
-					output.report = projectCheckedReport(report)
+					output.report = projectCheckedReport(report, directory, options.Directory)
 				}
 				return checkErr
 			}
 			if err != nil {
 				return err
 			}
-			output.report = projectChangesReport(name, changes)
+			output.report = projectChangesReport(name, changes, directory, options.Directory)
 			return nil
 		}
 		command.AddCommand(cmd)
@@ -77,7 +77,7 @@ func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = projectInitializedReport(result)
+		output.report = projectInitializedReport(result, f.directory)
 		return nil
 	}
 	return initialize
@@ -110,7 +110,7 @@ func projectLibraryCommand(options Options, output *commandOutput) *cobra.Comman
 		if err != nil {
 			return err
 		}
-		output.report = sourceAddedReport(result)
+		output.report = sourceAddedReport(result, authoringScope{workdir: sf.directory})
 		return nil
 	}
 	return source
@@ -136,7 +136,7 @@ func projectGroupCommand(options Options, output *commandOutput) *cobra.Command 
 		if err != nil {
 			return err
 		}
-		output.report = groupCreatedReport(result.Added, result.Changed, result.Warnings, args[0], authoringScope{})
+		output.report = groupCreatedReport(result.Added, result.Changed, result.Warnings, args[0], authoringScope{workdir: gf.directory})
 		return nil
 	}
 	return group
@@ -171,7 +171,7 @@ func projectRuleCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = ruleCreatedReport(result.Added, result.Changed, result.Warnings, body == nil, authoringScope{}, args[0], false)
+		output.report = ruleCreatedReport(result.Added, result.Changed, result.Warnings, body == nil, authoringScope{workdir: rf.directory}, args[0], false)
 		return nil
 	}
 	return rule

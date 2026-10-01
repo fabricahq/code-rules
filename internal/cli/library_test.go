@@ -79,7 +79,9 @@ func TestLibraryGuideExamples(t *testing.T) {
 	if err := os.WriteFile(guidePath, customized, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if out, diagnostic, code := runCLI(t, binary, directory, "library", "init"); code != 0 {
+	// Rerunning init in a library that has groups suggests validating it rather than adding a first group.
+	out, diagnostic, code := runCLI(t, binary, directory, "library", "init")
+	if code != 0 || !strings.Contains(out, "No files changed.\n") || !strings.Contains(out, "Next: Validate the library:\n  code-rules library check\n") || strings.Contains(out, "Add a group and rule") {
 		t.Fatal(code, out, diagnostic)
 	}
 	after, err := os.ReadFile(guidePath)

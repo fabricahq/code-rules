@@ -398,3 +398,44 @@ func TestPrepareShowsNoVersionForUnreleasedRules(t *testing.T) {
 		t.Errorf("library summary lists pins the source doesn't have:\n%s", summary)
 	}
 }
+
+// TestPrepareMarksExcludedRulesInTheLibrarySummary, which the source still imports but agents don't read.
+func TestPrepareMarksExcludedRulesInTheLibrarySummary(t *testing.T) {
+	files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
+		version := rules.RuleVersion{Major: 1}
+		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: commit}
+		source.Exclude = map[string]rules.Exclusion{"techs/go/errors": {Reason: "Not for us."}}
+	})
+	if summary := files["libraries/team/README.md"]; !strings.Contains(summary, "| Rule | Version | Library release | Status |\n") || !strings.Contains(summary, "| `techs/go/errors` | 1.0.0 | release/1 | Excluded |") {
+		t.Errorf("library summary:\n%s", summary)
+	}
+}
+
+// TestLibraryReadme_ShowsAKeptRetiredRuleAsRetired: a rule the library retired that a pin keeps at its last version,
+// listed both in rules and in retiredRules, is marked retired and pinned, not active; one an update didn't move yet
+// is marked retired.
+func TestLibraryReadme_ShowsAKeptRetiredRuleAsRetired(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		pinned, ref bool
+		status      string
+	}{{"pinned", true, false, "Retired, pinned at 1.3.0"}, {"not yet dropped", false, false, "Retired; the next update drops it"}, {"held by ref", false, true, "Retired upstream; kept by ref v1.0.0"}} {
+		t.Run(test.name, func(t *testing.T) {
+			files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
+				version := rules.RuleVersion{Major: 1, Minor: 3}
+				snapshot.Release = 2
+				snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: strings.Repeat("b", 40)}
+				snapshot.RetiredRules = []string{"techs/go/errors"}
+				if !test.ref {
+					source.Ref = rules.GitRef{}
+				}
+				if test.pinned {
+					source.Pins = map[string]rules.Pin{"techs/go/errors": {Version: version, Reason: "Still useful."}}
+				}
+			})
+			if row := "| `techs/go/errors` | 1.3.0 | release/1 | " + test.status + " |"; !strings.Contains(files["libraries/team/README.md"], row) {
+				t.Errorf("README lacks %q:\n%s", row, files["libraries/team/README.md"])
+			}
+		})
+	}
+}

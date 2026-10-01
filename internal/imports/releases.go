@@ -9,6 +9,7 @@ import (
 	"maps"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -69,9 +70,39 @@ func (h releaseHistory) published(id string) []*libraryRelease {
 	return result
 }
 
+// maxListedVersions bounds how many versions an error lists, so a long-lived rule's history stays readable.
+const maxListedVersions = 10
+
+// versionList lists, newest first, the versions rule id published, at most maxListedVersions of them followed by
+// how many older ones there are, or "" when it published none.
+func (h releaseHistory) versionList(id string) string {
+	versions := []string{}
+	for _, release := range h.published(id) {
+		versions = append(versions, release.record.Rules[id].String())
+	}
+	if len(versions) > maxListedVersions {
+		return strings.Join(versions[:maxListedVersions], ", ") + fmt.Sprintf(", and %d older", len(versions)-maxListedVersions)
+	}
+	return strings.Join(versions, ", ")
+}
+
 // retired reports whether any library release retired rule id.
 func (h releaseHistory) retired(id string) bool {
 	return h.retirement(id) != nil
+}
+
+// currentReplacement follows the replacements of retired rule id until one that the newest library release
+// publishes, and returns it, or "" when a retirement names no replacement. A cycle, which only hand-made release
+// tags could record, also returns "".
+func (h releaseHistory) currentReplacement(id string) string {
+	seen := map[string]bool{}
+	for retired := h.retirement(id); retired != nil && retired.ReplacedBy != "" && !seen[id]; retired = h.retirement(id) {
+		seen[id], id = true, retired.ReplacedBy
+		if _, current := h.newest().record.Rules[id]; current {
+			return id
+		}
+	}
+	return ""
 }
 
 // retirement returns how a library release retired rule id, or nil when none did.
@@ -85,18 +116,20 @@ func (h releaseHistory) retirement(id string) *rules.RetiredRule {
 }
 
 // summaries returns, oldest first, the summaries of every version of rule id newer than from, up to and including
-// to, one per change note. A nil from includes every version up to to. The result is empty, never nil, when there
-// are none.
-func (h releaseHistory) summaries(id string, from *rules.RuleVersion, to rules.RuleVersion) []string {
-	result := []string{}
+// to, one per change note, and the version each belongs to, in the same order. A nil from includes every version up
+// to to. Both are empty, never nil, when there are none.
+func (h releaseHistory) summaries(id string, from *rules.RuleVersion, to rules.RuleVersion) ([]string, []rules.RuleVersion) {
+	summaries, versions := []string{}, []rules.RuleVersion{}
 	for _, release := range h.releases {
 		change, changed := release.record.Changes[id]
 		version := release.record.Rules[id]
 		if changed && (from == nil || version.Compare(*from) > 0) && version.Compare(to) <= 0 {
-			result = append(result, change.Summaries...)
+			for _, summary := range change.Summaries {
+				summaries, versions = append(summaries, summary), append(versions, version)
+			}
 		}
 	}
-	return result
+	return summaries, versions
 }
 
 // loadHistory lists the library's release/<number> tags, fetches them without history or blobs, and reads their
@@ -112,15 +145,15 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 		name := "refs/tags/release/" + strconv.Itoa(release.number)
 		refspecs = append(refspecs, "+"+name+":"+name)
 	}
-	ok, err := r.fetch(ctx, refspecs, true)
+	fetched, err := r.fetch(ctx, refspecs, true)
 	if err != nil {
 		return releaseHistory{}, err
 	}
-	if !ok {
+	if fetched.Status != 0 {
 		if err := r.unreachable(ctx); err != nil {
 			return releaseHistory{}, err
 		}
-		return releaseHistory{}, fail("git-failed", "Could not fetch the library's release tags.", nil)
+		return releaseHistory{}, gitFailure("git-failed", "Could not fetch the library's release tags.", fetched.Diagnostics)
 	}
 	tags, err := r.fetchedReleases(ctx, advertised)
 	if err != nil {
@@ -137,7 +170,7 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 	case errors.As(err, &invalid) && errors.As(invalid.Err, &unsupported):
 		return releaseHistory{}, fail("unsupported-release-record", fmt.Sprintf("Library release tag %s uses release record format %d, which this version of Code Rules can't read. Upgrade Code Rules, then run the command again.", invalid.Tag, unsupported.FormatVersion), nil)
 	case invalid != nil:
-		return releaseHistory{}, fail("invalid-release-tag", fmt.Sprintf("Invalid release record in library release tag %s: %v. Don't create or move release tags by hand.", invalid.Tag, invalid.Err), invalid.Err)
+		return releaseHistory{}, fail("invalid-release-tag", "Invalid release record: "+invalid.Problem()+". Don't create or move release tags by hand.", invalid.Err)
 	}
 	if err != nil {
 		return releaseHistory{}, err
@@ -155,7 +188,7 @@ func (r *repository) listReleases(ctx context.Context) ([]libraryRelease, error)
 		return nil, err
 	}
 	if result.Status != 0 {
-		return nil, fail("not-found-or-no-access", "Repository not found or no access; check its address and Git credentials.", nil)
+		return nil, remoteFailure(result.Diagnostics)
 	}
 	tags, err := rules.ParseTagAdvertisement(string(result.Output))
 	if err != nil {

@@ -202,15 +202,15 @@ func TestChange_RejectsNotesThatDontMatchTheLibrary(t *testing.T) {
 		{"unknown rule", nil, ChangeRequest{IDs: []string{c}, Summary: "Add c."}, "unknown-rule", c + " isn't a rule in the library."},
 		{"deleted rule without --retire", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Bump: rules.ChangePatch, Summary: "Fix b."}, "unknown-rule", "To record its retirement, add --retire."},
 		{"ID with .md", nil, ChangeRequest{IDs: []string{a + ".md"}, Bump: rules.ChangePatch, Summary: "Fix a."}, "unknown-rule", "Rule IDs omit the .md extension."},
-		{"bump for a new rule", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{c}, Bump: rules.ChangeMinor, Summary: "Add c."}, "invalid-change", "--bump isn't accepted for new rules"},
-		{"new and versioned rules", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{a, c}, Summary: "Add c."}, "invalid-change", "Record them in separate notes."},
+		{"bump for a new rule", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{c}, Bump: rules.ChangeMinor, Summary: "Add c."}, "invalid-arguments", "--bump isn't accepted for new rules"},
+		{"new and versioned rules", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{a, c}, Summary: "Add c."}, "invalid-arguments", "Record them in separate notes."},
 		{"retirement of a rule that exists", nil, ChangeRequest{IDs: []string{a}, Retire: true, Summary: "Retire a."}, "invalid-change", a + " still exists."},
 		{"retirement that keeps the asset directory", map[string]string{"practices/testing/a.md": ""}, ChangeRequest{IDs: []string{a}, Retire: true, Summary: "Retire a."}, "invalid-change", a + "'s asset directory, practices/testing/assets/a/, still exists. Delete it before recording the retirement."},
 		{"retirement of an unpublished rule", nil, ChangeRequest{IDs: []string{c}, Retire: true, Summary: "Retire c."}, "invalid-change", c + " was never published, so it can't be retired."},
-		{"bump for a retirement", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Retire: true, Bump: rules.ChangeMajor, Summary: "Retire b."}, "invalid-change", "--bump isn't accepted for retired rules."},
-		{"replacement without --retire", nil, ChangeRequest{IDs: []string{a}, Bump: rules.ChangeMajor, ReplacedBy: b, Summary: "Replace a."}, "invalid-change", "--replaced-by requires --retire and a single rule"},
-		{"replacement for several rules", map[string]string{"practices/testing/a.md": "", "practices/testing/b.md": ""}, ChangeRequest{IDs: []string{a, b}, Retire: true, ReplacedBy: c, Summary: "Replace both."}, "invalid-change", "--replaced-by requires --retire and a single rule"},
-		{"duplicate rule", nil, ChangeRequest{IDs: []string{a, a}, Bump: rules.ChangePatch, Summary: "Fix a."}, "invalid-change", a + " is named more than once"},
+		{"bump for a retirement", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Retire: true, Bump: rules.ChangeMajor, Summary: "Retire b."}, "invalid-arguments", "--bump isn't accepted for retired rules."},
+		{"replacement without --retire", nil, ChangeRequest{IDs: []string{a}, Bump: rules.ChangeMajor, ReplacedBy: b, Summary: "Replace a."}, "invalid-arguments", "--replaced-by requires --retire and a single rule"},
+		{"replacement for several rules", map[string]string{"practices/testing/a.md": "", "practices/testing/b.md": ""}, ChangeRequest{IDs: []string{a, b}, Retire: true, ReplacedBy: c, Summary: "Replace both."}, "invalid-arguments", "--replaced-by requires --retire and a single rule"},
+		{"duplicate rule", nil, ChangeRequest{IDs: []string{a, a}, Bump: rules.ChangePatch, Summary: "Fix a."}, "invalid-arguments", a + " is named more than once"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -282,10 +282,10 @@ func TestChange_RequiresABumpAndSummaryToCommit(t *testing.T) {
 	if err != nil || !plan.Versioned {
 		t.Fatal(plan, err)
 	}
-	if _, err := plan.Commit(ctx, "", "Fix a.", noteDay); errorCode(err) != "invalid-change" || !strings.Contains(err.Error(), "--bump is required") {
+	if _, err := plan.Commit(ctx, "", "Fix a.", noteDay); errorCode(err) != "invalid-arguments" || !strings.Contains(err.Error(), "--bump is required") {
 		t.Fatal(err)
 	}
-	if _, err := plan.Commit(ctx, rules.ChangePatch, " ", noteDay); errorCode(err) != "invalid-change" || !strings.Contains(err.Error(), "--summary is required") {
+	if _, err := plan.Commit(ctx, rules.ChangePatch, " ", noteDay); errorCode(err) != "invalid-arguments" || !strings.Contains(err.Error(), "--summary is required") {
 		t.Fatal(err)
 	}
 	// The note parser rejects a summary of more than one line, so the command never writes one.

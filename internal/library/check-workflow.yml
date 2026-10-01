@@ -28,5 +28,7 @@ jobs:
           checksum=$(sha256sum "$archive")
           grep -qxF "$checksum" SHA256SUMS
           tar -xzf "$archive" code-rules
+          installed="Installed Code Rules $("$dir/code-rules" --version)."
+          echo "$installed" && echo "$installed" >> "$GITHUB_STEP_SUMMARY"
           echo "$dir" >> "$GITHUB_PATH"
       - run: code-rules library check

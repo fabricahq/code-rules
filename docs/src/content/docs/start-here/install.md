@@ -34,6 +34,8 @@ code-rules project build
 code-rules project check
 ```
 
+A library's check workflow installs the Code Rules version that created it. To move it to the version you just installed, delete `.github/workflows/code-rules.yml` from the library and run `code-rules library init` again; see [Check changes in CI](/guides/version-rules/#check-changes-in-ci).
+
 ## Install with Homebrew
 
 With [Homebrew](https://brew.sh/) installed on macOS or Linux:

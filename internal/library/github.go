@@ -10,7 +10,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"unicode"
 
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -82,14 +81,21 @@ func parseRemote(remoteURL string) (rules.Repository, bool) {
 func withoutCredentials(remoteURL string) (string, bool) {
 	parsed, err := url.Parse(remoteURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		if strings.Contains(remoteURL, "://") {
+		// An address with an authority but no scheme it can parse, such as //user:password@host/path, could carry
+		// credentials anywhere in it.
+		if strings.Contains(remoteURL, "://") || strings.HasPrefix(remoteURL, "//") {
 			return "", false
 		}
 		// A user@host:path address or a local path isn't a URL; Git reads neither a query nor a fragment in it.
-		if end := strings.IndexAny(remoteURL, "?#"); end >= 0 {
-			return remoteURL[:end], true
+		address := remoteURL
+		if end := strings.IndexAny(address, "?#"); end >= 0 {
+			address = address[:end]
 		}
-		return remoteURL, true
+		// A user@host:path address names only an account before its @; a colon there could start a password.
+		if at := strings.LastIndex(address, "@"); at >= 0 && strings.Contains(address[:at], ":") {
+			return "", false
+		}
+		return address, true
 	}
 	if parsed.User != nil && parsed.Scheme == "ssh" {
 		parsed.User = url.User(parsed.User.Username())
@@ -129,37 +135,61 @@ const releaseNotFound = "release not found"
 // doesn't exist. Any other failure, such as an API error, fails with github-release-failed, so a page that
 // can't be read is never created again.
 func (c gitHubCLI) releasePage(ctx context.Context, repository, tag string) (string, bool, error) {
-	stdout, stderr, status, err := c.run(ctx, "", "release", "view", tag, "--repo", "github.com/"+repository, "--json", "url", "--jq", ".url")
+	_, stderr, status, err := c.run(ctx, "", "release", "view", tag, "--repo", "github.com/"+repository, "--json", "url", "--jq", ".url")
 	switch {
 	case err != nil:
 		return "", false, err
 	case status == 0:
-		return strings.TrimSpace(stdout), true, nil
-	case strings.Contains(stderr, releaseNotFound):
+		return releasePageURL(repository, tag), true, nil
+	case gitexec.Mentions([]byte(stderr), releaseNotFound):
 		return "", false, nil
 	}
-	problem := "the GitHub CLI couldn't look up the GitHub Release page for " + tag
-	if reason := diagnosticLine(stderr); reason != "" {
-		problem += " (" + reason + ")"
-	}
-	return "", false, failure("github-release-failed", problem+". The tag is published; run code-rules library release again to finish.", nil)
+	return "", false, failure("github-release-failed", "the GitHub CLI couldn't look up the GitHub Release page for "+tag+": "+gitHubCLIFailure(true, repository, tag, stderr), nil)
 }
 
 // createReleasePage creates tag's GitHub Release page in repository, titled with the tag and with notes as its
 // body, and returns its URL. gh refuses when the tag isn't on GitHub.
 func (c gitHubCLI) createReleasePage(ctx context.Context, repository, tag, notes string) (string, error) {
-	stdout, stderr, status, err := c.run(ctx, notes+"\n", "release", "create", tag, "--repo", "github.com/"+repository, "--verify-tag", "--title", tag, "--notes-file", "-")
+	_, stderr, status, err := c.run(ctx, notes+"\n", "release", "create", tag, "--repo", "github.com/"+repository, "--verify-tag", "--title", tag, "--notes-file", "-")
 	if err != nil {
 		return "", err
 	}
 	if status != 0 {
-		problem := "the GitHub CLI couldn't create the GitHub Release page for " + tag
-		if reason := diagnosticLine(stderr); reason != "" {
-			problem += " (" + reason + ")"
-		}
-		return "", failure("github-release-failed", problem+". The tag is published; run code-rules library release again to create the page.", nil)
+		return "", failure("github-release-failed", "the GitHub CLI couldn't create the GitHub Release page for "+tag+": "+gitHubCLIFailure(false, repository, tag, stderr), nil)
 	}
-	return strings.TrimSpace(stdout), nil
+	return releasePageURL(repository, tag), nil
+}
+
+// releasePageURL returns the URL of tag's GitHub Release page in repository, OWNER/REPO. Code Rules builds it from
+// what it knows rather than show the URL gh prints, which could carry anything.
+func releasePageURL(repository, tag string) string {
+	return "https://github.com/" + repository + "/releases/tag/" + tag
+}
+
+// gitHubCLIFailure explains why gh failed to look up, when lookup is true, or create tag's GitHub Release page in
+// repository, and what to do next, with a static cause chosen from gh's diagnostics, which it never shows:
+// GitHub's rate limit, gh signed out or its credentials refused, permission denied, a repository GitHub can't
+// find, or a cause it doesn't recognize. Its next steps never change anything on GitHub: only code-rules library
+// release creates the page, with its generated notes.
+func gitHubCLIFailure(lookup bool, repository, tag, stderr string) string {
+	verb, finish := "create", ", then run code-rules library release again to create the page."
+	if lookup {
+		verb, finish = "read", ", then run code-rules library release again to finish."
+	}
+	diagnostics := []byte(stderr)
+	switch {
+	case gitexec.Mentions(diagnostics, "rate limit", "http 429"):
+		return "GitHub's API rate limit was reached. The tag is published; wait for the limit to reset" + finish
+	case gitexec.Mentions(diagnostics, "http 401", "bad credentials", "gh auth login", "not logged in"):
+		return "gh isn't signed in to GitHub.com, or GitHub refused its credentials. The tag is published; sign in with gh auth login" + finish
+	case gitexec.Mentions(diagnostics, "http 403", "resource not accessible", "permission"):
+		return "GitHub denied permission to " + verb + " releases in " + repository + ". The tag is published; check that your GitHub account can " + verb + " releases there" + finish
+	case gitexec.Mentions(diagnostics, "http 404", "not found", "could not resolve to a repository"):
+		return "GitHub couldn't find " + repository + ", or your account can't see it. The tag is published; check the repository and your access to it" + finish
+	case lookup:
+		return "gh failed for a reason Code Rules doesn't recognize. The tag is published; run gh release view " + tag + " --repo github.com/" + repository + " to read gh's message" + finish
+	}
+	return "gh failed for a reason Code Rules doesn't recognize. The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/" + repository + ", then run code-rules library release again, which creates the page with its notes only if it's still missing."
 }
 
 // run executes gh with args and stdin, returning its stdout, its stderr, and its exit status. Output beyond
@@ -176,20 +206,4 @@ func (c gitHubCLI) run(ctx context.Context, stdin string, args ...string) (strin
 		return "", "", 0, err
 	}
 	return "", "", 0, failure("github-cli-failed", "code-rules library release couldn't run the GitHub CLI, gh. Check that it's installed and works, or pass --no-github-release to publish the tag only.", nil)
-}
-
-// diagnosticLine returns gh's last nonblank line of diagnostics, without control characters and at most
-// 200 characters long, to explain a failure.
-func diagnosticLine(stderr string) string {
-	lines := strings.Split(strings.TrimSpace(stderr), "\n")
-	line := strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) {
-			return -1
-		}
-		return r
-	}, strings.TrimSpace(lines[len(lines)-1]))
-	if runes := []rune(line); len(runes) > 200 {
-		line = string(runes[:200]) + "..."
-	}
-	return line
 }

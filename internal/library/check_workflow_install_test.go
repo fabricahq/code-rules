@@ -95,7 +95,8 @@ func publish(t *testing.T, assets, tag string, files, sums map[string][]byte) {
 
 // TestCheckWorkflow_InstallsOnlyTheVerifiedRequestedVersion runs the install step with bash -e, as GitHub Actions
 // does: it adds Code Rules to PATH only when the attested checksums list exactly the requested version's archive
-// with its bytes, so a release whose assets were replaced with an older release's fails instead of installing it.
+// with its bytes, so a release whose assets were replaced with an older release's fails instead of installing it,
+// and it prints the installed version to the log and the job summary.
 func TestCheckWorkflow_InstallsOnlyTheVerifiedRequestedVersion(t *testing.T) {
 	bash, err := exec.LookPath("bash")
 	if err != nil {
@@ -157,10 +158,10 @@ func TestCheckWorkflow_InstallsOnlyTheVerifiedRequestedVersion(t *testing.T) {
 			runner := t.TempDir()
 			assets := filepath.Join(runner, "assets")
 			test.assets(t, assets)
-			githubPath := filepath.Join(runner, "github-path")
+			githubPath, summary := filepath.Join(runner, "github-path"), filepath.Join(runner, "step-summary")
 			command := exec.Command(bash, "--noprofile", "--norc", "-eo", "pipefail", "-c", installScript(t, string(workflow)))
 			command.Dir = runner
-			command.Env = []string{"PATH=" + tools, "RUNNER_TEMP=" + filepath.Join(runner, "temp"), "GITHUB_PATH=" + githubPath, "GH_TOKEN=token", "FAKE_LOG=" + filepath.Join(runner, "log"), "FAKE_ASSETS=" + assets, "FAKE_LATEST=" + test.latest, "FAKE_ATTESTATION=" + test.attestation}
+			command.Env = []string{"PATH=" + tools, "RUNNER_TEMP=" + filepath.Join(runner, "temp"), "GITHUB_PATH=" + githubPath, "GITHUB_STEP_SUMMARY=" + summary, "GH_TOKEN=token", "FAKE_LOG=" + filepath.Join(runner, "log"), "FAKE_ASSETS=" + assets, "FAKE_LATEST=" + test.latest, "FAKE_ATTESTATION=" + test.attestation}
 			output, err := command.CombinedOutput()
 			if (err == nil) != (test.installed != "") {
 				calls, _ := os.ReadFile(filepath.Join(runner, "log"))
@@ -176,6 +177,11 @@ func TestCheckWorkflow_InstallsOnlyTheVerifiedRequestedVersion(t *testing.T) {
 			}
 			if string(path) != filepath.Join(runner, "temp", "code-rules")+"\n" || readErr != nil || !strings.Contains(string(executable), "echo "+test.installed+"\n") {
 				t.Fatalf("GITHUB_PATH %q, executable %q %v; want %s installed", path, executable, readErr, test.installed)
+			}
+			// The log and the job summary say which version the check runs.
+			reported, _ := os.ReadFile(summary)
+			if want := "Installed Code Rules " + test.installed + ".\n"; !strings.Contains(string(output), want) || string(reported) != want {
+				t.Fatalf("log %q, step summary %q; want each to report %q", output, reported, want)
 			}
 		})
 	}

@@ -24,6 +24,10 @@ type Library struct {
 	// Warnings explain configuration the import tolerated: entries naming retired rules, and a ref that isn't a
 	// library release. It is empty, never nil, when there are none.
 	Warnings []string `json:"warnings"`
+	// GroupMetadata maps each group Options.GroupMetadata names that Catalog lacks to its metadata's original bytes
+	// in the revision that supplied the library-wide files, when that revision has it. It is empty, never nil, when
+	// there is none; Snapshot doesn't record it.
+	GroupMetadata map[string][]byte `json:"-"`
 }
 
 // ImportLibraries imports every configured source or returns no partial result. recorded holds each source's
@@ -51,7 +55,7 @@ func importSources(ctx context.Context, configuration rules.Configuration, optio
 		}
 		imported, err := importLibrary(ctx, source, options, resolve)
 		if err != nil {
-			return nil, fmt.Errorf("import source %q failed (no libraries were returned because all configured sources must succeed): %w", source.Name, err)
+			return nil, sourceError(source.Name, err)
 		}
 		result[source.Name] = imported
 	}
@@ -78,12 +82,17 @@ func importLibrary(ctx context.Context, source rules.Source, options Options, re
 	if err != nil {
 		return Library{}, err
 	}
-	defer func() { err = errors.Join(err, repo.Close()) }()
+	// Joining only a failed Close keeps err itself, so callers still see its identity, such as a validation error.
+	defer func() {
+		if closeErr := repo.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	plan, err := resolve(ctx, repo, source)
 	if err != nil {
 		return Library{}, err
 	}
-	return repo.importPlan(ctx, source, plan)
+	return repo.importPlan(ctx, source, plan, options.GroupMetadata)
 }
 
 // withTimeout returns ctx bounded by the options' import timeout, 120 seconds when it is zero, and fails with code
@@ -101,13 +110,14 @@ func withTimeout(ctx context.Context, options Options) (context.Context, context
 }
 
 // importPlan fetches the commits plan names, reads and validates the files it imports, and returns them with the
-// snapshot that records them.
-func (r *repository) importPlan(ctx context.Context, source rules.Source, plan sourcePlan) (Library, error) {
+// snapshot that records them, and the metadata of each group in groups that the catalog lacks, when the plan's
+// library-wide files have it.
+func (r *repository) importPlan(ctx context.Context, source rules.Source, plan sourcePlan, groups []string) (Library, error) {
 	commits := []string{plan.commit}
 	for _, rule := range plan.rules {
 		commits = append(commits, rule.Commit)
 	}
-	if err := r.fetchCommits(ctx, commits, fmt.Sprintf("A commit that vendor/%s/_source.json records is missing from the library's repository. Delete vendor/%s and run code-rules project sync to choose versions again.", source.Name, source.Name)); err != nil {
+	if err := r.fetchCommits(ctx, commits, fmt.Sprintf("A commit that vendor/%s/_source.json records is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or, to keep your rule versions, set sources.%s.ref to a library release tag or commit the library still has that publishes them, then run code-rules project sync. As a last resort, delete vendor/%s and run code-rules project sync, which imports every unpinned rule's newest version.", source.Name, source.Name, source.Name)); err != nil {
 		return Library{}, err
 	}
 	individual := slices.Sorted(slices.Values(plan.individual))
@@ -125,11 +135,15 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	if loaded := catalogRules(catalog); !slices.Equal(loaded, slices.Sorted(maps.Keys(plan.rules))) {
 		return Library{}, fail("unsupported-content", "The library's files don't match the rules its release records list. Don't create or move release tags by hand.", nil)
 	}
+	// A plan that update decided on keeps no ref, which the source's own stands in for.
+	ref := source.Ref
+	if plan.ref.Equal(source.Ref) {
+		ref = plan.ref
+	}
 	snapshot := library.Snapshot{
 		Repository:    source.Repository,
-		Pins:          pinnedVersions(source.Pins),
-		Exclude:       slices.Sorted(maps.Keys(source.Exclude)),
-		Ref:           source.Ref,
+		RetiredRules:  plan.retired,
+		Ref:           ref,
 		Release:       plan.release,
 		Commit:        plan.commit,
 		Selection:     rules.GroupSelection{Pattern: source.Groups.Pattern, Groups: slices.Clone(source.Groups.Groups)},
@@ -146,10 +160,34 @@ func (r *repository) importPlan(ctx context.Context, source rules.Source, plan s
 	for file, data := range catalog.Files() {
 		snapshot.Files[file] = bytes.Clone(data)
 	}
+	metadata, err := requestedGroupMetadata(input, catalog, groups)
+	if err != nil {
+		return Library{}, err
+	}
 	if err := ctx.Err(); err != nil {
 		return Library{}, gitexec.ContextFailure(err)
 	}
-	return Library{Catalog: catalog, Snapshot: snapshot, Warnings: plan.warnings}, nil
+	return Library{Catalog: catalog, Snapshot: snapshot, Warnings: plan.warnings, GroupMetadata: metadata}, nil
+}
+
+// requestedGroupMetadata reads, from input, the metadata of each of groups that catalog lacks and input has.
+func requestedGroupMetadata(input *gitFiles, catalog library.Catalog, groups []string) (map[string][]byte, error) {
+	result := map[string][]byte{}
+	for _, group := range groups {
+		file := group + "/_group.yaml"
+		if slices.ContainsFunc(catalog.Groups, func(loaded library.Group) bool { return loaded.ID == group }) {
+			continue
+		}
+		if _, err := input.Lstat(file); err != nil {
+			continue
+		}
+		data, err := input.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		result[group] = data
+	}
+	return result, nil
 }
 
 // snapshotFiles assembles the files the plan imports: library-wide files from the plan's commit, and each rule's

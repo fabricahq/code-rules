@@ -311,18 +311,19 @@ test('uploads four unarchived executables with seven-day retention', () => {
   }
 });
 
-test('extracts exact executable bytes from each packaged target and refuses a missing archive', () => {
-  const packaging = parse(
-    readFileSync('.github/workflows/package-binaries.yml', 'utf8'),
-  );
-  const extract = packaging.jobs.install.steps.find(
-    (step: { name?: string }) => step.name === 'Extract preview executables',
-  ).run;
+const extract = parse(
+  readFileSync('.github/workflows/package-binaries.yml', 'utf8'),
+).jobs.install.steps.find(
+  (step: { name?: string }) => step.name === 'Extract preview executables',
+).run;
+
+// Package fixture archives in a fresh directory, run the extract step there, and return what it produced.
+function extractPackaged(packaged: string[]) {
   const directory = mkdtempSync(join(tmpdir(), 'code-rules-preview-'));
   try {
     mkdirSync(join(directory, 'native-artifacts'));
     const expected = new Map<string, Buffer<ArrayBuffer>>();
-    for (const target of targets) {
+    for (const target of packaged) {
       const bytes = Buffer.from(`executable for ${target}\0\xff`, 'latin1');
       expected.set(target, bytes);
       writeFileSync(join(directory, 'code-rules'), bytes);
@@ -338,30 +339,37 @@ test('extracts exact executable bytes from each packaged target and refuses a mi
         { cwd: directory },
       );
     }
-    execFileSync('bash', ['-e', '-o', 'pipefail', '-c', extract], {
+    const result = spawnSync('bash', ['-e', '-o', 'pipefail', '-c', extract], {
       cwd: directory,
     });
-    for (const [target, bytes] of expected) {
-      expect(
-        readFileSync(join(directory, `native-previews/code-rules-${target}`)),
-      ).toEqual(bytes);
-    }
-    rmSync(join(directory, 'native-previews'), { recursive: true });
-    rmSync(
-      join(
-        directory,
-        'native-artifacts/code-rules_candidate_linux_arm64.tar.gz',
-      ),
+    // A failed run may leave partial output; only a successful one has previews to compare.
+    const extracted = new Map(
+      result.status === 0
+        ? targets.map((target) => [
+            target,
+            readFileSync(
+              join(directory, `native-previews/code-rules-${target}`),
+            ),
+          ])
+        : [],
     );
-    expect(() =>
-      execFileSync('bash', ['-e', '-o', 'pipefail', '-c', extract], {
-        cwd: directory,
-        stdio: 'pipe',
-      }),
-    ).toThrow();
+    return { status: result.status, expected, extracted };
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+}
+
+test('extracts exact executable bytes from each packaged target', () => {
+  const { status, expected, extracted } = extractPackaged(targets);
+  expect(status).toBe(0);
+  expect(extracted).toEqual(expected);
+});
+
+test('refuses to extract when a target archive is missing', () => {
+  const { status } = extractPackaged(
+    targets.filter((target) => target !== 'linux-arm64'),
+  );
+  expect(status).not.toBe(0);
 });
 
 for (const options of [
@@ -415,13 +423,27 @@ test('refuses an unpinned installer', async () => {
 });
 
 // Exercise the copyable command, including failure before the installer may execute.
-test('runs the generated install command only after a successful script download', async () => {
+async function installCommand() {
   const { writes } = await preview();
   const command = String(writes[0]!.body).match(/```sh\n([^\n]+)\n```/)?.[1];
-  expect(command).toBeDefined();
+  if (command === undefined) throw new Error('Missing install command.');
+  return command;
+}
+
+test('pins the install command to the trusted installer commit, not the PR head', async () => {
+  const command = await installCommand();
   expect(command).not.toContain(`ref=${'a'.repeat(40)}`);
-  for (const shell of ['sh', 'bash']) {
-    for (const mode of ['success', 'partial', 'empty']) {
+});
+
+// One test per case keeps each timeout budget proportional to a single command run.
+for (const shell of ['sh', 'bash']) {
+  for (const [mode, behavior] of [
+    ['success', 'installs the preview after a successful script download'],
+    ['partial', 'runs nothing when the script download fails'],
+    ['empty', 'runs nothing when the downloaded script is empty'],
+  ] as const) {
+    test(`generated install command ${behavior} (${shell})`, async () => {
+      const command = await installCommand();
       const directory = mkdtempSync(join(tmpdir(), 'preview bootstrap '));
       try {
         const bin = join(directory, 'bin');
@@ -468,7 +490,7 @@ test('runs the generated install command only after a successful script download
           },
         ]);
         writeFileSync(join(directory, 'code-rules'), 'old executable');
-        const result = spawnSync(shell, ['-c', command!], {
+        const result = spawnSync(shell, ['-c', command], {
           cwd: directory,
           env: {
             ...process.env,
@@ -500,6 +522,6 @@ test('runs the generated install command only after a successful script download
       } finally {
         rmSync(directory, { recursive: true, force: true });
       }
-    }
+    });
   }
-});
+}
