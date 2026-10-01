@@ -12,13 +12,15 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// defaultIndexMaxLines keeps ordinary summaries together before pagination.
+// defaultIndexMaxLines keeps ordinary summaries together before pagination. It is a provisional delivery default,
+// not a threshold validated against agent compliance.
 const defaultIndexMaxLines = 750
 
 // indexPages counts Markdown source lines, including blank lines and reading instructions.
 // LF and CRLF both end one line; visual wrapping does not add lines.
 // indexPages splits an index at entry boundaries; every returned file fits maxLines.
 // The original path is either the complete page or a complete directory of numbered parts.
+// An entry or part directory that can't fit fails generation instead of being omitted; rule bodies are never shortened.
 func indexPages(file, header string, entries []string, footer string, maxLines int) (map[string]string, error) {
 	if !strings.HasSuffix(file, ".md") {
 		return nil, invalid(file, "expected a contained Markdown output path")
