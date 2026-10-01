@@ -5,7 +5,7 @@ The [README](README.md) introduces the product; [AGENTS.md](AGENTS.md) holds the
 
 ## Build the CLI
 
-Install the Go version declared in [go.mod](go.mod). Git is required to sync remote libraries.
+Install the Go version declared in [go.mod](go.mod). Commands that fetch or publish libraries, such as `code-rules project sync`, `code-rules project update`, and `code-rules library release`, require Git; GitHub Release pages also require the [GitHub CLI](https://cli.github.com/).
 
 ```sh
 go build -o ./dist/code-rules ./cmd/code-rules
@@ -14,17 +14,18 @@ go build -o ./dist/code-rules ./cmd/code-rules
 
 The executable runs without Node.js or Bun. From a consuming project's root, run `code-rules project init`, create a local group and rule, then `code-rules project build`. To adopt a library, use `code-rules project add library` with its repository and groups, then run `code-rules project sync`.
 
-Read [project setup](docs/src/content/docs/start-here/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `project check` reports status and problems without writing files.
+Read [project setup](docs/src/content/docs/start-here/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `code-rules project check` reports status and problems without writing files.
 
 ## Validate changes
 
 ```sh
-gofmt -w cmd internal
+git ls-files -z '*.go' | xargs -0 gofmt -w
 go vet ./...
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go test -race ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 -test ./...
 go build ./cmd/code-rules ./cmd/package-binaries
+go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck= -pyflakes=
 ```
 
 Tests exercise parsers, filesystem safety, Git imports, real CLI processes, generated agent instructions, and installation/upgrade/rollback. Parser regression fixtures live beside their Go tests. [Go conventions](_engineering/go-conventions.md) cover error ownership and comments.
@@ -47,7 +48,7 @@ TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser re
 
 ## Package binaries
 
-[Release instructions](_engineering/releasing.md) explain release assets, candidate archives, and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. [Release Planner](https://release-planner.fabricahq.com) publishes releases: a release PR supplies editable notes and the version in `releases/v<version>.md`, and builds and tests the release assets; merging it publishes them. The first release is `v0.1.0`. [Distribution](_engineering/distribution.md) covers the installation channels, what each one verifies, and how to test installer changes.
+[Release instructions](_engineering/releasing.md) explain release assets, candidate archives, and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. [Release Planner](https://release-planner.fabricahq.com) publishes releases: a release PR supplies editable notes and the version in `releases/v<version>.md`, and builds and tests the release assets; merging it publishes them. [Distribution](_engineering/distribution.md) covers the installation channels, what each one verifies, and how to test installer changes.
 
 ## Implementation map
 
@@ -55,7 +56,7 @@ TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser re
 - `internal/library`: initialize, author, check, load, and publish rule libraries.
 - `internal/imports`: choose rule versions from library release tags, import libraries with verified Git provenance, and read published rule versions for forks.
 - `internal/releasetag`: list a repository's `release/<number>` tags and read their release notes and records within the release tag limits, for both library authoring and imports.
-- `internal/gitexec`: run Git, and other trusted programs such as the GitHub CLI, with bounded output and cancellation, isolated for other people's repositories or honoring the user's configuration in their own.
+- `internal/gitexec`: run Git, and other trusted programs such as the GitHub CLI, with bounded output and cancellation, isolated for other people's repositories or honoring the user's configuration in their own, and classify what they print privately, so callers explain failures with their own messages and never show that text.
 - `internal/build`: generate complete output from validated inputs through `Generate`.
 - `internal/project`: initialize and author consuming projects, sync libraries, build offline, and check complete project freshness.
 - `internal/filetxn`: bounded filesystem reads, writer ownership, safe publication, and recovery shared by both owners.
