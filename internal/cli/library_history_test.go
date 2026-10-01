@@ -372,7 +372,7 @@ func TestUsageRefusals_HaveTheInvalidArgumentsCode(t *testing.T) {
 func TestFlagValues_ExplainAnInvalidValueWithoutGoInternals(t *testing.T) {
 	binary := buildCLI(t)
 	out, diagnostic, code := runCLI(t, binary, t.TempDir(), "library", "release", "--dry-run=maybe")
-	if code != 2 || out != "" || !strings.HasPrefix(diagnostic, "Error: invalid value \"maybe\" for --dry-run: expected true or false\n") || strings.Contains(diagnostic, "strconv") {
+	if code != 2 || out != "" || !strings.HasPrefix(diagnostic, "Error: invalid value \"maybe\" for --dry-run: expected true or false.\n") || strings.Contains(diagnostic, "strconv") {
 		t.Fatalf("exit %d, stdout %q, stderr:\n%s", code, out, diagnostic)
 	}
 }

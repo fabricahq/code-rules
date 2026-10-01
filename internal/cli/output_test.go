@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -82,5 +84,30 @@ func TestHumanCheckAndJSONStale(t *testing.T) {
 func TestInterruptedCommands_StartTheirErrorOnANewLine(t *testing.T) {
 	if !interruptedMidLine(&project.UnchangedError{Err: context.Canceled}) || interruptedMidLine(&cancelled{}) || interruptedMidLine(errors.New("failed")) {
 		t.Fatal("wrong line-break decision")
+	}
+}
+
+// TestErrors_EndWithAPeriod in human and JSON output, for usage errors and configuration validation errors alike,
+// unless they end with a command on a line of its own.
+func TestErrors_EndWithAPeriod(t *testing.T) {
+	binary := buildCLI(t)
+	dir := t.TempDir()
+	if out, diagnostic, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".code-rules", "config.yaml"), []byte("schemaVersion: 1\nsources: {}\nversion: 2\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"project", "update", "--reason", "Why."}, {"project", "check"}} {
+		_, diagnostic, _ := runCLI(t, binary, dir, args...)
+		problem, _, _ := strings.Cut(strings.TrimPrefix(diagnostic, "Error: "), "\n")
+		if !strings.HasSuffix(problem, ".") {
+			t.Errorf("%v: %q doesn't end with a period", args, problem)
+		}
+		out, _, _ := runCLI(t, binary, dir, append(args, "--json")...)
+		var response struct{ Error responseError }
+		if err := json.Unmarshal([]byte(out), &response); err != nil || !strings.HasSuffix(response.Error.Message, ".") {
+			t.Errorf("%v: JSON message %q, %v", args, response.Error.Message, err)
+		}
 	}
 }

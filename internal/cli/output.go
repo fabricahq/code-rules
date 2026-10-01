@@ -109,7 +109,7 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error) i
 
 // classifyError keeps generic kinds stable and exposes domain codes without parsing diagnostic text.
 func classifyError(err error) *responseError {
-	result := &responseError{Kind: "operation", Message: err.Error()}
+	result := &responseError{Kind: "operation", Message: sentence(err.Error())}
 	var invalid *usageError
 	var validation *rules.ValidationError
 	var domain *filetxn.Error
