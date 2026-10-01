@@ -1045,6 +1045,10 @@ func TestGitHubRepository_RecognizesOnlyGitHubDotCom(t *testing.T) {
 		{"https://review-secret:password@github.com/acme/%zz", "", hiddenRemote},
 		{"https://review-secret:password@host.example:port/library.git", "", hiddenRemote},
 		{"https://someone:p@ss@host.example/library.git", "", "https://host.example/library.git"},
+		{"//user:secret@host.invalid/rules", "", hiddenRemote},
+		{"//host.invalid/rules", "", hiddenRemote},
+		{"user:secret@host.invalid:rules", "", hiddenRemote},
+		{"secret@host.invalid:rules?x#y", "", "secret@host.invalid:rules"},
 	} {
 		if github, display := gitHubRepository(test.url), displayRepository(test.url); github != test.github || display != test.display {
 			t.Errorf("%s: GitHub repository %q, display %q; want %q, %q", test.url, github, display, test.github, test.display)

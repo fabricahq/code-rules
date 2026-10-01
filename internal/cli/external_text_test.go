@@ -138,6 +138,23 @@ func TestLibraryRelease_NeverNamesTheDefaultBranchTheRemoteAdvertises(t *testing
 	requireStatic(t, human, structured, failure, []string{"library releases are published from origin's default branch, but main tracks main, which isn't it."}, []string{marker})
 }
 
+// TestLibraryRelease_HidesTheCredentialsOfASchemeRelativeAddress, which url.Parse reads as an authority without a
+// scheme, in the push-destination refusal.
+func TestLibraryRelease_HidesTheCredentialsOfASchemeRelativeAddress(t *testing.T) {
+	binary := buildCLI(t)
+	fixture, dir := releasedLibrary(t)
+	ctx := context.Background()
+	if _, err := fixture.CommandIn(ctx, dir, "remote", "set-url", "origin", "//user:URL-SECRET@host.invalid/rules"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.CommandIn(ctx, dir, "remote", "set-url", "--push", "origin", "ssh://other.invalid/rules"); err != nil {
+		t.Fatal(err)
+	}
+	environment, _ := releaseEnvironment(t, fixture, nil)
+	human, structured, failure := failureOutput(t, binary, dir, environment, "push-destination", "library", "release")
+	requireStatic(t, human, structured, failure, []string{"origin fetches from (a URL that can't be parsed, hidden in case it contains credentials) but pushes to ssh://other.invalid/rules."}, []string{"URL-SECRET", "user:"})
+}
+
 // gitHubLibrary returns a library clone whose origin is acme/rules on GitHub.com, with a pending patch.
 func gitHubLibrary(t *testing.T) (*gitfixture.Fixture, string) {
 	t.Helper()

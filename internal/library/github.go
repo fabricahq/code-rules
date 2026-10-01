@@ -81,14 +81,21 @@ func parseRemote(remoteURL string) (rules.Repository, bool) {
 func withoutCredentials(remoteURL string) (string, bool) {
 	parsed, err := url.Parse(remoteURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		if strings.Contains(remoteURL, "://") {
+		// An address with an authority but no scheme it can parse, such as //user:password@host/path, could carry
+		// credentials anywhere in it.
+		if strings.Contains(remoteURL, "://") || strings.HasPrefix(remoteURL, "//") {
 			return "", false
 		}
 		// A user@host:path address or a local path isn't a URL; Git reads neither a query nor a fragment in it.
-		if end := strings.IndexAny(remoteURL, "?#"); end >= 0 {
-			return remoteURL[:end], true
+		address := remoteURL
+		if end := strings.IndexAny(address, "?#"); end >= 0 {
+			address = address[:end]
 		}
-		return remoteURL, true
+		// A user@host:path address names only an account before its @; a colon there could start a password.
+		if at := strings.LastIndex(address, "@"); at >= 0 && strings.Contains(address[:at], ":") {
+			return "", false
+		}
+		return address, true
 	}
 	if parsed.User != nil && parsed.Scheme == "ssh" {
 		parsed.User = url.User(parsed.User.Username())
