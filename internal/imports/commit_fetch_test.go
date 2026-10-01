@@ -68,3 +68,32 @@ func TestImport_ExplainsAFailedCommitFetchFromWhatGitReports(t *testing.T) {
 		}
 	})
 }
+
+// TestImport_ExplainsAFailedRefFetchFromWhatGitReports: a fresh ref naming a commit the library has is never
+// reported missing because its fetch failed for another reason, while a commit the server says it doesn't have is.
+func TestImport_ExplainsAFailedRefFetchFromWhatGitReports(t *testing.T) {
+	f := newLibraryFixture(t, libraryFiles())
+	head, err := f.Command(context.Background(), "rev-parse", "HEAD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct{ name, ref, text, code string }{
+		{"connection reset", head, "error: RPC failed; curl 56 Recv failure: Connection reset by peer", "connection-failed"},
+		{"unrecognized failure", head, "fatal: early EOF", "git-failed"},
+		{"missing commit", strings.Repeat("1", 40), "", "version-not-found"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config := libraryConfig(t, f.Repository)
+			config.Sources[0].Ref = gitRef(t, test.ref)
+			git := f.GitPath
+			if test.text != "" {
+				git = failingCommitFetch(t, f, test.text)
+			}
+			_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: git, Environment: f.Environment})
+			requireCode(t, err, test.code)
+			if test.code != "version-not-found" && strings.Contains(err.Error(), "has no tag or commit") {
+				t.Fatalf("a failed fetch was reported as a missing ref: %v", err)
+			}
+		})
+	}
+}

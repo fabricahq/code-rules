@@ -3,7 +3,11 @@
 
 package imports
 
-import "github.com/fabricahq/code-rules/internal/gitexec"
+import (
+	"errors"
+
+	"github.com/fabricahq/code-rules/internal/gitexec"
+)
 
 // Error is the type of every import failure, including Git failures. Its Code is stable for callers.
 type Error = gitexec.Error
@@ -47,13 +51,19 @@ func gitFailure(code, problem string, diagnostics []byte) error {
 // missingObjects are the texts a server prints when it doesn't have an object a fetch requested by its ID.
 var missingObjects = []string{"not our ref", "no such remote ref", "couldn't find remote ref"}
 
-// commitFetchFailure explains a failed fetch of commits by their IDs from its diagnostics, which it never shows: a
-// server it couldn't verify or reach, as unreachable explains; a server that refuses requests by object ID, with
-// code object-fetch-refused; a repository it can't read, with code not-found-or-no-access; and a server that says
-// it doesn't have a commit, with code version-not-found and missing as the problem. Any other failure, such as a
-// connection interrupted mid-transfer, is git-failed, never missing, because a missing commit's last resort is to
-// choose versions again.
-func commitFetchFailure(diagnostics []byte, missing string) error {
+// isMissing reports whether err is fetchFailure's report of a revision the server doesn't have.
+func isMissing(err error) bool {
+	var failure *Error
+	return errors.As(err, &failure) && failure.Code == "version-not-found"
+}
+
+// fetchFailure explains a failed fetch of revisions, such as commits by their IDs or a ref, from its diagnostics,
+// which it never shows: a server it couldn't verify or reach, as unreachable explains; a server that refuses
+// requests by object ID, with code object-fetch-refused; a repository it can't read, with code
+// not-found-or-no-access; and a server that says it doesn't have a requested revision, with code version-not-found
+// and missing as the problem. Any other failure, such as a connection interrupted mid-transfer, is git-failed, with
+// what naming what it fetched, never missing, because a missing revision's remedies change what the project imports.
+func fetchFailure(diagnostics []byte, what, missing string) error {
 	if err := unreachable(diagnostics); err != nil {
 		return err
 	}
@@ -65,7 +75,7 @@ func commitFetchFailure(diagnostics []byte, missing string) error {
 	case gitexec.Mentions(diagnostics, gitexec.AccessFailures...):
 		return remoteFailure(diagnostics)
 	}
-	return fail("git-failed", "Could not fetch a commit that the source record names from the library's repository, for a reason Code Rules doesn't recognize, such as a connection that broke off. Run the command again; if it keeps failing, run git fetch with the repository address to read Git's message.", nil)
+	return fail("git-failed", "Could not fetch "+what+" from the library's repository, for a reason Code Rules doesn't recognize, such as a connection that broke off. Run the command again; if it keeps failing, run git fetch with the repository address to read Git's message.", nil)
 }
 
 // unreachable explains diagnostics that show Git never reached a server it could trust: an HTTPS server certificate
