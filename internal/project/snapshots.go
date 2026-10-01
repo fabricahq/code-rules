@@ -66,6 +66,13 @@ func changedOutsideSync(name string) error {
 	return invalidSnapshot("vendor/"+name+"/_source.json", "was changed outside code-rules project sync, such as by hand or in a merge, and only a record sync wrote can be trusted; restore one with git checkout -- "+record+", or, during a merge conflict, take one side with git checkout --ours or --theirs -- "+record+", then run code-rules project sync, which applies any configuration changes; or delete .code-rules/vendor/"+name+"/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions")
 }
 
+// isChangedOutsideSync reports whether err is changedOutsideSync's refusal of the source name's record.
+func isChangedOutsideSync(err error, name string) bool {
+	var invalid *rules.ValidationError
+	refusal := changedOutsideSync(name).(*rules.ValidationError)
+	return errors.As(err, &invalid) && *invalid == *refusal
+}
+
 // recordChecksum returns the SHA-256 of record's fields other than its checksum, encoded as sync writes them.
 func recordChecksum(record sourceRecord) string {
 	record.Checksum = ""
@@ -159,9 +166,6 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		if err != nil {
 			return nil, err
 		}
-		if record.unverified {
-			return nil, changedOutsideSync(source.Name)
-		}
 		if err := matchSnapshotSource(source, record); err != nil {
 			return nil, err
 		}
@@ -200,9 +204,6 @@ func recordedSnapshots(config rules.Configuration, vendor map[string][]byte) (ma
 		if err != nil {
 			return nil, err
 		}
-		if record.unverified {
-			return nil, changedOutsideSync(source.Name)
-		}
 		result[source.Name] = record.Snapshot
 	}
 	return result, nil
@@ -212,13 +213,11 @@ func recordedSnapshots(config rules.Configuration, vendor map[string][]byte) (ma
 type parsedRecord struct {
 	library.Snapshot
 	digests map[string]string
-	// unverified reports a checksum that doesn't match the record's fields, or none: the record was changed outside
-	// sync, so nothing in it can be trusted.
-	unverified bool
 }
 
-// parseSourceRecord validates a format 2 record's exact fields, value syntax, and complete digest inventory, and
-// marks it unverified when its checksum, missing or not, doesn't match its fields. Relationships to
+// parseSourceRecord is the one way to read a source record from disk. It validates a format 2 record's exact fields,
+// value syntax, and complete digest inventory, and refuses, with changedOutsideSync, a record whose checksum doesn't
+// match its fields, or that has none, so no caller can use a record changed outside sync. Relationships to
 // configuration are matchSnapshotSource's. A record it can't read fails validation with advice to import the source
 // again, and so does an older format, such as 1; a newer one fails with code unsupported-source-record, asking to
 // upgrade Code Rules.
@@ -266,7 +265,10 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if decoder.Decode(&record) != nil {
 		return parsedRecord{}, invalidSnapshot(where, "invalid source record field values")
 	}
-	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files, unverified: record.Checksum != recordChecksum(record)}
+	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
+	if record.Checksum != recordChecksum(record) {
+		return parsedRecord{}, changedOutsideSync(name)
+	}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
 	}

@@ -161,8 +161,9 @@ func groupsWithoutLocalMetadata(state projectState) []string {
 // Each copy comes from the first such record: configured sources in configuration order, then removed sources in
 // name order. A configured source's copy is the metadata in the library release that now supplies its shared
 // files, from imported, when that release still has the group; otherwise, and for a removed source, it is the
-// vendored copy. Invalid records are skipped. It is empty, never nil, when no group needs one. It fails when the
-// vendored copy it would use differs from its record's checksum, so modified metadata never becomes local guidance.
+// vendored copy. Records it can't read are skipped. It is empty, never nil, when no group needs one. It fails when
+// a record was changed outside sync, or the vendored copy it would use differs from its record's checksum, so
+// modified metadata never becomes local guidance.
 func keptGroupMetadata(config rules.Configuration, before projectState, imported map[string]imports.Library) (map[string][]byte, error) {
 	supplied := map[string]bool{}
 	for _, source := range config.Sources {
@@ -171,7 +172,10 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 		}
 	}
 	vendored := treeFiles(before.vendor)
-	records := storedRecords(before.config, vendored)
+	records, err := storedRecords(before.config, vendored)
+	if err != nil {
+		return nil, err
+	}
 	kept := map[string][]byte{}
 	for _, group := range groupsWithoutLocalMetadata(before) {
 		if supplied[group] {
@@ -205,8 +209,9 @@ type storedRecord struct {
 }
 
 // storedRecords returns every valid source record in vendor: those of config's sources in configuration order,
-// then those of sources config no longer has, in name order. Records that don't parse are left out.
-func storedRecords(config rules.Configuration, vendored map[string][]byte) []storedRecord {
+// then those of sources config no longer has, in name order. Records that don't parse are left out, but a record
+// changed outside sync fails, since nothing it lists, such as group metadata to keep, can be trusted.
+func storedRecords(config rules.Configuration, vendored map[string][]byte) ([]storedRecord, error) {
 	names := []string{}
 	for _, source := range config.Sources {
 		names = append(names, source.Name)
@@ -224,11 +229,15 @@ func storedRecords(config rules.Configuration, vendored map[string][]byte) []sto
 		if !ok {
 			continue
 		}
-		if record, err := parseSourceRecord(data, name); err == nil {
+		record, err := parseSourceRecord(data, name)
+		if isChangedOutsideSync(err, name) {
+			return nil, err
+		}
+		if err == nil {
 			records = append(records, storedRecord{name: name, parsedRecord: record})
 		}
 	}
-	return records
+	return records, nil
 }
 
 // managedFiles prefixes source-relative and generated-relative paths for an unambiguous combined change report.

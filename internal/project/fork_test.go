@@ -701,3 +701,29 @@ func TestUpdate_KeepingAReplacedRuleStillListsItsChangesForIncorporation(t *test
 		t.Fatalf("the update still lists the incorporated rule: %+v", row)
 	}
 }
+
+// TestEveryRecordReader_RefusesARecordChangedOutsideSync: sync, build, check, update, and a fork all refuse team's
+// record once its checksum is gone, and a fork of a rule the edited record left out writes nothing, even with local
+// group metadata that would let it proceed without the record.
+func TestEveryRecordReader_RefusesARecordChangedOutsideSync(t *testing.T) {
+	f := newForkFixture(t, "")
+	ctx := context.Background()
+	root, err := openProject(ctx, f.options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, "local/techs/go/_group.yaml", projectMetadata)
+	root.Close()
+	editRecord(t, f.options, func(record map[string]any) { delete(record["rules"].(map[string]any), "techs/go/errors") })
+	before := projectTree(t, f.options)
+	_, forkErr := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours.")
+	_, syncErr := Sync(ctx, f.options, f.git)
+	_, updateErr := PlanUpdate(ctx, f.options, f.git, nil)
+	for name, err := range map[string]error{"fork": forkErr, "sync": syncErr, "update": updateErr} {
+		t.Run(name, func(t *testing.T) { requireRefusedRecord(t, err) })
+	}
+	if after := projectTree(t, f.options); after.Digest() != before.Digest() {
+		t.Fatal("a refusal changed the project")
+	}
+	requireEditedRecord(t, f.options)
+}
