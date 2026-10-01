@@ -191,6 +191,20 @@ func TestLibraryRelease_ReportsNothingToPublish(t *testing.T) {
 	if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Nothing to publish: no pending change notes and no library-wide changes since the latest library release.\n  Repository:          git@fixture.invalid:rules\n") {
 		t.Fatal(code, out, diagnostic)
 	}
+	// Values that don't apply when there's nothing to publish are left out, and lists are empty.
+	out, diagnostic, code = runCLIWithEnvironment(t, binary, dir, environment, "library", "release", "--json")
+	var response struct{ Value map[string]json.RawMessage }
+	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" {
+		t.Fatal(err, code, out, diagnostic)
+	}
+	for _, field := range []string{"notes", "tag", "githubRelease"} {
+		if value, present := response.Value[field]; present {
+			t.Errorf("value.%s is %s, want it left out", field, value)
+		}
+	}
+	if string(response.Value["release"]) != "0" || string(response.Value["rules"]) != "[]" || string(response.Value["libraryFiles"]) != "[]" {
+		t.Errorf("value:\n%s", out)
+	}
 }
 
 // TestLibraryRelease_ReportsThePublishedTagWhenTheGitHubReleasePageFails in value, beside the error, so scripts can
