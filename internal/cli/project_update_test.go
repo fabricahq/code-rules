@@ -525,3 +525,12 @@ func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}
 }
+
+// TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement instead of recommending it.
+func TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement(t *testing.T) {
+	last := rules.RuleVersion{Major: 1}
+	row := imports.RuleUpdate{Change: imports.UpdateRetired, From: &last, LastVersion: &last, ReplacedBy: "techs/go/d", ReplacementLocalRule: "local/techs/go/d.md"}
+	if got := updateDetails("team", row); len(got) == 0 || got[0] != "Replaced by techs/go/d, which your project already replaces with local/techs/go/d.md." {
+		t.Fatalf("got %q", got)
+	}
+}

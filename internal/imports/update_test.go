@@ -531,3 +531,24 @@ func TestPlanUpdate_ListsAPinnedReplacementsChangesAfterItsBasedOnVersion(t *tes
 		})
 	}
 }
+
+// TestPlanUpdate_SaysWhenTheProjectAlreadyReplacedARetiredRulesReplacement: release/3 retires b in favor of d,
+// which the project replaces with a local rule, so the retired row names that local rule.
+func TestPlanUpdate_SaysWhenTheProjectAlreadyReplacedARetiredRulesReplacement(t *testing.T) {
+	h := newHistory(t)
+	config := h.source(t, `"groups":["techs/go"],"exclude":{"techs/go/d":{"reason":"Ours.","replacedBy":"local/techs/go/d.md"}}`)
+	recorded := h.record(t, config, 2, map[string]string{"techs/go/a": "1.1.0@2", "techs/go/b": "1.0.0@1", "techs/go/d": "1.0.0@2"})
+	update, err := h.plan(t, config, &recorded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range update.Sources[0].Rules {
+		if row.ID == "techs/go/b" {
+			if row.ReplacedBy != "techs/go/d" || row.ReplacementLocalRule != "local/techs/go/d.md" {
+				t.Fatalf("retired row %+v", row)
+			}
+			return
+		}
+	}
+	t.Fatalf("no retired row for b: %+v", update.Sources[0].Rules)
+}

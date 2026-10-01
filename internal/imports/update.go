@@ -80,6 +80,9 @@ type RuleUpdate struct {
 	// that its replacements lead to, or empty when they lead to none.
 	ReplacementRetired bool   `json:"replacementRetired,omitempty"`
 	CurrentReplacement string `json:"currentReplacement,omitempty"`
+	// ReplacementLocalRule is the project's local rule that already replaces ReplacedBy, when the project replaced
+	// it, relative to the Code Rules directory, so the row doesn't recommend a rule agents don't read.
+	ReplacementLocalRule string `json:"replacementLocalRule,omitempty"`
 	// LocalRule is the project's local rule that replaces a replaced rule, relative to the Code Rules directory.
 	LocalRule string `json:"localRule,omitempty"`
 	// BasedOn is the version of a replaced rule that its local rule incorporates, as the exclusion records it; the
@@ -416,7 +419,7 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 				return nil, nil, err
 			}
 			row.Pin = &pin
-			rows = append(rows, row)
+			rows = append(rows, p.withReplacementLocalRule(row))
 		case pinned && latest.Compare(*current.Version) > 0:
 			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []rules.RuleVersion{}, Pin: &pin})
 		case pinned:
@@ -427,7 +430,7 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 				if err != nil {
 					return nil, nil, err
 				}
-				rows = append(rows, row)
+				rows = append(rows, p.withReplacementLocalRule(row))
 			}
 		case latest.Compare(*current.Version) > 0:
 			if after[id], err = p.publishedVersion(id, latest); err != nil {
@@ -502,6 +505,19 @@ func retiredRow(id string, current library.ImportedRule, history releaseHistory)
 		row.ReplacementRetired, row.CurrentReplacement = true, history.currentReplacement(row.ReplacedBy)
 	}
 	return row, nil
+}
+
+// withReplacementLocalRule names, in a retired row, the project's local rule that already replaces the retired rule's
+// current replacement, when the project replaced it.
+func (p *planner) withReplacementLocalRule(row RuleUpdate) RuleUpdate {
+	replacement := row.ReplacedBy
+	if row.ReplacementRetired {
+		replacement = row.CurrentReplacement
+	}
+	if exclusion, excluded := p.source.Exclude[replacement]; excluded && replacement != "" {
+		row.ReplacementLocalRule = exclusion.ReplacedBy
+	}
+	return row
 }
 
 // versionChange classifies moving from one version to a newer one by the largest component that changed.

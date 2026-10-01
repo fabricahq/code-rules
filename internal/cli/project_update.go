@@ -347,6 +347,10 @@ func updateVersions(row imports.RuleUpdate) string {
 func updateDetails(source string, row imports.RuleUpdate) []string {
 	lines := []string{}
 	switch {
+	case row.ReplacementLocalRule != "" && row.ReplacementRetired:
+		lines = append(lines, "Replaced by "+row.ReplacedBy+", which the library also retired, in favor of "+row.CurrentReplacement+", which your project already replaces with "+row.ReplacementLocalRule+".")
+	case row.ReplacementLocalRule != "":
+		lines = append(lines, "Replaced by "+row.ReplacedBy+", which your project already replaces with "+row.ReplacementLocalRule+".")
 	case row.ReplacementRetired && row.CurrentReplacement != "":
 		lines = append(lines, "Replaced by "+row.ReplacedBy+", which the library also retired, in favor of "+row.CurrentReplacement+".")
 	case row.ReplacementRetired:
