@@ -10,7 +10,9 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // LocalGroupPlan identifies a new project-only group. It owns no filesystem resources.
@@ -41,7 +43,7 @@ func PlanLocalGroup(ctx context.Context, id string, options Options) (*LocalGrou
 }
 
 // Commit validates metadata and repeats target checks under writer ownership before publishing.
-func (p *LocalGroupPlan) Commit(ctx context.Context, metadata rules.GroupMetadata) (AuthoringResult, error) {
+func (p *LocalGroupPlan) Commit(ctx context.Context, metadata libraryformat.GroupMetadata) (AuthoringResult, error) {
 	if p == nil || p.id == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned group", nil)
 	}
@@ -102,7 +104,7 @@ func planProjectAuthoring(ctx context.Context, options Options, check func(*os.R
 }
 
 func checkLocalGroup(ctx context.Context, root *os.Root, id string) error {
-	if err := rules.ValidateGroupID(id, "group"); err != nil {
+	if err := librarypath.ValidateGroupID(id, "group"); err != nil {
 		return err
 	}
 	return filetxn.RequireAbsent(ctx, root, path.Join("local", id, "_group.yaml"), path.Join("local", id, "README.md"))
@@ -112,7 +114,7 @@ func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configurati
 	if strings.HasSuffix(id, ".md") {
 		return failure("invalid-rule-path", "use a rule path without the .md extension", nil)
 	}
-	group, err := rules.GroupFromPath(id+".md", "rule")
+	group, err := librarypath.GroupFromPath(id+".md", "rule")
 	if err != nil {
 		return err
 	}

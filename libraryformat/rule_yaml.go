@@ -1,6 +1,6 @@
 // Adapt YAML nodes to the rule format without coercing authored text fields.
 
-package rules
+package libraryformat
 
 import (
 	"fmt"
@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/code-rules/internal/authored"
 )
 
 // The reference uses YAML 1.2 core scalars. go-yaml also recognizes legacy dates,
@@ -27,20 +29,20 @@ var (
 
 // ruleYAML parses one frontmatter object and rejects malformed YAML, duplicate keys, and aliases.
 func ruleYAML(text, location string) (map[string]*yaml.Node, error) {
-	decoder := yaml.NewDecoder(strings.NewReader(yamlScalarEscapes(text)))
+	decoder := yaml.NewDecoder(strings.NewReader(authored.DecodeSurrogatePairs(text)))
 	var document yaml.Node
 	if err := decoder.Decode(&document); err != nil {
 		if err == io.EOF {
-			return nil, invalid(location, "YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead")
+			return nil, authored.Invalid(location, "YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead")
 		}
-		return nil, invalid(location, "invalid YAML: "+err.Error())
+		return nil, authored.Invalid(location, "invalid YAML: "+err.Error())
 	}
 	var extra yaml.Node
 	if err := decoder.Decode(&extra); err != io.EOF {
 		if err != nil {
-			return nil, invalid(location, "invalid YAML: "+err.Error())
+			return nil, authored.Invalid(location, "invalid YAML: "+err.Error())
 		}
-		return nil, invalid(location, "invalid YAML: expected a single document")
+		return nil, authored.Invalid(location, "invalid YAML: expected a single document")
 	}
 	// Validate syntax-level constraints throughout extension fields too. Never
 	// follow aliases, including recursive ones, or expand their contents.
@@ -49,10 +51,10 @@ func ruleYAML(text, location string) (map[string]*yaml.Node, error) {
 		return nil, err
 	}
 	if aliases {
-		return nil, invalid(location, "YAML aliases are unsupported")
+		return nil, authored.Invalid(location, "YAML aliases are unsupported")
 	}
 	if len(document.Content) == 0 {
-		return nil, invalid(location, "YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead")
+		return nil, authored.Invalid(location, "YAML frontmatter is empty; add title, impact, impactDescription, and whenToRead")
 	}
 	return yamlObject(document.Content[0], location)
 }
@@ -74,7 +76,7 @@ func inspectYAML(node *yaml.Node, location string) (bool, error) {
 			}
 			identity := kind + ":" + value
 			if seen[identity] {
-				return false, invalid(location, fmt.Sprintf("invalid YAML: duplicate mapping key %s at line %d, column %d", quote(key.Value), key.Line, key.Column))
+				return false, authored.Invalid(location, fmt.Sprintf("invalid YAML: duplicate mapping key %s at line %d, column %d", authored.Quote(key.Value), key.Line, key.Column))
 			}
 			seen[identity] = true
 		}
@@ -83,25 +85,25 @@ func inspectYAML(node *yaml.Node, location string) (bool, error) {
 		switch node.ShortTag() {
 		case "!!timestamp":
 			if node.Kind == yaml.ScalarNode && !yamlTimestamp.MatchString(node.Value) {
-				return false, invalid(location, fmt.Sprintf("invalid YAML: !!timestamp expects a date at line %d, column %d", node.Line, node.Column))
+				return false, authored.Invalid(location, fmt.Sprintf("invalid YAML: !!timestamp expects a date at line %d, column %d", node.Line, node.Column))
 			}
 		case "!!set":
 			if node.Kind != yaml.MappingNode {
-				return false, invalid(location, "invalid YAML: !!set expects a mapping")
+				return false, authored.Invalid(location, "invalid YAML: !!set expects a mapping")
 			}
 			for i := 1; i < len(node.Content); i += 2 {
 				kind, _ := yamlScalar(node.Content[i])
 				if kind != "null" {
-					return false, invalid(location, "invalid YAML: set items must have null values")
+					return false, authored.Invalid(location, "invalid YAML: set items must have null values")
 				}
 			}
 		case "!!omap", "!!pairs":
 			if node.Kind != yaml.SequenceNode {
-				return false, invalid(location, "invalid YAML: ordered pairs expect a sequence")
+				return false, authored.Invalid(location, "invalid YAML: ordered pairs expect a sequence")
 			}
 			for _, entry := range node.Content {
 				if entry.Kind == yaml.MappingNode && len(entry.Content) > 2 {
-					return false, invalid(location, "invalid YAML: each pair must have its own sequence indicator")
+					return false, authored.Invalid(location, "invalid YAML: each pair must have its own sequence indicator")
 				}
 			}
 			if node.ShortTag() == "!!omap" {
@@ -121,7 +123,7 @@ func inspectYAML(node *yaml.Node, location string) (bool, error) {
 					}
 					identity := kind + ":" + value
 					if seen[identity] {
-						return false, invalid(location, "invalid YAML: duplicate ordered-map key "+quote(key.Value))
+						return false, authored.Invalid(location, "invalid YAML: duplicate ordered-map key "+authored.Quote(key.Value))
 					}
 					seen[identity] = true
 				}
@@ -145,7 +147,7 @@ func yamlObject(node *yaml.Node, location string) (map[string]*yaml.Node, error)
 		return map[string]*yaml.Node{}, nil
 	}
 	if node.Kind != yaml.MappingNode {
-		return nil, invalid(location, "expected an object")
+		return nil, authored.Invalid(location, "expected an object")
 	}
 	result := make(map[string]*yaml.Node)
 	for i := 0; i < len(node.Content); i += 2 {
@@ -157,7 +159,7 @@ func yamlObject(node *yaml.Node, location string) (map[string]*yaml.Node, error)
 			}
 			for _, source := range sources {
 				if source.Kind != yaml.MappingNode {
-					return nil, invalid(location, "YAML aliases are unsupported")
+					return nil, authored.Invalid(location, "YAML aliases are unsupported")
 				}
 				fields, err := yamlObject(source, location)
 				if err != nil {
@@ -180,7 +182,7 @@ func yamlObject(node *yaml.Node, location string) (map[string]*yaml.Node, error)
 			continue
 		}
 		if !yamlString(key) {
-			return nil, invalid(location, "field names must be strings")
+			return nil, authored.Invalid(location, "field names must be strings")
 		}
 		result[key.Value] = node.Content[i+1]
 	}

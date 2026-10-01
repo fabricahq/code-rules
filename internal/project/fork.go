@@ -13,25 +13,28 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
+	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // ForkSource names the library and the published rule version a fork copies.
 type ForkSource struct {
 	// Library is a configured source name, or a repository address, which always contains a colon.
 	Library string
-	Version rules.RuleVersion
+	Version libraryformat.RuleVersion
 }
 
 // ParseForkSource reads LIBRARY@VERSION, splitting at the last @, because repository addresses can contain @.
 func ParseForkSource(value string) (ForkSource, error) {
 	at := strings.LastIndex(value, "@")
 	if at <= 0 {
-		return ForkSource{}, &rules.ValidationError{Location: "--from", Problem: fmt.Sprintf("%q: expected LIBRARY@VERSION, such as team@1.3.0", value)}
+		return ForkSource{}, &authored.ValidationError{Location: "--from", Problem: fmt.Sprintf("%q: expected LIBRARY@VERSION, such as team@1.3.0", value)}
 	}
-	version, err := rules.ParseRuleVersion(value[at+1:], "--from")
+	version, err := libraryformat.ParseRuleVersion(value[at+1:], "--from")
 	if err != nil {
 		return ForkSource{}, err
 	}
@@ -50,7 +53,7 @@ type ForkPlan struct {
 	replaces string
 	pin      *rules.Pin
 	// version is the forked version, which the exclusion records as basedOn.
-	version rules.RuleVersion
+	version libraryformat.RuleVersion
 	release int
 	// files holds the fork's files by path relative to local/, and groupMetadata the library's metadata for the
 	// rule's group, which Commit copies when the project has no local metadata for it.
@@ -85,7 +88,7 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 				return err
 			}
 			if _, excluded := replaces.Exclude[id]; excluded {
-				return &rules.ValidationError{Location: "sources." + replaces.Name + ".exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
+				return &authored.ValidationError{Location: "sources." + replaces.Name + ".exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
 			}
 			plan.replaces = replaces.Name
 			if pin, pinned := replaces.Pins[id]; pinned {
@@ -110,7 +113,7 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 		return nil, fmt.Errorf("fork %s@%s: %w", id, from.Version, err)
 	}
 	if published.GroupMetadata != nil {
-		if _, err := rules.ParseGroupMetadataYAML(published.GroupMetadata, fmt.Sprintf("release/%d: %s/_group.yaml", published.Release, plan.group)); err != nil {
+		if _, err := libraryformat.ParseGroupMetadata(published.GroupMetadata, fmt.Sprintf("release/%d: %s/_group.yaml", published.Release, plan.group)); err != nil {
 			return nil, err
 		}
 	}
@@ -138,9 +141,9 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 	replacedBy := path.Join("local", p.id+".md")
 	switch {
 	case p.replaces != "" && strings.TrimSpace(reason) == "":
-		return AuthoringResult{}, &rules.ValidationError{Location: "--reason", Problem: "give the reason the project uses the fork instead of the rule it imports from " + p.replaces}
+		return AuthoringResult{}, &authored.ValidationError{Location: "--reason", Problem: "give the reason the project uses the fork instead of the rule it imports from " + p.replaces}
 	case p.replaces == "" && reason != "":
-		return AuthoringResult{}, &rules.ValidationError{Location: "--reason", Problem: "the project doesn't import this rule, so the fork replaces nothing and has no exclusion to record a reason in"}
+		return AuthoringResult{}, &authored.ValidationError{Location: "--reason", Problem: "the project doesn't import this rule, so the fork replaces nothing and has no exclusion to record a reason in"}
 	}
 	result, err := editProject(ctx, p.options, func(root *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
 		if !bytes.Equal(original, p.configBytes) {
@@ -239,7 +242,7 @@ func checkForkTarget(ctx context.Context, root *os.Root, id string) (string, err
 	if strings.HasSuffix(id, ".md") {
 		return "", failure("invalid-rule-path", "use a rule path without the .md extension", nil)
 	}
-	group, err := rules.GroupFromPath(id+".md", "rule")
+	group, err := librarypath.GroupFromPath(id+".md", "rule")
 	if err != nil {
 		return "", err
 	}
@@ -256,7 +259,7 @@ func forkLibrary(config rules.Configuration, name, id, group string) (rules.Sour
 	if !strings.Contains(name, ":") {
 		index := slices.IndexFunc(config.Sources, func(source rules.Source) bool { return source.Name == name })
 		if index < 0 {
-			return rules.Source{}, nil, &rules.ValidationError{Location: "--from", Problem: "no source named " + name + " in .code-rules/config.yaml; name a configured source or the library's repository address"}
+			return rules.Source{}, nil, &authored.ValidationError{Location: "--from", Problem: "no source named " + name + " in .code-rules/config.yaml; name a configured source or the library's repository address"}
 		}
 		configured = &config.Sources[index]
 		library.Repository = configured.Repository
@@ -310,7 +313,7 @@ func repositoryIdentity(address, location string) (string, error) {
 // forkAttribution returns the attribution entry that links a fork to the published rule: the rule's file at the
 // library release's commit for GitHub.com and GitLab.com, or the repository address for other hosts' HTTPS
 // addresses. It returns nil for other addresses, which have no HTTP(S) URL to cite.
-func forkAttribution(repository, id string, version rules.RuleVersion, published imports.PublishedRule) (*rules.Attribution, error) {
+func forkAttribution(repository, id string, version libraryformat.RuleVersion, published imports.PublishedRule) (*libraryformat.Attribution, error) {
 	raw, _ := json.Marshal(repository)
 	parsed, err := rules.ParseRepository(raw, "--from")
 	if err != nil {
@@ -323,7 +326,7 @@ func forkAttribution(repository, id string, version rules.RuleVersion, published
 		}
 		url = repository
 	}
-	return &rules.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release %d at commit %s.", version, id, published.Release, published.Commit)}, nil
+	return &libraryformat.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release %d at commit %s.", version, id, published.Release, published.Commit)}, nil
 }
 
 // forkFiles returns the files of a fork of rule id at rulePath, by path relative to local/: the rule moves to
@@ -332,7 +335,7 @@ func forkAttribution(repository, id string, version rules.RuleVersion, published
 // links to moved files are rewritten, and attribution, when not nil, is added to the rule. It fails when two files
 // would share a path, or when a Markdown file links to anything outside the fork, such as a declared license file,
 // because local rules can't depend on library files.
-func forkFiles(id, rulePath string, published imports.PublishedRule, attribution *rules.Attribution) (map[string][]byte, error) {
+func forkFiles(id, rulePath string, published imports.PublishedRule, attribution *libraryformat.Attribution) (map[string][]byte, error) {
 	libraryAssets, assets := rules.RuleAssetDirectory(id+".md"), rules.RuleAssetDirectory(rulePath)
 	moved := map[string]string{}
 	sources := map[string]string{}
@@ -348,10 +351,10 @@ func forkFiles(id, rulePath string, published imports.PublishedRule, attribution
 		case isShared:
 			target = assets + shared
 		default:
-			return nil, &rules.ValidationError{Location: id + ".md", Problem: fmt.Sprintf("the library's %s is neither the rule, its asset, nor a shared asset, so a fork can't place it", file)}
+			return nil, &authored.ValidationError{Location: id + ".md", Problem: fmt.Sprintf("the library's %s is neither the rule, its asset, nor a shared asset, so a fork can't place it", file)}
 		}
 		if other, taken := sources[target]; taken {
-			return nil, &rules.ValidationError{Location: rulePath, Problem: fmt.Sprintf("the library's %s and %s would both become %s in the fork; rename one in the library", other, file, target)}
+			return nil, &authored.ValidationError{Location: rulePath, Problem: fmt.Sprintf("the library's %s and %s would both become %s in the fork; rename one in the library", other, file, target)}
 		}
 		moved[file], sources[target] = target, file
 	}
@@ -372,7 +375,7 @@ func forkFiles(id, rulePath string, published imports.PublishedRule, attribution
 	if attribution != nil {
 		document, err = rules.AddRuleAttribution(document, rulePath, *attribution)
 	} else {
-		_, err = rules.Parse(document, rulePath, "local")
+		_, err = libraryformat.ParseRule(document, rulePath, "local")
 	}
 	if err != nil {
 		return nil, err
@@ -426,7 +429,7 @@ func requireSelfContained(files map[string][]byte) error {
 		}
 		for _, link := range links {
 			if _, _, local, err := rules.RelativeTarget(link, file); err != nil || local {
-				return &rules.ValidationError{Location: file, Problem: fmt.Sprintf("links to %s in raw HTML, which a fork can't use: local rules can't have relative links in raw HTML; use a Markdown link in the library", link)}
+				return &authored.ValidationError{Location: file, Problem: fmt.Sprintf("links to %s in raw HTML, which a fork can't use: local rules can't have relative links in raw HTML; use a Markdown link in the library", link)}
 			}
 		}
 		targets, err := rules.MarkdownTargets(string(files[file]), file)
@@ -435,7 +438,7 @@ func requireSelfContained(files map[string][]byte) error {
 		}
 		for _, target := range targets {
 			if _, ok := files[target]; !ok {
-				return &rules.ValidationError{Location: file, Problem: fmt.Sprintf("links to %s, which a fork can't copy: a fork holds only the rule, its asset directory, and the shared assets its Markdown links reach, because local rules can't depend on library files", target)}
+				return &authored.ValidationError{Location: file, Problem: fmt.Sprintf("links to %s, which a fork can't copy: a fork holds only the rule, its asset directory, and the shared assets its Markdown links reach, because local rules can't depend on library files", target)}
 			}
 		}
 	}

@@ -16,9 +16,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // versionedRule is a valid rule whose body names its version, so tests can tell which version's file arrived.
@@ -146,7 +148,7 @@ func TestImport_NewSourceGetsEachRulesNewestVersionFromItsLibraryRelease(t *test
 func TestImport_RecordedVersionsStayWhenNewerOnesExist(t *testing.T) {
 	h := newHistory(t)
 	config := h.source(t, `"groups":["techs/go"]`)
-	one, two := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 1, Minor: 1}
+	one, two := libraryformat.RuleVersion{Major: 1}, libraryformat.RuleVersion{Major: 1, Minor: 1}
 	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 2, Commit: h.commits[2], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/a": {Version: &two, Release: 2, Commit: h.commits[2]}, "techs/go/b": {Version: &one, Release: 1, Commit: h.commits[1]}}}
 	imported, err := h.sync(t, config, &recorded)
@@ -200,7 +202,7 @@ func TestImport_PinsMoveRulesUpAndDown(t *testing.T) {
 func TestImport_NewlySelectedRulesGetTheirNewestVersion(t *testing.T) {
 	h := newHistory(t)
 	config := h.source(t, `"groups":["techs/go"]`)
-	one := rules.RuleVersion{Major: 1}
+	one := libraryformat.RuleVersion{Major: 1}
 	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/a": {Version: &one, Release: 1, Commit: h.commits[1]}}}
 	imported, err := h.sync(t, h.source(t, `"groups":["techs/go","practices/testing"]`), &recorded)
@@ -256,7 +258,7 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			imported, err := h.sync(t, h.source(t, test.fields), nil)
 			if test.location != "" {
-				var validation *rules.ValidationError
+				var validation *authored.ValidationError
 				if !errors.As(err, &validation) || validation.Location != test.location {
 					t.Fatalf("got %v, want a failure at %s", err, test.location)
 				}
@@ -280,7 +282,7 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 func TestImport_PinnedRuleTheLibraryRetiredKeepsImporting(t *testing.T) {
 	h := newHistory(t)
 	pinned := `"groups":["techs/go"],"pins":{"techs/go/b":{"version":"1.0.0","reason":"Keep."}}`
-	one := rules.RuleVersion{Major: 1}
+	one := libraryformat.RuleVersion{Major: 1}
 	config := h.source(t, pinned)
 	recorded := library.Snapshot{Repository: h.fixture.Repository, Release: 1, Commit: h.commits[1], Selection: config.Sources[0].Groups, Groups: []string{"techs/go"}, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/b": {Version: &one, Release: 1, Commit: h.commits[1]}}}
@@ -477,7 +479,7 @@ func TestImport_RefusesALibraryReleaseDeclaringTermsInsideARulesVersion(t *testi
 		"techs/go/b.md":                     versionedRule("b 1.1.0"),
 	}, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.1.0\nchanges:\n  techs/go/b: {change: minor, from: 1.0.0, summaries: [Add an example.]}\n")
 	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.0.0","reason":"Keep."}}`), nil)
-	var invalid *rules.ValidationError
+	var invalid *authored.ValidationError
 	if !errors.As(err, &invalid) || !strings.Contains(invalid.Location, "rule-library.yaml: license.file") || !strings.Contains(invalid.Problem, "rule's version") {
 		t.Fatalf("imported %q with error %v; want the license declaration refused", imported.Snapshot.Files["techs/go/assets/a/requirements.md"], err)
 	}
@@ -693,8 +695,8 @@ func TestImport_WarnsAboutARuleItsGroupAlreadySelects(t *testing.T) {
 func TestVersionList_ListsAtMostTenVersionsNewestFirst(t *testing.T) {
 	history := releaseHistory{}
 	for number := 1; number <= 12; number++ {
-		version := rules.RuleVersion{Major: 1, Minor: number - 1}
-		history.releases = append(history.releases, libraryRelease{number: number, record: rules.ReleaseRecord{Rules: map[string]rules.RuleVersion{"techs/go/a": version}, Changes: map[string]rules.RecordedChange{"techs/go/a": {Change: rules.ChangeMinor}}}})
+		version := libraryformat.RuleVersion{Major: 1, Minor: number - 1}
+		history.releases = append(history.releases, libraryRelease{number: number, record: libraryformat.ReleaseRecord{Rules: map[string]libraryformat.RuleVersion{"techs/go/a": version}, Changes: map[string]libraryformat.RecordedChange{"techs/go/a": {Change: libraryformat.ChangeMinor}}}})
 	}
 	if got, want := history.versionList("techs/go/a"), "1.11.0, 1.10.0, 1.9.0, 1.8.0, 1.7.0, 1.6.0, 1.5.0, 1.4.0, 1.3.0, 1.2.0, and 2 older"; got != want {
 		t.Fatalf("got %q, want %q", got, want)

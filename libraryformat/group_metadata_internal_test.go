@@ -1,6 +1,8 @@
-// Exercise group metadata parsing against explicit shared expectations and ownership guarantees.
+// Exercise the field rules of group metadata, decoded to JSON, against explicit shared expectations and ownership
+// guarantees. The fixtures reach cases, such as repeated keys and escaped surrogates, that YAML decoding rules out
+// before these rules apply, so they call the unexported stage directly.
 
-package rules_test
+package libraryformat
 
 import (
 	"encoding/json"
@@ -9,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/authored"
 )
 
 func TestGroupMetadataSharedExpectations(t *testing.T) {
@@ -21,7 +23,7 @@ func TestGroupMetadataSharedExpectations(t *testing.T) {
 		ID, Input, Location string
 		Expected            struct {
 			OK    bool
-			Value rules.GroupMetadata
+			Value GroupMetadata
 			Error *struct{ Name, Message, Location string }
 		}
 	}
@@ -30,21 +32,21 @@ func TestGroupMetadataSharedExpectations(t *testing.T) {
 	}
 	for _, test := range cases {
 		t.Run(test.ID, func(t *testing.T) {
-			got, err := rules.ParseGroupMetadata(json.RawMessage(test.Input), test.Location)
+			got, err := groupMetadataFields(json.RawMessage(test.Input), test.Location)
 			if test.Expected.OK {
 				if err != nil || !reflect.DeepEqual(got, test.Expected.Value) {
 					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Value)
 				}
 				return
 			}
-			var validation *rules.ValidationError
+			var validation *authored.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("want ValidationError, got %v", err)
 			}
 			if err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 				t.Fatalf("got %q at %q; want %q at %q", err.Error(), validation.Location, test.Expected.Error.Message, test.Expected.Error.Location)
 			}
-			if !reflect.DeepEqual(got, rules.GroupMetadata{}) {
+			if !reflect.DeepEqual(got, GroupMetadata{}) {
 				t.Fatalf("failed parsing returned partial metadata: %+v", got)
 			}
 		})
@@ -54,12 +56,12 @@ func TestGroupMetadataSharedExpectations(t *testing.T) {
 func TestGroupMetadataOwnsItsResult(t *testing.T) {
 	input := json.RawMessage(`{"name":"Go","description":"Go rules","whenToRead":"When editing."}`)
 	before := string(input)
-	first, err := rules.ParseGroupMetadata(input, "group")
+	first, err := groupMetadataFields(input, "group")
 	if err != nil {
 		t.Fatal(err)
 	}
 	first.WhenToRead = "changed"
-	second, err := rules.ParseGroupMetadata(input, "group")
+	second, err := groupMetadataFields(input, "group")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,12 +79,12 @@ func TestGroupMetadataOwnsItsResult(t *testing.T) {
 func TestGroupMetadataRejectsInvalidUTF8(t *testing.T) {
 	input := append([]byte(`{"name":"`), 0xff)
 	input = append(input, []byte(`","description":"Go rules","whenToRead":"When editing."}`)...)
-	got, err := rules.ParseGroupMetadata(input, "group")
-	var validation *rules.ValidationError
+	got, err := groupMetadataFields(input, "group")
+	var validation *authored.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "group.name" || validation.Problem != "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape" {
 		t.Fatalf("want Unicode validation error at group.name, got %v", err)
 	}
-	if got != (rules.GroupMetadata{}) {
+	if got != (GroupMetadata{}) {
 		t.Fatalf("failed parsing returned partial metadata: %+v", got)
 	}
 }

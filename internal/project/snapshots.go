@@ -14,8 +14,11 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // snapshot is the library-owned value persisted by project snapshot encoding.
@@ -45,9 +48,9 @@ type sourceRecord struct {
 
 // recordRule is one imported rule's version record; Version and Release are null for an unreleased rule.
 type recordRule struct {
-	Version *rules.RuleVersion `json:"version"`
-	Release *int               `json:"release"`
-	Commit  string             `json:"commit"`
+	Version *libraryformat.RuleVersion `json:"version"`
+	Release *int                       `json:"release"`
+	Commit  string                     `json:"commit"`
 }
 
 // unsupportedRecord explains how to replace a source record this version can't read.
@@ -68,8 +71,8 @@ func changedOutsideSync(name string) error {
 
 // isChangedOutsideSync reports whether err is changedOutsideSync's refusal of the source name's record.
 func isChangedOutsideSync(err error, name string) bool {
-	var invalid *rules.ValidationError
-	refusal := changedOutsideSync(name).(*rules.ValidationError)
+	var invalid *authored.ValidationError
+	refusal := changedOutsideSync(name).(*authored.ValidationError)
 	return errors.As(err, &invalid) && *invalid == *refusal
 }
 
@@ -223,9 +226,9 @@ type parsedRecord struct {
 // upgrade Code Rules.
 func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	record, err := readSourceRecord(data, name)
-	var invalid *rules.ValidationError
+	var invalid *authored.ValidationError
 	if errors.As(err, &invalid) && err == error(invalid) && !strings.Contains(invalid.Problem, "code-rules project sync") {
-		return parsedRecord{}, &rules.ValidationError{Location: invalid.Location, Problem: invalid.Problem + "; " + reimport(name)}
+		return parsedRecord{}, &authored.ValidationError{Location: invalid.Location, Problem: invalid.Problem + "; " + reimport(name)}
 	}
 	return record, err
 }
@@ -306,7 +309,7 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	result.Groups = groups.Groups
 	for id, rule := range record.Rules {
 		location := where + ".rules." + id
-		if err := rules.ValidateRuleID(id, location); err != nil {
+		if err := librarypath.ValidateRuleID(id, location); err != nil {
 			return parsedRecord{}, err
 		}
 		if (rule.Version == nil) != (rule.Release == nil) || (rule.Release != nil && *rule.Release < 1) || !fullCommit(rule.Commit) {
@@ -410,7 +413,7 @@ func matchRevision(source rules.Source, record parsedRecord) error {
 			return invalidSnapshot(where, "resolved commit differs from requested commit")
 		}
 	}
-	number, err := rules.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
+	number, err := libraryformat.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
 	if ref.Kind() != rules.GitRefTag || err != nil {
 		if record.Release != 0 {
 			return invalidSnapshot(where+".release", "a ref that isn't a library release tag records no library release")
@@ -439,5 +442,5 @@ func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeT
 
 // invalidSnapshot reports caller-visible validation failures without logging source contents.
 func invalidSnapshot(location, problem string) error {
-	return &rules.ValidationError{Location: location, Problem: problem}
+	return &authored.ValidationError{Location: location, Problem: problem}
 }

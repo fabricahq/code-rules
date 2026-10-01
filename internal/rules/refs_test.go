@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -51,7 +52,7 @@ func TestRefsSharedExpectations(t *testing.T) {
 			case "gitRef":
 				got, err := rules.ParseGitRef(test.Input, test.Location)
 				if !test.Expected.OK {
-					var validation *rules.ValidationError
+					var validation *authored.ValidationError
 					if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 						t.Fatalf("got %v; want %s", err, test.Expected.Error.Message)
 					}
@@ -70,7 +71,7 @@ func TestRefsSharedExpectations(t *testing.T) {
 			case "tagVersion":
 				got, err := rules.TagVersion(test.Input, test.Location)
 				if !test.Expected.OK {
-					var validation *rules.ValidationError
+					var validation *authored.ValidationError
 					if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 						t.Fatalf("got %v; want %s", err, test.Expected.Error.Message)
 					}
@@ -156,7 +157,7 @@ func TestGitRef_JSONCarriesTheAuthoredText(t *testing.T) {
 		t.Fatalf("an absent ref was encoded: %s, %v", encoded, err)
 	}
 	var decoded rules.GitRef
-	var validation *rules.ValidationError
+	var validation *authored.ValidationError
 	if err := json.Unmarshal([]byte(`"refs/heads/main"`), &decoded); !errors.As(err, &validation) || !decoded.IsZero() {
 		t.Fatalf("decoded a branch: %#v, %v", decoded, err)
 	}
@@ -165,7 +166,7 @@ func TestGitRef_JSONCarriesTheAuthoredText(t *testing.T) {
 // TestGitRefErrorLocation checks that the caller owns the diagnostic path.
 func TestGitRefErrorLocation(t *testing.T) {
 	_, err := rules.ParseGitRef("refs/heads/main", "config.sources.other.ref")
-	var validation *rules.ValidationError
+	var validation *authored.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "config.sources.other.ref" {
 		t.Fatalf("unexpected error location: %v", err)
 	}

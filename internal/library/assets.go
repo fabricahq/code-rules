@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/unicode/norm"
@@ -53,7 +54,7 @@ func (r *reader) ownedAssets(directory string, only map[string]bool) error {
 		if !entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
 			return bad(assetPath, "expected an owned assets directory")
 		}
-		if _, err := rules.GroupFromPath(owner, assetPath); err != nil {
+		if _, err := librarypath.GroupFromPath(owner, assetPath); err != nil {
 			return err
 		}
 		info, err := r.input.Lstat(owner)

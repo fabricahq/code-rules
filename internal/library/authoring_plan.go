@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // GroupPlan identifies a new group in an initialized library and owns no filesystem resources.
@@ -36,7 +38,7 @@ func PlanGroup(ctx context.Context, id string, options Options) (*GroupPlan, err
 }
 
 // Commit validates metadata and repeats target checks under writer ownership before publishing.
-func (p *GroupPlan) Commit(ctx context.Context, metadata rules.GroupMetadata) (AuthoringResult, error) {
+func (p *GroupPlan) Commit(ctx context.Context, metadata libraryformat.GroupMetadata) (AuthoringResult, error) {
 	if p == nil || p.id == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned group", nil)
 	}
@@ -97,7 +99,7 @@ func planAuthoring(ctx context.Context, options Options, check func(*os.Root, Op
 }
 
 func checkNewGroup(ctx context.Context, root *os.Root, id string) error {
-	if err := rules.ValidateGroupID(id, "group"); err != nil {
+	if err := librarypath.ValidateGroupID(id, "group"); err != nil {
 		return err
 	}
 	return filetxn.RequireAbsent(ctx, root, id+"/_group.yaml", id+"/README.md")
@@ -107,7 +109,7 @@ func checkNewRule(ctx context.Context, root *os.Root, id string, options Options
 	if strings.HasSuffix(id, ".md") {
 		return failure("invalid-rule-path", "use a rule path without the .md extension", nil)
 	}
-	group, err := rules.GroupFromPath(id+".md", "rule")
+	group, err := librarypath.GroupFromPath(id+".md", "rule")
 	if err != nil {
 		return err
 	}

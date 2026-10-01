@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ func libraryChangeCommand(options Options, output *commandOutput) *cobra.Command
 		if err := changeFlagsUsage(f, args, retire); err != nil {
 			return usage(err)
 		}
-		request := library.ChangeRequest{IDs: args, Bump: rules.Change(f.value("bump")), Summary: f.value("summary"), Retire: retire, ReplacedBy: f.value("replaced-by")}
+		request := library.ChangeRequest{IDs: args, Bump: libraryformat.Change(f.value("bump")), Summary: f.value("summary"), Retire: retire, ReplacedBy: f.value("replaced-by")}
 		plan, err := library.PlanChange(cmd.Context(), request, target)
 		if err != nil {
 			return err
@@ -49,7 +49,7 @@ func libraryChangeCommand(options Options, output *commandOutput) *cobra.Command
 		if err := f.require("summary"); err != nil {
 			return err
 		}
-		result, err := plan.Commit(cmd.Context(), rules.Change(f.value("bump")), f.value("summary"), time.Now())
+		result, err := plan.Commit(cmd.Context(), libraryformat.Change(f.value("bump")), f.value("summary"), time.Now())
 		if err != nil {
 			return err
 		}

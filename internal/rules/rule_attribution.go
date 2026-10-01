@@ -8,6 +8,9 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // AddRuleAttribution returns document, a rule at path, with entry after its existing attribution entries. When the
@@ -16,20 +19,25 @@ import (
 // Otherwise the frontmatter is written again, keeping comments and values but not their formatting, with folded
 // scalars in literal style. The body never changes. It fails when document isn't a valid rule or the result's
 // attribution isn't valid, such as for a URL that isn't an absolute HTTP(S) URL.
-func AddRuleAttribution(document, path string, entry Attribution) (string, error) {
-	original, err := Parse(document, path, "local")
+func AddRuleAttribution(document, path string, entry libraryformat.Attribution) (string, error) {
+	original, err := libraryformat.ParseRule(document, path, "local")
 	if err != nil {
 		return "", err
 	}
-	bounds := documentPattern.FindStringSubmatchIndex(document)
-	start, end := bounds[2], bounds[3]
+	sections, err := libraryformat.SplitDocument(document, path)
+	if err != nil {
+		return "", err
+	}
+	// The frontmatter starts right after the opening --- line.
+	start := strings.IndexByte(document, '\n') + 1
+	end := start + len(sections.Frontmatter)
 	newline := "\n"
 	if strings.HasPrefix(document[end:], "\r\n") {
 		newline = "\r\n"
 	}
 	var metadata yaml.Node
-	if err := yaml.NewDecoder(strings.NewReader(yamlScalarEscapes(document[start:end]))).Decode(&metadata); err != nil {
-		return "", invalid(path, "invalid YAML: "+err.Error())
+	if err := yaml.NewDecoder(strings.NewReader(authored.DecodeSurrogatePairs(document[start:end]))).Decode(&metadata); err != nil {
+		return "", authored.Invalid(path, "invalid YAML: "+err.Error())
 	}
 	item := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: []*yaml.Node{
 		{Kind: yaml.ScalarNode, Tag: "!!str", Value: "url"}, textNode(entry.URL),
@@ -68,20 +76,20 @@ func AddRuleAttribution(document, path string, entry Attribution) (string, error
 }
 
 // requireAttributionAdded fails unless result is original's rule with only entry added after its attribution.
-func requireAttributionAdded(original Rule, result, path string, entry Attribution) error {
-	parsed, err := Parse(result, path, "local")
+func requireAttributionAdded(original libraryformat.Rule, result, path string, entry libraryformat.Attribution) error {
+	parsed, err := libraryformat.ParseRule(result, path, "local")
 	if err != nil {
 		return err
 	}
 	added := len(parsed.Attribution) - 1
 	if added != len(original.Attribution) || parsed.Attribution[added].Description != entry.Description {
-		return invalid(path, "could not add the attribution entry; add it by hand")
+		return authored.Invalid(path, "could not add the attribution entry; add it by hand")
 	}
 	want := original
 	want.Attribution = append(slices.Clone(original.Attribution), parsed.Attribution[added])
 	want.Document = result
 	if !reflect.DeepEqual(want, parsed) {
-		return invalid(path, "adding an attribution entry would change the rule's other metadata; add it by hand")
+		return authored.Invalid(path, "adding an attribution entry would change the rule's other metadata; add it by hand")
 	}
 	return nil
 }

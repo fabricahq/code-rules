@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -111,7 +111,7 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error) i
 func classifyError(err error) *responseError {
 	result := &responseError{Kind: "operation", Message: sentence(err.Error())}
 	var invalid *usageError
-	var validation *rules.ValidationError
+	var validation *authored.ValidationError
 	var domain *filetxn.Error
 	var git *gitexec.Error
 	switch {

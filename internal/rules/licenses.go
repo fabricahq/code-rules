@@ -9,6 +9,9 @@ import (
 	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/librarypath"
 )
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
@@ -26,30 +29,30 @@ type LicenseDeclaration struct {
 func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error) {
 	location := source + "/rule-library.yaml"
 	if !utf8.Valid(text) {
-		return nil, invalid(location, "expected UTF-8 text")
+		return nil, authored.Invalid(location, "expected UTF-8 text")
 	}
-	_, data, err := authoredYAML(text, location)
+	_, data, err := authored.YAML(text, location)
 	if err != nil {
 		return nil, err
 	}
-	manifest, err := jsonObject(data, location)
+	manifest, err := authored.Object(data, location)
 	if err != nil {
 		return nil, err
 	}
 	var format float64
 	if json.Unmarshal(manifest["formatVersion"], &format) != nil || format != 1 {
-		return nil, invalid(location+": formatVersion", "only library formatVersion 1 is supported")
+		return nil, authored.Invalid(location+": formatVersion", "only library formatVersion 1 is supported")
 	}
 	raw, ok := manifest["license"]
 	if !ok {
 		return nil, nil
 	}
-	fields, err := jsonObject(raw, location+": license")
+	fields, err := authored.Object(raw, location+": license")
 	if err != nil {
 		return nil, err
 	}
 	location += ": license"
-	if err := knownJSONFields(fields, []string{"file", "notices", "spdxExpression", "expression"}, location); err != nil {
+	if err := authored.KnownFields(fields, []string{"file", "notices", "spdxExpression", "expression"}, location); err != nil {
 		return nil, err
 	}
 	file, err := termsPath(fields["file"], location+".file")
@@ -58,7 +61,7 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 	}
 	var rawNotices []json.RawMessage
 	if json.Unmarshal(fields["notices"], &rawNotices) != nil || rawNotices == nil {
-		return nil, invalid(location+".notices", "expected an array of notice paths")
+		return nil, authored.Invalid(location+".notices", "expected an array of notice paths")
 	}
 	notices := make([]string, len(rawNotices))
 	for i, raw := range rawNotices {
@@ -69,19 +72,19 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 		notices[i] = path
 	}
 	if _, ok := fields["expression"]; ok {
-		return nil, invalid(location+".expression", "renamed to license.spdxExpression; move the declaration to that field")
+		return nil, authored.Invalid(location+".expression", "renamed to license.spdxExpression; move the declaration to that field")
 	}
 	var expression *string
 	if raw, ok := fields["spdxExpression"]; ok {
-		text, err := jsonText(raw, location+".spdxExpression")
+		text, err := authored.Text(raw, location+".spdxExpression")
 		if err != nil {
 			return nil, err
 		}
 		if strings.ContainsFunc(text, controlCharacter) {
-			return nil, invalid(location+".spdxExpression", "expected a single-line license expression")
+			return nil, authored.Invalid(location+".spdxExpression", "expected a single-line license expression")
 		}
 		if !validSPDXExpression(text) {
-			return nil, invalid(location+".spdxExpression", "expected an SPDX expression using recognized identifiers or LicenseRef- custom terms")
+			return nil, authored.Invalid(location+".spdxExpression", "expected an SPDX expression using recognized identifiers or LicenseRef- custom terms")
 		}
 		expression = &text
 	}
@@ -100,12 +103,12 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 // a file in an asset directory inside a group belongs to that rule's version, so declaring it would let a library
 // release replace a rule version's content.
 func termsPath(input json.RawMessage, location string) (string, error) {
-	path, err := jsonPath(input, location)
+	path, err := authored.Path(input, location)
 	if err != nil {
 		return "", err
 	}
-	if isRuleContent(path) {
-		return "", invalid(location, quote(path)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root")
+	if librarypath.IsRuleContent(path) {
+		return "", authored.Invalid(location, authored.Quote(path)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root")
 	}
 	return path, nil
 }

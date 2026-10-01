@@ -13,7 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // noteDay is the calendar day tests record notes on.
@@ -56,11 +58,11 @@ func TestChange_WritesNotesThatLibraryCheckAccepts(t *testing.T) {
 		rows []string
 	}{
 		{name: "version change", files: map[string]string{"practices/testing/a.md": ruleText("Changed.")},
-			request: ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: rules.ChangeMinor, Summary: "Add a Python example of the retry-limit test."},
+			request: ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: libraryformat.ChangeMinor, Summary: "Add a Python example of the retry-limit test."},
 			note:    "changes/2026-09-29-a", want: "summary: Add a Python example of the retry-limit test.\nrules:\n  practices/testing/a: minor\n",
 			rows: []string{"practices/testing/a minor 1.0.0 1.1.0"}},
 		{name: "several rules", files: map[string]string{"practices/testing/a.md": ruleText("Changed."), "practices/testing/b.md": ruleText("Changed too.")},
-			request: ChangeRequest{IDs: []string{"practices/testing/b", "practices/testing/a"}, Bump: rules.ChangeMajor, Summary: "Require a test at every limit."},
+			request: ChangeRequest{IDs: []string{"practices/testing/b", "practices/testing/a"}, Bump: libraryformat.ChangeMajor, Summary: "Require a test at every limit."},
 			note:    "changes/2026-09-29-b", want: "summary: Require a test at every limit.\nrules:\n  practices/testing/a: major\n  practices/testing/b: major\n",
 			rows: []string{"practices/testing/a major 1.0.0 2.0.0", "practices/testing/b major 1.0.0 2.0.0"}},
 		{name: "new rule", files: map[string]string{"practices/testing/verify-backoff.md": ruleText("New.")},
@@ -76,7 +78,7 @@ func TestChange_WritesNotesThatLibraryCheckAccepts(t *testing.T) {
 			note:    "changes/2026-09-29-a", want: "summary: Agents shouldn't test retries this way.\nrules:\n  practices/testing/a: retired\n",
 			rows: []string{"practices/testing/a retired 1.0.0 -"}},
 		{name: "summary that YAML must quote", files: map[string]string{"practices/testing/a.md": ruleText("Changed.")},
-			request: ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: rules.ChangePatch, Summary: "  Fix: '#' is \"quoted\" - " + strings.Repeat("long ", 40) + " "},
+			request: ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: libraryformat.ChangePatch, Summary: "  Fix: '#' is \"quoted\" - " + strings.Repeat("long ", 40) + " "},
 			note:    "changes/2026-09-29-a",
 			rows:    []string{"practices/testing/a patch 1.0.0 1.0.1"}},
 	} {
@@ -137,7 +139,7 @@ func TestChange_NamesEachNoteUniquely(t *testing.T) {
 	if name, err := noteName(root, "practices/testing/a", noteDay, released.latest.files, next); err != nil || name != "changes/2026-09-29-a-cccccc.yaml" {
 		t.Fatalf("chose %s: %v", name, err)
 	}
-	request := ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: rules.ChangePatch, Summary: "Another fix."}
+	request := ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: libraryformat.ChangePatch, Summary: "Another fix."}
 	first, _, err := recordChange(t, options, request)
 	if err != nil {
 		t.Fatal(err)
@@ -165,8 +167,8 @@ func TestChange_NotesFromParallelBranchesMergeWithoutConflict(t *testing.T) {
 	edit(t, second.Directory, map[string]string{"practices/testing/assets/a/example.go": "package example // at the limit\n"})
 	for _, clone := range []struct {
 		options Options
-		bump    rules.Change
-	}{{first, rules.ChangeMinor}, {second, rules.ChangePatch}} {
+		bump    libraryformat.Change
+	}{{first, libraryformat.ChangeMinor}, {second, libraryformat.ChangePatch}} {
 		if _, _, err := recordChange(t, clone.options, ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: clone.bump, Summary: "Change a as " + string(clone.bump) + "."}); err != nil {
 			t.Fatal(err)
 		}
@@ -200,17 +202,17 @@ func TestChange_RejectsNotesThatDontMatchTheLibrary(t *testing.T) {
 		message string
 	}{
 		{"unknown rule", nil, ChangeRequest{IDs: []string{c}, Summary: "Add c."}, "unknown-rule", c + " isn't a rule in the library."},
-		{"deleted rule without --retire", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Bump: rules.ChangePatch, Summary: "Fix b."}, "unknown-rule", "To record its retirement, add --retire."},
-		{"ID with .md", nil, ChangeRequest{IDs: []string{a + ".md"}, Bump: rules.ChangePatch, Summary: "Fix a."}, "unknown-rule", "Rule IDs omit the .md extension."},
-		{"bump for a new rule", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{c}, Bump: rules.ChangeMinor, Summary: "Add c."}, "invalid-arguments", "--bump isn't accepted for new rules"},
+		{"deleted rule without --retire", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Bump: libraryformat.ChangePatch, Summary: "Fix b."}, "unknown-rule", "To record its retirement, add --retire."},
+		{"ID with .md", nil, ChangeRequest{IDs: []string{a + ".md"}, Bump: libraryformat.ChangePatch, Summary: "Fix a."}, "unknown-rule", "Rule IDs omit the .md extension."},
+		{"bump for a new rule", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{c}, Bump: libraryformat.ChangeMinor, Summary: "Add c."}, "invalid-arguments", "--bump isn't accepted for new rules"},
 		{"new and versioned rules", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{a, c}, Summary: "Add c."}, "invalid-arguments", "Record them in separate notes."},
 		{"retirement of a rule that exists", nil, ChangeRequest{IDs: []string{a}, Retire: true, Summary: "Retire a."}, "invalid-change", a + " still exists."},
 		{"retirement that keeps the asset directory", map[string]string{"practices/testing/a.md": ""}, ChangeRequest{IDs: []string{a}, Retire: true, Summary: "Retire a."}, "invalid-change", a + "'s asset directory, practices/testing/assets/a/, still exists. Delete it before recording the retirement."},
 		{"retirement of an unpublished rule", nil, ChangeRequest{IDs: []string{c}, Retire: true, Summary: "Retire c."}, "invalid-change", c + " was never published, so it can't be retired."},
-		{"bump for a retirement", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Retire: true, Bump: rules.ChangeMajor, Summary: "Retire b."}, "invalid-arguments", "--bump isn't accepted for retired rules."},
-		{"replacement without --retire", nil, ChangeRequest{IDs: []string{a}, Bump: rules.ChangeMajor, ReplacedBy: b, Summary: "Replace a."}, "invalid-arguments", "--replaced-by requires --retire and a single rule"},
+		{"bump for a retirement", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Retire: true, Bump: libraryformat.ChangeMajor, Summary: "Retire b."}, "invalid-arguments", "--bump isn't accepted for retired rules."},
+		{"replacement without --retire", nil, ChangeRequest{IDs: []string{a}, Bump: libraryformat.ChangeMajor, ReplacedBy: b, Summary: "Replace a."}, "invalid-arguments", "--replaced-by requires --retire and a single rule"},
 		{"replacement for several rules", map[string]string{"practices/testing/a.md": "", "practices/testing/b.md": ""}, ChangeRequest{IDs: []string{a, b}, Retire: true, ReplacedBy: c, Summary: "Replace both."}, "invalid-arguments", "--replaced-by requires --retire and a single rule"},
-		{"duplicate rule", nil, ChangeRequest{IDs: []string{a, a}, Bump: rules.ChangePatch, Summary: "Fix a."}, "invalid-arguments", a + " is named more than once"},
+		{"duplicate rule", nil, ChangeRequest{IDs: []string{a, a}, Bump: libraryformat.ChangePatch, Summary: "Fix a."}, "invalid-arguments", a + " is named more than once"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -234,7 +236,7 @@ func TestChange_RefusesAnUnchangedPublishedRule(t *testing.T) {
 	// A checkout's converted line endings aren't a change, as in library check.
 	files[".gitattributes"] = []byte("*.md text eol=crlf\n")
 	_, options := authorClone(t, files, releaseOne)
-	request := ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: rules.ChangePatch, Summary: "Fix a."}
+	request := ChangeRequest{IDs: []string{"practices/testing/a"}, Bump: libraryformat.ChangePatch, Summary: "Fix a."}
 	if _, err := PlanChange(ctx, request, options); errorCode(err) != "unchanged-rule" || !strings.Contains(err.Error(), "practices/testing/a hasn't changed since release/1. Edit the rule first, then record the change.") {
 		t.Fatal(err)
 	}
@@ -285,18 +287,18 @@ func TestChange_RequiresABumpAndSummaryToCommit(t *testing.T) {
 	if _, err := plan.Commit(ctx, "", "Fix a.", noteDay); errorCode(err) != "invalid-arguments" || !strings.Contains(err.Error(), "--bump is required") {
 		t.Fatal(err)
 	}
-	if _, err := plan.Commit(ctx, rules.ChangePatch, " ", noteDay); errorCode(err) != "invalid-arguments" || !strings.Contains(err.Error(), "--summary is required") {
+	if _, err := plan.Commit(ctx, libraryformat.ChangePatch, " ", noteDay); errorCode(err) != "invalid-arguments" || !strings.Contains(err.Error(), "--summary is required") {
 		t.Fatal(err)
 	}
 	// The note parser rejects a summary of more than one line, so the command never writes one.
-	var validation *rules.ValidationError
-	if _, err := plan.Commit(ctx, rules.ChangePatch, "One.\nTwo.", noteDay); !errors.As(err, &validation) || !strings.HasSuffix(validation.Location, ".summary") {
+	var validation *authored.ValidationError
+	if _, err := plan.Commit(ctx, libraryformat.ChangePatch, "One.\nTwo.", noteDay); !errors.As(err, &validation) || !strings.HasSuffix(validation.Location, ".summary") {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(options.Directory, "changes")); !os.IsNotExist(err) {
 		t.Fatal("wrote a note with a multi-line summary", err)
 	}
-	if _, err := plan.Commit(ctx, rules.ChangePatch, "Fix a.", noteDay); err != nil {
+	if _, err := plan.Commit(ctx, libraryformat.ChangePatch, "Fix a.", noteDay); err != nil {
 		t.Fatal(err)
 	}
 }

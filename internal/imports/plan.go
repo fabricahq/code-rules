@@ -9,8 +9,11 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // sourcePlan is what one source imports: the revision that supplies its library-wide files, and each imported
@@ -376,7 +379,7 @@ func (p *planner) planRevision() (sourcePlan, error) {
 // library release tag. A missing tag or commit fails with code version-not-found.
 func (p *planner) resolveRef() (int, string, error) {
 	if ref := p.source.Ref; ref.Kind() == rules.GitRefTag {
-		if number, err := rules.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/")); err == nil {
+		if number, err := libraryformat.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/")); err == nil {
 			history, err := p.releases()
 			if err != nil {
 				return 0, "", err
@@ -449,7 +452,7 @@ func (p *planner) newestVersion(id string) (library.ImportedRule, error) {
 }
 
 // publishedVersion returns version of rule id with the library release that published it.
-func (p *planner) publishedVersion(id string, version rules.RuleVersion) (library.ImportedRule, error) {
+func (p *planner) publishedVersion(id string, version libraryformat.RuleVersion) (library.ImportedRule, error) {
 	history, err := p.releases()
 	if err != nil {
 		return library.ImportedRule{}, err
@@ -523,9 +526,9 @@ func (p *planner) unimported(field, id string, plan *sourcePlan) error {
 	}
 	location := "sources." + p.source.Name + "." + field + "." + id
 	if field == "rules" {
-		return &rules.ValidationError{Location: "sources." + p.source.Name + ".rules", Problem: "the library has no rule " + id + " to import; check the rule ID"}
+		return &authored.ValidationError{Location: "sources." + p.source.Name + ".rules", Problem: "the library has no rule " + id + " to import; check the rule ID"}
 	}
-	return &rules.ValidationError{Location: location, Problem: "rule is not imported by this source; name a rule that its groups or rules select"}
+	return &authored.ValidationError{Location: location, Problem: "rule is not imported by this source; name a rule that its groups or rules select"}
 }
 
 // wouldImport reports whether the source would import rule id if the library still published it: its groups or rules
@@ -560,7 +563,7 @@ func (p *planner) requireUnmoved(plan sourcePlan) error {
 	}
 	record := "vendor/" + p.source.Name + "/_source.json"
 	missing := func(location string, number int) error {
-		return &rules.ValidationError{Location: location, Problem: fmt.Sprintf("records library release %d, which the library doesn't have; restore %s, such as from version control, or, if the library deleted its release/%d tag, ask the library's maintainer to restore it; then run code-rules project sync again", number, record, number)}
+		return &authored.ValidationError{Location: location, Problem: fmt.Sprintf("records library release %d, which the library doesn't have; restore %s, such as from version control, or, if the library deleted its release/%d tag, ask the library's maintainer to restore it; then run code-rules project sync again", number, record, number)}
 	}
 	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
 		rule := plan.rules[id]
@@ -579,7 +582,7 @@ func (p *planner) requireUnmoved(plan sourcePlan) error {
 			if ok {
 				publishes = "which publishes version " + published.String() + " of the rule"
 			}
-			return &rules.ValidationError{Location: record + ".rules." + id, Problem: fmt.Sprintf("records version %s from library release %d, %s; restore %s, such as from version control, then run code-rules project sync again", rule.Version, rule.Release, publishes, record)}
+			return &authored.ValidationError{Location: record + ".rules." + id, Problem: fmt.Sprintf("records version %s from library release %d, %s; restore %s, such as from version control, then run code-rules project sync again", rule.Version, rule.Release, publishes, record)}
 		}
 	}
 	if plan.release != 0 && history.release(plan.release) == nil && !usesRef {
@@ -642,7 +645,7 @@ func sameGroupSelection(a, b rules.GroupSelection) bool {
 func rulesInTree(tree map[string]treeEntry) []string {
 	ids := []string{}
 	for file := range tree {
-		if id, ok := rules.VersionedRule(file); ok && file == id+".md" {
+		if id, ok := librarypath.VersionedRule(file); ok && file == id+".md" {
 			ids = append(ids, id)
 		}
 	}

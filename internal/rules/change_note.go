@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"maps"
 	"slices"
-	"strconv"
-	"strings"
+
+	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // ChangeNote records one change to one or more rules for the next library release.
@@ -20,39 +22,39 @@ type ChangeNote struct {
 
 // NoteChange is one rule's change in a note. ReplacedBy is set only for a retired rule that has a replacement.
 type NoteChange struct {
-	Change     Change `json:"change"`
-	ReplacedBy string `json:"replacedBy,omitempty"`
+	Change     libraryformat.Change `json:"change"`
+	ReplacedBy string               `json:"replacedBy,omitempty"`
 }
 
 // ParseChangeNote validates one change note's YAML. location names the note, such as changes/2026-09-29-verify-retry-limits-7f3a9c.yaml.
 // Rule IDs are checked for syntax only; whether each rule exists, and whether its change matches the library, is a library check.
 func ParseChangeNote(input []byte, location string) (ChangeNote, error) {
-	_, data, err := authoredYAML(input, location)
+	_, data, err := authored.YAML(input, location)
 	if err != nil {
 		return ChangeNote{}, err
 	}
-	fields, err := jsonObject(data, location)
+	fields, err := authored.Object(data, location)
 	if err != nil {
 		return ChangeNote{}, err
 	}
-	if err := knownJSONFields(fields, []string{"summary", "rules"}, location); err != nil {
+	if err := authored.KnownFields(fields, []string{"summary", "rules"}, location); err != nil {
 		return ChangeNote{}, err
 	}
-	summary, err := summaryLine(fields["summary"], location+".summary")
+	summary, err := authored.Line(fields["summary"], location+".summary")
 	if err != nil {
 		return ChangeNote{}, err
 	}
-	entries, err := jsonObject(fields["rules"], location+".rules")
+	entries, err := authored.Object(fields["rules"], location+".rules")
 	if err != nil {
 		return ChangeNote{}, err
 	}
 	if len(entries) == 0 {
-		return ChangeNote{}, invalid(location+".rules", "expected at least one rule")
+		return ChangeNote{}, authored.Invalid(location+".rules", "expected at least one rule")
 	}
 	note := ChangeNote{Summary: summary, Rules: map[string]NoteChange{}}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		entryLocation := location + ".rules." + id
-		if err := ValidateRuleID(id, entryLocation); err != nil {
+		if err := librarypath.ValidateRuleID(id, entryLocation); err != nil {
 			return ChangeNote{}, err
 		}
 		change, err := noteChange(entries[id], id, entryLocation)
@@ -68,76 +70,54 @@ func ParseChangeNote(input []byte, location string) (ChangeNote, error) {
 func noteChange(input json.RawMessage, id, location string) (NoteChange, error) {
 	var name string
 	if json.Unmarshal(input, &name) == nil {
-		switch change := Change(name); change {
-		case ChangeMajor, ChangeMinor, ChangePatch, ChangeNew, ChangeRetired:
+		switch change := libraryformat.Change(name); change {
+		case libraryformat.ChangeMajor, libraryformat.ChangeMinor, libraryformat.ChangePatch, libraryformat.ChangeNew, libraryformat.ChangeRetired:
 			return NoteChange{Change: change}, nil
 		}
-		return NoteChange{}, invalid(location, "unknown change "+quote(name)+"; expected major, minor, patch, new, or retired")
+		return NoteChange{}, authored.Invalid(location, "unknown change "+authored.Quote(name)+"; expected major, minor, patch, new, or retired")
 	}
-	fields, err := jsonObject(input, location)
+	fields, err := authored.Object(input, location)
 	if err != nil {
-		return NoteChange{}, invalid(location, "expected major, minor, patch, new, retired, or an object with change: retired")
+		return NoteChange{}, authored.Invalid(location, "expected major, minor, patch, new, retired, or an object with change: retired")
 	}
-	if err := knownJSONFields(fields, []string{"change", "replacedBy"}, location); err != nil {
+	if err := authored.KnownFields(fields, []string{"change", "replacedBy"}, location); err != nil {
 		return NoteChange{}, err
 	}
-	if json.Unmarshal(fields["change"], &name) != nil || Change(name) != ChangeRetired {
-		return NoteChange{}, invalid(location+".change", "expected retired; only a retirement can name a replacement")
+	if json.Unmarshal(fields["change"], &name) != nil || libraryformat.Change(name) != libraryformat.ChangeRetired {
+		return NoteChange{}, authored.Invalid(location+".change", "expected retired; only a retirement can name a replacement")
 	}
-	result := NoteChange{Change: ChangeRetired}
+	result := NoteChange{Change: libraryformat.ChangeRetired}
 	if raw, ok := fields["replacedBy"]; ok {
 		if json.Unmarshal(raw, &result.ReplacedBy) != nil {
-			return NoteChange{}, invalid(location+".replacedBy", "expected a rule ID")
+			return NoteChange{}, authored.Invalid(location+".replacedBy", "expected a rule ID")
 		}
-		if err := ValidateRuleID(result.ReplacedBy, location+".replacedBy"); err != nil {
+		if err := librarypath.ValidateRuleID(result.ReplacedBy, location+".replacedBy"); err != nil {
 			return NoteChange{}, err
 		}
 		if result.ReplacedBy == id {
-			return NoteChange{}, invalid(location+".replacedBy", "a rule can't replace itself")
+			return NoteChange{}, authored.Invalid(location+".replacedBy", "a rule can't replace itself")
 		}
 	}
 	return result, nil
 }
 
-// summaryLine returns a change summary: nonblank, valid Unicode text on one line, without surrounding whitespace or
-// control characters. A change note has one, and a release record lists one per note. Projects show summaries in
-// terminals, where control characters, such as ESC, could rewrite what they display.
-func summaryLine(input json.RawMessage, location string) (string, error) {
-	text, err := jsonText(input, location)
-	if err != nil {
-		return "", err
+// changeRank orders version changes so several notes on one rule resolve to the largest; other changes rank zero.
+func changeRank(change libraryformat.Change) int {
+	switch change {
+	case libraryformat.ChangePatch:
+		return 1
+	case libraryformat.ChangeMinor:
+		return 2
+	case libraryformat.ChangeMajor:
+		return 3
 	}
-	summary := strings.TrimFunc(text, jsWhitespace)
-	if strings.ContainsAny(summary, "\n\r") {
-		return "", invalid(location, "expected one line")
-	}
-	if strings.ContainsFunc(summary, func(r rune) bool { return r < 0x20 || (r >= 0x7f && r <= 0x9f) }) {
-		return "", invalid(location, "expected text without control characters, such as tabs or escape sequences")
-	}
-	return summary, nil
+	return 0
 }
 
-// recordSummaries reads a release record's non-empty list of summaries, one per change note, in order.
-func recordSummaries(input json.RawMessage, location string) ([]string, error) {
-	var items []json.RawMessage
-	if json.Unmarshal(input, &items) != nil || len(items) == 0 {
-		return nil, invalid(location, "expected a list with one summary per change note")
+// LargerChange returns whichever of two version changes moves a rule further; ties return a.
+func LargerChange(a, b libraryformat.Change) libraryformat.Change {
+	if changeRank(b) > changeRank(a) {
+		return b
 	}
-	summaries := make([]string, len(items))
-	for i, item := range items {
-		summary, err := summaryLine(item, location+"["+strconv.Itoa(i)+"]")
-		if err != nil {
-			return nil, err
-		}
-		summaries[i] = summary
-	}
-	return summaries, nil
-}
-
-// ValidateRuleID accepts a library rule ID: a rule's contained path without its final .md, such as
-// practices/testing/verify-retry-limits. It accepts exactly the IDs of valid rule paths, so the ID of a rule file
-// named example.md.md is example.md. It checks syntax only; it does not establish that the rule exists.
-func ValidateRuleID(id, location string) error {
-	_, err := GroupFromPath(id+".md", location)
-	return err
+	return a
 }

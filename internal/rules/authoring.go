@@ -5,10 +5,11 @@ package rules
 import (
 	"bytes"
 	_ "embed"
-	"encoding/json"
 	"strings"
 
 	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // RuleMetadata is the complete author-supplied discovery and consequence metadata.
@@ -24,30 +25,25 @@ type RuleMetadata struct {
 //go:embed rule-template.md
 var ruleTemplate string
 
-// encodeAuthoredJSON serializes authored JSON as readable UTF-8 with one final newline.
-func encodeAuthoredJSON(value any) ([]byte, error) {
-	var out bytes.Buffer
-	e := json.NewEncoder(&out)
-	e.SetEscapeHTML(false)
-	e.SetIndent("", "  ")
-	err := e.Encode(value)
-	return out.Bytes(), err
+// RenderGroup returns the _group.yaml text of metadata with its text trimmed, failing unless libraryformat reads it.
+func RenderGroup(metadata libraryformat.GroupMetadata) ([]byte, error) {
+	draft, err := encodeGroup(metadata)
+	if err != nil {
+		return nil, err
+	}
+	normalized, err := libraryformat.ParseGroupMetadata(draft, "_group.yaml")
+	if err != nil {
+		return nil, err
+	}
+	return encodeGroup(normalized)
 }
 
-// RenderGroup validates and trims group metadata before serialization.
-func RenderGroup(metadata GroupMetadata) ([]byte, error) {
-	data, err := encodeAuthoredJSON(metadata)
-	if err != nil {
-		return nil, err
-	}
-	normalized, err := ParseGroupMetadata(data, "_group.yaml")
-	if err != nil {
-		return nil, err
-	}
+// encodeGroup writes metadata as YAML with two-space indentation.
+func encodeGroup(metadata libraryformat.GroupMetadata) ([]byte, error) {
 	var out bytes.Buffer
 	encoder := yaml.NewEncoder(&out)
 	encoder.SetIndent(2)
-	if err := encoder.Encode(normalized); err != nil {
+	if err := encoder.Encode(metadata); err != nil {
 		return nil, err
 	}
 	if err := encoder.Close(); err != nil {
@@ -71,7 +67,7 @@ func RenderRule(id string, metadata RuleMetadata, body *string) ([]byte, error) 
 		content = strings.Replace(content, "## <Short action-oriented title>", "## "+strings.NewReplacer("\r", " ", "\n", " ").Replace(metadata.Title), 1)
 	}
 	text := "---\n" + string(header) + "---\n\n" + content
-	if _, err := Parse(text, id+".md", "local"); err != nil {
+	if _, err := libraryformat.ParseRule(text, id+".md", "local"); err != nil {
 		return nil, err
 	}
 	if !strings.HasSuffix(text, "\n") {

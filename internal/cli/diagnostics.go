@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/project"
-	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/term"
 )
 
@@ -22,7 +22,7 @@ func humanError(destination io.Writer, err error) string {
 	if file, ok := destination.(*os.File); ok && term.IsTerminal(int(file.Fd())) && os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "" && os.Getenv("TERM") != "dumb" {
 		label = "\x1b[1;31mError:\x1b[0m"
 	}
-	var validation *rules.ValidationError
+	var validation *authored.ValidationError
 	if errors.As(err, &validation) && err == validation {
 		return fmt.Sprintf("%s %s\n\nLocation: %s\n", label, terminalText(sentence(validation.Problem)), terminalText(validation.Location))
 	}

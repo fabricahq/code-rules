@@ -18,6 +18,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // updateRule is a valid rule whose body is text.
@@ -552,12 +553,12 @@ func TestUpdate_TerminalCancellationWritesNothing(t *testing.T) {
 
 // TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral, and only then.
 func TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral(t *testing.T) {
-	one, two := rules.RuleVersion{Major: 1, Minor: 1}, rules.RuleVersion{Major: 2}
-	spanning := imports.RuleUpdate{Change: imports.UpdateMajor, Summaries: []string{"Add an example.", "Require more."}, SummaryVersions: []rules.RuleVersion{one, two}}
+	one, two := libraryformat.RuleVersion{Major: 1, Minor: 1}, libraryformat.RuleVersion{Major: 2}
+	spanning := imports.RuleUpdate{Change: imports.UpdateMajor, Summaries: []string{"Add an example.", "Require more."}, SummaryVersions: []libraryformat.RuleVersion{one, two}}
 	if got, want := updateDetails("team", spanning), []string{"1.1.0: Add an example.", "2.0.0: Require more."}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
-	single := imports.RuleUpdate{Change: imports.UpdatePatch, Summaries: []string{"Fix a typo.", "Fix a link."}, SummaryVersions: []rules.RuleVersion{one, one}}
+	single := imports.RuleUpdate{Change: imports.UpdatePatch, Summaries: []string{"Fix a typo.", "Fix a link."}, SummaryVersions: []libraryformat.RuleVersion{one, one}}
 	if got, want := updateDetails("team", single), []string{"Fix a typo.", "Fix a link."}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
@@ -617,7 +618,7 @@ func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 // TestUpdateDetails_ShowsAPinnedForksReplacementBesideThePin: a pin on the imported copy doesn't hide the fork's
 // version or the files it overwrites.
 func TestUpdateDetails_ShowsAPinnedForksReplacementBesideThePin(t *testing.T) {
-	old, newest := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 2}
+	old, newest := libraryformat.RuleVersion{Major: 1}, libraryformat.RuleVersion{Major: 2}
 	row := imports.RuleUpdate{Change: imports.UpdateReplaced, From: &old, Newest: &newest, LocalRule: "local/techs/go/loaders.md", Pin: &rules.Pin{Version: old, Reason: "Not yet."}, Decision: "update-fork", Overwrites: []string{"local/techs/go/loaders.md"}, Removes: []string{"local/techs/go/assets/loaders/notes.md"}, Summaries: []string{}}
 	want := []string{"Your rule: local/techs/go/loaders.md.", "Your pin keeps it at 1.0.0.", "Reason: Not yet.", "Your rule becomes a fork of 2.0.0.", "Replaces local/techs/go/loaders.md", "Removes local/techs/go/assets/loaders/notes.md"}
 	if got := updateDetails("team", row); !reflect.DeepEqual(got, want) {
@@ -648,7 +649,7 @@ func TestUpdate_AsksAboutAPinnedForkInATerminal(t *testing.T) {
 
 // TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement instead of recommending it.
 func TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement(t *testing.T) {
-	last := rules.RuleVersion{Major: 1}
+	last := libraryformat.RuleVersion{Major: 1}
 	row := imports.RuleUpdate{Change: imports.UpdateRetired, From: &last, LastVersion: &last, ReplacedBy: "techs/go/d", ReplacementLocalRule: "local/techs/go/d.md"}
 	if got := updateDetails("team", row); len(got) == 0 || got[0] != "Replaced by techs/go/d, which your project already replaces with local/techs/go/d.md." {
 		t.Fatalf("got %q", got)

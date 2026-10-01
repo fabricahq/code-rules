@@ -11,10 +11,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // rulePath maps one source-qualified identity to its standalone generated path.
-func rulePath(rule rules.Rule) string {
+func rulePath(rule libraryformat.Rule) string {
 	return "rules/" + strings.Replace(rule.ID, ":", "/", 1) + ".md"
 }
 
@@ -56,7 +57,7 @@ func renderRule(active resolvedRule, paths []string, outputPath string) (string,
 	if !utf8.ValidString(active.Rule.Document) {
 		return "", invalid(active.Rule.ID, "expected UTF-8 text")
 	}
-	split, err := rules.SplitDocument(active.Rule.Document, active.Rule.ID)
+	split, err := libraryformat.SplitDocument(active.Rule.Document, active.Rule.ID)
 	if err != nil {
 		return "", err
 	}

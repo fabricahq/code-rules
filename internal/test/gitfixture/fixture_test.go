@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/releasetag"
 )
 
 // TestClone_PushesCommitsAndTagsToTheFixture lets library release tests publish through the fixture's transport.
@@ -85,7 +85,7 @@ func TestRelease_TagsARecordThatParses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, record, err := rules.ParseReleaseTagObject("release/1", []byte(object)); err != nil || record.Release != 1 {
-		t.Fatalf("got %+v, %v", record, err)
+	if release, err := releasetag.ParseObject("release/1", []byte(object)); err != nil || release.Record.Release != 1 {
+		t.Fatalf("got %+v, %v", release, err)
 	}
 }

@@ -10,9 +10,11 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // UpdateTarget names what an update moves: every rule of Source when Rule is empty, or only the library rule Rule.
@@ -61,19 +63,19 @@ type RuleUpdate struct {
 	ID     string       `json:"id"`
 	Change UpdateChange `json:"change"`
 	// From is the version the project imports; it is nil for a new rule.
-	From *rules.RuleVersion `json:"from,omitempty"`
+	From *libraryformat.RuleVersion `json:"from,omitempty"`
 	// To is the version the update installs; it is nil for retired and pinned rules, which don't move, including a
 	// pinned replaced rule.
-	To *rules.RuleVersion `json:"to,omitempty"`
+	To *libraryformat.RuleVersion `json:"to,omitempty"`
 	// Newest is a pinned rule's newest version, including a pinned replaced rule's, and LastVersion a retired
 	// rule's; each is nil otherwise.
-	Newest      *rules.RuleVersion `json:"newest,omitempty"`
-	LastVersion *rules.RuleVersion `json:"lastVersion,omitempty"`
+	Newest      *libraryformat.RuleVersion `json:"newest,omitempty"`
+	LastVersion *libraryformat.RuleVersion `json:"lastVersion,omitempty"`
 	// Summaries holds one line per change note, oldest first: every version after From up to To, every version of
 	// a new rule, or the retirement. It is empty, never nil, for a pinned rule. SummaryVersions holds the version
 	// each summary belongs to, in the same order, a retired rule's being its last version.
-	Summaries       []string            `json:"summaries"`
-	SummaryVersions []rules.RuleVersion `json:"summaryVersions"`
+	Summaries       []string                    `json:"summaries"`
+	SummaryVersions []libraryformat.RuleVersion `json:"summaryVersions"`
 	// ReplacedBy is the library rule that replaces a retired rule, when there is one.
 	ReplacedBy string `json:"replacedBy,omitempty"`
 	// ReplacementRetired reports that the library later retired ReplacedBy too; CurrentReplacement is then the rule
@@ -87,7 +89,7 @@ type RuleUpdate struct {
 	LocalRule string `json:"localRule,omitempty"`
 	// BasedOn is the version of a replaced rule that its local rule incorporates, as the exclusion records it; the
 	// row then lists the changes after it, From being the imported version. It is nil otherwise.
-	BasedOn *rules.RuleVersion `json:"basedOn,omitempty"`
+	BasedOn *libraryformat.RuleVersion `json:"basedOn,omitempty"`
 	// Pin is the configured pin of a pinned rule, or of a retired rule a pin keeps.
 	Pin *rules.Pin `json:"pin,omitempty"`
 	// Decision is "keep" when the project pins the rule at From instead of applying the change, "exclude" when it
@@ -105,7 +107,7 @@ type RuleUpdate struct {
 
 // ReviewedVersion returns the newest version a replaced row lists changes up to, which replacing its fork forks and
 // records as basedOn: To, or Newest when a pin keeps the imported copy. It is nil for other rows.
-func (r RuleUpdate) ReviewedVersion() *rules.RuleVersion {
+func (r RuleUpdate) ReviewedVersion() *libraryformat.RuleVersion {
 	if r.Change != UpdateReplaced {
 		return nil
 	}
@@ -196,7 +198,7 @@ func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
 // ForkedRule is a version of a rule that a project forks during an update, from a source the update names.
 type ForkedRule struct {
 	Source, ID string
-	Version    rules.RuleVersion
+	Version    libraryformat.RuleVersion
 }
 
 // Import imports every source of configuration, the planned configuration plus the pins and exclusions the
@@ -234,7 +236,7 @@ func (u Update) Import(ctx context.Context, configuration rules.Configuration, o
 // ReadFork reads version of rule id from source, which the update names, as ReadPublishedRule does, from the
 // library release that planning found published it. It fails with invalid-release-tag, before reading the rule's
 // files, when that release's tag now names another commit, so a fork never holds content the preview didn't plan.
-func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, version rules.RuleVersion, options Options) (PublishedRule, error) {
+func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, version libraryformat.RuleVersion, options Options) (PublishedRule, error) {
 	planned, named := u.plans[source.Name]
 	if !named {
 		return PublishedRule{}, fmt.Errorf("source %s isn't part of the update", source.Name)
@@ -320,7 +322,7 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 // cancellation: a validation error of the source's configuration, of its source record, or of a SOURCE:RULE argument
 // naming it, or a message about one of its fields. Other failures, such as an invalid release record in the library, need it.
 func sourceError(source string, err error) error {
-	var validation *rules.ValidationError
+	var validation *authored.ValidationError
 	if errors.As(err, &validation) && err == error(validation) {
 		location := validation.Location
 		if location == "sources."+source || strings.HasPrefix(location, "sources."+source+".") || strings.HasPrefix(location, source+":") || strings.HasPrefix(location, "vendor/"+source+"/") {
@@ -350,10 +352,10 @@ func updateScopes(configuration rules.Configuration, targets []UpdateTarget) (ma
 		}
 		index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == target.Source })
 		if index < 0 {
-			return nil, &rules.ValidationError{Location: where, Problem: "no source named " + target.Source + " in .code-rules/config.yaml"}
+			return nil, &authored.ValidationError{Location: where, Problem: "no source named " + target.Source + " in .code-rules/config.yaml"}
 		}
 		if !configuration.Sources[index].Ref.IsZero() {
-			return nil, &rules.ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run code-rules project sync"}
+			return nil, &authored.ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run code-rules project sync"}
 		}
 		if target.Rule == "" {
 			whole[target.Source] = true
@@ -395,7 +397,7 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	}
 	for _, id := range scope {
 		if _, imported := before.rules[id]; !imported {
-			return plannedSource{}, SourceUpdate{}, nil, &rules.ValidationError{Location: source.Name + ":" + id, Problem: "source " + source.Name + " doesn't import this rule; name a rule it imports"}
+			return plannedSource{}, SourceUpdate{}, nil, &authored.ValidationError{Location: source.Name + ":" + id, Problem: "source " + source.Name + " doesn't import this rule; name a rule it imports"}
 		}
 	}
 	moved, rows, err := p.update(before, scope)
@@ -471,7 +473,7 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 			row.Pin = &pin
 			rows = append(rows, p.withReplacementLocalRule(row))
 		case pinned && latest.Compare(*current.Version) > 0:
-			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []rules.RuleVersion{}, Pin: &pin})
+			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []libraryformat.RuleVersion{}, Pin: &pin})
 		case pinned:
 		case !published:
 			delete(after, id)
@@ -544,7 +546,7 @@ func retiredRow(id string, current library.ImportedRule, history releaseHistory)
 		return RuleUpdate{}, fail("invalid-release-tag", fmt.Sprintf("Rule %s is missing from release/%d, but no library release retired it. Don't create or move release tags by hand.", id, history.newest().number), nil)
 	}
 	last := retired.LastVersion
-	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), SummaryVersions: []rules.RuleVersion{}, ReplacedBy: retired.ReplacedBy}
+	row := RuleUpdate{ID: id, Change: UpdateRetired, From: current.Version, LastVersion: &last, Summaries: slices.Clone(retired.Summaries), SummaryVersions: []libraryformat.RuleVersion{}, ReplacedBy: retired.ReplacedBy}
 	for range row.Summaries {
 		row.SummaryVersions = append(row.SummaryVersions, last)
 	}
@@ -568,7 +570,7 @@ func (p *planner) withReplacementLocalRule(row RuleUpdate) RuleUpdate {
 }
 
 // versionChange classifies moving from one version to a newer one by the largest component that changed.
-func versionChange(from, to rules.RuleVersion) UpdateChange {
+func versionChange(from, to libraryformat.RuleVersion) UpdateChange {
 	switch {
 	case to.Major != from.Major:
 		return UpdateMajor

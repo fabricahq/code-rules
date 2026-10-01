@@ -15,6 +15,9 @@ import (
 	"github.com/yuin/goldmark/v2/ast"
 	"github.com/yuin/goldmark/v2/parser"
 	"github.com/yuin/goldmark/v2/text"
+
+	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/librarypath"
 )
 
 var externalScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
@@ -46,7 +49,7 @@ func RawHTMLLinks(document string) ([]string, error) {
 // for one tokenizer, excluding code and complete frontmatter envelopes.
 func documentLinks(document string) (links []string, rawHTML string, err error) {
 	if !utf8.ValidString(document) {
-		return nil, "", invalid("document", "expected UTF-8 text")
+		return nil, "", authored.Invalid("document", "expected UTF-8 text")
 	}
 	source := []byte(document[MarkdownBodyStart(document):])
 	root := parser.New().Parse(source)
@@ -116,10 +119,10 @@ func RelativeTarget(destination, file string) (target, suffix string, local bool
 	}
 	decoded, decodeErr := url.PathUnescape(raw)
 	if decodeErr != nil || !utf8.ValidString(decoded) {
-		return "", "", false, invalid(file, "invalid encoded link "+destination)
+		return "", "", false, authored.Invalid(file, "invalid encoded link "+destination)
 	}
 	if strings.ContainsRune(decoded, '\\') || strings.ContainsFunc(decoded, func(r rune) bool { return r < 32 || r == 127 }) {
-		return "", "", false, invalid(file, "unsafe relative link "+destination)
+		return "", "", false, authored.Invalid(file, "unsafe relative link "+destination)
 	}
 	target = file
 	if decoded != "" {
@@ -130,7 +133,7 @@ func RelativeTarget(destination, file string) (target, suffix string, local bool
 		}
 	}
 	if target == ".." || strings.HasPrefix(target, "../") {
-		return "", "", false, invalid(file, "link escapes source root: "+destination)
+		return "", "", false, authored.Invalid(file, "link escapes source root: "+destination)
 	}
 	return target, suffix, true, nil
 }
@@ -160,8 +163,8 @@ func RequireAllowedTarget(file, target string, terms []string) error {
 	if file == target || slices.Contains(terms, target) {
 		return nil
 	}
-	if _, err := GroupFromPath(target, file); err == nil {
-		return invalid(file, "links to other rule documents are not allowed: "+target+"; move shared supporting material to the library-root assets/ directory")
+	if _, err := librarypath.GroupFromPath(target, file); err == nil {
+		return authored.Invalid(file, "links to other rule documents are not allowed: "+target+"; move shared supporting material to the library-root assets/ directory")
 	}
 	own := AssetDirectory(file)
 	if own == "" {
@@ -171,7 +174,7 @@ func RequireAllowedTarget(file, target string, terms []string) error {
 	if destination == "assets/" || (destination != "" && destination == own) {
 		return nil
 	}
-	return invalid(file, "unsupported supporting-file link: "+target+"; use this rule's assets directory or the library-root assets directory")
+	return authored.Invalid(file, "unsupported supporting-file link: "+target+"; use this rule's assets directory or the library-root assets directory")
 }
 
 // MarkdownTargets returns distinct source-relative dependencies in deterministic path order, including HTML href/src attributes.

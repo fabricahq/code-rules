@@ -18,7 +18,9 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // AuthoringResult lists the absolute paths of the library files an operation created and changed, and any
@@ -283,8 +285,8 @@ func editLibrary(ctx context.Context, options Options, group string, prepare fun
 }
 
 // AddGroup creates complete metadata without changing existing library content.
-func AddGroup(ctx context.Context, id string, metadata rules.GroupMetadata, options Options) (AuthoringResult, error) {
-	if err := rules.ValidateGroupID(id, "group"); err != nil {
+func AddGroup(ctx context.Context, id string, metadata libraryformat.GroupMetadata, options Options) (AuthoringResult, error) {
+	if err := librarypath.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
 	data, err := rules.RenderGroup(metadata)
@@ -311,13 +313,13 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 	if err != nil || data == nil {
 		return false, err
 	}
-	_, err = rules.ParseGroupMetadataYAML(data, id)
+	_, err = libraryformat.ParseGroupMetadata(data, id)
 	return err == nil, err
 }
 
 // AddRule creates supplied guidance or a marked unfinished canonical draft, in an existing group.
 func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
-	group, err := rules.GroupFromPath(id+".md", "rule")
+	group, err := librarypath.GroupFromPath(id+".md", "rule")
 	if err != nil {
 		return AuthoringResult{}, err
 	}

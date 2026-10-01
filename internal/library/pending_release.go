@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // PendingRelease previews the next library release: each rule a pending change note names, or, before the
@@ -25,14 +26,14 @@ type PendingRelease struct {
 // PendingRule is one rule's change in the next library release, named as the release record and the rows of
 // code-rules project update name them.
 type PendingRule struct {
-	ID     string       `json:"id"`
-	Change rules.Change `json:"change"`
+	ID     string               `json:"id"`
+	Change libraryformat.Change `json:"change"`
 	// From is the version the rule had before this library release; it is nil for a new or retired rule.
-	From *rules.RuleVersion `json:"from,omitempty"`
+	From *libraryformat.RuleVersion `json:"from,omitempty"`
 	// To is the version this library release publishes; it is nil for a retired rule.
-	To *rules.RuleVersion `json:"to,omitempty"`
+	To *libraryformat.RuleVersion `json:"to,omitempty"`
 	// LastVersion is a retired rule's final version, and nil for every other rule.
-	LastVersion *rules.RuleVersion `json:"lastVersion,omitempty"`
+	LastVersion *libraryformat.RuleVersion `json:"lastVersion,omitempty"`
 	// ReplacedBy names a retired rule's replacement, when it has one.
 	ReplacedBy string `json:"replacedBy,omitempty"`
 	// Summaries holds one summary per change note that named the rule, in note order; it is never empty.
@@ -65,11 +66,11 @@ const firstReleaseSummary = "Add the rule."
 type releasePlan struct {
 	release int
 	// versions holds every current rule's version after the library release.
-	versions map[string]rules.RuleVersion
+	versions map[string]libraryformat.RuleVersion
 	// changes holds each new or changed rule, with one summary per note that named it, in note order;
 	// the first library release, which has no notes, gives every rule firstReleaseSummary.
-	changes map[string]rules.RecordedChange
-	retired map[string]rules.RetiredRule
+	changes map[string]libraryformat.RecordedChange
+	retired map[string]libraryformat.RetiredRule
 }
 
 // review returns every mismatch between the pending notes and the rule changes since the latest library
@@ -127,25 +128,25 @@ func (c libraryChanges) reviewEntry(path, id string, change rules.NoteChange, ex
 	release, retired := c.history.retired[id]
 	prefix := path + " names " + id + ", which "
 	switch {
-	case change.Change == rules.ChangeRetired && exists:
+	case change.Change == libraryformat.ChangeRetired && exists:
 		return prefix + "still exists. To retire it, delete its Markdown file and asset directory."
-	case change.Change == rules.ChangeRetired && retired:
+	case change.Change == libraryformat.ChangeRetired && retired:
 		return prefix + "release/" + strconv.Itoa(release) + " already retired."
-	case change.Change == rules.ChangeRetired && !published:
+	case change.Change == libraryformat.ChangeRetired && !published:
 		return prefix + "was never published, so it can't be retired. Remove it from the note."
-	case change.Change == rules.ChangeRetired && change.ReplacedBy != "" && !slices.Contains(c.current, change.ReplacedBy):
+	case change.Change == libraryformat.ChangeRetired && change.ReplacedBy != "" && !slices.Contains(c.current, change.ReplacedBy):
 		return path + " retires " + id + " in favor of " + change.ReplacedBy + ", which isn't a rule in the library."
-	case change.Change == rules.ChangeRetired:
+	case change.Change == libraryformat.ChangeRetired:
 		return ""
 	case !exists && !retiring:
 		return prefix + "isn't a rule in the library and isn't being retired."
 	case !exists:
 		return ""
-	case change.Change == rules.ChangeNew && published:
+	case change.Change == libraryformat.ChangeNew && published:
 		return prefix + "already has version " + version.String() + ". Record it as major, minor, or patch."
-	case change.Change != rules.ChangeNew && !published:
+	case change.Change != libraryformat.ChangeNew && !published:
 		return prefix + "has no version yet. Record it as new."
-	case change.Change != rules.ChangeNew && !c.changed[id]:
+	case change.Change != libraryformat.ChangeNew && !c.changed[id]:
 		return prefix + "is unchanged since " + latest.tagName() + ", so the note is stale. Remove the rule from the note."
 	}
 	return ""
@@ -158,7 +159,7 @@ func (c libraryChanges) namedRules() (map[string]bool, map[string][]rules.NoteCh
 	for _, pending := range c.pending {
 		for id, change := range pending.note.Rules {
 			named[id] = true
-			if change.Change == rules.ChangeRetired {
+			if change.Change == libraryformat.ChangeRetired {
 				retiring[id] = append(retiring[id], change)
 			}
 		}
@@ -170,12 +171,12 @@ func (c libraryChanges) namedRules() (map[string]bool, map[string][]rules.NoteCh
 // every current rule is new, with firstReleaseSummary as its summary. Several notes on one rule use the largest change; a retirement outweighs any other.
 // It fails when a change would advance a version past the largest rule version number.
 func (c libraryChanges) plan() (releasePlan, error) {
-	plan := releasePlan{release: 1, versions: map[string]rules.RuleVersion{}, changes: map[string]rules.RecordedChange{}, retired: map[string]rules.RetiredRule{}}
+	plan := releasePlan{release: 1, versions: map[string]libraryformat.RuleVersion{}, changes: map[string]libraryformat.RecordedChange{}, retired: map[string]libraryformat.RetiredRule{}}
 	latest := c.history.latest
 	if latest == nil {
 		for _, id := range c.current {
-			plan.versions[id] = rules.FirstRuleVersion
-			plan.changes[id] = rules.RecordedChange{Change: rules.ChangeNew, Summaries: []string{firstReleaseSummary}}
+			plan.versions[id] = libraryformat.FirstRuleVersion
+			plan.changes[id] = libraryformat.RecordedChange{Change: libraryformat.ChangeNew, Summaries: []string{firstReleaseSummary}}
 		}
 		return plan, nil
 	}
@@ -185,14 +186,14 @@ func (c libraryChanges) plan() (releasePlan, error) {
 			plan.versions[id] = version
 		}
 	}
-	changes := map[string]rules.Change{}
+	changes := map[string]libraryformat.Change{}
 	summaries := map[string][]string{}
 	// Every pending note's summary is listed, in note order, wherever its rule ends up.
 	for _, pending := range c.pending {
 		for id, change := range pending.note.Rules {
 			summaries[id] = append(summaries[id], pending.note.Summary)
-			if change.Change == rules.ChangeRetired {
-				plan.retired[id] = rules.RetiredRule{LastVersion: latest.record.Rules[id], ReplacedBy: change.ReplacedBy}
+			if change.Change == libraryformat.ChangeRetired {
+				plan.retired[id] = libraryformat.RetiredRule{LastVersion: latest.record.Rules[id], ReplacedBy: change.ReplacedBy}
 			} else if previous, ok := changes[id]; ok {
 				changes[id] = rules.LargerChange(previous, change.Change)
 			} else {
@@ -206,9 +207,9 @@ func (c libraryChanges) plan() (releasePlan, error) {
 		delete(changes, id)
 	}
 	for _, id := range slices.Sorted(maps.Keys(changes)) {
-		recorded := rules.RecordedChange{Change: changes[id], Summaries: summaries[id]}
-		next := rules.FirstRuleVersion
-		if recorded.Change != rules.ChangeNew {
+		recorded := libraryformat.RecordedChange{Change: changes[id], Summaries: summaries[id]}
+		next := libraryformat.FirstRuleVersion
+		if recorded.Change != libraryformat.ChangeNew {
 			from := latest.record.Rules[id]
 			var err error
 			if next, err = from.Next(recorded.Change); err != nil {
@@ -223,8 +224,8 @@ func (c libraryChanges) plan() (releasePlan, error) {
 }
 
 // record returns the release record that publishes the plan with libraryFiles, the changed library-wide files.
-func (p releasePlan) record(libraryFiles []string) rules.ReleaseRecord {
-	return rules.ReleaseRecord{Release: p.release, Rules: p.versions, Changes: p.changes, Retired: p.retired, LibraryFiles: libraryFiles}
+func (p releasePlan) record(libraryFiles []string) libraryformat.ReleaseRecord {
+	return libraryformat.ReleaseRecord{Release: p.release, Rules: p.versions, Changes: p.changes, Retired: p.retired, LibraryFiles: libraryFiles}
 }
 
 // preview lists each changed, new, and retired rule in ID order.

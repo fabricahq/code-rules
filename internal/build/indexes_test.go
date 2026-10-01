@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
-
 	"github.com/yuin/goldmark/v2/parser"
 	htmlrenderer "github.com/yuin/goldmark/v2/renderer/html"
+
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // TestIndexPagesMeasuresLines covers source lines at an exact fit and preserves complete ordered entries.
@@ -184,7 +184,7 @@ func TestGroupPagesKeepMultipleSourceCues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resolved.Groups[0].EffectiveGuidance = append(resolved.Groups[0].EffectiveGuidance, groupGuidance{Source: "second", Metadata: rules.GroupMetadata{Name: "Go Services", Description: "Other guidance.", WhenToRead: "When reviewing services."}})
+	resolved.Groups[0].EffectiveGuidance = append(resolved.Groups[0].EffectiveGuidance, groupGuidance{Source: "second", Metadata: libraryformat.GroupMetadata{Name: "Go Services", Description: "Other guidance.", WhenToRead: "When reviewing services."}})
 	pages, err := renderIndexes(resolved, defaultIndexMaxLines, 0)
 	if err != nil {
 		t.Fatal(err)

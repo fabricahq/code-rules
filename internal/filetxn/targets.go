@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -58,13 +59,13 @@ func guideTarget(target Target) bool { return target == GuideReadme || target ==
 func localGroupMetadataTarget(target Target) bool {
 	group, local := strings.CutPrefix(string(target), "local/")
 	group, metadata := strings.CutSuffix(group, "/_group.yaml")
-	return local && metadata && rules.ValidateGroupID(group, "group") == nil
+	return local && metadata && librarypath.ValidateGroupID(group, "group") == nil
 }
 
 // localRuleTarget reports whether target is a LocalRule target: the Markdown file of a rule path under local/.
 func localRuleTarget(target Target) bool {
 	file, local := strings.CutPrefix(string(target), "local/")
-	id, versioned := rules.VersionedRule(file)
+	id, versioned := librarypath.VersionedRule(file)
 	return local && versioned && file == id+".md"
 }
 

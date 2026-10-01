@@ -13,10 +13,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // forkedRule is a rule document whose body is text.
@@ -294,8 +295,8 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
 		t.Fatal(err)
 	}
-	rule, err := rules.Parse(string(f.files(t)["local/techs/go/errors.md"]), "techs/go/errors.md", "local")
-	want := []rules.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
+	rule, err := libraryformat.ParseRule(string(f.files(t)["local/techs/go/errors.md"]), "techs/go/errors.md", "local")
+	want := []libraryformat.Attribution{{URL: "https://github.com/acme/rules/blob/" + commit + "/techs/go/errors.md", Description: "Forked from version 1.0.0 of techs/go/errors, published in library release 1 at commit " + commit + "."}}
 	if err != nil || !reflect.DeepEqual(rule.Attribution, want) {
 		t.Fatalf("attribution %+v, %v; want %+v", rule.Attribution, err, want)
 	}
@@ -305,7 +306,7 @@ func TestFork_AttributesGitHubRulesAtTheReleaseCommit(t *testing.T) {
 // HTTPS addresses, and gives other addresses no entry.
 func TestForkAttribution_DependsOnTheHost(t *testing.T) {
 	published := imports.PublishedRule{Release: 4, Commit: "0123456789abcdef0123456789abcdef01234567"}
-	version, _ := rules.ParseRuleVersion("1.3.0", "version")
+	version, _ := libraryformat.ParseRuleVersion("1.3.0", "version")
 	for _, test := range []struct{ repository, url string }{
 		{"https://github.com/acme/rules.git", "https://github.com/acme/rules/blob/" + published.Commit + "/techs/go/errors.md"},
 		{"git@gitlab.com:acme/eng/rules.git", "https://gitlab.com/acme/eng/rules/-/blob/" + published.Commit + "/techs/go/errors.md"},
@@ -385,7 +386,7 @@ func TestFork_NeverReplacesAnExistingExclusion(t *testing.T) {
 	writeFixture(t, root, configurationFile, config)
 	source, _ := ParseForkSource("team@1.0.0")
 	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
-	var invalid *rules.ValidationError
+	var invalid *authored.ValidationError
 	if !errors.As(err, &invalid) || invalid.Location != "sources.team.exclude.techs/go/errors" {
 		t.Fatalf("got %v", err)
 	}
@@ -406,7 +407,7 @@ func code(want string) func(error) bool {
 // location matches a validation error at a location.
 func location(want string) func(error) bool {
 	return func(err error) bool {
-		var invalid *rules.ValidationError
+		var invalid *authored.ValidationError
 		return errors.As(err, &invalid) && invalid.Location == want
 	}
 }
@@ -544,7 +545,7 @@ func TestFork_OfASelectedRuleNeedsASyncedRecord(t *testing.T) {
 	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"    ref: release/1\n")
 	source, _ := ParseForkSource("team@1.0.0")
 	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
-	var invalid *rules.ValidationError
+	var invalid *authored.ValidationError
 	if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json" || !strings.Contains(invalid.Problem, "run code-rules project sync") {
 		t.Fatalf("got %v", err)
 	}
@@ -589,7 +590,7 @@ func TestForkFiles_RefusesRelativeRawHTMLLinks(t *testing.T) {
 				}
 				return
 			}
-			var validation *rules.ValidationError
+			var validation *authored.ValidationError
 			if !errors.As(err, &validation) || !strings.Contains(validation.Problem, "raw HTML") {
 				t.Fatalf("got %v, want a refusal of the raw HTML link", err)
 			}

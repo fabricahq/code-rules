@@ -2,13 +2,17 @@
 
 package rules
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/fabricahq/code-rules/internal/authored"
+)
 
 // ValidateToolVersion rejects blank text using the established input whitespace rules.
 // The value is an opaque build label, so it need not be a semantic version.
 func ValidateToolVersion(version string) error {
-	if strings.TrimFunc(version, jsWhitespace) == "" {
-		return invalid("toolVersion", "expected nonempty text")
+	if strings.TrimFunc(version, authored.IsSpace) == "" {
+		return authored.Invalid("toolVersion", "expected nonempty text")
 	}
 	return nil
 }

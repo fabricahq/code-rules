@@ -10,8 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/rules"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/authored"
 )
 
 // TestSupportingLinksCanceledWithoutReads covers link-only work after catalog files are already in memory.
@@ -46,7 +47,7 @@ func TestAssetLookupOperationalErrors(t *testing.T) {
 	}
 	r := reader{ctx: context.Background(), input: rootFiles{ctx: context.Background(), root: root}, directories: map[string][]fs.DirEntry{assetDirectory: entries}}
 	for name, err := range map[string]error{"link": r.linkExists("assets/guide.md"), "owner": r.ownedAssets(assetDirectory, nil)} {
-		var validation *rules.ValidationError
+		var validation *authored.ValidationError
 		if !errors.Is(err, os.ErrClosed) || errors.As(err, &validation) {
 			t.Fatalf("%s: lost operational error: %v", name, err)
 		}

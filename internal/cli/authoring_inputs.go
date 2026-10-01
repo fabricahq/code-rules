@@ -13,6 +13,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 	"github.com/spf13/cobra"
 )
 
@@ -98,8 +99,8 @@ func (f *authoringFlags) options(ctx context.Context, initialize bool) (project.
 }
 
 // group returns the explicit metadata for an existing or newly created group.
-func (f *authoringFlags) group(prefix string) rules.GroupMetadata {
-	return rules.GroupMetadata{Name: f.value(prefix + "name"), Description: f.value(prefix + "description"), WhenToRead: f.value(prefix + "when-to-read")}
+func (f *authoringFlags) group(prefix string) libraryformat.GroupMetadata {
+	return libraryformat.GroupMetadata{Name: f.value(prefix + "name"), Description: f.value(prefix + "description"), WhenToRead: f.value(prefix + "when-to-read")}
 }
 
 // addGroupFlags defines the three required group fields with an optional creation prefix.

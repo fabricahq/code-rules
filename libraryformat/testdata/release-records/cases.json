@@ -466,8 +466,8 @@
     "expected": {
       "ok": false,
       "error": {
-        "location": "v1.0.0",
-        "message": "v1.0.0: expected a library release tag named release/<number>, such as release/4"
+        "message": "v1.0.0: not a library release tag: expected release/<number>, such as release/4",
+        "kind": "notReleaseTag"
       }
     }
   },
@@ -478,8 +478,8 @@
     "expected": {
       "ok": false,
       "error": {
-        "location": "release/02",
-        "message": "release/02: expected a library release tag named release/<number>, such as release/4"
+        "message": "release/02: not a library release tag: expected release/<number>, such as release/4",
+        "kind": "notReleaseTag"
       }
     }
   },

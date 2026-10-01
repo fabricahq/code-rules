@@ -13,6 +13,7 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // prepare combines rendering and group discovery pages with terms and provenance, returning no partial output.
@@ -191,15 +192,15 @@ type provenanceGroup struct {
 
 // provenanceRule records effective origin, replacement history, and declared attribution.
 type provenanceRule struct {
-	ID           string              `json:"id"`
-	Group        string              `json:"group"`
-	Origin       provenanceOrigin    `json:"origin"`
-	Upstream     *provenanceOrigin   `json:"upstream"`
-	Reason       *string             `json:"replacementReason"`
-	BasedOn      *rules.RuleVersion  `json:"basedOn"`
-	LicenseBasis string              `json:"licenseBasis"`
-	License      *provenanceLicense  `json:"license"`
-	Attribution  []rules.Attribution `json:"attribution"`
+	ID           string                      `json:"id"`
+	Group        string                      `json:"group"`
+	Origin       provenanceOrigin            `json:"origin"`
+	Upstream     *provenanceOrigin           `json:"upstream"`
+	Reason       *string                     `json:"replacementReason"`
+	BasedOn      *libraryformat.RuleVersion  `json:"basedOn"`
+	LicenseBasis string                      `json:"licenseBasis"`
+	License      *provenanceLicense          `json:"license"`
+	Attribution  []libraryformat.Attribution `json:"attribution"`
 }
 
 // termProvenance maps declared source terms to retained workspace and generated paths.
@@ -280,13 +281,13 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 // the commit that supplied the rule's files; Version and Release are null for local rules and for imported
 // files that aren't a published version.
 type provenanceOrigin struct {
-	Source     string             `json:"source"`
-	File       string             `json:"file"`
-	Repository *string            `json:"repository"`
-	Ref        *string            `json:"ref"`
-	Commit     *string            `json:"resolvedCommit"`
-	Version    *rules.RuleVersion `json:"version"`
-	Release    *int               `json:"release"`
+	Source     string                     `json:"source"`
+	File       string                     `json:"file"`
+	Repository *string                    `json:"repository"`
+	Ref        *string                    `json:"ref"`
+	Commit     *string                    `json:"resolvedCommit"`
+	Version    *libraryformat.RuleVersion `json:"version"`
+	Release    *int                       `json:"release"`
 }
 
 // nullableText represents absent optional provenance text as JSON null.

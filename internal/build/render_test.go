@@ -7,7 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // renderFixture resolves a local rule with a caller-supplied body and optional supporting files.
@@ -79,7 +80,7 @@ func TestRenderRejectsRuleLinks(t *testing.T) {
 			if state == "unselected" {
 				target = "techs/rust/other.md"
 			} else {
-				other, err := rules.Parse(document, target, "team")
+				other, err := libraryformat.ParseRule(document, target, "team")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -181,7 +182,7 @@ func TestRenderReferenceImages(t *testing.T) {
 // TestRenderRejectsInvalidUTF8 prevents local bytes from being silently replaced during JSON delivery.
 func TestRenderRejectsInvalidUTF8(t *testing.T) {
 	output, err := renderFixture(t, "Guidance: \xff", nil)
-	var validation *rules.ValidationError
+	var validation *authored.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "local:techs/go/local.md" || !strings.Contains(err.Error(), "UTF-8") || output != nil {
 		t.Fatalf("expected contextual UTF-8 error without output, got %v, %v", output, err)
 	}
@@ -196,7 +197,7 @@ func TestRenderRejectsInvalidDocumentBytes(t *testing.T) {
 	}
 	resolved.Groups[0].Rules[0].Rule.Document += "\xff"
 	output, err := renderRules(resolved)
-	var validation *rules.ValidationError
+	var validation *authored.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "team:techs/go/errors" || !strings.Contains(err.Error(), "UTF-8") || output != nil {
 		t.Fatalf("expected contextual UTF-8 error without output, got %v, %v", output, err)
 	}

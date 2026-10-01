@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/text/unicode/norm"
 )
@@ -233,7 +234,7 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 			}
 			spellings[key] = prefix
 		}
-		if name == "rule-library.yaml" || slices.Contains(terms, name) || rules.IsGroupReadme(name) {
+		if name == "rule-library.yaml" || slices.Contains(terms, name) || librarypath.IsGroupReadme(name) {
 			continue
 		}
 		asset := slices.Contains(parts, "assets")
@@ -254,11 +255,11 @@ func validateLibraryInventory(ctx context.Context, files map[string][]byte, term
 				return failure("invalid-library", name+": expected a group document", nil)
 			}
 			group := strings.Join(parts[:2], "/")
-			if err := rules.ValidateGroupID(group, name); err != nil {
+			if err := librarypath.ValidateGroupID(group, name); err != nil {
 				return err
 			}
 			if name != group+"/_group.yaml" {
-				if _, err := rules.GroupFromPath(name, name); err != nil {
+				if _, err := librarypath.GroupFromPath(name, name); err != nil {
 					return failure("invalid-library", name+": use rule Markdown, _group.yaml, or a conventional assets directory", err)
 				}
 				if rules.HasDraftMarker(files[name]) {

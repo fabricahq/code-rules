@@ -12,11 +12,26 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/releasetag"
-	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
+
+// TestParseObject_SkipsHeadersAndSignature reads the record from a signed tag object's message only, whether the
+// tag is signed with GPG or SSH.
+func TestParseObject_SkipsHeadersAndSignature(t *testing.T) {
+	for _, signature := range []string{"-----BEGIN PGP SIGNATURE-----\nU0lH\n-----END PGP SIGNATURE-----\n", "-----BEGIN SSH SIGNATURE-----\nU1NIU0lH\n-----END SSH SIGNATURE-----\n"} {
+		object := "object 0123456789012345678901234567890123456789\ntype commit\ntag release/2\ntagger Fixture <fixture@example.invalid> 0 +0000\n\nNotes.\n\n---\nformatVersion: 1\nrelease: 2\nrules:\n  techs/go/a: 1.0.0\n" + signature
+		release, err := releasetag.ParseObject("release/2", []byte(object))
+		if err != nil || release.Notes != "Notes." || release.Record.Release != 2 || len(release.Record.Rules) != 1 {
+			t.Fatalf("got %+v, %v", release, err)
+		}
+		if _, err := releasetag.ParseObject("release/3", []byte(object)); err == nil {
+			t.Fatal("accepted a record for another library release")
+		}
+	}
+}
 
 // numbers returns the tags' numbers in order.
 func numbers(tags []releasetag.Tag) []int {
@@ -89,7 +104,7 @@ func TestListAndRead_ReleaseTagsInNumberOrder(t *testing.T) {
 	}
 	err = releasetag.Read(ctx, runner, dir, []releasetag.Tag{all[0], all[2]}, func(int, releasetag.Release) error { return nil })
 	var invalid *releasetag.RecordError
-	var validation *rules.ValidationError
+	var validation *authored.ValidationError
 	if !errors.As(err, &invalid) || invalid.Tag != "release/4" || !errors.As(err, &validation) || validation.Location != "release/4" {
 		t.Fatalf("read a tag without a record: %v", err)
 	}
@@ -161,7 +176,7 @@ func TestRecordError_NamesTheTagOnce(t *testing.T) {
 		{"release/3.release", "invalid release record: release/3.release: expected a mapping"},
 		{"record", "invalid release record: release/3: record: expected a mapping"},
 	} {
-		err := &releasetag.RecordError{Tag: "release/3", Err: &rules.ValidationError{Location: test.location, Problem: "expected a mapping"}}
+		err := &releasetag.RecordError{Tag: "release/3", Err: &authored.ValidationError{Location: test.location, Problem: "expected a mapping"}}
 		if got := err.Error(); got != test.want {
 			t.Errorf("location %s: got %q, want %q", test.location, got, test.want)
 		}

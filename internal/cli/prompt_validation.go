@@ -9,6 +9,7 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // askValidated retries only rejected answers; cancellation and terminal failures end the command.
@@ -36,13 +37,13 @@ func validateAnswer(name, value string) error {
 	}
 	switch name {
 	case "bump":
-		switch rules.Change(value) {
-		case rules.ChangeMajor, rules.ChangeMinor, rules.ChangePatch:
+		switch libraryformat.Change(value) {
+		case libraryformat.ChangeMajor, libraryformat.ChangeMinor, libraryformat.ChangePatch:
 			return nil
 		}
 		return fmt.Errorf("--bump must be major, minor, or patch")
 	case "impact":
-		_, err := rules.ParseImpact(value, "--impact")
+		_, err := libraryformat.ParseImpact(value, "--impact")
 		return err
 	case "repository":
 		data, err := json.Marshal(value)

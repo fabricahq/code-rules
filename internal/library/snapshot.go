@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // Snapshot owns one source's original library bytes and the record of what was imported, which works like a lockfile.
@@ -46,8 +47,8 @@ type Snapshot struct {
 type ImportedRule struct {
 	// Version is nil, and Release is 0, when the rule's files aren't a published version, which only a ref other
 	// than a library release can import.
-	Version *rules.RuleVersion `json:"version"`
-	Release int                `json:"release,omitempty"`
+	Version *libraryformat.RuleVersion `json:"version"`
+	Release int                        `json:"release,omitempty"`
 	// Commit is the full commit SHA of Release, or the snapshot's Commit when Version is nil.
 	Commit string `json:"commit"`
 }
