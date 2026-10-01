@@ -453,6 +453,10 @@ func TestUpdate_TerminalCancellationWritesNothing(t *testing.T) {
 			if after := projectFileContents(t, u.directory); !reflect.DeepEqual(before, after) {
 				t.Fatal("a cancelled update changed the project")
 			}
+			// An interrupted or ended prompt ends its line before the error.
+			if transcript := strings.ReplaceAll(result.Transcript, "\r\n", "\n"); test.code != 0 && (strings.Contains(transcript, "]: Error:") || !strings.Contains(transcript, "\nError: ")) {
+				t.Fatalf("the error shares the prompt's line:\n%s", result.Transcript)
+			}
 		})
 	}
 }

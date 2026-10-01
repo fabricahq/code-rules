@@ -53,6 +53,10 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 		}
 	}
 	answer, err = terminal.ReadLine()
+	if err != nil {
+		// An interrupted or ended answer leaves the cursor after the prompt, so the error starts a line of its own.
+		_, _ = io.WriteString(f.command.ErrOrStderr(), "\r\n")
+	}
 	switch {
 	case errors.Is(err, context.Canceled):
 		return "", &cancelled{}
