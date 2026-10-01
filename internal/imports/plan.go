@@ -530,11 +530,48 @@ func (p *planner) retiredEntry(field, id string) string {
 	return fmt.Sprintf("sources.%s.%s names %s, a rule the library retired, so the entry no longer does anything; delete it.", p.source.Name, field, id)
 }
 
-// requireUnmoved fails when the library release tag that supplies the plan's library-wide files, or a rule's, now
-// names a different commit than the plan records.
+// requireUnmoved checks the plan's library releases and versions, which it may have kept from the source record,
+// against the library's release history, reading it when the planner hasn't yet. A rule version its library release
+// doesn't publish, or a library release that supplies a rule or the plan's library-wide files but that the library
+// doesn't have, fails as an invalid source record, as a hand edit or a merge resolution of _source.json can leave it.
+// A source that uses ref is exempt from the second, since it keeps the revision its ref named even after the tag is
+// gone. A library release tag that now names a different commit than the plan records fails with
+// invalid-release-tag.
 func (p *planner) requireUnmoved(plan sourcePlan) error {
-	if p.history == nil {
+	versioned := plan.release != 0 || slices.ContainsFunc(slices.Collect(maps.Values(plan.rules)), func(rule library.ImportedRule) bool { return rule.Version != nil })
+	if !versioned {
 		return nil
+	}
+	history, err := p.releases()
+	if err != nil {
+		return err
+	}
+	record := "vendor/" + p.source.Name + "/_source.json"
+	missing := func(location string, number int) error {
+		return &rules.ValidationError{Location: location, Problem: fmt.Sprintf("records library release %d, which the library doesn't have; restore %s, such as from version control, or, if the library deleted its release/%d tag, ask the library's maintainer to restore it; then run code-rules project sync again", number, record, number)}
+	}
+	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
+		rule := plan.rules[id]
+		if rule.Version == nil {
+			continue
+		}
+		release := history.release(rule.Release)
+		if release == nil {
+			if !p.source.Ref.IsZero() {
+				continue
+			}
+			return missing(record+".rules."+id, rule.Release)
+		}
+		if published, ok := release.record.Rules[id]; !ok || published != *rule.Version {
+			publishes := "which doesn't publish the rule"
+			if ok {
+				publishes = "which publishes version " + published.String() + " of the rule"
+			}
+			return &rules.ValidationError{Location: record + ".rules." + id, Problem: fmt.Sprintf("records version %s from library release %d, %s; restore %s, such as from version control, then run code-rules project sync again", rule.Version, rule.Release, publishes, record)}
+		}
+	}
+	if plan.release != 0 && history.release(plan.release) == nil && p.source.Ref.IsZero() {
+		return missing(record+".release", plan.release)
 	}
 	if release := p.history.release(plan.release); plan.release != 0 && release != nil && release.commit != plan.commit {
 		return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for the library's shared files. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run code-rules project sync to use the tag's current commit.", plan.release, p.source.Name, p.source.Name), nil)

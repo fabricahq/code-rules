@@ -166,7 +166,7 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 
 For every source, offline checks also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions. Each exclusion must name a rule in `rules` or `retiredRules`; any other exclusion could be a typo that leaves the rule you meant active, so the check reports that it names no rule the library supplies and asks you to run `code-rules project sync`, which checks it against the library.
 
-Offline checks cannot prove that a recorded version was the newest available, or that recorded versions match the library's release tags. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
+Offline checks cannot prove that a recorded version was the newest available, or that recorded versions match the library's release tags; `code-rules project sync` checks the latter against the release records before it imports anything. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
 
 ## Find declared licenses and source credits
 

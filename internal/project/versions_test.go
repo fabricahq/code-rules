@@ -586,3 +586,52 @@ func TestSync_StoresOlderRulesAtTheirLibraryPaths(t *testing.T) {
 	}
 	requireCurrent(t, options)
 }
+
+// TestSync_RefusesARecordedVersionOrReleaseTheLibraryDoesntHave, as a hand edit or a merge resolution can leave in
+// _source.json: a rule's version that its library release doesn't publish, a rule's library release, or the
+// shared files' library release, that the library doesn't have. Sync writes nothing, and syncs again once the record
+// is restored.
+func TestSync_RefusesARecordedVersionOrReleaseTheLibraryDoesntHave(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	secondRelease(t, f)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	recorded := string(projectTree(t, options).Files["vendor/team/_source.json"])
+	for _, test := range []struct{ name, from, to, location, problem string }{
+		{"version", `"version": "1.1.0"`, `"version": "1.1.1"`, "vendor/team/_source.json.rules.techs/go/errors", "records version 1.1.1 from library release 2, which publishes version 1.1.0 of the rule"},
+		{"rule's release", "\"version\": \"1.1.0\",\n      \"release\": 2", "\"version\": \"1.1.0\",\n      \"release\": 3", "vendor/team/_source.json.rules.techs/go/errors", "records library release 3, which the library doesn't have"},
+		{"shared files' release", "\"release\": 2,\n  \"resolvedCommit\"", "\"release\": 99,\n  \"resolvedCommit\"", "vendor/team/_source.json.release", "records library release 99, which the library doesn't have"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if !strings.Contains(recorded, test.from) {
+				t.Fatalf("the record lacks %q:\n%s", test.from, recorded)
+			}
+			root, err := openProject(ctx, options, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeFixture(t, root, "vendor/team/_source.json", strings.Replace(recorded, test.from, test.to, 1))
+			root.Close()
+			before := projectTree(t, options)
+			_, err = Sync(ctx, options, git)
+			var invalid *rules.ValidationError
+			if !errors.As(err, &invalid) || invalid.Location != test.location || !strings.Contains(invalid.Problem, test.problem) || !strings.Contains(invalid.Problem, "restore vendor/team/_source.json") {
+				t.Fatalf("got %v", err)
+			}
+			if after := projectTree(t, options); after.Digest() != before.Digest() {
+				t.Fatal("a refused sync changed the project")
+			}
+			root, err = openProject(ctx, options, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeFixture(t, root, "vendor/team/_source.json", recorded)
+			root.Close()
+			if _, err := Sync(ctx, options, git); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

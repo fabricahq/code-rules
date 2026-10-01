@@ -136,6 +136,8 @@ Sync needs access to every configured repository and uses your existing Git cred
 
 When you change `groups`, a group is newly selected if the record didn't import it as a whole, even when the previous value matched it. For example, after a sync with `groups: "*"`, a group that a later library release adds is newly selected once you change `groups` to a list that names it.
 
+Before importing, sync checks the record against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist, except that a source using `ref` keeps its revision after its tag is gone. A record a hand edit or a merge resolution changed fails with the field's location in `_source.json`; restore the file, such as from version control, and sync again.
+
 These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
 When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything. It also warns about an individually selected rule whose group `groups` already selects, since the entry changes nothing.
