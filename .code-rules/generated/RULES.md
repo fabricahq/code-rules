@@ -29,6 +29,14 @@ Before planning, implementing, reviewing, testing, or diagnosing, complete these
 
 **Open group:** [Code design](groups/practices/code-design.md)
 
+### Concurrency
+
+**Description:** Keep shared resources safe for concurrent users and honor cancellation and deadlines throughout blocking operations.
+
+**When to read this group:** When planning, implementing, or reviewing concurrent operations, shared-resource initialization, replacement or cleanup, or blocking operations that support cancellation or deadlines. Common scenarios include parallel HTTP requests, background workers, database reads and writes through connection pools, replacing clients after credential rotation, cache refreshes, retries, and graceful shutdown.
+
+**Open group:** [Concurrency](groups/practices/concurrency.md)
+
 ### Performance
 
 **Description:** Improve speed and resource use where measurement shows it matters, without changing behavior.

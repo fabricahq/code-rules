@@ -1,11 +1,12 @@
 {
   "formatVersion": 2,
-  "checksum": "d55d41b6e52d72418d290d12cc1f4c2d33e998f6f9fb044755fd47eb05668ae3",
+  "checksum": "2e3a31292656a178c18d3f62aa8a055f9a57d470720208b4e3fc2b6839e9e1d7",
   "repository": "https://github.com/fabricahq/public-rules.git",
   "release": 1,
   "resolvedCommit": "568e32f46cc3bf557ab90e82b8df6d661b839112",
   "groupSelection": [
     "practices/code-design",
+    "practices/concurrency",
     "practices/performance",
     "practices/readmes",
     "practices/testing",
@@ -15,6 +16,7 @@
   ],
   "groups": [
     "practices/code-design",
+    "practices/concurrency",
     "practices/performance",
     "practices/readmes",
     "practices/testing",
@@ -34,6 +36,16 @@
       "commit": "568e32f46cc3bf557ab90e82b8df6d661b839112"
     },
     "practices/code-design/separate-pure-computation-from-effects": {
+      "version": "1.0.0",
+      "release": 1,
+      "commit": "568e32f46cc3bf557ab90e82b8df6d661b839112"
+    },
+    "practices/concurrency/honor-cancellation-across-blocking-stages": {
+      "version": "1.0.0",
+      "release": 1,
+      "commit": "568e32f46cc3bf557ab90e82b8df6d661b839112"
+    },
+    "practices/concurrency/keep-shared-resources-alive-until-users-finish": {
       "version": "1.0.0",
       "release": 1,
       "commit": "568e32f46cc3bf557ab90e82b8df6d661b839112"
@@ -273,6 +285,9 @@
     "practices/code-design/express-operations-as-meaningful-steps.md": "84198930940407350668c996c7c042a60c7ea7d93f2e313ef095544de211a4b8",
     "practices/code-design/organize-code-by-feature.md": "87dd8be5e02e19430421c97955b545b92143751058ce00f1c36df6f644657ce8",
     "practices/code-design/separate-pure-computation-from-effects.md": "338379ccb1bba922957509b02043d349473987d8824d86922075b3b2a7876d3d",
+    "practices/concurrency/_group.yaml": "de0099f41d0851934892d0957e3a811e57eaae8192322fedacae45ee19a5ad80",
+    "practices/concurrency/honor-cancellation-across-blocking-stages.md": "49b6775b4d9ed44af2608ecd7bf817e9805ffbb556ad923f60c296fda2b86c71",
+    "practices/concurrency/keep-shared-resources-alive-until-users-finish.md": "03487d907bbac8fa992e21b67fb1956ded8983e14f9bf82e2a649b924307c123",
     "practices/performance/_group.yaml": "06b5930eadbac8c2a52b62f905104735033a9636fb8519924ff2cf18dd6f51c6",
     "practices/performance/optimize-measured-hot-paths.md": "0294cdf0e0a2feeeaa4d9300dd161e83f730d0641ea0ba02b1e973e0b91f50da",
     "practices/readmes/_group.yaml": "dca7a6d911e994a10f8f1090740336ab5e5e4792a5cf41238d502c487c8ddb1e",

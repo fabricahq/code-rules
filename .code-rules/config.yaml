@@ -4,6 +4,7 @@ sources:
     repository: https://github.com/fabricahq/public-rules.git
     groups:
       - practices/code-design
+      - practices/concurrency
       - practices/performance
       - practices/readmes
       - practices/testing

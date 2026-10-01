@@ -9,6 +9,7 @@
       "resolvedCommit": "568e32f46cc3bf557ab90e82b8df6d661b839112",
       "groups": [
         "practices/code-design",
+        "practices/concurrency",
         "practices/performance",
         "practices/readmes",
         "practices/testing",
@@ -18,6 +19,7 @@
       ],
       "groupSelection": [
         "practices/code-design",
+        "practices/concurrency",
         "practices/performance",
         "practices/readmes",
         "practices/testing",
@@ -56,6 +58,22 @@
             "name": "Code design",
             "description": "Structure functions, modules, and folders so operations read clearly, computation stays separate from effects, and each feature's code stays together.",
             "whenToRead": "When planning, implementing, refactoring, or reviewing function, module, or folder structure."
+          }
+        }
+      ],
+      "effectiveGuidanceSources": [
+        "fabrica"
+      ]
+    },
+    {
+      "id": "practices/concurrency",
+      "guidance": [
+        {
+          "source": "fabrica",
+          "metadata": {
+            "name": "Concurrency",
+            "description": "Keep shared resources safe for concurrent users and honor cancellation and deadlines throughout blocking operations.",
+            "whenToRead": "When planning, implementing, or reviewing concurrent operations, shared-resource initialization, replacement or cleanup, or blocking operations that support cancellation or deadlines. Common scenarios include parallel HTTP requests, background workers, database reads and writes through connection pools, replacing clients after credential rotation, cache refreshes, retries, and graceful shutdown."
           }
         }
       ],
@@ -269,6 +287,72 @@
           "description": "Adapted from mkosir TypeScript Style Guide guidance (keep-functions-pure-and-focused; MIT, notice retained in NOTICE.md): moved from the TypeScript group to code design, restructured to the rule template with a code example."
         }
       ]
+    },
+    {
+      "id": "fabrica:practices/concurrency/honor-cancellation-across-blocking-stages",
+      "group": "practices/concurrency",
+      "origin": {
+        "source": "fabrica",
+        "file": "practices/concurrency/honor-cancellation-across-blocking-stages.md",
+        "repository": "https://github.com/fabricahq/public-rules.git",
+        "ref": null,
+        "resolvedCommit": "568e32f46cc3bf557ab90e82b8df6d661b839112",
+        "version": "1.0.0",
+        "release": 1
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "library",
+      "license": {
+        "spdxExpression": "MIT",
+        "files": [
+          "vendor/fabrica/LICENSE.md"
+        ],
+        "attributionFiles": [
+          "vendor/fabrica/NOTICE.md"
+        ],
+        "generatedFiles": [
+          "libraries/fabrica/licenses/LICENSE.md"
+        ],
+        "generatedAttributionFiles": [
+          "libraries/fabrica/licenses/notices/001.md"
+        ]
+      },
+      "attribution": []
+    },
+    {
+      "id": "fabrica:practices/concurrency/keep-shared-resources-alive-until-users-finish",
+      "group": "practices/concurrency",
+      "origin": {
+        "source": "fabrica",
+        "file": "practices/concurrency/keep-shared-resources-alive-until-users-finish.md",
+        "repository": "https://github.com/fabricahq/public-rules.git",
+        "ref": null,
+        "resolvedCommit": "568e32f46cc3bf557ab90e82b8df6d661b839112",
+        "version": "1.0.0",
+        "release": 1
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "library",
+      "license": {
+        "spdxExpression": "MIT",
+        "files": [
+          "vendor/fabrica/LICENSE.md"
+        ],
+        "attributionFiles": [
+          "vendor/fabrica/NOTICE.md"
+        ],
+        "generatedFiles": [
+          "libraries/fabrica/licenses/LICENSE.md"
+        ],
+        "generatedAttributionFiles": [
+          "libraries/fabrica/licenses/notices/001.md"
+        ]
+      },
+      "attribution": []
     },
     {
       "id": "fabrica:practices/performance/optimize-measured-hot-paths",

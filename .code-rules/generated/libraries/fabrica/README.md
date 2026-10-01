@@ -18,6 +18,8 @@ This folder retains byte-for-byte copies of declared library license and notice 
 | `practices/code-design/express-operations-as-meaningful-steps` | 1.0.0 | release/1 | Active |
 | `practices/code-design/organize-code-by-feature` | 1.0.0 | release/1 | Active |
 | `practices/code-design/separate-pure-computation-from-effects` | 1.0.0 | release/1 | Active |
+| `practices/concurrency/honor-cancellation-across-blocking-stages` | 1.0.0 | release/1 | Active |
+| `practices/concurrency/keep-shared-resources-alive-until-users-finish` | 1.0.0 | release/1 | Active |
 | `practices/performance/optimize-measured-hot-paths` | 1.0.0 | release/1 | Active |
 | `practices/readmes/give-a-quick-start-that-runs-as-written` | 1.0.0 | release/1 | Active |
 | `practices/readmes/keep-the-readme-an-entry-point` | 1.0.0 | release/1 | Active |

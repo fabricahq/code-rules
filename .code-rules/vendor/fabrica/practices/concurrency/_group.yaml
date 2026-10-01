@@ -1,0 +1,3 @@
+name: Concurrency
+description: Keep shared resources safe for concurrent users and honor cancellation and deadlines throughout blocking operations.
+whenToRead: When planning, implementing, or reviewing concurrent operations, shared-resource initialization, replacement or cleanup, or blocking operations that support cancellation or deadlines. Common scenarios include parallel HTTP requests, background workers, database reads and writes through connection pools, replacing clients after credential rotation, cache refreshes, retries, and graceful shutdown.
