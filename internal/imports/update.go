@@ -91,13 +91,17 @@ type RuleUpdate struct {
 	// Pin is the configured pin of a pinned rule, or of a retired rule a pin keeps.
 	Pin *rules.Pin `json:"pin,omitempty"`
 	// Decision is "keep" when the project pins the rule at From instead of applying the change, "exclude" when it
-	// excludes a new rule, or "incorporated" when it records that a replaced rule's local rule incorporates the
-	// changes up to To; Reason is recorded with a pin or exclusion. Planning leaves both empty.
+	// excludes a new rule, or "update-fork" when it replaces a replaced rule's local rule with a fork of the
+	// version ReviewedVersion returns; Reason is recorded with a pin or exclusion. Planning leaves both empty.
 	Decision string `json:"decision,omitempty"`
 	Reason   string `json:"reason,omitempty"`
+	// Overwrites lists, for an update-fork decision, the local files that replacing the fork overwrites or removes:
+	// the local rule and every file in its asset directory, relative to the Code Rules directory. The project's
+	// preview leaves it empty, never nil, for other rows; planning leaves it nil.
+	Overwrites []string `json:"overwrites"`
 }
 
-// ReviewedVersion returns the newest version a replaced row lists changes up to, which marking it incorporated
+// ReviewedVersion returns the newest version a replaced row lists changes up to, which replacing its fork forks and
 // records as basedOn: To, or Newest when a pin keeps the imported copy. It is nil for other rows.
 func (r RuleUpdate) ReviewedVersion() *rules.RuleVersion {
 	if r.Change != UpdateReplaced {

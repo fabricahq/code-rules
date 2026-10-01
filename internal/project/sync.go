@@ -70,14 +70,16 @@ type installation struct {
 	edited   []byte
 	imported map[string]imports.Library
 	options  Options
+	// forks are the forks an update replaces, each with its files read.
+	forks []forkUpdate
 }
 
 // install renders the project from the installation's imported sources and replaces vendor and generated output,
-// an older managed guide, and config.yaml when edited, in one transaction of w. When local rules would lose the
-// only imported copy of their group's metadata, the transaction also writes that copy to
-// local/<group>/_group.yaml, with a warning. before is the project as read under w; any change to it before
-// replacement fails with concurrent-change. The report lists vendor and generated paths, config.yaml when edited,
-// and local group metadata it adds.
+// an older managed guide, config.yaml when edited, and the local rule and asset directory of each fork it replaces,
+// in one transaction of w. When local rules would lose the only imported copy of their group's metadata, the
+// transaction also writes that copy to local/<group>/_group.yaml, with a warning. before is the project as read
+// under w; any change to it before replacement fails with concurrent-change. The report lists vendor and generated
+// paths, config.yaml when edited, local group metadata it adds, and the local files of each replaced fork.
 func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before projectState, in installation) (FileChanges, error) {
 	snapshots := map[string]snapshot{}
 	libraries := map[string]build.Library{}
@@ -98,10 +100,19 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 	}
 	state := before
 	state.config = in.config
-	if len(kept) > 0 {
+	if len(kept)+len(in.forks) > 0 {
 		local := maps.Clone(treeFiles(before.local))
+		if local == nil {
+			local = map[string][]byte{}
+		}
 		for group, data := range kept {
 			local[group+"/_group.yaml"] = data
+		}
+		for _, fork := range in.forks {
+			for name := range forkPaths(local, fork.file) {
+				delete(local, name)
+			}
+			maps.Copy(local, fork.files)
 		}
 		state.local = &filetxn.Tree{Files: local}
 	}
@@ -117,7 +128,28 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 		changes.Added = append(changes.Added, file)
 		warnings = append(warnings, fmt.Sprintf("Wrote %s, the metadata of group %s from the library that last supplied it, because your local rules in the group need it and no imported rule supplies it anymore. It's now yours to edit.", file, group))
 	}
+	for _, fork := range in.forks {
+		forkChanges := compareFiles(localPaths(forkPaths(treeFiles(before.local), fork.file)), localPaths(fork.files))
+		changes.Added = append(changes.Added, forkChanges.Added...)
+		changes.Changed = append(changes.Changed, forkChanges.Changed...)
+		changes.Removed = append(changes.Removed, forkChanges.Removed...)
+		assets := rules.RuleAssetDirectory(fork.file)
+		var assetFiles map[string][]byte
+		for name, data := range fork.files {
+			if relative, ok := strings.CutPrefix(name, assets); ok {
+				if assetFiles == nil {
+					assetFiles = map[string][]byte{}
+				}
+				assetFiles[relative] = data
+			}
+		}
+		targets[filetxn.LocalRule(fork.file)] = map[string][]byte{path.Join("local", fork.file): fork.files[fork.file]}
+		// A nil map removes the old asset directory when the new fork has no assets.
+		targets[filetxn.LocalRuleAssets(fork.file)] = assetFiles
+	}
 	slices.Sort(changes.Added)
+	slices.Sort(changes.Changed)
+	slices.Sort(changes.Removed)
 	changes.Warnings = warnings
 	if in.edited != nil {
 		targets[filetxn.Config] = map[string][]byte{configurationFile: in.edited}
@@ -135,6 +167,29 @@ func install(ctx context.Context, root *os.Root, w *filetxn.Writer, before proje
 		return FileChanges{}, err
 	}
 	return changes, nil
+}
+
+// forkPaths returns the files of local, by path relative to local/, that belong to the local rule at file: the rule
+// and every file in its asset directory.
+func forkPaths(local map[string][]byte, file string) map[string][]byte {
+	assets := rules.RuleAssetDirectory(file)
+	paths := map[string][]byte{}
+	for name, data := range local {
+		if name == file || strings.HasPrefix(name, assets) {
+			paths[name] = data
+		}
+	}
+	return paths
+}
+
+// localPaths returns files, which are keyed by path relative to local/, keyed instead by path relative to the Code
+// Rules directory.
+func localPaths(files map[string][]byte) map[string][]byte {
+	result := map[string][]byte{}
+	for name, data := range files {
+		result[path.Join("local", name)] = data
+	}
+	return result
 }
 
 // groupsWithoutLocalMetadata returns, sorted, the groups of the project's local rules that have no local metadata.

@@ -488,7 +488,7 @@ func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *te
 		"check": func(o Options, _ imports.Options) error { _, err := Check(context.Background(), o); return err },
 		"sync":  func(o Options, g imports.Options) error { _, err := Sync(context.Background(), o, g); return err },
 		"update": func(o Options, g imports.Options) error {
-			_, err := PlanUpdate(context.Background(), o, g, nil)
+			_, err := PlanUpdate(context.Background(), o, g, nil, nil)
 			return err
 		},
 	}

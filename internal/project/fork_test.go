@@ -203,7 +203,7 @@ func TestFork_OfAPinnedRuleRemovesThePin(t *testing.T) {
 	if _, err := Build(ctx, f.options); err != nil {
 		t.Fatal(err)
 	}
-	plan, err := PlanUpdate(ctx, f.options, f.git, nil)
+	plan, err := PlanUpdate(ctx, f.options, f.git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -510,7 +510,7 @@ func TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds(t *testing.T) {
 	if err := library.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  practices/testing/verify: 1.0.0\n  techs/go/added: 1.0.0\n  techs/go/licensed: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summaries: [No longer recommended.]}\n"); err != nil {
 		t.Fatal(err)
 	}
-	plan, err := PlanUpdate(ctx, f.options, f.git, nil)
+	plan, err := PlanUpdate(ctx, f.options, f.git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -557,7 +557,7 @@ func TestForkFiles_RelocatesExplicitSelfLinks(t *testing.T) {
 		"techs/go/errors.md": []byte(forkedRule("See [the guide](../../assets/guide.md).")),
 		"assets/guide.md":    []byte("[Root](/assets/guide.md#top) [Relative](../assets/guide.md) [Here](#top)\n"),
 	}}
-	files, err := forkFiles("techs/go/errors", published, nil)
+	files, err := forkFiles("techs/go/errors", "techs/go/errors.md", published, nil)
 	if want := "[Root](guide.md#top) [Relative](guide.md) [Here](#top)\n"; err != nil || string(files["techs/go/assets/errors/guide.md"]) != want {
 		t.Fatalf("got %q, %v; want %q", files["techs/go/assets/errors/guide.md"], err, want)
 	}
@@ -582,7 +582,7 @@ func TestForkFiles_RefusesRelativeRawHTMLLinks(t *testing.T) {
 				"assets/guide.md":             []byte(test.guide),
 				"assets/flow.svg":             []byte("<svg/>"),
 			}}
-			files, err := forkFiles("techs/go/errors", published, nil)
+			files, err := forkFiles("techs/go/errors", "techs/go/errors.md", published, nil)
 			if !test.refused {
 				if err != nil || !strings.Contains(string(files["techs/go/errors.md"]), test.rule) {
 					t.Fatalf("the fork lost its external link: %v\n%s", err, files["techs/go/errors.md"])
@@ -605,61 +605,17 @@ func TestForkFiles_RewritesLinksInDocumentOrder(t *testing.T) {
 		"assets/guide.md":    []byte("Guide.\n"),
 		"assets/flow.svg":    []byte("<svg/>"),
 	}}
-	files, err := forkFiles("techs/go/errors", published, nil)
+	files, err := forkFiles("techs/go/errors", "techs/go/errors.md", published, nil)
 	want := forkedRule("See [the guide][g] and [![Flow](assets/errors/flow.svg)](assets/errors/guide.md).\n\n[g]: assets/errors/guide.md")
 	if err != nil || string(files["techs/go/errors.md"]) != want {
 		t.Fatalf("got %q, %v; want %q", files["techs/go/errors.md"], err, want)
 	}
 }
 
-// TestUpdate_MarkingAForkIncorporatedAdvancesItsBasedOnVersion: after forking 1.0.0, the update lists 1.1.0's
-// changes; deciding that the fork incorporates them sets basedOn to 1.1.0 in the same configuration write as the
-// update, and the next update lists nothing for the rule.
-func TestUpdate_MarkingAForkIncorporatedAdvancesItsBasedOnVersion(t *testing.T) {
-	f := newForkFixture(t, "")
-	ctx := context.Background()
-	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := Build(ctx, f.options); err != nil {
-		t.Fatal(err)
-	}
-	plan, err := PlanUpdate(ctx, f.options, f.git, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decisions := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionIncorporated}}
-	preview, err := plan.Preview(decisions)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if row := previewRow(preview.Sources, "team", "techs/go/errors"); row == nil || row.Decision != "incorporated" || row.To.String() != "1.1.0" {
-		t.Fatalf("rows %+v", preview.Sources[0].Rules)
-	}
-	applied, err := plan.Apply(ctx, decisions)
-	if err != nil || !slices.Contains(applied.Changed, "config.yaml") {
-		t.Fatalf("applied %+v, %v", applied, err)
-	}
-	if config := string(f.files(t)["config.yaml"]); !strings.Contains(config, "        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.1.0\"\n") {
-		t.Fatalf("configuration:\n%s", config)
-	}
-	again, err := PlanUpdate(ctx, f.options, f.git, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	preview, err = again.Preview(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if row := previewRow(preview.Sources, "team", "techs/go/errors"); row != nil {
-		t.Fatalf("the next update still lists the fork: %+v", row)
-	}
-}
-
-// TestUpdate_KeepingAReplacedRuleStillListsItsChangesForIncorporation: keeping a fork's replaced rule pins the
-// imported copy, yet the next update still lists the changes after basedOn, and marking them incorporated advances
-// basedOn while the pin stays.
-func TestUpdate_KeepingAReplacedRuleStillListsItsChangesForIncorporation(t *testing.T) {
+// TestUpdate_KeepingAReplacedRuleStillListsItsChangesForTheFork: keeping a fork's replaced rule pins the imported
+// copy, yet the next update still lists the changes after basedOn, and replacing the fork with the newest version
+// advances basedOn while the pin stays.
+func TestUpdate_KeepingAReplacedRuleStillListsItsChangesForTheFork(t *testing.T) {
 	f := newForkFixture(t, "")
 	ctx := context.Background()
 	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
@@ -670,7 +626,7 @@ func TestUpdate_KeepingAReplacedRuleStillListsItsChangesForIncorporation(t *test
 	}
 	preview := func(decisions []UpdateDecision) (*UpdatePlan, *imports.RuleUpdate) {
 		t.Helper()
-		plan, err := PlanUpdate(ctx, f.options, f.git, nil)
+		plan, err := PlanUpdate(ctx, f.options, f.git, nil, decisions)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -685,20 +641,20 @@ func TestUpdate_KeepingAReplacedRuleStillListsItsChangesForIncorporation(t *test
 	if _, err := plan.Apply(ctx, keep); err != nil {
 		t.Fatal(err)
 	}
-	incorporated := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionIncorporated}}
-	plan, row := preview(nil)
+	plan, row := preview(updateFork)
 	if row == nil || row.Change != imports.UpdateReplaced || row.Pin == nil || row.Newest == nil || row.Newest.String() != "1.1.0" || row.To != nil {
 		t.Fatalf("after keeping, the next update lists %+v, want the pinned replaced row", row)
 	}
-	if _, err := plan.Apply(ctx, incorporated); err != nil {
+	if _, err := plan.Apply(ctx, updateFork); err != nil {
 		t.Fatal(err)
 	}
-	config := string(f.files(t)["config.yaml"])
-	if !strings.Contains(config, "        basedOn: \"1.1.0\"\n") || !strings.Contains(config, "pins:") {
-		t.Fatalf("configuration:\n%s", config)
+	files := f.files(t)
+	config := string(files["config.yaml"])
+	if !strings.Contains(config, "        basedOn: \"1.1.0\"\n") || !strings.Contains(config, "pins:") || string(files["local/techs/go/errors.md"]) != forkedRule("Wrap errors.") {
+		t.Fatalf("configuration:\n%s\nfork:\n%s", config, files["local/techs/go/errors.md"])
 	}
 	if _, row := preview(nil); row != nil {
-		t.Fatalf("the update still lists the incorporated rule: %+v", row)
+		t.Fatalf("the update still lists the replaced fork: %+v", row)
 	}
 }
 
@@ -718,7 +674,7 @@ func TestEveryRecordReader_RefusesARecordChangedOutsideSync(t *testing.T) {
 	before := projectTree(t, f.options)
 	_, forkErr := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours.")
 	_, syncErr := Sync(ctx, f.options, f.git)
-	_, updateErr := PlanUpdate(ctx, f.options, f.git, nil)
+	_, updateErr := PlanUpdate(ctx, f.options, f.git, nil, nil)
 	for name, err := range map[string]error{"fork": forkErr, "sync": syncErr, "update": updateErr} {
 		t.Run(name, func(t *testing.T) { requireRefusedRecord(t, err) })
 	}

@@ -92,7 +92,7 @@ A local rule needs its group's metadata, from `local/<group-id>/_group.yaml` or 
 
 ## Recover from an interrupted update
 
-Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml` in the same step, so recovery restores or finishes `config.yaml`, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `local/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`.
+Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml`, and each fork it [replaces with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version), in the same step, so recovery restores or finishes `config.yaml`, the replaced local rules and their asset directories, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `local/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`.
 
 If the update completed but cleanup was interrupted, the next sync or build finishes deleting the backups. The completed update remains complete.
 

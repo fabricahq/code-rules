@@ -63,7 +63,7 @@ func projectTree(t *testing.T, options Options) *filetxn.Tree {
 func TestUpdate_PreviewWritesNothingAndApplyInstallsIt(t *testing.T) {
 	options, git, _ := syncedProject(t)
 	before := projectTree(t, options)
-	plan, err := PlanUpdate(context.Background(), options, git, nil)
+	plan, err := PlanUpdate(context.Background(), options, git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func TestUpdate_PreviewWritesNothingAndApplyInstallsIt(t *testing.T) {
 // rule, writing both to config.yaml in the same update.
 func TestUpdate_DecisionsWritePinsAndExclusionsWithTheOutput(t *testing.T) {
 	options, git, _ := syncedProject(t)
-	plan, err := PlanUpdate(context.Background(), options, git, nil)
+	plan, err := PlanUpdate(context.Background(), options, git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestUpdate_DecisionsWritePinsAndExclusionsWithTheOutput(t *testing.T) {
 // preview.
 func TestUpdate_AppliesThePreviewedVersionsAfterANewerLibraryRelease(t *testing.T) {
 	options, git, thirdRelease := syncedProject(t)
-	plan, err := PlanUpdate(context.Background(), options, git, nil)
+	plan, err := PlanUpdate(context.Background(), options, git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestUpdate_RefusesALibraryReleaseTagMovedAfterThePreview(t *testing.T) {
 		t.Fatal(err)
 	}
 	secondRelease(t, f)
-	plan, err := PlanUpdate(ctx, options, git, nil)
+	plan, err := PlanUpdate(ctx, options, git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestUpdate_RefusesASharedFilesReleaseTagMovedAfterThePreview(t *testing.T) 
 	if err := f.Release(ctx, 2, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/errors: 1.0.0\nchanges: {}\nlibraryFiles: [techs/go/_group.yaml]\n"); err != nil {
 		t.Fatal(err)
 	}
-	plan, err := PlanUpdate(ctx, options, git, nil)
+	plan, err := PlanUpdate(ctx, options, git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +244,7 @@ func TestUpdate_AppliesAnUnreleasedCommitRefWithoutReadingReleaseTags(t *testing
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	plan, err := PlanUpdate(ctx, options, git, nil)
+	plan, err := PlanUpdate(ctx, options, git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestUpdate_RefusesAProjectChangedAfterThePreview(t *testing.T) {
 	for _, file := range []string{configurationFile, "local/techs/go/errors.md", "vendor/team/techs/go/errors.md", "generated/RULES.md"} {
 		t.Run(file, func(t *testing.T) {
 			options, git, _ := syncedProject(t)
-			plan, err := PlanUpdate(context.Background(), options, git, nil)
+			plan, err := PlanUpdate(context.Background(), options, git, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -289,19 +289,18 @@ func TestUpdate_RefusesAProjectChangedAfterThePreview(t *testing.T) {
 // TestUpdate_RejectsDecisionsThePreviewDoesntOffer names the rule in each failure and writes nothing.
 func TestUpdate_RejectsDecisionsThePreviewDoesntOffer(t *testing.T) {
 	options, git, _ := syncedProject(t)
-	plan, err := PlanUpdate(context.Background(), options, git, nil)
+	plan, err := PlanUpdate(context.Background(), options, git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	before := projectTree(t, options)
 	for name, decisions := range map[string][]UpdateDecision{
-		"keep a new rule":                       {{Source: "team", Rule: "techs/go/extra", Kind: DecisionKeep, Reason: "No."}},
-		"exclude a moved rule":                  {{Source: "team", Rule: "techs/go/errors", Kind: DecisionExclude, Reason: "No."}},
-		"unknown rule":                          {{Source: "team", Rule: "techs/go/missing", Kind: DecisionKeep, Reason: "No."}},
-		"blank reason":                          {{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: " "}},
-		"two decisions":                         {{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "A."}, {Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "B."}},
-		"another source's rule":                 {{Source: "other", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "No."}},
-		"incorporate a rule it doesn't replace": {{Source: "team", Rule: "techs/go/errors", Kind: DecisionIncorporated}},
+		"keep a new rule":       {{Source: "team", Rule: "techs/go/extra", Kind: DecisionKeep, Reason: "No."}},
+		"exclude a moved rule":  {{Source: "team", Rule: "techs/go/errors", Kind: DecisionExclude, Reason: "No."}},
+		"unknown rule":          {{Source: "team", Rule: "techs/go/missing", Kind: DecisionKeep, Reason: "No."}},
+		"blank reason":          {{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: " "}},
+		"two decisions":         {{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "A."}, {Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "B."}},
+		"another source's rule": {{Source: "other", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "No."}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, previewErr := plan.Preview(decisions)
@@ -397,7 +396,7 @@ func TestUpdate_ScopedToOneLibraryLeavesTheOtherUnchanged(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			options, git := twoLibraryProject(t)
 			beta := sourceFiles(t, options, "beta")
-			plan, err := PlanUpdate(context.Background(), options, git, []imports.UpdateTarget{test.target})
+			plan, err := PlanUpdate(context.Background(), options, git, []imports.UpdateTarget{test.target}, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -442,7 +441,7 @@ func TestUpdate_RetiringAnExcludedRuleKeepsTheExclusionValidOffline(t *testing.T
 	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [No longer needed.]}\n"); err != nil {
 		t.Fatal(err)
 	}
-	plan, err := PlanUpdate(ctx, options, git, nil)
+	plan, err := PlanUpdate(ctx, options, git, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -464,7 +463,7 @@ func TestUpdate_RetiringAnExcludedRuleKeepsTheExclusionValidOffline(t *testing.T
 func TestUpdate_ScopedUpdateThatKeepsItsRuleLeavesTheSharedFiles(t *testing.T) {
 	options, git, _ := syncedProject(t)
 	ctx := context.Background()
-	plan, err := PlanUpdate(ctx, options, git, []imports.UpdateTarget{{Source: "team", Rule: "techs/go/errors"}})
+	plan, err := PlanUpdate(ctx, options, git, []imports.UpdateTarget{{Source: "team", Rule: "techs/go/errors"}}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
