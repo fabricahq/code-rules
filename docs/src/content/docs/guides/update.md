@@ -43,11 +43,16 @@ team
             Covered by the broader rule about testing retries.
   replaced  techs/react/use-query-hooks            1.1.0 -> 1.2.0
             Add an example for paginated queries.
-            Your rule: local/techs/react/use-data-loaders.md.
+            Your rule: local/techs/react/use-query-hooks.md, based on 1.1.0.
+            Changes since 1.1.0, the version your rule is based on.
+            To replace your rule and its assets with a fork of 1.2.0,
+            pass --update-fork team:techs/react/use-query-hooks.
   pinned    practices/testing/verify-backoff       1.3.0
             Newest version: 2.0.0.
             Reason: Waiting on the author's response to acme/.code-rules#45.
 ```
+
+When a rule moves through several versions, each summary starts with the version it belongs to, such as `1.4.0: Add an example.`
 
 | Change | What it means for your project |
 | --- | --- |
@@ -56,10 +61,16 @@ team
 | `major` | Work that complied with the previous version could fail this one. |
 | `new` | A rule the library added to a group you import. |
 | `retired` | The library stopped publishing the rule, so your agents will stop reading it. The preview names its replacement when there is one. |
-| `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule). Your rule doesn't change. |
+| `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule) since the version your rule is based on, its `basedOn`, which a fork records. The preview lists those changes. Without `basedOn`, it lists the changes since the version the project imports, which your rule may already have. Your rule doesn't change unless you replace it with a fork of the newest version. |
 | `pinned` | A newer version exists, but your [pin](#keep-a-rule-at-its-current-version) keeps the rule where it is. |
 
+When a library release changed [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group descriptions or shared diagrams, the preview ends the source with a line such as `Shared files: release 3 -> 4`. The update brings them in even when no rule changes.
+
 Read the major changes, new rules, and retirements closely: each can change what your code must do. For each replaced rule, check whether your own rule needs the same change. Then confirm, and the update applies exactly the changes the preview showed.
+
+For a replaced rule you forked and never edited, or whose edits you no longer need, replace your rule with a fork of the newest version. In a terminal, answer `replace` when the update asks about the rule; it first names the files that replacing replaces or removes. In a script, pass `--update-fork team:<rule>` with `--yes`; the preview, without `--yes`, lists the files it would replace and those it would remove. Either writes the new fork exactly as [forking](/reference/cli/#fork-a-library-rule) that version would, at your rule's path, replaces your rule's asset directory, and sets the exclusion's `basedOn` to the version, all in the same step as the rest of the update. Your edits to the rule and its assets are overwritten, so commit them first; see [Replace a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version).
+
+To keep your edits, merge the library's changes into your rule by hand instead, then set `basedOn` in `.code-rules/config.yaml` to the version you merged, so later updates list only newer changes. Code Rules never moves `basedOn` on its own, because only you know whether your rule took the changes in.
 
 In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` with `--yes` to do the same.
 
@@ -118,13 +129,13 @@ code-rules project update team
 code-rules project update team:techs/react/prefer-server-components
 ```
 
-The first updates only the `team` library. The second moves only that rule; nothing else changes, including new rules. The rest waits for your next full update. Nothing is recorded in configuration, so use a pin when you want the decision to last.
+The first updates only the `team` library. The second moves only that rule; nothing else changes, including new rules and shared files, unless the rule's new version comes from a newer library release than your shared files: they then move to that library release. The rest waits for your next full update. Nothing is recorded in configuration, so use a pin when you want the decision to last.
 
 ## Handle retirements
 
-A retired rule appears in the preview with its last version, the summary explaining why, and its replacement if it has one. When you confirm, the rule is dropped. For a rule with a replacement, read the replacement, and check that you import its group.
+A retired rule appears in the preview with its last version, the summary explaining why, and its replacement if it has one. If the library later retired the replacement too, the preview says so and names the rule that replaced it, if any. When you confirm, the rule is dropped. For a rule with a replacement, read the replacement, and check that you import its group.
 
-To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it.
+To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only import supplying its group's metadata, the update writes that metadata to `local/<group-id>/_group.yaml` so the fork keeps its group.
 
 ## Import one library release
 
@@ -158,8 +169,7 @@ Edit the relevant `sources.<name>.groups` or `sources.<name>.rules` and run `cod
 `code-rules project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
-Before deselecting the last library supplying a local rule's group, ensure `local/<group-id>/_group.yaml` exists.
-If it already exists, keep the local files unchanged. Otherwise author group metadata, or move or remove the local rules.
+You don't need to create group metadata before deselecting, or removing, the last library supplying a local rule's group: sync writes the group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the group, from its last imported copy in `vendor/`, to `local/<group-id>/_group.yaml` and warns that it did. See [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group). Review the file afterward; it's now yours to edit. If `local/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
 
 ## Recover from a failed update
 

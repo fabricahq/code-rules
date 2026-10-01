@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"io/fs"
+	"maps"
 	"path"
 	"slices"
 	"strconv"
@@ -136,9 +137,8 @@ func parseTree(data []byte) (map[string]treeEntry, error) {
 }
 
 // ruleFiles returns the files of rule id at a fetched commit, its Markdown file and its asset directory's files,
-// by path, leaving out terms: declared license and notice files are library-wide even inside an asset directory.
-// The map is empty when the commit doesn't have the rule.
-func (r *repository) ruleFiles(ctx context.Context, commit, id string, terms []string) (map[string]treeEntry, error) {
+// by path. The map is empty when the commit doesn't have the rule.
+func (r *repository) ruleFiles(ctx context.Context, commit, id string) (map[string]treeEntry, error) {
 	index, ok := r.owned[commit]
 	if !ok {
 		tree, err := r.tree(ctx, commit)
@@ -156,13 +156,7 @@ func (r *repository) ruleFiles(ctx context.Context, commit, id string, terms []s
 		}
 		r.owned[commit] = index
 	}
-	files := map[string]treeEntry{}
-	for file, entry := range index[id] {
-		if !slices.Contains(terms, file) {
-			files[file] = entry
-		}
-	}
-	return files, nil
+	return maps.Clone(index[id]), nil
 }
 
 // terms returns the license and notice paths that tree's library manifest declares, or none without a manifest.
@@ -226,7 +220,7 @@ func (g *gitFiles) ReadFile(name string) ([]byte, error) {
 		return nil, err
 	}
 	if result.Status != 0 {
-		return nil, fail("git-failed", "Could not read library blobs.", nil)
+		return nil, gitFailure("git-failed", "Could not read library files.", result.Diagnostics)
 	}
 	header, body, ok := bytes.Cut(result.Output, []byte{'\n'})
 	size, found := strings.CutPrefix(string(header), entry.object+" blob ")

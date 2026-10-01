@@ -129,7 +129,7 @@ func TestCommittedCleanupWarning(t *testing.T) {
 				t.Fatal("lost committed status", err)
 			}
 			result, err := finishPublication(root, []File{file}, publicationComplete(err), err)
-			if err != nil || len(result.Files) != 1 || len(result.Warnings) != 1 {
+			if err != nil || len(result.Written()) != 1 || len(result.Warnings) != 1 {
 				t.Fatal(result, err)
 			}
 			data, _ := root.ReadFile(file.Path)

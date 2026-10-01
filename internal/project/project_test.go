@@ -47,7 +47,7 @@ func importedProject(t *testing.T) (*os.Root, Options) {
 		t.Fatal(err)
 	}
 	commit := strings.Repeat("a", 40)
-	imported := snapshot{Repository: config.Sources[0].Repository, Pins: map[string]rules.Pin{}, Ref: "v1.0.0", Commit: commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
+	imported := snapshot{Repository: config.Sources[0].Repository, Ref: gitRef(t, "v1.0.0"), Commit: commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Commit: commit}},
 		Files: map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(projectMetadata), "techs/go/errors.md": []byte(projectRule)}}
 	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": imported})
@@ -227,6 +227,15 @@ func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 			writeFixture(t, root, "vendor/team/"+move[1], projectRule)
 			encoded, err := json.Marshal(record)
 			if err != nil {
+				t.Fatal(err)
+			}
+			// The tampering also recomputes the record's checksum, so only the catalog can catch it.
+			var typed sourceRecord
+			if err := json.Unmarshal(encoded, &typed); err != nil {
+				t.Fatal(err)
+			}
+			typed.Checksum = recordChecksum(typed)
+			if encoded, err = json.Marshal(typed); err != nil {
 				t.Fatal(err)
 			}
 			writeFixture(t, root, "vendor/team/_source.json", string(encoded))

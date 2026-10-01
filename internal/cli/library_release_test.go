@@ -58,7 +58,7 @@ func pendingPatch(t *testing.T, fixture *gitfixture.Fixture, dir string) string 
 }
 
 // releaseTwoNotes are the notes of the library release pendingPatch prepares.
-const releaseTwoNotes = "Library release 2 changes 1 rule:\n1 patch.\n\n## Patch changes\n\n- **practices/testing/a** `1.0.0` → `1.0.1`\n  Clarify the retry-limit rule.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.1 |\n| practices/testing/b | 1.0.0 |\n\n</details>"
+const releaseTwoNotes = "Library release 2 changes 1 rule: 1 patch.\n\n## Patch changes\n\n- **practices/testing/a** `1.0.0` → `1.0.1`\n  - Clarify the retry-limit rule.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.1 |\n| practices/testing/b | 1.0.0 |\n\n</details>"
 
 // TestLibraryRelease_DryRunShowsTheLibraryReleaseAndChangesNothing prints the repository, branch, commit,
 // release number, each rule's change, and the complete release notes, in human and JSON output.
@@ -83,7 +83,7 @@ func TestLibraryRelease_DryRunShowsTheLibraryReleaseAndChangesNothing(t *testing
 	for field, want := range map[string]string{
 		"repository": `"git@fixture.invalid:rules"`, "remote": `"origin"`, "branch": `"main"`, "commit": `"` + commit + `"`,
 		"dryRun": "true", "release": "2", "tag": `"release/2"`, "published": "false", "tagCreated": "false", "libraryFiles": "[]",
-		"rules": `[{"id":"practices/testing/a","change":"patch","currentVersion":"1.0.0","nextVersion":"1.0.1"}]`,
+		"rules": `[{"id":"practices/testing/a","change":"patch","from":"1.0.0","to":"1.0.1","summaries":["Clarify the retry-limit rule."]}]`,
 	} {
 		if got := compactJSON(t, response.Value[field]); got != want {
 			t.Errorf("%s: %s, want %s", field, got, want)
@@ -190,5 +190,44 @@ func TestLibraryRelease_ReportsNothingToPublish(t *testing.T) {
 	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, environment, "library", "release")
 	if code != 0 || diagnostic != "" || !strings.HasPrefix(out, "Nothing to publish: no pending change notes and no library-wide changes since the latest library release.\n  Repository:          git@fixture.invalid:rules\n") {
 		t.Fatal(code, out, diagnostic)
+	}
+	// Values that don't apply when there's nothing to publish are left out, and lists are empty.
+	out, diagnostic, code = runCLIWithEnvironment(t, binary, dir, environment, "library", "release", "--json")
+	var response struct{ Value map[string]json.RawMessage }
+	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 0 || diagnostic != "" {
+		t.Fatal(err, code, out, diagnostic)
+	}
+	for _, field := range []string{"notes", "tag", "githubRelease"} {
+		if value, present := response.Value[field]; present {
+			t.Errorf("value.%s is %s, want it left out", field, value)
+		}
+	}
+	if string(response.Value["release"]) != "0" || string(response.Value["rules"]) != "[]" || string(response.Value["libraryFiles"]) != "[]" {
+		t.Errorf("value:\n%s", out)
+	}
+}
+
+// TestLibraryRelease_ReportsThePublishedTagWhenTheGitHubReleasePageFails in value, beside the error, so scripts can
+// tell the tag is published and the page is missing; human output reports only the error.
+func TestLibraryRelease_ReportsThePublishedTagWhenTheGitHubReleasePageFails(t *testing.T) {
+	binary := buildCLI(t)
+	fixture, dir := gitHubLibrary(t)
+	environment, _ := releaseEnvironment(t, fixture, []ghfixture.Response{{Args: ghAuth}, {Args: ghView, Stderr: "release not found\n", ExitCode: 1}, {Args: ghCreate, Stderr: "HTTP 502: Bad Gateway\n", ExitCode: 1}})
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, environment, "library", "release", "--json")
+	var response struct {
+		OK    bool
+		Value *struct {
+			Release       int
+			Tag           string
+			TagCreated    bool
+			GitHubRelease json.RawMessage
+		}
+		Error responseError
+	}
+	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 1 || diagnostic != "" || response.OK || response.Error.Code != "github-release-failed" {
+		t.Fatalf("exit %d, %v, stderr %q:\n%s", code, err, diagnostic, out)
+	}
+	if value := response.Value; value == nil || value.Release != 2 || value.Tag != "release/2" || !value.TagCreated || value.GitHubRelease != nil {
+		t.Fatalf("value %+v:\n%s", response.Value, out)
 	}
 }

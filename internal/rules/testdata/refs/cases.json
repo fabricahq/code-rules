@@ -259,7 +259,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>",
+        "message": "sources.team.ref: abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2",
         "location": "sources.team.ref"
       }
     }
@@ -273,7 +273,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>",
+        "message": "sources.team.ref: abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2",
         "location": "sources.team.ref"
       }
     }
@@ -287,7 +287,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>",
+        "message": "sources.team.ref: abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2",
         "location": "sources.team.ref"
       }
     }

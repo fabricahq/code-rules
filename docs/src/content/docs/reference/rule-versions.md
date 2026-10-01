@@ -16,7 +16,7 @@ A rule version covers the rule itself:
 
 A project that imports a rule version gets exactly these files as they were in that version.
 
-Everything else is a **library-wide file**: group metadata, shared files in the library-root `assets/` directory, the license declaration, and license and notice files. Library-wide files aren't part of any rule version, and changing them needs no change note. Projects receive them from the newest library release among the rule versions they import, or from the revision their `ref` names. A project that imports no rules from a library, such as one that selects only empty groups, receives them from the newest library release. A rule pinned to an older version can therefore link to a newer copy of a shared file, so keep everything that defines a rule's obligation in the rule itself, and use shared files only to explain and illustrate.
+Everything else is a **library-wide file**: group metadata, shared files in the library-root `assets/` directory, the license declaration, and license and notice files. Every file is one or the other, so a library can't declare a rule's Markdown file or a file in a rule's asset directory as a license or notice file; see [License metadata](/reference/library-format/#license-metadata). Library-wide files aren't part of any rule version, and changing them needs no change note. A project receives them from one library release, which is never older than the library release of any rule version it imports, or from the revision its `ref` names. A new source, or newly selected groups or rules, take them from the newest library release; `code-rules project update` moves them to the newest library release, even when no rule changes; and `code-rules project sync` keeps the library release recorded in `vendor/<source-name>/_source.json`. A rule pinned to an older version can therefore link to a newer copy of a shared file, so keep everything that defines a rule's obligation in the rule itself, and use shared files only to explain and illustrate.
 
 ## Library releases
 
@@ -34,6 +34,7 @@ The tag's message is the library release's permanent record. It has two parts, s
 2. A YAML record that Code Rules reads:
 
 ```yaml
+formatVersion: 1
 release: 4
 rules:
   practices/code-design/organize-code-by-feature: 1.1.0
@@ -45,31 +46,40 @@ rules:
 changes:
   practices/testing/verify-retries:
     change: new
-    summary: Add a broader rule about testing retries.
+    summaries:
+      - Add a broader rule about testing retries.
   practices/testing/verify-retry-limits:
     change: major
     from: 1.3.0
-    summary: Require a test at the limit for every retry policy.
+    summaries:
+      - Require a test at the limit for every retry policy.
   techs/react/test-hooks-in-isolation:
     change: minor
     from: 2.1.0
-    summary: Add an example for custom hooks.
+    summaries:
+      - Add an example for custom hooks.
 retired:
   practices/testing/check-retry-backoff:
     lastVersion: 1.2.0
     replacedBy: practices/testing/verify-retries
-    summary: Covered by the broader rule about testing retries.
+    summaries:
+      - Covered by the broader rule about testing retries.
 libraryFiles:
   - practices/testing/_group.yaml
 ```
 
 | Field | Meaning |
 | --- | --- |
+| `formatVersion` | The release record format, `1`. Required. |
 | `release` | The release number. |
 | `rules` | Every current rule and its version after this library release. |
-| `changes` | Each rule this library release changed or added: its `change` (`new`, `major`, `minor`, or `patch`), its previous version as `from` (absent for a new rule), and its `summary`. When several notes named the rule, the summary has one line per note. |
-| `retired` | Each rule this library release retired: its `lastVersion`, its `summary`, and its `replacedBy` rule when there is one. |
+| `changes` | Each rule this library release changed or added: its `change` (`new`, `major`, `minor`, or `patch`), its previous version as `from` (absent for a new rule), and its `summaries`: a list with one summary per change note that named the rule, in note order. |
+| `retired` | Each rule this library release retired: its `lastVersion`, its `summaries`, as in `changes`, and its `replacedBy` rule when there is one. |
 | `libraryFiles` | Library-wide files this library release changed, such as group metadata and shared assets. |
+
+Each `summaries` list has at least one item, and each item follows the rules of a [change note's](#change-notes) `summary`: one non-blank line without control characters.
+
+Release records are read by every later version of Code Rules, so the format is forward compatible. Readers ignore fields they don't know, at any level and whatever their values, such as timestamps, so a later Code Rules can add fields that older versions skip. `formatVersion` changes only for an incompatible change; readers check it before anything else in the record, and a Code Rules that finds a higher `formatVersion` than it reads stops with `unsupported-release-record` and asks you to upgrade it. The whole record still uses one YAML document without duplicate keys, anchors, aliases, or explicit tags, and every field above keeps its rules; for example, a summary that YAML reads as a date must be quoted. Change notes, which people write by hand, stay strict: unknown fields fail.
 
 A rule's version is plain `major.minor.patch` numbers, each at most 999,999,999, without prerelease or build suffixes. A new rule starts at `1.0.0`. The rule ID is the rule's path without `.md`.
 
@@ -79,7 +89,7 @@ A rule's full history is the `changes` entries for it across every `release/<num
 
 For a repository on GitHub.com, each library release also creates one **GitHub Release page** on its tag, with the release notes as its body: the page GitHub uses to announce a library release, which people can browse and get notified about. It's an announcement only; Code Rules never reads it. In these docs, a *library release* is a publication of a library's rule versions, as described on this page, and a *GitHub Release page* is only its announcement on GitHub.
 
-The release notes are generated from the change notes and the release record: an opening line that counts the changes; sections for major, minor, and patch changes, new rules, and retired rules, each included only when it has entries; a sentence saying the library release also updates shared files, when `libraryFiles` isn't empty, except in the first library release, which adds them all; and a collapsed table of every rule's version. A library release that changes no rules opens with a line saying so and that it updates shared files. The notes never list library-wide files by path; `libraryFiles` in the release record does. [Publish a library release](/guides/version-rules/#publish-a-library-release) shows a complete example. You can edit the GitHub Release page on GitHub, for example to add an introduction; the tag message keeps the generated text.
+The release notes are generated from the change notes and the release record: an opening line that counts the changes; sections for new rules, major, minor, and patch changes, and retired rules, in that order, each included only when it has entries; a sentence saying the library release also updates shared files, when `libraryFiles` isn't empty, except in the first library release, which adds them all; and a collapsed table of every rule's version. A library release that changes no rules opens with a line saying so and that it updates shared files. The first library release opens by saying how many rules it publishes, and lists its new rules without their summaries, which are all the same placeholder, `Add the rule.`, in its release record. The notes never list library-wide files by path; `libraryFiles` in the release record does. [Publish a library release](/guides/version-rules/#publish-a-library-release) shows a complete example. You can edit the GitHub Release page on GitHub, for example to add an introduction; the tag message keeps the generated text.
 
 A project normally follows each rule's newest version, but it can also import exactly what one library release published, by naming its tag; see [Import one revision](/reference/configuration/#import-one-revision).
 
@@ -126,7 +136,7 @@ rules:
 
 | Field | Meaning |
 | --- | --- |
-| `summary` | Required non-blank line of text describing the change for project maintainers. For a retirement, explain why. |
+| `summary` | Required non-blank line of text describing the change for project maintainers, without control characters such as tabs or escape sequences. For a retirement, explain why. |
 | `rules` | Required map of the rules the note covers to their change: `major`, `minor`, or `patch` for a rule that has a version; `new` for a rule that doesn't; or `retired`. A retired rule can instead map to an object with `change: retired` and a `replacedBy` rule ID. |
 
 Change notes use one YAML document. Duplicate keys, anchors, aliases, explicit tags, and unknown fields are rejected.

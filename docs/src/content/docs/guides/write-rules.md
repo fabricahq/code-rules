@@ -42,7 +42,7 @@ Use a technology group when the obligation depends on a named technology.
 Use a practice group when it transfers across technologies.
 Place project-specific contracts in the applicable project's local rules.
 
-For a new group, add [group metadata](/reference/rule-format/#group-metadata) that helps agents recognize relevant work.
+For a new group, use a [canonical group ID](/concepts/groups/#canonical-group-ids) if one fits, and add [group metadata](/reference/rule-format/#group-metadata) that helps agents recognize relevant work.
 
 ## Example rule
 

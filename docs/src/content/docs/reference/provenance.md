@@ -45,6 +45,7 @@ Each rule entry includes:
 | `origin` | The source and file supplying the active rule. Imported origins also identify the repository and the exact commit the rule came from. `version` records the rule's version, such as `"1.3.0"`, and `release` the library release that published it; both are `null` when the imported file isn't a published version. |
 | `upstream` | The imported rule's origin, including its `version`, when a local rule replaces it; otherwise `null`. |
 | `replacementReason` | Your configured reason for the replacement; otherwise `null`. |
+| `basedOn` | The library version of the replaced rule that the local rule is based on, as the exclusion's [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule) records it, such as the version a fork copied; otherwise `null`. It can differ from `upstream`'s `version`, which is the version the project imports. |
 | `license`, `licenseBasis`, and `attribution` | Declared terms and source credits, explained below. |
 
 Local origins use `source: "local"`. Their `repository`, `resolvedCommit`, `version`, and `release` fields are `null` because the rule comes from your project. A [fork](/reference/cli/#fork-a-library-rule) of a library rule records its source in `attribution` instead, when the library is on GitHub.com or GitLab.com or its repository address is an HTTPS URL.
@@ -68,11 +69,12 @@ The replacement's entry contains these fields. This excerpt omits the other orig
     "file": "practices/testing/check-retries.md",
     "version": "2.1.0"
   },
-  "replacementReason": "Use the retry limits required by this service."
+  "replacementReason": "Use the retry limits required by this service.",
+  "basedOn": "2.0.0"
 }
 ```
 
-Read this as: agents receive the local `service-retries` rule, it replaces version 2.1.0 of `team`'s `check-retries` rule, and the reason comes from your project configuration. The imported rule's full origin also records its repository and exact commit.
+Read this as: agents receive the local `service-retries` rule, it replaces version 2.1.0 of `team`'s `check-retries` rule, it is based on the library's version 2.0.0, and the reason comes from your project configuration. The imported rule's full origin also records its repository and exact commit.
 
 ## Inspect library versions and group guidance
 
@@ -96,13 +98,8 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 ```json
 {
   "formatVersion": 2,
+  "checksum": "5d1b…c07e",
   "repository": "https://github.com/fabricahq/public-rules.git",
-  "pins": {
-    "practices/testing/verify-backoff": {
-      "version": "1.3.0",
-      "reason": "Waiting on the author's response to acme/.code-rules#45."
-    }
-  },
   "release": 3,
   "resolvedCommit": "9e07b3d6f0c1a4b85e2d7c3f9a61b04e8d52c7aa",
   "groupSelection": [
@@ -131,6 +128,9 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
       "commit": "9e07b3d6…"
     }
   },
+  "retiredRules": [
+    "practices/testing/check-retry-backoff"
+  ],
   "files": {
     "practices/testing/verify-retry-limits.md": "4c1f…e9a2",
     "…": "…"
@@ -140,12 +140,14 @@ Each library has a separate `vendor/<source-name>/_source.json` file. It describ
 
 | Field | Meaning |
 | --- | --- |
-| `formatVersion` | The snapshot format version, `2`. |
+| `formatVersion` | The snapshot format version, `2`. An older format, such as `1`, fails with advice to delete `.code-rules/vendor/` and run `code-rules project sync`, which records the sources again. With no record to restore, that sync imports each rule's newest version, except rules you pin and sources that set `ref`, so it can move rules to versions your project didn't use before; pin a rule, or set `ref: release/<number>`, first to keep what you had. A newer format, written by a later Code Rules, fails with `unsupported-source-record` and asks you to upgrade Code Rules instead, since syncing would rewrite the project in the older format. Unknown fields are always rejected. |
+| `checksum` | The SHA-256 checksum of the record's other fields, as sync wrote them. Offline, `code-rules project build` and `code-rules project check` refuse a record whose checksum doesn't match, or that has none, as changed outside `code-rules project sync`, such as by hand or in a merge resolution, because its versions and releases can't be trusted without the library. `code-rules project sync`, `code-rules project update`, and a [fork](/reference/cli/#fork-a-library-rule) refuse it too and write nothing, as sync does when it removes a source whose record holds the group metadata a local rule needs; a removed source whose record no local rule needs is discarded with the rest of its files: it never records again a record it didn't write, whatever the record says, since no check of individual facts can establish that an edited record is right. Records from earlier preview builds, which have no checksum, are refused the same way. To recover, restore a record sync wrote with `git checkout -- .code-rules/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `code-rules project sync`, which applies any configuration changes; or delete `.code-rules/vendor/<source-name>/` and run `code-rules project sync`, which imports the source again, with its unpinned rules at their newest versions. To resolve a merge conflict in `_source.json`, take one side of the file rather than combining them, and let sync apply the merged configuration. A record that sync can't read at all, such as one with an unknown field, fails with advice to delete `.code-rules/vendor/<source-name>/` and sync, which imports the source again, with its unpinned rules at their newest versions. |
 | `repository` | The library's repository address. |
-| `pins`, `exclude`, and `ref` | The source's pins, the rule IDs its `exclude` names, and its `ref`, from configuration when the snapshot was recorded. Each is omitted when configuration has none. Sync records an exclusion only after checking that it names an imported rule or one the library retired, so offline checks accept an exclusion of a rule the snapshot doesn't import only when it's recorded here. |
-| `release` | The newest library release among the imported rule versions, the newest library release when the source imports no rules, or the library release your `ref` names. It supplies the group metadata and license files. Omitted when your `ref` isn't a library release. |
+| `ref` | The source's `ref` from configuration when the snapshot was recorded, omitted when configuration has none. Changing it to another spelling of the same revision, such as `refs/tags/release/2` for `release/2`, keeps the recorded spelling, so the record stays current. Pins and exclusions aren't recorded: configuration owns them, and a pinned rule's `version` in `rules` is the pinned version. So adding, rewording, or removing a pin that moves nothing, or an exclusion, by hand or with a fork, never makes the record out of date, unless the entry names a retired rule that `retiredRules` doesn't list yet; then offline checks ask for `code-rules project sync`, which records the retirement. Generated guidance and `generated/provenance.json` show the configured pins and their reasons. |
+| `release` | The library release that supplied the library-wide files: the group metadata, shared assets, and license files. It is the newest library release when the source was added, selected more rules, or last ran a full `code-rules project update`, and never older than the `release` of any imported rule; plain `code-rules project sync` keeps it. With `ref`, it's the library release your `ref` names, and it's omitted when your `ref` isn't a library release. |
 | `resolvedCommit` | The full Git commit SHA of that library release, or of the revision your `ref` names. |
 | `rules` | Each imported rule's ID, whether imported through a group or individually selected, its `version`, the `release` that published it, and that library release's full `commit`. |
+| `retiredRules` | The IDs of the rules the library retired that the source would otherwise import, sorted, and empty when there are none. A retired rule the source still imports, such as one a pin keeps at its last version, is in both `rules` and `retiredRules`, which says it's retired, and the generated library README marks it so. The rules it lists are those your `groups` or `rules` select, and those the previous record imported or listed, so an exclusion left after you deselect a retired rule still only warns. It records what the library told sync, not your configuration, so offline checks can tell an exclusion of a retired rule from a typo. `code-rules project update` refreshes it; `code-rules project sync` keeps it byte for byte unless the selection, `ref`, or `release` changes, so a pin or exclusion edit leaves `_source.json` unchanged when the record already covers the rule it names. When you pin or exclude a retired rule the record doesn't list yet, sync checks it against the library and adds it. |
 | `groupSelection` | Your configured group list or selector: `"*"`, `"practices/*"`, or `"techs/*"`. |
 | `ruleSelection` | Your configured list of individually selected rules. Omitted when you select none. |
 | `groups` | The groups imported in full. A group reached only through individually selected rules isn't listed. |
@@ -163,12 +165,12 @@ For a wildcard selection, the snapshot must contain every group in the selected 
 
 | Choice | What Code Rules verifies offline |
 | --- | --- |
-| Newest versions, the default | Each pinned rule records its pinned version. Other rules may record any published version. |
+| Newest versions, the default | Each pinned rule records its pinned version. Other rules may record any published version. `release` is at least as new as every rule's `release`. |
 | One revision, with `ref` | For a commit SHA, `resolvedCommit` equals it. For a library release `release/N`, the source records release N, and every rule records a published version from library release N or earlier. A tag's recorded commit is used without checking where the tag points now. |
 
-For every source, offline checks also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions.
+For every source, offline checks first verify the record's `checksum`, so a record changed outside sync fails until you restore a record sync wrote or import the source again. They also verify that `rules` lists exactly the imported rules, and that generated provenance and guidance show the same versions. Each exclusion must name a rule in `rules` or `retiredRules`; any other exclusion could be a typo that leaves the rule you meant active, so the check reports that it names no rule the library supplies and asks you to run `code-rules project sync`, which checks it against the library.
 
-Offline checks cannot prove that a recorded version was the newest available, or that recorded versions match the library's release tags. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
+Offline checks cannot prove that a recorded version was the newest available, or that recorded versions match the library's release tags; `code-rules project sync` checks the latter against the release records before it imports anything. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
 
 ## Find declared licenses and source credits
 

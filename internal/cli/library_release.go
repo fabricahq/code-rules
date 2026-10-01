@@ -25,6 +25,11 @@ func libraryReleaseCommand(options Options, output *commandOutput) *cobra.Comman
 		noGitHubRelease, _ := cmd.Flags().GetBool("no-github-release")
 		result, err := library.Release(cmd.Context(), library.ReleaseRequest{Options: target, DryRun: dryRun, NoGitHubRelease: noGitHubRelease})
 		if err != nil {
+			// A published tag whose GitHub Release page failed is part of the JSON result; the error explains it to
+			// people.
+			if result.Release > 0 {
+				output.report = commandReport{value: result}
+			}
 			return err
 		}
 		output.report = libraryReleaseReport(result, noGitHubRelease, authoringScope{library: true, directory: f.value("directory")})
