@@ -29,15 +29,6 @@ func snapshotConfig(t *testing.T, fields string) rules.Configuration {
 	return config
 }
 
-// pinVersions returns each configured pin's version, as a snapshot records it.
-func pinVersions(pins map[string]rules.Pin) map[string]rules.RuleVersion {
-	versions := map[string]rules.RuleVersion{}
-	for id, pin := range pins {
-		versions[id] = pin.Version
-	}
-	return versions
-}
-
 // snapshotFixture supplies a source that follows rule versions: errors at 1.1.0 from library release 2, which
 // supplies the library-wide files, and naming at 1.0.0 from library release 1.
 // Files include original binary and CRLF bytes.
@@ -45,7 +36,7 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
 	config := snapshotConfig(t, `"groups":["techs/go"]`)
 	one, two := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 1, Minor: 1}
-	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Pins: map[string]rules.RuleVersion{}, RetiredRules: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
+	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, RetiredRules: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne}},
 		Files: map[string][]byte{
 			"rule-library.yaml":    []byte(`{"formatVersion":1}`),
@@ -93,7 +84,7 @@ func TestSnapshotsRoundTripOwnsExactBytes(t *testing.T) {
 	}
 }
 
-// TestSnapshotRecordFormat writes the documented format 2 fields, omitting pins, ref, and ruleSelection when empty.
+// TestSnapshotRecordFormat writes the documented format 2 fields, never pins, and omits ref and ruleSelection when empty.
 func TestSnapshotRecordFormat(t *testing.T) {
 	config, input := snapshotFixture(t)
 	encoded, err := encodeSnapshots(config, input)
@@ -161,36 +152,41 @@ func TestSnapshotChangedSelectionOrRefRequiresSync(t *testing.T) {
 	}
 }
 
-// TestSnapshotPinsThatMoveNothingNeedNoSync accepts a pin at the recorded version, a changed reason, and a removed pin.
+// TestSnapshotPinsThatMoveNothingNeedNoSync accepts, against a record written without pins, a pin at the imported
+// version, with any reason, and a pin of a rule the record lists as retired, and the record never holds pins.
 func TestSnapshotPinsThatMoveNothingNeedNoSync(t *testing.T) {
-	config, snapshots := snapshotFixture(t)
 	pinned := snapshotConfig(t, `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Waiting on #45."}}`)
+	_, snapshots := snapshotFixture(t)
 	item := snapshots["team"]
-	item.Pins = pinVersions(pinned.Sources[0].Pins)
+	item.RetiredRules = []string{"techs/go/gone"}
 	snapshots["team"] = item
 	vendor, err := encodeSnapshots(pinned, snapshots)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if strings.Contains(string(vendor["team/_source.json"]), "pins") {
+		t.Fatalf("the record holds pins:\n%s", vendor["team/_source.json"])
+	}
 	for name, fields := range map[string]string{
-		"same pin":       `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Waiting on #45."}}`,
-		"changed reason": `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Still waiting."}}`,
-		"added pin":      `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Keep."},"techs/go/errors":{"version":"1.1.0","reason":"Keep."}}`,
-		"removed pin":    `"groups":["techs/go"]`,
+		"same pin":            `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Waiting on #45."}}`,
+		"changed reason":      `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Still waiting."}}`,
+		"added pin":           `"groups":["techs/go"],"pins":{"techs/go/naming":{"version":"1.0.0","reason":"Keep."},"techs/go/errors":{"version":"1.1.0","reason":"Keep."}}`,
+		"removed pin":         `"groups":["techs/go"]`,
+		"pin of retired rule": `"groups":["techs/go"],"pins":{"techs/go/gone":{"version":"3.0.0","reason":"Keep."}}`,
 	} {
 		if _, err := decodeSnapshots(snapshotConfig(t, fields), vendor); err != nil {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
-	_ = config
 }
 
-// TestSnapshotRetiredEntriesRecordedAtSyncNeedNoSync accepts a pin or rules entry that named a retired rule then.
+// TestSnapshotRetiredEntriesRecordedAtSyncNeedNoSync accepts a pin or rules entry naming a rule the record lists as
+// retired.
 func TestSnapshotRetiredEntriesRecordedAtSyncNeedNoSync(t *testing.T) {
 	config := snapshotConfig(t, `"groups":["techs/go"],"rules":["practices/testing/retired"],"pins":{"techs/go/gone":{"version":"1.0.0","reason":"Keep."}}`)
 	_, snapshots := snapshotFixture(t)
 	item := snapshots["team"]
-	item.Pins, item.RuleSelection = pinVersions(config.Sources[0].Pins), config.Sources[0].Rules
+	item.RetiredRules, item.RuleSelection = []string{"practices/testing/retired", "techs/go/gone"}, config.Sources[0].Rules
 	snapshots["team"] = item
 	vendor, err := encodeSnapshots(config, snapshots)
 	if err != nil {
@@ -401,7 +397,7 @@ func TestSnapshotRefChecks(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			config := snapshotConfig(t, `"groups":["techs/go"],"ref":"`+test.ref+`"`)
 			files := map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(`{}`)}
-			item := snapshot{Repository: config.Sources[0].Repository, Pins: map[string]rules.RuleVersion{}, Ref: gitRef(t, test.ref), Release: test.release, Commit: test.commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{}, Rules: test.rules, Files: files}
+			item := snapshot{Repository: config.Sources[0].Repository, Ref: gitRef(t, test.ref), Release: test.release, Commit: test.commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{}, Rules: test.rules, Files: files}
 			_, err := encodeSnapshots(config, map[string]snapshot{"team": item})
 			if (err == nil) != test.ok {
 				t.Fatalf("got %v, want ok %v", err, test.ok)

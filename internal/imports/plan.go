@@ -92,16 +92,16 @@ func redundantRules(source rules.Source, imported map[string]library.ImportedRul
 // retiredRules returns the retired rules a sync that chose plan records. When the source selects what recorded did,
 // from the same revision, with the same shared files, it keeps recorded's list, so that a sync changing nothing
 // else, such as an exclusion the list already covers, never rewrites the record, whatever the planner happened to
-// read; it adds only the retired rules of exclusions that sync just found retired, which the record didn't cover,
-// so offline checks accept them too. Otherwise it returns the release history's, as freshRetiredRules does.
+// read; it adds only the retired rules of pins and exclusions that sync just found retired, which the record didn't
+// cover, so offline checks accept them too. Otherwise it returns the release history's, as freshRetiredRules does.
 func (p *planner) retiredRules(plan sourcePlan) ([]string, error) {
 	recorded := p.recorded
 	if recorded == nil || !sameGroupSelection(recorded.Selection, p.source.Groups) || !slices.Equal(recorded.RuleSelection, p.source.Rules) || !p.source.Ref.Equal(recorded.Ref) || plan.release != recorded.Release || plan.commit != recorded.Commit {
 		return p.freshRetiredRules()
 	}
 	retired := slices.Clone(recorded.RetiredRules)
-	for _, id := range slices.Sorted(maps.Keys(p.source.Exclude)) {
-		// Validating such an exclusion read the history, which records why it only warns.
+	for _, id := range slices.Concat(slices.Sorted(maps.Keys(p.source.Pins)), slices.Sorted(maps.Keys(p.source.Exclude))) {
+		// Validating such a pin or exclusion read the history, which records why it only warns.
 		if _, imported := plan.rules[id]; !imported && !slices.Contains(retired, id) && p.history != nil && p.history.retired(id) {
 			retired = append(retired, id)
 		}
@@ -459,8 +459,8 @@ func (p *planner) requireEntries(plan *sourcePlan) error {
 		if _, imported := plan.rules[id]; imported {
 			continue
 		}
-		// A pin that the last sync recorded without importing its rule already named a retired rule.
-		if recorded := p.recorded; recorded != nil && !hasRule(recorded, id) && hasPin(recorded, id, p.source.Pins[id].Version) {
+		// A pin of a rule the last sync recorded as retired, and didn't import, needs no release history to warn.
+		if recorded := p.recorded; recorded != nil && !hasRule(recorded, id) && slices.Contains(recorded.RetiredRules, id) {
 			plan.warnings = append(plan.warnings, p.retiredEntry("pins", id))
 			continue
 		}
@@ -556,21 +556,6 @@ func ruleGroup(id string) string {
 func hasRule(snapshot *library.Snapshot, id string) bool {
 	_, ok := snapshot.Rules[id]
 	return ok
-}
-
-// hasPin reports whether the snapshot recorded a pin of rule id to version.
-func hasPin(snapshot *library.Snapshot, id string, version rules.RuleVersion) bool {
-	pinned, ok := snapshot.Pins[id]
-	return ok && pinned == version
-}
-
-// pinnedVersions returns the version of each pin, the part of a pin a snapshot records; it is empty, never nil.
-func pinnedVersions(pins map[string]rules.Pin) map[string]rules.RuleVersion {
-	versions := make(map[string]rules.RuleVersion, len(pins))
-	for id, pin := range pins {
-		versions[id] = pin.Version
-	}
-	return versions
 }
 
 // sameGroupSelection reports whether two group selections request the same groups.

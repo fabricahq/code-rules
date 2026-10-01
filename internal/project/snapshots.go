@@ -26,18 +26,17 @@ const sourceRecordFormat = 2
 // sourceRecord is the format 2 record in vendor/<source>/_source.json: the source's configuration when it was
 // recorded, the revision that supplied its library-wide files, each imported rule's version, and file digests.
 type sourceRecord struct {
-	FormatVersion int                          `json:"formatVersion"`
-	Repository    string                       `json:"repository"`
-	Pins          map[string]rules.RuleVersion `json:"pins,omitempty"`
-	Ref           string                       `json:"ref,omitempty"`
-	Release       int                          `json:"release,omitempty"`
-	Commit        string                       `json:"resolvedCommit"`
-	Selection     json.RawMessage              `json:"groupSelection"`
-	RuleSelection []string                     `json:"ruleSelection,omitempty"`
-	Groups        []string                     `json:"groups"`
-	Rules         map[string]recordRule        `json:"rules"`
-	RetiredRules  []string                     `json:"retiredRules"`
-	Files         map[string]string            `json:"files"`
+	FormatVersion int                   `json:"formatVersion"`
+	Repository    string                `json:"repository"`
+	Ref           string                `json:"ref,omitempty"`
+	Release       int                   `json:"release,omitempty"`
+	Commit        string                `json:"resolvedCommit"`
+	Selection     json.RawMessage       `json:"groupSelection"`
+	RuleSelection []string              `json:"ruleSelection,omitempty"`
+	Groups        []string              `json:"groups"`
+	Rules         map[string]recordRule `json:"rules"`
+	RetiredRules  []string              `json:"retiredRules"`
+	Files         map[string]string     `json:"files"`
 }
 
 // recordRule is one imported rule's version record; Version and Release are null for an unreleased rule.
@@ -68,9 +67,6 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 			return nil, fmt.Errorf("encode selection for %s: %v", source.Name, err)
 		}
 		record := sourceRecord{FormatVersion: sourceRecordFormat, Repository: snapshot.Repository, Ref: snapshot.Ref.String(), Release: snapshot.Release, Commit: snapshot.Commit, Selection: selection, RuleSelection: snapshot.RuleSelection, Groups: snapshot.Groups, Rules: map[string]recordRule{}, Files: map[string]string{}}
-		if len(snapshot.Pins) > 0 {
-			record.Pins = snapshot.Pins
-		}
 		record.RetiredRules = snapshot.RetiredRules
 		if record.RetiredRules == nil {
 			record.RetiredRules = []string{}
@@ -201,7 +197,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if format != sourceRecordFormat {
 		return parsedRecord{}, invalidSnapshot(where, unsupportedRecord)
 	}
-	allowed := []string{"formatVersion", "repository", "pins", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "files"}
+	allowed := []string{"formatVersion", "repository", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "files"}
 	for _, key := range slices.Sorted(maps.Keys(fields)) {
 		if !slices.Contains(allowed, key) || bytes.Equal(bytes.TrimSpace(fields[key]), []byte("null")) {
 			return parsedRecord{}, invalidSnapshot(where+"."+key, "unknown or null source record field")
@@ -218,7 +214,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if decoder.Decode(&record) != nil {
 		return parsedRecord{}, invalidSnapshot(where, "invalid source record field values")
 	}
-	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Pins: map[string]rules.RuleVersion{}, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
+	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
 	}
@@ -233,12 +229,6 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	}
 	if !fullCommit(record.Commit) {
 		return parsedRecord{}, invalidSnapshot(where+".resolvedCommit", "expected a full commit SHA")
-	}
-	for id, version := range record.Pins {
-		if err := rules.ValidateRuleID(id, where+".pins."+id); err != nil {
-			return parsedRecord{}, err
-		}
-		result.Pins[id] = version
 	}
 	var err error
 	if result.Selection, err = rules.ParseGroupSelection(fields["groupSelection"], where+".groupSelection"); err != nil {
@@ -305,9 +295,9 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 	}
 	for _, id := range slices.Sorted(maps.Keys(source.Pins)) {
 		pin := source.Pins[id]
+		// A pin of a rule the library retired keeps nothing, so any version passes; sync warns about it.
 		rule, imported := record.Rules[id]
-		recordedPin, recorded := record.Pins[id]
-		if imported && (rule.Version == nil || *rule.Version != pin.Version) || !imported && (!recorded || recordedPin != pin.Version) {
+		if imported && (rule.Version == nil || *rule.Version != pin.Version) || !imported && !slices.Contains(record.RetiredRules, id) {
 			return invalidSnapshot(where, "sources."+source.Name+".pins."+id+" names a version the snapshot doesn't import; run code-rules project sync")
 		}
 	}

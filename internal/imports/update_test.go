@@ -20,7 +20,7 @@ import (
 func (h history) record(t *testing.T, config rules.Configuration, release int, imported map[string]string) library.Snapshot {
 	t.Helper()
 	source := config.Sources[0]
-	snapshot := library.Snapshot{Repository: source.Repository, Pins: pinnedVersions(source.Pins), Release: release, Commit: h.commits[release], Selection: source.Groups, Groups: []string{}, RuleSelection: source.Rules, Rules: map[string]library.ImportedRule{}}
+	snapshot := library.Snapshot{Repository: source.Repository, Release: release, Commit: h.commits[release], Selection: source.Groups, Groups: []string{}, RuleSelection: source.Rules, Rules: map[string]library.ImportedRule{}}
 	for id, text := range imported {
 		version, number, _ := strings.Cut(text, "@")
 		parsed, err := rules.ParseRuleVersion(version, id)

@@ -215,28 +215,97 @@ func TestSync_RefusesModifiedVendoredGroupMetadata(t *testing.T) {
 	}
 }
 
-// TestSync_KeepsTheSourceRecordWhenOnlyAPinsReasonChanges records pins by version only, so rewording a pin's
-// reason leaves _source.json byte for byte unchanged, and the project still checks offline.
-func TestSync_KeepsTheSourceRecordWhenOnlyAPinsReasonChanges(t *testing.T) {
+// TestBuild_PinsThatMoveNothingLeaveTheSourceRecordUnchanged adds a pin by hand at the imported version, rewords
+// it, and removes it, building, checking offline, and syncing each time; _source.json never changes, because
+// configuration alone owns pins.
+func TestBuild_PinsThatMoveNothingLeaveTheSourceRecordUnchanged(t *testing.T) {
 	f, options, git := syncProject(t)
 	ctx := context.Background()
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
 	pin := func(reason string) map[string]any {
 		return map[string]any{"groups": []string{"techs/go"}, "pins": map[string]any{"techs/go/errors": map[string]string{"version": "1.0.0", "reason": reason}}}
 	}
-	configure(t, options, f, pin("Waiting on #45."))
+	for _, fields := range []map[string]any{pin("Waiting on #45."), pin("Waiting on #46."), {"groups": []string{"techs/go"}}} {
+		configure(t, options, f, fields)
+		if _, err := Build(ctx, options); err != nil {
+			t.Fatalf("build with %v: %v", fields, err)
+		}
+		requireCurrent(t, options)
+		if _, err := Sync(ctx, options, git); err != nil {
+			t.Fatal(err)
+		}
+		if after := projectTree(t, options).Files["vendor/team/_source.json"]; !bytes.Equal(after, recorded) {
+			t.Fatalf("with %v, sync rewrote _source.json:\n%s\nwas:\n%s", fields, after, recorded)
+		}
+	}
+}
+
+// TestSync_RecordsTheRetirementOfANewlyPinnedRule the record didn't list, as it does for an exclusion: release/2
+// adds extra and release/3 retires it after the project synced release/1; pinning extra warns, and sync records
+// the retirement so offline checks accept the pin, and a second sync changes nothing.
+func TestSync_RecordsTheRetirementOfANewlyPinnedRule(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	before := projectTree(t, options).Files["vendor/team/_source.json"]
-	if strings.Contains(string(before), "Waiting on #45.") || !strings.Contains(string(before), `"techs/go/errors": "1.0.0"`) {
-		t.Fatalf("the record doesn't hold the pin's version alone:\n%s", before)
+	secondRelease(t, f)
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+		t.Fatal(err)
 	}
-	configure(t, options, f, pin("Waiting on #46."))
+	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [No longer needed.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "pins": map[string]any{"techs/go/extra": map[string]string{"version": "1.0.0", "reason": "Keep it."}}})
+	changes, err := Sync(ctx, options, git)
+	if err != nil || len(changes.Warnings) != 1 || !strings.Contains(changes.Warnings[0], "techs/go/extra") {
+		t.Fatalf("sync: %+v, %v", changes, err)
+	}
+	if record, _ := recordedVersions(t, options); !slices.Equal(record.RetiredRules, []string{"techs/go/extra"}) || record.Release != 1 {
+		t.Fatalf("retired %v, shared files from release %d", record.RetiredRules, record.Release)
+	}
+	requireCurrent(t, options)
+	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
 	}
-	if after := projectTree(t, options).Files["vendor/team/_source.json"]; !bytes.Equal(after, before) {
-		t.Fatalf("rewording a pin changed _source.json:\n%s\nwas:\n%s", after, before)
+	if after := projectTree(t, options).Files["vendor/team/_source.json"]; !bytes.Equal(after, recorded) {
+		t.Fatalf("a second sync rewrote _source.json:\n%s\nwas:\n%s", after, recorded)
+	}
+}
+
+// TestSync_KeepsAPinnedRetiredRuleAtItsLastVersion: the project imports errors 1.1.0, the library then retires it,
+// and a pin at 1.1.0 keeps it installed through sync, build, and an offline check, without changing the record.
+func TestSync_KeepsAPinnedRetiredRuleAtItsLastVersion(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	secondRelease(t, f)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire errors", map[string][]byte{"techs/go/errors.md": nil, "techs/go/assets/errors/data.bin": nil}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/extra: 1.0.0\nretired:\n  techs/go/errors: {lastVersion: 1.1.0, summaries: [Covered by extra.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
+	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "pins": map[string]any{"techs/go/errors": map[string]string{"version": "1.1.0", "reason": "Keep it."}}})
+	if _, err := Build(ctx, options); err != nil {
+		t.Fatal(err)
+	}
+	requireCurrent(t, options)
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if _, versions := recordedVersions(t, options); versions["techs/go/errors"] != "1.1.0@2" {
+		t.Fatalf("versions %v", versions)
+	}
+	if after := projectTree(t, options).Files["vendor/team/_source.json"]; !bytes.Equal(after, recorded) {
+		t.Fatalf("pinning the retired rule rewrote _source.json:\n%s\nwas:\n%s", after, recorded)
 	}
 	requireCurrent(t, options)
 }
