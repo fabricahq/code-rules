@@ -1,0 +1,91 @@
+# Canonical Code Rules group IDs.
+#
+# Libraries choose their own group IDs. When libraries use an ID from this list,
+# tools and catalogs can treat their groups as the same group and combine them.
+# A group whose ID isn't listed stands alone. The list has no aliases.
+#
+# Each entry maps a group ID to its display name and one line saying which rules
+# belong in the group. Keep entries sorted by ID. Unknown fields are errors.
+# To propose a group, open a pull request. See
+# https://code-rules.fabricahq.com/concepts/groups/#canonical-group-ids
+practices/code-design:
+  name: Code design
+  description: How functions, modules, and folders are structured so code reads clearly and each feature's code stays together.
+practices/code-review:
+  name: Code review
+  description: How to review changes and plans, including agent-written pull requests.
+practices/comments:
+  name: Comments
+  description: Code comments, file headers, and doc comments.
+practices/concurrency:
+  name: Concurrency
+  description: Shared resources under concurrent use, parallel work, and honoring cancellation and deadlines.
+practices/documentation:
+  name: Documentation
+  description: Guides, references, and other written documentation; READMEs and code comments have their own groups.
+practices/error-handling:
+  name: Error handling
+  description: Creating, wrapping, returning, and reporting errors.
+practices/observability:
+  name: Observability
+  description: Logs, metrics, and traces.
+practices/performance:
+  name: Performance
+  description: Speed and resource use, guided by measurement and without changing behavior.
+practices/readmes:
+  name: READMEs
+  description: Repository READMEs, from what the product does to a first working result and links to the full documentation.
+practices/resilience:
+  name: Resilience
+  description: Timeouts, retries, and handling failures of networks and other services.
+practices/testing:
+  name: Testing
+  description: What to test and how to write, name, and run tests, regardless of language or framework.
+techs/docker:
+  name: Docker
+  description: Dockerfiles, images, and containers built with Docker.
+techs/go:
+  name: Go
+  description: The Go programming language and its standard tooling.
+techs/goose:
+  name: Goose
+  description: Database migrations managed with goose.
+techs/javascript:
+  name: JavaScript
+  description: The JavaScript language and its runtime APIs, including rules that also apply to TypeScript code.
+techs/kubernetes:
+  name: Kubernetes
+  description: Kubernetes manifests and the workloads they define.
+techs/nextjs:
+  name: Next.js
+  description: Routing, rendering, and data fetching in the Next.js framework.
+techs/playwright:
+  name: Playwright
+  description: Browser tests written with Playwright.
+techs/postgresql:
+  name: PostgreSQL
+  description: PostgreSQL schemas, queries, and migrations.
+techs/python:
+  name: Python
+  description: The Python programming language and its tooling.
+techs/react:
+  name: React
+  description: React components, Hooks, state, and rendering.
+techs/rust:
+  name: Rust
+  description: The Rust programming language and its tooling.
+techs/tanstack-query:
+  name: TanStack Query
+  description: Fetching, caching, and mutating server data with TanStack Query.
+techs/tanstack-router:
+  name: TanStack Router
+  description: Routes, loaders, navigation, and search params with TanStack Router.
+techs/terraform:
+  name: Terraform
+  description: Infrastructure defined and changed with Terraform.
+techs/typescript:
+  name: TypeScript
+  description: TypeScript types, functions, modules, and compiler configuration.
+techs/zustand:
+  name: Zustand
+  description: Client state stores built with Zustand.
