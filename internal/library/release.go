@@ -67,7 +67,9 @@ type GitHubReleasePage struct {
 // It fetches first, and refuses unless the checked-out branch is the remote's default branch, matches the
 // remote exactly, and has no uncommitted library changes, and library check passes. When a release tag
 // already tags the commit, it creates only what's missing, such as the GitHub Release page after gh failed.
-// A dry run fetches, checks, and describes the library release without creating anything.
+// A dry run fetches, checks, and describes the library release without creating anything. When the tag is
+// published but the GitHub Release page fails, it returns the result so far, without GitHubRelease, with the error;
+// every other failure returns a zero result.
 func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error) {
 	root, err := openLibrary(ctx, request.Options, false)
 	if err != nil {
@@ -204,7 +206,8 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	if gh != nil {
 		page, err := publishReleasePage(ctx, *gh, result.GitHubRepository, result.Tag, result.Notes)
 		if err != nil {
-			return ReleaseResult{}, err
+			// The tag is published, so the result says so beside the error.
+			return result, err
 		}
 		result.GitHubRelease = &page
 	}

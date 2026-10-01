@@ -192,3 +192,28 @@ func TestLibraryRelease_ReportsNothingToPublish(t *testing.T) {
 		t.Fatal(code, out, diagnostic)
 	}
 }
+
+// TestLibraryRelease_ReportsThePublishedTagWhenTheGitHubReleasePageFails in value, beside the error, so scripts can
+// tell the tag is published and the page is missing; human output reports only the error.
+func TestLibraryRelease_ReportsThePublishedTagWhenTheGitHubReleasePageFails(t *testing.T) {
+	binary := buildCLI(t)
+	fixture, dir := gitHubLibrary(t)
+	environment, _ := releaseEnvironment(t, fixture, []ghfixture.Response{{Args: ghAuth}, {Args: ghView, Stderr: "release not found\n", ExitCode: 1}, {Args: ghCreate, Stderr: "HTTP 502: Bad Gateway\n", ExitCode: 1}})
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, environment, "library", "release", "--json")
+	var response struct {
+		OK    bool
+		Value *struct {
+			Release       int
+			Tag           string
+			TagCreated    bool
+			GitHubRelease json.RawMessage
+		}
+		Error responseError
+	}
+	if err := json.Unmarshal([]byte(out), &response); err != nil || code != 1 || diagnostic != "" || response.OK || response.Error.Code != "github-release-failed" {
+		t.Fatalf("exit %d, %v, stderr %q:\n%s", code, err, diagnostic, out)
+	}
+	if value := response.Value; value == nil || value.Release != 2 || value.Tag != "release/2" || !value.TagCreated || value.GitHubRelease != nil {
+		t.Fatalf("value %+v:\n%s", response.Value, out)
+	}
+}
