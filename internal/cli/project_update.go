@@ -230,7 +230,7 @@ func askChoice(f *authoringFlags, question string, choices [2]string) (string, e
 				return nil
 			}
 		}
-		return fmt.Errorf("%q isn't one of the answers; answer %s or %s, or %s or %s for short.", value, choices[0], choices[1], choices[0][:1], choices[1][:1])
+		return fmt.Errorf("%q isn't one of the answers; answer %s or %s, or %s or %s for short", value, choices[0], choices[1], choices[0][:1], choices[1][:1])
 	})
 	return chosen, err
 }
