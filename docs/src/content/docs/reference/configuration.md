@@ -6,7 +6,7 @@ description: "Fields in .code-rules/config.yaml."
 The **project configuration**, `.code-rules/config.yaml`, records the project's sources, selected groups, and exceptions. The **Code Rules directory**, `.code-rules/`, also holds `local/`, `vendor/`, and `generated/`.
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
-A project can import rules directly from multiple canonical libraries, pinning each one independently.
+A project can import rules directly from multiple canonical libraries, choosing versions for each one independently.
 Sync, build, and check validate the fields below.
 
 Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are rejected. Quote wildcard selectors, such as `groups: "*"`.
@@ -17,25 +17,24 @@ Use one YAML document. Duplicate keys, anchors, aliases, and explicit tags are r
 schemaVersion: 1
 sources:
   fabrica:
-    repository: https://github.com/fabricahq/.code-rules-example.git
-    ref: v1.0.0
+    repository: https://github.com/fabricahq/public-rules.git
     groups:
       - techs/typescript
       - practices/testing
-    exclude: {}
-    replace:
+    exclude:
       techs/typescript/prefer-type-aliases:
-        file: local/techs/typescript/prefer-interfaces.md
         reason: Our public extension API relies on declaration merging.
+        replacedBy: local/techs/typescript/prefer-interfaces.md
   acme:
     repository: https://github.com/acme/.code-rules.git
-    ref: <full Git commit SHA>
     groups:
       - techs/react
       - practices/testing
       - practices/observability
-    exclude: {}
-    replace: {}
+    pins:
+      practices/testing/verify-retry-limits:
+        version: "1.3.0"
+        reason: Waiting on the author's response to acme/.code-rules#45.
 ```
 
 Repository names, groups, and rule IDs in examples are illustrative.
@@ -48,20 +47,20 @@ Replace them with libraries and rules your project can access.
 | `schemaVersion` | Configuration format version; the builder accepts `1`. |
 | `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
-| `sources.<name>.ref` | Full Git commit SHA or exact tag name, such as `v1.0.0`. Mutually exclusive with `version`. |
-| `sources.<name>.version` | HashiCorp version constraint, such as `>= 1.2.0, < 2.0.0`. Mutually exclusive with `ref`. |
-| `sources.<name>.groups` | Required group selection: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. |
-| `sources.<name>.exclude` | Map of this library's rule IDs to exclusion reasons. |
-| `sources.<name>.replace` | Map of this library's rule IDs to a local `file` and a `reason`. |
+| `sources.<name>.groups` | Groups to import in full: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. Required unless `rules` selects individual rules. |
+| `sources.<name>.rules` | Optional individual rules to import without the rest of their group: an array of library rule IDs. See [Select individual rules](#select-individual-rules). |
+| `sources.<name>.exclude` | Optional map of this library's rule IDs to a `reason` and, optionally, a local rule that `replacedBy` names to use instead, with the library version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
+| `sources.<name>.pins` | Optional map of this library's rule IDs to an exact `version` and a `reason`. See [Pin a rule](#pin-a-rule). |
+| `sources.<name>.ref` | Optional and advanced. Import the library exactly as it was at one tag or commit. Can't be combined with `pins`. See [Import one revision](#import-one-revision). |
 
-Unknown configuration fields are rejected, including unknown source and replacement fields.
+Unknown configuration fields are rejected, including unknown source and exclusion fields.
 Local groups are discovered from `local/<group-id>/_group.yaml`; no source entry or separate group list is required.
 The former `localGroups` field is rejected with migration guidance. Remove it and keep the group metadata files.
-Each source includes its own `exclude` and `replace` objects, empty when unused.
-Replacement paths resolve relative to the Code Rules directory and must stay under its `local/` directory.
+`exclude` is optional; omit it when a source has no exceptions.
 
-Each source specifies exactly one of `ref` or `version` and owns its groups and exceptions.
+Each source owns its selection, pins, and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.
+Sources have no `version` or `replace` field. Rule versions are chosen rule by rule; use `pins` to keep individual rules at exact versions, and `exclude` with `replacedBy` to replace a rule.
 The schema version is `1`.
 
 ## Import every group
@@ -73,10 +72,7 @@ schemaVersion: 1
 sources:
   team:
     repository: https://github.com/my-team/rules.git
-    ref: v1.0.0
     groups: "*"
-    exclude: {}
-    replace: {}
 ```
 
 Choose one of three supported selectors:
@@ -87,12 +83,12 @@ Choose one of three supported selectors:
 | `"practices/*"` | Every practice group. |
 | `"techs/*"` | Every technology group. |
 
-Each selector includes all groups in its scope at the selected revision, including empty groups with valid metadata.
+Each selector includes all groups in its scope in the imported library, including empty groups with valid metadata.
 Rule exclusions and replacements still apply. Agents still select relevant rules for each task.
-When you adopt a newer revision, newly added groups join the selection. Review those additions in the changed source records and generated provenance.
+When a newer library release adds groups within the selector's scope, `code-rules project update` adds them and their rules. Review those additions in the changed source records and generated provenance.
 Offline builds do not discover changes on the remote repository.
 
-Keep `groups` required. Use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
+Select at least one group or individual rule. For `groups`, use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
 Local metadata can describe a group that is also selected from a library, including through a wildcard.
 
 Snapshots record both the original `groupSelection` and the concrete `groups` list.
@@ -100,7 +96,6 @@ A pattern snapshot must record the exact selector in `groupSelection` and contai
 For example, `"practices/*"` requires all practice groups, while `"*"` requires both kinds.
 The builder compares discovered groups with the recorded expansion and validates every group and rule within the selected scope.
 An old partial snapshot is insufficient even if its recorded groups look complete; changing selection intent requires sync.
-Legacy snapshots without `groupSelection` represent their explicit `groups` list and remain valid for list-based configuration.
 This completeness declaration comes from the snapshot supplier; offline checks do not independently authenticate it against the remote repository.
 
 ## Repository addresses
@@ -125,7 +120,7 @@ Nested GitLab namespaces, private hosts, and explicit ports are supported.
 The `.git` suffix is optional. Git uses the caller's credentials; do not embed HTTPS credentials or SSH passwords in configuration.
 SSH usernames are allowed.
 
-Keep exact revisions in `ref`, version constraints in `version`, and selected groups in `groups`.
+Keep selected groups in `groups` and pinned versions in `pins`.
 Repository addresses do not accept query strings, fragments, `git::` prefixes, getter options, or `//subdirectory` selection.
 Local paths, `file:`, unauthenticated `git:`, plain HTTP, and remote-helper protocols are outside this format.
 The earlier `owner/name` shorthand is no longer accepted; use `https://github.com/owner/name.git` instead.
@@ -149,7 +144,7 @@ Code Rules does not infer a host's web interface from its name. See [How imports
 
 Choose stable source names such as `fabrica` or `acme`.
 Names must match `[a-z][a-z0-9-]*`; `local` is reserved for project-authored rules.
-Declare each repository once, with its own revision selection and selected groups.
+Declare each repository once, with its own selection and pins.
 
 An imported rule's project ID is `<source-name>:<library-rule-id>`:
 
@@ -162,99 +157,161 @@ local:practices/testing/test-project-contracts
 A library rule ID is its path without `.md`.
 The source prefix keeps identical paths from different libraries distinct.
 Renaming a source changes its generated project rule IDs and any external references to those IDs.
-Its nested exclusion and replacement keys remain library-relative.
-Replacing a repository under an existing source name also requires reviewing those targets.
+Its nested `exclude` and `pins` keys remain library-relative.
+Replacing a repository under an existing source name also requires reviewing those keys.
 
-## Commit or tag references
+## Choose versions
 
-Set `ref` to either a full commit SHA or an exact tag name.
-A tag may also use the explicit `refs/tags/<name>` form.
-Branch names and abbreviated commit SHAs are unsupported. Put version ranges in `version`, not `ref`.
-A plain name resolves only as a tag, even when a branch has the same name.
-Both lightweight and annotated tags must resolve to a commit.
+Each rule in a library has its own [version](/reference/rule-versions/). By default, a project follows each rule's newest version, but only when someone updates:
 
-In the `sync` workflow, resolve each configured ref and record its full `resolvedCommit` in that source's vendored provenance.
-Fetch rule content and construct source links using the resolved commit.
-Configuration records what the project requested; provenance records the exact content it imported.
+- `vendor/<source-name>/_source.json` records the exact version of every imported rule, like a lockfile. [`code-rules project sync`](/reference/cli/#project-sync) restores those versions, so every checkout imports the same content.
+- [`code-rules project update`](/reference/cli/#project-update) previews newer versions, new rules, and retirements, and applies them after you confirm.
 
-Tags can move.
-An explicit `sync` resolves tags again and reports any change from the previously recorded commit for review.
-Offline `build`, `check`, and ordinary agent work use the committed snapshot without resolving tags again.
-Use a commit SHA when the configured reference itself must be immutable.
+Two optional source fields change that:
 
-## Semantic version constraints
+| Field | Use it to |
+| --- | --- |
+| `pins` | Keep individual rules at exact versions while the rest follow updates. |
+| `ref` | Import the library exactly as it was at one Git revision. Advanced. |
 
-Use `version` instead of `ref` to select the highest matching semantic version tag:
+A source can use `pins` or `ref`, not both. Neither changes which rules are imported; `groups` and `rules` do that.
+
+### Pin a rule
 
 ```yaml
-repository: https://github.com/example/rules.git
-version: ">= 1.2.0, < 2.0.0"
-groups: "*"
-exclude: {}
-replace: {}
+pins:
+  practices/testing/verify-retry-limits:
+    version: "1.3.0"
+    reason: Waiting on the author's response to acme/.code-rules#45.
 ```
 
-Constraints use [HashiCorp go-version syntax](https://github.com/hashicorp/go-version). Surrounding whitespace is trimmed; comma-separated comparisons must all match.
-
-| Constraint | Eligible stable versions |
+| Field | Meaning |
 | --- | --- |
-| `1.2.3` or `= 1.2.3` | Exactly 1.2.3 |
-| `!= 1.2.3` | Any version except 1.2.3 |
-| `>= 1.2.3, < 2.0.0` | Explicit lower and upper bounds |
-| `~> 1.2.3` | At least 1.2.3, below 1.3.0 |
-| `~> 1.2` | At least 1.2.0, below 2.0.0 |
+| `version` | Required. An exact published version of the rule, such as `"1.3.0"`. Quote it so YAML reads it as text. |
+| `reason` | Required non-blank text explaining why the rule stays at this version. `code-rules project update` shows it next to any newer version, so the decision keeps its context. |
 
-Partial constraint versions are accepted by go-version; for example, `1.2` means an exact 1.2.0 constraint. Release tags still require complete versions.
-Caret ranges (`^`), npm tilde ranges (`~`), wildcard versions (`1.2.x`), OR (`||`), and space-separated comparator chains are not supported. Use commas for AND.
+A pin keeps the rule at exactly that version:
 
-Prerelease matching follows go-version. A prerelease must be explicitly admitted by the comparisons; an ordinary stable bound does not admit prereleases. Use exact prerelease constraints when selecting one particular prerelease, and check the combined comparisons when defining a prerelease range.
+- `code-rules project update` never moves a pinned rule. Its preview lists the pin, the newest available version, and your reason.
+- When you add or change a pin, `code-rules project sync` moves the rule to the pinned version, up or down.
+- Removing a pin doesn't move the rule; the next `code-rules project update` offers its newest version.
 
-Only complete version tags such as `1.2.3` or `v1.2.3` participate. The optional prefix is lowercase `v`.
-Partial tags such as `v1`, names such as `release-1.2.3`, and branches are ignored during version selection.
-Lightweight and annotated tags are supported, but the selected tag must resolve to a commit.
-Use `ref` to select an exact tag outside this naming convention.
+To keep a rule at the version you have, pin it to the version recorded in `_source.json`, which also appears in the rule's generated file. `code-rules project update --keep` writes that pin for you.
 
-Imports selects by semantic version precedence, not tag date or Git listing order.
-If tags at the highest matching precedence point to different objects, import fails as ambiguous. Build metadata does not affect precedence.
-Aliases pointing to the same commit are allowed; the lexicographically first tag spelling is selected deterministically.
-If the selected tag changes between discovery and fetching, import fails rather than silently accepting a different revision.
-No matching tag is an error; Imports does not fall back to a branch or unrelated release.
+A pin must name a rule the source imports. A pinned rule that its library retires stays at its version, and update reports the retirement. To keep a rule the library is retiring, pin it before or during the update that retires it; once the retirement is applied, the rule is no longer imported and can't be pinned.
 
-Snapshots and generated provenance record the requested `version`, `resolvedTag`, `resolvedVersion`, and `resolvedCommit`.
-The normalized version retains any SemVer build metadata and omits the leading `v`.
-A new explicit import resolves the constraint again. Offline Builds checks the recorded tag and version against the constraint, then uses the stored commit without querying Git.
-The `sync` command combines re-importing and safe file updates. See [Sync and recovery](/reference/sync/).
+### Import one revision
 
-## Source-scoped exceptions
+Set a source's `ref` to import the library exactly as it was at one Git revision:
 
-Keys inside a source's `exclude` and `replace` use the library-relative rule ID, without a source prefix.
+```yaml
+sources:
+  vendor-rules:
+    repository: https://github.com/example/engineering-rules.git
+    groups: "*"
+    ref: release/5
+```
+
+`ref` accepts a tag name, such as the library release tag `release/5`, or a full 40-character commit SHA. A tag may also use the explicit `refs/tags/<name>` form. Branch names and abbreviated SHAs aren't supported, so every import can be reproduced. Code Rules resolves the tag when you add or change `ref`, then keeps the recorded commit even if someone later moves the tag.
+
+What you get depends on what the revision is:
+
+- **A [library release](/reference/rule-versions/#library-releases)**, which is the usual case. Every selected rule is imported at the version that library release published, as recorded in its release record.
+- **Any other commit or tag**, such as unreleased changes a library author wants to test in a real project, or a library that hasn't published its first library release. Rules whose files match a published version record that version. Rules with unreleased changes record their version as `null`, and generated guidance shows no version for them.
+
+Importing a revision other than a library release opts that source out of rule versions: rules with unreleased changes have no version to cite, and no update preview reviews their changes. To keep that from shipping by accident, `code-rules project sync` and `code-rules project update` print a warning naming the source and its unreleased rules, and the generated library summary in `generated/libraries/<source-name>/README.md` says the source is imported from unreleased changes. `code-rules project check` still passes.
+
+`code-rules project update` doesn't move a source that uses `ref`. To import another revision, change `ref` and run `code-rules project sync`. To go back to following versions, remove `ref` and run `code-rules project sync`: rules keep their recorded versions when those are published versions, and the rest get their newest version.
+
+### Where each rule's files come from
+
+Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as group metadata, shared assets, and license files, come from one library release, recorded as `release` in the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files), or from the revision your `ref` names. A new source, and newly selected groups or rules, take them from the newest library release, and `code-rules project update` moves them to the newest library release; `code-rules project sync` keeps the recorded one. That library release is never older than the one that published any imported rule version. When that library release no longer has the metadata of an imported rule's group, such as the group of a retired rule you kept, the group's metadata comes from the newest library release among its imported rule versions that still has it.
+
+Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
+
+## Exclude or replace a rule
+
+A source's `exclude` map leaves rules out of the generated guidance. Each entry records why, and can name a local rule for agents to read instead:
+
+```yaml
+exclude:
+  practices/testing/avoid-snapshot-tests:
+    reason: Contract snapshots follow our separate review policy.
+  techs/typescript/prefer-type-aliases:
+    reason: Our public extension API relies on declaration merging.
+    replacedBy: local/techs/typescript/prefer-interfaces.md
+    basedOn: "2.0.0"
+```
+
+| Field | Meaning |
+| --- | --- |
+| `reason` | Required non-blank text explaining why the project leaves the rule out. |
+| `replacedBy` | Optional. A local rule file that agents read in place of the excluded rule. The path is relative to the Code Rules directory, must stay under `local/`, and must be in the same group as the rule it replaces. Each local file can replace only one rule. |
+| `basedOn` | Optional, and only with `replacedBy`. The library version of the excluded rule that your local rule is based on, in quotes, such as `"2.0.0"`. [Forking a rule](/reference/cli/#fork-a-library-rule) records the forked version here, and so does [replacing a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version). Offline commands check only that it's a version; `code-rules project sync` checks that the library published that version of the rule, and otherwise fails with `version-not-found`, listing the versions it did publish. |
+
+An excluded rule is still imported into `vendor/`, so you can review its changes. The `code-rules project update` preview lists a replaced rule as `replaced` so you can decide whether your local rule needs the same change:
+
+- With `basedOn`, whenever the library's newest version of the rule is newer than `basedOn`, whatever version the project imports. The preview lists every change after `basedOn`. To replace your local rule with a fork of the newest version, overwriting your edits, pass `code-rules project update --update-fork SOURCE:RULE`, or answer `replace` to the terminal question; either sets `basedOn` to that version. If you merge the changes into your rule by hand instead, edit `basedOn` to the version you merged. Code Rules never advances it otherwise, because only you know whether your rule took the changes in.
+- Without `basedOn`, such as for a replacement you wrote yourself, whenever the library's newest version of the rule is newer than the version the project imports, also when a pin keeps the imported copy there. The preview lists the changes since the imported version, which your rule may already have. Replacing your rule with a fork, as above, also records `basedOn`.
+
+### Source-scoped exceptions
+
+Keys inside a source's `exclude` use the library-relative rule ID, without a source prefix.
 For example, `sources.fabrica.exclude["practices/testing/verify-retry-limits"]` affects only Fabrica's rule.
 An identically named rule from `acme` remains active.
 Full paths distinguish matching filenames in different groups of the same library.
 
 Generated files and review findings retain source-qualified IDs because they appear outside the configuration's source nesting.
 
+An `exclude` or `pins` key must name a rule this source imports, through its groups or its `rules` list; any other ID fails validation. When the library retires a rule that an exclusion names, the entry no longer does anything. `code-rules project sync` and `code-rules project update` warn about it so you can delete it; nothing else is blocked. Offline, `code-rules project build` and `code-rules project check` accept a pin at the version the source imports, an exclusion of an imported rule, and a pin or exclusion naming a rule the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files) lists as retired. For any other pin or exclusion, they ask you to run `code-rules project sync`, which checks it against the library. The snapshot record doesn't hold pins, so adding, rewording, or removing a pin that moves no rule never changes it.
+
 ## Group selection
 
-Select complete groups separately for each source, then exclude individual rules when necessary.
-Each selected group must exist in that source at its pinned revision.
+Select complete groups separately for each source, add individual rules if needed, then exclude rules when necessary.
+Each selected group must exist in the imported library.
+A selected group includes rules the library adds to it later.
 Selecting `practices/testing` from two sources combines both sets of rules into one effective testing group, with a group page and individual resolved rule files.
 Source order never establishes precedence.
 
 Every valid rule file under `local/` automatically joins its adopted group; individual local rules do not need source entries.
 Local rules can join any imported group. A matching filename does not override an imported rule.
-A local file referenced by `replace` appears once under its local ID; the target is removed from active output.
+A local file that an exclusion names as `replacedBy` appears once under its local ID; the excluded rule is removed from active output.
 The complete local definition supplies the metadata, guidance, attribution, and assets. Configuration and provenance retain the replacement relationship.
 A local `_group.yaml` defines a group, including an empty group, without any configuration entry.
 If local metadata exists for an imported group, its complete description and reading cues take precedence for project discovery.
 Otherwise, descriptions from every contributing library remain source-labeled.
 Provenance retains all group metadata and identifies the sources supplying the effective discovery guidance.
-Local rules without either local or imported group metadata are errors, with the missing `_group.yaml` path in the diagnostic.
+Local rules without either local or imported group metadata are errors, with the missing `_group.yaml` path in the diagnostic. When a sync or update removes the last import supplying a local rule's group, it writes the group's last imported metadata to `local/<group-id>/_group.yaml` instead of failing; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group).
 The root `local/README.md` and each group-root `README.md` are authoring documentation, not rules; other misplaced Markdown files are still validated.
 
 The generated index shows group names, applicability guidance, and explicit **Open group** links. Without local metadata, guidance from multiple libraries remains labeled by source.
 Local metadata supplies the complete project description when present.
 The importer does not silently choose one library's description over another's.
+
+## Select individual rules
+
+To import some rules without the rest of their group, list them under the source's `rules`:
+
+```yaml
+sources:
+  team:
+    repository: https://github.com/acme/.code-rules.git
+    groups:
+      - techs/react
+    rules:
+      - practices/testing/verify-retry-limits
+      - techs/go/wrap-errors-with-operation
+```
+
+This imports every rule in `techs/react`, including rules added to it later, plus exactly two other rules. Rules the library later adds to `practices/testing` or `techs/go` don't join, because those groups aren't selected.
+
+- Each entry is a library-relative rule ID that must exist in the library.
+- An individually selected rule brings its group's metadata, so its group appears in the generated index with only the selected rules.
+- The imported rules are the union of both lists: every rule in the selected groups, plus every listed rule. Listing a rule whose group is also selected is allowed and changes nothing; `code-rules project sync` and `code-rules project update` warn about it so you can delete the entry.
+- `exclude` applies to every imported rule, however it was selected.
+- When the library retires an individually selected rule, `code-rules project update` shows the retirement in its preview. After you confirm, the entry no longer does anything, and later syncs and updates warn about it so you can delete it. To keep the rule instead, pin it to its last version.
+
+Individually selected rules follow updates and pins like any other imported rule.
 
 ## Conflicting rules
 
@@ -270,9 +327,9 @@ See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an 
 Each library's `formatVersion` describes its authoring format.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
-Each source's `ref` or `version` selects the requested revision.
-Vendored provenance records the resolved commit used by offline commands; it is importer-owned output, not a second user-selected version.
+Each source's `pins`, and its `ref` when present, state which rule versions the project wants; every other rule follows its newest version when the project updates.
+Vendored provenance records each imported rule's version, library release, and commit, used by offline commands. It is importer-owned output, not a second user-selected version.
 A project imports multiple sources directly.
 Libraries that themselves inherit and republish other libraries are not supported.
 
-See [Rule and library format](/reference/rule-library-format/) for library metadata and [Adapt rules](/guides/select-rules/#adapt-the-import-to-your-project) for examples of exceptions.
+See [Library format](/reference/library-format/) for library metadata and [Adapt rules](/guides/select-rules/#adapt-the-import-to-your-project) for examples of exceptions.

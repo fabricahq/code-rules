@@ -61,11 +61,11 @@ For a local group, the same files live in `/.code-rules/local/practices/testing/
 
 You maintain the metadata and rules you author. The CLI supplies group READMEs; you don't need to keep them in sync. Building or syncing creates the guidance agents read.
 
-See [Rule and library format](/reference/rule-library-format/) for the fields and file layout.
+See [Rule and group format](/reference/rule-format/#group-metadata) for the fields and file layout.
 
 ## Assets
 
-Rules can optionally link to diagrams, sample data, or longer explanations in `assets/`. You maintain these supporting files; Code Rules includes them in the generated guidance. See [Supporting assets](/reference/rule-library-format/#supporting-assets) for the layout.
+Rules can optionally link to diagrams, sample data, or longer explanations in `assets/`. You maintain these supporting files; Code Rules includes them in the generated guidance. See [Supporting assets](/reference/rule-format/#supporting-assets) for the layout.
 
 ## When to read a group
 

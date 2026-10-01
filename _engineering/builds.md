@@ -8,7 +8,7 @@ The generated files include individual resolved rules, discovery indexes, retain
 
 Resolution, rendering, pagination, and their intermediate representations are private. Tests exercise the complete operation through its public interface and cover detailed algorithms inside the package.
 
-Public references own [project files](../docs/src/content/docs/reference/files.mdx), [authoring formats](../docs/src/content/docs/reference/rule-library-format.mdx), and [provenance](../docs/src/content/docs/reference/provenance.md). Tests beside the Go implementation cover rendering, link relocation, deterministic ordering, pagination, and copied documentation examples. Run the [repository validation commands](../CONTRIBUTING.md#validate-changes).
+Public references own [project files](../docs/src/content/docs/reference/files.mdx), authoring formats for [rules and groups](../docs/src/content/docs/reference/rule-format.md), [libraries](../docs/src/content/docs/reference/library-format.mdx), and [rule versions](../docs/src/content/docs/reference/rule-versions.md), and [provenance](../docs/src/content/docs/reference/provenance.md). Tests beside the Go implementation cover rendering, link relocation, deterministic ordering, pagination, and copied documentation examples. Run the [repository validation commands](../CONTRIBUTING.md#validate-changes).
 
 ## API boundary
 
@@ -18,7 +18,7 @@ Internally, resolution consumes validated configuration, library catalogs with r
 
 Invalid input returns an error with its location. Missing or mismatched vendor snapshots require `code-rules project sync`; the offline builder never silently fetches a replacement. Binary attachments and declared terms retain their original bytes.
 
-The project layer loads `_source.json`, verifies digests, and checks filesystem containment. Pure resolution checks source selections against configuration without reading that record or computing workspace digests.
+The project layer loads `_source.json`, verifies its checksum and the file digests, and checks filesystem containment. Pure resolution checks source selections against configuration without reading that record or computing workspace digests.
 
 ## Rendering limits
 

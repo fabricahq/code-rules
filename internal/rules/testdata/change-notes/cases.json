@@ -1,0 +1,323 @@
+[
+  {
+    "id": "major-change",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Require a test at the limit for every retry policy.\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": true,
+      "value": {
+        "summary": "Require a test at the limit for every retry policy.",
+        "rules": {
+          "practices/testing/verify-retry-limits": {
+            "change": "major"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "several-rules-and-changes",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: '  Rename the retry rule.  '\nrules:\n  practices/testing/check-retry-backoff:\n    change: retired\n    replacedBy: practices/testing/verify-retries\n  practices/testing/verify-retries: new\n  techs/react/test-hooks-in-isolation: patch\n  techs/react/old-rule: retired\n  techs/react/prefer-hooks: minor\n",
+    "expected": {
+      "ok": true,
+      "value": {
+        "summary": "Rename the retry rule.",
+        "rules": {
+          "practices/testing/check-retry-backoff": {
+            "change": "retired",
+            "replacedBy": "practices/testing/verify-retries"
+          },
+          "practices/testing/verify-retries": {
+            "change": "new"
+          },
+          "techs/react/test-hooks-in-isolation": {
+            "change": "patch"
+          },
+          "techs/react/old-rule": {
+            "change": "retired"
+          },
+          "techs/react/prefer-hooks": {
+            "change": "minor"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "retired-object-without-replacement",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: No longer recommended.\nrules:\n  practices/comments/explain-each-line:\n    change: retired\n",
+    "expected": {
+      "ok": true,
+      "value": {
+        "summary": "No longer recommended.",
+        "rules": {
+          "practices/comments/explain-each-line": {
+            "change": "retired"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "missing-summary",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "rules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected nonempty text"
+      }
+    }
+  },
+  {
+    "id": "blank-summary",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: '   '\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected nonempty text"
+      }
+    }
+  },
+  {
+    "id": "missing-rules",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules: expected an object"
+      }
+    }
+  },
+  {
+    "id": "empty-rules",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules: {}\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules: expected at least one rule"
+      }
+    }
+  },
+  {
+    "id": "rules-list",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  - practices/testing/verify-retry-limits\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules: expected an object"
+      }
+    }
+  },
+  {
+    "id": "unknown-field",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nbump: major\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml: unknown field bump"
+      }
+    }
+  },
+  {
+    "id": "unknown-change",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  practices/testing/verify-retry-limits: breaking\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits: unknown change \"breaking\"; expected major, minor, patch, new, or retired"
+      }
+    }
+  },
+  {
+    "id": "rule-file-named-with-md-suffix",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  practices/testing/example.md: patch\n",
+    "expected": {
+      "ok": true,
+      "value": {
+        "summary": "Change.",
+        "rules": {
+          "practices/testing/example.md": {
+            "change": "patch"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "rule-id-without-group",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  practices/verify: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/verify",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/verify: invalid rule path \"practices/verify.md\": expected a .md file beneath a group directory"
+      }
+    }
+  },
+  {
+    "id": "replacement-for-version-change",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  practices/testing/verify-retry-limits:\n    change: major\n    replacedBy: practices/testing/verify-retries\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits.change",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits.change: expected retired; only a retirement can name a replacement"
+      }
+    }
+  },
+  {
+    "id": "replacement-is-itself",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  practices/testing/verify-retry-limits:\n    change: retired\n    replacedBy: practices/testing/verify-retry-limits\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits.replacedBy",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits.replacedBy: a rule can't replace itself"
+      }
+    }
+  },
+  {
+    "id": "replacement-not-a-rule-id",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  practices/testing/verify-retry-limits:\n    change: retired\n    replacedBy: practices\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits.replacedBy",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits.replacedBy: invalid rule path \"practices.md\": expected a .md file beneath a group directory"
+      }
+    }
+  },
+  {
+    "id": "unknown-field-in-retirement",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  practices/testing/verify-retry-limits:\n    change: retired\n    reason: superseded\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits: unknown field reason"
+      }
+    }
+  },
+  {
+    "id": "duplicate-rule",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  practices/testing/verify-retry-limits: major\n  practices/testing/verify-retry-limits: minor\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.rules.practices/testing/verify-retry-limits: duplicate field"
+      }
+    }
+  },
+  {
+    "id": "anchor",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: &s Change.\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: anchors, aliases, and explicit tags are not supported"
+      }
+    }
+  },
+  {
+    "id": "two-documents",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: Change.\nrules:\n  practices/testing/verify-retry-limits: major\n---\nsummary: Other.\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml: expected one YAML document"
+      }
+    }
+  },
+  {
+    "id": "multi-line-summary",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: |\n  Require a test at the limit.\n  Also cover backoff.\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected one line"
+      }
+    }
+  },
+  {
+    "id": "folded-summary-is-one-line",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: >-\n  Require a test at the limit\n  for every retry policy.\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": true,
+      "value": {
+        "summary": "Require a test at the limit for every retry policy.",
+        "rules": {
+          "practices/testing/verify-retry-limits": {
+            "change": "major"
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "summary-with-an-escape-sequence",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: \"\\e[2J\\e[HNo risky changes.\"\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected text without control characters, such as tabs or escape sequences"
+      }
+    }
+  },
+  {
+    "id": "summary-with-a-tab",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: \"Require\\ta test.\"\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected text without control characters, such as tabs or escape sequences"
+      }
+    }
+  },
+  {
+    "id": "summary-with-a-c1-control",
+    "location": "changes/2026-09-29-verify-retry-limits.yaml",
+    "input": "summary: \"Require\\x9b2J a test.\"\nrules:\n  practices/testing/verify-retry-limits: major\n",
+    "expected": {
+      "ok": false,
+      "error": {
+        "location": "changes/2026-09-29-verify-retry-limits.yaml.summary",
+        "message": "changes/2026-09-29-verify-retry-limits.yaml.summary: expected text without control characters, such as tabs or escape sequences"
+      }
+    }
+  }
+]

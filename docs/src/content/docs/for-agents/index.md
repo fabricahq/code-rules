@@ -58,7 +58,7 @@ Reading the index alone is not enough.
 ## Review independently
 
 Select groups from the requested behavior and implementation, rather than accepting the writing agent's selection as complete.
-For each finding, cite the resolved rule ID, applicable condition, observed evidence, and practical consequence.
+For each finding, cite the resolved rule ID and its version when the group page shows one, the applicable condition, observed evidence, and practical consequence.
 
 Impact describes the consequence a rule helps prevent; it does not determine applicability, override exceptions, or set finding severity.
 Read **Why it matters** for context and assess the actual consequence of each finding.
@@ -71,7 +71,8 @@ Separate confirmed failures from hypotheses that need verification.
 If a relevant group is missing, report the missing coverage.
 If resolved rules conflict, identify both IDs and ask the project owner to resolve the intended policy.
 Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
-Keep the pinned ruleset during ordinary work; adopting upstream changes is a separate project update.
+Keep the recorded ruleset during ordinary work. Adopting upstream changes is a separate step, `code-rules project update`, and major changes need the project owner's consent; don't run it as part of another task.
+When asked to keep an imported rule at its current version, read the rule's version from `.code-rules/vendor/<source-name>/_source.json` and add a pin under that source's `pins`, with the version and the reason you were given, such as `practices/testing/verify-retry-limits: {version: "1.3.0", reason: "…"}`. Then run `code-rules project sync`.
 
 ## Write or review rules themselves
 
@@ -79,5 +80,6 @@ When the task changes a rule, use the [authoring rubric and template](/reference
 Follow those documents directly. The [Code Rules authoring skill](/guides/write-rules/#write-with-the-skill) is planned and is not available yet.
 
 Read the target library's conventions and evaluate each rule against every rubric criterion.
+In a library that has published its first library release, add or update the rule's change note with `code-rules library change` in the same change, and choose `major` whenever work that complied with the previous version could fail the new one. See [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule).
 Report unmet criteria with the relevant passage and a concrete revision.
 Separate unclear wording from unresolved engineering policy; ask the author to resolve the latter.

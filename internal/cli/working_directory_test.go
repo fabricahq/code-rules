@@ -97,7 +97,12 @@ func TestCommandsDiscoverRepositoryRoot(t *testing.T) {
 			}
 			run := func(args ...string) {
 				t.Helper()
-				out, diagnostic, code := runCLI(t, binary, child, append([]string{scope}, args...)...)
+				runner := runCLI
+				if scope == "library" {
+					// Library commands in a repository read its library releases with Git.
+					runner = runCLIWithGit
+				}
+				out, diagnostic, code := runner(t, binary, child, append([]string{scope}, args...)...)
 				if code != 0 {
 					t.Fatal(args, code, out, diagnostic)
 				}

@@ -3,17 +3,20 @@ title: "Sync and recovery"
 description: "When to run sync, build, or check, which files they change, and how to recover from problems."
 ---
 
-The `code-rules project sync` command updates your project's imported library files and regenerates the guidance your agents read. Run it after adding a library, changing its revision or selected groups, or to fetch updates allowed by your configured version range.
+The `code-rules project sync` command imports your project's library files and regenerates the guidance your agents read. Run it after adding a library, changing its selected groups or rules, pins, or `ref`, or to restore imported files.
+
+Sync imports the rule versions recorded for each source, so it never adopts newer versions on its own. To move to newer versions, run `code-rules project update`, which previews every change and applies it only after you confirm, offering to pin each major change or retirement instead. See [Update rules](/guides/update/).
 
 This page explains how to run sync, what it changes, and what to do when files are missing, outdated, or left by an interrupted update. It also explains when `code-rules project build` or `code-rules project check` is enough. For how Code Rules selects and combines library rules, see [How imports work](/reference/imports/).
 
 ## Choose the right command
 
-- **`code-rules project sync`**: Fetch selected library revisions or restore imported files. Sync validates the library files and regenerates agent guidance.
+- **`code-rules project sync`**: Import the recorded rule versions, or choose versions for new and changed sources. Sync validates the library files and regenerates agent guidance.
+- **`code-rules project update`**: Preview newer versions, new rules, and retirements, and apply them after you confirm. Pinned rules and sources that use `ref` don't move. Update then does everything sync does.
 - **`code-rules project build`**: Apply local rule changes or exceptions using the library files you already have. Build regenerates guidance without contacting a repository.
 - **`code-rules project check`**: Find out whether generated guidance and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 
-You do not need to run build after a successful sync; sync already generates the guidance. Run check when you want to verify consistency without making changes.
+You do not need to run build after a successful sync or update; both already generate the guidance. Run check when you want to verify consistency without making changes.
 
 ## Run from your project root
 
@@ -29,11 +32,11 @@ In a Git repository, project commands find the nearest repository root and use i
 
 | File or directory | What it contains | What the commands do |
 | --- | --- | --- |
-| `config.yaml` | Your selected libraries, groups, and exceptions. | Sync, build, and check read it without changing it. |
+| `config.yaml` | Your selected libraries, groups, rules, pins, and exceptions. | Sync, build, and check read it without changing it. Update reads it, and writes a pin when you keep a rule at its current version, or an exclusion when you decline a new rule. |
 | `README.md` | The managed Code Rules guide. | Init, build, and sync refresh an older, unedited guide. Check verifies it without changing it. |
-| `local/` | Rules and replacements you author for this project. | Sync, build, and check preserve these files. |
-| `vendor/` | Original files copied from selected library revisions. | Sync replaces this directory. Build and check validate it without changing it. |
-| `generated/` | Rules and reading indexes for your agents. | Sync and build replace this directory. Check compares it with the expected output. |
+| `local/` | Rules and replacements you author for this project. | Sync, build, and check preserve these files. Sync and update add `local/<group-id>/_group.yaml` only when your local rules in a group would otherwise lose the group's metadata; see [Keep a local rule's group](#keep-a-local-rules-group). |
+| `vendor/` | Original files copied from the selected rule versions. | Sync and update replace this directory. Build and check validate it without changing it. |
+| `generated/` | Rules and reading indexes for your agents. | Sync, update, and build replace this directory. Check compares it with the expected output. |
 
 Replacement includes removing files that no longer belong in the output, such as removed rules, old index pages, and unused library folders. Files you add or edit inside `vendor/` or `generated/` can be replaced or removed. Keep your changes in configuration and `local/`.
 
@@ -47,12 +50,12 @@ Commands print human-readable output by default. Add `--json` when another tool 
 code-rules project check --json
 ```
 
-Sync and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`.
+Sync, update, and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`. When the command first [recovered an interrupted one](#recover-from-an-interrupted-update), it says so before the counts, which don't include the files the recovery restored or finished, and JSON output sets `recovered` to `true`, also for an update's preview, which writes nothing of its own; a declined update says it in its message.
 
-- Sync paths start with `vendor/` or `generated/`.
+- Sync and update paths start with `vendor/` or `generated/`. Update also lists `config.yaml` when it writes a pin or an exclusion, and both list a `local/<group-id>/_group.yaml` they add.
 - Build paths are relative to `generated/`.
 
-There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
+`code-rules project update` also reports each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
 Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies both generated guidance and the managed Code Rules guide without writing either.
 
@@ -77,15 +80,19 @@ Run `code-rules project check` again after repairing the problem.
 
 ### How stored imports are checked
 
-For each library, Code Rules records its imported revision and file checksums in `vendor/<source-name>/_source.json`. A **checksum** detects whether a file's contents differ from the recorded copy.
+For each library, Code Rules records each imported rule's version and file checksums in `vendor/<source-name>/_source.json`. A **checksum** detects whether a file's contents differ from the recorded copy.
 
-Build and check work offline. They reject missing, changed, or unexpected imported files, invalid source records, and library selections that no longer match your configuration. Sync fetches the selected library files again, including replacing locally modified copies.
+Build and check work offline. They reject missing, changed, or unexpected imported files, invalid source records, rule version records that don't cover exactly the imported rules, and library selections that no longer match your configuration. Sync fetches the recorded library files again, including replacing locally modified copies.
 
 Checksums detect changes relative to the stored record. They cannot establish that files are authentic if someone also changed that record. For record fields and rule origins, see [Provenance](/reference/provenance/).
 
+## Keep a local rule's group
+
+A local rule needs its group's metadata, from `local/<group-id>/_group.yaml` or an imported library. Sometimes only an imported rule supplied it, such as when you [fork](/reference/cli/#fork-a-library-rule) an individually selected rule and the library later retires it, or you deselect or remove the library. When a sync or update would leave your local rules in a group with no metadata, it writes the group's `_group.yaml` to `local/<group-id>/_group.yaml` in the same step that replaces `vendor/` and `generated/`, lists the file as added, and prints a warning naming it. The metadata comes from the first source whose record in `vendor/` lists the group's metadata, configured sources first: from the library release that now supplies that source's library-wide files, when it still has the group, and otherwise from the last imported copy in `vendor/`, which is also what a source you removed from the configuration supplies. The file is then yours to edit like any local group metadata. A vendored copy must match the checksum its source record lists: when it was changed or deleted since sync imported it, the command fails without changing anything. Restore it by running `code-rules project sync` with the previous configuration, then make your change and sync again, or write `local/<group-id>/_group.yaml` yourself.
+
 ## Recover from an interrupted update
 
-Sync and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync or build recovers the previous output before starting its own work.
+Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml`, and each fork it [replaces with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version), in the same step, so recovery restores or finishes `config.yaml`, the replaced local rules and their asset directories, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `local/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`. A failed or interrupted update may leave empty directories under `local/`, such as a group's first `assets/` directory that [replacing a fork](/reference/cli/#replace-a-fork-with-the-newest-version) created. They're harmless: every command ignores them, and you can delete them.
 
 If the update completed but cleanup was interrupted, the next sync or build finishes deleting the backups. The completed update remains complete.
 
@@ -102,7 +109,7 @@ Recovery refuses to overwrite output or backups edited after an interruption. Fo
 
 ## How updates protect your files
 
-Sync and build prepare and validate the complete replacement before installing it. Immediately before replacement, they check that the original input and output files have not changed. If another process changed them, the update stops.
+Sync, update, and build prepare and validate the complete replacement before installing it. Immediately before replacement, they check that the original input and output files have not changed. If another process changed them, the update stops.
 
 Code Rules uses these temporary directories beside your configuration:
 
@@ -114,7 +121,7 @@ Code Rules uses these temporary directories beside your configuration:
 
 After completing an update, Code Rules renames the transaction directory to the cleanup directory before deleting backups. It also discards abandoned staging files when no journal or backups exist.
 
-Avoid editing managed directories during an update. Replacing `vendor/` and `generated/` takes separate filesystem operations, so another program can briefly see a mixture of old and new files. Check detects an active update instead of accepting mixed output as consistent.
+Avoid editing managed directories during an update. Replacing `vendor/`, `generated/`, and, for update, `config.yaml` takes separate filesystem operations, so another program can briefly see a mixture of old and new files. Check detects an active update instead of accepting mixed output as consistent.
 
 Cancellation can stop work before replacement starts. Once replacement begins, the command finishes or rolls back before returning.
 

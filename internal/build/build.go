@@ -6,12 +6,12 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// Library supplies a validated selected catalog and its caller-verified commit.
+// Library supplies a validated selected catalog and its caller-verified snapshot record: the revision that
+// supplied its library-wide files and each imported rule's version and commit. Snapshot.Files is not used.
 // Snapshot freshness and Git authenticity belong to the import/snapshot boundary.
 type Library struct {
-	Catalog library.Catalog
-	Commit  string
-	Tag     string
+	Catalog  library.Catalog
+	Snapshot library.Snapshot
 }
 
 // Output owns generated-root-relative file contents, including byte-exact license and notice copies.

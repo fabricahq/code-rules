@@ -33,7 +33,9 @@ Then give a repository-aware agent this prompt:
 ```text
 Review this project's resolved Code Rules for conflicting guidance.
 
-Read .code-rules/generated/RULES.md, every part of each group index, and all linked resolved rules to assess conflicts across the complete adopted set.
+Read .code-rules/generated/RULES.md, every part of each group index, and
+all linked resolved rules to assess conflicts across the complete adopted
+set.
 Use .code-rules/generated/provenance.json to identify the reviewed snapshot.
 Compare active rules within and across groups, including local additions
 and replacements. Excluded rules and replaced upstream text are context,
@@ -73,11 +75,12 @@ For example, if the project adopts Acme's interface rule, exclude Fabrica's type
 sources:
   fabrica:
     exclude:
-      techs/typescript/prefer-type-aliases: This project follows Acme's interface rule for object types.
+      techs/typescript/prefer-type-aliases:
+        reason: This project follows Acme's interface rule for object types.
 ```
 
 This is a partial configuration snippet.
-Merge it into the existing source while retaining its repository, revision selection, groups, and other exceptions.
+Merge it into the existing source while retaining its repository, pins, groups, and other exceptions.
 It affects only Fabrica's rule; Acme's rule stays active.
 
 For a conflicting local addition, edit its authored file under `local/`.
@@ -87,7 +90,7 @@ Do not edit `vendor/` or `generated/` directly.
 ## Rebuild and review again
 
 Run `code-rules project build` after changing local rules or exceptions.
-Run `code-rules project sync` instead if you also change sources, revision selections, or imported groups.
+Run `code-rules project sync` instead if you also change sources, imported groups or rules, pins, or `ref`.
 Inspect the regenerated indexes and resolved definitions, then repeat the review against that snapshot.
 
 Commit the configuration, local rules, and generated output together; include vendor changes when sync refreshed them.

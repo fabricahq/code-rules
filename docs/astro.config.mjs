@@ -22,6 +22,7 @@ export default defineConfig({
     '/guides/use-rules/': '/start-here/set-up-project/',
     '/start-here/use-rules/': '/start-here/set-up-project/',
     '/guides/create-library/': '/start-here/create-library/',
+    '/reference/rule-library-format/': '/reference/rule-format/',
   },
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
   integrations: [starlight({
@@ -52,13 +53,14 @@ export default defineConfig({
         { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', collapsed: true, items: [
-        { label: 'Manage project rules', collapsed: true, items: [
+        { label: 'Write a rule', slug: 'guides/write-rules' },
+        { label: 'Projects', collapsed: true, items: [
           { label: 'Import rules', slug: 'guides/select-rules' },
-          { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
           { label: 'Update rules', slug: 'guides/update' },
+          { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
         ] },
-        { label: 'Write and share rules', collapsed: true, items: [
-          { label: 'Write a rule', slug: 'guides/write-rules' },
+        { label: 'Libraries', collapsed: true, items: [
+          { label: 'Version your rules', slug: 'guides/version-rules' },
           { label: 'License rules', slug: 'guides/license-rules' },
           { label: 'Adapt a third-party rule', slug: 'guides/adapt-rules' },
         ] },
@@ -72,8 +74,10 @@ export default defineConfig({
           { label: 'Provenance', slug: 'reference/provenance' },
         ] },
         { label: 'Rules and libraries', collapsed: true, items: [
-          { label: 'Rule and library format', slug: 'reference/rule-library-format' },
+          { label: 'Rule and group format', slug: 'reference/rule-format' },
           { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
+          { label: 'Library format', slug: 'reference/library-format' },
+          { label: 'Rule versions', slug: 'reference/rule-versions' },
         ] },
         { label: 'CLI commands', slug: 'reference/cli' },
       ] },

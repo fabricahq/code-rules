@@ -42,7 +42,7 @@ Use a technology group when the obligation depends on a named technology.
 Use a practice group when it transfers across technologies.
 Place project-specific contracts in the applicable project's local rules.
 
-For a new group, use a [canonical group ID](/concepts/groups/#canonical-group-ids) if one fits, and add [group metadata](/reference/rule-library-format/#group-metadata) that helps agents recognize relevant work.
+For a new group, use a [canonical group ID](/concepts/groups/#canonical-group-ids) if one fits, and add [group metadata](/reference/rule-format/#group-metadata) that helps agents recognize relevant work.
 
 ## Example rule
 
@@ -93,10 +93,23 @@ The test should fail.
 A rule's library ID is its relative path without `.md`.
 Consuming projects qualify it with their configured source name, such as `fabrica:practices/testing/verify-retry-limits`.
 Renaming or moving the file changes its ID.
-Consumers must update exclusions and replacements that referenced the old path.
+Consumers should remove exclusions, replacements, pins, and `rules` entries that referenced the old path; those entries no longer do anything.
+In a library, a rename retires the old ID with the new one as its replacement, and projects see it in their update preview like a major change.
+
+## Record the change
+
+After the first library release, add a change note with every rule you write or edit, in the same pull request:
+
+```sh
+code-rules library change practices/testing/verify-retry-limits \
+  --bump patch \
+  --summary 'Clarify the incorrect example.'
+```
+
+Omit `--bump` for a new rule. [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule) explains how to choose between `major`, `minor`, and `patch`, and [Version your rules](/guides/version-rules/) covers publishing. Local project rules have no versions and need no notes.
 
 Keep source attribution in the rule's metadata or Markdown body and preserve any required notices.
-Builds carries that attribution into the individual generated rule file; no separate attribution file is required.
+Builds carry that attribution into the individual generated rule file; no separate attribution file is required.
 Unknown frontmatter fields, including `source:`, are rejected. Use `attribution` to record adaptation sources, and configuration to declare replacements. Generated provenance records the resolved origin.
 When publishing or adapting rules, follow [License rules](/guides/license-rules/) to make permissions and attribution explicit.
 
@@ -112,9 +125,9 @@ For an existing compatible Code Rules library, use the normal import workflow. F
 1. Identify the exact source revision and establish permission to copy, adapt, and redistribute the material for your intended use. Preserve the applicable license and notices.
 2. Create an adapted definition in a compatible library, which may contain just this one rule. Preserve the original separately when useful for reviewing future updates.
 3. Add the required metadata and an activity-based `whenToRead` cue. Preserve the obligation, important conditions, exceptions, and examples; explain deliberate changes. A detector's analysis limitations do not automatically become exceptions to a written rule.
-4. Declare the library-wide license and notice files in `rule-library.yaml`. Record per-rule [attribution](/reference/rule-library-format/#rule-attribution) with a commit-pinned source URL and describe the adaptation.
+4. Declare the library-wide license and notice files in `rule-library.yaml`. Record per-rule [attribution](/reference/rule-format/#rule-attribution) with a commit-pinned source URL and describe the adaptation.
 5. Review the adaptation against the [authoring rubric](/reference/rule-authoring/), then generate and inspect the resolved rule, license links, and provenance. Commit the adapted source and retained notices together.
 
-An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the upstream commit. The adapted library has its own repository and version while retaining the earlier attribution chain. Local rules are for guidance you author for your project.
+An agent can help prepare the adaptation, but Code Rules does not currently convert arbitrary repositories automatically. Do not place modified material in `vendor/` and claim it is an unchanged snapshot of the upstream commit. The adapted library has its own repository and rule versions while retaining the earlier attribution chain. Local rules are for guidance you author for your project.
 
 For later updates, compare the original pinned material with the new source, then deliberately revise the adaptation. Updating a source citation alone does not establish that the adapted rule incorporates the newer guidance.

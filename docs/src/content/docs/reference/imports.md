@@ -13,8 +13,8 @@ This page explains which files Code Rules imports and how it combines imported r
 
 When you run `code-rules project sync`, Code Rules:
 
-1. Reads your configuration to find the libraries, versions, and groups you selected. A **group** collects related rules, such as testing practices or TypeScript conventions.
-2. Copies the selected library files into your project. Each copy comes from one Git commit and is called a **snapshot**.
+1. Reads your configuration to find the libraries, groups, and rule versions you selected. A **group** collects related rules, such as testing practices or TypeScript conventions.
+2. Copies the selected library files into your project. The copy of one library is called a **snapshot**; each rule in it comes from the library release that published its version.
 3. Combines the imported rules with your local rules and configured exceptions, then generates files for your agents to read.
 
 These files live in the **Code Rules directory**, `.code-rules/` at the project root:
@@ -33,7 +33,7 @@ Each library has a **source name** in your configuration, such as `team`. Code R
 
 The copy includes:
 
-- Rules from the selected groups, including rules your project excludes or replaces.
+- Rules from the selected groups and the individually selected rules, including rules your project excludes or replaces.
 - Supporting files, such as images and examples, from the library's designated asset directories.
 - Group metadata, which describes each group and when to read it.
 - The library manifest, `rule-library.yaml`, and its declared license and notice files.
@@ -44,7 +44,7 @@ The snapshot contains no Git history or `.git` directory. Code Rules reads the o
 
 ## How Code Rules selects the rules your agents read
 
-Your configuration selects groups from each library. You can name groups individually or use one of these selectors:
+Your configuration selects groups from each library, and optionally individual rules. You can name groups individually or use one of these selectors:
 
 | Selection | Groups to import |
 | --- | --- |
@@ -52,13 +52,13 @@ Your configuration selects groups from each library. You can name groups individ
 | `"practices/*"` | Every practice group. |
 | `"techs/*"` | Every technology group. |
 
-Code Rules finds the matching groups at the selected library revision before applying your exceptions. It records both your selection and the groups actually imported. Invalid groups and rules without group metadata cause an error instead of being silently skipped.
+Code Rules finds the matching groups in the imported library before applying your exceptions. It records both your selection and the groups actually imported. Invalid groups and rules without group metadata cause an error instead of being silently skipped.
 
 Code Rules then decides which rules are **active**, meaning included in the generated guidance:
 
-1. Starts with the imported rules from your selected groups and discovers local groups from their `_group.yaml` files.
+1. Starts with the imported rules, from your selected groups and your individually selected rules, and discovers local groups from their `_group.yaml` files.
 2. Removes rules you explicitly excluded.
-3. Substitutes your local rules for imported rules you explicitly replaced.
+3. Adds the local rules your exclusions name as `replacedBy`, in place of the rules they exclude.
 4. Adds your remaining local rules.
 
 Each rule's ID includes its source name. For example, `team:practices/testing/check-retries` identifies the `check-retries` rule from the `team` library. This keeps rules from different libraries distinct, even when their filenames match.
@@ -77,21 +77,27 @@ The same files support implementation and review. Your project chooses how to ch
 
 ## What changes when you update
 
-Running `code-rules project sync` again fetches the library revisions allowed by your configuration:
+Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `code-rules project sync` again imports those same versions, so every checkout of the project gets the same rules. `code-rules project sync` chooses a rule's version only for a newly selected rule, a new source or changed repository, a pin you add or change, or a `ref` you add, change, or remove; see [project sync](/reference/cli/#project-sync).
 
-| Version choice | What a later sync can fetch |
-| --- | --- |
-| Full Git commit | The same content from that commit. |
-| Exact tag | The content the tag points to. If the publisher moves the tag, the content can change. |
-| Version range | A newer matching version, if one is available. |
+`code-rules project update` previews each rule's newest version, and applies it once you confirm, unless the rule is [pinned](/reference/configuration/#pin-a-rule). Sources that use `ref` don't move.
 
-With the same configuration and commit, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
+With the same configuration and recorded versions, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
 
-Sync reports changed files, including group metadata and revision records. It does not provide a separate summary of added or removed groups. Review the file changes to understand the update.
+`code-rules project update` reports each changed rule with its change, versions, and summary, and applies the changes only after you confirm. Both commands report changed files, including group metadata and version records.
+
+### How rule versions are resolved
+
+The newest library release is the one with the highest `release/<number>` tag. Each [library release](/reference/rule-versions/#library-releases) tag's message records every rule's version and the changes that library release published.
+
+To choose a rule's version, Code Rules reads the rule's history from the release records in the `release/<number>` tags, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from the tagged commit of the library release that published that version. Library-wide files, including the shared files rules link to, come from the one library release that `vendor/<source-name>/_source.json` records as `release`, which is never older than the library release of any imported rule version. A new source or newly selected rules take them from the newest library release, `code-rules project update` moves them there, and `code-rules project sync` keeps the recorded one; see [What a version covers](/reference/rule-versions/#what-a-version-covers).
+
+A rule absent from a library release was retired, and the release record's `retired` entry records why. A rule the project pinned before its retirement keeps importing its pinned version.
+
+To find versions, Code Rules lists only `release/` tags, fetches their messages without the library's history, and fetches only the files it imports. It records each imported rule's version, library release, and commit in `_source.json` and generated provenance, and shows the version in generated guidance.
 
 ### Tracing rules to their source
 
-Code Rules records both the revision you requested and the exact commit it imported. For a version range, it also records the selected tag and version number. See [Provenance](/reference/provenance/) for these records.
+Code Rules records the versions you requested, and each imported rule's exact version and commit. See [Provenance](/reference/provenance/) for these records.
 
 Links to original files on GitHub.com and GitLab.com use the imported commit, so moving a tag does not change their destination. For other Git hosts, links point to the stored files; provenance retains the repository address and commit.
 
@@ -106,8 +112,8 @@ Code Rules fetches and validates all selected libraries before replacing your pr
 Validation rejects:
 
 - Invalid or reserved source names, repeated repositories, and duplicate rule IDs that include the same source name.
-- Missing groups or rules named in an exclusion or replacement.
-- A rule that is both excluded and replaced, or a local replacement file used for multiple targets.
+- Missing groups, or rules named in an exclusion, pin, or `rules` entry that the source doesn't import. An entry naming a rule the library retired produces a warning instead, when the source would otherwise import that rule: its group is selected, it is listed in `rules`, or the last sync imported it or recorded it as retired. Offline checks accept the same exclusions, because the snapshot records those retired rules in `retiredRules`.
+- A missing `replacedBy` file, or one local file named as the replacement for more than one rule.
 - Invalid metadata, unsafe file paths, and symbolic links.
 
 Selected library rules must pass validation even if you exclude or replace them. File checks also ensure that paths stay within their allowed directories.
@@ -126,10 +132,10 @@ Code Rules reads original Git file contents without checking out the library. It
 
 ### Supporting files
 
-Code Rules copies supporting material from [two asset locations](/reference/rule-library-format/#supporting-assets):
+Code Rules copies supporting material from [two asset locations](/reference/rule-format/#supporting-assets):
 
 - **A rule's own assets:** the adjacent `assets/<rule-name>/` directory. Code Rules copies this directory in full when it imports the rule.
-- **Shared assets:** the library-root `assets/` directory. Code Rules copies this directory in full when a selected rule or its Markdown assets link to it.
+- **Shared assets:** files in the library-root `assets/` directory. Code Rules copies the files a selected rule or its Markdown assets link to, including files they link to in turn, from the library release that supplies the source's library-wide files.
 
 Markdown links, images, and reference links must point to files within the allowed locations. Missing files and links into another rule's private assets cause an error. Code Rules preserves external URLs as links without downloading their contents.
 
@@ -147,19 +153,35 @@ Each library import has these limits:
 
 | Resource | Limit |
 | --- | --- |
-| Fetching and version discovery | 120 seconds per library. |
+| Fetching and finding rule versions | 120 seconds per library. |
 | Entries in the Git file tree | 10,000 entries. |
 | Git file-tree listing | 8 MiB. |
 | Each retained file | 8 MiB. |
 | All retained files combined | 64 MiB. |
-| Git's tag listing during version discovery | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. |
+| Git's listing of release tags | 8 MiB and 20,000 records, including extra records Git uses to identify commits behind annotated tags. |
+| Each release tag | 8 MiB. |
+| Each [release record](/reference/rule-versions/#release-record) | 10,000 entries each in `rules`, `changes`, and `retired`, and 20,000 in `libraryFiles`. A record over a limit fails with `invalid-release-tag`. |
 
-The retained-file limits apply after fetching. They do not cap network traffic or Git's temporary disk use. Version discovery uses the same Git access settings and deadline as fetching.
+The retained-file limits apply after fetching. They do not cap network traffic or Git's temporary disk use. Finding rule versions uses the same Git access settings and deadline as fetching.
 
-When selecting a version, Code Rules can report:
+When finding the newest library release, Code Rules can report:
 
 | Error | Meaning and next step |
 | --- | --- |
-| `version-not-found` | No eligible tag matches your version range. Check the published tags and configured range. |
-| `ambiguous-version` | Conflicting tags represent the highest matching version. Correct the tags or select an exact revision. |
-| `ref-changed` | The selected tag moved between discovery and fetching. Retry, correct the tags, or select an exact commit. |
+| `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with the source's `ref`. |
+| `version-not-found` | A pin names a version the rule never published, the tag or commit in `ref` doesn't exist, or the server says it doesn't have a commit that `vendor/<source-name>/_source.json` records, because the library rewrote its history. Check the pin or `ref`. For a missing recorded commit, ask the library's maintainer to restore it, or set `ref` to a tag or commit the library still has; deleting `vendor/<source-name>/` and syncing is the last resort, because it chooses versions again. A fetch that fails for any other reason, such as a dropped connection, reports that reason's code instead, never this one. |
+| `ref-is-branch` | The source's `ref` names a branch. `ref` accepts only a tag or a full commit SHA, so every import can be reproduced. |
+| `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Code Rules reads, because a later Code Rules published it. Upgrade Code Rules. |
+
+When Code Rules can't read the library's repository, it can report:
+
+| Error | Meaning and next step |
+| --- | --- |
+| `connection-failed` | Git couldn't reach the repository's host, such as when the host name doesn't resolve, the connection is refused or times out, or the TLS connection fails. Check the repository address and your network connection. |
+| `https-certificate-failed` | The HTTPS server's certificate couldn't be verified. Check that your system trusts it: Git's `http.sslCAInfo` setting, your system's certificate store, and any proxy that intercepts TLS. |
+| `ssh-host-key-failed` | The SSH host key couldn't be verified. Check the server's entry in your `known_hosts` file. |
+| `not-found-or-no-access` | Git or the server reported that the repository doesn't exist or that your Git credentials can't read it; servers report both the same way. Check the address and your credentials. |
+| `object-fetch-refused` | The server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; a self-hosted server needs Git protocol version 2 or `uploadpack.allowAnySHA1InWant`. |
+| `git-failed` | Another Git failure, including one whose cause Code Rules doesn't recognize. The message says which step failed, such as fetching library files. |
+
+These messages never include what Git or the server printed, which can hold credentials, such as one that `url.*.insteadOf` rewriting adds to the repository address. Code Rules reads that text only to choose the code and message, as [Text from Git, servers, and the GitHub CLI](/reference/cli/#text-from-git-servers-and-the-github-cli) describes. To read Git's message, run `git ls-remote` with the repository address yourself.

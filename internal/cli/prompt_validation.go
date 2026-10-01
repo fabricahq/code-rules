@@ -35,6 +35,12 @@ func validateAnswer(name, value string) error {
 		return fmt.Errorf("provide a value for --%s", name)
 	}
 	switch name {
+	case "bump":
+		switch rules.Change(value) {
+		case rules.ChangeMajor, rules.ChangeMinor, rules.ChangePatch:
+			return nil
+		}
+		return fmt.Errorf("--bump must be major, minor, or patch")
 	case "impact":
 		_, err := rules.ParseImpact(value, "--impact")
 		return err
@@ -46,7 +52,7 @@ func validateAnswer(name, value string) error {
 		_, err = rules.ParseRepository(data, "--repository")
 		return err
 	case "ref":
-		_, _, err := project.ParseSourceRef(value)
+		_, err := project.ParseSourceRef(value)
 		return err
 	}
 	return nil

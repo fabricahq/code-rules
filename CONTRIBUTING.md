@@ -12,7 +12,7 @@ go build -o ./dist/code-rules ./cmd/code-rules
 ./dist/code-rules --help
 ```
 
-The executable runs without Node.js or Bun. From a consuming project's root, run `code-rules project init`, create a local group and rule, then `code-rules project build`. To adopt a library, use `code-rules project add library` with its repository, revision, and groups, then run `code-rules project sync`.
+The executable runs without Node.js or Bun. From a consuming project's root, run `code-rules project init`, create a local group and rule, then `code-rules project build`. To adopt a library, use `code-rules project add library` with its repository and groups, then run `code-rules project sync`.
 
 Read [project setup](docs/src/content/docs/start-here/set-up-project.md) and [the CLI reference](docs/src/content/docs/reference/cli.md) for the complete workflow. Human output is the default; `--json` returns structured responses and disables prompts. `project check` reports status and problems without writing files.
 
@@ -52,17 +52,20 @@ TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser re
 ## Implementation map
 
 - `internal/rules`: validated configuration, identities, documents, links, and versions.
-- `internal/library`: initialize, author, check, and load rule libraries.
-- `internal/imports`: import complete libraries with verified Git provenance.
+- `internal/library`: initialize, author, check, load, and publish rule libraries.
+- `internal/imports`: choose rule versions from library release tags, import libraries with verified Git provenance, and read published rule versions for forks.
+- `internal/releasetag`: list a repository's `release/<number>` tags and read their release notes and records within the release tag limits, for both library authoring and imports.
+- `internal/gitexec`: run Git, and other trusted programs such as the GitHub CLI, with bounded output and cancellation, isolated for other people's repositories or honoring the user's configuration in their own.
 - `internal/build`: generate complete output from validated inputs through `Generate`.
 - `internal/project`: initialize and author consuming projects, sync libraries, build offline, and check complete project freshness.
 - `internal/filetxn`: bounded filesystem reads, writer ownership, safe publication, and recovery shared by both owners.
 - `internal/cli`: collect inputs and present operation results.
 - `internal/distribution`: package and verify executable archives.
 - `internal/test/acceptance`: exercise complete CLI workflows through real processes.
-- `internal/test/gitfixture`: supply disposable Git repositories for tests.
+- `internal/test/gitfixture`: supply disposable Git repositories that tests can fetch from and push to.
+- `internal/test/ghfixture`: stand in for the GitHub CLI with declared responses and recorded calls.
 - `internal/test/terminalfixture`: exercise interactive CLI prompts in isolated terminals.
 
-`internal/test/` groups these three independent packages; it contains no Go package of its own. Unit tests remain beside the code they test.
+`internal/test/` groups these four independent packages; it contains no Go package of its own. Unit tests remain beside the code they test.
 
 Engineering policies belong to independently owned libraries. This repository supplies the formats, tools, and public authoring guidance.

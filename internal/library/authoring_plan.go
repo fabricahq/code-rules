@@ -22,6 +22,8 @@ type GroupPlan struct {
 type RulePlan struct {
 	id      string
 	options Options
+	// released records that a library release was reachable from HEAD when planning.
+	released bool
 }
 
 // PlanGroup checks the group target before collecting metadata and anchors the library directory.
@@ -41,14 +43,32 @@ func (p *GroupPlan) Commit(ctx context.Context, metadata rules.GroupMetadata) (A
 	return AddGroup(ctx, p.id, metadata, p.options)
 }
 
-// PlanRule checks the path, parent group, and target before collecting rule details.
+// PlanRule checks the path, parent group, and target before collecting rule details. In a Git repository,
+// it also finds whether the library has a library release, so the new rule needs a change note; it fails
+// in a shallow clone, where that can't be known.
 func PlanRule(ctx context.Context, id string, options Options) (*RulePlan, error) {
-	options, err := planAuthoring(ctx, options, func(root *os.Root, options Options) error { return checkNewRule(ctx, root, id, options) })
+	released := false
+	options, err := planAuthoring(ctx, options, func(root *os.Root, options Options) error {
+		if err := checkNewRule(ctx, root, id, options); err != nil {
+			return err
+		}
+		git, err := openLibraryGit(ctx, root.Name(), options.Git)
+		if err != nil {
+			return err
+		}
+		tags, err := git.releaseTags(ctx)
+		released = len(tags) > 0
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
-	return &RulePlan{id, options}, nil
+	return &RulePlan{id, options, released}, nil
 }
+
+// NeedsChangeNote reports that the library had a library release when planning, so the new rule needs a
+// change note before library check passes.
+func (p *RulePlan) NeedsChangeNote() bool { return p != nil && p.released }
 
 // Commit revalidates live state before creating a complete rule or marked draft when body is nil.
 func (p *RulePlan) Commit(ctx context.Context, metadata rules.RuleMetadata, body *string) (AuthoringResult, error) {

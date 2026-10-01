@@ -3,6 +3,9 @@
 package cli
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -36,19 +39,19 @@ func newProjectCommand(options Options, output *commandOutput) *cobra.Command {
 			case "check":
 				report, checkErr := checkProject(cmd.Context(), projectOptions)
 				if checkErr == nil {
-					output.report = projectCheckedReport(report)
+					output.report = projectCheckedReport(report, directory, options.Directory)
 				}
 				return checkErr
 			}
 			if err != nil {
 				return err
 			}
-			output.report = projectChangesReport(name, changes)
+			output.report = projectChangesReport(name, changes, directory, options.Directory)
 			return nil
 		}
 		command.AddCommand(cmd)
 	}
-	command.AddCommand(projectInitCommand(options, output))
+	command.AddCommand(projectInitCommand(options, output), projectUpdateCommand(options, output))
 	add := &cobra.Command{Use: "add", Short: "Add a project-only rule, project-only group, or library"}
 	add.AddCommand(projectLibraryCommand(options, output), projectGroupCommand(options, output), projectRuleCommand(options, output))
 	command.AddCommand(add)
@@ -74,7 +77,7 @@ func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = projectInitializedReport(result)
+		output.report = projectInitializedReport(result, f.directory)
 		return nil
 	}
 	return initialize
@@ -82,13 +85,14 @@ func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 
 func projectLibraryCommand(options Options, output *commandOutput) *cobra.Command {
 	source, sf := newAuthoringCommand("library ALIAS", "Configure a shared library to use (without fetching)", requiredArgument("library alias", "team", "The alias is a short name for this library in your project configuration."), options.Directory)
-	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Exact tag, full commit SHA, or version range (e.g. >= 1.2.0, < 2.0.0)"} {
+	for name, description := range map[string]string{"repository": "Git repository URL", "ref": "Optional and advanced: import the library as it was at one tag or full commit SHA"} {
 		sf.add(source, name, description)
 	}
 	source.Long = librarySelectionHelp + documentationHelp
-	sf.prompts = map[string]string{"repository": "Git repository URL", "ref": "Ref (tag, full commit SHA, or version range)"}
-	var groups []string
+	sf.prompts = map[string]string{"repository": "Git repository URL"}
+	var groups, ruleIDs []string
 	source.Flags().StringArrayVar(&groups, "groups", nil, "Library group `path` (repeat), or *, practices/*, techs/*")
+	source.Flags().StringArrayVar(&ruleIDs, "rules", nil, "Library rule `ID` to import without the rest of its group (repeat)")
 	source.RunE = func(cmd *cobra.Command, args []string) error {
 		target, err := sf.options(cmd.Context(), false)
 		if err != nil {
@@ -99,14 +103,14 @@ func projectLibraryCommand(options Options, output *commandOutput) *cobra.Comman
 			return err
 		}
 		sf.introduction = librarySelectionIntroduction(args[0])
-		if err := sf.collectSource(&groups); err != nil {
+		if err := sf.collectSource(&groups, ruleIDs); err != nil {
 			return err
 		}
-		result, err := plan.Commit(cmd.Context(), project.SourceInput{Repository: sf.value("repository"), Ref: sf.value("ref"), Groups: groups})
+		result, err := plan.Commit(cmd.Context(), project.SourceInput{Repository: sf.value("repository"), Ref: sf.value("ref"), Groups: groups, Rules: ruleIDs})
 		if err != nil {
 			return err
 		}
-		output.report = sourceAddedReport(result)
+		output.report = sourceAddedReport(result, authoringScope{workdir: sf.directory})
 		return nil
 	}
 	return source
@@ -132,7 +136,7 @@ func projectGroupCommand(options Options, output *commandOutput) *cobra.Command 
 		if err != nil {
 			return err
 		}
-		output.report = groupCreatedReport(result.Files, result.Warnings, args[0], authoringScope{})
+		output.report = groupCreatedReport(result.Added, result.Changed, result.Warnings, args[0], authoringScope{workdir: gf.directory})
 		return nil
 	}
 	return group
@@ -141,7 +145,16 @@ func projectGroupCommand(options Options, output *commandOutput) *cobra.Command 
 func projectRuleCommand(options Options, output *commandOutput) *cobra.Command {
 	rule, rf := newAuthoringCommand("rule RULE_PATH", "Create a project-only rule or unfinished draft", requiredArgument("rule path", "practices/testing/my-rule", "Include the group path and rule slug, without .md."), options.Directory)
 	rf.addRuleFlags(rule)
+	rule.Long = strings.TrimSuffix(rule.Long, documentationHelp) + "\n\nTo fork one version of a library rule instead, copying it into this project so\nyou can change what it says, use --from LIBRARY@VERSION (e.g. team@1.3.0) with\nthe library rule's ID as RULE_PATH. When the project imports the rule from that\nlibrary, the fork replaces it, and --reason records why." + documentationHelp
+	rf.add(rule, "from", "Fork `LIBRARY@VERSION` of a library rule, such as team@1.3.0, instead of writing one")
+	rf.add(rule, "reason", "Why the project uses the fork instead of the rule it imports; required when it imports the rule")
 	rule.RunE = func(cmd *cobra.Command, args []string) error {
+		if cmd.Flags().Changed("from") {
+			return forkRule(cmd, args[0], rf, options, output)
+		}
+		if cmd.Flags().Changed("reason") {
+			return usage(fmt.Errorf("--reason applies only to a fork; add --from LIBRARY@VERSION, or omit --reason"))
+		}
 		target, err := rf.options(cmd.Context(), false)
 		if err != nil {
 			return err
@@ -158,7 +171,7 @@ func projectRuleCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{})
+		output.report = ruleCreatedReport(result.Added, result.Changed, result.Warnings, body == nil, authoringScope{workdir: rf.directory}, args[0], false)
 		return nil
 	}
 	return rule

@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -78,11 +79,29 @@ func TestLibraryGuideExamples(t *testing.T) {
 	if err := os.WriteFile(guidePath, customized, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if out, diagnostic, code := runCLI(t, binary, directory, "library", "init"); code != 0 {
+	// Rerunning init in a library that has groups suggests validating it rather than adding a first group.
+	out, diagnostic, code := runCLI(t, binary, directory, "library", "init")
+	if code != 0 || !strings.Contains(out, "No files changed.\n") || !strings.Contains(out, "Next: Validate the library:\n  code-rules library check\n") || strings.Contains(out, "Add a group and rule") {
 		t.Fatal(code, out, diagnostic)
 	}
 	after, err := os.ReadFile(guidePath)
 	if err != nil || string(after) != string(customized) {
 		t.Fatal("repeat init changed publisher README", err)
+	}
+}
+
+// TestLibraryInit_PinsTheRunningVersionInTheCheckWorkflow installs the Code Rules release that created the
+// workflow, or the latest release when a development build, with the default version, created it.
+func TestLibraryInit_PinsTheRunningVersionInTheCheckWorkflow(t *testing.T) {
+	for version, download := range map[string]string{"1.2.3": "\n          version=1.2.3\n", "": "\n          version=$(gh release view --repo fabricahq/code-rules "} {
+		directory := t.TempDir()
+		var out, diagnostic strings.Builder
+		if code := Run(context.Background(), []string{"library", "init"}, Streams{Out: &out, Err: &diagnostic}, Options{Directory: directory, Version: version}); code != 0 {
+			t.Fatal(code, out.String(), diagnostic.String())
+		}
+		data, err := os.ReadFile(filepath.Join(directory, ".github", "workflows", "code-rules.yml"))
+		if err != nil || !strings.Contains(string(data), download) {
+			t.Fatalf("%q: %s %v", version, data, err)
+		}
 	}
 }

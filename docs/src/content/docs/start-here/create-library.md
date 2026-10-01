@@ -9,14 +9,14 @@ In this walkthrough, you'll:
 
 1. Create a library and write one rule about error messages.
 2. Check the rule's format and choose terms for sharing it.
-3. Commit and publish a version that projects can import.
+3. Commit the library and publish the rule's first version in a library release.
 4. Import the rule into a project and inspect the guidance its agents will read.
 
 You need [Code Rules installed](/start-here/install/) and Git. You don't need to complete the project walkthrough first. Rules intended for only one codebase can stay [local to that project](/start-here/set-up-project/).
 
 ## 1. Create a repository for your library
 
-Give your library its own Git repository so you can version and publish it independently of the projects that use it. Start in the directory where you keep your repositories:
+Give your library its own Git repository so you can publish its rules independently of the projects that use them. Start in the directory where you keep your repositories:
 
 ```sh
 mkdir engineering-rules
@@ -25,7 +25,13 @@ git init
 code-rules library init
 ```
 
-`engineering-rules` is an example repository name; you can choose another. `code-rules library init` creates `rule-library.yaml`, which identifies the library format, and a README for authors at the repository root. You'll publish this repository to your Git host in step 5.
+`engineering-rules` is an example repository name; you can choose another. `code-rules library init` creates:
+
+- `rule-library.yaml`, which identifies the library format.
+- A README for authors at the repository root.
+- `.github/workflows/code-rules.yml`, which checks pull requests once the library is on GitHub.
+
+You'll publish this repository to your Git host in step 5.
 
 Initialize from the repository root. After that, library commands also work from its subdirectories.
 
@@ -82,6 +88,7 @@ Your library now looks like this:
 
 ```text
 engineering-rules/
+  .github/workflows/code-rules.yml
   README.md
   rule-library.yaml
   practices/
@@ -101,7 +108,7 @@ You've written a rule. Now check that Code Rules can read and import it:
 code-rules library check
 ```
 
-The result should report **1 group and 1 rule**. The command checks the library metadata, group definitions, and rule format without changing your files. Read the rule yourself to decide whether its advice is clear and useful.
+The result should report **1 group and 1 rule**, and preview the first library release, which gives `practices/error-handling/make-errors-actionable` version `1.0.0`. The command checks the library metadata, group definitions, and rule format without changing your files. Read the rule yourself to decide whether its advice is clear and useful.
 
 There is no library build step. A library publishes source rules; each consuming project builds its own agent guidance after selecting rules and applying its exclusions and replacements. See [how project builds work](/start-here/set-up-project/#3-build-the-guidance-your-agent-will-read).
 
@@ -129,27 +136,39 @@ code-rules library check
 
 The check verifies that the declared files exist and that the metadata is valid. It does not decide whether you have permission to publish someone else's material.
 
-## 5. Commit and publish the library
+## 5. Publish the library
 
-Once the library passes its checks and you've reviewed the rule and license, commit the files and give this version a tag:
+Once the library passes its checks and you've reviewed the rule and license, commit the files:
 
 ```sh
-git add README.md rule-library.yaml LICENSE.md practices/
+git add .github README.md rule-library.yaml LICENSE.md practices/
 git commit -m "Create the first shared rule"
-git tag v0.1.0
 ```
 
-The tag `v0.1.0` names the version projects can import. Keep published tags unchanged; publish future changes under new version tags.
-
-Create an empty repository on your Git host, then replace the example URL below with its Git URL:
+Create an empty repository on your Git host, then replace the example URL below with its Git URL and push:
 
 ```sh
 git remote add origin https://github.com/YOUR-ORG/engineering-rules.git
 git push -u origin HEAD
-git push origin v0.1.0
 ```
 
+Preview your first library release:
+
+```sh
+code-rules library release --dry-run
+```
+
+It shows the release notes that will be published: this is your first library release, so every rule gets version `1.0.0`. Then publish it:
+
+```sh
+code-rules library release
+```
+
+The command tags your commit `release/1`, recording `practices/error-handling/make-errors-actionable` at version `1.0.0`, and pushes the tag. On GitHub.com, it also creates a GitHub Release page that announces the library release, using the [GitHub CLI](https://cli.github.com/), which must be installed and signed in; to publish the tag without the page, pass `--no-github-release`. If your library isn't on GitHub.com, it creates the tag only. No files change.
+
 Your library is now available to other projects. The repository can be public or private; consuming projects need access to it.
+
+Each rule has its own version. From now on, every change to a rule needs a **change note**, recorded with `code-rules library change`, that tells projects what changed. Change rules through pull requests, each with its note; the workflow in `.github/workflows/code-rules.yml` runs `code-rules library check` on each one. When you're ready, publish the next library release with `code-rules library release`, just as you did the first. See [Version your rules](/guides/version-rules/) for the full workflow.
 
 ## 6. Try the library in a project
 
@@ -158,11 +177,10 @@ In a [project you've set up](/start-here/set-up-project/), run the following fro
 ```sh
 code-rules project add library acme-rules \
   --repository https://github.com/YOUR-ORG/engineering-rules.git \
-  --ref '>= 0.1.0, < 0.2.0' \
   --groups practices/error-handling
 ```
 
-This adds the library's repository, version constraint, and group to `.code-rules/config.yaml` under the source name `acme-rules`. The constraint allows updates within the `0.1.x` series.
+This adds the library's repository and group to `.code-rules/config.yaml` under the source name `acme-rules`. The project follows each rule's newest version whenever someone runs `code-rules project update`.
 
 Download the rules and build the project's agent guidance:
 
@@ -171,7 +189,7 @@ code-rules project sync
 code-rules project check
 ```
 
-Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule. Each time you run `code-rules project sync`, it selects the newest library release matching the version constraint.
+Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that version, so the project keeps the same rules until someone runs `code-rules project update`.
 
 The rules are now in the project, but its agent needs instructions to read them. If you haven't already, [connect the rules to your agent and try a task](/start-here/set-up-project/#5-give-the-rules-to-your-agent). Then commit the project's configuration, imported rules, generated guidance, and agent instructions together.
 
@@ -179,6 +197,6 @@ Other projects can import the same library. You maintain the shared rule in the 
 
 ## Next steps
 
-As your library grows, [write focused rules](/guides/write-rules/), run `code-rules library check`, and publish new version tags. Projects [choose when to adopt updates](/guides/update/).
+As your library grows, [write focused rules](/guides/write-rules/), record each change with `code-rules library change`, and [publish them in library releases](/guides/version-rules/). Projects [choose when to adopt updates](/guides/update/).
 
-For metadata and supporting files, see [Rule and library format](/reference/rule-library-format/).
+For metadata and supporting files, see [Rule and group format](/reference/rule-format/) and [Library format](/reference/library-format/).

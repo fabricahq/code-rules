@@ -77,21 +77,16 @@ schemaVersion: 1
 sources:
   existing:
     repository: 'https://github.com/acme/existing.git' # keep the selected library
-    version: '>= 0.1.0, < 0.2.0'
+    ref: 'v0.0.9'
     groups: '*'
     exclude: {}
-    replace: {}
 `)
-	source := rules.Source{
-		Repository: "https://github.com/acme/added.git", Ref: "v0.1.0",
-		Groups:  rules.GroupSelection{Pattern: "*"},
-		Exclude: map[string]string{}, Replace: map[string]rules.Replacement{},
-	}
+	source := rules.Source{Repository: "https://github.com/acme/added.git", Ref: ref(t, "v0.1.0"), Groups: rules.GroupSelection{Pattern: "*"}}
 	out, err := rules.AppendConfigurationSource(input, "added", source)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, retained := range []string{"# Project guidance", "'https://github.com/acme/existing.git' # keep the selected library", "version: '>= 0.1.0, < 0.2.0'", "groups: '*'"} {
+	for _, retained := range []string{"# Project guidance", "'https://github.com/acme/existing.git' # keep the selected library", "ref: 'v0.0.9'", "groups: '*'"} {
 		if !strings.Contains(string(out), retained) {
 			t.Fatalf("lost authored presentation %q:\n%s", retained, out)
 		}
@@ -111,13 +106,13 @@ sources:
 func TestAppendConfigurationSourcePreservesFoldedExclusions(t *testing.T) {
 	for _, header := range []string{">", ">-", ">+"} {
 		t.Run(header, func(t *testing.T) {
-			input := []byte("schemaVersion: 1\nsources:\n  existing:\n    repository: https://example.invalid/existing.git\n    ref: v1.0.0\n    groups: '*'\n    exclude:\n      techs/go/old: " + header + " # keep this reason\n        Heading:\n\n          * first item\n          * second item\n\n    replace: {}\n")
+			input := []byte("schemaVersion: 1\nsources:\n  existing:\n    repository: https://example.invalid/existing.git\n    ref: v1.0.0\n    groups: '*'\n    exclude:\n      techs/go/old:\n        reason: " + header + " # keep this reason\n          Heading:\n\n            * first item\n            * second item\n\n")
 			before, err := rules.ParseConfigurationYAML(input)
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := before.Sources[0].Exclude["techs/go/old"]
-			source := rules.Source{Repository: "https://example.invalid/added.git", Ref: "v1.0.0", Groups: rules.GroupSelection{Pattern: "*"}, Exclude: map[string]string{}, Replace: map[string]rules.Replacement{}}
+			want := before.Sources[0].Exclude["techs/go/old"].Reason
+			source := rules.Source{Repository: "https://example.invalid/added.git", Ref: ref(t, "v1.0.0"), Groups: rules.GroupSelection{Pattern: "*"}}
 			for _, alias := range []string{"second", "third"} {
 				source.Repository = "https://example.invalid/" + alias + ".git"
 				input, err = rules.AppendConfigurationSource(input, alias, source)
@@ -129,13 +124,86 @@ func TestAppendConfigurationSourcePreservesFoldedExclusions(t *testing.T) {
 					t.Fatal(err)
 				}
 				for _, existing := range config.Sources {
-					if existing.Name == "existing" && existing.Exclude["techs/go/old"] != want {
-						t.Fatalf("%s changed exclusion from %q to %q:\n%s", alias, want, existing.Exclude["techs/go/old"], input)
+					if existing.Name == "existing" && existing.Exclude["techs/go/old"].Reason != want {
+						t.Fatalf("%s changed exclusion from %q to %q:\n%s", alias, want, existing.Exclude["techs/go/old"].Reason, input)
 					}
 				}
 				if !strings.Contains(string(input), "# keep this reason") {
 					t.Fatalf("%s lost exclusion comment:\n%s", alias, input)
 				}
+			}
+		})
+	}
+}
+
+// TestAppendConfigurationSourceWritesEverySuppliedField round-trips selections, pins, and exclusions,
+// omitting empty fields and groups when only individual rules are selected.
+func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
+	input := []byte("schemaVersion: 1\nsources: {}\n")
+	pinned, err := rules.ParseRuleVersion("1.3.0", "version")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, test := range map[string]struct {
+		source  rules.Source
+		written []string
+		omitted []string
+	}{
+		"rules only": {
+			source:  rules.Source{Repository: "https://example.invalid/rules.git", Groups: rules.GroupSelection{Groups: []string{}}, Rules: []string{"practices/testing/verify-retry-limits", "techs/go/wrap-errors"}},
+			written: []string{"rules:\n      - practices/testing/verify-retry-limits\n      - techs/go/wrap-errors\n"},
+			omitted: []string{"groups:", "ref:", "pins:", "exclude:"},
+		},
+		"ref": {
+			source:  rules.Source{Repository: "https://example.invalid/rules.git", Ref: ref(t, "release/5"), Groups: rules.GroupSelection{Groups: []string{"techs/go"}}},
+			written: []string{"groups:\n      - techs/go\n", "ref: release/5\n"},
+			omitted: []string{"rules:", "pins:", "exclude:"},
+		},
+		"pins and exclusions": {
+			source: rules.Source{
+				Repository: "https://example.invalid/rules.git", Groups: rules.GroupSelection{Pattern: "*"},
+				Pins: map[string]rules.Pin{"techs/go/a": {Version: pinned, Reason: "Waiting on review."}},
+				Exclude: map[string]rules.Exclusion{
+					"techs/go/b": {Reason: "Not applicable."},
+					"techs/go/c": {Reason: "Project policy.", ReplacedBy: "local/techs/go/c.md"},
+				},
+			},
+			written: []string{"version: \"1.3.0\"\n", "replacedBy: local/techs/go/c.md\n"},
+			omitted: []string{"rules:", "ref:"},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			out, err := rules.AppendConfigurationSource(input, "team", test.source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, text := range test.written {
+				if !strings.Contains(string(out), text) {
+					t.Fatalf("missing %q:\n%s", text, out)
+				}
+			}
+			for _, text := range test.omitted {
+				if strings.Contains(string(out), text) {
+					t.Fatalf("wrote %q:\n%s", text, out)
+				}
+			}
+			got, err := rules.ParseConfigurationYAML(out)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := test.source
+			want.Name = "team"
+			if want.Rules == nil {
+				want.Rules = []string{}
+			}
+			if want.Pins == nil {
+				want.Pins = map[string]rules.Pin{}
+			}
+			if want.Exclude == nil {
+				want.Exclude = map[string]rules.Exclusion{}
+			}
+			if len(got.Sources) != 1 || !reflect.DeepEqual(got.Sources[0], want) {
+				t.Fatalf("got %+v; want %+v\n%s", got.Sources, want, out)
 			}
 		})
 	}
