@@ -89,15 +89,25 @@ func redundantRules(source rules.Source, imported map[string]library.ImportedRul
 	return warnings
 }
 
-// retiredRules returns the retired rules a sync that chose plan records: recorded's list, byte for byte, when the
-// source selects what recorded did, from the same revision, with the same shared files, so that a sync changing
-// nothing else, such as only an exclusion, never rewrites the record, whatever the planner happened to read;
-// otherwise, the release history's, as freshRetiredRules returns them.
+// retiredRules returns the retired rules a sync that chose plan records. When the source selects what recorded did,
+// from the same revision, with the same shared files, it keeps recorded's list, so that a sync changing nothing
+// else, such as an exclusion the list already covers, never rewrites the record, whatever the planner happened to
+// read; it adds only the retired rules of exclusions that sync just found retired, which the record didn't cover,
+// so offline checks accept them too. Otherwise it returns the release history's, as freshRetiredRules does.
 func (p *planner) retiredRules(plan sourcePlan) ([]string, error) {
-	if recorded := p.recorded; recorded != nil && sameGroupSelection(recorded.Selection, p.source.Groups) && slices.Equal(recorded.RuleSelection, p.source.Rules) && p.source.Ref.Equal(recorded.Ref) && plan.release == recorded.Release && plan.commit == recorded.Commit {
-		return slices.Clone(recorded.RetiredRules), nil
+	recorded := p.recorded
+	if recorded == nil || !sameGroupSelection(recorded.Selection, p.source.Groups) || !slices.Equal(recorded.RuleSelection, p.source.Rules) || !p.source.Ref.Equal(recorded.Ref) || plan.release != recorded.Release || plan.commit != recorded.Commit {
+		return p.freshRetiredRules()
 	}
-	return p.freshRetiredRules()
+	retired := slices.Clone(recorded.RetiredRules)
+	for _, id := range slices.Sorted(maps.Keys(p.source.Exclude)) {
+		// Validating such an exclusion read the history, which records why it only warns.
+		if _, imported := plan.rules[id]; !imported && !slices.Contains(retired, id) && p.history != nil && p.history.retired(id) {
+			retired = append(retired, id)
+		}
+	}
+	slices.Sort(retired)
+	return retired, nil
 }
 
 // freshRetiredRules returns, sorted, the rules the library's release history retired that the source would

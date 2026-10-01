@@ -289,6 +289,40 @@ func TestSync_KeepsRecordedRetirementsWhenOnlyAnExclusionChanged(t *testing.T) {
 	}
 }
 
+// TestSync_RecordsTheRetirementOfANewlyExcludedRule the record didn't list: release/2 adds extra and release/3
+// retires it after the project synced release/1; excluding extra without updating warns, and sync records the
+// retirement so offline checks accept the exclusion, and a second sync changes nothing.
+func TestSync_RecordsTheRetirementOfANewlyExcludedRule(t *testing.T) {
+	f, options, git := syncProject(t)
+	ctx := context.Background()
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	secondRelease(t, f)
+	if _, err := f.Commit(ctx, f.Worktree(), "Retire extra", map[string][]byte{"techs/go/extra.md": nil}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\nretired:\n  techs/go/extra: {lastVersion: 1.0.0, summaries: [No longer needed.]}\n"); err != nil {
+		t.Fatal(err)
+	}
+	configure(t, options, f, map[string]any{"groups": []string{"techs/go"}, "exclude": map[string]any{"techs/go/extra": map[string]string{"reason": "Retired upstream."}}})
+	changes, err := Sync(ctx, options, git)
+	if err != nil || len(changes.Warnings) != 1 || !strings.Contains(changes.Warnings[0], "techs/go/extra") {
+		t.Fatalf("sync: %+v, %v", changes, err)
+	}
+	if record, _ := recordedVersions(t, options); !slices.Equal(record.RetiredRules, []string{"techs/go/extra"}) || record.Release != 1 {
+		t.Fatalf("retired %v, shared files from release %d", record.RetiredRules, record.Release)
+	}
+	requireCurrent(t, options)
+	recorded := projectTree(t, options).Files["vendor/team/_source.json"]
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	if after := projectTree(t, options).Files["vendor/team/_source.json"]; !bytes.Equal(after, recorded) {
+		t.Fatalf("a second sync rewrote _source.json:\n%s\nwas:\n%s", after, recorded)
+	}
+}
+
 // TestBuild_HandEditedExclusionsKeepTheSourceRecordCurrent adds and removes exclusions by hand, of an imported rule
 // and of a retired one, and runs build, as a fork's next step says: check passes offline, and a sync afterward
 // writes _source.json byte for byte as before.
