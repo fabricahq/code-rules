@@ -1,10 +1,10 @@
 # Resolution and rendering
 
-`internal/build` owns pure resolution and generation through `Generate`. Its inputs are validated configuration, selected library catalogs with original retained bytes, local files, and output options. It returns one complete generated file map or an error with no partial output. It does not fetch, read, or install files, and leaves its inputs unchanged.
+`internal/build` owns pure resolution and generation through `Generate`. Its inputs are validated configuration, selected library catalogs with original retained bytes and each one's verified snapshot record of rule versions and commits, local files, and output options. It returns one complete generated file map or an error with no partial output. It does not fetch, read, or install files, and leaves its inputs unchanged.
 
-Generation applies exclusions, complete local replacements, and local additions. A local group metadata record takes precedence as a whole; all source metadata remains available for provenance. Rule identity and origin travel together.
+Generation applies exclusions, complete local replacements, and local additions. A local group metadata record takes precedence as a whole; all source metadata remains available for provenance. Rule identity, origin, and version travel together.
 
-The generated files include individual resolved rules, discovery indexes, retained terms, library summaries, and provenance. Full-rule group pages must fit the inline byte limit and page line limit; otherwise summaries are used. Summary pagination preserves complete entries and navigation. A zero index line limit selects the default of 750 lines; a nil inline byte limit selects 8 KiB, while zero forces summaries.
+The generated files include individual resolved rules, discovery indexes, retained terms, library summaries with each imported rule's version and the source's pins, and provenance. Full-rule group pages must fit the inline byte limit and page line limit; otherwise summaries are used. Summary pagination preserves complete entries and navigation. A zero index line limit selects the default of 750 lines; a nil inline byte limit selects 8 KiB, while zero forces summaries.
 
 Resolution, rendering, pagination, and their intermediate representations are private. Tests exercise the complete operation through its public interface and cover detailed algorithms inside the package.
 
@@ -18,7 +18,7 @@ Internally, resolution consumes validated configuration, library catalogs with r
 
 Invalid input returns an error with its location. Missing or mismatched vendor snapshots require `code-rules project sync`; the offline builder never silently fetches a replacement. Binary attachments and declared terms retain their original bytes.
 
-The project layer loads `_source.json`, verifies its checksum and the file digests, and checks filesystem containment. Pure resolution checks source selections against configuration without reading that record or computing workspace digests.
+The project layer loads `_source.json`, verifies its checksum and the file digests, and checks filesystem containment. Pure resolution checks source selections against configuration without reading that file or computing workspace digests.
 
 ## Rendering limits
 
