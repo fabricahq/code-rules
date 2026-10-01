@@ -423,9 +423,10 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	if team := config.Sources[0]; team.Pins["techs/go/errors"].Reason != "Waiting on review." || team.Exclude["techs/go/verify"].Reason != "Covered locally." || team.Exclude["techs/go/loaders"].BasedOn == nil || team.Exclude["techs/go/loaders"].BasedOn.String() != "1.1.0" {
 		t.Fatalf("configuration:\n%s\nstdout:\n%s", data, result.Stdout)
 	}
-	// With nothing left to move, a terminal update applies without questions.
+	// With nothing left to move, a terminal update applies without questions and says, as a preview would, that
+	// nothing was available or written.
 	again, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, nil)
-	if err != nil || again.ExitCode != 0 || !strings.Contains(again.Stdout, "Update complete: 0 added, 0 changed, 0 removed.") {
+	if err != nil || again.ExitCode != 0 || !strings.HasSuffix(again.Stdout, "\nNo rule updates are available. No files were written.\n") || strings.Contains(again.Stdout, "Update complete") {
 		t.Fatalf("exit %d, %v\n%s", again.ExitCode, err, again.Transcript)
 	}
 }

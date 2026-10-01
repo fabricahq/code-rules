@@ -255,7 +255,9 @@ func updateReport(result project.UpdateResult, cancelled, shown bool) commandRep
 	if !shown {
 		formatUpdatePreview(&out, result.Sources)
 	}
-	if result.Applied {
+	// An update that applied nothing reads like a preview with nothing to apply.
+	nothing := result.Applied && !result.Moves() && len(result.Added)+len(result.Changed)+len(result.Removed) == 0
+	if result.Applied && !nothing {
 		if out.Len() > 0 {
 			out.WriteByte('\n')
 		}
@@ -268,7 +270,7 @@ func updateReport(result project.UpdateResult, cancelled, shown bool) commandRep
 	switch {
 	case cancelled:
 		out.WriteString("Update cancelled. No files were written.\n")
-	case result.Moves():
+	case result.Moves() && !nothing:
 		out.WriteString("\nThis is a preview; no files were written. To apply it, run the command again\nwith --yes, or in a terminal to answer each question and confirm.\n")
 	case out.Len() > 0:
 		out.WriteString("\nNo rule updates are available. No files were written.\n")
