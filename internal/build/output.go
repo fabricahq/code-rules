@@ -25,6 +25,7 @@ func prepare(resolved resolution, options Options) (Output, error) {
 	if err != nil {
 		return Output{}, err
 	}
+	// A provisional delivery default, like defaultIndexMaxLines, not a threshold validated against agent compliance.
 	inlineMaxBytes := 8 * 1024
 	if options.GroupInlineMaxBytes != nil {
 		inlineMaxBytes = *options.GroupInlineMaxBytes

@@ -1,5 +1,7 @@
-// Coordinate complete source imports and preserve original bytes with verified Git provenance.
-
+// Package imports fetches library sources and preserves their original bytes with verified Git provenance.
+// Sync and update each resolve a source into a plan of rule versions and commits, and one operation imports any
+// plan, returning no partial result. Git revisions and temporary repositories stay private, and Git runs only
+// through gitexec's isolated mode.
 package imports
 
 import (

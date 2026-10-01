@@ -6,16 +6,18 @@ Security is therefore a core product requirement.
 
 ## What we must protect
 
-1. **Rule-file integrity.** Preserve the selected library revision's original rule bytes. Detect unauthorized changes to retained files and agent-readable output.
+1. **Rule-file integrity.** Preserve the original bytes of each selected rule version. Detect unauthorized changes to retained files and agent-readable output.
    Generated output may intentionally transform Markdown or apply explicit project overrides; those changes must remain attributable to the selected rules and the user's configuration.
-2. **Library-source authenticity.** Fetch the repository and revision the user selected. Never silently substitute another library or revision, or present an unverified origin as authenticated.
-   Users must be able to understand which source and commit supplied their rules.
+2. **Library-source authenticity.** Fetch the selected repository and exactly the rule versions and commits the project records, or the revision its `ref` names. Never silently substitute another library, version, or commit, or present an unverified origin as authenticated.
+   Users must be able to understand which source, library release, and commit supplied each rule.
 3. **Our repository and release integrity.** Protect our source, repository access, dependencies, workflows, and published executables against unauthorized changes.
    A compromised importer or release could undermine both rule integrity and source verification across many consuming repositories.
 
 These are requirements to verify, not a claim that an audit has established every guarantee.
 A checksum proves consistency with its reference record, not authenticity if an attacker can replace both the content and the record.
 Even authentic, unchanged rules can contain harmful instructions. Users must deliberately choose which publishers and rule changes they trust.
+
+Code Rules runs Git on other people's repositories with hooks disabled and only HTTPS and SSH transports allowed. It never shows text from Git, a Git server, or the GitHub CLI, because that text can hold credentials; `internal/gitexec` classifies it privately so callers explain failures with their own messages. The [CLI reference](../docs/src/content/docs/reference/cli.md#text-from-git-servers-and-the-github-cli) states this contract.
 
 ## Security audits
 
@@ -60,7 +62,7 @@ Renovate may refresh existing update branches outside that window.
 
 Renovate manages Go modules, Bun workspaces and their lockfile, workflow actions, and supported runtime inputs.
 A custom manager finds versioned `go run` tools in workflows and CONTRIBUTING.md commands so those pins receive update PRs too.
-The GitHub Actions manager also reads `internal/library/check-workflow.yml`, the workflow `code-rules library init` writes, so its action pins receive update PRs; apply the same update to the guide's copy, which a test compares.
+The GitHub Actions manager also reads `internal/library/check-workflow.yml`, the workflow `code-rules library init` writes, so its action pins receive update PRs; apply the same update to both workflow examples in the [version rules guide](../docs/src/content/docs/guides/version-rules.md). A test compares its **Check changes in CI** copy with the template; nothing checks the other.
 Renovate includes indirect Go requirements. We disable broad lockfile-maintenance runs; dependency PRs regenerate the affected lockfile through the package manager.
 Review transitive changes in each lockfile diff: the cooldown does not establish the safety or age of every dependency a package manager resolves.
 
@@ -87,46 +89,42 @@ Before merging an update, review its source, release notes, changed permissions 
 Confirm all applicable CI checks passed on the current commit. A patch version is not evidence that an update is safe.
 For security fixes, verify that the selected version addresses the advisory. Do not bypass failed checks to accelerate a merge.
 
-Workflow permissions default to read-only. Pull request jobs do not receive publication credentials.
+Workflow permissions default to read-only; the CLI preview downloads workflow also needs `pull-requests: write` to comment. Pull request jobs do not receive publication credentials.
 The release build tests the release source and builds its assets without write access or secrets. Only Release Planner's publication job receives permission to write release data, and it runs no repository code.
 Actions in that job can access its job token; step-level environment variables do not isolate the token from other actions in the job.
 SHA pins and minimal permissions protect against compromised actions as well as compromised publication code.
 
-Dependency updates do not publish releases. A maintainer approves a release by merging its release-note PR, as described in [Releases](releasing.md).
+Dependency updates do not publish releases. A maintainer approves a release by merging its release-note PR, as [Make a release](https://release-planner.fabricahq.com/start-here/release/) describes.
+Resolve repository permission restrictions before releasing; do not work around them with a personal token. The protection and environment settings in [GitHub setup](#github-setup-and-activation) authenticate the release workflow and preserve published artifacts; they cannot detect malicious code approved into that workflow.
 
 ### PR preview downloads
 
+[Test a PR build](../CONTRIBUTING.md#test-a-pr-build) describes who receives preview links, how to approve one, and how to run a preview safely.
+
 The packaging workflow builds PR code with read-only repository permissions. Successful builds do not establish that the code is safe.
 The separate **CLI preview downloads** workflow runs from the default branch and only reads GitHub metadata and posts comments. It never checks out PR code or downloads or runs an artifact.
+It checks the approver's current write access, the build's repository, workflow, event, completion and success, and the PR's current head.
 
-A preview receives automatic download links only if its PR author currently has repository write or admin permission and the PR branch belongs to this repository.
-Forks, including maintainer-owned forks, and other contributors require explicit approval:
-
-1. Review the current PR commit, including source, dependencies, tests, and build workflow changes, for isolated testing.
-2. Find its successful **Package CLI binaries** run. Copy the numeric run ID from its URL and the PR's full 40-character commit SHA.
-3. In Actions, select **CLI preview downloads**, then **Run workflow** from the default branch. Enter that run ID and commit SHA.
-
-The workflow checks the approver's current write access, the build's repository, workflow, event, completion and success, and the PR's current head.
-A new commit requires a new approval for external previews. Approval advertises a particular preview; it does not approve a release or certify that the code is safe.
-Artifacts remain accessible in Actions before promotion; this gate controls the bot's download recommendation, not access to the build output.
-
-Preview commands print a warning with the packaged source commit to stderr, preserving stdout for command results and JSON.
-The warning and version string are self-reported metadata, not authentication. Preview executables are not publisher-signed or attested by Code Rules.
-Run them only in disposable environments without credentials or private files. GitHub artifact digests can detect changed bytes against a trusted reference, but do not establish benign behavior.
-Official release publication remains a separate reviewed process.
+Approval advertises a particular preview; it does not approve a release or certify that the code is safe.
+Artifacts remain accessible in Actions before promotion; the approval gate controls the bot's download recommendation, not access to the build output.
+GitHub artifact digests can detect changed bytes against a trusted reference, but do not establish benign behavior.
+Previews are untrusted and are not an installation channel; official release publication remains a separate reviewed process.
 
 ### GitHub setup and activation
 
-Repository configuration does not install the Renovate GitHub App or enforce branch protection.
+Repository configuration does not install the Renovate GitHub App or enforce these protection and access settings.
 
 1. Grant the [Mend Renovate GitHub App](https://github.com/apps/renovate) access to `fabricahq/code-rules`. Limit its installation to repositories the organization intends it to manage.
 2. Keep the dependency graph and GitHub's **Dependabot alerts** enabled. Renovate reads these alerts; Dependabot does not need to create PRs.
 3. Leave **Dependabot security updates** disabled and do not add a Dependabot version-update configuration. Renovate owns update PRs.
 4. Give Renovate read access to vulnerability alerts and complete its onboarding after this configuration reaches `main`.
 5. Verify the Dependency Dashboard lists Go modules, Bun dependencies, actions, runtimes, and all three Go tools. Investigate extraction errors before relying on automation.
-6. Use main-branch protection or a ruleset to require PRs and the applicable CI checks. Grant Renovate no merge bypass. Review protection separately from the bot's `automerge: false` policy.
+6. Use a ruleset or branch protection on `main` to require PRs and the applicable CI checks, and to block deletion and force pushes. Grant Renovate no merge bypass. Review protection separately from the bot's `automerge: false` policy.
+7. If administrators need bypass access, set their ruleset bypass mode to **For pull requests only**, never **Always allow**. They can then bypass review requirements through a PR, but cannot push directly.
+8. Restrict the `release` and `downstream` environments to the `main` branch, with no reviewers or wait timers.
+9. Enable immutable releases so published assets and tags cannot be replaced.
 
-Verify live installation permissions, alert settings, and branch protections in GitHub before claiming they are active.
+Verify live installation permissions, alert settings, protections, environments, and release settings in GitHub before claiming they are active.
 Record dated evidence in the repository security audit instead of relying on a setup snapshot in this document.
 
 ## Policy references

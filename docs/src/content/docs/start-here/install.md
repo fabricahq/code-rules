@@ -106,4 +106,4 @@ Adjust the path if you chose a custom installation directory. Your project's rul
 
 </details>
 
-For version compatibility and managed guide changes, see the [release version policy](https://github.com/fabricahq/code-rules/blob/main/_engineering/releasing.md#version-policy).
+For version compatibility and managed guide changes, see the [release version policy](https://github.com/fabricahq/code-rules/blob/main/.release-planner/policy.md#choosing-a-version).

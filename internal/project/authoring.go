@@ -1,5 +1,9 @@
 // Package project owns a consuming project's Code Rules state: initialization, local authoring,
 // library adoption, offline generation, and read-only freshness checks. Storage protocols stay private.
+// Each source's vendor/<source>/_source.json is its lockfile: sync restores the recorded rule versions and chooses
+// one only where configuration asks for something the record lacks, so only update moves rules to newer versions on
+// its own. Operations that need input return a plan first; the CLI prompts before the plan's Commit or Apply, which
+// revalidates under writer ownership.
 package project
 
 import (

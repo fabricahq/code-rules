@@ -42,6 +42,7 @@ release-assets:
 # Optional workflows in other repositories to run after each new stable release, with
 # inputs tag and version, such as one that updates a Homebrew formula. They run with a
 # GitHub App token from the downstream environment.
+# Credentials and recovery: the Release pipeline section of .release-planner/policy.md.
 downstream:
   - repository: fabricahq/homebrew-tap
     workflow: update-code-rules.yml

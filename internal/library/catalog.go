@@ -1,5 +1,8 @@
 // Package library owns library initialization, authoring, validation, and catalog loading.
 // Catalogs can be read from confined local files or immutable Git objects.
+// It also owns change notes and library releases. It reads the author's repository through gitexec's owned mode,
+// which honors their Git configuration, and a release changes no library files and publishes exactly the bytes
+// library check validated.
 package library
 
 import (

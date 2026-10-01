@@ -30,7 +30,7 @@ That means you can:
 
 - Capture engineering best practices as individual Markdown files
 - Organize and version them in a central Git repo
-- Configure your projects to pull down just the right rules automatically when your agents write or validate code
+- Configure each project to import just the rules it needs, so your agents read the right ones when they write or review code
 
 Your agents then follow the same rules whether they're writing code or reviewing it.
 
@@ -55,7 +55,7 @@ Pulling many files from versioned libraries into a project, and keeping them up 
 As with packages for code, you can:
 
 - **Version every rule.** Each rule has its own semantic version, so an update shows exactly which rules changed and whether a change could break code that followed them. Projects record the exact version of every rule they import, and accept major changes explicitly.
-- **Customize without forking.** Exclude an imported rule or replace it with your own, with the decision recorded in config.
+- **Customize without forking the library.** Exclude an imported rule or replace it with your own, with the decision recorded in config.
 - **Build reproducibly.** Every imported rule is vendored at its exact version, and keeps its source and license terms.
 - **Catch drift in CI.** `code-rules project check` fails when generated files are out of date.
 
@@ -65,7 +65,7 @@ Agents don't read every rule on every task. Code Rules generates an index with a
 
 As you work, you will find that some rules consistently deliver value, while others start to get in the way or no longer represent your preferred way of working. Or you may be repeatedly giving the same guidance to agents, in which case, it may be time to create a rule for it.
 
-Because rules are files in Git, you can ask your agent to review a session and propose a rule change, then review that change like any other code. Your guidance improves in version-controlled steps, and every project that uses the rule picks up the improvement on its next `code-rules project update`.
+Because rules are files in Git, you can ask your agent to review a session and propose a rule change, then review that change like any other code. Your guidance improves in version-controlled steps, and once a library release publishes the change, every project that uses the rule picks it up on its next `code-rules project update`.
 
 ## Quick start
 
