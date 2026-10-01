@@ -169,7 +169,8 @@ func releasePageURL(repository, tag string) string {
 // gitHubCLIFailure explains why gh failed to look up, when lookup is true, or create tag's GitHub Release page in
 // repository, and what to do next, with a static cause chosen from gh's diagnostics, which it never shows:
 // GitHub's rate limit, gh signed out or its credentials refused, permission denied, a repository GitHub can't
-// find, or a cause it doesn't recognize, for which it says how to read gh's message without risking a second page.
+// find, or a cause it doesn't recognize. Its next steps never change anything on GitHub: only code-rules library
+// release creates the page, with its generated notes.
 func gitHubCLIFailure(lookup bool, repository, tag, stderr string) string {
 	verb, finish := "create", ", then run code-rules library release again to create the page."
 	if lookup {
@@ -188,7 +189,7 @@ func gitHubCLIFailure(lookup bool, repository, tag, stderr string) string {
 	case lookup:
 		return "gh failed for a reason Code Rules doesn't recognize. The tag is published; run gh release view " + tag + " --repo github.com/" + repository + " to read gh's message" + finish
 	}
-	return "gh failed for a reason Code Rules doesn't recognize. The tag is published; run code-rules library release again, which creates the page only if it's still missing. If creating it keeps failing, run gh release create " + tag + " --repo github.com/" + repository + " --verify-tag to read gh's message; GitHub allows one release page per tag, so this can't create a second one."
+	return "gh failed for a reason Code Rules doesn't recognize. The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/" + repository + ", then run code-rules library release again, which creates the page with its notes only if it's still missing."
 }
 
 // run executes gh with args and stdin, returning its stdout, its stderr, and its exit status. Output beyond

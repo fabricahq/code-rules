@@ -454,7 +454,7 @@ func TestRelease_CreatesTheGitHubReleasePageAndFinishesAfterItFails(t *testing.T
 	commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed.")), "changes/a.yaml": []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")})
 	fake := withGitHub(t, fixture, &options, gitHubCalls("release/2", 1))
 	_, err := Release(ctx, ReleaseRequest{Options: options})
-	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; run code-rules library release again, which creates the page only if it's still missing.") || strings.Contains(err.Error(), "gh release view") {
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/acme/rules, then run code-rules library release again, which creates the page with its notes only if it's still missing.") || strings.Contains(err.Error(), "gh release create") {
 		t.Fatal(err)
 	}
 	message := tagMessage(t, fixture, remoteDir(fixture), "release/2")
