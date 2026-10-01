@@ -3,9 +3,15 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/project"
 )
 
 // TestCLIOutputModes covers human initialization and structured success, help, and failures.
@@ -53,7 +59,7 @@ func TestHumanCheckAndJSONStale(t *testing.T) {
 		t.Fatal(code, diagnostic)
 	}
 	out, diagnostic, code := runCLI(t, binary, dir, "project", "check")
-	if code != 1 || diagnostic != "" || !strings.Contains(out, "No files were changed.") || !strings.Contains(out, "Missing generated file:") || !strings.HasPrefix(out, "\nError: ") {
+	if code != 1 || diagnostic != "" || !strings.Contains(out, "No files were changed.") || !strings.Contains(out, "Missing generated file:") || !strings.HasPrefix(out, "Status: out of date.\n") || strings.Contains(out, "Error:") {
 		t.Fatal(code, out, diagnostic)
 	}
 	out, diagnostic, code = runCLI(t, binary, dir, "project", "check", "--json")
@@ -62,13 +68,46 @@ func TestHumanCheckAndJSONStale(t *testing.T) {
 		Value projectCheckResult
 		Error struct{ Kind string }
 	}
-	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "out_of_date" || result.Value.Status != "out_of_date" || len(result.Value.Problems) == 0 {
+	if code != 1 || diagnostic != "" || json.Unmarshal([]byte(out), &result) != nil || result.OK || result.Error.Kind != "out-of-date" || result.Value.Status != "out-of-date" || len(result.Value.Problems) == 0 {
 		t.Fatal(code, out, diagnostic)
 	}
 	for _, args := range [][]string{{"project", "build", "--json", "--bad", "--json=false"}, {"--json=false", "--help"}, {"--json", "--json=false", "--help"}, {"project", "build", "--config=--json"}, {"project", "build", "--", "--json"}} {
 		out, diagnostic, _ = runCLI(t, binary, dir, args...)
 		if json.Valid([]byte(out)) || (out == "" && diagnostic == "") {
 			t.Fatal(args, out, diagnostic)
+		}
+	}
+}
+
+// TestInterruptedCommands_StartTheirErrorOnANewLine after the terminal echoed ^C, except after a prompt, which
+// already ended its line.
+func TestInterruptedCommands_StartTheirErrorOnANewLine(t *testing.T) {
+	if !interruptedMidLine(&project.UnchangedError{Err: context.Canceled}) || interruptedMidLine(&cancelled{}) || interruptedMidLine(errors.New("failed")) {
+		t.Fatal("wrong line-break decision")
+	}
+}
+
+// TestErrors_EndWithAPeriod in human and JSON output, for usage errors and configuration validation errors alike,
+// unless they end with a command on a line of its own.
+func TestErrors_EndWithAPeriod(t *testing.T) {
+	binary := buildCLI(t)
+	dir := t.TempDir()
+	if out, diagnostic, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
+		t.Fatal(code, out, diagnostic)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".code-rules", "config.yaml"), []byte("schemaVersion: 1\nsources: {}\nversion: 2\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"project", "update", "--reason", "Why."}, {"project", "check"}} {
+		_, diagnostic, _ := runCLI(t, binary, dir, args...)
+		problem, _, _ := strings.Cut(strings.TrimPrefix(diagnostic, "Error: "), "\n")
+		if !strings.HasSuffix(problem, ".") {
+			t.Errorf("%v: %q doesn't end with a period", args, problem)
+		}
+		out, _, _ := runCLI(t, binary, dir, append(args, "--json")...)
+		var response struct{ Error responseError }
+		if err := json.Unmarshal([]byte(out), &response); err != nil || !strings.HasSuffix(response.Error.Message, ".") {
+			t.Errorf("%v: JSON message %q, %v", args, response.Error.Message, err)
 		}
 	}
 }

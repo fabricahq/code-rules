@@ -64,7 +64,7 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 			t.Fatal("lost authored YAML", marker, string(data))
 		}
 	}
-	if config.Sources[0].Ref != "v2.0.0" || config.Sources[1].Exclude["techs/go/old"].Reason != "Keep our local policy" {
+	if config.Sources[0].Ref.String() != "v2.0.0" || config.Sources[1].Exclude["techs/go/old"].Reason != "Keep our local policy" {
 		t.Fatal(config)
 	}
 	before := projectFileContents(t, directory)

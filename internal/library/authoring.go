@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -20,13 +21,20 @@ import (
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// AuthoringResult lists published library files and any post-commit cleanup warnings.
+// AuthoringResult lists the absolute paths of the library files an operation created and changed, and any
+// post-commit cleanup warnings.
 type AuthoringResult struct {
-	Files []string `json:"files"`
-	// LicenseDeclared describes the manifest after initialization.
-	LicenseDeclared bool
-	Warnings        []string `json:"warnings,omitempty"`
+	Added   []string `json:"added"`
+	Changed []string `json:"changed"`
+	// LicenseDeclared describes the manifest after initialization, and HasGroups whether the library already had a
+	// technology or practice group.
+	LicenseDeclared bool     `json:"-"`
+	HasGroups       bool     `json:"-"`
+	Warnings        []string `json:"warnings"`
 }
+
+// Written returns every path the operation wrote: its created files, then its changed ones.
+func (r AuthoringResult) Written() []string { return append(slices.Clone(r.Added), r.Changed...) }
 
 // Options locates the library itself, independently of any consumer project.
 type Options struct {
@@ -53,13 +61,17 @@ type RuleOptions struct {
 //go:embed library-guide.md
 var libraryReadme string
 
-// checkWorkflow runs code-rules library check on pull requests; checkWorkflowFor fills in checkWorkflowTag.
+// checkWorkflow runs code-rules library check on pull requests; checkWorkflowFor fills in checkWorkflowVersion.
 //
 //go:embed check-workflow.yml
 var checkWorkflow string
 
-// checkWorkflowTag marks the release tag argument of gh release download in checkWorkflow, after a space.
-const checkWorkflowTag = "CODE_RULES_TAG"
+// checkWorkflowVersion marks where checkWorkflow's install step sets the Code Rules version it installs.
+const checkWorkflowVersion = "CODE_RULES_VERSION"
+
+// latestVersion is the shell command that the install step of a development build's workflow runs to find the
+// version of the latest Code Rules release, without its v prefix.
+const latestVersion = `$(gh release view --repo fabricahq/code-rules --json tagName --jq '.tagName | ltrimstr("v")')`
 
 // developmentVersion prefixes the versions of builds that no release published: development builds and
 // unpublished candidates, such as 0.0.0-development and 0.0.0-dev.g0123456789ab.
@@ -211,21 +223,27 @@ func Initialize(ctx context.Context, options Options, terms *Terms, codeRulesVer
 	}
 	result, err := authoringResult(changes, err)
 	result.LicenseDeclared = license != nil
+	for _, directory := range []string{"practices", "techs"} {
+		if entries, readErr := fs.ReadDir(root.FS(), directory); readErr == nil && len(entries) > 0 {
+			result.HasGroups = true
+		}
+	}
 	return result, err
 }
 
-// checkWorkflowFor returns the check workflow pinned to the release tag of version, which must be a complete
-// semantic version without a v prefix, so the tag can't change the workflow's structure. A development build
-// has no release to pin, so its workflow installs the latest release instead.
+// checkWorkflowFor returns the check workflow pinned to version, which must be a complete semantic version
+// without a v prefix, so it can't change the workflow's structure. Its install step downloads and verifies only
+// that version's archive. A development build has no release to pin, so its workflow finds the latest release's
+// version first and then installs exactly that one.
 func checkWorkflowFor(version string) ([]byte, error) {
 	if canonical, err := rules.TagVersion(version, "version"); err != nil || canonical != version {
 		return nil, failure("invalid-version", "Code Rules version "+strconv.Quote(version)+" is not a complete semantic version", err)
 	}
-	tag := " v" + version
+	installed := version
 	if strings.HasPrefix(version, developmentVersion) {
-		tag = ""
+		installed = latestVersion
 	}
-	return []byte(strings.ReplaceAll(checkWorkflow, " "+checkWorkflowTag, tag)), nil
+	return []byte(strings.ReplaceAll(checkWorkflow, checkWorkflowVersion, installed)), nil
 }
 
 // readOptionalBelow reads a file whose parent directories may be missing; nil means the file is absent.
@@ -320,7 +338,7 @@ func authoringResult(changes filetxn.Changes, err error) (AuthoringResult, error
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return AuthoringResult{Files: changes.Files, Warnings: changes.Warnings}, nil
+	return AuthoringResult{Added: changes.Added, Changed: changes.Changed, Warnings: changes.Warnings}, nil
 }
 
 func yamlText(value any) ([]byte, error) {

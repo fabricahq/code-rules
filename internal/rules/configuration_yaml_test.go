@@ -81,7 +81,7 @@ sources:
     groups: '*'
     exclude: {}
 `)
-	source := rules.Source{Repository: "https://github.com/acme/added.git", Ref: "v0.1.0", Groups: rules.GroupSelection{Pattern: "*"}}
+	source := rules.Source{Repository: "https://github.com/acme/added.git", Ref: ref(t, "v0.1.0"), Groups: rules.GroupSelection{Pattern: "*"}}
 	out, err := rules.AppendConfigurationSource(input, "added", source)
 	if err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestAppendConfigurationSourcePreservesFoldedExclusions(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := before.Sources[0].Exclude["techs/go/old"].Reason
-			source := rules.Source{Repository: "https://example.invalid/added.git", Ref: "v1.0.0", Groups: rules.GroupSelection{Pattern: "*"}}
+			source := rules.Source{Repository: "https://example.invalid/added.git", Ref: ref(t, "v1.0.0"), Groups: rules.GroupSelection{Pattern: "*"}}
 			for _, alias := range []string{"second", "third"} {
 				source.Repository = "https://example.invalid/" + alias + ".git"
 				input, err = rules.AppendConfigurationSource(input, alias, source)
@@ -155,7 +155,7 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 			omitted: []string{"groups:", "ref:", "pins:", "exclude:"},
 		},
 		"ref": {
-			source:  rules.Source{Repository: "https://example.invalid/rules.git", Ref: "release/5", Groups: rules.GroupSelection{Groups: []string{"techs/go"}}},
+			source:  rules.Source{Repository: "https://example.invalid/rules.git", Ref: ref(t, "release/5"), Groups: rules.GroupSelection{Groups: []string{"techs/go"}}},
 			written: []string{"groups:\n      - techs/go\n", "ref: release/5\n"},
 			omitted: []string{"rules:", "pins:", "exclude:"},
 		},
@@ -193,13 +193,6 @@ func TestAppendConfigurationSourceWritesEverySuppliedField(t *testing.T) {
 			}
 			want := test.source
 			want.Name = "team"
-			if want.Ref != "" {
-				ref, err := rules.ParseGitRef(want.Ref, "ref")
-				if err != nil {
-					t.Fatal(err)
-				}
-				want.ParsedRef = &ref
-			}
 			if want.Rules == nil {
 				want.Rules = []string{}
 			}

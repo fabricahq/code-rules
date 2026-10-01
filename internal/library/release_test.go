@@ -133,8 +133,8 @@ func TestRelease_FirstLibraryReleaseGivesEveryRuleOneAndPushesOnlyItsTag(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	notes := "Library release 1 changes 2 rules:\n2 new.\n\n## New rules\n\n- **practices/testing/a** `1.0.0`\n  Add the rule.\n- **practices/testing/b** `1.0.0`\n  Add the rule.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| practices/testing/b | 1.0.0 |\n\n</details>"
-	record := "release: 1\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: new\n    summary: Add the rule.\n  practices/testing/b:\n    change: new\n    summary: Add the rule.\nlibraryFiles:\n  - practices/testing/_group.yaml\n  - rule-library.yaml\n"
+	notes := "Library release 1 publishes 2 rules.\n\n## New rules\n\n- **practices/testing/a** `1.0.0`\n- **practices/testing/b** `1.0.0`\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| practices/testing/b | 1.0.0 |\n\n</details>"
+	record := "formatVersion: 1\nrelease: 1\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: new\n    summaries:\n      - Add the rule.\n  practices/testing/b:\n    change: new\n    summaries:\n      - Add the rule.\nlibraryFiles:\n  - practices/testing/_group.yaml\n  - rule-library.yaml\n"
 	if message := tagMessage(t, fixture, remoteDir(fixture), "release/1"); message != notes+"\n---\n"+record {
 		t.Fatalf("tag message:\n%s\nwant:\n%s\n---\n%s", message, notes, record)
 	}
@@ -181,8 +181,8 @@ func TestRelease_LaterLibraryReleasePublishesPendingNotesAndLibraryWideFiles(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	notes := "Library release 2 changes 3 rules:\n1 minor, 1 new, and 1 retired.\n\n## Minor changes\n\n- **practices/testing/a** `1.0.0` → `1.1.0`\n  Fix a typo.\n  Test one past the limit.\n\n## New rules\n\n- **practices/testing/c** `1.0.0`\n  Fold b into a broader rule.\n\n## Retired rules\n\n- **practices/testing/b**, last version `1.0.0`\n  Fold b into a broader rule.\n  Replaced by **practices/testing/c**.\n\nThis library release also updates shared files, such as group\ndescriptions or shared assets.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.1.0 |\n| practices/testing/c | 1.0.0 |\n\n</details>"
-	record := "release: 2\nrules:\n  practices/testing/a: 1.1.0\n  practices/testing/c: 1.0.0\nchanges:\n  practices/testing/a:\n    change: minor\n    from: 1.0.0\n    summary: |-\n      Fix a typo.\n      Test one past the limit.\n  practices/testing/c:\n    change: new\n    summary: Fold b into a broader rule.\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    replacedBy: practices/testing/c\n    summary: Fold b into a broader rule.\nlibraryFiles:\n  - assets/diagram.svg\n  - practices/testing/_group.yaml\n"
+	notes := "Library release 2 changes 3 rules: 1 new, 1 minor, and 1 retired.\n\n## New rules\n\n- **practices/testing/c** `1.0.0`\n  - Fold b into a broader rule.\n\n## Minor changes\n\n- **practices/testing/a** `1.0.0` → `1.1.0`\n  - Fix a typo.\n  - Test one past the limit.\n\n## Retired rules\n\n- **practices/testing/b**, last version `1.0.0`, replaced by **practices/testing/c**\n  - Fold b into a broader rule.\n\nThis library release also updates shared files, such as group descriptions or shared assets.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.1.0 |\n| practices/testing/c | 1.0.0 |\n\n</details>"
+	record := "formatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.1.0\n  practices/testing/c: 1.0.0\nchanges:\n  practices/testing/a:\n    change: minor\n    from: 1.0.0\n    summaries:\n      - Fix a typo.\n      - Test one past the limit.\n  practices/testing/c:\n    change: new\n    summaries:\n      - Fold b into a broader rule.\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    replacedBy: practices/testing/c\n    summaries:\n      - Fold b into a broader rule.\nlibraryFiles:\n  - assets/diagram.svg\n  - practices/testing/_group.yaml\n"
 	if message := tagMessage(t, fixture, remoteDir(fixture), "release/2"); message != notes+"\n---\n"+record {
 		t.Fatalf("tag message:\n%s\nwant:\n%s\n---\n%s", message, notes, record)
 	}
@@ -200,7 +200,7 @@ func TestRelease_PublishesLibraryWideChangesWithoutRuleChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "Library release 2 changes no rules.\nIt updates shared files, such as group descriptions or shared assets.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| practices/testing/b | 1.0.0 |\n\n</details>\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nlibraryFiles:\n  - practices/testing/_group.yaml\n"
+	want := "Library release 2 changes no rules. It updates shared files, such as group descriptions or shared assets.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| practices/testing/b | 1.0.0 |\n\n</details>\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\nlibraryFiles:\n  - practices/testing/_group.yaml\n"
 	if message := tagMessage(t, fixture, remoteDir(fixture), "release/2"); message != want || !result.TagCreated || len(result.Rules) != 0 {
 		t.Fatalf("result %+v, tag message:\n%s", result, message)
 	}
@@ -257,7 +257,7 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 		code    string
 		message string
 	}{
-		{name: "branch other than the default", code: "not-default-branch", message: "library releases are published from origin's default branch, main, but feature tracks feature. Check out main",
+		{name: "branch other than the default", code: "not-default-branch", message: "library releases are published from origin's default branch, but feature tracks feature, which isn't it. Check out the default branch, which git remote show origin names,",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				run(t, fixture, options.Directory, "switch", "--quiet", "--create", "feature")
 				run(t, fixture, options.Directory, "push", "--quiet", "--set-upstream", "origin", "feature")
@@ -289,7 +289,7 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed."))})
 			}},
-		{name: "uncommitted changes", code: "uncommitted-changes", message: "the library files check read differ from it:\n  - changes/a.yaml isn't committed\n  - practices/testing/a.md differs from its committed copy\n  - practices/testing/b.md was deleted, and the deletion isn't committed\n  - practices/testing/c.md isn't committed\nCommit and push your changes",
+		{name: "uncommitted changes", code: "uncommitted-changes", message: "these library files differ from it:\n  - changes/a.yaml isn't committed\n  - practices/testing/a.md differs from its committed copy\n  - practices/testing/b.md was deleted, and the deletion isn't committed\n  - practices/testing/c.md isn't committed\nCommit and push your changes",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				edit(t, options.Directory, map[string]string{"practices/testing/a.md": ruleText("Changed."), "practices/testing/b.md": "", "practices/testing/c.md": ruleText("New."), "changes/a.yaml": "summary: Change a.\nrules:\n  practices/testing/a: patch\n  practices/testing/b: retired\n  practices/testing/c: new\n"})
 			}},
@@ -317,7 +317,7 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository)
 				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository+"-mirror")
 			}},
-		{name: "unreachable remote", code: "fetch-failed", message: "Git couldn't read origin. Check your network connection and access to the repository",
+		{name: "unreachable remote", code: "fetch-failed", message: "Git couldn't read origin: the server denied access, or the repository doesn't exist.",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				run(t, fixture, options.Directory, "remote", "set-url", "origin", filepath.Join(t.TempDir(), "missing"))
 			}},
@@ -454,7 +454,7 @@ func TestRelease_CreatesTheGitHubReleasePageAndFinishesAfterItFails(t *testing.T
 	commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed.")), "changes/a.yaml": []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")})
 	fake := withGitHub(t, fixture, &options, gitHubCalls("release/2", 1))
 	_, err := Release(ctx, ReleaseRequest{Options: options})
-	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; run code-rules library release again to create the page.") {
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; check that gh works with gh auth status, and that it can reach the repository with gh repo view github.com/acme/rules, then run code-rules library release again, which creates the page with its notes only if it's still missing.") || strings.Contains(err.Error(), "gh release create") {
 		t.Fatal(err)
 	}
 	message := tagMessage(t, fixture, remoteDir(fixture), "release/2")
@@ -497,7 +497,7 @@ func TestRelease_FailsWithoutCreatingAPageGHCouldNotLookUp(t *testing.T) {
 	responses[1].Stderr = "HTTP 502: Bad Gateway (https://api.github.com/repos/acme/rules/releases/tags/release/1)\n"
 	fake := withGitHub(t, fixture, &options, responses)
 	_, err := Release(context.Background(), ReleaseRequest{Options: options})
-	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1 (HTTP 502: Bad Gateway") {
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1: gh failed for a reason Code Rules doesn't recognize. The tag is published; run gh release view release/1 --repo github.com/acme/rules to read gh's message") || strings.Contains(err.Error(), "Bad Gateway") {
 		t.Fatal(err)
 	}
 	requireCalls(t, fake, []ghfixture.Call{{Args: responses[0].Args}, {Args: responses[1].Args}})
@@ -534,20 +534,48 @@ func TestRelease_DryRunDescribesTheLibraryReleaseWithoutPublishing(t *testing.T)
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles(), releaseOne)
 	commit := commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed.")), "changes/a.yaml": []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")})
-	fake := withGitHub(t, fixture, &options, nil)
+	fake := withGitHub(t, fixture, &options, []ghfixture.Response{{Args: []string{"auth", "status", "--hostname", "github.com"}}})
 	local, remote := tags(t, fixture, options.Directory), tags(t, fixture, remoteDir(fixture))
 	result, err := Release(ctx, ReleaseRequest{Options: options, DryRun: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !result.DryRun || result.Release != 2 || result.Tag != "release/2" || result.Commit != commit || result.Branch != "main" || result.TagCreated || result.GitHubRelease != nil ||
-		!strings.HasPrefix(result.Notes, "Library release 2 changes 1 rule:\n1 patch.\n") || !slices.Equal(previewRows(PendingRelease{Rules: result.Rules}), []string{"practices/testing/a patch 1.0.0 1.0.1"}) {
+		!strings.HasPrefix(result.Notes, "Library release 2 changes 1 rule: 1 patch.\n") || !slices.Equal(previewRows(PendingRelease{Rules: result.Rules}), []string{"practices/testing/a patch 1.0.0 1.0.1"}) {
 		t.Fatalf("%+v", result)
 	}
 	if tags(t, fixture, options.Directory) != local || tags(t, fixture, remoteDir(fixture)) != remote {
 		t.Fatal("a dry run changed tags")
 	}
-	requireCalls(t, fake, []ghfixture.Call{})
+	// The dry run only checks that gh is signed in, as the real run would before creating anything.
+	requireCalls(t, fake, []ghfixture.Call{{Args: []string{"auth", "status", "--hostname", "github.com"}}})
+}
+
+// TestRelease_DryRunRefusesAsTheRealRunWouldWithoutTheGitHubCLI reports a missing or signed-out gh on a dry run.
+func TestRelease_DryRunRefusesAsTheRealRunWouldWithoutTheGitHubCLI(t *testing.T) {
+	for _, test := range []struct {
+		name, code string
+		responses  []ghfixture.Response
+	}{
+		{"signed out", "github-cli-signed-out", []ghfixture.Response{{Args: []string{"auth", "status", "--hostname", "github.com"}, ExitCode: 1}}},
+		{"not installed", "github-cli-missing", nil},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fixture, options := authorClone(t, libraryFiles(), releaseOne)
+			commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed.")), "changes/a.yaml": []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")})
+			withGitHub(t, fixture, &options, test.responses)
+			if test.responses == nil {
+				if err := os.Remove(filepath.Join(pathOf(&options), "gh")); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for _, dryRun := range []bool{true, false} {
+				if _, err := Release(context.Background(), ReleaseRequest{Options: options, DryRun: dryRun}); errorCode(err) != test.code {
+					t.Fatalf("dry run %v: got %v, want %s", dryRun, err, test.code)
+				}
+			}
+		})
+	}
 }
 
 // TestRelease_StopsCleanlyWhenSomeoneElsePublishesFirst lets the author's pre-push hook publish release/2
@@ -643,7 +671,7 @@ func TestCreateTag_SizesTagsLikeGitAndDeletesOneTooLarge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	message := []byte("Notes.\n---\nrelease: 1\nrules: {}\n")
+	message := []byte("Notes.\n---\nformatVersion: 1\nrelease: 1\nrules: {}\n")
 	object, err := git.createTag(ctx, "release/1", fixture.LatestCommit, message)
 	if err != nil {
 		t.Fatal(err)
@@ -695,7 +723,7 @@ func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
 	}
 	local, remote := tags(t, fixture, options.Directory), tags(t, fixture, remoteDir(fixture))
 	_, err := Release(ctx, ReleaseRequest{Options: options})
-	if errorCode(err) != "push-failed" || !strings.Contains(err.Error(), "Git couldn't push release/1 to origin. Check your access to the repository and any pre-push hook") {
+	if errorCode(err) != "push-failed" || !strings.Contains(err.Error(), "Git couldn't push release/1 to origin. Check your network connection, your access to the repository, and any pre-push hook") {
 		t.Fatal(err)
 	}
 	if tags(t, fixture, options.Directory) != local || tags(t, fixture, remoteDir(fixture)) != remote {
@@ -709,14 +737,103 @@ func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
 	}
 }
 
+// interruptedRelease creates the release tag that code-rules library release would publish from options'
+// library, as a run interrupted before pushing it leaves it, and returns its release notes.
+func interruptedRelease(t *testing.T, options Options) string {
+	t.Helper()
+	planned, head := planFixtureRelease(t, options)
+	git, err := openLibraryGit(context.Background(), options.Directory, options.Git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := git.createTag(context.Background(), "release/"+strconv.Itoa(planned.record.Release), head, planned.message); err != nil {
+		t.Fatal(err)
+	}
+	return planned.notes
+}
+
+// planFixtureRelease returns the library release that code-rules library release would publish from options'
+// library, and the commit it would tag.
+func planFixtureRelease(t *testing.T, options Options) (plannedRelease, string) {
+	t.Helper()
+	ctx := context.Background()
+	root, err := openLibrary(ctx, options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	git, err := openLibraryGit(ctx, root.Name(), options.Git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked, err := checkLibrary(ctx, root, git)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := git.headCommit(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	planned, err := planRelease(ctx, git, checked, head)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return planned, head
+}
+
+// TestRelease_RefusesAnUnpublishedTagTooLargeToRead pushes an unpublished release tag of exactly 8 MiB, and
+// refuses one a byte larger, counting a signature the release record's parser ignores.
+func TestRelease_RefusesAnUnpublishedTagTooLargeToRead(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		size int
+		code string
+	}{{"at the limit", maxFileBytes, ""}, {"one byte over", maxFileBytes + 1, "release-too-large"}} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			fixture, options := authorClone(t, libraryFiles())
+			planned, _ := planFixtureRelease(t, options)
+			// A fixed date keeps the tag's header the same size when the tag is created again.
+			fixture.Environment = append(slices.Clone(fixture.Environment), "GIT_COMMITTER_DATE=2026-01-01T00:00:00Z")
+			message := func(padding int) string {
+				return string(planned.message) + "-----BEGIN SSH SIGNATURE-----\n" + strings.Repeat("A", padding) + "\n-----END SSH SIGNATURE-----\n"
+			}
+			file := filepath.Join(t.TempDir(), "message")
+			tag := func(padding int) int {
+				if err := os.WriteFile(file, []byte(message(padding)), 0600); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := fixture.CommandIn(ctx, options.Directory, "tag", "--force", "--annotate", "--cleanup=verbatim", "--file="+file, "release/1"); err != nil {
+					t.Fatal(err)
+				}
+				size, err := fixture.CommandIn(ctx, options.Directory, "cat-file", "-s", "release/1")
+				if err != nil {
+					t.Fatal(err)
+				}
+				bytes, _ := strconv.Atoi(size)
+				return bytes
+			}
+			if size := tag(test.size - tag(0)); size != test.size {
+				t.Fatalf("tag of %d bytes, want %d", size, test.size)
+			}
+			remote := tags(t, fixture, remoteDir(fixture))
+			result, err := Release(ctx, ReleaseRequest{Options: options})
+			if errorCode(err) != test.code {
+				t.Fatalf("got %+v, %v; want %q", result, err, test.code)
+			}
+			if pushed := tags(t, fixture, remoteDir(fixture)) != remote; pushed != (test.code == "") {
+				t.Fatalf("pushed the tag: %v", pushed)
+			}
+		})
+	}
+}
+
 // TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit publishes a release tag that exists only in the clone,
 // on HEAD, numbered one past the remote's latest, and keeps it when the push fails.
 func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 	ctx := context.Background()
 	fixture, options := authorClone(t, libraryFiles())
-	if err := fixture.Tag(ctx, options.Directory, "release/1", releaseOne); err != nil {
-		t.Fatal(err)
-	}
+	notes := interruptedRelease(t, options)
 	local := tags(t, fixture, options.Directory)
 	// A failed push keeps the tag, which this run didn't create.
 	hook := filepath.Join(options.Directory, ".git", "hooks", "pre-push")
@@ -736,7 +853,7 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err := Release(ctx, ReleaseRequest{Options: options})
-	if err != nil || !result.TagCreated || result.Published || result.Release != 1 || result.Notes != "Library release 1." {
+	if err != nil || !result.TagCreated || result.Published || result.Release != 1 || result.Notes != notes {
 		t.Fatal(result, err)
 	}
 	if tags(t, fixture, remoteDir(fixture)) != local {
@@ -748,11 +865,66 @@ func TestRelease_PushesATagAnInterruptedRunLeftOnTheCommit(t *testing.T) {
 	}
 }
 
+// TestRelease_AsksToUpgradeForAnUnpublishedTagInANewerFormat reports an unpublished release tag whose record
+// format this version can't read as a reason to upgrade, not as a mismatch to delete.
+func TestRelease_AsksToUpgradeForAnUnpublishedTagInANewerFormat(t *testing.T) {
+	ctx := context.Background()
+	fixture, options := authorClone(t, libraryFiles())
+	// A newer Code Rules created this tag, then stopped before pushing it.
+	newer := "Library release 1.\n\n---\nformatVersion: 2\nrelease: 1\nrules: A later shape.\n"
+	if err := fixture.Tag(ctx, options.Directory, "release/1", newer); err != nil {
+		t.Fatal(err)
+	}
+	local, remote := tags(t, fixture, options.Directory), tags(t, fixture, remoteDir(fixture))
+	_, err := Release(ctx, ReleaseRequest{Options: options})
+	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Code Rules") || strings.Contains(err.Error(), "git tag --delete") {
+		t.Fatalf("got %v; want unsupported-release-record asking to upgrade", err)
+	}
+	if tags(t, fixture, options.Directory) != local || tags(t, fixture, remoteDir(fixture)) != remote {
+		t.Fatal("a refused library release changed the tags")
+	}
+}
+
+// TestRelease_RefusesAnUnpublishedTagThatDoesntMatchTheLibrary checks a release tag found only in the clone
+// against the library release its commit would publish after the latest one the remote published, and pushes
+// nothing when they differ: a hand-made tag can't skip a missing change note or change what a note publishes.
+func TestRelease_RefusesAnUnpublishedTagThatDoesntMatchTheLibrary(t *testing.T) {
+	changed := map[string][]byte{"practices/testing/a.md": []byte(ruleText("Test the retry limit and one past it."))}
+	unchanged := "Library release 2.\n\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/b: 1.0.0\n"
+	for _, test := range []struct {
+		name, code, message string
+		files               map[string][]byte
+	}{
+		{"a change without a note", "change-notes", unchanged, changed},
+		{"a record that differs from the notes", "release-tag-mismatch", unchanged, map[string][]byte{"practices/testing/a.md": changed["practices/testing/a.md"], "changes/a.yaml": []byte("summary: Test one past the limit.\nrules:\n  practices/testing/a: major\n")}},
+		{"notes that differ from the record", "release-tag-mismatch", "Nothing risky.\n\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 2.0.0\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: major\n    from: 1.0.0\n    summaries:\n      - Test one past the limit.\n", map[string][]byte{"practices/testing/a.md": changed["practices/testing/a.md"], "changes/a.yaml": []byte("summary: Test one past the limit.\nrules:\n  practices/testing/a: major\n")}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			fixture, options := authorClone(t, libraryFiles(), releaseOne)
+			commitAndPush(t, fixture, options.Directory, test.files)
+			if err := fixture.Tag(ctx, options.Directory, "release/2", test.message); err != nil {
+				t.Fatal(err)
+			}
+			remote := tags(t, fixture, remoteDir(fixture))
+			_, err := Release(ctx, ReleaseRequest{Options: options})
+			if errorCode(err) != test.code {
+				t.Fatalf("got %v; want %s", err, test.code)
+			}
+			if tags(t, fixture, remoteDir(fixture)) != remote {
+				t.Fatal("pushed a release tag that doesn't match the library")
+			}
+		})
+	}
+}
+
 // TestFindGitHubCLI_StopsAGitHubCLIThatFloodsItsOutput stops a gh that keeps writing, ignoring broken pipes,
 // with a descendant holding its output open, instead of waiting for it forever.
 func TestFindGitHubCLI_StopsAGitHubCLIThatFloodsItsOutput(t *testing.T) {
 	bin := t.TempDir()
-	script := "#!/bin/sh\ntrap '' PIPE\n/bin/sleep 30 &\nwhile :; do printf xxxxxxxxxxxxxxxx 2>/dev/null; done\n"
+	// The fake writes 64 KiB at a time, so it passes the 1 MiB limit in a few writes. With 16-byte writes, the
+	// 65,536 writes that reaching the limit took could alone outlast the timeout below on a busy machine.
+	script := "#!/bin/sh\ntrap '' PIPE\n/bin/sleep 30 &\nx=xxxxxxxxxxxxxxxx\nwhile [ ${#x} -lt 65536 ]; do x=$x$x; done\nwhile :; do printf %s \"$x\" 2>/dev/null; done\n"
 	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -870,9 +1042,33 @@ func TestGitHubRepository_RecognizesOnlyGitHubDotCom(t *testing.T) {
 		{"git@github-work:acme/rules.git", "", "git@github-work:acme/rules.git"},
 		{"https://github.example.com/acme/rules.git", "", "https://github.example.com/acme/rules.git"},
 		{"/srv/git/rules.git", "", "/srv/git/rules.git"},
+		{"https://review-secret:password@github.com/acme/%zz", "", hiddenRemote},
+		{"https://review-secret:password@host.example:port/library.git", "", hiddenRemote},
+		{"https://someone:p@ss@host.example/library.git", "", "https://host.example/library.git"},
+		{"//user:secret@host.invalid/rules", "", hiddenRemote},
+		{"//host.invalid/rules", "", hiddenRemote},
+		{"user:secret@host.invalid:rules", "", hiddenRemote},
+		{"secret@host.invalid:rules?x#y", "", "secret@host.invalid:rules"},
 	} {
 		if github, display := gitHubRepository(test.url), displayRepository(test.url); github != test.github || display != test.display {
 			t.Errorf("%s: GitHub repository %q, display %q; want %q, %q", test.url, github, display, test.github, test.display)
+		}
+	}
+}
+
+// TestSameRepository_ComparesURLsItCantParseExactly treats two different URLs it can't parse as different
+// repositories, although both display the same way, and ignores credentials in URLs it can parse.
+func TestSameRepository_ComparesURLsItCantParseExactly(t *testing.T) {
+	for _, test := range []struct {
+		a, b string
+		same bool
+	}{
+		{"https://token@host.example/library.git", "https://host.example/library.git?secret", true},
+		{"https://secret@host.example/%zz", "https://secret@host.example/%zz", true},
+		{"https://secret@host.example/%zz", "https://secret@other.example/%zz", false},
+	} {
+		if got := sameRepository(test.a, test.b); got != test.same {
+			t.Errorf("sameRepository(%q, %q) = %v, want %v", test.a, test.b, got, test.same)
 		}
 	}
 }

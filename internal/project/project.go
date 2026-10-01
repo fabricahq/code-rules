@@ -29,7 +29,8 @@ type Options struct {
 }
 
 // FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
-// names, and update also lists config.yaml when it writes pins or exclusions.
+// names, list local/<group>/_group.yaml when they add a local group's metadata, and update also lists config.yaml
+// when it writes pins or exclusions.
 // Empty lists mean matching tree output; Guide reports a separate managed-guide update.
 type FileChanges struct {
 	Added   []string     `json:"added"`
@@ -37,8 +38,12 @@ type FileChanges struct {
 	Removed []string     `json:"removed"`
 	Guide   *GuideChange `json:"guide,omitempty"`
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
-	// sources importing a ref that isn't a library release. Build reports none.
-	Warnings []string `json:"warnings,omitempty"`
+	// sources importing a ref that isn't a library release. Then, in group order, each local group metadata file
+	// they wrote. Build reports none.
+	Warnings []string `json:"warnings"`
+	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
+	// that command's files, which the lists above don't include.
+	Recovered bool `json:"recovered"`
 }
 
 // GuideChange reports a managed-guide update separately from generated-relative file paths.
@@ -59,7 +64,9 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	}
 	defer root.Close()
 	var changes FileChanges
+	recovered := false
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		recovered = w.Recovered()
 		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
@@ -85,6 +92,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err != nil {
 		return FileChanges{}, err
 	}
+	changes.Recovered = recovered
 	return changes, nil
 }
 
@@ -266,7 +274,7 @@ func treeFiles(tree *filetxn.Tree) map[string][]byte {
 
 // compareFiles produces deterministic byte-level changes without treating timestamp changes as output changes.
 func compareFiles(before, after map[string][]byte) FileChanges {
-	changes := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}}
+	changes := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: []string{}}
 	for _, name := range slices.Sorted(maps.Keys(after)) {
 		data, ok := before[name]
 		if !ok {

@@ -30,14 +30,14 @@ func recordChange(t *testing.T, options Options, request ChangeRequest) (string,
 	if err != nil {
 		return "", "", err
 	}
-	if len(result.Files) != 1 {
-		t.Fatalf("wrote %q, want one note", result.Files)
+	if len(result.Written()) != 1 {
+		t.Fatalf("wrote %q, want one note", result.Written())
 	}
-	name, err := filepath.Rel(options.Directory, result.Files[0])
+	name, err := filepath.Rel(options.Directory, result.Written()[0])
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := os.ReadFile(result.Files[0])
+	data, err := os.ReadFile(result.Written()[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestChange_NamesEachNoteUniquely(t *testing.T) {
 	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/a.md": []byte(ruleText("Two.")), "changes/2026-09-29-a-aaaaaa.yaml": []byte(published)}); err != nil {
 		t.Fatal(err)
 	}
-	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summary: Published.\n"
+	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.1\n  practices/testing/b: 1.0.0\nchanges:\n  practices/testing/a:\n    change: patch\n    from: 1.0.0\n    summaries:\n      - Published.\n"
 	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
 		t.Fatal(err)
 	}
@@ -202,15 +202,15 @@ func TestChange_RejectsNotesThatDontMatchTheLibrary(t *testing.T) {
 		{"unknown rule", nil, ChangeRequest{IDs: []string{c}, Summary: "Add c."}, "unknown-rule", c + " isn't a rule in the library."},
 		{"deleted rule without --retire", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Bump: rules.ChangePatch, Summary: "Fix b."}, "unknown-rule", "To record its retirement, add --retire."},
 		{"ID with .md", nil, ChangeRequest{IDs: []string{a + ".md"}, Bump: rules.ChangePatch, Summary: "Fix a."}, "unknown-rule", "Rule IDs omit the .md extension."},
-		{"bump for a new rule", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{c}, Bump: rules.ChangeMinor, Summary: "Add c."}, "invalid-change", "--bump isn't accepted for new rules"},
-		{"new and versioned rules", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{a, c}, Summary: "Add c."}, "invalid-change", "Record them in separate notes."},
+		{"bump for a new rule", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{c}, Bump: rules.ChangeMinor, Summary: "Add c."}, "invalid-arguments", "--bump isn't accepted for new rules"},
+		{"new and versioned rules", map[string]string{"practices/testing/c.md": ruleText("New.")}, ChangeRequest{IDs: []string{a, c}, Summary: "Add c."}, "invalid-arguments", "Record them in separate notes."},
 		{"retirement of a rule that exists", nil, ChangeRequest{IDs: []string{a}, Retire: true, Summary: "Retire a."}, "invalid-change", a + " still exists."},
 		{"retirement that keeps the asset directory", map[string]string{"practices/testing/a.md": ""}, ChangeRequest{IDs: []string{a}, Retire: true, Summary: "Retire a."}, "invalid-change", a + "'s asset directory, practices/testing/assets/a/, still exists. Delete it before recording the retirement."},
 		{"retirement of an unpublished rule", nil, ChangeRequest{IDs: []string{c}, Retire: true, Summary: "Retire c."}, "invalid-change", c + " was never published, so it can't be retired."},
-		{"bump for a retirement", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Retire: true, Bump: rules.ChangeMajor, Summary: "Retire b."}, "invalid-change", "--bump isn't accepted for retired rules."},
-		{"replacement without --retire", nil, ChangeRequest{IDs: []string{a}, Bump: rules.ChangeMajor, ReplacedBy: b, Summary: "Replace a."}, "invalid-change", "--replaced-by requires --retire and a single rule"},
-		{"replacement for several rules", map[string]string{"practices/testing/a.md": "", "practices/testing/b.md": ""}, ChangeRequest{IDs: []string{a, b}, Retire: true, ReplacedBy: c, Summary: "Replace both."}, "invalid-change", "--replaced-by requires --retire and a single rule"},
-		{"duplicate rule", nil, ChangeRequest{IDs: []string{a, a}, Bump: rules.ChangePatch, Summary: "Fix a."}, "invalid-change", a + " is named more than once"},
+		{"bump for a retirement", map[string]string{"practices/testing/b.md": ""}, ChangeRequest{IDs: []string{b}, Retire: true, Bump: rules.ChangeMajor, Summary: "Retire b."}, "invalid-arguments", "--bump isn't accepted for retired rules."},
+		{"replacement without --retire", nil, ChangeRequest{IDs: []string{a}, Bump: rules.ChangeMajor, ReplacedBy: b, Summary: "Replace a."}, "invalid-arguments", "--replaced-by requires --retire and a single rule"},
+		{"replacement for several rules", map[string]string{"practices/testing/a.md": "", "practices/testing/b.md": ""}, ChangeRequest{IDs: []string{a, b}, Retire: true, ReplacedBy: c, Summary: "Replace both."}, "invalid-arguments", "--replaced-by requires --retire and a single rule"},
+		{"duplicate rule", nil, ChangeRequest{IDs: []string{a, a}, Bump: rules.ChangePatch, Summary: "Fix a."}, "invalid-arguments", a + " is named more than once"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -267,7 +267,7 @@ func TestChange_WarnsWhenTheReplacementIsntARuleYet(t *testing.T) {
 			t.Fatal(err)
 		}
 		result, err := plan.Commit(ctx, "", "Replace b.", noteDay)
-		if err != nil || len(result.Files) != 1 || slices.Contains(result.Warnings, warning) != test.warned || len(result.Warnings) > 1 {
+		if err != nil || len(result.Written()) != 1 || slices.Contains(result.Warnings, warning) != test.warned || len(result.Warnings) > 1 {
 			t.Fatalf("%s: %+v %v", test.replacement, result, err)
 		}
 	}
@@ -282,10 +282,10 @@ func TestChange_RequiresABumpAndSummaryToCommit(t *testing.T) {
 	if err != nil || !plan.Versioned {
 		t.Fatal(plan, err)
 	}
-	if _, err := plan.Commit(ctx, "", "Fix a.", noteDay); errorCode(err) != "invalid-change" || !strings.Contains(err.Error(), "--bump is required") {
+	if _, err := plan.Commit(ctx, "", "Fix a.", noteDay); errorCode(err) != "invalid-arguments" || !strings.Contains(err.Error(), "--bump is required") {
 		t.Fatal(err)
 	}
-	if _, err := plan.Commit(ctx, rules.ChangePatch, " ", noteDay); errorCode(err) != "invalid-change" || !strings.Contains(err.Error(), "--summary is required") {
+	if _, err := plan.Commit(ctx, rules.ChangePatch, " ", noteDay); errorCode(err) != "invalid-arguments" || !strings.Contains(err.Error(), "--summary is required") {
 		t.Fatal(err)
 	}
 	// The note parser rejects a summary of more than one line, so the command never writes one.
@@ -308,7 +308,7 @@ func TestChange_RetiredRules(t *testing.T) {
 	if _, err := fixture.Commit(ctx, options.Directory, "Retire b", map[string][]byte{"practices/testing/b.md": nil}); err != nil {
 		t.Fatal(err)
 	}
-	two := "Library release 2.\n---\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    summary: Retire b.\n"
+	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    summaries:\n      - Retire b.\n"
 	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
 		t.Fatal(err)
 	}

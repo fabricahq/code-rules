@@ -69,7 +69,7 @@ An undeclared license produces a warning. Confirm the publisher's license terms 
 Use one license declaration for the library in `rule-library.yaml`, with the actual license text and any notice files.
 The result previews the next library release: each rule's change, and its current and next version.
 
-`.github/workflows/code-rules.yml` runs the same check on every pull request. Commit it with the library.
+`.github/workflows/code-rules.yml` runs the same check on every pull request, with the Code Rules version that wrote it. Commit it with the library. To move it to a newer Code Rules version, delete it and run `code-rules library init` again.
 
 Review the diff and commit the library. Then publish a library release with `code-rules library release`, which tags the commit and gives each changed rule its new version. The first library release gives every rule version `1.0.0`.
 Give consumers the repository address and group IDs.
