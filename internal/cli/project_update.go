@@ -185,7 +185,7 @@ func askUpdateDecisions(f *authoringFlags, preview project.UpdateResult, decisio
 			case imports.UpdateReplaced:
 				choices = [2]string{"later", "incorporated"}
 				context = fmt.Sprintf("%s: replaced by %s, with library changes up to %s.", name, row.LocalRule, row.ReviewedVersion())
-				question = "Review them later, or mark them incorporated?"
+				question = "Review later, or mark incorporated?"
 			default:
 				continue
 			}

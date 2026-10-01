@@ -13,7 +13,7 @@ func TestPushRefusal_ExplainsTheCauseWithoutTheServersText(t *testing.T) {
 	const marker = "EXTERNAL-TEXT-MARKER"
 	for _, test := range []struct{ name, diagnostics, explanation string }{
 		{"GitHub ruleset", "remote: error: GH013: Repository rule violations found for refs/tags/release/2.\nremote: Review all repository rules at https://github.com/acme/rules/rules?ref=refs%2Ftags%2Frelease%2F2\nremote: - Cannot create ref due to creations being restricted. " + marker + "\nTo github.com:acme/rules.git\n ! [remote rejected] release/2 -> release/2 (push declined due to repository rule violations)\nerror: failed to push some refs to 'github.com:acme/rules.git'\n",
-			"a repository rule refused the tag (GitHub error GH013)."},
+			"a repository rule refused the tag (GitHub error GH013). Check the repository's rulesets and tag protection rules, and that they let you create release/<number> tags,"},
 		{"GitHub protected branch or tag", "remote: error: GH006: Protected branch update failed for refs/tags/release/2. " + marker + "\n ! [remote rejected] release/2 -> release/2 (protected branch hook declined)\n",
 			"a repository rule refused the tag (GitHub error GH006)."},
 		{"GitHub large file", "remote: error: GH001: Large files detected. " + marker + "\n ! [remote rejected] release/2 -> release/2 (pre-receive hook declined)\n",

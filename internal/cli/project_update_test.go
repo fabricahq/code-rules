@@ -387,7 +387,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 		{Prompt: "team:techs/go/verify: new rule, 1.0.0.\r\nAdd it, or exclude it? [add/exclude]:", Answer: "e"},
 		{Prompt: "Reason for excluding it:", Answer: "Covered locally."},
 		{Prompt: "team:techs/go/retry: retired.\r\nDrop it, or keep 1.0.0? [drop/keep]:", Answer: "drop"},
-		{Prompt: "team:techs/go/loaders: replaced by local/techs/go/use-data-loaders.md, with library changes up to 1.1.0.\r\nReview them later, or mark them incorporated? [later/incorporated]:", Answer: "i"},
+		{Prompt: "team:techs/go/loaders: replaced by local/techs/go/use-data-loaders.md, with library changes up to 1.1.0.\r\nReview later, or mark incorporated? [later/incorporated]:", Answer: "i"},
 		{Prompt: "Apply the update? [yes/no]:", Answer: "yes"},
 	}
 	result, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, steps)
@@ -400,7 +400,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	}
 	// The preview with the answers applied comes after the last question and before the confirmation.
 	transcript := strings.ReplaceAll(result.Transcript, "\r\n", "\n")
-	afterQuestions := transcript[strings.LastIndex(transcript, "Review them later, or mark them incorporated?"):]
+	afterQuestions := transcript[strings.LastIndex(transcript, "Review later, or mark incorporated?"):]
 	revised, _, confirmation := strings.Cut(afterQuestions, "Apply the update? [yes/no]:")
 	if !confirmation || !strings.Contains(revised, "Your answers:\n  Keep team:techs/go/errors at 1.0.0.\n    Reason: Waiting on review.\n  Exclude team:techs/go/verify.\n    Reason: Covered locally.\n  Mark team:techs/go/loaders incorporated: your rule is based on 1.1.0.\n") || strings.Contains(revised, "  major ") {
 		t.Fatalf("the answers, without the preview again, didn't come before the confirmation:\n%s", result.Transcript)

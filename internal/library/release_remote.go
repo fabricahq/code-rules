@@ -567,11 +567,11 @@ func pushRefusal(name, remote string, diagnostics []byte) string {
 	refused := gitexec.Mentions(diagnostics, "[remote rejected]", "remote:")
 	switch code := string(gitHubErrorCode.Find(diagnostics)); {
 	case slices.Contains(gitHubRuleCodes, code):
-		problem += ": a repository rule refused the tag (GitHub error " + code + "). Check the repository's rulesets and tag protection rules, and that they let you create release/ tags"
+		problem += ": a repository rule refused the tag (GitHub error " + code + "). Check the repository's rulesets and tag protection rules, and that they let you create release/<number> tags"
 	case code != "":
 		problem += ": the server refused the tag for a reason Code Rules doesn't recognize (GitHub error " + code + "). Check the repository's rules for tags and its server-side hooks"
 	case gitexec.Mentions(diagnostics, ruleRefusals...):
-		problem += ": a repository rule or tag protection refused the tag. Check the repository's rulesets and tag protection rules, and that they let you create release/ tags"
+		problem += ": a repository rule or tag protection refused the tag. Check the repository's rulesets and tag protection rules, and that they let you create release/<number> tags"
 	case !refused && gitexec.Mentions(diagnostics, gitexec.CertificateFailures...):
 		problem += certificateFailure
 	case !refused && gitexec.Mentions(diagnostics, gitexec.HostKeyFailures...):

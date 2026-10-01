@@ -3,9 +3,13 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
+
+	"github.com/fabricahq/code-rules/internal/project"
 )
 
 // TestCLIOutputModes covers human initialization and structured success, help, and failures.
@@ -70,5 +74,13 @@ func TestHumanCheckAndJSONStale(t *testing.T) {
 		if json.Valid([]byte(out)) || (out == "" && diagnostic == "") {
 			t.Fatal(args, out, diagnostic)
 		}
+	}
+}
+
+// TestInterruptedCommands_StartTheirErrorOnANewLine after the terminal echoed ^C, except after a prompt, which
+// already ended its line.
+func TestInterruptedCommands_StartTheirErrorOnANewLine(t *testing.T) {
+	if !interruptedMidLine(&project.UnchangedError{Err: context.Canceled}) || interruptedMidLine(&cancelled{}) || interruptedMidLine(errors.New("failed")) {
+		t.Fatal("wrong line-break decision")
 	}
 }

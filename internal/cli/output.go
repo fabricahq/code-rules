@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 // commandOutput retains one invocation's result until its exit status and output mode are known.
@@ -82,6 +84,10 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error) i
 			_, writeErr = io.WriteString(streams.Out, text.String())
 		}
 		if err != nil {
+			// An interrupt leaves the cursor after the ^C the terminal echoed, so the error starts a line of its own.
+			if interruptedMidLine(err) && isTerminal(streams.Err) {
+				_, _ = io.WriteString(streams.Err, "\n")
+			}
 			_, diagnosticErr := io.WriteString(streams.Err, humanError(streams.Err, err))
 			writeErr = errors.Join(writeErr, diagnosticErr)
 			if code == 2 {
@@ -203,4 +209,17 @@ func displayPath(workdir, file string) string {
 		return relative
 	}
 	return file
+}
+
+// interruptedMidLine reports whether err is an interrupt that arrived while the command was working, so the
+// terminal's cursor follows the ^C it echoed; a prompt's interrupt has already ended its line.
+func interruptedMidLine(err error) bool {
+	var prompt *cancelled
+	return errors.Is(err, context.Canceled) && !errors.As(err, &prompt)
+}
+
+// isTerminal reports whether destination is a terminal.
+func isTerminal(destination io.Writer) bool {
+	file, ok := destination.(*os.File)
+	return ok && term.IsTerminal(int(file.Fd()))
 }
