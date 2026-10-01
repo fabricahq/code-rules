@@ -146,6 +146,76 @@ func TestApply_CreatesALocalRuleAssetDirectoryAndItsParent(t *testing.T) {
 	})
 }
 
+// TestApply_ChangesNoLiveDirectoryBeforeTheInputsAreChecked: when Apply asks the caller to recheck its inputs, the
+// live tree is still exactly as before, so a caller that compares directories doesn't mistake Apply's own parent
+// directory for a concurrent edit.
+func TestApply_ChangesNoLiveDirectoryBeforeTheInputsAreChecked(t *testing.T) {
+	root := openProject(t)
+	writeFixture(t, root, "local/techs/go/fork.md", "old fork")
+	writeFixture(t, root, "vendor/team/rule.md", "old rule")
+	writeFixture(t, root, "generated/RULES.md", "old output")
+	before, err := ReadTree(context.Background(), root, "local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := WithWriter(context.Background(), root, func(w *Writer) error {
+		return w.Apply(forkUpdate(map[string][]byte{"new.md": []byte("new notes")}), func() error {
+			if current, err := ReadTree(context.Background(), root, "local"); err != nil || treeDigest(current) != treeDigest(before) {
+				return failure("concurrent-change", "local/ changed before the inputs were checked", err)
+			}
+			return nil
+		})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	requireForkProject(t, root, "new", map[string]string{"techs/go/fork.md": "new fork", "techs/go/assets/fork/new.md": "new notes"})
+}
+
+// TestKilledWriterRemovesTheParentsItCreated stops the writer right after it creates local/techs/go/assets, the new
+// asset directory's missing parent; recovery restores every target and removes that directory again.
+func TestKilledWriterRemovesTheParentsItCreated(t *testing.T) {
+	if directory := os.Getenv("CODE_RULES_PARENT_CHILD"); directory != "" {
+		root, err := os.OpenRoot(directory)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer root.Close()
+		err = WithWriter(context.Background(), root, func(w *Writer) error {
+			mkdir := w.mkdir
+			w.mkdir = func(name string) error {
+				err := mkdir(name)
+				if err == nil && name == "local/techs/go/assets" {
+					os.Exit(42)
+				}
+				return err
+			}
+			return w.Apply(forkUpdate(map[string][]byte{"new.md": []byte("new notes")}), nil)
+		})
+		t.Fatalf("child did not stop after creating the directory: %v", err)
+	}
+	root := openProject(t)
+	writeFixture(t, root, "local/techs/go/fork.md", "old fork")
+	writeFixture(t, root, "vendor/team/rule.md", "old rule")
+	writeFixture(t, root, "generated/RULES.md", "old output")
+	child := exec.Command(os.Args[0], "-test.run=^TestKilledWriterRemovesTheParentsItCreated$")
+	child.Env = append(os.Environ(), "CODE_RULES_PARENT_CHILD="+root.Name())
+	output, err := child.CombinedOutput()
+	var exit *exec.ExitError
+	if !errors.As(err, &exit) || exit.ExitCode() != 42 {
+		t.Fatal(err, string(output))
+	}
+	if _, err := root.Lstat("local/techs/go/assets"); err != nil {
+		t.Fatal("the child didn't create the directory", err)
+	}
+	if err := WithWriter(context.Background(), root, func(*Writer) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	requireForkProject(t, root, "old", map[string]string{"techs/go/fork.md": "old fork"})
+	if _, err := root.Lstat("local/techs/go/assets"); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatal("recovery left the directory the interrupted writer created", err)
+	}
+}
+
 // TestApply_KeepsALocalRuleEditedDuringStaging refuses to replace a fork the user edited meanwhile, and keeps the
 // previous fork, assets, and managed trees.
 func TestApply_KeepsALocalRuleEditedDuringStaging(t *testing.T) {
@@ -246,13 +316,17 @@ func TestKilledForkWriterRecovers(t *testing.T) {
 	}
 }
 
-// TestRecovery_RefusesALocalRuleEntryInAnOlderJournal preserves a journal whose format can't hold a local rule, and
-// one that removes a target other than a local rule's asset directory.
+// TestRecovery_RefusesALocalRuleEntryInAnOlderJournal preserves a journal whose format can't hold a local rule, one
+// that removes a target other than a local rule's asset directory, and one listing parent directories it can't
+// have created.
 func TestRecovery_RefusesALocalRuleEntryInAnOlderJournal(t *testing.T) {
 	assets := &Tree{Files: map[string][]byte{"notes.md": []byte("old notes")}}
 	for name, record := range map[string]journalRecord{
-		"format 5": {5, []journalEntry{{LocalRuleAssets(forkFile), treeDigest(assets), treeDigest(assets), true}}},
-		"removal":  {6, []journalEntry{{Vendor, treeDigest(assets), treeDigest(nil), true}}},
+		"format 5":              {FormatVersion: 5, Entries: []journalEntry{{LocalRuleAssets(forkFile), treeDigest(assets), treeDigest(assets), true}}},
+		"removal":               {FormatVersion: 6, Entries: []journalEntry{{Vendor, treeDigest(assets), treeDigest(nil), true}}},
+		"parent outside local/": {FormatVersion: 6, Entries: []journalEntry{{LocalRuleAssets(forkFile), treeDigest(assets), treeDigest(assets), true}}, Parents: []string{"vendor"}},
+		"parent of no entry":    {FormatVersion: 6, Entries: []journalEntry{{LocalRuleAssets(forkFile), treeDigest(assets), treeDigest(assets), true}}, Parents: []string{"local/practices"}},
+		"parents in format 5":   {FormatVersion: 5, Entries: []journalEntry{{LocalGroupMetadata("techs/go"), treeDigest(nil), treeDigest(assets), false}}, Parents: []string{"local/techs/go"}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := openProject(t)

@@ -160,7 +160,7 @@ func TestRecovery_RefusesLocalMetadataBehindASymlinkedParent(t *testing.T) {
 	if err := root.Mkdir(transactionName, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{5, []journalEntry{{target, treeDigest(nil), treeDigest(after), false}}}); err != nil {
+	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{FormatVersion: 5, Entries: []journalEntry{{target, treeDigest(nil), treeDigest(after), false}}}); err != nil {
 		t.Fatal(err)
 	}
 	projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { return nil }), "recovery-required")
@@ -202,7 +202,7 @@ func TestRecovery_RefusesALocalMetadataEntryInAnOlderJournal(t *testing.T) {
 	if err := root.Mkdir(transactionName, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{4, []journalEntry{{target, treeDigest(nil), treeDigest(after), false}}}); err != nil {
+	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{FormatVersion: 4, Entries: []journalEntry{{target, treeDigest(nil), treeDigest(after), false}}}); err != nil {
 		t.Fatal(err)
 	}
 	projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { return nil }), "recovery-required")

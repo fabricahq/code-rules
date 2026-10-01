@@ -145,7 +145,7 @@ func TestRecovery_RefusesAConfigurationEntryInAnOlderJournal(t *testing.T) {
 	writeFixture(t, root, transactionName+"/old-config.yaml", "old config")
 	before := &Tree{Files: map[string][]byte{"config.yaml": []byte("old config")}}
 	after := &Tree{Files: map[string][]byte{"config.yaml": []byte("new config")}}
-	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{3, []journalEntry{{Config, treeDigest(before), treeDigest(after), true}}}); err != nil {
+	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{FormatVersion: 3, Entries: []journalEntry{{Config, treeDigest(before), treeDigest(after), true}}}); err != nil {
 		t.Fatal(err)
 	}
 	projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { return nil }), "recovery-required")

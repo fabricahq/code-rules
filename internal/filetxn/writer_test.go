@@ -138,7 +138,7 @@ func stageInterruption(t *testing.T, root *os.Root, committed bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{1, []journalEntry{{Generated, treeDigest(before), treeDigest(after), true}}}); err != nil {
+	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{FormatVersion: 1, Entries: []journalEntry{{Generated, treeDigest(before), treeDigest(after), true}}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := root.Rename("generated", transactionName+"/old-generated"); err != nil {
@@ -352,7 +352,7 @@ func TestRecoveryRejectsContradictoryExistence(t *testing.T) {
 	if err := root.Mkdir(transactionName, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{1, []journalEntry{{Generated, treeDigest(before), digest([]byte("after")), false}}}); err != nil {
+	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{FormatVersion: 1, Entries: []journalEntry{{Generated, treeDigest(before), digest([]byte("after")), false}}}); err != nil {
 		t.Fatal(err)
 	}
 	projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { return nil }), "recovery-required")

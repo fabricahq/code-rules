@@ -217,6 +217,30 @@ func TestUpdate_ReplacesAHandWrittenReplacementAndRecordsBasedOn(t *testing.T) {
 	}
 }
 
+// TestUpdate_GivesAReplacementItsGroupsFirstAssetDirectory replaces a replacement without assets, in a group whose
+// local rules have none, with a fork that has some, creating local/techs/go/assets.
+func TestUpdate_GivesAReplacementItsGroupsFirstAssetDirectory(t *testing.T) {
+	f := newForkFixture(t, "")
+	root, err := openProject(context.Background(), f.options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	writeFixture(t, root, "local/techs/go/our-errors.md", forkedRule("Our own rule."))
+	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"    exclude:\n      techs/go/errors:\n        reason: Ours.\n        replacedBy: local/techs/go/our-errors.md\n")
+	if _, err := Build(context.Background(), f.options); err != nil {
+		t.Fatal(err)
+	}
+	thirdRelease(t, f.fixture, false)
+	plan, _ := planForkUpdate(t, f, updateFork)
+	if _, err := plan.Apply(context.Background(), updateFork); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(f.files(t)["local/techs/go/assets/our-errors/table.md"]); got != "| Wrap |\n" {
+		t.Fatalf("asset %q", got)
+	}
+}
+
 // TestUpdate_ReplacesAForkWhosePinKeepsTheImportedCopy forks the newest version, though a pin keeps the imported
 // copy, and the pin stays: it governs only that copy.
 func TestUpdate_ReplacesAForkWhosePinKeepsTheImportedCopy(t *testing.T) {

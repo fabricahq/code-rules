@@ -49,8 +49,9 @@ const (
 type Writer struct {
 	ctx  context.Context
 	root *os.Root
-	// rename is the filesystem boundary used by tests to stop a child at an exact rename.
+	// rename and mkdir are the filesystem boundaries used by tests to stop a child at an exact rename or directory.
 	rename func(string, string) error
+	mkdir  func(string) error
 	active bool
 	// recovered reports that WithWriter first recovered an interrupted earlier operation, changing project files.
 	recovered bool
@@ -77,6 +78,9 @@ type journalEntry struct {
 type journalRecord struct {
 	FormatVersion int            `json:"formatVersion"`
 	Entries       []journalEntry `json:"entries"`
+	// Parents lists, outermost first, the missing parent directories of local rule targets that the transaction
+	// creates after writing the journal; recovery removes those that are empty when it rolls back. Format 6 only.
+	Parents []string `json:"parents,omitempty"`
 }
 
 // RequireIdle refuses read-only operations while writing or recovery could expose mixed output.
@@ -116,7 +120,7 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	if err := recoverChanges(root); err != nil {
 		return err
 	}
-	w := &Writer{ctx: ctx, root: root, active: true, recovered: recovered, rename: func(from, to string) error { return renameManaged(root, from, to) }}
+	w := &Writer{ctx: ctx, root: root, active: true, recovered: recovered, rename: func(from, to string) error { return renameManaged(root, from, to) }, mkdir: func(name string) error { return root.Mkdir(name, 0755) }}
 	defer func() { w.active = false }()
 	return operation(w)
 }
@@ -176,7 +180,9 @@ func acquireLock(ctx context.Context, root *os.Root) error {
 // Apply stages complete managed targets and rechecks caller inputs before replacing live output.
 // It rolls back on failure when no later edits would be lost, and recovery restores or finishes every target in
 // the transaction together. Empty output is a no-op. A nil file map removes a local rule's asset directory, and
-// does nothing when it is absent.
+// does nothing when it is absent. It changes nothing outside its transaction directory until assertUnchanged has
+// passed and the journal is written; only then does it create the missing parent directories of local rule targets,
+// which the journal lists, so recovery removes them again when it rolls back.
 // This promises recoverability, not simultaneous visibility of two renames or power-loss durability.
 func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func() error) (err error) {
 	if w == nil || !w.active {
@@ -233,8 +239,9 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		return err
 	}
 	prepared := false
-	// created lists the parent directories of local rule targets that Apply created, which a failure removes again.
-	created := []string{}
+	// parents lists, outermost first, the missing parent directories of local rule targets to create once the
+	// journal holds them.
+	parents := []string{}
 	defer func() {
 		if err == nil {
 			return
@@ -247,11 +254,6 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		}
 		if recoveryErr != nil {
 			err = failure("recovery-required", "update failed and rollback could not finish; preserve .code-rules-transaction for recovery", errors.Join(err, recoveryErr))
-			return
-		}
-		// Each is empty again after rollback, unless someone added a file, which Remove then keeps.
-		for _, directory := range slices.Backward(created) {
-			_ = w.root.Remove(directory)
 		}
 	}()
 	entries := []journalEntry{}
@@ -271,11 +273,20 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			continue
 		}
 		if localRuleTarget(target) || localRuleAssetsTarget(target) {
-			if err := ensureParents(w.root, path.Dir(string(target)), &created); err != nil {
+			missing, err := missingParents(w.root, path.Dir(string(target)))
+			if err != nil {
 				return err
 			}
-			if err := rejectAlias(w.root, string(target)); err != nil {
-				return err
+			for _, directory := range missing {
+				if !slices.Contains(parents, directory) {
+					parents = append(parents, directory)
+				}
+			}
+			// A target whose parent is still missing can't collide with an existing spelling.
+			if len(missing) == 0 {
+				if err := rejectAlias(w.root, string(target)); err != nil {
+					return err
+				}
 			}
 		}
 		staged := path.Join(transactionName, "new-"+entryName(target))
@@ -325,10 +336,15 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			formatVersion = 6
 		}
 	}
-	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{formatVersion, entries}); err != nil {
+	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{formatVersion, entries, parents}); err != nil {
 		return err
 	}
 	prepared = true
+	for _, directory := range parents {
+		if err := w.createParent(directory); err != nil {
+			return err
+		}
+	}
 	for _, entry := range entries {
 		if err := w.ctx.Err(); err != nil {
 			return err
@@ -366,6 +382,76 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 	// A durable commit marker makes later cleanup failures cleanup-only, never rollback.
 	_ = finishCommitted(w.root)
 	return nil
+}
+
+// missingParents returns, outermost first, the directories from directory up to the first existing one that don't
+// exist yet. An existing one must be a directory, not a symbolic link.
+func missingParents(root *os.Root, directory string) ([]string, error) {
+	missing := []string{}
+	for ; directory != "." && directory != ""; directory = path.Dir(directory) {
+		info, err := root.Lstat(directory)
+		if errors.Is(err, fs.ErrNotExist) {
+			missing = append(missing, directory)
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if !info.IsDir() {
+			return nil, failure("unsafe-path", directory+": expected a directory without symlinks", nil)
+		}
+		break
+	}
+	slices.Reverse(missing)
+	return missing, nil
+}
+
+// createParent creates directory, a missing parent of a local rule target that the journal lists, refusing a name
+// that collides with an existing spelling. One that appeared meanwhile is accepted when it is a real directory.
+func (w *Writer) createParent(directory string) error {
+	if err := rejectAlias(w.root, directory); err != nil {
+		return err
+	}
+	err := w.mkdir(directory)
+	if !errors.Is(err, fs.ErrExist) {
+		return err
+	}
+	info, err := w.root.Lstat(directory)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return failure("unsafe-path", directory+": expected a directory without symlinks", nil)
+	}
+	return nil
+}
+
+// validParents reports whether parents, from a journal of format version, are the outermost-first missing parents
+// of its local rule entries: each under local/, an ancestor of an entry, and listed after its own parent when that
+// is listed too.
+func validParents(version int, parents []string, entries []journalEntry) bool {
+	if len(parents) > 0 && version < 6 {
+		return false
+	}
+	for i, directory := range parents {
+		if !strings.HasPrefix(directory, "local/") || path.Clean(directory) != directory || slices.Contains(parents[:i], directory) {
+			return false
+		}
+		if parent := path.Dir(directory); slices.Contains(parents, parent) && !slices.Contains(parents[:i], parent) {
+			return false
+		}
+		if !slices.ContainsFunc(entries, func(entry journalEntry) bool {
+			return (localRuleTarget(entry.Name) || localRuleAssetsTarget(entry.Name)) && strings.HasPrefix(string(entry.Name), directory+"/")
+		}) {
+			return false
+		}
+	}
+	return true
+}
+
+// isNotEmpty reports whether err is the failure to remove a directory that still holds entries.
+func isNotEmpty(err error) bool {
+	return errors.Is(err, syscall.ENOTEMPTY) || errors.Is(err, syscall.EEXIST)
 }
 
 // removes reports whether entry removes its target rather than replacing it, which only a local rule's asset
@@ -451,6 +537,14 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	}
 	if seen[GuideReadme] && seen[GuideStandalone] {
 		return failure("recovery-required", "multiple project guides in transaction; preserve journal", nil)
+	}
+	if !validParents(record.FormatVersion, record.Parents, record.Entries) {
+		return failure("recovery-required", "invalid parent directories in transaction journal; preserve it for manual recovery", nil)
+	}
+	for _, directory := range record.Parents {
+		if err := requireRealParents(root, Target(directory+"/x")); err != nil {
+			return failure("recovery-required", directory+": a directory changed into a symbolic link or file after interruption; preserve the transaction and restore the directory", err)
+		}
 	}
 	marker, committed := tree.Files["committed.json"]
 	if committed && string(marker) != "true\n" {
@@ -546,6 +640,12 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 			if err := rename(backup, string(entry.Name)); err != nil {
 				return err
 			}
+		}
+	}
+	// The directories the transaction created are empty again, unless someone added a file, which Remove then keeps.
+	for _, directory := range slices.Backward(record.Parents) {
+		if err := root.Remove(directory); err != nil && !errors.Is(err, fs.ErrNotExist) && !isNotEmpty(err) {
+			return err
 		}
 	}
 	return root.RemoveAll(transactionName)
