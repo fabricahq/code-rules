@@ -1,4 +1,4 @@
-// Check that rendered rules and groups are exactly what libraryformat reads back.
+// Check that rendered rules and groups are exactly what coderules reads back.
 
 package rules_test
 
@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // TestRenderRule_DraftHasOneBlankLineAfterItsMetadata starts the template's body right after one blank line.
@@ -27,12 +27,12 @@ func TestRenderRule_DraftHasOneBlankLineAfterItsMetadata(t *testing.T) {
 // TestRenderGroup_WritesTrimmedMetadataThatParsesBack keeps text YAML would read as another type, such as a date,
 // as text, and trims surrounding whitespace.
 func TestRenderGroup_WritesTrimmedMetadataThatParsesBack(t *testing.T) {
-	data, err := rules.RenderGroup(libraryformat.GroupMetadata{Name: " Go ", Description: "2026-10-01", WhenToRead: "true"})
+	data, err := rules.RenderGroup(coderules.GroupMetadata{Name: " Go ", Description: "2026-10-01", WhenToRead: "true"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := libraryformat.ParseGroupMetadata(data, "_group.yaml")
-	want := libraryformat.GroupMetadata{Name: "Go", Description: "2026-10-01", WhenToRead: "true"}
+	got, err := coderules.ParseGroupMetadata(data, "_group.yaml")
+	want := coderules.GroupMetadata{Name: "Go", Description: "2026-10-01", WhenToRead: "true"}
 	if err != nil || got != want {
 		t.Fatalf("got %+v, %v from:\n%s", got, err, data)
 	}
@@ -40,7 +40,7 @@ func TestRenderGroup_WritesTrimmedMetadataThatParsesBack(t *testing.T) {
 
 // TestRenderGroup_RefusesBlankText reports the blank field at its location in the group file.
 func TestRenderGroup_RefusesBlankText(t *testing.T) {
-	_, err := rules.RenderGroup(libraryformat.GroupMetadata{Name: "Go", Description: " \t", WhenToRead: "When editing Go."})
+	_, err := rules.RenderGroup(coderules.GroupMetadata{Name: "Go", Description: " \t", WhenToRead: "When editing Go."})
 	var validation *authored.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "_group.yaml.description" || validation.Problem != "expected nonempty text" {
 		t.Fatalf("got %v", err)

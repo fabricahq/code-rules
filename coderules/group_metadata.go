@@ -1,6 +1,6 @@
 // Parse a group's display text and reading guidance without accessing files.
 
-package libraryformat
+package coderules
 
 import (
 	"encoding/json"

@@ -1,6 +1,6 @@
 // Test exact document boundaries against shared fixtures and the splitter's narrow contract.
 
-package libraryformat_test
+package coderules_test
 
 import (
 	"encoding/json"
@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 func TestSplitDocumentSharedExpectations(t *testing.T) {
@@ -21,7 +21,7 @@ func TestSplitDocumentSharedExpectations(t *testing.T) {
 		ID, Input, Location string
 		Expected            struct {
 			OK    bool
-			Value libraryformat.DocumentText
+			Value coderules.DocumentText
 			Error *struct{ Name, Message, Location string }
 		}
 	}
@@ -30,7 +30,7 @@ func TestSplitDocumentSharedExpectations(t *testing.T) {
 	}
 	for _, test := range cases {
 		t.Run(test.ID, func(t *testing.T) {
-			got, err := libraryformat.SplitDocument(test.Input, test.Location)
+			got, err := coderules.SplitDocument(test.Input, test.Location)
 			if test.Expected.OK {
 				if err != nil || got != test.Expected.Value {
 					t.Fatalf("got %#v, %v; want %#v", got, err, test.Expected.Value)
@@ -41,7 +41,7 @@ func TestSplitDocumentSharedExpectations(t *testing.T) {
 			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 				t.Fatalf("got %#v, %v; want %s", got, err, test.Expected.Error.Message)
 			}
-			if got != (libraryformat.DocumentText{}) {
+			if got != (coderules.DocumentText{}) {
 				t.Fatalf("failed splitting returned partial text: %#v", got)
 			}
 		})
@@ -62,8 +62,8 @@ func TestSplitDocumentDoesNotInterpretContent(t *testing.T) {
 		{"raw bytes", "---\n\xff\n---\n\xfe", "\xff", "\xfe"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := libraryformat.SplitDocument(test.input, "rule")
-			want := libraryformat.DocumentText{Frontmatter: test.frontmatter, Body: test.body}
+			got, err := coderules.SplitDocument(test.input, "rule")
+			want := coderules.DocumentText{Frontmatter: test.frontmatter, Body: test.body}
 			if err != nil || got != want {
 				t.Fatalf("got %#v, %v; want %#v", got, err, want)
 			}

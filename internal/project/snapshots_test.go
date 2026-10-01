@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // Commits of the fixture's two library releases.
@@ -37,7 +37,7 @@ func snapshotConfig(t *testing.T, fields string) rules.Configuration {
 func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
 	config := snapshotConfig(t, `"groups":["techs/go"]`)
-	one, two := libraryformat.RuleVersion{Major: 1}, libraryformat.RuleVersion{Major: 1, Minor: 1}
+	one, two := coderules.RuleVersion{Major: 1}, coderules.RuleVersion{Major: 1, Minor: 1}
 	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, RetiredRules: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne}},
 		Files: map[string][]byte{
@@ -379,7 +379,7 @@ func TestRecordedSnapshotsReadRecordsWithoutCheckingConfiguration(t *testing.T) 
 // TestSnapshotRefChecks verifies what offline checks can about ref: the commit a SHA names, the library release
 // a release tag names, and no library release for any other tag.
 func TestSnapshotRefChecks(t *testing.T) {
-	one := libraryformat.RuleVersion{Major: 1}
+	one := coderules.RuleVersion{Major: 1}
 	for _, test := range []struct {
 		name, ref string
 		release   int

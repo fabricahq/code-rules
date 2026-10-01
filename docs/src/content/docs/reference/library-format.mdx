@@ -93,7 +93,7 @@ See [License rules](/guides/license-rules/) for publisher guidance and the bound
 
 ## Read libraries from other tools
 
-Tools written in Go, such as a catalog of libraries, can read library release tags, release records, rule files, group metadata, and the [canonical group list](/concepts/groups/#canonical-group-ids) with the `github.com/fabricahq/code-rules/libraryformat` package, whose Go documentation describes its API. Code Rules reads libraries through the same package, so both read them the same way. The package only parses text the tool has already read, such as with a Git library; it has no Git, filesystem, or network access. It follows Code Rules' version, and its API may change before Code Rules 1.0.0.
+Tools written in Go, such as a catalog of libraries, can read library release tags, release records, rule files, group metadata, and the [canonical group list](/concepts/groups/#canonical-group-ids) with the `github.com/fabricahq/code-rules/coderules` package, whose Go documentation describes its API. Code Rules reads libraries through the same package, so both read them the same way. The package only parses text the tool has already read, such as with a Git library; it has no Git, filesystem, or network access. It follows Code Rules' version, and its API may change before Code Rules 1.0.0.
 
 ## Related guides
 

@@ -1,6 +1,6 @@
 // Package authored decodes the YAML and JSON that people write for Code Rules, such as rule metadata, release
 // records, and project configuration, with one strict policy, and reports invalid input as a *ValidationError at
-// the location the caller names. It accesses no files; the libraryformat package and Code Rules' internal parsers
+// the location the caller names. It accesses no files; the coderules package and Code Rules' internal parsers
 // share it, so every format applies the same rules.
 package authored
 

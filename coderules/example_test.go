@@ -1,6 +1,6 @@
 // Show how a catalog reads a library's release tags, their records, and a rule file at a tagged commit.
 
-package libraryformat_test
+package coderules_test
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/fabricahq/code-rules/libraryformat"
+	"github.com/fabricahq/code-rules/coderules"
 )
 
 // Example reads the annotated tags a catalog found in a library's repository, such as with go-git: it skips tags
@@ -44,15 +44,15 @@ changes:
 `},
 	}
 	for _, tag := range tags {
-		number, err := libraryformat.ParseReleaseTag(tag.name)
-		if errors.Is(err, libraryformat.ErrNotReleaseTag) {
+		number, err := coderules.ParseReleaseTag(tag.name)
+		if errors.Is(err, coderules.ErrNotReleaseTag) {
 			fmt.Println("skip", tag.name)
 			continue
 		}
-		notes, record, err := libraryformat.ParseReleaseMessage(tag.name, []byte(tag.message))
-		var unsupported *libraryformat.UnsupportedReleaseRecordError
+		notes, record, err := coderules.ParseReleaseMessage(tag.name, []byte(tag.message))
+		var unsupported *coderules.UnsupportedReleaseRecordError
 		if errors.As(err, &unsupported) {
-			fmt.Println(tag.name, "needs a newer libraryformat for record format", unsupported.FormatVersion)
+			fmt.Println(tag.name, "needs a newer coderules for record format", unsupported.FormatVersion)
 			continue
 		}
 		if err != nil {
@@ -76,7 +76,7 @@ whenToRead: Before writing Go code that returns errors.
 
 Check every error a function returns.
 `
-	rule, err := libraryformat.ParseRule(file, "techs/go/handle-errors.md", "fabrica")
+	rule, err := coderules.ParseRule(file, "techs/go/handle-errors.md", "fabrica")
 	if err != nil {
 		fmt.Println("invalid rule:", err)
 		return

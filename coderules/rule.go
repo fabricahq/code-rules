@@ -1,6 +1,6 @@
 // Parse complete rule documents while retaining their authored text.
 
-package libraryformat
+package coderules
 
 import (
 	"fmt"

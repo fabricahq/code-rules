@@ -10,9 +10,9 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/librarypath"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // Configuration contains sources in alias order; an empty list is a local-only project.
@@ -41,8 +41,8 @@ type Source struct {
 
 // Pin keeps one rule at an exact published version, with the project's reason.
 type Pin struct {
-	Version libraryformat.RuleVersion `json:"version" yaml:"version"`
-	Reason  string                    `json:"reason" yaml:"reason"`
+	Version coderules.RuleVersion `json:"version" yaml:"version"`
+	Reason  string                `json:"reason" yaml:"reason"`
 }
 
 // Exclusion leaves one rule out of generated guidance, with the project's reason.
@@ -53,7 +53,7 @@ type Exclusion struct {
 	// BasedOn is the library version of the excluded rule that the replacement incorporates, which updates compare
 	// the library's newer versions with; it is nil when the project doesn't record one, and only a replacement has
 	// one. Configuration alone owns it.
-	BasedOn *libraryformat.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
+	BasedOn *coderules.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
 }
 
 var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -237,12 +237,12 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 }
 
 // quotedVersion parses an exact rule version written as a JSON string, such as "1.3.0".
-func quotedVersion(raw json.RawMessage, location string) (libraryformat.RuleVersion, error) {
+func quotedVersion(raw json.RawMessage, location string) (coderules.RuleVersion, error) {
 	var text string
 	if json.Unmarshal(raw, &text) != nil {
-		return libraryformat.RuleVersion{}, authored.Invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
+		return coderules.RuleVersion{}, authored.Invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
 	}
-	return libraryformat.ParseRuleVersion(text, location)
+	return coderules.ParseRuleVersion(text, location)
 }
 
 // parseExclusions validates each exclusion's rule ID, reason, optional contained local replacement, and, for a

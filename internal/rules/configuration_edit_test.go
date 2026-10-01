@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // TestEditConfigurationSource_AddsPinsAndExclusionsKeepingPresentation writes quoted pins into a new pins map
@@ -27,7 +27,7 @@ sources:
       - techs/go
     exclude: {techs/go/old: {reason: Not used here.}}
 `)
-	version, err := libraryformat.ParseRuleVersion("1.3.0", "version")
+	version, err := coderules.ParseRuleVersion("1.3.0", "version")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestEditConfigurationSource_RemovesPinsAndAnEmptiedPinsMap(t *testing.T) {
 // wouldn't validate, returning no bytes.
 func TestEditConfigurationSource_RefusesEditsItCantApply(t *testing.T) {
 	input := []byte("schemaVersion: 1\nsources:\n  team:\n    repository: https://example.invalid/team.git\n    groups: '*'\n    pins:\n      techs/go/a:\n        version: \"1.0.0\"\n        reason: Kept.\n  by-ref:\n    repository: https://example.invalid/ref.git\n    groups: '*'\n    ref: release/2\n")
-	version, err := libraryformat.ParseRuleVersion("2.0.0", "version")
+	version, err := coderules.ParseRuleVersion("2.0.0", "version")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,14 +121,14 @@ sources:
       techs/go/c:
         reason: Not used.
 `)
-	version := func(text string) libraryformat.RuleVersion {
-		parsed, err := libraryformat.ParseRuleVersion(text, "version")
+	version := func(text string) coderules.RuleVersion {
+		parsed, err := coderules.ParseRuleVersion(text, "version")
 		if err != nil {
 			t.Fatal(err)
 		}
 		return parsed
 	}
-	out, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]libraryformat.RuleVersion{"techs/go/a": version("1.2.0"), "techs/go/b": version("2.0.0")}})
+	out, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]coderules.RuleVersion{"techs/go/a": version("1.2.0"), "techs/go/b": version("2.0.0")}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ sources:
 	}
 	for _, id := range []string{"techs/go/c", "techs/go/missing"} {
 		var invalid *authored.ValidationError
-		if _, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]libraryformat.RuleVersion{id: version("1.0.0")}}); !errors.As(err, &invalid) || invalid.Location != "sources.team.exclude."+id {
+		if _, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]coderules.RuleVersion{id: version("1.0.0")}}); !errors.As(err, &invalid) || invalid.Location != "sources.team.exclude."+id {
 			t.Errorf("%s: got %v", id, err)
 		}
 	}

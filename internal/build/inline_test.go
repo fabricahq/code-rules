@@ -11,7 +11,7 @@ import (
 	"github.com/yuin/goldmark/v2/ast"
 	"github.com/yuin/goldmark/v2/parser"
 
-	"github.com/fabricahq/code-rules/libraryformat"
+	"github.com/fabricahq/code-rules/coderules"
 )
 
 // TestPrepareInlineBoundaries includes whole UTF-8 groups only when the inline byte limit and index line limit allow them.
@@ -89,7 +89,7 @@ func TestPrepareInlineLinks(t *testing.T) {
 					label = "multi line"
 				}
 				body := fmt.Sprintf("\n%s\n\n[fragment](#details)\n\n## Details\n\nBody %d\n\n[%s]: /assets/%d.txt\n\n`[asset]`\n", links, i, label, i)
-				rule, err := libraryformat.ParseRule(document+body, fmt.Sprintf("techs/go/rule-%d.md", i), "team")
+				rule, err := coderules.ParseRule(document+body, fmt.Sprintf("techs/go/rule-%d.md", i), "team")
 				if err != nil {
 					t.Fatal(err)
 				}

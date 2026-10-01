@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // LocalGroupPlan identifies a new project-only group. It owns no filesystem resources.
@@ -43,7 +43,7 @@ func PlanLocalGroup(ctx context.Context, id string, options Options) (*LocalGrou
 }
 
 // Commit validates metadata and repeats target checks under writer ownership before publishing.
-func (p *LocalGroupPlan) Commit(ctx context.Context, metadata libraryformat.GroupMetadata) (AuthoringResult, error) {
+func (p *LocalGroupPlan) Commit(ctx context.Context, metadata coderules.GroupMetadata) (AuthoringResult, error) {
 	if p == nil || p.id == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned group", nil)
 	}

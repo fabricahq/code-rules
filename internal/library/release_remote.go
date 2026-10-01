@@ -14,10 +14,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // maxRemoteListing bounds the output of listing the remote's default branch and release tags.
@@ -207,7 +207,7 @@ func parseRemoteListing(listing string, u upstream) (remoteState, error) {
 			}
 		}
 		// Code Rules ignores other tags under release/, such as release/01, and peeled ^{} entries.
-		if number, err := libraryformat.ParseReleaseTag(strings.TrimPrefix(name, "refs/tags/")); err == nil && strings.HasPrefix(name, "refs/tags/") {
+		if number, err := coderules.ParseReleaseTag(strings.TrimPrefix(name, "refs/tags/")); err == nil && strings.HasPrefix(name, "refs/tags/") {
 			state.tags[number] = value
 		}
 	}

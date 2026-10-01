@@ -1,6 +1,6 @@
 // Separate a rule's frontmatter envelope from its body without interpreting either.
 
-package libraryformat
+package coderules
 
 import (
 	"regexp"

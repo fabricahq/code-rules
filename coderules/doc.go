@@ -1,4 +1,4 @@
-// Package libraryformat parses the files and Git tags of a Code Rules library exactly as Code Rules reads them:
+// Package coderules parses the files and Git tags of a Code Rules library exactly as Code Rules reads them:
 // library release tag names and messages, the release records in those messages, rule files, group metadata
 // (_group.yaml), and the canonical group list. The format is specified at
 // https://code-rules.fabricahq.com/reference/library-format/ and
@@ -20,4 +20,4 @@
 //
 // This is a public API that follows Code Rules' own version: each Code Rules release includes it, and it may
 // change before Code Rules 1.0.0.
-package libraryformat
+package coderules

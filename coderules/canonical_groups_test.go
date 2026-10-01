@@ -1,7 +1,7 @@
 // Check that the canonical group list parser accepts only strict, sorted, uniquely named entries,
 // and that the published canonical-groups.yaml at the repository root passes it.
 
-package libraryformat_test
+package coderules_test
 
 import (
 	"errors"
@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // TestCanonicalGroupListParses keeps the published list valid, since other tools read it at pinned commits.
@@ -20,7 +20,7 @@ func TestCanonicalGroupListParses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := libraryformat.ParseCanonicalGroups(data, "canonical-groups.yaml"); err != nil {
+	if _, err := coderules.ParseCanonicalGroups(data, "canonical-groups.yaml"); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -29,11 +29,11 @@ func TestParseCanonicalGroups(t *testing.T) {
 	input := "# Canonical groups\n" +
 		"practices/testing:\n  name: Testing\n  description: >\n    What to test\n    and how.\n" +
 		"techs/go:\n  name: Go\n  description: The Go language.\n"
-	got, err := libraryformat.ParseCanonicalGroups([]byte(input), "canonical-groups.yaml")
+	got, err := coderules.ParseCanonicalGroups([]byte(input), "canonical-groups.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []libraryformat.CanonicalGroup{
+	want := []coderules.CanonicalGroup{
 		{ID: "practices/testing", Name: "Testing", Description: "What to test and how."},
 		{ID: "techs/go", Name: "Go", Description: "The Go language."},
 	}
@@ -76,7 +76,7 @@ func TestParseCanonicalGroupsRejectsInvalidLists(t *testing.T) {
 		{"duplicate folded name", "practices/sigma:\n  name: Σ\n  description: Upper.\n" + "techs/sigma:\n  name: ς\n  description: Final.\n", "list.techs/sigma.name", `"ς" is already the name of "practices/sigma"`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := libraryformat.ParseCanonicalGroups([]byte(test.input), "list")
+			got, err := coderules.ParseCanonicalGroups([]byte(test.input), "list")
 			var validation *authored.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("want ValidationError, got %v", err)

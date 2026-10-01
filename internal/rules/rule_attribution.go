@@ -9,8 +9,8 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // AddRuleAttribution returns document, a rule at path, with entry after its existing attribution entries. When the
@@ -19,12 +19,12 @@ import (
 // Otherwise the frontmatter is written again, keeping comments and values but not their formatting, with folded
 // scalars in literal style. The body never changes. It fails when document isn't a valid rule or the result's
 // attribution isn't valid, such as for a URL that isn't an absolute HTTP(S) URL.
-func AddRuleAttribution(document, path string, entry libraryformat.Attribution) (string, error) {
-	original, err := libraryformat.ParseRule(document, path, "local")
+func AddRuleAttribution(document, path string, entry coderules.Attribution) (string, error) {
+	original, err := coderules.ParseRule(document, path, "local")
 	if err != nil {
 		return "", err
 	}
-	sections, err := libraryformat.SplitDocument(document, path)
+	sections, err := coderules.SplitDocument(document, path)
 	if err != nil {
 		return "", err
 	}
@@ -76,8 +76,8 @@ func AddRuleAttribution(document, path string, entry libraryformat.Attribution) 
 }
 
 // requireAttributionAdded fails unless result is original's rule with only entry added after its attribution.
-func requireAttributionAdded(original libraryformat.Rule, result, path string, entry libraryformat.Attribution) error {
-	parsed, err := libraryformat.ParseRule(result, path, "local")
+func requireAttributionAdded(original coderules.Rule, result, path string, entry coderules.Attribution) error {
+	parsed, err := coderules.ParseRule(result, path, "local")
 	if err != nil {
 		return err
 	}

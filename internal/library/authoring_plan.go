@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // GroupPlan identifies a new group in an initialized library and owns no filesystem resources.
@@ -38,7 +38,7 @@ func PlanGroup(ctx context.Context, id string, options Options) (*GroupPlan, err
 }
 
 // Commit validates metadata and repeats target checks under writer ownership before publishing.
-func (p *GroupPlan) Commit(ctx context.Context, metadata libraryformat.GroupMetadata) (AuthoringResult, error) {
+func (p *GroupPlan) Commit(ctx context.Context, metadata coderules.GroupMetadata) (AuthoringResult, error) {
 	if p == nil || p.id == "" {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned group", nil)
 	}

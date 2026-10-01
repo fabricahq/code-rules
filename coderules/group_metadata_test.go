@@ -1,19 +1,19 @@
 // Check that a group's _group.yaml parses to trimmed metadata and that ambiguous or unknown content fails.
 
-package libraryformat_test
+package coderules_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/libraryformat"
+	"github.com/fabricahq/code-rules/coderules"
 )
 
 // TestParseGroupMetadata_ReadsAuthoredYAML folds block scalars, ignores comments, and trims text.
 func TestParseGroupMetadata_ReadsAuthoredYAML(t *testing.T) {
 	group := "# Guidance\nname: ' Testing '\ndescription: Verify behavior.\nwhenToRead: >\n  When writing\n  or reviewing tests.\n"
-	got, err := libraryformat.ParseGroupMetadata([]byte(group), "practices/testing/_group.yaml")
-	want := libraryformat.GroupMetadata{Name: "Testing", Description: "Verify behavior.", WhenToRead: "When writing or reviewing tests."}
+	got, err := coderules.ParseGroupMetadata([]byte(group), "practices/testing/_group.yaml")
+	want := coderules.GroupMetadata{Name: "Testing", Description: "Verify behavior.", WhenToRead: "When writing or reviewing tests."}
 	if err != nil || got != want {
 		t.Fatalf("got %+v, %v; want %+v", got, err, want)
 	}
@@ -39,8 +39,8 @@ func TestParseGroupMetadata_RefusesAmbiguousOrUnknownContent(t *testing.T) {
 		"nonmapping":   "[]",
 	} {
 		t.Run(name, func(t *testing.T) {
-			got, err := libraryformat.ParseGroupMetadata([]byte(input), "practices/testing/_group.yaml")
-			if err == nil || !strings.HasPrefix(err.Error(), "practices/testing/_group.yaml") || got != (libraryformat.GroupMetadata{}) {
+			got, err := coderules.ParseGroupMetadata([]byte(input), "practices/testing/_group.yaml")
+			if err == nil || !strings.HasPrefix(err.Error(), "practices/testing/_group.yaml") || got != (coderules.GroupMetadata{}) {
 				t.Fatalf("got %+v, %v; want an error and no metadata", got, err)
 			}
 		})

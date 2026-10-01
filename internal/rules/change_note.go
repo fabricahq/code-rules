@@ -7,9 +7,9 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/librarypath"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // ChangeNote records one change to one or more rules for the next library release.
@@ -22,8 +22,8 @@ type ChangeNote struct {
 
 // NoteChange is one rule's change in a note. ReplacedBy is set only for a retired rule that has a replacement.
 type NoteChange struct {
-	Change     libraryformat.Change `json:"change"`
-	ReplacedBy string               `json:"replacedBy,omitempty"`
+	Change     coderules.Change `json:"change"`
+	ReplacedBy string           `json:"replacedBy,omitempty"`
 }
 
 // ParseChangeNote validates one change note's YAML. location names the note, such as changes/2026-09-29-verify-retry-limits-7f3a9c.yaml.
@@ -70,8 +70,8 @@ func ParseChangeNote(input []byte, location string) (ChangeNote, error) {
 func noteChange(input json.RawMessage, id, location string) (NoteChange, error) {
 	var name string
 	if json.Unmarshal(input, &name) == nil {
-		switch change := libraryformat.Change(name); change {
-		case libraryformat.ChangeMajor, libraryformat.ChangeMinor, libraryformat.ChangePatch, libraryformat.ChangeNew, libraryformat.ChangeRetired:
+		switch change := coderules.Change(name); change {
+		case coderules.ChangeMajor, coderules.ChangeMinor, coderules.ChangePatch, coderules.ChangeNew, coderules.ChangeRetired:
 			return NoteChange{Change: change}, nil
 		}
 		return NoteChange{}, authored.Invalid(location, "unknown change "+authored.Quote(name)+"; expected major, minor, patch, new, or retired")
@@ -83,10 +83,10 @@ func noteChange(input json.RawMessage, id, location string) (NoteChange, error) 
 	if err := authored.KnownFields(fields, []string{"change", "replacedBy"}, location); err != nil {
 		return NoteChange{}, err
 	}
-	if json.Unmarshal(fields["change"], &name) != nil || libraryformat.Change(name) != libraryformat.ChangeRetired {
+	if json.Unmarshal(fields["change"], &name) != nil || coderules.Change(name) != coderules.ChangeRetired {
 		return NoteChange{}, authored.Invalid(location+".change", "expected retired; only a retirement can name a replacement")
 	}
-	result := NoteChange{Change: libraryformat.ChangeRetired}
+	result := NoteChange{Change: coderules.ChangeRetired}
 	if raw, ok := fields["replacedBy"]; ok {
 		if json.Unmarshal(raw, &result.ReplacedBy) != nil {
 			return NoteChange{}, authored.Invalid(location+".replacedBy", "expected a rule ID")
@@ -102,20 +102,20 @@ func noteChange(input json.RawMessage, id, location string) (NoteChange, error) 
 }
 
 // changeRank orders version changes so several notes on one rule resolve to the largest; other changes rank zero.
-func changeRank(change libraryformat.Change) int {
+func changeRank(change coderules.Change) int {
 	switch change {
-	case libraryformat.ChangePatch:
+	case coderules.ChangePatch:
 		return 1
-	case libraryformat.ChangeMinor:
+	case coderules.ChangeMinor:
 		return 2
-	case libraryformat.ChangeMajor:
+	case coderules.ChangeMajor:
 		return 3
 	}
 	return 0
 }
 
 // LargerChange returns whichever of two version changes moves a rule further; ties return a.
-func LargerChange(a, b libraryformat.Change) libraryformat.Change {
+func LargerChange(a, b coderules.Change) coderules.Change {
 	if changeRank(b) > changeRank(a) {
 		return b
 	}

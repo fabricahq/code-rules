@@ -16,11 +16,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // AuthoringResult lists the absolute paths of the library files an operation created and changed, and any
@@ -285,7 +285,7 @@ func editLibrary(ctx context.Context, options Options, group string, prepare fun
 }
 
 // AddGroup creates complete metadata without changing existing library content.
-func AddGroup(ctx context.Context, id string, metadata libraryformat.GroupMetadata, options Options) (AuthoringResult, error) {
+func AddGroup(ctx context.Context, id string, metadata coderules.GroupMetadata, options Options) (AuthoringResult, error) {
 	if err := librarypath.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
@@ -313,7 +313,7 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 	if err != nil || data == nil {
 		return false, err
 	}
-	_, err = libraryformat.ParseGroupMetadata(data, id)
+	_, err = coderules.ParseGroupMetadata(data, id)
 	return err == nil, err
 }
 

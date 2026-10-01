@@ -1,6 +1,6 @@
 // Parse the canonical group list: the group IDs that tools may treat as the same group across libraries.
 
-package libraryformat
+package coderules
 
 import (
 	"encoding/json"

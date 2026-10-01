@@ -1,6 +1,6 @@
 // Parse, compare, and advance rule versions and the change levels that move them.
 
-package libraryformat
+package coderules
 
 import (
 	"fmt"

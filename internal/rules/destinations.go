@@ -15,7 +15,7 @@ import (
 	"github.com/yuin/goldmark/v2/text"
 	"github.com/yuin/goldmark/v2/util"
 
-	"github.com/fabricahq/code-rules/libraryformat"
+	"github.com/fabricahq/code-rules/coderules"
 )
 
 // MarkdownDestination is one link, image, or link reference definition destination in a Markdown text.
@@ -85,7 +85,7 @@ func EscapeDestination(value string) string {
 func MarkdownBodyStart(document string) int {
 	withoutBOM := strings.TrimPrefix(document, "\ufeff")
 	if strings.HasPrefix(withoutBOM, "---\n") || strings.HasPrefix(withoutBOM, "---\r\n") {
-		if split, err := libraryformat.SplitDocument(withoutBOM, "document"); err == nil {
+		if split, err := coderules.SplitDocument(withoutBOM, "document"); err == nil {
 			return len(document) - len(split.Body)
 		}
 	}

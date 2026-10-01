@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // initRepository creates an empty Git repository in dir. It scrubs every inherited GIT_ variable and ignores
@@ -74,7 +74,7 @@ func TestLibraryLifecycle(t *testing.T) {
 	if _, err = Initialize(ctx, options, terms, "1.2.3"); err == nil {
 		t.Fatal("overwrote terms")
 	}
-	metadata := libraryformat.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
+	metadata := coderules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
 	if _, err = AddGroup(ctx, "techs/go", metadata, options); err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +290,7 @@ func TestLibraryRulePreservesGroup(t *testing.T) {
 	if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
-	existing := libraryformat.GroupMetadata{Name: "Go", Description: "Concurrent guidance.", WhenToRead: "When editing Go."}
+	existing := coderules.GroupMetadata{Name: "Go", Description: "Concurrent guidance.", WhenToRead: "When editing Go."}
 	if _, err := AddGroup(ctx, "techs/go", existing, options); err != nil {
 		t.Fatal(err)
 	}

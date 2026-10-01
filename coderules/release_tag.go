@@ -1,6 +1,6 @@
 // Recognize library release tag names and split their messages into release notes and a release record.
 
-package libraryformat
+package coderules
 
 import (
 	"bytes"

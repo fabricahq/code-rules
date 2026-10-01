@@ -12,7 +12,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/libraryformat"
+	"github.com/fabricahq/code-rules/coderules"
 )
 
 // The notes write each paragraph and each list item on one line, because GitHub renders a GitHub Release page's
@@ -27,7 +27,7 @@ const majorChangesAdvice = "Code that complied with the previous rule version co
 const sharedFilesSentence = "This library release also updates shared files, such as group descriptions or shared assets."
 
 // releaseRules lists each rule a release record changed, added, or retired, in ID order.
-func releaseRules(record libraryformat.ReleaseRecord) []PendingRule {
+func releaseRules(record coderules.ReleaseRecord) []PendingRule {
 	list := []PendingRule{}
 	for id, change := range record.Changes {
 		next := record.Rules[id]
@@ -35,7 +35,7 @@ func releaseRules(record libraryformat.ReleaseRecord) []PendingRule {
 	}
 	for id, retired := range record.Retired {
 		last := retired.LastVersion
-		list = append(list, PendingRule{ID: id, Change: libraryformat.ChangeRetired, LastVersion: &last, ReplacedBy: retired.ReplacedBy, Summaries: slices.Clone(retired.Summaries)})
+		list = append(list, PendingRule{ID: id, Change: coderules.ChangeRetired, LastVersion: &last, ReplacedBy: retired.ReplacedBy, Summaries: slices.Clone(retired.Summaries)})
 	}
 	slices.SortFunc(list, func(a, b PendingRule) int { return strings.Compare(a.ID, b.ID) })
 	return list
@@ -47,13 +47,13 @@ func releaseRules(record libraryformat.ReleaseRecord) []PendingRule {
 // files, and a collapsed table of every rule's version. Each rule is a list item with its summaries, one per
 // change note, as nested items, except in the first library release, whose rules all have the same placeholder
 // summary, firstReleaseSummary. Every paragraph and list item is one line. Library-wide files are never listed.
-func renderReleaseNotes(record libraryformat.ReleaseRecord) string {
+func renderReleaseNotes(record coderules.ReleaseRecord) string {
 	var out strings.Builder
 	out.WriteString(countLine(record))
 	sections := []struct {
-		change  libraryformat.Change
+		change  coderules.Change
 		heading string
-	}{{libraryformat.ChangeNew, "New rules"}, {libraryformat.ChangeMajor, "Major changes"}, {libraryformat.ChangeMinor, "Minor changes"}, {libraryformat.ChangePatch, "Patch changes"}}
+	}{{coderules.ChangeNew, "New rules"}, {coderules.ChangeMajor, "Major changes"}, {coderules.ChangeMinor, "Minor changes"}, {coderules.ChangePatch, "Patch changes"}}
 	for _, section := range sections {
 		var items []string
 		for _, id := range slices.Sorted(maps.Keys(record.Changes)) {
@@ -75,7 +75,7 @@ func renderReleaseNotes(record libraryformat.ReleaseRecord) string {
 			continue
 		}
 		out.WriteString("\n\n## " + section.heading + "\n\n")
-		if section.change == libraryformat.ChangeMajor {
+		if section.change == coderules.ChangeMajor {
 			out.WriteString(majorChangesAdvice + "\n\n")
 		}
 		out.WriteString(strings.Join(items, "\n"))
@@ -110,7 +110,7 @@ func renderReleaseNotes(record libraryformat.ReleaseRecord) string {
 // each kind of change in the order of the sections. A
 // library release that changes no rules says it updates shared files instead, and the first library release says
 // how many rules it publishes, since they are all new.
-func countLine(record libraryformat.ReleaseRecord) string {
+func countLine(record coderules.ReleaseRecord) string {
 	if record.Release == 1 {
 		switch count := len(record.Changes); count {
 		case 0:
@@ -121,7 +121,7 @@ func countLine(record libraryformat.ReleaseRecord) string {
 			return "Library release 1 publishes " + strconv.Itoa(count) + " rules."
 		}
 	}
-	counts := map[libraryformat.Change]int{libraryformat.ChangeRetired: len(record.Retired)}
+	counts := map[coderules.Change]int{coderules.ChangeRetired: len(record.Retired)}
 	for _, change := range record.Changes {
 		counts[change.Change]++
 	}
@@ -131,7 +131,7 @@ func countLine(record libraryformat.ReleaseRecord) string {
 		return heading + "no rules. It updates shared files, such as group descriptions or shared assets."
 	}
 	var kinds []string
-	for _, change := range []libraryformat.Change{libraryformat.ChangeNew, libraryformat.ChangeMajor, libraryformat.ChangeMinor, libraryformat.ChangePatch, libraryformat.ChangeRetired} {
+	for _, change := range []coderules.Change{coderules.ChangeNew, coderules.ChangeMajor, coderules.ChangeMinor, coderules.ChangePatch, coderules.ChangeRetired} {
 		if counts[change] > 0 {
 			kinds = append(kinds, strconv.Itoa(counts[change])+" "+string(change))
 		}
@@ -166,14 +166,14 @@ func summaryLines(summaries []string) string {
 // releaseMessage returns a library release tag's message: the notes, a line containing only ---, and the YAML
 // release record. It fails unless the message parses back to exactly these notes and this record, so a tag
 // never carries a record that projects would read differently or reject.
-func releaseMessage(notes string, record libraryformat.ReleaseRecord) ([]byte, error) {
+func releaseMessage(notes string, record coderules.ReleaseRecord) ([]byte, error) {
 	encoded, err := encodeReleaseRecord(record)
 	if err != nil {
 		return nil, err
 	}
 	message := notes + "\n---\n" + string(encoded)
 	tag := "release/" + strconv.Itoa(record.Release)
-	parsedNotes, parsed, err := libraryformat.ParseReleaseMessage(tag, []byte(message))
+	parsedNotes, parsed, err := coderules.ParseReleaseMessage(tag, []byte(message))
 	if err != nil {
 		return nil, fmt.Errorf("render the release record for %s: %w", tag, err)
 	}
@@ -184,15 +184,15 @@ func releaseMessage(notes string, record libraryformat.ReleaseRecord) ([]byte, e
 }
 
 // normalizedRecord is how the parser returns record: absent sections become empty ones.
-func normalizedRecord(record libraryformat.ReleaseRecord) libraryformat.ReleaseRecord {
+func normalizedRecord(record coderules.ReleaseRecord) coderules.ReleaseRecord {
 	if record.Rules == nil {
-		record.Rules = map[string]libraryformat.RuleVersion{}
+		record.Rules = map[string]coderules.RuleVersion{}
 	}
 	if record.Changes == nil {
-		record.Changes = map[string]libraryformat.RecordedChange{}
+		record.Changes = map[string]coderules.RecordedChange{}
 	}
 	if record.Retired == nil {
-		record.Retired = map[string]libraryformat.RetiredRule{}
+		record.Retired = map[string]coderules.RetiredRule{}
 	}
 	if record.LibraryFiles == nil {
 		record.LibraryFiles = []string{}
@@ -202,7 +202,7 @@ func normalizedRecord(record libraryformat.ReleaseRecord) libraryformat.ReleaseR
 
 // encodeReleaseRecord writes the record's YAML, starting with its formatVersion, with sorted keys, leaving out
 // empty changes, retired, and libraryFiles sections. rules is always present, since the parser requires it.
-func encodeReleaseRecord(record libraryformat.ReleaseRecord) ([]byte, error) {
+func encodeReleaseRecord(record coderules.ReleaseRecord) ([]byte, error) {
 	text := func(value string) *yaml.Node { return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: value} }
 	mapping := func(pairs ...*yaml.Node) *yaml.Node { return &yaml.Node{Kind: yaml.MappingNode, Content: pairs} }
 	versions := mapping()
@@ -219,7 +219,7 @@ func encodeReleaseRecord(record libraryformat.ReleaseRecord) ([]byte, error) {
 		}
 		return sequence
 	}
-	document := mapping(text("formatVersion"), number(libraryformat.ReleaseRecordFormat), text("release"), number(record.Release), text("rules"), versions)
+	document := mapping(text("formatVersion"), number(coderules.ReleaseRecordFormat), text("release"), number(record.Release), text("rules"), versions)
 	if len(record.Changes) > 0 {
 		changes := mapping()
 		for _, id := range slices.Sorted(maps.Keys(record.Changes)) {

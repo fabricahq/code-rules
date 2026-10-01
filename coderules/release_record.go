@@ -1,6 +1,6 @@
 // Parse the release record in a library release tag's message without accessing Git.
 
-package libraryformat
+package coderules
 
 import (
 	"encoding/json"

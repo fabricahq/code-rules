@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 const metadata = `{"name":" Go ","description":"Go rules","whenToRead":"When writing Go."}`
@@ -262,7 +262,7 @@ func TestLoadOwnsOriginalDocuments(t *testing.T) {
 		if _, duplicated := got.SupportingFiles[rule.Path]; duplicated {
 			t.Fatalf("rule also stored in supporting files: %s", rule.Path)
 		}
-		sections, err := libraryformat.SplitDocument(rule.Document, rule.ID)
+		sections, err := coderules.SplitDocument(rule.Document, rule.ID)
 		if err != nil || !strings.Contains(sections.Frontmatter, "title:") || !strings.Contains(sections.Body, "Return the error.") {
 			t.Fatalf("original sections unavailable: %+v, %v", sections, err)
 		}

@@ -9,10 +9,10 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // ReleaseRequest selects what code-rules library release does.
@@ -217,7 +217,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 
 // plannedRelease is the library release a commit publishes after the latest library release in its history.
 type plannedRelease struct {
-	record  libraryformat.ReleaseRecord
+	record  coderules.ReleaseRecord
 	notes   string
 	message []byte
 	// empty reports that the commit changes no rules and no library-wide files, so there's nothing to publish.
@@ -253,7 +253,7 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 	}
 	release, err := releasetag.ParseObject(name, body)
 	// A newer Code Rules may have created the tag and stopped before pushing it; this version can't compare it.
-	var unsupported *libraryformat.UnsupportedReleaseRecordError
+	var unsupported *coderules.UnsupportedReleaseRecordError
 	if errors.As(err, &unsupported) {
 		return unsupportedRecord(name, unsupported.FormatVersion)
 	}
@@ -264,7 +264,7 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 }
 
 // describe fills in what a library release publishes.
-func describe(result *ReleaseResult, record libraryformat.ReleaseRecord, notes string) {
+func describe(result *ReleaseResult, record coderules.ReleaseRecord, notes string) {
 	result.Release = record.Release
 	result.Tag = "release/" + strconv.Itoa(record.Release)
 	result.Rules = releaseRules(record)

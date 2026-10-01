@@ -9,8 +9,8 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // ParseConfigurationYAML validates one UTF-8 YAML document using the configuration schema.
@@ -75,7 +75,7 @@ type SourceEdit struct {
 	// Unpin names rules whose existing pins the edit removes.
 	Unpin []string
 	// BasedOn sets the basedOn version of each existing replacement it names, adding or replacing the field.
-	BasedOn map[string]libraryformat.RuleVersion
+	BasedOn map[string]coderules.RuleVersion
 }
 
 // EditConfigurationSource adds pins and exclusions to the existing source alias, removes the pins edit.Unpin
@@ -220,7 +220,7 @@ func exclusionNodes(exclude map[string]Exclusion) map[string]*yaml.Node {
 }
 
 // versionNode encodes a rule version double-quoted, such as "1.3.0", so YAML reads it as text.
-func versionNode(version libraryformat.RuleVersion) *yaml.Node {
+func versionNode(version coderules.RuleVersion) *yaml.Node {
 	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: version.String(), Style: yaml.DoubleQuotedStyle}
 }
 

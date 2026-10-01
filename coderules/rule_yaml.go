@@ -1,6 +1,6 @@
 // Adapt YAML nodes to the rule format without coercing authored text fields.
 
-package libraryformat
+package coderules
 
 import (
 	"fmt"

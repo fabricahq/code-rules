@@ -12,11 +12,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // record returns a snapshot of config's only source that imports each rule at its version@release.
@@ -26,7 +26,7 @@ func (h history) record(t *testing.T, config rules.Configuration, release int, i
 	snapshot := library.Snapshot{Repository: source.Repository, Release: release, Commit: h.commits[release], Selection: source.Groups, Groups: []string{}, RuleSelection: source.Rules, Rules: map[string]library.ImportedRule{}}
 	for id, text := range imported {
 		version, number, _ := strings.Cut(text, "@")
-		parsed, err := libraryformat.ParseRuleVersion(version, id)
+		parsed, err := coderules.ParseRuleVersion(version, id)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -56,7 +56,7 @@ func rows(update Update) []string {
 		line := string(row.Change) + " " + row.ID
 		for _, version := range []struct {
 			label string
-			value *libraryformat.RuleVersion
+			value *coderules.RuleVersion
 		}{{"from", row.From}, {"to", row.To}, {"newest", row.Newest}, {"last", row.LastVersion}} {
 			if version.value != nil {
 				line += " " + version.label + " " + version.value.String()
@@ -484,8 +484,8 @@ func TestUpdateChangeClassifiesByTheLargestChangedComponent(t *testing.T) {
 		from, to string
 		want     UpdateChange
 	}{{"1.9.9", "2.0.0", UpdateMajor}, {"1.0.9", "1.1.0", UpdateMinor}, {"1.0.0", "1.0.1", UpdatePatch}, {"1.2.3", "3.2.3", UpdateMajor}} {
-		from, _ := libraryformat.ParseRuleVersion(test.from, "from")
-		to, _ := libraryformat.ParseRuleVersion(test.to, "to")
+		from, _ := coderules.ParseRuleVersion(test.from, "from")
+		to, _ := coderules.ParseRuleVersion(test.to, "to")
 		if got := versionChange(from, to); got != test.want {
 			t.Errorf("%s -> %s: %s, want %s", test.from, test.to, got, test.want)
 		}

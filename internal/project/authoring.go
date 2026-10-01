@@ -14,10 +14,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // AuthoringResult lists the absolute paths of the authored files an operation created and changed, and cleanup
@@ -108,7 +108,7 @@ func editProject(ctx context.Context, options Options, prepare func(*os.Root, []
 }
 
 // AddLocalGroup creates one complete local group definition without overwriting existing metadata.
-func AddLocalGroup(ctx context.Context, id string, metadata libraryformat.GroupMetadata, options Options) (AuthoringResult, error) {
+func AddLocalGroup(ctx context.Context, id string, metadata coderules.GroupMetadata, options Options) (AuthoringResult, error) {
 	if err := librarypath.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
@@ -133,7 +133,7 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 	}
 	if local != nil {
 		if data, ok := local.Files[id+"/_group.yaml"]; ok {
-			_, err = libraryformat.ParseGroupMetadata(data, id)
+			_, err = coderules.ParseGroupMetadata(data, id)
 			return err == nil, err
 		}
 	}
@@ -155,7 +155,7 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 			continue
 		}
 		if data, ok := snapshot.Files[id+"/_group.yaml"]; ok {
-			_, err = libraryformat.ParseGroupMetadata(data, id)
+			_, err = coderules.ParseGroupMetadata(data, id)
 			return err == nil, err
 		}
 	}

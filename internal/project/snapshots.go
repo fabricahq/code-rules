@@ -14,11 +14,11 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // snapshot is the library-owned value persisted by project snapshot encoding.
@@ -48,9 +48,9 @@ type sourceRecord struct {
 
 // recordRule is one imported rule's version record; Version and Release are null for an unreleased rule.
 type recordRule struct {
-	Version *libraryformat.RuleVersion `json:"version"`
-	Release *int                       `json:"release"`
-	Commit  string                     `json:"commit"`
+	Version *coderules.RuleVersion `json:"version"`
+	Release *int                   `json:"release"`
+	Commit  string                 `json:"commit"`
 }
 
 // unsupportedRecord explains how to replace a source record this version can't read.
@@ -413,7 +413,7 @@ func matchRevision(source rules.Source, record parsedRecord) error {
 			return invalidSnapshot(where, "resolved commit differs from requested commit")
 		}
 	}
-	number, err := libraryformat.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
+	number, err := coderules.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
 	if ref.Kind() != rules.GitRefTag || err != nil {
 		if record.Release != 0 {
 			return invalidSnapshot(where+".release", "a ref that isn't a library release tag records no library release")

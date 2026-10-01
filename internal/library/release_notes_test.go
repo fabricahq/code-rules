@@ -7,19 +7,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/libraryformat"
+	"github.com/fabricahq/code-rules/coderules"
 )
 
 // version returns a rule version for test records.
-func version(major, minor, patch int) *libraryformat.RuleVersion {
-	return &libraryformat.RuleVersion{Major: major, Minor: minor, Patch: patch}
+func version(major, minor, patch int) *coderules.RuleVersion {
+	return &coderules.RuleVersion{Major: major, Minor: minor, Patch: patch}
 }
 
 // guideRecord is the library release the version rules guide shows as a GitHub Release page.
-func guideRecord() libraryformat.ReleaseRecord {
-	return libraryformat.ReleaseRecord{
+func guideRecord() coderules.ReleaseRecord {
+	return coderules.ReleaseRecord{
 		Release: 4,
-		Rules: map[string]libraryformat.RuleVersion{
+		Rules: map[string]coderules.RuleVersion{
 			"practices/code-design/organize-code-by-feature": *version(1, 1, 0),
 			"practices/testing/verify-backoff":               *version(1, 3, 0),
 			"practices/testing/verify-retries":               *version(1, 0, 0),
@@ -27,12 +27,12 @@ func guideRecord() libraryformat.ReleaseRecord {
 			"techs/react/prefer-server-components":           *version(1, 4, 0),
 			"techs/react/test-hooks-in-isolation":            *version(2, 2, 0),
 		},
-		Changes: map[string]libraryformat.RecordedChange{
-			"practices/testing/verify-retry-limits": {Change: libraryformat.ChangeMajor, From: version(1, 3, 0), Summaries: []string{"Require a test at the limit for every retry policy."}},
-			"practices/testing/verify-retries":      {Change: libraryformat.ChangeNew, Summaries: []string{"Add a broader rule about testing retries."}},
-			"techs/react/test-hooks-in-isolation":   {Change: libraryformat.ChangeMinor, From: version(2, 1, 0), Summaries: []string{"Add an example for custom hooks."}},
+		Changes: map[string]coderules.RecordedChange{
+			"practices/testing/verify-retry-limits": {Change: coderules.ChangeMajor, From: version(1, 3, 0), Summaries: []string{"Require a test at the limit for every retry policy."}},
+			"practices/testing/verify-retries":      {Change: coderules.ChangeNew, Summaries: []string{"Add a broader rule about testing retries."}},
+			"techs/react/test-hooks-in-isolation":   {Change: coderules.ChangeMinor, From: version(2, 1, 0), Summaries: []string{"Add an example for custom hooks."}},
 		},
-		Retired: map[string]libraryformat.RetiredRule{
+		Retired: map[string]coderules.RetiredRule{
 			"practices/testing/check-retry-backoff": {LastVersion: *version(1, 2, 0), ReplacedBy: "practices/testing/verify-retries", Summaries: []string{"Covered by the broader rule about testing retries."}},
 		},
 		LibraryFiles: []string{"practices/testing/_group.yaml"},
@@ -63,63 +63,63 @@ func TestRenderReleaseNotes_MatchesTheGuideExample(t *testing.T) {
 func TestRenderReleaseNotes_CountsAndSectionsFollowTheChanges(t *testing.T) {
 	for _, test := range []struct {
 		name   string
-		record libraryformat.ReleaseRecord
+		record coderules.ReleaseRecord
 		want   string
 	}{
 		{
 			name: "rules and library-wide files",
-			record: libraryformat.ReleaseRecord{
+			record: coderules.ReleaseRecord{
 				Release:      7,
-				Rules:        map[string]libraryformat.RuleVersion{"practices/testing/a": *version(1, 1, 0)},
-				Changes:      map[string]libraryformat.RecordedChange{"practices/testing/a": {Change: libraryformat.ChangeMinor, From: version(1, 0, 0), Summaries: []string{"Add an example."}}},
+				Rules:        map[string]coderules.RuleVersion{"practices/testing/a": *version(1, 1, 0)},
+				Changes:      map[string]coderules.RecordedChange{"practices/testing/a": {Change: coderules.ChangeMinor, From: version(1, 0, 0), Summaries: []string{"Add an example."}}},
 				LibraryFiles: []string{"practices/testing/_group.yaml"},
 			},
 			want: "Library release 7 changes 1 rule: 1 minor.\n\n## Minor changes\n\n- **practices/testing/a** `1.0.0` → `1.1.0`\n  - Add an example.\n\nThis library release also updates shared files, such as group descriptions or shared assets.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.1.0 |\n\n</details>",
 		},
 		{
 			name: "rules without library-wide files: one patch with two notes",
-			record: libraryformat.ReleaseRecord{
+			record: coderules.ReleaseRecord{
 				Release: 3,
-				Rules:   map[string]libraryformat.RuleVersion{"practices/testing/a": *version(1, 0, 1)},
-				Changes: map[string]libraryformat.RecordedChange{"practices/testing/a": {Change: libraryformat.ChangePatch, From: version(1, 0, 0), Summaries: []string{"Fix a typo.", "Clarify an example."}}},
+				Rules:   map[string]coderules.RuleVersion{"practices/testing/a": *version(1, 0, 1)},
+				Changes: map[string]coderules.RecordedChange{"practices/testing/a": {Change: coderules.ChangePatch, From: version(1, 0, 0), Summaries: []string{"Fix a typo.", "Clarify an example."}}},
 			},
 			want: "Library release 3 changes 1 rule: 1 patch.\n\n## Patch changes\n\n- **practices/testing/a** `1.0.0` → `1.0.1`\n  - Fix a typo.\n  - Clarify an example.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.1 |\n\n</details>",
 		},
 		{
 			name: "two kinds and a retirement without a replacement",
-			record: libraryformat.ReleaseRecord{
+			record: coderules.ReleaseRecord{
 				Release: 5,
-				Rules:   map[string]libraryformat.RuleVersion{"practices/testing/a": *version(1, 10, 0), "practices/testing/b": *version(1, 5, 0)},
-				Changes: map[string]libraryformat.RecordedChange{
-					"practices/testing/b": {Change: libraryformat.ChangeMinor, From: version(1, 4, 0), Summaries: []string{"Add a Go example."}},
-					"practices/testing/a": {Change: libraryformat.ChangeMinor, From: version(1, 9, 0), Summaries: []string{"Add a Python example."}},
+				Rules:   map[string]coderules.RuleVersion{"practices/testing/a": *version(1, 10, 0), "practices/testing/b": *version(1, 5, 0)},
+				Changes: map[string]coderules.RecordedChange{
+					"practices/testing/b": {Change: coderules.ChangeMinor, From: version(1, 4, 0), Summaries: []string{"Add a Go example."}},
+					"practices/testing/a": {Change: coderules.ChangeMinor, From: version(1, 9, 0), Summaries: []string{"Add a Python example."}},
 				},
-				Retired: map[string]libraryformat.RetiredRule{"practices/testing/c": {LastVersion: *version(3, 1, 4), Summaries: []string{"Agents shouldn't add these comments."}}},
+				Retired: map[string]coderules.RetiredRule{"practices/testing/c": {LastVersion: *version(3, 1, 4), Summaries: []string{"Agents shouldn't add these comments."}}},
 			},
 			want: "Library release 5 changes 3 rules: 2 minor and 1 retired.\n\n## Minor changes\n\n- **practices/testing/a** `1.9.0` → `1.10.0`\n  - Add a Python example.\n- **practices/testing/b** `1.4.0` → `1.5.0`\n  - Add a Go example.\n\n## Retired rules\n\n- **practices/testing/c**, last version `3.1.4`\n  - Agents shouldn't add these comments.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.10.0 |\n| practices/testing/b | 1.5.0 |\n\n</details>",
 		},
 		{
 			name: "first library release, which adds its library-wide files without the shared-files sentence",
-			record: libraryformat.ReleaseRecord{
+			record: coderules.ReleaseRecord{
 				Release:      1,
 				LibraryFiles: []string{"practices/testing/_group.yaml", "rule-library.yaml"},
-				Rules:        map[string]libraryformat.RuleVersion{"practices/testing/a": libraryformat.FirstRuleVersion, "techs/go/b": libraryformat.FirstRuleVersion},
-				Changes:      map[string]libraryformat.RecordedChange{"practices/testing/a": {Change: libraryformat.ChangeNew, Summaries: []string{"Add the rule."}}, "techs/go/b": {Change: libraryformat.ChangeNew, Summaries: []string{"Add the rule."}}},
+				Rules:        map[string]coderules.RuleVersion{"practices/testing/a": coderules.FirstRuleVersion, "techs/go/b": coderules.FirstRuleVersion},
+				Changes:      map[string]coderules.RecordedChange{"practices/testing/a": {Change: coderules.ChangeNew, Summaries: []string{"Add the rule."}}, "techs/go/b": {Change: coderules.ChangeNew, Summaries: []string{"Add the rule."}}},
 			},
 			want: "Library release 1 publishes 2 rules.\n\n## New rules\n\n- **practices/testing/a** `1.0.0`\n- **techs/go/b** `1.0.0`\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.0.0 |\n| techs/go/b | 1.0.0 |\n\n</details>",
 		},
 		{
 			name: "library-wide files only",
-			record: libraryformat.ReleaseRecord{
+			record: coderules.ReleaseRecord{
 				Release:      6,
-				Rules:        map[string]libraryformat.RuleVersion{"practices/testing/a": *version(1, 2, 3)},
+				Rules:        map[string]coderules.RuleVersion{"practices/testing/a": *version(1, 2, 3)},
 				LibraryFiles: []string{"assets/diagram.svg"},
 			},
 			want: "Library release 6 changes no rules. It updates shared files, such as group descriptions or shared assets.\n\n<details>\n<summary>All rule versions in this library release</summary>\n\n| Rule | Version |\n| --- | --- |\n| practices/testing/a | 1.2.3 |\n\n</details>",
 		},
 		{
 			name:   "library-wide files in a library without rules",
-			record: libraryformat.ReleaseRecord{Release: 1, Rules: map[string]libraryformat.RuleVersion{}, LibraryFiles: []string{"rule-library.yaml"}},
+			record: coderules.ReleaseRecord{Release: 1, Rules: map[string]coderules.RuleVersion{}, LibraryFiles: []string{"rule-library.yaml"}},
 			want:   "Library release 1 publishes no rules, only shared files, such as group descriptions or shared assets.",
 		},
 	} {
@@ -134,14 +134,14 @@ func TestRenderReleaseNotes_CountsAndSectionsFollowTheChanges(t *testing.T) {
 // TestReleaseMessage_WritesNotesThenARecordThatReadsBack puts the record after a --- line, sorted and without
 // empty sections, and parses it back to the same record.
 func TestReleaseMessage_WritesNotesThenARecordThatReadsBack(t *testing.T) {
-	record := libraryformat.ReleaseRecord{
+	record := coderules.ReleaseRecord{
 		Release: 2,
-		Rules:   map[string]libraryformat.RuleVersion{"practices/testing/c": libraryformat.FirstRuleVersion, "practices/testing/a": *version(2, 0, 0)},
-		Changes: map[string]libraryformat.RecordedChange{
-			"practices/testing/c": {Change: libraryformat.ChangeNew, Summaries: []string{"Replace b with c."}},
-			"practices/testing/a": {Change: libraryformat.ChangeMajor, From: version(1, 0, 0), Summaries: []string{"Fix a typo.", "Replace b with c."}},
+		Rules:   map[string]coderules.RuleVersion{"practices/testing/c": coderules.FirstRuleVersion, "practices/testing/a": *version(2, 0, 0)},
+		Changes: map[string]coderules.RecordedChange{
+			"practices/testing/c": {Change: coderules.ChangeNew, Summaries: []string{"Replace b with c."}},
+			"practices/testing/a": {Change: coderules.ChangeMajor, From: version(1, 0, 0), Summaries: []string{"Fix a typo.", "Replace b with c."}},
 		},
-		Retired: map[string]libraryformat.RetiredRule{"practices/testing/b": {LastVersion: libraryformat.FirstRuleVersion, ReplacedBy: "practices/testing/c", Summaries: []string{"Replace b with c."}}},
+		Retired: map[string]coderules.RetiredRule{"practices/testing/b": {LastVersion: coderules.FirstRuleVersion, ReplacedBy: "practices/testing/c", Summaries: []string{"Replace b with c."}}},
 	}
 	message, err := releaseMessage("Notes.\n\n---\n\nMore notes.", record)
 	if err != nil {
@@ -163,10 +163,10 @@ func TestReleaseMessage_WritesNotesThenARecordThatReadsBack(t *testing.T) {
 
 // TestReleaseMessage_RefusesARecordTheParserRejects never produces a tag message that projects can't read.
 func TestReleaseMessage_RefusesARecordTheParserRejects(t *testing.T) {
-	record := libraryformat.ReleaseRecord{
+	record := coderules.ReleaseRecord{
 		Release:      2,
-		Rules:        map[string]libraryformat.RuleVersion{"practices/testing/a": *version(1, 1, 0)},
-		Changes:      map[string]libraryformat.RecordedChange{"practices/testing/a": {Change: libraryformat.ChangeMajor, From: version(1, 0, 0), Summaries: []string{"Tighten a."}}},
+		Rules:        map[string]coderules.RuleVersion{"practices/testing/a": *version(1, 1, 0)},
+		Changes:      map[string]coderules.RecordedChange{"practices/testing/a": {Change: coderules.ChangeMajor, From: version(1, 0, 0), Summaries: []string{"Tighten a."}}},
 		LibraryFiles: []string{"practices/testing/a.md"},
 	}
 	if _, err := releaseMessage("Notes.", record); err == nil {

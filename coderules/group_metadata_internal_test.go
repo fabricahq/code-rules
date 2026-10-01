@@ -2,7 +2,7 @@
 // guarantees. The fixtures reach cases, such as repeated keys and escaped surrogates, that YAML decoding rules out
 // before these rules apply, so they call the unexported stage directly.
 
-package libraryformat
+package coderules
 
 import (
 	"encoding/json"

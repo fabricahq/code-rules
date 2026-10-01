@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // TestChangeNoteFixtures checks parsed notes and exact diagnostics.
@@ -57,11 +57,11 @@ func TestChangeNoteFixtures(t *testing.T) {
 
 // TestLargerChange_PicksTheLargestVersionChange resolves several pending notes on one rule.
 func TestLargerChange_PicksTheLargestVersionChange(t *testing.T) {
-	for _, test := range []struct{ a, b, want libraryformat.Change }{
-		{libraryformat.ChangePatch, libraryformat.ChangeMajor, libraryformat.ChangeMajor},
-		{libraryformat.ChangeMajor, libraryformat.ChangeMinor, libraryformat.ChangeMajor},
-		{libraryformat.ChangeMinor, libraryformat.ChangePatch, libraryformat.ChangeMinor},
-		{libraryformat.ChangePatch, libraryformat.ChangePatch, libraryformat.ChangePatch},
+	for _, test := range []struct{ a, b, want coderules.Change }{
+		{coderules.ChangePatch, coderules.ChangeMajor, coderules.ChangeMajor},
+		{coderules.ChangeMajor, coderules.ChangeMinor, coderules.ChangeMajor},
+		{coderules.ChangeMinor, coderules.ChangePatch, coderules.ChangeMinor},
+		{coderules.ChangePatch, coderules.ChangePatch, coderules.ChangePatch},
 	} {
 		if got := rules.LargerChange(test.a, test.b); got != test.want {
 			t.Errorf("larger of %s and %s: got %s, want %s", test.a, test.b, got, test.want)

@@ -11,9 +11,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
-	"github.com/fabricahq/code-rules/libraryformat"
 )
 
 // PublishedRule is one published version of a library rule, as the library release that published it holds it.
@@ -33,13 +33,13 @@ type PublishedRule struct {
 // without writing outside temporary storage. The library release that published the version is found from the
 // release records in its release/<number> tags. It fails with code releases-not-found before the library's first
 // library release, and version-not-found when the rule never published version.
-func ReadPublishedRule(ctx context.Context, source rules.Source, id string, version libraryformat.RuleVersion, options Options) (PublishedRule, error) {
+func ReadPublishedRule(ctx context.Context, source rules.Source, id string, version coderules.RuleVersion, options Options) (PublishedRule, error) {
 	return readPublishedRule(ctx, source, id, version, options, nil)
 }
 
 // readPublishedRule is ReadPublishedRule, failing with expect's error, when expect isn't nil, before reading any rule
 // file of the library release it finds.
-func readPublishedRule(ctx context.Context, source rules.Source, id string, version libraryformat.RuleVersion, options Options, expect func(*libraryRelease) error) (_ PublishedRule, err error) {
+func readPublishedRule(ctx context.Context, source rules.Source, id string, version coderules.RuleVersion, options Options, expect func(*libraryRelease) error) (_ PublishedRule, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
 		return PublishedRule{}, err
@@ -107,7 +107,7 @@ func readPublishedRule(ctx context.Context, source rules.Source, id string, vers
 
 // publishingRelease returns the library release that published version of rule id. Its errors name the versions
 // the rule did publish.
-func publishingRelease(history releaseHistory, id string, version libraryformat.RuleVersion) (*libraryRelease, error) {
+func publishingRelease(history releaseHistory, id string, version coderules.RuleVersion) (*libraryRelease, error) {
 	if history.newest() == nil {
 		return nil, fail("releases-not-found", "The library has no release/<number> tags, because it hasn't published its first library release, so its rules have no versions to fork. Ask the maintainer to publish a library release.", nil)
 	}
