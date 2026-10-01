@@ -20,7 +20,7 @@ practices/comments:
   description: Code comments, file headers, and doc comments.
 practices/concurrency:
   name: Concurrency
-  description: Shared resources under concurrent use, parallel work, and honoring cancellation and deadlines.
+  description: Coordinating concurrent work, including shared resources, parallel tasks, and propagating cancellation between them.
 practices/documentation:
   name: Documentation
   description: Guides, references, and other written documentation; READMEs and code comments have their own groups.
@@ -38,7 +38,7 @@ practices/readmes:
   description: Repository READMEs, from what the product does to a first working result and links to the full documentation.
 practices/resilience:
   name: Resilience
-  description: Timeouts, retries, and handling failures of networks and other services.
+  description: Timeouts, retries, and recovery from failures in networks, services, and other external operations.
 practices/testing:
   name: Testing
   description: What to test and how to write, name, and run tests, regardless of language or framework.
