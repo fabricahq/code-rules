@@ -55,7 +55,7 @@ func importSources(ctx context.Context, configuration rules.Configuration, optio
 		}
 		imported, err := importLibrary(ctx, source, options, resolve)
 		if err != nil {
-			return nil, fmt.Errorf("import source %q failed (no libraries were returned because all configured sources must succeed): %w", source.Name, err)
+			return nil, sourceError(source.Name, err)
 		}
 		result[source.Name] = imported
 	}

@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
+	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/term"
 )
@@ -23,6 +25,11 @@ func humanError(destination io.Writer, err error) string {
 	var validation *rules.ValidationError
 	if errors.As(err, &validation) && err == validation {
 		return fmt.Sprintf("%s %s\n\nLocation: %s\n", label, terminalText(validation.Problem), terminalText(validation.Location))
+	}
+	// A command that wrote nothing says so after the problem, keeping a validation error's location on its own line.
+	var unchanged *project.UnchangedError
+	if errors.As(err, &unchanged) && err == error(unchanged) && errors.As(unchanged.Err, &validation) && unchanged.Err == error(validation) {
+		return fmt.Sprintf("%s %s No files were written.\n\nLocation: %s\n", label, terminalText(strings.TrimSuffix(validation.Problem, ".")+"."), terminalText(validation.Location))
 	}
 	return fmt.Sprintf("%s %s\n", label, terminalText(err.Error()))
 }

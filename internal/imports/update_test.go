@@ -441,7 +441,7 @@ func TestPlanUpdate_NamesTheSourceWhoseLibraryHasAnInvalidReleaseRecord(t *testi
 	}
 	_, err = PlanUpdate(context.Background(), config, map[string]library.Snapshot{}, nil, Options{GitPath: alpha.fixture.GitPath, Environment: environment})
 	requireCode(t, err, "invalid-release-tag")
-	if !strings.HasPrefix(err.Error(), `update source "beta": `) {
+	if !strings.HasPrefix(err.Error(), "source beta: ") {
 		t.Fatalf("the failure doesn't name its source: %v", err)
 	}
 }

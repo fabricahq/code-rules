@@ -151,10 +151,13 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 				if !errors.As(err, &validation) || validation.Location != "rule-library.yaml" {
 					t.Fatalf("lost manifest error identity: %v", err)
 				}
-				for _, detail := range []string{`import source "team"`, "missing library manifest at the repository root", "declares the library format and optional license", "no libraries were returned because all configured sources must succeed"} {
+				for _, detail := range []string{"source team: ", "missing library manifest at the repository root", "declares the library format and optional license"} {
 					if !strings.Contains(err.Error(), detail) {
 						t.Fatalf("missing diagnostic context %q: %v", detail, err)
 					}
+				}
+				if strings.Contains(err.Error(), "no libraries were returned") {
+					t.Fatalf("internal wording: %v", err)
 				}
 			}
 			if strings.Contains(err.Error(), "license:") || strings.Contains(err.Error(), "configuration:") {
@@ -309,7 +312,8 @@ func TestImportMissingRefDiagnostic(t *testing.T) {
 	if result != nil {
 		t.Fatal("failed import returned partial libraries")
 	}
-	want := `import source "team" failed (no libraries were returned because all configured sources must succeed): sources.team.ref: the library has no tag or commit missing; check the ref.`
+	// The message names the source already, so it isn't named again.
+	want := `sources.team.ref: the library has no tag or commit missing; check the ref.`
 	if err.Error() != want {
 		t.Fatalf("unexpected diagnostic: %s", err)
 	}

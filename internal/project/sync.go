@@ -19,15 +19,16 @@ import (
 
 // Sync imports the rule versions each source's snapshot records, choosing versions only where configuration asks
 // for something a snapshot doesn't have, then validates and renders everything before replacing managed trees.
-// Git settings are trusted caller options. Any failure returns no change report. Authored files stay untouched,
+// Git settings are trusted caller options. Any failure returns no change report, and, unless a rollback left files
+// to recover, an *UnchangedError. Authored files stay untouched,
 // except that it adds the metadata of a group whose local rules would otherwise lose it, as install does.
 func Sync(ctx context.Context, options Options, git imports.Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
-		return FileChanges{}, err
+		return FileChanges{}, unchanged(err)
 	}
 	root, err := openProject(ctx, options, false)
 	if err != nil {
-		return FileChanges{}, err
+		return FileChanges{}, unchanged(err)
 	}
 	defer root.Close()
 	var changes FileChanges
@@ -53,7 +54,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		return err
 	})
 	if err != nil {
-		return FileChanges{}, fmt.Errorf("sync project: %w", err)
+		return FileChanges{}, unchanged(err)
 	}
 	return changes, nil
 }

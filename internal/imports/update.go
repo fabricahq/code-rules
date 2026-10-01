@@ -243,11 +243,8 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 			continue
 		}
 		planned, preview, warnings, err := planSourceUpdate(ctx, source, recordedSnapshot(recorded, source.Name), scope, options)
-		if sourceQualified(err, source.Name) {
-			return Update{}, err
-		}
 		if err != nil {
-			return Update{}, fmt.Errorf("update source %q: %w", source.Name, err)
+			return Update{}, sourceError(source.Name, err)
 		}
 		update.plans[source.Name] = planned
 		update.Sources = append(update.Sources, preview)
@@ -256,16 +253,21 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 	return update, nil
 }
 
-// sourceQualified reports whether err is a validation error of the source's configuration or of a SOURCE:RULE
-// argument naming it, whose location already names the source. Other failures, such as an invalid release
-// record in the library, need the source's name added.
-func sourceQualified(err error, source string) bool {
+// sourceError names source before err, a failure importing or updating it, unless err already names it or is a
+// cancellation: a validation error of the source's configuration or of a SOURCE:RULE argument naming it, or a
+// message about one of its fields. Other failures, such as an invalid release record in the library, need it.
+func sourceError(source string, err error) error {
 	var validation *rules.ValidationError
-	if !errors.As(err, &validation) || err != error(validation) {
-		return false
+	if errors.As(err, &validation) && err == error(validation) {
+		location := validation.Location
+		if location == "sources."+source || strings.HasPrefix(location, "sources."+source+".") || strings.HasPrefix(location, source+":") {
+			return err
+		}
 	}
-	location := validation.Location
-	return location == "sources."+source || strings.HasPrefix(location, "sources."+source+".") || strings.HasPrefix(location, source+":")
+	if strings.HasPrefix(err.Error(), "sources."+source+".") || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	return fmt.Errorf("source %s: %w", source, err)
 }
 
 // updateScopes maps each source the targets name to the rules they name, or to nil for every rule. No targets

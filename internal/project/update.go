@@ -85,11 +85,11 @@ func (r UpdateResult) Moves() bool {
 // another writer is changing.
 func PlanUpdate(ctx context.Context, options Options, git imports.Options, targets []imports.UpdateTarget) (*UpdatePlan, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return nil, unchanged(err)
 	}
 	root, err := openProject(ctx, options, false)
 	if err != nil {
-		return nil, err
+		return nil, unchanged(err)
 	}
 	defer root.Close()
 	var state projectState
@@ -103,16 +103,16 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 		return err
 	})
 	if err != nil {
-		return nil, err
+		return nil, unchanged(err)
 	}
 	recorded, err := recordedSnapshots(state.config, treeFiles(state.vendor))
 	if err != nil {
-		return nil, err
+		return nil, unchanged(err)
 	}
 	// imports.PlanUpdate names the source or argument that failed, which is all the context the command needs.
 	update, err := imports.PlanUpdate(ctx, state.config, recorded, targets, git)
 	if err != nil {
-		return nil, err
+		return nil, unchanged(err)
 	}
 	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide}, nil
 }
@@ -140,11 +140,11 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		return UpdateResult{}, err
 	}
 	if err := ctx.Err(); err != nil {
-		return UpdateResult{}, err
+		return UpdateResult{}, unchanged(err)
 	}
 	root, err := openProject(ctx, p.options, false)
 	if err != nil {
-		return UpdateResult{}, err
+		return UpdateResult{}, unchanged(err)
 	}
 	defer root.Close()
 	var changes FileChanges
@@ -175,7 +175,7 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		return err
 	})
 	if err != nil {
-		return UpdateResult{}, fmt.Errorf("update project: %w", err)
+		return UpdateResult{}, unchanged(err)
 	}
 	return UpdateResult{Applied: true, Sources: sources, FileChanges: changes}, nil
 }
