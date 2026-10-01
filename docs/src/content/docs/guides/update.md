@@ -3,7 +3,7 @@ title: "Update rules"
 description: "Upgrade rules to newer versions: preview each change, keep rules where they are when you need to, and adopt the rest deliberately."
 ---
 
-Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them. `code-rules project sync` never looks for newer versions, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
+Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them. Plain `code-rules project sync` keeps the rule versions your project recorded, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
 
 In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [upgrade a single rule or library](#update-one-rule-or-one-library), and commit the result. You'll also learn how to import one library release, change which rules you import, and recover from a failed update.
 

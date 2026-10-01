@@ -68,7 +68,7 @@ Publish a library release whenever you want your pending changes to reach projec
 
 ### Find a rule's current version
 
-A rule's current version is the one in the newest library release. Rule files carry no version, and files on the default branch can include unreleased edits, so look in the library release instead. Each `release/<number>` tag's [release record](/reference/rule-versions/#release-record) lists the version of every current rule, not only the ones that changed, and tools read it from the tag. On GitHub.com, open the newest library release's GitHub Release page and expand **All rule versions in this library release**.
+A rule's current version is the one in the newest library release. Rule files carry no version, and files on the default branch can include unreleased edits, so look in the library release instead. Each `release/<number>` tag's [release record](/reference/rule-versions/#release-record) lists the version of every current rule, not only the ones that changed, and tools read it from the tag. For a library on GitHub.com, the newest library release's GitHub Release page, when it has one, shows the same versions under **All rule versions in this library release**.
 
 In a project, the versions you import are listed under **Rule versions** in `.code-rules/generated/libraries/<source-name>/README.md`, and recorded in `.code-rules/generated/provenance.json`; see [Provenance](/reference/provenance/). To adopt a newer version, see [Update one rule or one library](/guides/update/#update-one-rule-or-one-library).
 
