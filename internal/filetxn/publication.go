@@ -1,4 +1,8 @@
 // Package filetxn protects authored files and managed trees with bounded reads and recoverable writes.
+// It owns the storage protocol: writer ownership, interrupted-operation recovery, staging, installation, and
+// rollback. Callers use WithWriter and Writer.Apply for managed trees and Edit for authored files rather than
+// spreading that protocol across callers. Concurrent changes cause refusal before installation; once replacement
+// begins, it completes or rolls back. Parent directories it creates are never removed, even by a rollback.
 package filetxn
 
 import (

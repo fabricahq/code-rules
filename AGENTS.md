@@ -63,9 +63,9 @@ Groups guide selection; individual rules determine applicability. A testing rule
 
 #### Library
 
-A library is a versioned collection of groups published in a Git repository. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries and groups to import.
+A library is a collection of groups published in a Git repository. Each library rule has its own version, and a library release publishes new versions of the rules that changed. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries, groups, and rules to import.
 
-Projects may import multiple sources, select a commit or tag for each, and add or override rules locally.
+Projects may import multiple sources, adopt each rule's published versions on their own schedule, and add or override rules locally.
 Source-qualified IDs distinguish rules from different libraries; they do not resolve contradictory instructions.
 See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](docs/src/content/docs/reference/configuration.md).
 
@@ -120,7 +120,7 @@ Describe proposed behavior honestly, and verify availability against the impleme
 
 When a product decision changes, update the owning concept, guide, or reference and its examples together.
 Keep configuration details and command contracts in those documents rather than duplicating them here.
-After docs changes, run the validation commands in [CONTRIBUTING.md](CONTRIBUTING.md#validate-changes).
+After docs changes, run the [documentation checks](CONTRIBUTING.md#documentation-website). Go tests read some documentation examples, so also run the [Go validation](CONTRIBUTING.md#validate-changes) when you change them.
 When layout or interaction changes, inspect the rendered pages.
 
 Keep this file focused on enduring product context and decisions useful to almost every agent session.

@@ -57,7 +57,7 @@ Keep implementation tasks in the internal planning material.
 Keep release availability accurate in the installation guide.
 
 Before handing off visual changes, inspect desktop and narrow layouts, light and dark themes, keyboard navigation, and search in a production preview.
-Run `bun run check` to verify website/tooling formatting, lint, types, tests, the static build, and links between built pages. The Go build tests also compile the copyable rule examples through the current resolver and renderer.
+Run `bun run check` to verify website/tooling formatting, lint, types, tests, the static build, and links between built pages. It doesn't run Go tests: `go test ./internal/build` renders the copyable rule examples through the current resolver and renderer.
 
 ### Link checks
 
