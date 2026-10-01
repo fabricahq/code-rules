@@ -655,3 +655,49 @@ func TestUpdate_MarkingAForkIncorporatedAdvancesItsBasedOnVersion(t *testing.T) 
 		t.Fatalf("the next update still lists the fork: %+v", row)
 	}
 }
+
+// TestUpdate_KeepingAReplacedRuleStillListsItsChangesForIncorporation: keeping a fork's replaced rule pins the
+// imported copy, yet the next update still lists the changes after basedOn, and marking them incorporated advances
+// basedOn while the pin stays.
+func TestUpdate_KeepingAReplacedRuleStillListsItsChangesForIncorporation(t *testing.T) {
+	f := newForkFixture(t, "")
+	ctx := context.Background()
+	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Build(ctx, f.options); err != nil {
+		t.Fatal(err)
+	}
+	preview := func(decisions []UpdateDecision) (*UpdatePlan, *imports.RuleUpdate) {
+		t.Helper()
+		plan, err := PlanUpdate(ctx, f.options, f.git, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, err := plan.Preview(decisions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return plan, previewRow(result.Sources, "team", "techs/go/errors")
+	}
+	keep := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "Not yet."}}
+	plan, _ := preview(keep)
+	if _, err := plan.Apply(ctx, keep); err != nil {
+		t.Fatal(err)
+	}
+	incorporated := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionIncorporated}}
+	plan, row := preview(nil)
+	if row == nil || row.Change != imports.UpdateReplaced || row.Pin == nil || row.Newest == nil || row.Newest.String() != "1.1.0" || row.To != nil {
+		t.Fatalf("after keeping, the next update lists %+v, want the pinned replaced row", row)
+	}
+	if _, err := plan.Apply(ctx, incorporated); err != nil {
+		t.Fatal(err)
+	}
+	config := string(f.files(t)["config.yaml"])
+	if !strings.Contains(config, "        basedOn: \"1.1.0\"\n") || !strings.Contains(config, "pins:") {
+		t.Fatalf("configuration:\n%s", config)
+	}
+	if _, row := preview(nil); row != nil {
+		t.Fatalf("the update still lists the incorporated rule: %+v", row)
+	}
+}

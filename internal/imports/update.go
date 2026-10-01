@@ -62,9 +62,11 @@ type RuleUpdate struct {
 	Change UpdateChange `json:"change"`
 	// From is the version the project imports; it is nil for a new rule.
 	From *rules.RuleVersion `json:"from,omitempty"`
-	// To is the version the update installs; it is nil for retired and pinned rules, which don't move.
+	// To is the version the update installs; it is nil for retired and pinned rules, which don't move, including a
+	// pinned replaced rule.
 	To *rules.RuleVersion `json:"to,omitempty"`
-	// Newest is a pinned rule's newest version, and LastVersion a retired rule's; each is nil otherwise.
+	// Newest is a pinned rule's newest version, including a pinned replaced rule's, and LastVersion a retired
+	// rule's; each is nil otherwise.
 	Newest      *rules.RuleVersion `json:"newest,omitempty"`
 	LastVersion *rules.RuleVersion `json:"lastVersion,omitempty"`
 	// Summaries holds one line per change note, oldest first: every version after From up to To, every version of
@@ -90,6 +92,18 @@ type RuleUpdate struct {
 	// changes up to To; Reason is recorded with a pin or exclusion. Planning leaves both empty.
 	Decision string `json:"decision,omitempty"`
 	Reason   string `json:"reason,omitempty"`
+}
+
+// ReviewedVersion returns the newest version a replaced row lists changes up to, which marking it incorporated
+// records as basedOn: To, or Newest when a pin keeps the imported copy. It is nil for other rows.
+func (r RuleUpdate) ReviewedVersion() *rules.RuleVersion {
+	if r.Change != UpdateReplaced {
+		return nil
+	}
+	if r.To != nil {
+		return r.To
+	}
+	return r.Newest
 }
 
 // Update is a planned project update: each source's preview, and what installing it imports.
@@ -380,6 +394,21 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 		listed := !excluded || exclusion.ReplacedBy != ""
 		pin, pinned := p.source.Pins[id]
 		switch {
+		// A replacement's basedOn is its own review baseline: a pin keeps the imported copy, not the review.
+		case published && excluded && exclusion.BasedOn != nil:
+			if !pinned && latest.Compare(*current.Version) > 0 {
+				if after[id], err = p.publishedVersion(id, latest); err != nil {
+					return nil, nil, err
+				}
+			}
+			if latest.Compare(*exclusion.BasedOn) > 0 {
+				row := RuleUpdate{ID: id, Change: UpdateReplaced, From: current.Version, To: &latest, LocalRule: exclusion.ReplacedBy, BasedOn: exclusion.BasedOn}
+				if pinned {
+					row.To, row.Newest, row.Pin = nil, &latest, &pin
+				}
+				row.Summaries, row.SummaryVersions = history.summaries(id, exclusion.BasedOn, latest)
+				rows = append(rows, row)
+			}
 		case pinned && !listed:
 		case pinned && !published:
 			row, err := retiredRow(id, current, history)
@@ -391,17 +420,6 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 		case pinned && latest.Compare(*current.Version) > 0:
 			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []rules.RuleVersion{}, Pin: &pin})
 		case pinned:
-		case published && excluded && exclusion.BasedOn != nil:
-			if latest.Compare(*current.Version) > 0 {
-				if after[id], err = p.publishedVersion(id, latest); err != nil {
-					return nil, nil, err
-				}
-			}
-			if latest.Compare(*exclusion.BasedOn) > 0 {
-				row := RuleUpdate{ID: id, Change: UpdateReplaced, From: current.Version, To: &latest, LocalRule: exclusion.ReplacedBy, BasedOn: exclusion.BasedOn}
-				row.Summaries, row.SummaryVersions = history.summaries(id, exclusion.BasedOn, latest)
-				rows = append(rows, row)
-			}
 		case !published:
 			delete(after, id)
 			if listed {

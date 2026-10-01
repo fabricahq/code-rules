@@ -177,7 +177,7 @@ func askUpdateDecisions(f *authoringFlags, preview project.UpdateResult, decisio
 				reasonLabel = "Reason for excluding it:"
 			case imports.UpdateReplaced:
 				choices = [2]string{"later", "incorporated"}
-				context = fmt.Sprintf("%s: replaced by %s, with library changes up to %s.", name, row.LocalRule, row.To)
+				context = fmt.Sprintf("%s: replaced by %s, with library changes up to %s.", name, row.LocalRule, row.ReviewedVersion())
 				question = "Review them later, or mark them incorporated?"
 			default:
 				continue
@@ -241,7 +241,7 @@ func answersSummary(sources []imports.SourceUpdate) string {
 			case "exclude":
 				fmt.Fprintf(&out, "  Exclude %s:%s.\n    Reason: %s\n", source.Name, row.ID, row.Reason)
 			case "incorporated":
-				fmt.Fprintf(&out, "  Mark %s:%s incorporated: your rule is based on %s.\n", source.Name, row.ID, row.To)
+				fmt.Fprintf(&out, "  Mark %s:%s incorporated: your rule is based on %s.\n", source.Name, row.ID, row.ReviewedVersion())
 			}
 		}
 	}
@@ -375,7 +375,7 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 	case row.Decision == "exclude":
 		lines = append(lines, "Excluded by a new exclusion.", "Reason: "+row.Reason)
 	case row.Decision == "incorporated":
-		lines = append(lines, "Marked incorporated: your rule is now based on "+row.To.String()+".")
+		lines = append(lines, "Marked incorporated: your rule is now based on "+row.ReviewedVersion().String()+".")
 	}
 	return lines
 }

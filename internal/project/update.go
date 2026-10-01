@@ -71,7 +71,7 @@ func (r UpdateResult) Moves() bool {
 			return true
 		}
 		for _, row := range source.Rules {
-			if row.Change != imports.UpdatePinned && row.Pin == nil && row.Decision != string(DecisionKeep) {
+			if row.Change == imports.UpdateReplaced || row.Change != imports.UpdatePinned && row.Pin == nil && row.Decision != string(DecisionKeep) {
 				return true
 			}
 		}
@@ -222,7 +222,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 			if edit.BasedOn == nil {
 				edit.BasedOn = map[string]rules.RuleVersion{}
 			}
-			edit.BasedOn[decision.Rule] = *row.To
+			edit.BasedOn[decision.Rule] = *row.ReviewedVersion()
 		case DecisionExclude:
 			if row == nil || row.Change != imports.UpdateNew {
 				return nil, nil, &rules.ValidationError{Location: where, Problem: "the update doesn't add this rule, so there's nothing to exclude; name a rule the preview lists as new"}
@@ -263,9 +263,9 @@ func previewRow(sources []imports.SourceUpdate, source, rule string) *imports.Ru
 // keepable reports whether a pin at the row's current version would keep the update from moving or dropping it.
 func keepable(row imports.RuleUpdate) bool {
 	switch row.Change {
-	case imports.UpdateMajor, imports.UpdateMinor, imports.UpdatePatch, imports.UpdateReplaced:
+	case imports.UpdateMajor, imports.UpdateMinor, imports.UpdatePatch:
 		return true
-	case imports.UpdateRetired:
+	case imports.UpdateReplaced, imports.UpdateRetired:
 		return row.Pin == nil
 	}
 	return false
