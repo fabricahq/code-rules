@@ -220,6 +220,9 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 // readSourceRecord is parseSourceRecord without the next step its validation errors share.
 func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	where := "vendor/" + name + "/_source.json"
+	if err := rules.RequireResolvedMerge(data, where, "run code-rules project sync, which checks the record against the library"); err != nil {
+		return parsedRecord{}, err
+	}
 	var fields map[string]json.RawMessage
 	if !utf8.Valid(data) || json.Unmarshal(data, &fields) != nil || fields == nil {
 		return parsedRecord{}, invalidSnapshot(where, "expected a UTF-8 source record object")

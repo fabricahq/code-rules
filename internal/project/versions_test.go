@@ -763,3 +763,33 @@ func TestSourceRecord_AnUnreadableRecordSaysHowToImportTheSourceAgain(t *testing
 		t.Fatalf("got %v", err)
 	}
 }
+
+// TestCheck_NamesAFileWithUnresolvedMergeConflicts, config.yaml or a source record, instead of failing to parse it.
+func TestCheck_NamesAFileWithUnresolvedMergeConflicts(t *testing.T) {
+	_, options, git := syncProject(t)
+	ctx := context.Background()
+	if _, err := Sync(ctx, options, git); err != nil {
+		t.Fatal(err)
+	}
+	tree := projectTree(t, options)
+	conflicted := func(text string) string {
+		return "<<<<<<< HEAD\n" + text + "=======\n" + text + ">>>>>>> theirs\n"
+	}
+	for _, test := range []struct{ file, location string }{
+		{configurationFile, ".code-rules/config.yaml"},
+		{"vendor/team/_source.json", "vendor/team/_source.json"},
+	} {
+		root, err := openProject(ctx, options, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		writeFixture(t, root, test.file, conflicted(string(tree.Files[test.file])))
+		_, err = Check(ctx, options)
+		var invalid *rules.ValidationError
+		if !errors.As(err, &invalid) || invalid.Location != test.location || !strings.Contains(invalid.Problem, "unresolved merge conflicts") {
+			t.Errorf("%s: %v", test.file, err)
+		}
+		writeFixture(t, root, test.file, string(tree.Files[test.file]))
+		root.Close()
+	}
+}
