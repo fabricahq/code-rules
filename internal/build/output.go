@@ -114,7 +114,7 @@ func libraryReadme(source resolvedSource) string {
 // ruleVersionTable lists each imported rule of source with its version, the library release that published it, and
 // whether agents read it: an excluded rule, which the source still imports so updates can report its changes, is
 // marked excluded, or replaced by its local rule, and a retired rule the source still imports is marked retired,
-// with the pin that keeps it.
+// with the ref or pin that keeps it.
 func ruleVersionTable(source resolvedSource) string {
 	versions, exclude := source.Versions, source.Exclude
 	if len(versions) == 0 {
@@ -130,6 +130,8 @@ func ruleVersionTable(source resolvedSource) string {
 			status = "Replaced by `" + exclusion.ReplacedBy + "`"
 		case excluded:
 			status = "Excluded"
+		case slices.Contains(source.Retired, id) && source.Ref != "":
+			status = "Retired upstream; kept by ref " + source.Ref
 		case slices.Contains(source.Retired, id) && pinned:
 			status = "Retired, pinned at " + pin.Version.String()
 		case slices.Contains(source.Retired, id):

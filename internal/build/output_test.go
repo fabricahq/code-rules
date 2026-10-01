@@ -416,17 +416,19 @@ func TestPrepareMarksExcludedRulesInTheLibrarySummary(t *testing.T) {
 // is marked retired.
 func TestLibraryReadme_ShowsAKeptRetiredRuleAsRetired(t *testing.T) {
 	for _, test := range []struct {
-		name   string
-		pinned bool
-		status string
-	}{{"pinned", true, "Retired, pinned at 1.3.0"}, {"not yet dropped", false, "Retired; the next update drops it"}} {
+		name        string
+		pinned, ref bool
+		status      string
+	}{{"pinned", true, false, "Retired, pinned at 1.3.0"}, {"not yet dropped", false, false, "Retired; the next update drops it"}, {"held by ref", false, true, "Retired upstream; kept by ref v1.0.0"}} {
 		t.Run(test.name, func(t *testing.T) {
 			files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
 				version := rules.RuleVersion{Major: 1, Minor: 3}
 				snapshot.Release = 2
 				snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: strings.Repeat("b", 40)}
 				snapshot.RetiredRules = []string{"techs/go/errors"}
-				source.Ref = rules.GitRef{}
+				if !test.ref {
+					source.Ref = rules.GitRef{}
+				}
 				if test.pinned {
 					source.Pins = map[string]rules.Pin{"techs/go/errors": {Version: version, Reason: "Still useful."}}
 				}
