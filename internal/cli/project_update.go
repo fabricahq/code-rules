@@ -28,17 +28,18 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 	cmd.Flags().StringArrayVar(&forks, "update-fork", nil, "Replace your local rule that replaces `SOURCE:RULE` with a fork of the newest version, overwriting your edits, and set its basedOn to that version (repeat)")
 	f.add(cmd, "reason", "Reason recorded with each pin and exclusion the update writes")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		// Every refusal says that the update wrote nothing, as a failed sync or update does.
 		targets, err := updateTargets(args)
 		if err != nil {
-			return usage(err)
+			return usage(&project.UnchangedError{Err: err})
 		}
 		decisions, err := flagDecisions(keep, exclude, forks, f.value("reason"))
 		if err != nil {
-			return usage(err)
+			return usage(&project.UnchangedError{Err: err})
 		}
 		directory, err := commandDirectory(cmd.Context(), options.Directory, "project", false)
 		if err != nil {
-			return err
+			return &project.UnchangedError{Err: err}
 		}
 		f.status("Reading library releases...")
 		plan, err := project.PlanUpdate(cmd.Context(), project.Options{Directory: directory, ToolVersion: options.Version}, options.Git, targets, decisions)

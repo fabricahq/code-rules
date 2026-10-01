@@ -310,7 +310,8 @@ func TestUpdate_RejectsDecisionsThePreviewDoesntOffer(t *testing.T) {
 			flag := map[UpdateDecisionKind]string{DecisionKeep: "--keep", DecisionExclude: "--exclude"}[last.Kind]
 			for _, err := range []error{previewErr, applyErr} {
 				var failure *filetxn.Error
-				if !errors.As(err, &failure) || failure.Code != "invalid-arguments" || !strings.HasPrefix(failure.Problem, flag+" "+last.Source+":"+last.Rule+": ") {
+				var unchanged *UnchangedError
+				if !errors.As(err, &failure) || failure.Code != "invalid-arguments" || !strings.HasPrefix(failure.Problem, flag+" "+last.Source+":"+last.Rule+": ") || !errors.As(err, &unchanged) {
 					t.Fatalf("got %v", err)
 				}
 			}

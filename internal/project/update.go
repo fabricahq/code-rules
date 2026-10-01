@@ -149,7 +149,7 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 func (p *UpdatePlan) Preview(ctx context.Context, decisions []UpdateDecision) (UpdateResult, error) {
 	sources, _, forks, err := p.decide(decisions)
 	if err != nil {
-		return UpdateResult{}, err
+		return UpdateResult{}, unchanged(err, p.recovered)
 	}
 	if err := p.readForks(ctx, sources, forks); err != nil {
 		return UpdateResult{}, unchanged(err, p.recovered)
@@ -168,7 +168,7 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 	recovered := false
 	sources, edits, forks, err := p.decide(decisions)
 	if err != nil {
-		return UpdateResult{}, err
+		return UpdateResult{}, unchanged(err, p.recovered)
 	}
 	if err := ctx.Err(); err != nil {
 		return UpdateResult{}, unchanged(err, p.recovered || recovered)

@@ -364,7 +364,7 @@ func TestUpdate_ScopedToOneRuleMovesOnlyThatRule(t *testing.T) {
 }
 
 // TestUpdate_RejectsInvalidRequestsWithoutWriting separates usage errors (exit 2), including decision flags the
-// preview doesn't offer, from requests the project can't satisfy (exit 1).
+// preview doesn't offer, from requests the project can't satisfy (exit 1), and says in each that it wrote nothing.
 func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
 	u := newUpdateFixture(t)
 	before := projectFileContents(t, u.directory)
@@ -398,6 +398,10 @@ func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
 			out, diagnostic, code := u.run(t, append([]string{"project", "update"}, test.args...)...)
 			if code != test.code || !strings.Contains(diagnostic, test.text) {
 				t.Fatalf("exit %d, want %d with %q:\n%s%s", code, test.code, test.text, out, diagnostic)
+			}
+			// Every refusal of the update itself says that it wrote nothing; the parser's own errors don't.
+			if !strings.Contains(test.text, "unknown flag") && !strings.Contains(diagnostic, "No files were written.") {
+				t.Fatalf("the refusal doesn't say that no files were written:\n%s", diagnostic)
 			}
 		})
 	}
