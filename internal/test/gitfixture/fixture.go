@@ -13,8 +13,9 @@ import (
 )
 
 // Fixture owns a local repository and a private SSH transport that runs Git upload-pack or receive-pack over stdio,
-// so clients can fetch with partial-clone filters and push. No listener, external network, user Git configuration,
-// or process-wide environment change is needed.
+// so clients can fetch with partial-clone filters and push. Clients use Git protocol version 2, as with GitHub, so
+// they can fetch objects by ID, including the blobs a partial clone omits. No listener, external network, user Git
+// configuration, or process-wide environment change is needed.
 type Fixture struct {
 	Directory    string
 	Repository   string
@@ -111,7 +112,7 @@ func New(ctx context.Context, files map[string][]byte) (_ *Fixture, err error) {
 	if err := os.WriteFile(transport, []byte(script), 0700); err != nil {
 		return nil, err
 	}
-	f.Environment = append(f.Environment, "GIT_SSH_COMMAND="+Quote(transport), "GIT_SSH_VARIANT=simple")
+	f.Environment = append(f.Environment, "GIT_SSH_COMMAND="+Quote(transport), "GIT_SSH_VARIANT=ssh")
 	return f, nil
 }
 
@@ -186,6 +187,16 @@ func (f *Fixture) Commit(ctx context.Context, dir, message string, files map[str
 func (f *Fixture) Tag(ctx context.Context, dir, name, message string) error {
 	_, err := f.CommandIn(ctx, dir, "tag", "--annotate", "--cleanup=verbatim", "--message", message, name)
 	return err
+}
+
+// Worktree returns the fixture repository's working tree, for Commit, Tag, and Release on the served repository itself.
+func (f *Fixture) Worktree() string { return filepath.Join(f.Directory, "repository") }
+
+// Release publishes library release number on the served repository's HEAD, as code-rules library release would:
+// an annotated release/<number> tag whose message is release notes, a line containing only ---, and record,
+// the release record's YAML.
+func (f *Fixture) Release(ctx context.Context, number int, record string) error {
+	return f.Tag(ctx, f.Worktree(), fmt.Sprintf("release/%d", number), fmt.Sprintf("Library release %d.\n\n---\n%s", number, record))
 }
 
 // Close releases all repository and helper files owned by the fixture.

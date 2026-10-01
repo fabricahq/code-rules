@@ -5,7 +5,6 @@ go 1.27.1
 require (
 	github.com/creack/pty v1.1.24
 	github.com/github/go-spdx/v2 v2.7.0
-	github.com/hashicorp/go-version v1.9.0
 	github.com/nlnwa/whatwg-url v0.6.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10

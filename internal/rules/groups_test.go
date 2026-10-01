@@ -111,3 +111,49 @@ func TestMalformedSelectionJSON(t *testing.T) {
 		}
 	}
 }
+
+// TestVersionedRule_NamesTheRuleThatOwnsAFile covers rule files, owned assets, and library-wide files.
+func TestVersionedRule_NamesTheRuleThatOwnsAFile(t *testing.T) {
+	for file, want := range map[string]string{
+		"techs/go/errors.md":                    "techs/go/errors",
+		"techs/go/nested/errors.md":             "techs/go/nested/errors",
+		"techs/go/assets/errors/diagram.png":    "techs/go/errors",
+		"techs/go/assets/errors/deep/notes.md":  "techs/go/errors",
+		"techs/go/nested/assets/errors/data.md": "techs/go/nested/errors",
+		"techs/go/_group.yaml":                  "",
+		"techs/go/README.md":                    "",
+		"techs/go/assets/loose.png":             "",
+		"assets/shared.md":                      "",
+		"rule-library.yaml":                     "",
+		"LICENSE.md":                            "",
+		"changes/one.yaml":                      "",
+		"techs/go/LICENSE.md":                   "",
+	} {
+		got, ok := rules.VersionedRule(file)
+		if got != want || ok != (want != "") {
+			t.Errorf("VersionedRule(%q) = %q, %v; want %q", file, got, ok, want)
+		}
+	}
+}
+
+// TestGroupSelection_Includes matches explicit groups and each wildcard's scope.
+func TestGroupSelection_Includes(t *testing.T) {
+	for _, test := range []struct {
+		selection rules.GroupSelection
+		group     string
+		want      bool
+	}{
+		{rules.GroupSelection{Pattern: "*"}, "techs/go", true},
+		{rules.GroupSelection{Pattern: "*"}, "practices/testing", true},
+		{rules.GroupSelection{Pattern: "techs/*"}, "techs/go", true},
+		{rules.GroupSelection{Pattern: "techs/*"}, "practices/testing", false},
+		{rules.GroupSelection{Pattern: "practices/*"}, "practices/testing", true},
+		{rules.GroupSelection{Groups: []string{"techs/go"}}, "techs/go", true},
+		{rules.GroupSelection{Groups: []string{"techs/go"}}, "techs/rust", false},
+		{rules.GroupSelection{Groups: []string{}}, "techs/go", false},
+	} {
+		if got := test.selection.Includes(test.group); got != test.want {
+			t.Errorf("%+v.Includes(%q) = %v, want %v", test.selection, test.group, got, test.want)
+		}
+	}
+}

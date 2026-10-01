@@ -22,6 +22,16 @@ func requiredArgument(name, example, explanation string) cobra.PositionalArgs {
 	}
 }
 
+// requiredArguments validates one or more named arguments, using the invoked path in usage examples.
+func requiredArguments(name, example, explanation string) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return fmt.Errorf("missing %s.\n%s\n\nUsage:\n  %s\n\nExample:\n  %s %s", name, explanation, cmd.UseLine(), cmd.CommandPath(), example)
+		}
+		return nil
+	}
+}
+
 // validateCommandPath rejects unknown subcommands before Cobra can return parent help.
 // Leaf commands retain their own positional argument validation and help behavior.
 func validateCommandPath(root *cobra.Command, args []string) (*cobra.Command, error) {

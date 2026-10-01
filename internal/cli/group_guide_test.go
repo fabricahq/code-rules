@@ -55,7 +55,7 @@ func TestGroupGuides(t *testing.T) {
 			}
 			if library {
 				out := run("library", "check", "--json")
-				if !strings.Contains(out, `"rules": 1`) {
+				if !strings.Contains(out, `"ruleCount": 1`) {
 					t.Fatal(out)
 				}
 			} else {

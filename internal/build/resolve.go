@@ -11,25 +11,32 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// ruleOrigin identifies an effective definition; local definitions have no repository or commit.
+// ruleOrigin identifies an effective definition; local definitions have no repository, commit, or version.
 type ruleOrigin struct {
 	Source     string `json:"source"`
 	File       string `json:"file"`
 	Repository string `json:"repository,omitempty"`
 	Ref        string `json:"ref,omitempty"`
-	Commit     string `json:"resolvedCommit,omitempty"`
+	// Commit is the commit that supplied the rule's files.
+	Commit string `json:"resolvedCommit,omitempty"`
+	// Version is nil, and Release is 0, for a local rule or an imported rule that isn't a published version.
+	Version *rules.RuleVersion `json:"version,omitempty"`
+	Release int                `json:"release,omitempty"`
 }
 
 // resolvedRule owns one parsed effective document. Upstream is non-nil only for replacements.
 type resolvedRule struct {
-	Rule     rules.Rule                `json:"rule"`
-	Origin   ruleOrigin                `json:"origin"`
-	Upstream *ruleOrigin               `json:"upstream"`
-	Reason   string                    `json:"replacementReason,omitempty"`
-	License  *rules.LicenseDeclaration `json:"license"`
+	Rule     rules.Rule  `json:"rule"`
+	Origin   ruleOrigin  `json:"origin"`
+	Upstream *ruleOrigin `json:"upstream"`
+	Reason   string      `json:"replacementReason,omitempty"`
+	// BasedOn is the library version a replacement incorporates, as its exclusion records it, or nil.
+	BasedOn *rules.RuleVersion        `json:"basedOn,omitempty"`
+	License *rules.LicenseDeclaration `json:"license"`
 }
 
 // groupGuidance identifies the source of one complete group metadata definition.
@@ -49,18 +56,23 @@ type resolvedGroup struct {
 // resolvedSource records the adopted revision and complete retained inventory, including excluded rules.
 // Files contains supporting bytes and inactive upstream documents; active rules own their original documents.
 type resolvedSource struct {
-	Name            string                    `json:"name"`
-	Repository      string                    `json:"repository"`
-	Ref             string                    `json:"ref,omitempty"`
-	Version         string                    `json:"version,omitempty"`
-	Tag             string                    `json:"resolvedTag,omitempty"`
-	ResolvedVersion string                    `json:"resolvedVersion,omitempty"`
-	Commit          string                    `json:"resolvedCommit"`
-	Selection       rules.GroupSelection      `json:"groupSelection"`
-	Groups          []string                  `json:"groups"`
-	License         *rules.LicenseDeclaration `json:"license"`
-	Paths           []string                  `json:"paths"`
-	Files           map[string][]byte         `json:"retainedFiles"`
+	Name       string                          `json:"name"`
+	Repository string                          `json:"repository"`
+	Ref        string                          `json:"ref,omitempty"`
+	Pins       map[string]rules.Pin            `json:"pins"`
+	Release    int                             `json:"release,omitempty"`
+	Commit     string                          `json:"resolvedCommit"`
+	Selection  rules.GroupSelection            `json:"groupSelection"`
+	Rules      []string                        `json:"ruleSelection"`
+	Groups     []string                        `json:"groups"`
+	Versions   map[string]library.ImportedRule `json:"rules"`
+	// Exclude is the source's configured exclusions, which the library README marks in its rule versions table.
+	Exclude map[string]rules.Exclusion `json:"-"`
+	// Retired lists the rules the library retired, as the source record does, so the README marks one it imports.
+	Retired []string                  `json:"-"`
+	License *rules.LicenseDeclaration `json:"license"`
+	Paths   []string                  `json:"paths"`
+	Files   map[string][]byte         `json:"retainedFiles"`
 }
 
 // resolution owns effective rules; supporting bytes are shared read-only with the input catalogs.
@@ -109,15 +121,17 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		if supplied.Catalog.Selection.Pattern != source.Groups.Pattern || !slices.Equal(supplied.Catalog.Selection.Groups, source.Groups.Groups) {
 			return resolution{}, invalid(source.Name, "loaded group selection differs from configuration; reload the source")
 		}
-		selectedVersion, err := selectedVersion(source, supplied)
-		if err != nil {
-			return resolution{}, err
+		for _, id := range supplied.Catalog.Rules {
+			if !slices.Contains(source.Rules, id) {
+				return resolution{}, invalid(source.Name, "loaded rule selection differs from configuration; reload the source")
+			}
 		}
-		ref, err := rules.ParseGitRef(supplied.Commit, source.Name+".resolvedCommit")
-		if err != nil || ref.Kind != "commit" {
+		snapshot := supplied.Snapshot
+		ref, err := rules.ParseGitRef(snapshot.Commit, source.Name+".resolvedCommit")
+		if err != nil || ref.Kind() != rules.GitRefCommit {
 			return resolution{}, invalid(source.Name, "resolvedCommit must be a full commit SHA")
 		}
-		if source.ParsedRef != nil && source.ParsedRef.Kind == "commit" && source.ParsedRef.SHA != ref.SHA {
+		if source.Ref.Kind() == rules.GitRefCommit && !source.Ref.Equal(ref) {
 			return resolution{}, invalid(source.Name, "resolved commit differs from configured commit")
 		}
 		candidates := map[string]rules.Rule{}
@@ -131,7 +145,9 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			if err := rules.ValidateGroupID(group.ID, source.Name); err != nil {
 				return resolution{}, err
 			}
-			ids = append(ids, group.ID)
+			if source.Groups.Includes(group.ID) {
+				ids = append(ids, group.ID)
+			}
 			target := ensureGroup(groups, group.ID)
 			target.Guidance = append(target.Guidance, groupGuidance{source.Name, group.Metadata})
 			for _, candidate := range group.Rules {
@@ -158,51 +174,43 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 				return resolution{}, invalid(source.Name, "loaded group outside configured selection")
 			}
 		}
-		for _, target := range slices.Sorted(maps.Keys(source.Exclude)) {
-			if _, ok := candidates[target]; !ok {
-				return resolution{}, invalid(source.Name+":"+target, "exception target is missing from selected groups")
-			}
-		}
-		for _, target := range slices.Sorted(maps.Keys(source.Replace)) {
-			if _, ok := candidates[target]; !ok {
-				return resolution{}, invalid(source.Name+":"+target, "replacement target is missing from selected groups")
-			}
-		}
 		retained := maps.Clone(supplied.Catalog.SupportingFiles)
 		if retained == nil {
 			retained = map[string][]byte{}
 		}
 		for _, id := range slices.Sorted(maps.Keys(candidates)) {
 			parsed := candidates[id]
-			if _, excluded := source.Exclude[id]; excluded {
+			exclusion, excluded := source.Exclude[id]
+			if excluded && exclusion.ReplacedBy == "" {
 				retained[parsed.Path] = []byte(parsed.Document)
 				continue
 			}
-			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref, Commit: ref.SHA}
-			if source.Version != "" {
-				origin.Ref = supplied.Tag
+			version, recorded := snapshot.Rules[id]
+			if !recorded || !validCommit(version.Commit) {
+				return resolution{}, invalid(parsed.ID, "the source snapshot records no version or commit for this rule; run code-rules project sync")
 			}
+			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref.String(), Commit: version.Commit, Version: version.Version, Release: version.Release}
 			active := resolvedRule{Rule: parsed, Origin: origin, License: supplied.Catalog.License}
-			if replacement, ok := source.Replace[id]; ok {
-				file := strings.TrimPrefix(replacement.File, "local/")
+			if excluded {
+				file := strings.TrimPrefix(exclusion.ReplacedBy, "local/")
 				replacementRule, ok := localRules[file]
 				if !ok {
-					return resolution{}, invalid(replacement.File, "missing local replacement rule")
+					return resolution{}, invalid(exclusion.ReplacedBy, "missing local replacement rule")
 				}
 				if used[file] {
-					return resolution{}, invalid(replacement.File, "replacement file is reused for multiple targets")
+					return resolution{}, invalid(exclusion.ReplacedBy, "replacement file is reused for multiple targets")
 				}
 				if replacementRule.Group != parsed.Group {
-					return resolution{}, invalid(replacement.File, "replacement must stay within the target group")
+					return resolution{}, invalid(exclusion.ReplacedBy, "replacement must stay within the target group")
 				}
 				retained[parsed.Path] = []byte(parsed.Document)
 				used[file] = true
-				active = resolvedRule{Rule: replacementRule, Origin: ruleOrigin{Source: "local", File: file}, Upstream: &origin, Reason: replacement.Reason, License: nil}
+				active = resolvedRule{Rule: replacementRule, Origin: ruleOrigin{Source: "local", File: file}, Upstream: &origin, Reason: exclusion.Reason, BasedOn: exclusion.BasedOn, License: nil}
 			}
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref, Version: source.Version, Tag: supplied.Tag, ResolvedVersion: selectedVersion, Commit: ref.SHA, Selection: source.Groups, Groups: ids, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
+		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, Exclude: source.Exclude, Retired: snapshot.RetiredRules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {
@@ -223,6 +231,12 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		result.Groups = append(result.Groups, *group)
 	}
 	return result, nil
+}
+
+// validCommit accepts a full, lowercase commit SHA.
+func validCommit(text string) bool {
+	ref, err := rules.ParseGitRef(text, "commit")
+	return err == nil && ref.Kind() == rules.GitRefCommit && ref.Canonical() == text
 }
 
 // ensureGroup returns a group accumulator with explicit empty collections.
@@ -309,32 +323,6 @@ func resolveGuidance(definitions []groupGuidance) []groupGuidance {
 		}
 	}
 	return slices.Clone(definitions)
-}
-
-// selectedVersion verifies a supplied release tag satisfies its requested constraint and returns its normalized version.
-func selectedVersion(source rules.Source, supplied Library) (string, error) {
-	if source.Version == "" {
-		if supplied.Tag != "" {
-			return "", invalid(source.Name, "supply a selected tag only for version-based sources")
-		}
-		return "", nil
-	}
-	version, err := rules.TagVersion(supplied.Tag, source.Name+".resolvedTag")
-	if err != nil {
-		return "", err
-	}
-	constraint, err := rules.ParseVersionConstraint(source.Version, source.Name+".version")
-	if err != nil {
-		return "", err
-	}
-	matches, err := constraint.Matches(supplied.Tag, source.Name+".resolvedTag")
-	if err != nil {
-		return "", err
-	}
-	if !matches {
-		return "", invalid(source.Name, "selected release does not satisfy the configured version constraint")
-	}
-	return version, nil
 }
 
 // compareRuleIDs compares digit runs numerically and other bytes lexically, without integer overflow.

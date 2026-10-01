@@ -53,7 +53,7 @@ func newLibraryFixture(t *testing.T, files map[string][]byte) *gitfixture.Fixtur
 // libraryConfig parses the same configuration boundary used by the application.
 func libraryConfig(t *testing.T, repository string) rules.Configuration {
 	t.Helper()
-	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": repository, "version": ">= 1.0.0", "groups": []string{"techs/go"}, "exclude": map[string]string{}, "replace": map[string]any{}}}})
+	raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "sources": map[string]any{"team": map[string]any{"repository": repository, "ref": "v1.2.0", "groups": []string{"techs/go"}}}})
 	config, err := rules.ParseConfiguration(raw)
 	if err != nil {
 		t.Fatal(err)
@@ -66,12 +66,12 @@ func TestImportLibraryOriginalBytes(t *testing.T) {
 	files := libraryFiles()
 	f := newLibraryFixture(t, files)
 	config := libraryConfig(t, f.Repository)
-	imported, err := ImportLibraries(context.Background(), config, Options{GitPath: f.GitPath, Environment: f.Environment})
+	imported, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
 	if err != nil {
 		t.Fatal(err)
 	}
 	item := imported["team"]
-	if item.Snapshot.Commit != f.LatestCommit || item.Snapshot.Tag != "v1.2.0" || item.Catalog.License == nil {
+	if item.Snapshot.Commit != f.LatestCommit || item.Catalog.License == nil {
 		t.Fatal("lost provenance or license")
 	}
 	for name, data := range item.Snapshot.Files {
@@ -88,7 +88,7 @@ func TestImportLibraryOriginalBytes(t *testing.T) {
 		t.Fatal("adopted unselected content")
 	}
 	config.Sources[0].Groups = rules.GroupSelection{Pattern: "*"}
-	if result, err := ImportLibraries(context.Background(), config, Options{GitPath: f.GitPath, Environment: f.Environment}); err == nil || result != nil {
+	if result, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment}); err == nil || result != nil {
 		t.Fatal("wildcard did not validate invalid second group")
 	}
 }
@@ -142,7 +142,7 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			result, err := ImportLibraries(context.Background(), libraryConfig(t, f.Repository), Options{GitPath: f.GitPath, Environment: f.Environment})
+			result, err := ImportLibraries(context.Background(), libraryConfig(t, f.Repository), nil, Options{GitPath: f.GitPath, Environment: f.Environment})
 			if err == nil || result != nil {
 				t.Fatal("invalid content returned usable import")
 			}
@@ -151,10 +151,13 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 				if !errors.As(err, &validation) || validation.Location != "rule-library.yaml" {
 					t.Fatalf("lost manifest error identity: %v", err)
 				}
-				for _, detail := range []string{`import source "team"`, "missing library manifest at the repository root", "declares the library format and optional license", "no libraries were returned because all configured sources must succeed"} {
+				for _, detail := range []string{"source team: ", "missing library manifest at the repository root", "declares the library format and optional license"} {
 					if !strings.Contains(err.Error(), detail) {
 						t.Fatalf("missing diagnostic context %q: %v", detail, err)
 					}
+				}
+				if strings.Contains(err.Error(), "no libraries were returned") {
+					t.Fatalf("internal wording: %v", err)
 				}
 			}
 			if strings.Contains(err.Error(), "license:") || strings.Contains(err.Error(), "configuration:") {
@@ -181,7 +184,7 @@ func TestImportMultipleSources(t *testing.T) {
 	second.Name = "beta"
 	second.Repository = "git@fixture.invalid:beta"
 	config.Sources = []rules.Source{first, second}
-	result, err := ImportLibraries(context.Background(), config, Options{GitPath: a.GitPath, Environment: environment})
+	result, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: a.GitPath, Environment: environment})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,13 +192,13 @@ func TestImportMultipleSources(t *testing.T) {
 		t.Fatal("sources mixed")
 	}
 	config.Sources[1].Groups = rules.GroupSelection{Pattern: "*"}
-	result, err = ImportLibraries(context.Background(), config, Options{GitPath: a.GitPath, Environment: environment})
+	result, err = ImportLibraries(context.Background(), config, nil, Options{GitPath: a.GitPath, Environment: environment})
 	if err == nil || result != nil || !strings.Contains(err.Error(), "beta") {
 		t.Fatal("partial or unattributed failure", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if result, err := ImportLibraries(ctx, config, Options{}); result != nil || !errors.Is(err, context.Canceled) {
+	if result, err := ImportLibraries(ctx, config, nil, Options{}); result != nil || !errors.Is(err, context.Canceled) {
 		t.Fatal("lost cancellation", err)
 	}
 }
@@ -203,7 +206,7 @@ func TestImportMultipleSources(t *testing.T) {
 // TestTreeFramingRejectsUnsafeRecords probes framing before any path can become a filesystem request.
 func TestTreeFramingRejectsUnsafeRecords(t *testing.T) {
 	oid := strings.Repeat("a", 40)
-	for _, record := range []string{"100644 blob " + oid + " 1\t../escape\x00", "100644 blob " + oid + " 1\tx", "100644 blob " + oid + " -1\tx\x00", "100644 blob " + oid + " 1\tx\x00" + "100644 blob " + oid + " 1\tx/y\x00"} {
+	for _, record := range []string{"100644 blob " + oid + "\t../escape\x00", "100644 blob " + oid + "\tx", "100644 blob " + oid + " 1\tx\x00", "100644 blob " + oid + "\tx\x00" + "100644 blob " + oid + "\tx/y\x00", "100644 blob " + oid + "\tx/y\x00" + "100644 blob " + oid + "\tx\x00"} {
 		if _, err := parseTree([]byte(record)); err == nil {
 			t.Fatalf("accepted %q", record)
 		}
@@ -227,7 +230,7 @@ func TestCancellationDuringGitMetadata(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	input := cancelMetadata{gitFiles: &gitFiles{ctx: ctx}, cancel: cancel}
-	_, err := library.LoadSource(ctx, input, "team", rules.GroupSelection{Groups: []string{}})
+	_, err := library.LoadSource(ctx, input, "team", rules.GroupSelection{Groups: []string{}}, nil)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("lost cancellation identity: %v", err)
 	}
@@ -238,13 +241,13 @@ func TestGitTreeAndRetainedLimits(t *testing.T) {
 	oid := strings.Repeat("a", 40)
 	var records strings.Builder
 	for i := 0; i < maxTreeFiles+1; i++ {
-		fmt.Fprintf(&records, "100644 blob %s 0\tfile-%d\x00", oid, i)
+		fmt.Fprintf(&records, "100644 blob %s\tfile-%d\x00", oid, i)
 	}
 	_, err := parseTree([]byte(records.String()))
 	requireCode(t, err, "limit-exceeded")
 	_, err = parseTree(bytes.Repeat([]byte{0}, maxTreeBytes+1))
 	requireCode(t, err, "limit-exceeded")
-	g := &gitFiles{ctx: context.Background(), total: maxRetainedBytes, entries: map[string]treeEntry{"x": {name: "x", mode: 0644, size: 1}}}
+	g := &gitFiles{ctx: context.Background(), total: maxRetainedBytes, entries: map[string]treeEntry{"x": {name: "x", mode: 0644}}}
 	_, err = g.ReadFile("x")
 	requireCode(t, err, "limit-exceeded")
 }
@@ -262,7 +265,7 @@ func TestGitBlobFraming(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		g := &gitFiles{ctx: context.Background(), revision: &revision{directory: dir, runner: runner}, entries: map[string]treeEntry{"x": {name: "x", mode: 0644, size: 1, object: oid}}}
+		g := &gitFiles{ctx: context.Background(), repo: &repository{directory: dir, runner: runner}, entries: map[string]treeEntry{"x": {name: "x", mode: 0644, object: oid}}}
 		_, err = g.ReadFile("x")
 		requireCode(t, err, "git-failed")
 	}
@@ -273,7 +276,7 @@ func TestCatalogMutationPreservesSnapshot(t *testing.T) {
 	files := libraryFiles()
 	fixture := newLibraryFixture(t, files)
 	config := libraryConfig(t, fixture.Repository)
-	result, err := ImportLibraries(context.Background(), config, Options{GitPath: fixture.GitPath, Environment: fixture.Environment})
+	result, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: fixture.GitPath, Environment: fixture.Environment})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -286,18 +289,31 @@ func TestCatalogMutationPreservesSnapshot(t *testing.T) {
 
 }
 
+// TestImportBranchRefDiagnostic says a ref that names one of the library's branches isn't supported, rather than
+// that the library has no such revision.
+func TestImportBranchRefDiagnostic(t *testing.T) {
+	f := newLibraryFixture(t, libraryFiles())
+	config := libraryConfig(t, f.Repository)
+	config.Sources[0].Ref = gitRef(t, "main")
+	_, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
+	requireCode(t, err, "ref-is-branch")
+	if want := "sources.team.ref: main is a branch; ref accepts a tag or a full commit SHA, not a branch, so every import can be reproduced."; !strings.HasSuffix(err.Error(), want) {
+		t.Fatalf("unexpected diagnostic: %s", err)
+	}
+}
+
 // TestImportMissingRefDiagnostic preserves typed failures without doubled sentence punctuation.
 func TestImportMissingRefDiagnostic(t *testing.T) {
 	f := newLibraryFixture(t, libraryFiles())
 	config := libraryConfig(t, f.Repository)
-	config.Sources[0].Version = ""
-	config.Sources[0].Ref = "missing"
-	result, err := ImportLibraries(context.Background(), config, Options{GitPath: f.GitPath, Environment: f.Environment})
-	requireCode(t, err, "ref-not-found")
+	config.Sources[0].Ref = gitRef(t, "missing")
+	result, err := ImportLibraries(context.Background(), config, nil, Options{GitPath: f.GitPath, Environment: f.Environment})
+	requireCode(t, err, "version-not-found")
 	if result != nil {
 		t.Fatal("failed import returned partial libraries")
 	}
-	want := `import source "team" failed (no libraries were returned because all configured sources must succeed): Requested ref is missing or refused; no other revision was selected.`
+	// The message names the source already, so it isn't named again.
+	want := `sources.team.ref: the library has no tag or commit missing; check the ref.`
 	if err.Error() != want {
 		t.Fatalf("unexpected diagnostic: %s", err)
 	}

@@ -33,14 +33,14 @@ func TestHumanErrorDisplay(t *testing.T) {
 			if tc.color {
 				label = "\x1b[1;31mError:\x1b[0m"
 			}
-			if !strings.Contains(result.Transcript, "\n"+label+" missing rule path") {
+			if !strings.HasPrefix(result.Transcript, label+" missing rule path") {
 				t.Fatal(result.Transcript)
 			}
 			if !tc.color && strings.Contains(result.Transcript, "\x1b[") {
 				t.Fatal(result.Transcript)
 			}
 			out, diagnostic, code := runCLI(t, binary, t.TempDir(), "project", "build")
-			if code != 1 || out != "" || !strings.HasPrefix(diagnostic, "\nError: ") || strings.Contains(diagnostic, "\x1b[") {
+			if code != 1 || out != "" || !strings.HasPrefix(diagnostic, "Error: ") || strings.Contains(diagnostic, "\x1b[") {
 				t.Fatal(code, out, diagnostic)
 			}
 		})

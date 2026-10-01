@@ -82,7 +82,7 @@ func writeCommandGroup(out *strings.Builder, cmd *cobra.Command, title, id strin
 func commandsInHelpOrder(cmd *cobra.Command) []*cobra.Command {
 	order := map[string][]string{
 		"code-rules": {"project", "library"},
-		"project":    {"init", "add", "sync", "build", "check"},
+		"project":    {"init", "add", "sync", "update", "build", "check"},
 		"library":    {"init", "add", "check"},
 		"add":        {"rule", "group", "library"},
 	}[cmd.Name()]
@@ -112,15 +112,8 @@ func commandOptions(cmd *cobra.Command) (*pflag.FlagSet, *pflag.FlagSet) {
 	available.AddFlagSet(cmd.InheritedFlags())
 	available.VisitAll(func(flag *pflag.Flag) {
 		switch flag.Name {
-		case "directory", "help", "json", "non-interactive":
+		case "directory", "help", "json", "non-interactive", "version":
 			common.AddFlag(flag)
-		case "version":
-			// The root prints the tool version; library adoption uses a version constraint.
-			if cmd.HasParent() {
-				specific.AddFlag(flag)
-			} else {
-				common.AddFlag(flag)
-			}
 		default:
 			specific.AddFlag(flag)
 		}

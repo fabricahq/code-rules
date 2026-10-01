@@ -15,7 +15,7 @@ import (
 func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	ctx := context.Background()
 	options := Options{Directory: filepath.Join(t.TempDir(), "team's library")}
-	if _, err := Initialize(ctx, options, nil); err != nil {
+	if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
 	metadata := rules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
@@ -50,5 +50,26 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(options.Directory, "techs/go/errors.md")); !os.IsNotExist(err) {
 		t.Fatal("wrote rule after group disappeared", err)
+	}
+}
+
+// TestPlanRule_FindsWhetherTheNewRuleNeedsAChangeNote from the library's release tags, failing in a shallow clone.
+func TestPlanRule_FindsWhetherTheNewRuleNeedsAChangeNote(t *testing.T) {
+	ctx := context.Background()
+	fixture, released := authorClone(t, libraryFiles(), releaseOne)
+	_, unreleased := authorClone(t, libraryFiles())
+	for options, want := range map[*Options]bool{&released: true, &unreleased: false} {
+		plan, err := PlanRule(ctx, "practices/testing/c", *options)
+		if err != nil || plan.NeedsChangeNote() != want {
+			t.Fatalf("%s: NeedsChangeNote %v, want %v: %v", options.Directory, plan.NeedsChangeNote(), want, err)
+		}
+	}
+	shallow := filepath.Join(t.TempDir(), "shallow")
+	if _, err := fixture.CommandIn(ctx, filepath.Dir(shallow), "clone", "--quiet", "--depth=1", "--template=", fixture.Repository, shallow); err != nil {
+		t.Fatal(err)
+	}
+	released.Directory = shallow
+	if _, err := PlanRule(ctx, "practices/testing/c", released); errorCode(err) != "shallow-clone" {
+		t.Fatal(err)
 	}
 }

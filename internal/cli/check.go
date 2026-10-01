@@ -14,13 +14,17 @@ type projectCheckResult struct {
 	Problems []checkProblem `json:"problems"`
 }
 
-// checkProblem identifies an observed mismatch and the command that can repair it.
+// checkProblem identifies an observed mismatch and the steps that can repair it, in the same form as authoring
+// results' next steps.
 type checkProblem struct {
-	Kind     string `json:"kind"`
-	Path     string `json:"path"`
-	Message  string `json:"message"`
-	NextStep string `json:"nextStep"`
+	Kind      string     `json:"kind"`
+	Path      string     `json:"path"`
+	Message   string     `json:"message"`
+	NextSteps []nextStep `json:"nextSteps"`
 }
+
+// rebuild is the repair of every problem project check reports: regenerating output and the managed guide.
+var rebuild = nextStep{Instruction: "Regenerate the project's generated files and Code Rules guide:", Commands: []string{"code-rules project build"}}
 
 // checkProject checks generated files and the managed README, keeping unreadable or invalid inputs as operational errors.
 func checkProject(ctx context.Context, options project.Options) (projectCheckResult, error) {
@@ -28,7 +32,7 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 	if err != nil {
 		return projectCheckResult{}, err
 	}
-	result := projectCheckResult{Status: "up_to_date", Problems: []checkProblem{}}
+	result := projectCheckResult{Status: "up-to-date", Problems: []checkProblem{}}
 	for _, problem := range report.Problems {
 		message := ""
 		switch problem.Kind {
@@ -41,10 +45,10 @@ func checkProject(ctx context.Context, options project.Options) (projectCheckRes
 		case project.OutdatedGuide:
 			message = "Code Rules guide is missing or outdated; preserve any manual edits before refreshing"
 		}
-		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextStep: "code-rules project build"})
+		result.Problems = append(result.Problems, checkProblem{Kind: string(problem.Kind), Path: problem.Path, Message: message, NextSteps: []nextStep{rebuild}})
 	}
 	if !report.Current() {
-		result.Status = "out_of_date"
+		result.Status = "out-of-date"
 	}
 	return result, nil
 }

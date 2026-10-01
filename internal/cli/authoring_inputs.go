@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
@@ -17,10 +18,12 @@ import (
 
 // authoringFlags owns one command's scalar flags and resolves paths against the caller's directory.
 type authoringFlags struct {
-	command      *cobra.Command
-	values       map[string]*singleString
-	prompts      map[string]string
-	directory    string
+	command   *cobra.Command
+	values    map[string]*singleString
+	prompts   map[string]string
+	directory string
+	// git runs Git in a library's own repository; project commands don't use it.
+	git          gitexec.Options
 	introduction string
 	prompted     bool
 }
@@ -62,6 +65,9 @@ func (f *authoringFlags) value(name string) string {
 func (f *authoringFlags) require(names ...string) error {
 	for _, name := range names {
 		if f.value(name) == "" {
+			if !f.interactive() {
+				return usage(fmt.Errorf("--%s is required: pass it as a flag, since without a terminal, or with --json or --non-interactive, the command can't ask for it", name))
+			}
 			label := f.command.Flags().Lookup(name).Usage
 			if prompt, ok := f.prompts[name]; ok {
 				label = prompt

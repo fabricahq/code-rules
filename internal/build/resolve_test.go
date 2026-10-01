@@ -4,6 +4,7 @@ package build
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -17,10 +18,10 @@ const document = "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Pr
 const metadata = `{"name":"Go","description":"Go guidance.","whenToRead":"When editing Go."}`
 const commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
-// fixture supplies parsed configuration and an immutable selected catalog for policy tests.
-func fixture(t *testing.T, exclude, replace string) (rules.Configuration, map[string]Library) {
+// fixture supplies parsed configuration with the given exclude map and an immutable selected catalog for policy tests.
+func fixture(t *testing.T, exclude string) (rules.Configuration, map[string]Library) {
 	t.Helper()
-	config, err := rules.ParseConfiguration(json.RawMessage(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":` + exclude + `,"replace":` + replace + `}}}`))
+	config, err := rules.ParseConfiguration(json.RawMessage(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":` + exclude + `}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,23 +33,35 @@ func fixture(t *testing.T, exclude, replace string) (rules.Configuration, map[st
 	if err != nil {
 		t.Fatal(err)
 	}
-	return config, map[string]Library{"team": {Commit: commit, Catalog: library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, License: nil, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}}}}
+	return config, map[string]Library{"team": versioned(library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, License: nil, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}})}
+}
+
+// versioned supplies catalog with a snapshot record that imports each of its rules at version 1.0.0 from
+// library release 1, at commit.
+func versioned(catalog library.Catalog) Library {
+	snapshot := library.Snapshot{Release: 1, Commit: commit, Rules: map[string]library.ImportedRule{}}
+	for _, group := range catalog.Groups {
+		for _, rule := range group.Rules {
+			snapshot.Rules[strings.TrimSuffix(rule.Path, ".md")] = library.ImportedRule{Version: &rules.FirstRuleVersion, Release: 1, Commit: commit}
+		}
+	}
+	return Library{Catalog: catalog, Snapshot: snapshot}
 }
 
 // TestResolveAdoption covers imported definitions, exclusions, replacements, local additions, and guidance precedence.
 func TestResolveAdoption(t *testing.T) {
 	for _, test := range []struct {
-		name, exclude, replace string
-		local                  map[string][]byte
-		ids                    []string
+		name, exclude string
+		local         map[string][]byte
+		ids           []string
 	}{
-		{"import", `{}`, `{}`, nil, []string{"team:techs/go/errors"}},
-		{"exclude", `{"techs/go/errors":"Project policy"}`, `{}`, nil, []string{}},
-		{"replace", `{}`, `{"techs/go/errors":{"file":"local/techs/go/custom.md","reason":"Project policy"}}`, map[string][]byte{"techs/go/custom.md": []byte(document)}, []string{"local:techs/go/custom"}},
-		{"addition", `{}`, `{}`, map[string][]byte{"techs/go/custom.md": []byte(document)}, []string{"local:techs/go/custom", "team:techs/go/errors"}},
+		{"import", `{}`, nil, []string{"team:techs/go/errors"}},
+		{"exclude", `{"techs/go/errors":{"reason":"Project policy"}}`, nil, []string{}},
+		{"replace", `{"techs/go/errors":{"reason":"Project policy","replacedBy":"local/techs/go/custom.md"}}`, map[string][]byte{"techs/go/custom.md": []byte(document)}, []string{"local:techs/go/custom"}},
+		{"addition", `{}`, map[string][]byte{"techs/go/custom.md": []byte(document)}, []string{"local:techs/go/custom", "team:techs/go/errors"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			config, libraries := fixture(t, test.exclude, test.replace)
+			config, libraries := fixture(t, test.exclude)
 			before, _ := json.Marshal(libraries)
 			got, err := resolve(config, libraries, test.local)
 			if err != nil {
@@ -76,7 +89,7 @@ func TestResolveAdoption(t *testing.T) {
 			}
 		})
 	}
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	local := map[string][]byte{"techs/go/_group.yaml": []byte(strings.ReplaceAll(metadata, "Go guidance.", "Local guidance."))}
 	got, err := resolve(config, libraries, local)
 	if err != nil {
@@ -90,20 +103,19 @@ func TestResolveAdoption(t *testing.T) {
 // TestResolveFailures rejects missing inputs and validates candidates before exclusions can conceal them.
 func TestResolveFailures(t *testing.T) {
 	for _, test := range []struct {
-		name, exclude, replace string
-		local                  map[string][]byte
-		alter                  func(map[string]Library)
+		name, exclude string
+		local         map[string][]byte
+		alter         func(map[string]Library)
 	}{
-		{name: "missing library", exclude: `{}`, replace: `{}`, alter: func(l map[string]Library) { delete(l, "team") }},
-		{name: "invalid excluded rule", exclude: `{"techs/go/errors":"Not needed"}`, replace: `{}`, alter: func(l map[string]Library) { l["team"].Catalog.Groups[0].Rules[0].Document = "broken" }},
-		{name: "missing exception", exclude: `{"techs/go/missing":"Not needed"}`, replace: `{}`},
-		{name: "missing replacement", exclude: `{}`, replace: `{"techs/go/errors":{"file":"local/techs/go/custom.md","reason":"Project policy"}}`},
-		{name: "wrong group", exclude: `{}`, replace: `{"techs/go/errors":{"file":"local/techs/rust/custom.md","reason":"Project policy"}}`, local: map[string][]byte{"techs/rust/custom.md": []byte(document)}},
-		{name: "bad local path", exclude: `{}`, replace: `{}`, local: map[string][]byte{"../assets/data": []byte("x")}},
-		{name: "missing local metadata", exclude: `{}`, replace: `{}`, local: map[string][]byte{"practices/testing/a.md": []byte(document)}},
+		{name: "missing library", exclude: `{}`, alter: func(l map[string]Library) { delete(l, "team") }},
+		{name: "invalid excluded rule", exclude: `{"techs/go/errors":{"reason":"Not needed"}}`, alter: func(l map[string]Library) { l["team"].Catalog.Groups[0].Rules[0].Document = "broken" }},
+		{name: "missing replacement", exclude: `{"techs/go/errors":{"reason":"Project policy","replacedBy":"local/techs/go/custom.md"}}`},
+		{name: "wrong group", exclude: `{"techs/go/errors":{"reason":"Project policy","replacedBy":"local/techs/rust/custom.md"}}`, local: map[string][]byte{"techs/rust/custom.md": []byte(document)}},
+		{name: "bad local path", exclude: `{}`, local: map[string][]byte{"../assets/data": []byte("x")}},
+		{name: "missing local metadata", exclude: `{}`, local: map[string][]byte{"practices/testing/a.md": []byte(document)}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			config, libraries := fixture(t, test.exclude, test.replace)
+			config, libraries := fixture(t, test.exclude)
 			if test.alter != nil {
 				test.alter(libraries)
 			}
@@ -112,6 +124,84 @@ func TestResolveFailures(t *testing.T) {
 				t.Fatalf("partial or successful result: %+v, %v", got, err)
 			}
 		})
+	}
+}
+
+// TestResolveReplacementFileReuse refuses one local file replacing two rules, within one source or across
+// sources, and accepts distinct replacement files.
+func TestResolveReplacementFileReuse(t *testing.T) {
+	meta, err := rules.ParseGroupMetadata(json.RawMessage(metadata), "group")
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog := func(source string, paths ...string) Library {
+		group := library.Group{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{}}
+		for _, path := range paths {
+			rule, err := rules.Parse(document, path, source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			group.Rules = append(group.Rules, rule)
+		}
+		return versioned(library.Catalog{Selection: rules.GroupSelection{Groups: []string{"techs/go"}}, Groups: []library.Group{group}, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}})
+	}
+	replaced := func(file string) string {
+		return `{"reason":"Project policy","replacedBy":"local/techs/go/` + file + `"}`
+	}
+	local := map[string][]byte{"techs/go/custom.md": []byte(document), "techs/go/second.md": []byte(document)}
+	for _, test := range []struct {
+		name      string
+		sources   string
+		libraries map[string]Library
+		reused    bool
+	}{
+		{"same source", `"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/errors":` + replaced("custom.md") + `,"techs/go/other":` + replaced("custom.md") + `}}`,
+			map[string]Library{"team": catalog("team", "techs/go/errors.md", "techs/go/other.md")}, true},
+		{"two sources", `"acme":{"repository":"https://github.com/acme/other","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/errors":` + replaced("custom.md") + `}},` +
+			`"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/errors":` + replaced("custom.md") + `}}`,
+			map[string]Library{"acme": catalog("acme", "techs/go/errors.md"), "team": catalog("team", "techs/go/errors.md")}, true},
+		{"distinct files", `"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/errors":` + replaced("custom.md") + `,"techs/go/other":` + replaced("second.md") + `}}`,
+			map[string]Library{"team": catalog("team", "techs/go/errors.md", "techs/go/other.md")}, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config, err := rules.ParseConfiguration(json.RawMessage(`{"schemaVersion":1,"sources":{` + test.sources + `}}`))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := resolve(config, test.libraries, local)
+			if !test.reused {
+				if err != nil || len(got.Groups) != 1 || len(got.Groups[0].Rules) != 2 || got.Groups[0].Rules[0].Rule.ID != "local:techs/go/custom" || got.Groups[0].Rules[1].Rule.ID != "local:techs/go/second" {
+					t.Fatalf("got %+v, %v", got.Groups, err)
+				}
+				return
+			}
+			var validation *rules.ValidationError
+			if !errors.As(err, &validation) || validation.Location != "local/techs/go/custom.md" || validation.Problem != "replacement file is reused for multiple targets" || got.Groups != nil || got.Sources != nil {
+				t.Fatalf("got %+v, %v; want reuse refusal and no result", got, err)
+			}
+		})
+	}
+}
+
+// TestResolveRecordsEachRulesVersionAndCommit gives each imported rule the version and commit its snapshot records.
+func TestResolveRecordsEachRulesVersionAndCommit(t *testing.T) {
+	config, libraries := fixture(t, `{}`)
+	older, version := strings.Repeat("b", 40), rules.RuleVersion{Major: 1, Minor: 2}
+	team := libraries["team"]
+	team.Snapshot.Release = 3
+	team.Snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 2, Commit: older}
+	libraries["team"] = team
+	got, err := resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	origin := got.Groups[0].Rules[0].Origin
+	if origin.Commit != older || origin.Version == nil || *origin.Version != version || origin.Release != 2 {
+		t.Fatalf("origin %+v", origin)
+	}
+	delete(team.Snapshot.Rules, "techs/go/errors")
+	if _, err := resolve(config, libraries, nil); err == nil {
+		t.Fatal("resolved a rule without a version record")
 	}
 }
 
@@ -129,7 +219,7 @@ func TestResolveLocalOnly(t *testing.T) {
 
 // TestLocalSupportingFilesRemainSupport accepts inert support while rejecting unsafe names before asset classification.
 func TestLocalSupportingFilesRemainSupport(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	for _, file := range []string{"techs/go/_notes.md", "techs/go/notes.txt", "assets/examples/_group.yaml", "techs/go/assets/example/_group.yaml"} {
 		got, err := resolve(config, libraries, map[string][]byte{file: []byte("support")})
 		if err != nil || string(got.LocalFiles[file]) != "support" || len(got.Groups[0].Rules) != 1 || !reflect.DeepEqual(got.LocalPaths, []string{file}) {
@@ -145,7 +235,7 @@ func TestLocalSupportingFilesRemainSupport(t *testing.T) {
 
 // TestReservedLocalGroupMetadata cannot hide reserved group names in the asset classification.
 func TestReservedLocalGroupMetadata(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	for _, file := range []string{"techs/assets/_group.yaml", "practices/assets/_group.yaml"} {
 		if _, err := resolve(config, libraries, map[string][]byte{file: []byte(metadata)}); err == nil {
 			t.Fatalf("accepted %s", file)
@@ -155,49 +245,23 @@ func TestReservedLocalGroupMetadata(t *testing.T) {
 
 // TestResolveBindsSelection rejects an otherwise valid catalog loaded with a narrower selector.
 func TestResolveBindsSelection(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	config.Sources[0].Groups = rules.GroupSelection{Pattern: "*"}
 	if _, err := resolve(config, libraries, nil); err == nil {
 		t.Fatal("accepted narrower catalog for wildcard")
 	}
 }
 
-// TestResolveVersionProvenance requires a matching release and retains its tag and normalized version.
-func TestResolveVersionProvenance(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
-	config.Sources[0].Ref = ""
-	config.Sources[0].ParsedRef = nil
-	config.Sources[0].Version = ">= 1.0.0, < 2.0.0"
-	supplied := libraries["team"]
-	for _, tag := range []string{"", "v0.9.0", "v1.2.3"} {
-		supplied.Tag = tag
-		libraries["team"] = supplied
-		got, err := resolve(config, libraries, nil)
-		if tag != "v1.2.3" {
-			if err == nil {
-				t.Fatalf("accepted %q", tag)
-			}
-			continue
-		}
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got.Sources[0].Tag != tag || got.Sources[0].ResolvedVersion != "1.2.3" || got.Groups[0].Rules[0].Origin.Ref != tag {
-			t.Fatal("lost selected version")
-		}
-	}
-}
-
 // TestResolveRetainsInactiveDocuments preserves hidden upstream text without duplicating active documents.
 func TestResolveRetainsInactiveDocuments(t *testing.T) {
 	for _, policy := range []struct {
-		exclude, replace string
-		local            map[string][]byte
+		exclude string
+		local   map[string][]byte
 	}{
-		{`{"techs/go/errors":"Not applicable"}`, `{}`, nil},
-		{`{}`, `{"techs/go/errors":{"file":"local/techs/go/custom.md","reason":"Project policy"}}`, map[string][]byte{"techs/go/custom.md": []byte(document)}},
+		{`{"techs/go/errors":{"reason":"Not applicable"}}`, nil},
+		{`{"techs/go/errors":{"reason":"Project policy","replacedBy":"local/techs/go/custom.md"}}`, map[string][]byte{"techs/go/custom.md": []byte(document)}},
 	} {
-		config, libraries := fixture(t, policy.exclude, policy.replace)
+		config, libraries := fixture(t, policy.exclude)
 		resolved, err := resolve(config, libraries, policy.local)
 		if err != nil {
 			t.Fatal(err)
@@ -209,7 +273,7 @@ func TestResolveRetainsInactiveDocuments(t *testing.T) {
 			t.Fatal("mutated input catalog")
 		}
 	}
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -223,7 +287,7 @@ func TestResolveRetainsInactiveDocuments(t *testing.T) {
 func TestResolveRejectsLocalRuleLinks(t *testing.T) {
 	for _, from := range []string{"techs/go/one.md", "assets/guide.md", "techs/go/assets/one/guide.md"} {
 		t.Run(from, func(t *testing.T) {
-			config, libraries := fixture(t, `{}`, `{}`)
+			config, libraries := fixture(t, `{}`)
 			local := map[string][]byte{"techs/go/one.md": []byte(document), "techs/go/two.md": []byte(document)}
 			local[from] = append(local[from], []byte("\n[other](/techs/go/two.md)\n")...)
 			got, err := resolve(config, libraries, local)
@@ -236,7 +300,7 @@ func TestResolveRejectsLocalRuleLinks(t *testing.T) {
 
 // TestResolveAllowsLocalSupportingLinks keeps same-document anchors, shared explanations, and code examples valid.
 func TestResolveAllowsLocalSupportingLinks(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	local := map[string][]byte{
 		"techs/go/one.md": []byte(document + "\n[self](#details) [guide](/assets/guide.md) `\x5bother](two.md)`\n"),
 		"assets/guide.md": []byte("[next](next.md) [external](https://example.com/reference)"),
@@ -251,7 +315,7 @@ func TestResolveAllowsLocalSupportingLinks(t *testing.T) {
 func TestResolveGroupGuidance(t *testing.T) {
 	for _, withLocal := range []bool{false, true} {
 		t.Run(fmt.Sprint("local=", withLocal), func(t *testing.T) {
-			config, libraries := fixture(t, `{}`, `{}`)
+			config, libraries := fixture(t, `{}`)
 			other := config.Sources[0]
 			other.Name = "aaa"
 			other.Repository = "https://github.com/acme/other"
@@ -299,7 +363,7 @@ func TestResolveNumericRuleOrder(t *testing.T) {
 		{"rule-99999999999999999999", "rule-100000000000000000000"},
 	} {
 		for _, reverse := range []bool{false, true} {
-			config, libraries := fixture(t, "{}", "{}")
+			config, libraries := fixture(t, "{}")
 			lib := libraries["team"]
 			lib.Catalog.Groups[0].Rules = nil
 			for i := range names {
@@ -312,7 +376,7 @@ func TestResolveNumericRuleOrder(t *testing.T) {
 				}
 				lib.Catalog.Groups[0].Rules = append(lib.Catalog.Groups[0].Rules, rule)
 			}
-			libraries["team"] = lib
+			libraries["team"] = versioned(lib.Catalog)
 			resolved, err := resolve(config, libraries, nil)
 			if err != nil {
 				t.Fatal(err)
