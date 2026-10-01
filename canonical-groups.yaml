@@ -6,7 +6,8 @@
 #
 # Each entry maps a group ID to its display name and one line saying which rules
 # belong in the group. Keep entries sorted by ID. Unknown fields are errors.
-# To propose a group, open a pull request. See
+# Tools should read this file at an explicit commit and update that pin
+# deliberately. To propose a group, open a pull request. See
 # https://code-rules.fabricahq.com/concepts/groups/#canonical-group-ids
 practices/code-design:
   name: Code design

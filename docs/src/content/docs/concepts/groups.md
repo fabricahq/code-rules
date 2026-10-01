@@ -33,9 +33,11 @@ Use `--name` when creating a group to give it a readable title; the title does n
 
 ## Canonical group IDs
 
-Each library chooses its own group IDs, so the same technology could be `techs/go` in one library and `techs/golang` in another. The [canonical group list](https://github.com/fabricahq/code-rules/blob/main/canonical-groups.yaml) names the shared IDs, such as `techs/go` and `practices/testing`. Each entry has a display name and a line saying which rules belong in the group.
+Each library chooses its own group IDs, so the same technology could be `techs/go` in one library and `techs/golang` in another. The canonical group list, `canonical-groups.yaml` in the Code Rules repository, names the shared IDs, such as `techs/go` and `practices/testing`. Each entry has a display name and a line saying which rules belong in the group. You can [browse the latest list](https://github.com/fabricahq/code-rules/blob/main/canonical-groups.yaml) on GitHub.
 
 When you create a group, use a canonical ID if one fits. Tools and catalogs can read the list to combine groups across libraries, for example to show every library's Go rules together. A group whose ID isn't on the list works the same way in projects, but those tools show it on its own. The list has no aliases: a group ID is part of every rule's ID, so another name for the same group is a different group.
+
+The list on `main` changes as maintainers add groups. A tool should read the file at an explicit commit, such as `https://raw.githubusercontent.com/fabricahq/code-rules/<commit>/canonical-groups.yaml`, and update that commit deliberately, as it would a dependency.
 
 To propose a canonical group, open a pull request that adds an entry to `canonical-groups.yaml`. Say which rules belong in the group and how it differs from the groups already on the list.
 
