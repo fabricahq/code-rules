@@ -54,7 +54,7 @@ The notes present changes in this order, leaving out any with nothing to say:
 ## Always and never
 
 - Always also call out a breaking change in a sentence near the start of the notes, so readers can't miss it.
-- Always give migration steps for a breaking change, with the commands or before-and-after examples readers need.
+- Always give migration steps for a breaking change, with the commands or before-and-after examples readers need. Until Code Rules is publicly announced, summarize breaking changes in a sentence instead, and say that upgrade instructions are omitted because Code Rules is in initial development.
 - Always credit external contributors by GitHub handle.
 - Never present internal refactors, CI changes, or website-only changes as new CLI features.
 - Never mention dependency updates unless they fix a security issue.
