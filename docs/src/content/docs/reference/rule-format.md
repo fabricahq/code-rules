@@ -46,6 +46,8 @@ Existing snapshots and local replacements must add rule-level `whenToRead` befor
 
 See [Write a rule](/guides/write-rules/) for a complete example.
 
+Rules have no `version` field, and you never set a version by hand. Library releases assign versions from the change notes that authors record with `code-rules library change`; see [Change rules after the first library release](/guides/version-rules/#change-rules-after-the-first-library-release) and [Rule versions](/reference/rule-versions/).
+
 ## Rule attribution
 
 A rule may record the source of an adaptation independently of the library's license:

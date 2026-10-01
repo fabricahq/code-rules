@@ -51,7 +51,7 @@ A library rule has its own [semantic version](https://semver.org/), such as `1.3
 
 A rule can also be **retired**, when a better rule replaces it or the practice is no longer recommended.
 
-Each version is recorded in the library release that published it, with a summary of what changed. The rule file itself has no version field; see [Find a rule's current version](/guides/version-rules/#find-a-rules-current-version). Library authors record each change in a change note, and a library release turns the notes into new versions.
+Each version is recorded in the library release that published it, with a summary of what changed. The rule file itself has no version field; see [Find a rule's current version](/guides/version-rules/#find-a-rules-current-version). Library authors never set a version by hand: they [record each change in a change note](/guides/version-rules/#change-rules-after-the-first-library-release), and a library release turns the notes into new versions.
 
 Projects see each imported rule's version in their generated guidance, and upgrade a rule to its newest version with `code-rules project update`; see [Update one rule or one library](/guides/update/#update-one-rule-or-one-library). Before a project adopts a major change or retirement of a rule it uses, someone on the project accepts it. Local rules have no versions.
 
