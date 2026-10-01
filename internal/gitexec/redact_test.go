@@ -1,112 +1,87 @@
-// Exercise credential redaction by exact value and by pattern, in every position a secret can take in a line.
+// Exercise the decision to show or withhold text that could reveal a known credential, and the redaction of common
+// credential formats in text that is shown.
 
 package gitexec
 
 import (
-	"slices"
 	"strings"
 	"testing"
 )
 
-// TestRedact_RemovesEveryFormOfEachSecret covers each exact value, as written, decoded, and URL-encoded, in and
-// around other text, and each pattern. Removing either layer fails the cases that rely on it.
-func TestRedact_RemovesEveryFormOfEachSecret(t *testing.T) {
-	runner := Runner{environment: []string{"PATH=/bin", "GH_TOKEN=env-token-value", "GITHUB_TOKEN=plain-github-token", "GH_ENTERPRISE_TOKEN=enterprise/token", "GITHUB_ENTERPRISE_TOKEN=second-enterprise", "OTHER_TOKEN=keep-this-value"}}
-	remote := "https://deploy-user:p%40ss%2Fword@example.com/acme/rules.git"
+// TestShow_WithholdsTextRevealingAKnownCredentialInAnySpelling covers each spelling, escaping, and wrapping of a
+// known token, a remote's password and HTTPS user name, and fragments of eight or more characters, and shows text
+// that reveals none. Removing the decision fails every withheld case.
+func TestShow_WithholdsTextRevealingAKnownCredentialInAnySpelling(t *testing.T) {
 	for _, test := range []struct {
-		name, text, want string
+		name, token, remote, text string
+		shown                     bool
 	}{
-		{"URL user name alone", "user deploy-user", "user [redacted]"},
-		{"URL password as written", "token p%40ss%2Fword here", "token [redacted] here"},
-		{"URL password decoded", "token p@ss/word here", "token [redacted] here"},
-		{"environment token at line start", "env-token-value was rejected", "[redacted] was rejected"},
-		{"environment token at line end", "rejected env-token-value", "rejected [redacted]"},
-		{"environment token inside other text", "xenv-token-valuex", "x[redacted]x"},
-		{"several tokens in one line", "plain-github-token and second-enterprise and env-token-value", "[redacted] and [redacted] and [redacted]"},
-		{"environment token decoded and encoded", "enterprise/token enterprise%2Ftoken", "[redacted] [redacted]"},
-		{"unrelated variable stays", "keep-this-value", "keep-this-value"},
-		{"credential URL of another host", "fetch https://someone:hunter22@other.example/x", "fetch https://[redacted]@other.example/x"},
-		{"token as a URL user name", "ssh://ghx-token-like@host/repo", "ssh://[redacted]@host/repo"},
-		{"URL without credentials stays", "https://example.com/acme/rules.git", "https://example.com/acme/rules.git"},
-		{"GitHub classic token", "ghp_abcdefghijklmnop1234 leaked", "[redacted] leaked"},
-		{"GitHub OAuth, server, user, and refresh tokens", "gho_abc1 ghs_abc2 ghu_abc3 ghr_abc4", "[redacted] [redacted] [redacted] [redacted]"},
-		{"GitHub fine-grained token", "key=github_pat_11ABC_def123", "key=[redacted]"},
-		{"GitLab token", "glpat-AbC_12-xyz end", "[redacted] end"},
-		{"Authorization header", "Authorization: Basic dXNlcjpwYXNz\nnext line", "Authorization: [redacted]\nnext line"},
-		{"lowercase authorization header", "authorization:token-value", "authorization:[redacted]"},
-		{"Bearer token", "sent Bearer abc.def.ghi to the server", "sent Bearer [redacted] to the server"},
-		{"text without secrets", "remote: rejected by policy", "remote: rejected by policy"},
+		{"no credential", "opaque-secret-value", "", "remote: rejected by policy", true},
+		{"token as written", "opaque-secret-value", "", "token opaque-secret-value", false},
+		{"percent-encoded once", "opaque-secret-value", "", "opaque%2dsecret%2Dvalue", false},
+		{"percent-encoded twice", "opaque-secret-value", "", "opaque%252dsecret-value", false},
+		{"every character percent-encoded", "abc", "", "leaked %61%62%63 here", false},
+		{"erase-line sequence inside", "opaque-secret-value", "", "opaque-\x1b[Ksecret-value", false},
+		{"color sequences inside", "opaque-secret-value", "", "opaque-\x1b[31msecret-value\x1b[0m", false},
+		{"escaped color sequence inside", "opaque-secret-value", "", `opaque-\x1b[31msecret-value`, false},
+		{"zero-width space inside", "opaque-secret-value", "", "opaque-​secret-value", false},
+		{"unicode escape", "opaque-secret-value", "", `opaque-secret-value`, false},
+		{"decomposed accent", "café-secret-value", "", "café-secret-value", false},
+		{"compatibility characters", "opaque-secret-value", "", "ｏｐａｑｕｅ-secret-value", false},
+		{"uppercase", "opaque-secret-value", "", "OPAQUE-SECRET-VALUE", false},
+		{"wrapped differently at each boundary", "alpha beta-gamma", "", "alpha\nbeta-\ngamma", false},
+		{"prefix inside the token", "opaque-secret-value", "", "remote: opaque-\nremote: remote: secret-value", false},
+		{"fragment of eight characters", "opaque-secret-value", "", "token ...ecretval...", false},
+		{"fragment of seven characters", "opaque-secret-value", "", "token ...cretval...", true},
+		{"short token whole", "on", "", "Connection refused", false},
+		{"short token absent", "xy1", "", "Connection refused", true},
+		{"remote password", "", "ssh://reader:pa%24%24word@example.com/rules", "password pa$$word rejected", false},
+		{"HTTPS user name token", "", "https://opaque-user-token@example.com/rules", "user-token rejected", false},
+		{"SSH user name", "", "ssh://deploy-account@example.com/rules", "user deploy-account", true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			if got := runner.Credentials(remote).Redact(test.text); got != test.want {
-				t.Fatalf("Redact(%q) = %q, want %q", test.text, got, test.want)
+			credentials := Runner{environment: []string{"GH_TOKEN=" + test.token}}.Credentials(test.remote)
+			if _, shown := credentials.Show(test.text); shown != test.shown {
+				t.Fatalf("Show(%q) shown %v, want %v", test.text, shown, test.shown)
 			}
 		})
 	}
 }
 
-// TestRedact_RemovesShortAndDifferentlyEncodedSecretsStandingAlone redacts every nonempty password and token by
-// value, whatever its length, in every percent-encoding of it, outside any URL.
-func TestRedact_RemovesShortAndDifferentlyEncodedSecretsStandingAlone(t *testing.T) {
-	for _, test := range []struct {
-		name, environment, remote, text, want string
-	}{
-		{"short password", "", "https://deploy:abc@example.com/rules.git", "remote: password abc rejected", "remote: password [redacted] rejected"},
-		{"lowercase percent-encoding", "", "https://deploy-user:p%40ss%2Fword@example.com/rules.git", "remote: password p%40ss%2fword rejected", "remote: password [redacted] rejected"},
-		{"mixed encoded and plain characters", "", "https://deploy-user:p%40ss%2Fword@example.com/rules.git", "token p@ss%2fword and p%40ss/word", "token [redacted] and [redacted]"},
-		{"every character encoded", "", "https://deploy-user:abc@example.com/rules.git", "leaked %61%62%63 here", "leaked [redacted] here"},
-		{"one-character token", "GH_TOKEN=q", "", "status q", "status [redacted]"},
-		{"short token", "GITHUB_TOKEN=xy1", "", "xy1 expired", "[redacted] expired"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			runner := Runner{environment: []string{test.environment}}
-			remotes := []string{}
-			if test.remote != "" {
-				remotes = append(remotes, test.remote)
-			}
-			if got := runner.Credentials(remotes...).Redact(test.text); got != test.want {
-				t.Fatalf("Redact(%q) = %q, want %q", test.text, got, test.want)
-			}
-		})
-	}
-}
-
-// TestRedact_LeavesShortUserNamesToThePatterns doesn't shred text by replacing a short user name, such as git, but
-// still removes it from a URL.
-func TestRedact_LeavesShortUserNamesToThePatterns(t *testing.T) {
-	runner := Runner{}
-	got := runner.Credentials("https://git:pw@example.com/rules.git").Redact("the git server at https://git:pw@example.com refused")
-	if want := "the git server at https://[redacted]@example.com refused"; got != want {
-		t.Fatalf("got %q, want %q", got, want)
-	}
-	if strings.Contains(runner.Credentials("https://git@example.com/rules.git").Redact("git"), Redacted) {
-		t.Fatal("redacted a three-byte user name by value")
-	}
-}
-
-// TestLines_FindsKnownSecretsHoweverTheyAreSplit reports a token split by control characters, which it removes
-// before redacting, and one wrapped across lines, which redacting each line can't remove.
-func TestLines_FindsKnownSecretsHoweverTheyAreSplit(t *testing.T) {
+// TestShow_WithholdsTextTooLargeToCheckAndAWrappedCredentialURL without checking it, so the decision is bounded,
+// and a URL whose user information continues on the next line.
+func TestShow_WithholdsTextTooLargeToCheckAndAWrappedCredentialURL(t *testing.T) {
 	credentials := Runner{environment: []string{"GH_TOKEN=opaque-secret-value"}}.Credentials()
-	for _, test := range []struct {
-		name         string
-		lines, safe  []string
-		known, split bool
-	}{
-		{"no secret", []string{"rejected by policy"}, []string{"rejected by policy"}, false, false},
-		{"secret on one line", []string{" token opaque-secret-value "}, []string{"token [redacted]"}, true, false},
-		{"secret split by a tab", []string{"token opaque-\tsecret-value"}, []string{"token [redacted]"}, true, false},
-		{"secret split by an escape sequence", []string{"opaque-\x1b[Ksecret-value"}, []string{"opaque-[Ksecret-value"}, false, false},
-		{"secret wrapped without a space", []string{"token opaque-", "secret-value"}, []string{"token opaque-", "secret-value"}, true, true},
-		{"secret wrapped at a space", []string{"token opaque-secret", "-value"}, []string{"token opaque-secret", "-value"}, true, true},
-		{"percent-encoded secret wrapped", []string{"opaque%2d", "secret-value"}, []string{"opaque%2d", "secret-value"}, true, true},
+	if _, shown := credentials.Show(strings.Repeat("token opaque-secret-value\n", 1<<20/26)); shown {
+		t.Fatal("showed a megabyte of text")
+	}
+	if _, shown := credentials.Show(strings.Repeat("x", maxCheckedBytes+1)); shown {
+		t.Fatal("showed text over the limit")
+	}
+	if _, shown := credentials.Show(strings.Repeat("x", maxCheckedBytes)); !shown {
+		t.Fatal("withheld text at the limit")
+	}
+	if _, shown := credentials.Show("Clone https://someone:hunt\nremote: er22@mirror.invalid/rules"); shown {
+		t.Fatal("showed a credential URL wrapped across lines")
+	}
+}
+
+// TestShow_RedactsCommonCredentialFormatsInTextItShows, up to the last @ of a URL's authority.
+func TestShow_RedactsCommonCredentialFormatsInTextItShows(t *testing.T) {
+	for _, test := range []struct{ text, want string }{
+		{"fetch https://someone:hunter22@other.example/x", "fetch https://[redacted]@other.example/x"},
+		{"clone https://someone:p@ssword@mirror.invalid/rules", "clone https://[redacted]@mirror.invalid/rules"},
+		{"https://example.com/acme/rules.git", "https://example.com/acme/rules.git"},
+		{"ghp_abcdefghijklmnop1234 leaked", "[redacted] leaked"},
+		{"gho_abc1 ghs_abc2 ghu_abc3 ghr_abc4", "[redacted] [redacted] [redacted] [redacted]"},
+		{"key=github_pat_11ABC_def123", "key=[redacted]"},
+		{"glpat-AbC_12-xyz end", "[redacted] end"},
+		{"Authorization: Basic dXNlcjpwYXNz\nnext line", "Authorization: [redacted]\nnext line"},
+		{"sent Bearer abc.def.ghi to the server", "sent Bearer [redacted] to the server"},
 	} {
-		t.Run(test.name, func(t *testing.T) {
-			safe, known, split := credentials.Lines(test.lines)
-			if !slices.Equal(safe, test.safe) || known != test.known || split != test.split {
-				t.Fatalf("got %q, known %v, split %v; want %q, %v, %v", safe, known, split, test.safe, test.known, test.split)
-			}
-		})
+		if got, shown := (Credentials{}).Show(test.text); !shown || got != test.want {
+			t.Errorf("Show(%q) = %q, %v; want %q", test.text, got, shown, test.want)
+		}
 	}
 }
 

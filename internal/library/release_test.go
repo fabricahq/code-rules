@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/test/ghfixture"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
@@ -1006,11 +1007,11 @@ func TestParseRemoteListing_ReadsTheDefaultBranchAndReleaseTagsWithinTheRecordLi
 		}
 		return out.String()
 	}
-	state, err := parseRemoteListing(listing(20_000)+commit+"\trefs/tags/release/01\n", main)
+	state, err := parseRemoteListing(listing(20_000)+commit+"\trefs/tags/release/01\n", main, gitexec.Credentials{})
 	if errorCode(err) != "limit-exceeded" {
 		t.Fatalf("20,001 tag records: %v", err)
 	}
-	state, err = parseRemoteListing(listing(20_000), main)
+	state, err = parseRemoteListing(listing(20_000), main, gitexec.Credentials{})
 	if err != nil || state.defaultBranch != "refs/heads/main" || state.head != commit || len(state.tags) != 10_000 || state.latest() != 10_000 || state.tags[1] != tag {
 		t.Fatalf("20,000 tag records: %d tags, latest %d: %v", len(state.tags), state.latest(), err)
 	}
@@ -1020,7 +1021,7 @@ func TestParseRemoteListing_ReadsTheDefaultBranchAndReleaseTagsWithinTheRecordLi
 		{"malformed line", header + "release/1\n", "git-failed"},
 		{"malformed object", header + "xyz\trefs/tags/release/1\n", "git-failed"},
 	} {
-		if _, err := parseRemoteListing(test.listing, main); errorCode(err) != test.code {
+		if _, err := parseRemoteListing(test.listing, main, gitexec.Credentials{}); errorCode(err) != test.code {
 			t.Errorf("%s: %v, want %s", test.name, err, test.code)
 		}
 	}

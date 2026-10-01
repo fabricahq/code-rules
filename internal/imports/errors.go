@@ -37,43 +37,78 @@ const maxReasonRunes = 200
 // code connection-failed, or otherwise a repository that doesn't exist or that the credentials can't read, with
 // code not-found-or-no-access, since servers report both the same way.
 func (r *repository) remoteFailure(diagnostics []byte) error {
-	lines, split := r.diagnosticLines(diagnostics)
-	if reason, found := reasonAfter(lines, connectionFailures); found {
-		return fail("connection-failed", "Could not connect to the library's repository"+quoted(reason, split, ": ", "")+". Check the repository address and your network connection.", nil)
+	view := r.view(diagnostics)
+	if view.matches(connectionFailures) {
+		return fail("connection-failed", "Could not connect to the library's repository"+view.reason(connectionFailures, ": ", "")+". Check the repository address and your network connection.", nil)
 	}
 	return fail("not-found-or-no-access", "Repository not found or no access; check its address and Git credentials.", nil)
 }
 
 // gitFailure explains a Git command that failed while reading the library: a host it couldn't reach, with code
 // connection-failed; a server that refused to send files by object ID, with code object-fetch-refused; or
-// otherwise problem, with code, followed by Git's last error line when it printed one. It quotes none of Git's text
-// when a known password or token spans lines of it.
+// otherwise problem, with code, followed by Git's last error line when it printed one.
 func (r *repository) gitFailure(code, problem string, diagnostics []byte) error {
-	lines, split := r.diagnosticLines(diagnostics)
-	if reason, found := reasonAfter(lines, connectionFailures); found {
-		return fail("connection-failed", "Could not connect to the library's repository"+quoted(reason, split, ": ", "")+". Check the repository address and your network connection.", nil)
+	view := r.view(diagnostics)
+	if view.matches(connectionFailures) {
+		return fail("connection-failed", "Could not connect to the library's repository"+view.reason(connectionFailures, ": ", "")+". Check the repository address and your network connection.", nil)
 	}
-	if reason, found := reasonAfter(lines, objectRefusals); found {
-		return fail("object-fetch-refused", "The library's server refused to send a file by its object ID"+quoted(reason, split, " (", ")")+", which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; ask the administrator of a self-hosted server to enable Git protocol version 2 or uploadpack.allowAnySHA1InWant.", nil)
+	if view.matches(objectRefusals) {
+		return fail("object-fetch-refused", "The library's server refused to send a file by its object ID"+view.reason(objectRefusals, " (", ")")+", which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; ask the administrator of a self-hosted server to enable Git protocol version 2 or uploadpack.allowAnySHA1InWant.", nil)
 	}
-	for i := len(lines) - 1; i >= 0 && !split; i-- {
-		if reason := quote(lines[i]); reason != "" {
+	if view.withheld {
+		return fail(code, strings.TrimSuffix(problem, ".")+". "+gitexec.Withheld+".", nil)
+	}
+	for i := len(view.shown) - 1; i >= 0; i-- {
+		if reason := quote(view.shown[i]); reason != "" {
 			return fail(code, strings.TrimSuffix(problem, ".")+": "+reason+".", nil)
 		}
 	}
 	return fail(code, problem, nil)
 }
 
-// diagnosticLines returns Git's diagnostics as lines made safe to show by gitexec's Lines, credentials of the
-// runner's environment and the library's address redacted, and whether a known password or token spans lines, so
-// that no line may be quoted.
-func (r *repository) diagnosticLines(diagnostics []byte) ([]string, bool) {
-	lines := strings.Split(string(diagnostics), "\n")
-	for i, line := range lines {
-		lines[i], _ = gitexec.WithoutPrefix(line)
+// diagnosticView holds two views of Git's diagnostics. private, never shown, holds the lines without terminal
+// sequences, control characters, or Git's labels, to decide which failure they describe. shown holds the lines
+// gitexec's Show allows showing, without Git's labels, or none when it withheld them.
+type diagnosticView struct {
+	private, shown []string
+	withheld       bool
+}
+
+// view returns the views of diagnostics, with the credentials of the runner's environment and of the library's
+// address, as configured and as Git rewrites it, deciding what may be shown.
+func (r *repository) view(diagnostics []byte) diagnosticView {
+	view := diagnosticView{}
+	for line := range strings.SplitSeq(gitexec.Printable(string(diagnostics)), "\n") {
+		text, _ := gitexec.WithoutPrefix(line)
+		view.private = append(view.private, text)
 	}
-	lines, _, split := r.runner.Credentials(r.url).Lines(lines)
-	return lines, split
+	// The decision reads the lines without the labels Git adds, which would otherwise separate wrapped text.
+	_, ok := r.runner.Credentials(r.url, r.effective).Show(strings.Join(view.private, "\n"))
+	view.withheld = !ok
+	if ok {
+		for _, text := range view.private {
+			view.shown = append(view.shown, gitexec.RedactFormats(text))
+		}
+	}
+	return view
+}
+
+// matches reports whether a private line contains one of texts.
+func (v diagnosticView) matches(texts []string) bool {
+	_, found := reasonAfter(v.private, texts)
+	return found
+}
+
+// reason returns the shown text from the first of texts to its line's end, between before and after; a note that
+// Git's message was withheld, between the same; or "" when no shown line has one of texts.
+func (v diagnosticView) reason(texts []string, before, after string) string {
+	if v.withheld {
+		return before + gitexec.Withheld + after
+	}
+	if reason, found := reasonAfter(v.shown, texts); found && reason != "" {
+		return before + reason + after
+	}
+	return ""
 }
 
 // reasonAfter returns the part of the first of lines containing one of texts, from the earliest such text to the
@@ -93,16 +128,7 @@ func reasonAfter(lines, texts []string) (string, bool) {
 	return "", false
 }
 
-// quoted returns reason between before and after, or "" when it's empty or withheld.
-func quoted(reason string, withheld bool, before, after string) string {
-	if withheld || reason == "" {
-		return ""
-	}
-	return before + reason + after
-}
-
-// quote returns a safe line of Git's diagnostics to show, without its trailing punctuation and at most
-// maxReasonRunes long.
+// quote returns a shown line of Git's diagnostics without its trailing punctuation and at most maxReasonRunes long.
 func quote(line string) string {
 	return strings.TrimRight(gitexec.Shorten(strings.TrimRight(line, ".: "), maxReasonRunes), ".: ")
 }

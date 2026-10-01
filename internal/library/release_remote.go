@@ -171,13 +171,14 @@ func (g *libraryGit) readRemote(ctx context.Context, u upstream) (remoteState, e
 	if result.Status != 0 {
 		return remoteState{}, failure("fetch-failed", "Git couldn't read "+u.remote+g.gitReason(result.Diagnostics, u)+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
 	}
-	return parseRemoteListing(string(result.Output), u)
+	return parseRemoteListing(string(result.Output), u, g.runner.Credentials(u.url, u.pushURL))
 }
 
 // parseRemoteListing reads git ls-remote --symref output for the remote's HEAD, the upstream branch, and its
 // release tags. It fails when the listing is malformed, has more than 20,000 tag records, or shows that the
 // upstream branch isn't the remote's default branch.
-func parseRemoteListing(listing string, u upstream) (remoteState, error) {
+// The advertised default branch comes from the remote, so a refusal names it only when credentials allow showing it.
+func parseRemoteListing(listing string, u upstream, credentials gitexec.Credentials) (remoteState, error) {
 	state := remoteState{tags: map[int]string{}}
 	records := 0
 	for line := range strings.Lines(listing) {
@@ -212,7 +213,10 @@ func parseRemoteListing(listing string, u upstream) (remoteState, error) {
 		return remoteState{}, failure("not-default-branch", u.remote+" doesn't report a default branch, so code-rules library release can't confirm it's publishing from it.", nil)
 	}
 	if u.ref != state.defaultBranch {
-		return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, "+strings.TrimPrefix(state.defaultBranch, "refs/heads/")+", but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+". Check out "+strings.TrimPrefix(state.defaultBranch, "refs/heads/")+", then run code-rules library release again.", nil)
+		if name, shown := credentials.Show(strings.TrimPrefix(state.defaultBranch, "refs/heads/")); shown {
+			return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, "+name+", but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+". Check out "+name+", then run code-rules library release again.", nil)
+		}
+		return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+", which isn't it. The default branch's name was withheld because it contained a credential. Check out the default branch, then run code-rules library release again.", nil)
 	}
 	return state, nil
 }
@@ -534,35 +538,30 @@ const (
 
 // serverRejection returns the server's reason for refusing a push, from Git's diagnostics: the lines a server
 // hook printed, which Git prefixes with remote:, and each ! [remote rejected] line, which names the ref and the
-// server's reason. Git's other diagnostics can hold the remote's URL with credentials, so they stay hidden. The
-// server's lines go through gitexec's Lines as a whole, before any is selected or cut: when they hold a known
-// password or token, on one line or across lines, they're withheld, with a note saying so, since a credential
-// the server wrapped or split can't be redacted reliably. Other credential formats are redacted. It returns at most
-// maxRejectionLines lines, each indented and at most maxRejectionLineRunes long, or "" when the server gave no
-// reason, such as when the push never reached it.
+// server's reason. Git's other diagnostics can hold the remote's URL with credentials, so they stay hidden. Those
+// lines are shown or withheld together, as gitexec's Show decides on all of them before any is selected or cut,
+// and withheld ones are replaced by a note saying why. It returns at most maxRejectionLines lines, each indented
+// and at most maxRejectionLineRunes long, or "" when the server gave no reason, such as when the push never
+// reached it.
 func (g *libraryGit) serverRejection(diagnostics []byte, u upstream) string {
-	var remote, rejected []string
+	// The decision reads the server's text without the remote: labels Git adds, which would otherwise separate the
+	// pieces of text the server wrapped.
+	var payloads, lines []string
 	for _, line := range strings.FieldsFunc(string(diagnostics), func(r rune) bool { return r == '\n' || r == '\r' }) {
 		line = strings.TrimSpace(line)
-		if text, ok := strings.CutPrefix(line, "remote:"); ok {
-			remote = append(remote, text)
+		if text, remote := strings.CutPrefix(line, "remote:"); remote && strings.TrimSpace(text) != "" {
+			payloads = append(payloads, strings.TrimSpace(text))
+			lines = append(lines, "remote: "+gitexec.RedactFormats(strings.TrimSpace(text)))
 		} else if strings.HasPrefix(line, "! [remote rejected]") {
-			rejected = append(rejected, line)
+			payloads = append(payloads, line)
+			lines = append(lines, gitexec.RedactFormats(line))
 		}
 	}
-	credentials := g.runner.Credentials(u.url, u.pushURL)
-	remote, known, _ := credentials.Lines(remote)
-	rejected, _, split := credentials.Lines(rejected)
-	lines := []string{}
-	if !known {
-		for _, text := range remote {
-			if text != "" {
-				lines = append(lines, "remote: "+text)
-			}
-		}
+	if len(lines) == 0 {
+		return ""
 	}
-	if !split {
-		lines = append(lines, rejected...)
+	if _, ok := g.runner.Credentials(u.url, u.pushURL).Show(strings.Join(payloads, "\n")); !ok {
+		return "  " + gitexec.Withheld + "."
 	}
 	if len(lines) > maxRejectionLines {
 		lines = append(lines[:maxRejectionLines], "...")
@@ -570,31 +569,25 @@ func (g *libraryGit) serverRejection(diagnostics []byte, u upstream) string {
 	for i, line := range lines {
 		lines[i] = "  " + gitexec.Shorten(line, maxRejectionLineRunes)
 	}
-	if known && len(remote) > 0 {
-		lines = append(lines, withheldServerMessage)
-	}
 	return strings.Join(lines, "\n")
 }
 
-// withheldServerMessage stands in for a refused push's remote: lines that held a known credential.
-const withheldServerMessage = "  The server's messages were withheld, because they contained a credential."
-
 // gitReason returns Git's first fatal: or error: line from diagnostics, usually the most specific, as
-// " (Git: reason)", made safe by gitexec's Lines and at most maxRejectionLineRunes long, or "" when there is none,
-// or when a known password or token spans lines of the diagnostics.
+// " (Git: reason)", at most maxRejectionLineRunes long, when gitexec's Show allows showing the diagnostics; a note
+// that they were withheld when it doesn't; or "" when there is no such line.
 func (g *libraryGit) gitReason(diagnostics []byte, u upstream) string {
-	lines := strings.Split(string(diagnostics), "\n")
-	prefixes := make([]string, len(lines))
-	for i, line := range lines {
-		lines[i], prefixes[i] = gitexec.WithoutPrefix(line)
+	// The decision reads the lines without the labels Git adds, which would otherwise separate wrapped text.
+	texts, prefixes := []string{}, []string{}
+	for line := range strings.SplitSeq(gitexec.Printable(string(diagnostics)), "\n") {
+		text, prefix := gitexec.WithoutPrefix(line)
+		texts, prefixes = append(texts, text), append(prefixes, prefix)
 	}
-	lines, _, split := g.runner.Credentials(u.url, u.pushURL).Lines(lines)
-	if split {
-		return ""
+	if _, ok := g.runner.Credentials(u.url, u.pushURL).Show(strings.Join(texts, "\n")); !ok {
+		return " (" + gitexec.Withheld + ")"
 	}
-	for i, reason := range lines {
+	for i, text := range texts {
 		if prefixes[i] == "fatal:" || prefixes[i] == "error:" {
-			return " (Git: " + strings.TrimRight(gitexec.Shorten(reason, maxRejectionLineRunes), ". ") + ")"
+			return " (Git: " + strings.TrimRight(gitexec.Shorten(gitexec.RedactFormats(text), maxRejectionLineRunes), ". ") + ")"
 		}
 	}
 	return ""

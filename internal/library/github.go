@@ -10,7 +10,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"unicode"
 
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -134,12 +133,13 @@ func (c gitHubCLI) releasePage(ctx context.Context, repository, tag string) (str
 	case err != nil:
 		return "", false, err
 	case status == 0:
-		return strings.TrimSpace(stdout), true, nil
+		page, err := c.pageURL(stdout, tag)
+		return page, err == nil, err
 	case strings.Contains(stderr, releaseNotFound):
 		return "", false, nil
 	}
 	problem := "the GitHub CLI couldn't look up the GitHub Release page for " + tag
-	if reason := diagnosticLine(stderr); reason != "" {
+	if reason := c.reason(stderr); reason != "" {
 		problem += " (" + reason + ")"
 	}
 	return "", false, failure("github-release-failed", problem+". The tag is published; run code-rules library release again to finish.", nil)
@@ -154,12 +154,23 @@ func (c gitHubCLI) createReleasePage(ctx context.Context, repository, tag, notes
 	}
 	if status != 0 {
 		problem := "the GitHub CLI couldn't create the GitHub Release page for " + tag
-		if reason := diagnosticLine(stderr); reason != "" {
+		if reason := c.reason(stderr); reason != "" {
 			problem += " (" + reason + ")"
 		}
 		return "", failure("github-release-failed", problem+". The tag is published; run code-rules library release again to create the page.", nil)
 	}
-	return strings.TrimSpace(stdout), nil
+	return c.pageURL(stdout, tag)
+}
+
+// pageURL returns the GitHub Release page URL gh printed for tag: an https://github.com/ URL without user
+// information, which gitexec's Show allows showing. Anything else fails with github-release-failed.
+func (c gitHubCLI) pageURL(stdout, tag string) (string, error) {
+	text := strings.TrimSpace(stdout)
+	page, err := url.Parse(text)
+	if _, shown := c.runner.Credentials().Show(text); err != nil || !shown || page.Scheme != "https" || page.Host != "github.com" || page.User != nil || strings.ContainsAny(text, " \t\r\n") {
+		return "", failure("github-release-failed", "the GitHub CLI didn't print a GitHub Release page URL for "+tag+". The tag is published; check the page on GitHub.com, and run code-rules library release again to finish.", nil)
+	}
+	return text, nil
 }
 
 // run executes gh with args and stdin, returning its stdout, its stderr, and its exit status. Output beyond
@@ -178,18 +189,14 @@ func (c gitHubCLI) run(ctx context.Context, stdin string, args ...string) (strin
 	return "", "", 0, failure("github-cli-failed", "code-rules library release couldn't run the GitHub CLI, gh. Check that it's installed and works, or pass --no-github-release to publish the tag only.", nil)
 }
 
-// diagnosticLine returns gh's last nonblank line of diagnostics, without control characters and at most
-// 200 characters long, to explain a failure.
-func diagnosticLine(stderr string) string {
-	lines := strings.Split(strings.TrimSpace(stderr), "\n")
-	line := strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) {
-			return -1
-		}
-		return r
-	}, strings.TrimSpace(lines[len(lines)-1]))
-	if runes := []rune(line); len(runes) > 200 {
-		line = string(runes[:200]) + "..."
+// reason returns gh's last nonblank line of diagnostics, without control characters and at most 200 characters
+// long, to explain a failure, when gitexec's Show allows showing the diagnostics, and otherwise a note that they
+// were withheld.
+func (c gitHubCLI) reason(stderr string) string {
+	shown, ok := c.runner.Credentials().Show(stderr)
+	if !ok {
+		return "the GitHub CLI's message was withheld because it contained a credential"
 	}
-	return line
+	lines := strings.Split(strings.TrimSpace(gitexec.Printable(shown)), "\n")
+	return gitexec.Shorten(strings.TrimSpace(lines[len(lines)-1]), 200)
 }

@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -157,7 +158,7 @@ func output(ctx context.Context, directory, name string, args ...string) (string
 	command.Dir = directory
 	result, err := command.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("%s: %w: %s", name, err, strings.TrimSpace(string(result)))
+		return "", fmt.Errorf("%s: %w: %s", name, err, strings.TrimSpace(gitexec.RedactFormats(string(result))))
 	}
 	return strings.TrimSpace(string(result)), nil
 }

@@ -34,10 +34,11 @@ type Options struct {
 // repository owns a temporary bare repository that fetches one library as a partial clone: commits and trees
 // arrive with depth 1 and no blobs, and blobs arrive only when requested. It isn't safe for concurrent use.
 type repository struct {
-	// source names the configured source in diagnostics, and url is its repository address, whose credentials
-	// failures redact.
+	// source names the configured source in diagnostics. url is its repository address, and effective the address
+	// Git uses after rewriting it with url.*.insteadOf; failures withhold Git's text holding either's credentials.
 	source    string
 	url       string
+	effective string
 	directory string
 	runner    gitexec.Runner
 	// present lists the commits already fetched, so later fetches request only missing ones.
@@ -83,6 +84,11 @@ func openRepository(ctx context.Context, source rules.Source, options Options) (
 	if _, err = runner.Output(ctx, dir, []string{"remote", "add", fetchRemote, source.Repository}, 4096); err != nil {
 		return nil, err
 	}
+	effective, err := runner.Output(ctx, dir, []string{"remote", "get-url", fetchRemote}, 64<<10)
+	if err != nil {
+		return nil, err
+	}
+	repo.effective = strings.TrimSpace(string(effective))
 	return repo, nil
 }
 
