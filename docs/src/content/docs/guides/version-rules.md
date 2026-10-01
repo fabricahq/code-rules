@@ -225,7 +225,12 @@ If you don't want a GitHub Release page, or the library isn't hosted on GitHub.c
 For a library release that changes four rules and a group description, the generated page, titled `release/4`, looks like this:
 
 ```md wrap
-Library release 4 changes 4 rules: 1 major, 1 minor, 1 new, and 1 retired.
+Library release 4 changes 4 rules: 1 new, 1 major, 1 minor, and 1 retired.
+
+## New rules
+
+- **practices/testing/verify-retries** `1.0.0`
+  - Add a broader rule about testing retries.
 
 ## Major changes
 
@@ -238,11 +243,6 @@ Code that complied with the previous rule version could fail the new one, so rev
 
 - **techs/react/test-hooks-in-isolation** `2.1.0` → `2.2.0`
   - Add an example for custom hooks.
-
-## New rules
-
-- **practices/testing/verify-retries** `1.0.0`
-  - Add a broader rule about testing retries.
 
 ## Retired rules
 
