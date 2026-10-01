@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -45,7 +46,10 @@ func importedProject(t *testing.T) (*os.Root, Options) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	imported := snapshot{Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(projectMetadata), "techs/go/errors.md": []byte(projectRule)}}
+	commit := strings.Repeat("a", 40)
+	imported := snapshot{Repository: config.Sources[0].Repository, Ref: gitRef(t, "v1.0.0"), Commit: commit, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
+		Rules: map[string]library.ImportedRule{"techs/go/errors": {Commit: commit}},
+		Files: map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(projectMetadata), "techs/go/errors.md": []byte(projectRule)}}
 	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": imported})
 	if err != nil {
 		t.Fatal(err)
@@ -196,6 +200,64 @@ func TestOfflineRejectsSemanticCorruptionBeyondDigests(t *testing.T) {
 	}
 }
 
+// TestOfflineRejectsRuleFilesTheRecordDoesntDescribe detects tampering that keeps every digest consistent: a rule
+// file with no version record.
+func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
+	for name, move := range map[string][2]string{
+		"unrecorded rule": {"", "techs/go/extra.md"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			root, options := importedProject(t)
+			data, err := root.ReadFile("vendor/team/_source.json")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var record map[string]any
+			if err := json.Unmarshal(data, &record); err != nil {
+				t.Fatal(err)
+			}
+			files := record["files"].(map[string]any)
+			if move[0] != "" {
+				delete(files, move[0])
+				if err := root.Remove("vendor/team/" + move[0]); err != nil {
+					t.Fatal(err)
+				}
+			}
+			files[move[1]] = digest([]byte(projectRule))
+			writeFixture(t, root, "vendor/team/"+move[1], projectRule)
+			encoded, err := json.Marshal(record)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// The tampering also recomputes the record's checksum, so only the catalog can catch it.
+			var typed sourceRecord
+			if err := json.Unmarshal(encoded, &typed); err != nil {
+				t.Fatal(err)
+			}
+			typed.Checksum = recordChecksum(typed)
+			if encoded, err = json.Marshal(typed); err != nil {
+				t.Fatal(err)
+			}
+			writeFixture(t, root, "vendor/team/_source.json", string(encoded))
+			_, err = Check(context.Background(), options)
+			projectCode(t, err, "invalid-snapshot")
+		})
+	}
+}
+
+// TestOfflineRejectsAnExclusionSyncDidntCheck fails build and check for an exclusion naming a rule the snapshot
+// doesn't import, until sync checks it.
+func TestOfflineRejectsAnExclusionSyncDidntCheck(t *testing.T) {
+	root, options := importedProject(t)
+	writeFixture(t, root, "config.yaml", `{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/erorrs":{"reason":"Typo."}}}}}`)
+	if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "run code-rules project sync") {
+		t.Fatalf("check accepted an unchecked exclusion: %v", err)
+	}
+	if _, err := Build(context.Background(), options); err == nil {
+		t.Fatal("build accepted an unchecked exclusion")
+	}
+}
+
 // TestProjectInputRecheckRejectsLaterEdits verifies the same guard Build supplies to Apply.
 func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
 	root, _ := localProject(t)
@@ -207,8 +269,9 @@ func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
 	projectCode(t, requireUnchanged(context.Background(), root, state), "concurrent-change")
 }
 
-// TestOfflineRejectsContentChangedBetweenVerificationAndLoading binds rendered bytes to the verified snapshot.
-func TestOfflineRejectsContentChangedBetweenVerificationAndLoading(t *testing.T) {
+// TestOfflineRendersOnlyVerifiedSnapshotBytes loads the bytes whose digests were verified, so an edit made after
+// verification can't reach generated output, and the final recheck reports it.
+func TestOfflineRendersOnlyVerifiedSnapshotBytes(t *testing.T) {
 	for _, file := range []string{"techs/go/errors.md", "techs/go/_group.yaml"} {
 		t.Run(file, func(t *testing.T) {
 			root, options := importedProject(t)
@@ -216,13 +279,21 @@ func TestOfflineRejectsContentChangedBetweenVerificationAndLoading(t *testing.T)
 			if err != nil {
 				t.Fatal(err)
 			}
-			changed := strings.ReplaceAll(projectRule, "Return errors to the caller.", "Unverified body.")
+			changed := strings.ReplaceAll(projectRule, "Return errors to the caller.", "Unverified text.")
 			if strings.HasSuffix(file, ".yaml") {
-				changed = strings.ReplaceAll(projectMetadata, "Go guidance.", "Unverified description.")
+				changed = strings.ReplaceAll(projectMetadata, "Go guidance.", "Unverified text.")
 			}
 			writeFixture(t, root, "vendor/team/"+file, changed)
-			_, err = prepareProject(context.Background(), root, state, options)
-			projectCode(t, err, "concurrent-change")
+			output, err := prepareProject(context.Background(), state, options)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for name, data := range output.Files {
+				if strings.Contains(string(data), "Unverified text.") {
+					t.Fatalf("%s rendered unverified bytes", name)
+				}
+			}
+			projectCode(t, requireUnchanged(context.Background(), root, state), "concurrent-change")
 		})
 	}
 }

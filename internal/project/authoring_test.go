@@ -19,7 +19,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	directory := filepath.Join(t.TempDir(), ".code-rules")
 	options := Options{Directory: filepath.Dir(directory)}
 	result, err := Initialize(ctx, options)
-	if err != nil || len(result.Files) != 3 {
+	if err != nil || len(result.Written()) != 3 {
 		t.Fatal(result, err)
 	}
 	original, err := os.ReadFile(filepath.Join(directory, "config.yaml"))
@@ -27,22 +27,22 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	result, err = Initialize(ctx, options)
-	if err != nil || len(result.Files) != 0 {
+	if err != nil || len(result.Written()) != 0 {
 		t.Fatal(result, err)
 	}
 	metadata := rules.GroupMetadata{Name: " Go ", Description: " Local Go guidance. ", WhenToRead: " When editing Go. "}
 	result, err = AddLocalGroup(ctx, "techs/go", metadata, options)
-	if err != nil || len(result.Files) != 2 {
+	if err != nil || len(result.Written()) != 2 {
 		t.Fatal(result, err)
 	}
-	stored, err := os.ReadFile(result.Files[0])
+	stored, err := os.ReadFile(result.Written()[0])
 	if err != nil || !bytes.Contains(stored, []byte(`name: Go`)) {
 		t.Fatal(string(stored), err)
 	}
 	body := "# Return errors\n\nReturn failures to the caller.\n"
 	ruleMeta := rules.RuleMetadata{Title: "Return errors: always", Impact: "HIGH", ImpactDescription: "Preserve failures.", WhenToRead: "When calling fallible functions."}
 	result, err = AddLocalRule(ctx, "techs/go/errors", ruleMeta, RuleOptions{Options: options, Body: &body})
-	if err != nil || len(result.Files) != 1 {
+	if err != nil || len(result.Written()) != 1 {
 		t.Fatal(result, err)
 	}
 	if _, err = Build(ctx, options); err != nil {
@@ -51,7 +51,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	if _, err = AddLocalRule(ctx, "techs/go/errors", ruleMeta, RuleOptions{Options: options, Body: &body}); err == nil {
 		t.Fatal("overwrote existing rule")
 	}
-	document, err := os.ReadFile(result.Files[0])
+	document, err := os.ReadFile(result.Written()[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,16 +63,16 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 		t.Fatal("complete body-file rule was marked as draft")
 	}
 	result, err = AddLocalRule(ctx, "techs/go/draft", ruleMeta, RuleOptions{Options: options})
-	if err != nil || len(result.Files) != 1 {
+	if err != nil || len(result.Written()) != 1 {
 		t.Fatal(result, err)
 	}
-	draft, _ := os.ReadFile(result.Files[0])
+	draft, _ := os.ReadFile(result.Written()[0])
 	if !bytes.Contains(draft, []byte("### Validation")) || !bytes.Contains(draft, []byte("<State one concrete obligation.>")) || bytes.Count(draft, []byte(rules.DraftMarker)) != 1 {
 		t.Fatal("canonical draft missing")
 	}
 	source := SourceInput{Repository: "https://github.com/acme/rules", Ref: "refs/tags/a&<b>", Groups: []string{"techs/*"}}
 	result, err = AddSource(ctx, "team", source, options)
-	if err != nil || len(result.Files) != 1 {
+	if err != nil || len(result.Written()) != 1 {
 		t.Fatal(result, err)
 	}
 	updated, _ := os.ReadFile(filepath.Join(directory, "config.yaml"))
@@ -123,7 +123,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 			}
 			before, _ := os.ReadFile(filepath.Join(directory, "config.yaml"))
 			result, err := AddLocalGroup(ctx, "techs/go", rules.GroupMetadata{Name: "Go", Description: "Go.", WhenToRead: "When editing Go."}, options)
-			if err == nil || result.Files != nil {
+			if err == nil || result.Written() != nil {
 				t.Fatal("expected no partial result", result, err)
 			}
 			after, _ := os.ReadFile(filepath.Join(directory, "config.yaml"))
@@ -185,7 +185,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Ref: "v1.0.0", Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(`{"name":"Go","description":"Imported guidance.","whenToRead":"When editing Go."}`)}}})
+	vendor, err := encodeSnapshots(config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, Ref: gitRef(t, "v1.0.0"), Commit: strings.Repeat("a", 40), Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, Files: map[string][]byte{"rule-library.yaml": []byte(`{"formatVersion":1}`), "techs/go/_group.yaml": []byte(`{"name":"Go","description":"Imported guidance.","whenToRead":"When editing Go."}`)}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	}
 	body := "Return errors."
 	result, err := AddLocalRule(ctx, "techs/go/errors", rules.RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body})
-	if err != nil || len(result.Files) != 1 {
+	if err != nil || len(result.Written()) != 1 {
 		t.Fatal(result, err)
 	}
 	if _, err := os.Stat(filepath.Join(directory, "local/techs/go/_group.yaml")); !os.IsNotExist(err) {

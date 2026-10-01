@@ -5,6 +5,7 @@ package cli
 import (
 	"fmt"
 	"path/filepath"
+
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/library"
@@ -23,20 +24,23 @@ type commandReport struct {
 // nextStep keeps recovery or follow-up commands separate from their explanation for automation.
 type nextStep struct {
 	Instruction string   `json:"instruction"`
-	Commands    []string `json:"commands,omitempty"`
+	Commands    []string `json:"commands"`
 }
 
+// authoringValue is an authoring command's JSON value: the files it created and changed, as absolute paths.
 type authoringValue struct {
-	Files     []string   `json:"files"`
-	Warnings  []string   `json:"warnings,omitempty"`
-	Next      string     `json:"next"`
+	Added     []string   `json:"added"`
+	Changed   []string   `json:"changed"`
+	Warnings  []string   `json:"warnings"`
 	NextSteps []nextStep `json:"nextSteps"`
 }
 
 // authoringScope retains explicit invocation context without reading Cobra flags during rendering.
 type authoringScope struct {
-	library   bool
+	library bool
+	// directory is the --directory option, and workdir the working directory that report paths are relative to.
 	directory string
+	workdir   string
 }
 
 func (s authoringScope) command(action string) string {
@@ -50,10 +54,14 @@ func (s authoringScope) command(action string) string {
 	return command
 }
 
-// authoredReport renders each step once and uses the same text in the legacy next field.
-func authoredReport(out *strings.Builder, files, warnings []string, steps []nextStep) commandReport {
+// authoredReport renders each next step once, after the report, and returns the steps in its value. Every list
+// in the value is present, empty when there's nothing to report.
+func authoredReport(out *strings.Builder, added, changed, warnings []string, steps []nextStep) commandReport {
 	var next strings.Builder
-	for _, step := range steps {
+	for i, step := range steps {
+		if step.Commands == nil {
+			steps[i].Commands = []string{}
+		}
 		if next.Len() > 0 {
 			next.WriteByte('\n')
 		}
@@ -66,62 +74,72 @@ func authoredReport(out *strings.Builder, files, warnings []string, steps []next
 		out.WriteByte('\n')
 		out.WriteString(next.String())
 	}
-	return commandReport{value: authoringValue{files, warnings, strings.TrimSpace(next.String()), steps}, human: out.String()}
+	return commandReport{value: authoringValue{nonNil(added), nonNil(changed), nonNil(warnings), steps}, human: out.String()}
 }
 
-func projectInitializedReport(result project.AuthoringResult) commandReport {
+// nonNil returns list, or an empty list for nil, so JSON output shows [] rather than null.
+func nonNil(list []string) []string {
+	if list == nil {
+		return []string{}
+	}
+	return list
+}
+
+// projectInitializedReport lists the files a first init added, relative to workdir, as other authoring reports do,
+// or, when the project was already initialized, where its configuration is.
+func projectInitializedReport(result project.AuthoringResult, workdir string) commandReport {
 	var out strings.Builder
-	if len(result.Files) == 0 {
+	if len(result.Written()) == 0 {
 		out.WriteString("Code Rules is already initialized.\nNo files changed.\n")
+		for _, warning := range result.Warnings {
+			fmt.Fprintf(&out, "Warning: %s\n", warning)
+		}
+		out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.yaml\n")
 	} else {
 		out.WriteString("Code Rules initialized!\n")
+		formatAuthored(&out, result.Added, result.Changed, result.Warnings, workdir)
 	}
-	for _, warning := range result.Warnings {
-		fmt.Fprintf(&out, "Warning: %s\n", warning)
-	}
-	out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.yaml\n")
 	steps := []nextStep{{Instruction: "Run code-rules project --help to manage this project's rules.", Commands: []string{"code-rules project --help"}}}
-	if len(result.Files) > 0 {
+	if len(result.Written()) > 0 {
 		steps = []nextStep{
 			{Instruction: "Start with a project-only rule (example):", Commands: []string{"code-rules project add group practices/testing", "code-rules project add rule practices/testing/my-rule"}},
 			{Instruction: "Or use a shared library (example):", Commands: []string{"code-rules project add library team", "code-rules project sync"}},
 			{Instruction: "Then connect your coding agent to the rules; see .code-rules/README.md."},
 		}
 	}
-	return authoredReport(&out, result.Files, result.Warnings, steps)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }
 
-func sourceAddedReport(result project.AuthoringResult) commandReport {
+func sourceAddedReport(result project.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, result.Files, result.Warnings)
-	return authoredReport(&out, result.Files, result.Warnings, []nextStep{{Instruction: "Next: Fetch the library rules and build guidance:", Commands: []string{"code-rules project sync"}}})
+	formatAuthored(&out, result.Added, result.Changed, result.Warnings, scope.workdir)
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, []nextStep{{Instruction: "Next: Fetch the library rules and build guidance:", Commands: []string{"code-rules project sync"}}})
 }
 
 func libraryInitializedReport(result library.AuthoringResult, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, result.Files, result.Warnings)
+	formatAuthored(&out, result.Added, result.Changed, result.Warnings, scope.workdir)
 	steps := []nextStep{}
 	if !result.LicenseDeclared {
 		steps = append(steps, nextStep{Instruction: "License is undeclared. Decide terms before sharing."})
 	}
-	steps = append(steps, nextStep{Instruction: "Next: Add a group and rule, then validate the library:", Commands: []string{scope.command("add group practices/testing"), scope.command("add rule practices/testing/my-rule"), scope.command("check")}})
-	return authoredReport(&out, result.Files, result.Warnings, steps)
+	if result.HasGroups {
+		steps = append(steps, nextStep{Instruction: "Next: Validate the library:", Commands: []string{scope.command("check")}})
+	} else {
+		steps = append(steps, nextStep{Instruction: "Next: Add a group and rule, then validate the library:", Commands: []string{scope.command("add group practices/testing"), scope.command("add rule practices/testing/my-rule"), scope.command("check")}})
+	}
+	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)
 }
 
 // ruleCreatedReport explains how to finish the rule; changeNote adds recording id's change note in a released library.
-func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScope, id string, changeNote bool) commandReport {
+func ruleCreatedReport(added, changed, warnings []string, draft bool, scope authoringScope, id string, changeNote bool) commandReport {
 	var out strings.Builder
 	if draft {
-		out.WriteString("Rule draft created:\n")
+		out.WriteString("Rule draft created.\n")
 	} else {
-		out.WriteString("Rule created from --body-file:\n")
+		out.WriteString("Rule created from --body-file.\n")
 	}
-	for _, file := range files {
-		fmt.Fprintf(&out, "  %s\n", file)
-	}
-	for _, warning := range warnings {
-		fmt.Fprintf(&out, "Warning: %s\n", warning)
-	}
+	formatAuthored(&out, added, changed, warnings, scope.workdir)
 	instruction := "Review the Markdown file above. Make future edits directly in that file."
 	if draft {
 		instruction = "Next: Open the Markdown file above in your editor.\nKeep the metadata between the --- lines at the top. Below it:\n  - State the instructions and explain why they matter.\n  - Add correct and incorrect examples, then describe how to check compliance.\n  - Replace <...> placeholders and remove unused template sections."
@@ -135,16 +153,16 @@ func ruleCreatedReport(files, warnings []string, draft bool, scope authoringScop
 	if changeNote {
 		steps = []nextStep{
 			{Instruction: instruction},
-			{Instruction: "After the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:", Commands: []string{scope.command("change " + id)}},
+			{Instruction: "After the first library release, every new rule needs a change note. After writing the rule text, record it with a summary for project maintainers:", Commands: []string{scope.command("change " + id + " --summary '<what the rule adds>'")}},
 			{Instruction: "Then validate the library:", Commands: commands},
 		}
 	}
-	return authoredReport(&out, files, warnings, steps)
+	return authoredReport(&out, added, changed, warnings, steps)
 }
 
-func groupCreatedReport(files, warnings []string, groupPath string, scope authoringScope) commandReport {
+func groupCreatedReport(added, changed, warnings []string, groupPath string, scope authoringScope) commandReport {
 	var out strings.Builder
-	formatAuthored(&out, files, warnings)
+	formatAuthored(&out, added, changed, warnings, scope.workdir)
 	action := "build"
 	if scope.library {
 		action = "check"
@@ -153,24 +171,31 @@ func groupCreatedReport(files, warnings []string, groupPath string, scope author
 		{Instruction: "Next: Add a rule to this group (replace my-rule with your rule's slug):", Commands: []string{scope.command("add rule " + groupPath + "/my-rule")}},
 		{Instruction: ruleReadyHeading(scope.library), Commands: []string{scope.command(action)}},
 	}
-	return authoredReport(&out, files, warnings, steps)
+	return authoredReport(&out, added, changed, warnings, steps)
 }
 
-func projectChangesReport(action string, result project.FileChanges) commandReport {
+// projectChangesReport lists the files sync, build, or update changed in the project at root, naming their directory
+// relative to workdir, as authoring reports name paths.
+func projectChangesReport(action string, result project.FileChanges, root, workdir string) commandReport {
 	var out strings.Builder
+	codeRules := relativeDirectory(filepath.Join(root, ".code-rules"), workdir)
+	// The counts below are the command's own, so a recovery that came first is said separately.
+	if result.Recovered {
+		out.WriteString("First recovered an interrupted earlier command, which restored or finished that command's files.\n")
+	}
 	if result.Guide != nil {
 		status := "updated"
 		if result.Guide.Created {
 			status = "created"
 		}
-		fmt.Fprintf(&out, "Code Rules guide %s: %s\n", status, filepath.Join(".code-rules", result.Guide.Path))
+		fmt.Fprintf(&out, "Code Rules guide %s: %s\n", status, filepath.Join(codeRules, result.Guide.Path))
 	}
 	fmt.Fprintf(&out, "%s complete: %d added, %d changed, %d removed.\n", strings.ToUpper(action[:1])+action[1:], len(result.Added), len(result.Changed), len(result.Removed))
 	if len(result.Added)+len(result.Changed)+len(result.Removed) > 0 {
 		if action == "build" {
-			out.WriteString("Paths relative to .code-rules/generated:\n")
+			fmt.Fprintf(&out, "Paths relative to %s:\n", filepath.Join(codeRules, "generated"))
 		} else {
-			out.WriteString("Paths relative to the Code Rules directory: .code-rules\n")
+			fmt.Fprintf(&out, "Paths relative to %s:\n", codeRules)
 		}
 	}
 	for _, group := range []struct {
@@ -181,48 +206,86 @@ func projectChangesReport(action string, result project.FileChanges) commandRepo
 			fmt.Fprintf(&out, "  %s: %s\n", group.label, path)
 		}
 	}
+	for _, warning := range result.Warnings {
+		fmt.Fprintf(&out, "Warning: %s\n", warning)
+	}
 	return commandReport{value: result, human: out.String()}
 }
 
 func libraryCheckedReport(result library.CheckResult) commandReport {
 	var out strings.Builder
-	fmt.Fprintf(&out, "Library is valid: %d group(s), %d rule(s).\n", result.Groups, result.Rules)
+	fmt.Fprintf(&out, "Library is valid: %d group(s), %d rule(s).\n", result.GroupCount, result.RuleCount)
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
+	}
+	// With nothing pending, check says what library release would, rather than describe an empty release. The first
+	// library release always publishes the library-wide files, which check doesn't list before it.
+	first := result.PendingRelease.Release == 1
+	if len(result.PendingRelease.Rules)+len(result.PendingRelease.LibraryFiles) == 0 && !first {
+		fmt.Fprintf(&out, "\nNothing to publish: no pending change notes and no library-wide changes since release/%d.\n", result.PendingRelease.Release-1)
+		return commandReport{value: result, human: out.String()}
 	}
 	fmt.Fprintf(&out, "\nPending library release %d\n", result.PendingRelease.Release)
 	if len(result.PendingRelease.Rules) == 0 {
 		out.WriteString("  No rule changes are pending.\n")
+		if first {
+			out.WriteString("  The first library release publishes the library-wide files, such as group metadata and shared assets.\n")
+		}
 	}
 	formatPendingRules(&out, result.PendingRelease.Rules)
+	if files := result.PendingRelease.LibraryFiles; len(files) > 0 {
+		fmt.Fprintf(&out, "Library-wide files changed since release/%d:\n  %s\n", result.PendingRelease.Release-1, strings.Join(files, "\n  "))
+	}
 	return commandReport{value: result, human: out.String()}
 }
 
 // pendingVersions shows a pending rule's current and next version, or the only one it has.
 func pendingVersions(rule library.PendingRule) string {
 	switch {
-	case rule.CurrentVersion == nil:
-		return rule.NextVersion.String()
-	case rule.NextVersion == nil && rule.ReplacedBy != "":
-		return rule.CurrentVersion.String() + ", replaced by " + rule.ReplacedBy
-	case rule.NextVersion == nil:
-		return rule.CurrentVersion.String()
+	case rule.LastVersion != nil && rule.ReplacedBy != "":
+		return rule.LastVersion.String() + ", replaced by " + rule.ReplacedBy
+	case rule.LastVersion != nil:
+		return rule.LastVersion.String()
+	case rule.From == nil:
+		return rule.To.String()
 	}
-	return rule.CurrentVersion.String() + " -> " + rule.NextVersion.String()
+	return rule.From.String() + " -> " + rule.To.String()
 }
 
-func projectCheckedReport(result projectCheckResult) commandReport {
+// projectCheckedReport reports a project check of the project at root, naming its paths' directory relative to
+// workdir.
+func projectCheckedReport(result projectCheckResult, root, workdir string) commandReport {
 	var out strings.Builder
 	report := commandReport{value: result}
-	if result.Status == "up_to_date" {
+	if result.Status == "up-to-date" {
 		out.WriteString("Status: up to date.\nGenerated guidance and the Code Rules guide are current.\nNo files were changed.\n")
 	} else {
-		report.failure = &responseError{Kind: "out_of_date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
-		out.WriteString("Status: out of date.\nNo files were changed.\nPaths are relative to the Code Rules directory: .code-rules\n\nProblems:\n")
+		report.failure = &responseError{Kind: "out-of-date", Message: "this project's Code Rules files are out of date; see the reported problems and next steps"}
+		fmt.Fprintf(&out, "Status: out of date.\nNo files were changed.\nPaths relative to %s:\n\nProblems:\n", relativeDirectory(filepath.Join(root, ".code-rules"), workdir))
 		for _, problem := range result.Problems {
-			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, problem.NextStep)
+			fmt.Fprintf(&out, "  %s: %s\n    Next: %s\n", problem.Message, problem.Path, strings.Join(problem.NextSteps[0].Commands, "; "))
 		}
 	}
 	report.human = out.String()
 	return report
+}
+
+// relativeDirectory returns directory, which is absolute, relative to workdir, resolving symbolic links so a working
+// directory reached through one, such as macOS's /var for /private/var, still compares. It returns directory as is
+// when no relative path leads there.
+func relativeDirectory(directory, workdir string) string {
+	if absolute, err := filepath.Abs(workdir); err == nil {
+		workdir = absolute
+	}
+	if resolved, err := filepath.EvalSymlinks(workdir); err == nil {
+		workdir = resolved
+	}
+	if resolved, err := filepath.EvalSymlinks(directory); err == nil {
+		directory = resolved
+	}
+	relative, err := filepath.Rel(workdir, directory)
+	if err != nil {
+		return directory
+	}
+	return relative
 }
