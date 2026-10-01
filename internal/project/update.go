@@ -26,7 +26,13 @@ type UpdatePlan struct {
 	// absent; Apply refuses to install the plan when any of them changed.
 	planned projectState
 	guide   []byte
+	// recovered reports that planning first recovered an interrupted earlier command, which changed files.
+	recovered bool
 }
+
+// Recovered reports whether planning first recovered an interrupted earlier command, restoring or finishing its
+// files, so the project changed even if the update then writes nothing.
+func (p *UpdatePlan) Recovered() bool { return p.recovered }
 
 // UpdateDecisionKind is what a decision does with its preview row.
 type UpdateDecisionKind string
@@ -117,7 +123,7 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 	if err != nil {
 		return nil, unchanged(err, recovered)
 	}
-	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide}, nil
+	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide, recovered: recovered}, nil
 }
 
 // Preview returns the planned update with each decided row marked, without writing anything. It fails when a
@@ -145,11 +151,11 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		return UpdateResult{}, err
 	}
 	if err := ctx.Err(); err != nil {
-		return UpdateResult{}, unchanged(err, recovered)
+		return UpdateResult{}, unchanged(err, p.recovered || recovered)
 	}
 	root, err := openProject(ctx, p.options, false)
 	if err != nil {
-		return UpdateResult{}, unchanged(err, recovered)
+		return UpdateResult{}, unchanged(err, p.recovered || recovered)
 	}
 	defer root.Close()
 	var changes FileChanges
@@ -181,7 +187,7 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		return err
 	})
 	if err != nil {
-		return UpdateResult{}, unchanged(err, recovered)
+		return UpdateResult{}, unchanged(err, p.recovered || recovered)
 	}
 	return UpdateResult{Applied: true, Sources: sources, FileChanges: changes}, nil
 }

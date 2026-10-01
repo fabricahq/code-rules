@@ -534,3 +534,41 @@ func TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacem
 		t.Fatalf("got %q", got)
 	}
 }
+
+// TestUpdate_NeverSaysNoFilesWereWrittenAfterRecovering an interrupted earlier command: a preview, a declined update,
+// and an interrupted one each say that recovery came first.
+func TestUpdate_NeverSaysNoFilesWereWrittenAfterRecovering(t *testing.T) {
+	recovered := "first recovered an interrupted earlier command"
+	first := terminalfixture.Step{Prompt: "Adopt it, or keep 1.0.0? [adopt/keep]:", Answer: "adopt"}
+	for _, test := range []struct {
+		name  string
+		steps []terminalfixture.Step
+		code  int
+	}{
+		{"preview", nil, 0},
+		{"decline", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Answer: "add"}, {Prompt: "[drop/keep]:", Answer: "drop"}, {Prompt: "[later/incorporated]:", Answer: "later"}, {Prompt: "Apply the update? [yes/no]:", Answer: "no"}}, 0},
+		{"interrupt", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Interrupt: true}}, 130},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			u := newUpdateFixture(t)
+			u.write(t, ".code-rules-transaction/staged", "left by an interrupted command")
+			var transcript string
+			if test.steps == nil {
+				out, diagnostic, code := u.run(t, "project", "update")
+				if code != test.code {
+					t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+				}
+				transcript = out + diagnostic
+			} else {
+				result, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, test.steps)
+				if err != nil || result.ExitCode != test.code {
+					t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
+				}
+				transcript = result.Transcript + result.Stdout
+			}
+			if strings.Contains(strings.ToLower(transcript), "no files were written") || !strings.Contains(transcript, recovered) {
+				t.Fatalf("output:\n%s", transcript)
+			}
+		})
+	}
+}

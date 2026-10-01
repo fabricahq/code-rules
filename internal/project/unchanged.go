@@ -19,8 +19,13 @@ type UnchangedError struct {
 }
 
 // Outcome says what the failed command did to the project's files.
-func (e *UnchangedError) Outcome() string {
-	if e.Recovered {
+func (e *UnchangedError) Outcome() string { return WriteOutcome(e.Recovered) }
+
+// WriteOutcome says, for a command that wrote no files of its own, what happened to the project's files: nothing,
+// or, when recovered is true, the recovery of an interrupted earlier command, which restored or finished that
+// command's files.
+func WriteOutcome(recovered bool) string {
+	if recovered {
 		return "It wrote no files of its own, but first recovered an interrupted earlier command, which restored or finished that command's files."
 	}
 	return "No files were written."

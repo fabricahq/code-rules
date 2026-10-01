@@ -3,6 +3,8 @@
 package cli
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -42,6 +44,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		if err != nil {
 			return err
 		}
+		location := updateLocation{root: directory, workdir: options.Directory, recovered: plan.Recovered()}
 		preview, err := plan.Preview(decisions)
 		if err != nil {
 			return err
@@ -49,7 +52,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		yes, _ := cmd.Flags().GetBool("yes")
 		interactive := !yes && f.interactive()
 		if !yes && !interactive {
-			output.report = updateReport(preview, false, false, directory, options.Directory)
+			output.report = updateReport(preview, false, false, location)
 			return nil
 		}
 		// A terminal shows the preview once, before the questions, so the report after them doesn't repeat it.
@@ -57,7 +60,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		if asked {
 			flagged := len(decisions)
 			if decisions, err = askUpdateDecisions(f, preview, decisions); err != nil {
-				return err
+				return location.promptFailure(err)
 			}
 			// Answers change the update, so people confirm what they'll get.
 			if len(decisions) > flagged {
@@ -69,10 +72,10 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 			f.introduction += "\n"
 			answer, err := askChoice(f, "Apply the update?", [2]string{"yes", "no"})
 			if err != nil {
-				return err
+				return location.promptFailure(err)
 			}
 			if answer != "yes" {
-				output.report = updateReport(preview, true, true, directory, options.Directory)
+				output.report = updateReport(preview, true, true, location)
 				return nil
 			}
 		}
@@ -80,7 +83,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		if err != nil {
 			return err
 		}
-		output.report = updateReport(result, false, asked, directory, options.Directory)
+		output.report = updateReport(result, false, asked, location)
 		return nil
 	}
 	return cmd
@@ -255,10 +258,32 @@ func answersSummary(sources []imports.SourceUpdate) string {
 	return out.String()
 }
 
+// updateLocation is where an update ran: the project at root, from workdir, and whether planning first recovered an
+// interrupted earlier command, which changed files even when the update writes none.
+type updateLocation struct {
+	root, workdir string
+	recovered     bool
+}
+
+// promptFailure reports an interrupted or ended prompt, saying that recovery changed files when it did.
+func (l updateLocation) promptFailure(err error) error {
+	if !l.recovered {
+		return err
+	}
+	if errors.Is(err, context.Canceled) {
+		return &project.UnchangedError{Err: err, Recovered: true}
+	}
+	var invalid *usageError
+	if errors.As(err, &invalid) {
+		return usage(errors.New("terminal input ended. " + project.WriteOutcome(true)))
+	}
+	return err
+}
+
 // updateReport shows the preview, unless shown says a terminal already showed it, and, once applied, the files
-// the update changed in the project at root, relative to workdir. A preview explains how to apply it; cancelled
-// says the user declined to.
-func updateReport(result project.UpdateResult, cancelled, shown bool, root, workdir string) commandReport {
+// the update changed in the project, relative to the working directory. A preview explains how to apply it;
+// cancelled says the user declined to. Saying what was written, it reports a recovery that planning did first.
+func updateReport(result project.UpdateResult, cancelled, shown bool, location updateLocation) commandReport {
 	var out strings.Builder
 	if !shown {
 		formatUpdatePreview(&out, result.Sources)
@@ -269,21 +294,24 @@ func updateReport(result project.UpdateResult, cancelled, shown bool, root, work
 		if out.Len() > 0 {
 			out.WriteByte('\n')
 		}
-		out.WriteString(projectChangesReport("update", result.FileChanges, root, workdir).human)
+		out.WriteString(projectChangesReport("update", result.FileChanges, location.root, location.workdir).human)
 		return commandReport{value: result, human: out.String()}
 	}
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
+	written := project.WriteOutcome(location.recovered)
 	switch {
 	case cancelled:
-		out.WriteString("Update cancelled. No files were written.\n")
+		out.WriteString("Update cancelled. " + written + "\n")
+	case result.Moves() && !nothing && location.recovered:
+		out.WriteString("\nThis is a preview. " + written + "\nTo apply it, run the command again with --yes, or in a terminal to answer each\nquestion and confirm.\n")
 	case result.Moves() && !nothing:
 		out.WriteString("\nThis is a preview; no files were written. To apply it, run the command again\nwith --yes, or in a terminal to answer each question and confirm.\n")
 	case out.Len() > 0:
-		out.WriteString("\nNo rule updates are available. No files were written.\n")
+		out.WriteString("\nNo rule updates are available. " + written + "\n")
 	default:
-		out.WriteString("No rule updates are available. No files were written.\n")
+		out.WriteString("No rule updates are available. " + written + "\n")
 	}
 	return commandReport{value: result, human: out.String()}
 }
