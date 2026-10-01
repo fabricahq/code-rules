@@ -227,17 +227,23 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 			supplied[group.ID] = true
 		}
 	}
-	vendored := treeFiles(before.vendor)
-	records, err := storedRecords(before.config, vendored)
-	if err != nil {
-		return nil, err
-	}
+	needed := slices.DeleteFunc(groupsWithoutLocalMetadata(before), func(group string) bool { return supplied[group] })
 	kept := map[string][]byte{}
-	for _, group := range groupsWithoutLocalMetadata(before) {
-		if supplied[group] {
-			continue
-		}
+	if len(needed) == 0 {
+		return kept, nil
+	}
+	vendored := treeFiles(before.vendor)
+	records := storedRecords(before.config, vendored)
+	for _, group := range needed {
 		for _, record := range records {
+			// Nothing a record changed outside sync lists can be trusted, so one that holds a copy of the group's
+			// metadata refuses; one that doesn't is never used.
+			if record.changed != nil {
+				if _, holds := vendored[record.name+"/"+group+"/_group.yaml"]; holds {
+					return nil, record.changed
+				}
+				continue
+			}
 			recorded, listed := record.digests[group+"/_group.yaml"]
 			if !listed {
 				continue
@@ -258,16 +264,18 @@ func keptGroupMetadata(config rules.Configuration, before projectState, imported
 	return kept, nil
 }
 
-// storedRecord is a valid source record in vendor/, named by its source.
+// storedRecord is a source record in vendor/, named by its source. changed is the refusal of a record changed
+// outside sync, which is then left unread, or nil for a valid record.
 type storedRecord struct {
 	name string
 	parsedRecord
+	changed error
 }
 
-// storedRecords returns every valid source record in vendor: those of config's sources in configuration order,
-// then those of sources config no longer has, in name order. Records that don't parse are left out, but a record
-// changed outside sync fails, since nothing it lists, such as group metadata to keep, can be trusted.
-func storedRecords(config rules.Configuration, vendored map[string][]byte) ([]storedRecord, error) {
+// storedRecords returns every source record in vendor that is valid or changed outside sync: those of config's
+// sources in configuration order, then those of sources config no longer has, in name order. Records that don't
+// parse otherwise are left out.
+func storedRecords(config rules.Configuration, vendored map[string][]byte) []storedRecord {
 	names := []string{}
 	for _, source := range config.Sources {
 		names = append(names, source.Name)
@@ -286,14 +294,14 @@ func storedRecords(config rules.Configuration, vendored map[string][]byte) ([]st
 			continue
 		}
 		record, err := parseSourceRecord(data, name)
-		if isChangedOutsideSync(err, name) {
-			return nil, err
-		}
-		if err == nil {
+		switch {
+		case isChangedOutsideSync(err, name):
+			records = append(records, storedRecord{name: name, changed: err})
+		case err == nil:
 			records = append(records, storedRecord{name: name, parsedRecord: record})
 		}
 	}
-	return records, nil
+	return records
 }
 
 // managedFiles prefixes source-relative and generated-relative paths for an unambiguous combined change report.

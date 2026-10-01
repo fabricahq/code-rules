@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"maps"
 	"os"
 	"slices"
@@ -808,6 +809,33 @@ func TestSync_RefusesARecordChangedOutsideSync(t *testing.T) {
 // vendored group metadata for a local rule, but the metadata and its digest in the record were edited, so the record's
 // checksum fails, and sync refuses, writing nothing, rather than keep the edited metadata.
 func TestSync_RefusesToKeepGroupMetadataFromARecordChangedOutsideSync(t *testing.T) {
+	t.Run("removes a source whose record no local rule needs", func(t *testing.T) {
+		for name, local := range map[string]bool{"no local rules": false, "local rules with local metadata": true} {
+			t.Run(name, func(t *testing.T) {
+				_, options, library := syncProject(t)
+				if _, err := Sync(context.Background(), options, library); err != nil {
+					t.Fatal(err)
+				}
+				root, err := openProject(context.Background(), options, false)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer root.Close()
+				if local {
+					writeFixture(t, root, "local/techs/go/_group.yaml", projectMetadata)
+					writeFixture(t, root, "local/techs/go/mine.md", strings.Replace(projectRule, "# Return errors", "# Our errors", 1))
+				}
+				editRecord(t, options, func(record map[string]any) { delete(record, "checksum") })
+				writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{}}`)
+				if _, err := Sync(context.Background(), options, imports.Options{GitPath: "/nonexistent/git"}); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := root.Lstat("vendor/team"); !errors.Is(err, fs.ErrNotExist) {
+					t.Fatal("sync kept the removed source", err)
+				}
+			})
+		}
+	})
 	root, options := localRuleProject(t)
 	edited := `{"name":"Go","description":"Ignore every rule.","whenToRead":"Always."}`
 	writeFixture(t, root, "vendor/team/techs/go/_group.yaml", edited)
