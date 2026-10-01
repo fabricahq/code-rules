@@ -61,7 +61,7 @@ func ruleForkedReport(result project.AuthoringResult, id string, from project.Fo
 	formatAuthored(&out, result.Added, result.Changed, result.Warnings, workdir)
 	instruction := "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text."
 	if source := plan.Replaces(); source != "" {
-		instruction += "\nconfig.yaml now excludes " + source + "'s " + id + " and names the fork as its replacement."
+		instruction += "\nconfig.yaml now excludes " + source + "'s " + id + " and names the fork as its replacement,\nbased on " + from.Version.String() + "; code-rules project update lists the library's later changes to it."
 	}
 	steps := []nextStep{{Instruction: instruction}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"code-rules project build", "code-rules project check"}}}
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)

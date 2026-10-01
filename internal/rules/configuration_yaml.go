@@ -64,16 +64,21 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 	return encodeConfiguration(document)
 }
 
-// SourceEdit lists pins and exclusions to add to one source, and pins to remove from it; each may be empty or nil.
+// SourceEdit lists pins and exclusions to add to one source, pins to remove from it, and basedOn versions to set;
+// each may be empty or nil.
 type SourceEdit struct {
 	Pins    map[string]Pin
 	Exclude map[string]Exclusion
 	// Unpin names rules whose existing pins the edit removes.
 	Unpin []string
+	// BasedOn sets the basedOn version of each existing replacement it names, adding or replacing the field.
+	BasedOn map[string]RuleVersion
 }
 
-// EditConfigurationSource adds pins and exclusions to the existing source alias, and removes the pins edit.Unpin
-// names, without dropping other comments or reordering entries. A pins map left empty is removed; a pin to remove
+// EditConfigurationSource adds pins and exclusions to the existing source alias, removes the pins edit.Unpin
+// names, and sets the basedOn version of the existing replacements edit.BasedOn names, keeping a replaced value's
+// comment, without dropping other comments or reordering entries. Setting basedOn of a rule the source doesn't
+// replace fails. A pins map left empty is removed; a pin to remove
 // that the source lacks fails. New entries follow the source's existing ones in rule ID order, in a pins or exclude map
 // that is created when absent. Versions are written quoted, such as version: "1.3.0", so YAML reads them as text.
 // A rule the source already pins or excludes fails rather than being replaced. Folded scalars use literal style,
@@ -99,6 +104,18 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 	}
 	if err := addEntries(source, "exclude", exclusionNodes(edit.Exclude), "sources."+alias); err != nil {
 		return nil, err
+	}
+	for _, id := range slices.Sorted(maps.Keys(edit.BasedOn)) {
+		exclusion := mappingValue(mappingValue(source, "exclude"), id)
+		if exclusion == nil || mappingValue(exclusion, "replacedBy") == nil {
+			return nil, invalid("sources."+alias+".exclude."+id, "the source doesn't replace this rule, so it has no basedOn version to set")
+		}
+		version := edit.BasedOn[id]
+		if existing := mappingValue(exclusion, "basedOn"); existing != nil {
+			existing.Kind, existing.Tag, existing.Value, existing.Style = yaml.ScalarNode, "!!str", version.String(), yaml.DoubleQuotedStyle
+			continue
+		}
+		exclusion.Content = append(exclusion.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "basedOn"}, versionNode(version))
 	}
 	return encodeConfiguration(document)
 }
@@ -175,7 +192,7 @@ func pinNodes(pins map[string]Pin) map[string]*yaml.Node {
 	for id, pin := range pins {
 		nodes[id] = &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: []*yaml.Node{
 			{Kind: yaml.ScalarNode, Tag: "!!str", Value: "version"},
-			{Kind: yaml.ScalarNode, Tag: "!!str", Value: pin.Version.String(), Style: yaml.DoubleQuotedStyle},
+			versionNode(pin.Version),
 			{Kind: yaml.ScalarNode, Tag: "!!str", Value: "reason"},
 			textNode(pin.Reason),
 		}}
@@ -183,7 +200,7 @@ func pinNodes(pins map[string]Pin) map[string]*yaml.Node {
 	return nodes
 }
 
-// exclusionNodes encodes each exclusion as a mapping with its reason and, when set, replacedBy.
+// exclusionNodes encodes each exclusion as a mapping with its reason and, when set, replacedBy and basedOn.
 func exclusionNodes(exclude map[string]Exclusion) map[string]*yaml.Node {
 	nodes := map[string]*yaml.Node{}
 	for id, exclusion := range exclude {
@@ -191,9 +208,17 @@ func exclusionNodes(exclude map[string]Exclusion) map[string]*yaml.Node {
 		if exclusion.ReplacedBy != "" {
 			node.Content = append(node.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "replacedBy"}, textNode(exclusion.ReplacedBy))
 		}
+		if exclusion.BasedOn != nil {
+			node.Content = append(node.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "basedOn"}, versionNode(*exclusion.BasedOn))
+		}
 		nodes[id] = node
 	}
 	return nodes
+}
+
+// versionNode encodes a rule version double-quoted, such as "1.3.0", so YAML reads it as text.
+func versionNode(version RuleVersion) *yaml.Node {
+	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: version.String(), Style: yaml.DoubleQuotedStyle}
 }
 
 // textNode returns a string scalar in the style the encoder chooses for text, quoting it when YAML would

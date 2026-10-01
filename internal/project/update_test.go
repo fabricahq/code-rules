@@ -99,7 +99,7 @@ func TestUpdate_DecisionsWritePinsAndExclusionsWithTheOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	decisions := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Keep: true, Reason: "Waiting on #45."}, {Source: "team", Rule: "techs/go/extra", Reason: "Not for this project."}}
+	decisions := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "Waiting on #45."}, {Source: "team", Rule: "techs/go/extra", Kind: DecisionExclude, Reason: "Not for this project."}}
 	applied, err := plan.Apply(context.Background(), decisions)
 	if err != nil {
 		t.Fatal(err)
@@ -295,12 +295,13 @@ func TestUpdate_RejectsDecisionsThePreviewDoesntOffer(t *testing.T) {
 	}
 	before := projectTree(t, options)
 	for name, decisions := range map[string][]UpdateDecision{
-		"keep a new rule":       {{Source: "team", Rule: "techs/go/extra", Keep: true, Reason: "No."}},
-		"exclude a moved rule":  {{Source: "team", Rule: "techs/go/errors", Reason: "No."}},
-		"unknown rule":          {{Source: "team", Rule: "techs/go/missing", Keep: true, Reason: "No."}},
-		"blank reason":          {{Source: "team", Rule: "techs/go/errors", Keep: true, Reason: " "}},
-		"two decisions":         {{Source: "team", Rule: "techs/go/errors", Keep: true, Reason: "A."}, {Source: "team", Rule: "techs/go/errors", Keep: true, Reason: "B."}},
-		"another source's rule": {{Source: "other", Rule: "techs/go/errors", Keep: true, Reason: "No."}},
+		"keep a new rule":                       {{Source: "team", Rule: "techs/go/extra", Kind: DecisionKeep, Reason: "No."}},
+		"exclude a moved rule":                  {{Source: "team", Rule: "techs/go/errors", Kind: DecisionExclude, Reason: "No."}},
+		"unknown rule":                          {{Source: "team", Rule: "techs/go/missing", Kind: DecisionKeep, Reason: "No."}},
+		"blank reason":                          {{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: " "}},
+		"two decisions":                         {{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "A."}, {Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "B."}},
+		"another source's rule":                 {{Source: "other", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "No."}},
+		"incorporate a rule it doesn't replace": {{Source: "team", Rule: "techs/go/errors", Kind: DecisionIncorporated}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, previewErr := plan.Preview(decisions)
@@ -470,7 +471,7 @@ func TestUpdate_ScopedUpdateThatKeepsItsRuleLeavesTheSharedFiles(t *testing.T) {
 	if preview, err := plan.Preview(nil); err != nil || preview.Sources[0].SharedFiles == nil {
 		t.Fatalf("without a decision the shared files move with the rule: %+v, %v", preview.Sources, err)
 	}
-	keep := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Keep: true, Reason: "Not yet."}}
+	keep := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "Not yet."}}
 	preview, err := plan.Preview(keep)
 	if err != nil || preview.Sources[0].SharedFiles != nil || preview.Moves() {
 		t.Fatalf("keeping the only moved rule still moves shared files: %+v, %v", preview.Sources, err)

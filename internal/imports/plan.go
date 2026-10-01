@@ -452,9 +452,12 @@ func (p *planner) publishedVersion(id string, version rules.RuleVersion) (librar
 	return library.ImportedRule{Version: &version, Release: release.number, Commit: release.commit}, nil
 }
 
-// requireEntries checks that each pin and exclusion names an imported rule. An entry naming a retired rule adds a
-// warning; any other fails.
+// requireEntries checks that each pin and exclusion names an imported rule, and that the library published each
+// replacement's basedOn version. An entry naming a retired rule adds a warning; any other fails.
 func (p *planner) requireEntries(plan *sourcePlan) error {
+	if err := p.requireBasedOn(); err != nil {
+		return err
+	}
 	for _, id := range slices.Sorted(maps.Keys(p.source.Pins)) {
 		if _, imported := plan.rules[id]; imported {
 			continue
@@ -473,6 +476,25 @@ func (p *planner) requireEntries(plan *sourcePlan) error {
 			if err := p.unimported("exclude", id, plan); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+// requireBasedOn fails with code version-not-found when a replacement's basedOn names a version its rule never
+// published, listing the versions it did. It reads the release history only when a replacement records basedOn.
+func (p *planner) requireBasedOn() error {
+	for _, id := range slices.Sorted(maps.Keys(p.source.Exclude)) {
+		based := p.source.Exclude[id].BasedOn
+		if based == nil {
+			continue
+		}
+		history, err := p.releases()
+		if err != nil {
+			return err
+		}
+		if history.publisher(id, *based) == nil {
+			return fail("version-not-found", fmt.Sprintf("sources.%s.exclude.%s.basedOn: the rule never published version %s; check basedOn. Its published versions, newest first: %s.", p.source.Name, id, based, history.versionList(id)), nil)
 		}
 	}
 	return nil

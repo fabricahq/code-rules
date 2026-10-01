@@ -137,7 +137,7 @@ func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
 		t.Fatalf("copied shared asset %q", got)
 	}
 	config := string(after["config.yaml"])
-	if !strings.HasPrefix(config, "# Team rules.\n") || !strings.Contains(config, "    exclude:\n      techs/go/errors:\n        reason: Our services need the original wording.\n        replacedBy: local/techs/go/errors.md\n") {
+	if !strings.HasPrefix(config, "# Team rules.\n") || !strings.Contains(config, "    exclude:\n      techs/go/errors:\n        reason: Our services need the original wording.\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.0.0\"\n") {
 		t.Fatalf("configuration %q", config)
 	}
 	if _, err := Build(context.Background(), f.options); err != nil {
@@ -152,8 +152,9 @@ func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
 	}
 }
 
-// TestFork_OfAPinnedRuleRemovesThePin forks a rule that a pin holds at 1.0.0: the same configuration write
-// replaces the pin with the exclusion, with a warning, and the next update lists the rule as replaced.
+// TestFork_OfAPinnedRuleRemovesThePin forks the version a pin holds, 1.0.0: the same configuration write replaces
+// the pin with the exclusion, based on 1.0.0, with a warning, and the next update lists the rule as replaced, with
+// the library's changes since 1.0.0.
 func TestFork_OfAPinnedRuleRemovesThePin(t *testing.T) {
 	f := newForkFixture(t, "")
 	ctx := context.Background()
@@ -166,7 +167,7 @@ func TestFork_OfAPinnedRuleRemovesThePin(t *testing.T) {
 	if _, err := Sync(ctx, f.options, f.git); err != nil {
 		t.Fatal(err)
 	}
-	result, err := f.fork(t, "techs/go/errors", "team@1.1.0", "Ours.")
+	result, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours.")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +175,7 @@ func TestFork_OfAPinnedRuleRemovesThePin(t *testing.T) {
 		t.Fatalf("warnings %q", result.Warnings)
 	}
 	config := string(f.files(t)["config.yaml"])
-	if strings.Contains(config, "pins") || !strings.Contains(config, "    exclude:\n      techs/go/errors:\n        reason: Ours.\n        replacedBy: local/techs/go/errors.md\n") {
+	if strings.Contains(config, "pins") || !strings.Contains(config, "    exclude:\n      techs/go/errors:\n        reason: Ours.\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", config)
 	}
 	if _, err := Build(ctx, f.options); err != nil {
@@ -189,7 +190,7 @@ func TestFork_OfAPinnedRuleRemovesThePin(t *testing.T) {
 		t.Fatal(err)
 	}
 	if rows := preview.Sources[0].Rules; !slices.ContainsFunc(rows, func(row imports.RuleUpdate) bool {
-		return row.ID == "techs/go/errors" && row.Change == imports.UpdateReplaced && row.LocalRule == "local/techs/go/errors.md"
+		return row.ID == "techs/go/errors" && row.Change == imports.UpdateReplaced && row.LocalRule == "local/techs/go/errors.md" && row.BasedOn != nil && row.BasedOn.String() == "1.0.0" && slices.Equal(row.Summaries, []string{"Add wrapping."})
 	}) {
 		t.Fatalf("rows %+v, want errors replaced by the fork", rows)
 	}
@@ -586,5 +587,49 @@ func TestForkFiles_RewritesLinksInDocumentOrder(t *testing.T) {
 	want := forkedRule("See [the guide][g] and [![Flow](assets/errors/flow.svg)](assets/errors/guide.md).\n\n[g]: assets/errors/guide.md")
 	if err != nil || string(files["techs/go/errors.md"]) != want {
 		t.Fatalf("got %q, %v; want %q", files["techs/go/errors.md"], err, want)
+	}
+}
+
+// TestUpdate_MarkingAForkIncorporatedAdvancesItsBasedOnVersion: after forking 1.0.0, the update lists 1.1.0's
+// changes; deciding that the fork incorporates them sets basedOn to 1.1.0 in the same configuration write as the
+// update, and the next update lists nothing for the rule.
+func TestUpdate_MarkingAForkIncorporatedAdvancesItsBasedOnVersion(t *testing.T) {
+	f := newForkFixture(t, "")
+	ctx := context.Background()
+	if _, err := f.fork(t, "techs/go/errors", "team@1.0.0", "Ours."); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Build(ctx, f.options); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := PlanUpdate(ctx, f.options, f.git, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decisions := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionIncorporated}}
+	preview, err := plan.Preview(decisions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if row := previewRow(preview.Sources, "team", "techs/go/errors"); row == nil || row.Decision != "incorporated" || row.To.String() != "1.1.0" {
+		t.Fatalf("rows %+v", preview.Sources[0].Rules)
+	}
+	applied, err := plan.Apply(ctx, decisions)
+	if err != nil || !slices.Contains(applied.Changed, "config.yaml") {
+		t.Fatalf("applied %+v, %v", applied, err)
+	}
+	if config := string(f.files(t)["config.yaml"]); !strings.Contains(config, "        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.1.0\"\n") {
+		t.Fatalf("configuration:\n%s", config)
+	}
+	again, err := PlanUpdate(ctx, f.options, f.git, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err = again.Preview(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if row := previewRow(preview.Sources, "team", "techs/go/errors"); row != nil {
+		t.Fatalf("the next update still lists the fork: %+v", row)
 	}
 }

@@ -725,3 +725,16 @@ func TestImport_ExclusionOfADeselectedRetiredRuleOnlyWarns(t *testing.T) {
 		snapshot = imported.Snapshot
 	}
 }
+
+// TestImport_RejectsABasedOnVersionTheRuleNeverPublished, listing the versions it did publish, newest first.
+func TestImport_RejectsABasedOnVersionTheRuleNeverPublished(t *testing.T) {
+	h := newHistory(t)
+	_, err := h.sync(t, h.source(t, `"groups":["techs/go"],"exclude":{"techs/go/a":{"reason":"Ours.","replacedBy":"local/techs/go/a.md","basedOn":"3.0.0"}}`), nil)
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Code != "version-not-found" || !strings.Contains(err.Error(), "sources.team.exclude.techs/go/a.basedOn: the rule never published version 3.0.0; check basedOn. Its published versions, newest first: 2.0.0, 1.1.0, 1.0.0.") {
+		t.Fatalf("got %v", err)
+	}
+	if _, err := h.sync(t, h.source(t, `"groups":["techs/go"],"exclude":{"techs/go/a":{"reason":"Ours.","replacedBy":"local/techs/go/a.md","basedOn":"1.1.0"}}`), nil); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -256,6 +257,63 @@ func TestUpdate_YesAppliesWithKeepAndExclude(t *testing.T) {
 	}
 }
 
+// basedOnConfig is the fixture's configuration with the loaders replacement based on version.
+func (u updateFixture) basedOnConfig(version string) string {
+	return "# Team rules\nschemaVersion: 1\nsources:\n  team:\n    repository: " + u.fixture.Repository + "\n    groups:\n      - techs/go\n    pins:\n      techs/go/backoff:\n        version: \"1.0.0\"\n        reason: 'Waiting on #45.'\n    exclude:\n      techs/go/loaders:\n        reason: Ours covers our data layer.\n        replacedBy: local/techs/go/use-data-loaders.md\n        basedOn: \"" + version + "\" # forked\n"
+}
+
+// TestUpdate_ComparesAReplacementWithItsBasedOnVersion lists the library's changes after basedOn, in human and
+// JSON output, records that the replacement incorporates them with --incorporated, and lists nothing for it
+// afterward. Sync refuses a basedOn version the rule never published, listing the ones it did.
+func TestUpdate_ComparesAReplacementWithItsBasedOnVersion(t *testing.T) {
+	u := newUpdateFixture(t)
+	u.write(t, "config.yaml", u.basedOnConfig("1.0.0"))
+	out, diagnostic, code := u.run(t, "project", "update")
+	row := "  replaced  techs/go/loaders  1.0.0 -> 1.1.0\n            Add pagination.\n            Your rule: local/techs/go/use-data-loaders.md, based on 1.0.0.\n            Changes since 1.0.0, the version your rule is based on. When it has them,\n            record that with --incorporated team:techs/go/loaders.\n"
+	if code != 0 || diagnostic != "" || !strings.Contains(out, row) {
+		t.Fatalf("exit %d, stderr %q, stdout:\n%s\nwant the row:\n%s", code, diagnostic, out, row)
+	}
+	out, _, code = u.run(t, "project", "update", "--json")
+	want := `{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"local/techs/go/use-data-loaders.md","basedOn":"1.0.0"}`
+	if code != 0 || !strings.Contains(compactJSON(t, json.RawMessage(out)), want) {
+		t.Fatalf("exit %d, want the row %s in:\n%s", code, want, out)
+	}
+	out, diagnostic, code = u.run(t, "project", "update", "--yes", "--json", "--incorporated", "team:techs/go/loaders")
+	var result struct {
+		OK    bool
+		Value struct {
+			Changed []string
+			Sources []struct {
+				Rules []struct{ ID, Decision string }
+			}
+		}
+	}
+	if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || !result.OK || !slices.Contains(result.Value.Changed, "config.yaml") {
+		t.Fatalf("exit %d, %v:\n%s%s", code, err, out, diagnostic)
+	}
+	if !slices.ContainsFunc(result.Value.Sources[0].Rules, func(row struct{ ID, Decision string }) bool {
+		return row.ID == "techs/go/loaders" && row.Decision == "incorporated"
+	}) {
+		t.Fatalf("rows %+v", result.Value.Sources[0].Rules)
+	}
+	config, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "config.yaml"))
+	if err != nil || !strings.Contains(string(config), "        replacedBy: local/techs/go/use-data-loaders.md\n        basedOn: \"1.1.0\" # forked\n") {
+		t.Fatalf("configuration, %v:\n%s", err, config)
+	}
+	if out, _, code := u.run(t, "project", "update"); code != 0 || strings.Contains(out, "techs/go/loaders") {
+		t.Fatalf("exit %d, the next update still lists the replacement:\n%s", code, out)
+	}
+	u.write(t, "config.yaml", u.basedOnConfig("9.0.0"))
+	failure := struct {
+		OK    bool
+		Error responseError
+	}{}
+	out, _, code = u.run(t, "project", "sync", "--json")
+	if err := json.Unmarshal([]byte(out), &failure); err != nil || code != 1 || failure.Error.Code != "version-not-found" || !strings.Contains(failure.Error.Message, "sources.team.exclude.techs/go/loaders.basedOn: the rule never published version 9.0.0; check basedOn. Its published versions, newest first: 1.1.0, 1.0.0.") {
+		t.Fatalf("exit %d, %v:\n%s", code, err, out)
+	}
+}
+
 // TestUpdate_SaysOnlyThatNothingIsAvailableAfterAnUpdate prints one line, without an empty per-source listing.
 func TestUpdate_SaysOnlyThatNothingIsAvailableAfterAnUpdate(t *testing.T) {
 	u := newUpdateFixture(t)
@@ -329,6 +387,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 		{Prompt: "team:techs/go/verify: new rule, 1.0.0.\r\nAdd it, or exclude it? [add/exclude]:", Answer: "e"},
 		{Prompt: "Reason for excluding it:", Answer: "Covered locally."},
 		{Prompt: "team:techs/go/retry: retired.\r\nDrop it, or keep 1.0.0? [drop/keep]:", Answer: "drop"},
+		{Prompt: "team:techs/go/loaders: replaced by local/techs/go/use-data-loaders.md, with library changes up to 1.1.0.\r\nReview them later, or mark them incorporated? [later/incorporated]:", Answer: "i"},
 		{Prompt: "Apply the update? [yes/no]:", Answer: "yes"},
 	}
 	result, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, steps)
@@ -341,9 +400,9 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	}
 	// The preview with the answers applied comes after the last question and before the confirmation.
 	transcript := strings.ReplaceAll(result.Transcript, "\r\n", "\n")
-	afterQuestions := transcript[strings.LastIndex(transcript, "Drop it, or keep 1.0.0?"):]
+	afterQuestions := transcript[strings.LastIndex(transcript, "Review them later, or mark them incorporated?"):]
 	revised, _, confirmation := strings.Cut(afterQuestions, "Apply the update? [yes/no]:")
-	if !confirmation || !strings.Contains(revised, "Your answers:\n  Keep team:techs/go/errors at 1.0.0.\n    Reason: Waiting on review.\n  Exclude team:techs/go/verify.\n    Reason: Covered locally.\n") || strings.Contains(revised, "  major ") {
+	if !confirmation || !strings.Contains(revised, "Your answers:\n  Keep team:techs/go/errors at 1.0.0.\n    Reason: Waiting on review.\n  Exclude team:techs/go/verify.\n    Reason: Covered locally.\n  Mark team:techs/go/loaders incorporated: your rule is based on 1.1.0.\n") || strings.Contains(revised, "  major ") {
 		t.Fatalf("the answers, without the preview again, didn't come before the confirmation:\n%s", result.Transcript)
 	}
 	// The terminal showed the preview once, so the result lists only what the update changed.
@@ -361,7 +420,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if team := config.Sources[0]; team.Pins["techs/go/errors"].Reason != "Waiting on review." || team.Exclude["techs/go/verify"].Reason != "Covered locally." {
+	if team := config.Sources[0]; team.Pins["techs/go/errors"].Reason != "Waiting on review." || team.Exclude["techs/go/verify"].Reason != "Covered locally." || team.Exclude["techs/go/loaders"].BasedOn == nil || team.Exclude["techs/go/loaders"].BasedOn.String() != "1.1.0" {
 		t.Fatalf("configuration:\n%s\nstdout:\n%s", data, result.Stdout)
 	}
 	// With nothing left to move, a terminal update applies without questions.
@@ -381,7 +440,7 @@ func TestUpdate_TerminalCancellationWritesNothing(t *testing.T) {
 		code  int
 		text  string
 	}{
-		{"decline", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Answer: "add"}, {Prompt: "[drop/keep]:", Answer: "drop"}, {Prompt: "Apply the update? [yes/no]:", Answer: "no"}}, 0, "Update cancelled. No files were written."},
+		{"decline", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Answer: "add"}, {Prompt: "[drop/keep]:", Answer: "drop"}, {Prompt: "[later/incorporated]:", Answer: "later"}, {Prompt: "Apply the update? [yes/no]:", Answer: "no"}}, 0, "Update cancelled. No files were written."},
 		{"interrupt", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", Interrupt: true}}, 130, ""},
 		{"end of input", []terminalfixture.Step{first, {Prompt: "[add/exclude]:", EOF: true}}, 2, ""},
 	} {
@@ -402,11 +461,11 @@ func TestUpdate_TerminalCancellationWritesNothing(t *testing.T) {
 func TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral(t *testing.T) {
 	one, two := rules.RuleVersion{Major: 1, Minor: 1}, rules.RuleVersion{Major: 2}
 	spanning := imports.RuleUpdate{Change: imports.UpdateMajor, Summaries: []string{"Add an example.", "Require more."}, SummaryVersions: []rules.RuleVersion{one, two}}
-	if got, want := updateDetails(spanning), []string{"1.1.0: Add an example.", "2.0.0: Require more."}; !reflect.DeepEqual(got, want) {
+	if got, want := updateDetails("team", spanning), []string{"1.1.0: Add an example.", "2.0.0: Require more."}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 	single := imports.RuleUpdate{Change: imports.UpdatePatch, Summaries: []string{"Fix a typo.", "Fix a link."}, SummaryVersions: []rules.RuleVersion{one, one}}
-	if got, want := updateDetails(single), []string{"Fix a typo.", "Fix a link."}; !reflect.DeepEqual(got, want) {
+	if got, want := updateDetails("team", single), []string{"Fix a typo.", "Fix a link."}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }

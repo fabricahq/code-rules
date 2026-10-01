@@ -79,7 +79,8 @@ func TestForkRule_ReplacesTheImportedRuleInTheBuild(t *testing.T) {
 	want := "Rule forked from team 1.0.0, published in library release 1.\nAdded:\n  .code-rules/local/techs/go/assets/errors/guide.md\n  .code-rules/local/techs/go/errors.md\nChanged:\n  .code-rules/config.yaml\n\n" +
 		"Next: Edit the forked rule to change what it says. A fork has no version: it changes\n" +
 		"only when you edit it. The library's license still applies to the copied text.\n" +
-		"config.yaml now excludes team's techs/go/errors and names the fork as its replacement.\n\n" +
+		"config.yaml now excludes team's techs/go/errors and names the fork as its replacement,\n" +
+		"based on 1.0.0; code-rules project update lists the library's later changes to it.\n\n" +
 		"Then rebuild this project's guidance:\n  code-rules project build\n  code-rules project check\n"
 	if out != want {
 		t.Fatalf("output:\n%s\nwant:\n%s", out, want)
@@ -87,7 +88,7 @@ func TestForkRule_ReplacesTheImportedRuleInTheBuild(t *testing.T) {
 	if got := string(f.read(t, "local/techs/go/errors.md")); got != string(updateRule("Read [the guide](assets/errors/guide.md).")) {
 		t.Fatalf("fork %q", got)
 	}
-	if !strings.Contains(string(f.read(t, "config.yaml")), "exclude:\n      techs/go/errors:\n        reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n") {
+	if !strings.Contains(string(f.read(t, "config.yaml")), "exclude:\n      techs/go/errors:\n        reason: Our wording.\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", f.read(t, "config.yaml"))
 	}
 	for _, command := range [][]string{{"project", "build"}, {"project", "check"}} {

@@ -80,10 +80,14 @@ type RuleUpdate struct {
 	CurrentReplacement string `json:"currentReplacement,omitempty"`
 	// LocalRule is the project's local rule that replaces a replaced rule, relative to the Code Rules directory.
 	LocalRule string `json:"localRule,omitempty"`
+	// BasedOn is the version of a replaced rule that its local rule incorporates, as the exclusion records it; the
+	// row then lists the changes after it, From being the imported version. It is nil otherwise.
+	BasedOn *rules.RuleVersion `json:"basedOn,omitempty"`
 	// Pin is the configured pin of a pinned rule, or of a retired rule a pin keeps.
 	Pin *rules.Pin `json:"pin,omitempty"`
-	// Decision is "keep" when the project pins the rule at From instead of applying the change, or "exclude" when it
-	// excludes a new rule; Reason is recorded with it. Planning leaves both empty.
+	// Decision is "keep" when the project pins the rule at From instead of applying the change, "exclude" when it
+	// excludes a new rule, or "incorporated" when it records that a replaced rule's local rule incorporates the
+	// changes up to To; Reason is recorded with a pin or exclusion. Planning leaves both empty.
 	Decision string `json:"decision,omitempty"`
 	Reason   string `json:"reason,omitempty"`
 }
@@ -351,7 +355,10 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 // update moves the rules in scope, or every rule when scope is nil, to their newest versions and drops retired
 // ones, except that pins keep rules where they are. A nil scope also adds the rules the library added to the
 // selected groups. It returns every rule the source then imports, with its version, and a preview row for each
-// change: none for a rule excluded without a replacement, and replaced for one with a replacement.
+// change: none for a rule excluded without a replacement, and replaced for one with a replacement. A replacement
+// that records basedOn is listed whenever the newest version is newer than basedOn, with the changes after it, even
+// when the imported copy doesn't move; one that doesn't is listed when the imported copy moves, with the changes
+// since the imported version.
 func (p *planner) update(before sourcePlan, scope []string) (map[string]library.ImportedRule, []RuleUpdate, error) {
 	history, err := p.versioned()
 	if err != nil {
@@ -382,6 +389,17 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 		case pinned && latest.Compare(*current.Version) > 0:
 			rows = append(rows, RuleUpdate{ID: id, Change: UpdatePinned, From: current.Version, Newest: &latest, Summaries: []string{}, SummaryVersions: []rules.RuleVersion{}, Pin: &pin})
 		case pinned:
+		case published && excluded && exclusion.BasedOn != nil:
+			if latest.Compare(*current.Version) > 0 {
+				if after[id], err = p.publishedVersion(id, latest); err != nil {
+					return nil, nil, err
+				}
+			}
+			if latest.Compare(*exclusion.BasedOn) > 0 {
+				row := RuleUpdate{ID: id, Change: UpdateReplaced, From: current.Version, To: &latest, LocalRule: exclusion.ReplacedBy, BasedOn: exclusion.BasedOn}
+				row.Summaries, row.SummaryVersions = history.summaries(id, exclusion.BasedOn, latest)
+				rows = append(rows, row)
+			}
 		case !published:
 			delete(after, id)
 			if listed {

@@ -98,3 +98,54 @@ func TestEditConfigurationSource_RefusesEditsItCantApply(t *testing.T) {
 		})
 	}
 }
+
+// TestEditConfigurationSource_SetsTheBasedOnVersionOfAReplacement adds basedOn to a replacement that has none and
+// replaces another's, writing the versions quoted and keeping comments, and refuses a rule the source doesn't
+// replace.
+func TestEditConfigurationSource_SetsTheBasedOnVersionOfAReplacement(t *testing.T) {
+	input := []byte(`schemaVersion: 1
+sources:
+  team:
+    repository: https://example.invalid/team.git
+    groups: [techs/go]
+    exclude:
+      techs/go/a: # ours
+        reason: Stricter.
+        replacedBy: local/techs/go/a.md
+      techs/go/b:
+        reason: Ours.
+        replacedBy: local/techs/go/b.md
+        basedOn: "1.0.0" # forked
+      techs/go/c:
+        reason: Not used.
+`)
+	version := func(text string) rules.RuleVersion {
+		parsed, err := rules.ParseRuleVersion(text, "version")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return parsed
+	}
+	out, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]rules.RuleVersion{"techs/go/a": version("1.2.0"), "techs/go/b": version("2.0.0")}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, text := range []string{"      techs/go/a: # ours\n        reason: Stricter.\n        replacedBy: local/techs/go/a.md\n        basedOn: \"1.2.0\"\n", "        basedOn: \"2.0.0\" # forked\n"} {
+		if !strings.Contains(string(out), text) {
+			t.Fatalf("missing %q:\n%s", text, out)
+		}
+	}
+	config, err := rules.ParseConfigurationYAML(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if based := config.Sources[0].Exclude["techs/go/b"].BasedOn; based == nil || *based != version("2.0.0") {
+		t.Fatalf("basedOn %v", based)
+	}
+	for _, id := range []string{"techs/go/c", "techs/go/missing"} {
+		var invalid *rules.ValidationError
+		if _, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]rules.RuleVersion{id: version("1.0.0")}}); !errors.As(err, &invalid) || invalid.Location != "sources.team.exclude."+id {
+			t.Errorf("%s: got %v", id, err)
+		}
+	}
+}

@@ -46,6 +46,10 @@ type Exclusion struct {
 	Reason string `json:"reason" yaml:"reason"`
 	// ReplacedBy is empty, or a contained path under local/ naming the local rule agents read instead.
 	ReplacedBy string `json:"replacedBy,omitempty" yaml:"replacedBy,omitempty"`
+	// BasedOn is the library version of the excluded rule that the replacement incorporates, which updates compare
+	// the library's newer versions with; it is nil when the project doesn't record one, and only a replacement has
+	// one. Configuration alone owns it.
+	BasedOn *RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
 }
 
 var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -215,11 +219,7 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 		if err := knownJSONFields(fields, []string{"version", "reason"}, where); err != nil {
 			return nil, err
 		}
-		var text string
-		if json.Unmarshal(fields["version"], &text) != nil {
-			return nil, invalid(where+".version", `expected an exact rule version in quotes, such as "1.3.0"`)
-		}
-		version, err := ParseRuleVersion(text, where+".version")
+		version, err := quotedVersion(fields["version"], where+".version")
 		if err != nil {
 			return nil, err
 		}
@@ -232,8 +232,18 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 	return result, nil
 }
 
-// parseExclusions validates each exclusion's rule ID, reason, and optional contained local replacement.
-// A missing field is no exclusions. Whether the replacement file exists is checked when rules resolve.
+// quotedVersion parses an exact rule version written as a JSON string, such as "1.3.0".
+func quotedVersion(raw json.RawMessage, location string) (RuleVersion, error) {
+	var text string
+	if json.Unmarshal(raw, &text) != nil {
+		return RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
+	}
+	return ParseRuleVersion(text, location)
+}
+
+// parseExclusions validates each exclusion's rule ID, reason, optional contained local replacement, and, for a
+// replacement, the optional version it's based on. A missing field is no exclusions. Whether the replacement file
+// exists is checked when rules resolve, and whether the library published the basedOn version when sync reads it.
 func parseExclusions(input json.RawMessage, location string) (map[string]Exclusion, error) {
 	result := map[string]Exclusion{}
 	if input == nil {
@@ -252,7 +262,7 @@ func parseExclusions(input json.RawMessage, location string) (map[string]Exclusi
 		if err != nil {
 			return nil, err
 		}
-		if err := knownJSONFields(fields, []string{"reason", "replacedBy"}, where); err != nil {
+		if err := knownJSONFields(fields, []string{"reason", "replacedBy", "basedOn"}, where); err != nil {
 			return nil, err
 		}
 		reason, err := jsonText(fields["reason"], where+".reason")
@@ -269,6 +279,16 @@ func parseExclusions(input json.RawMessage, location string) (map[string]Exclusi
 				return nil, invalid(where+".replacedBy", "replacement files must be under local/")
 			}
 			exclusion.ReplacedBy = file
+		}
+		if raw, ok := fields["basedOn"]; ok {
+			if exclusion.ReplacedBy == "" {
+				return nil, invalid(where+".basedOn", "basedOn records the version a replacement incorporates, so it needs replacedBy")
+			}
+			version, err := quotedVersion(raw, where+".basedOn")
+			if err != nil {
+				return nil, err
+			}
+			exclusion.BasedOn = &version
 		}
 		result[id] = exclusion
 	}

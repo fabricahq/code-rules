@@ -62,6 +62,9 @@ func rows(update Update) []string {
 		if row.ReplacedBy != "" {
 			line += " replacedBy " + row.ReplacedBy
 		}
+		if row.BasedOn != nil {
+			line += " basedOn " + row.BasedOn.String()
+		}
 		if row.LocalRule != "" {
 			line += " local " + row.LocalRule
 		}
@@ -161,6 +164,48 @@ func TestPlanUpdate_ReplacedAndExcludedRules(t *testing.T) {
 	}
 	if want := map[string]string{"techs/go/a": "2.0.0@3", "techs/go/d": "1.0.1@4", "practices/testing/c": "1.1.0@4"}; !reflect.DeepEqual(versions(h.install(t, update, config).Snapshot), want) {
 		t.Fatalf("installed %v, want %v", versions(h.install(t, update, config).Snapshot), want)
+	}
+}
+
+// TestPlanUpdate_ComparesAReplacementWithTheVersionItIsBasedOn: a replaced rule's row lists every change after the
+// version its replacement is based on, whatever version the project imports, and none when the replacement is
+// based on the newest version, while the imported copy still moves to it. A replaced rule the library retired gets a
+// retired row, as other retired rules do.
+func TestPlanUpdate_ComparesAReplacementWithTheVersionItIsBasedOn(t *testing.T) {
+	h := newHistory(t)
+	for _, test := range []struct {
+		name, rule, basedOn, imported string
+		want                          []string
+		versions                      []string
+	}{
+		{"based on the newest version, importing an older one", "techs/go/a", "2.0.0", "1.0.0@1", []string{}, nil},
+		{"based on an older version than it imports", "techs/go/a", "1.0.0", "2.0.0@3", []string{"replaced techs/go/a from 2.0.0 to 2.0.0 basedOn 1.0.0 local local/techs/go/a.md: Add an example. | Require more."}, []string{"1.1.0", "2.0.0"}},
+		{"based on a newer version than it imports", "techs/go/a", "1.1.0", "1.0.0@1", []string{"replaced techs/go/a from 1.0.0 to 2.0.0 basedOn 1.1.0 local local/techs/go/a.md: Require more."}, []string{"2.0.0"}},
+		{"retired upstream", "techs/go/b", "1.0.0", "1.0.0@1", []string{"retired techs/go/b from 1.0.0 last 1.0.0 replacedBy techs/go/d: Covered by d."}, []string{"1.0.0"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config := h.source(t, `"rules":["`+test.rule+`"],"exclude":{"`+test.rule+`":{"reason":"Ours.","replacedBy":"local/`+test.rule+`.md","basedOn":"`+test.basedOn+`"}}`)
+			recorded := h.record(t, config, 3, map[string]string{test.rule: test.imported})
+			update, err := h.plan(t, config, &recorded)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := rows(update); !reflect.DeepEqual(got, test.want) {
+				t.Fatalf("rows %q, want %q", got, test.want)
+			}
+			if len(test.want) > 0 {
+				got := []string{}
+				for _, version := range update.Sources[0].Rules[0].SummaryVersions {
+					got = append(got, version.String())
+				}
+				if !reflect.DeepEqual(got, test.versions) {
+					t.Fatalf("summary versions %v, want %v", got, test.versions)
+				}
+			}
+			if test.rule == "techs/go/a" && versions(h.install(t, update, config).Snapshot)["techs/go/a"] != "2.0.0@3" {
+				t.Fatal("the update didn't move the imported copy to the newest version")
+			}
+		})
 	}
 }
 

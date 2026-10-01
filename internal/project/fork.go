@@ -49,7 +49,9 @@ type ForkPlan struct {
 	// pin is that source's pin of the rule, which Commit removes, or nil when it has none.
 	replaces string
 	pin      *rules.Pin
-	release  int
+	// version is the forked version, which the exclusion records as basedOn.
+	version rules.RuleVersion
+	release int
 	// files holds the fork's files by path relative to local/, and groupMetadata the library's metadata for the
 	// rule's group, which Commit copies when the project has no local metadata for it.
 	files         map[string][]byte
@@ -62,7 +64,7 @@ type ForkPlan struct {
 // source already excludes it, since existing local rules and exclusions are never replaced, or when the source
 // selects the rule but the project hasn't synced the source's current configuration.
 func PlanFork(ctx context.Context, id string, from ForkSource, options Options, git imports.Options) (*ForkPlan, error) {
-	plan := &ForkPlan{id: id}
+	plan := &ForkPlan{id: id, version: from.Version}
 	var library rules.Source
 	options, err := planProjectAuthoring(ctx, options, func(root *os.Root, _ rules.Configuration) error {
 		original, config, err := configuration(ctx, root)
@@ -125,7 +127,8 @@ func (p *ForkPlan) Release() int { return p.release }
 
 // Commit writes the fork under writer ownership, creating the local group from the library's group metadata when
 // the project has no local metadata for it. When the fork replaces an imported rule, the same edit adds the
-// source's exclusion with reason and the fork as replacedBy, and removes the source's pin of the rule, with a
+// source's exclusion with reason, the fork as replacedBy, and the forked version as basedOn, so updates list the
+// library's later changes, and removes the source's pin of the rule, with a
 // warning, since the fork, not a pinned import, now decides what agents read. It writes nothing when reason is blank for a
 // replacement or given without one, when the configuration changed after planning, or when any file exists.
 func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, error) {
@@ -157,7 +160,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 			}
 		}
 		if p.replaces != "" {
-			edit := rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: replacedBy}}}
+			edit := rules.SourceEdit{Exclude: map[string]rules.Exclusion{p.id: {Reason: reason, ReplacedBy: replacedBy, BasedOn: &p.version}}}
 			if p.pin != nil {
 				edit.Unpin = []string{p.id}
 			}
@@ -170,7 +173,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 		return files, nil
 	})
 	if err == nil && p.pin != nil {
-		result.Warnings = append(result.Warnings, fmt.Sprintf("Removed sources.%s.pins.%s, which kept the rule at %s, because the fork replaces the imported rule. Updates now list it as replaced, with the library's newer versions for you to compare with the fork.", p.replaces, p.id, p.pin.Version))
+		result.Warnings = append(result.Warnings, fmt.Sprintf("Removed sources.%s.pins.%s, which kept the rule at %s, because the fork replaces the imported rule. Updates now list the library's changes after %s, the version the fork is based on, for you to compare with the fork.", p.replaces, p.id, p.pin.Version, p.version))
 	}
 	return result, err
 }

@@ -49,7 +49,7 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
 | `sources.<name>.groups` | Groups to import in full: an array of IDs such as `techs/typescript`, or `"*"`, `"practices/*"`, or `"techs/*"` to select all groups in that scope. Required unless `rules` selects individual rules. |
 | `sources.<name>.rules` | Optional individual rules to import without the rest of their group: an array of library rule IDs. See [Select individual rules](#select-individual-rules). |
-| `sources.<name>.exclude` | Optional map of this library's rule IDs to a `reason` and, optionally, a local rule that `replacedBy` names to use instead. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
+| `sources.<name>.exclude` | Optional map of this library's rule IDs to a `reason` and, optionally, a local rule that `replacedBy` names to use instead, with the library version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
 | `sources.<name>.pins` | Optional map of this library's rule IDs to an exact `version` and a `reason`. See [Pin a rule](#pin-a-rule). |
 | `sources.<name>.ref` | Optional and advanced. Import the library exactly as it was at one tag or commit. Can't be combined with `pins`. See [Import one revision](#import-one-revision). |
 
@@ -240,14 +240,19 @@ exclude:
   techs/typescript/prefer-type-aliases:
     reason: Our public extension API relies on declaration merging.
     replacedBy: local/techs/typescript/prefer-interfaces.md
+    basedOn: "2.0.0"
 ```
 
 | Field | Meaning |
 | --- | --- |
 | `reason` | Required non-blank text explaining why the project leaves the rule out. |
 | `replacedBy` | Optional. A local rule file that agents read in place of the excluded rule. The path is relative to the Code Rules directory, must stay under `local/`, and must be in the same group as the rule it replaces. Each local file can replace only one rule. |
+| `basedOn` | Optional, and only with `replacedBy`. The library version of the excluded rule that your local rule incorporates, in quotes, such as `"2.0.0"`. [Forking a rule](/reference/cli/#fork-a-library-rule) records the forked version here. Offline commands check only that it's a version; `code-rules project sync` checks that the library published that version of the rule, and otherwise fails with `version-not-found`, listing the versions it did publish. |
 
-An excluded rule is still imported into `vendor/`, so you can review its changes. When the library publishes a newer version of a rule that has a `replacedBy`, the `code-rules project update` preview lists it as `replaced`, so you can decide whether your local rule needs the same change.
+An excluded rule is still imported into `vendor/`, so you can review its changes. The `code-rules project update` preview lists a replaced rule as `replaced` so you can decide whether your local rule needs the same change:
+
+- With `basedOn`, whenever the library's newest version of the rule is newer than `basedOn`, whatever version the project imports. The preview lists every change after `basedOn`. Once your local rule has them, record that with `code-rules project update --incorporated SOURCE:RULE`, or the terminal question, which sets `basedOn` to the newest version, or edit `basedOn` yourself. Code Rules never advances it on its own, because only you know whether your rule took the changes in.
+- Without `basedOn`, such as for a replacement you wrote yourself, when the update moves the imported copy to a newer version. The preview lists the changes since the version the project imports, which your rule may already have.
 
 ### Source-scoped exceptions
 
