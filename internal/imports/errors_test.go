@@ -44,12 +44,12 @@ func TestGitFailure_ExplainsTheCauseWithoutGitsText(t *testing.T) {
 		})
 	}
 	for _, test := range []struct{ diagnostics, code, message string }{
-		{"remote: Repository not found " + marker + ".\nfatal: repository 'https://example.com/acme/rules.git/' not found\n", "not-found-or-no-access", "Repository not found or no access; check its address and Git credentials."},
+		{"remote: Repository not found " + marker + ".\nfatal: repository 'https://example.com/acme/rules.git/' not found\n", "not-found-or-no-access", "Could not find the library's repository, or your Git credentials can't read it. Check the repository address and your Git credentials."},
 		{"fatal: unable to access 'https://example.com/': Could not resolve host: " + marker + "\n", "connection-failed", connection},
 		{"fatal: unable to access '" + marker + "': SSL: certificate verification failed (result: 5)\n", "certificate-failed", certificate},
 		{"Host key verification failed.\nfatal: Could not read from remote repository. " + marker + "\n", "host-key-failed", hostKey},
-		{"fatal: Authentication failed for '" + marker + "'\n", "not-found-or-no-access", "Repository not found or no access; check its address and Git credentials."},
-		{"fatal: could not read Username for '" + marker + "': terminal prompts disabled\n", "not-found-or-no-access", "Repository not found or no access; check its address and Git credentials."},
+		{"fatal: Authentication failed for '" + marker + "'\n", "not-found-or-no-access", "Could not find the library's repository, or your Git credentials can't read it. Check the repository address and your Git credentials."},
+		{"fatal: could not read Username for '" + marker + "': terminal prompts disabled\n", "not-found-or-no-access", "Could not find the library's repository, or your Git credentials can't read it. Check the repository address and your Git credentials."},
 		{"fatal: " + marker + "\n", "git-failed", "Could not read the library's repository for a reason Code Rules doesn't recognize. Run git ls-remote with the repository address to read Git's message."},
 		{"", "git-failed", "Could not read the library's repository for a reason Code Rules doesn't recognize. Run git ls-remote with the repository address to read Git's message."},
 	} {

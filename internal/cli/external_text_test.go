@@ -281,7 +281,7 @@ func TestSync_ExplainsImportFailuresWithoutGitsText(t *testing.T) {
 	})
 	for _, test := range []struct{ name, shim, code, explanation string }{
 		{"unresolvable host", "ssh: Could not resolve hostname fixture.invalid: " + marker + " opaque-url-secret", "connection-failed", connection},
-		{"missing repository", "ERROR: Repository not found. " + marker + " opaque-url-secret", "not-found-or-no-access", "Repository not found or no access; check its address and Git credentials."},
+		{"missing repository", "ERROR: Repository not found. " + marker + " opaque-url-secret", "not-found-or-no-access", "Could not find the library's repository, or your Git credentials can't read it. Check the repository address and your Git credentials."},
 		{"unknown host key", "Host key verification failed. " + marker + " opaque-url-secret", "host-key-failed", "Git couldn't verify the library server's SSH host key."},
 	} {
 		t.Run(test.name, func(t *testing.T) {

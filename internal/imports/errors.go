@@ -26,7 +26,7 @@ func remoteFailure(diagnostics []byte) error {
 		return err
 	}
 	if gitexec.Mentions(diagnostics, gitexec.AccessFailures...) {
-		return fail("not-found-or-no-access", "Repository not found or no access; check its address and Git credentials.", nil)
+		return fail("not-found-or-no-access", "Could not find the library's repository, or your Git credentials can't read it. Check the repository address and your Git credentials.", nil)
 	}
 	return fail("git-failed", "Could not read the library's repository for a reason Code Rules doesn't recognize. Run git ls-remote with the repository address to read Git's message.", nil)
 }
