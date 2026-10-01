@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -486,5 +487,21 @@ func TestUpdateChangeClassifiesByTheLargestChangedComponent(t *testing.T) {
 		if got := versionChange(from, to); got != test.want {
 			t.Errorf("%s -> %s: %s, want %s", test.from, test.to, got, test.want)
 		}
+	}
+}
+
+// TestPlanUpdate_NeverRecordsAnImportedRuleAsRetired: an update scoped to a leaves b, which the library retired,
+// imported, so the record lists b among its rules but not among its retired rules.
+func TestPlanUpdate_NeverRecordsAnImportedRuleAsRetired(t *testing.T) {
+	h := newHistory(t)
+	config := h.source(t, `"groups":["techs/go"]`)
+	recorded := h.record(t, config, 1, map[string]string{"techs/go/a": "1.0.0@1", "techs/go/b": "1.0.0@1"})
+	update, err := h.plan(t, config, &recorded, UpdateTarget{Source: "team", Rule: "techs/go/a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	installed := h.install(t, update, config).Snapshot
+	if _, imported := installed.Rules["techs/go/b"]; !imported || slices.Contains(installed.RetiredRules, "techs/go/b") {
+		t.Fatalf("rules %v, retired rules %v", versions(installed), installed.RetiredRules)
 	}
 }
