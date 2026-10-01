@@ -1,13 +1,13 @@
 ---
 title: "Update rules"
-description: "Upgrade rules to newer versions: preview each change, keep rules where they are when you need to, and adopt the rest deliberately."
+description: "Upgrade the rules your project imports to newer versions: preview each change, keep rules where they are when you need to, and adopt the rest deliberately."
 ---
 
-Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them. Plain `code-rules project sync` keeps the rule versions your project recorded, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
+This guide is for projects that import rules from libraries. Updating rules brings changes from those libraries into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them. Plain `code-rules project sync` keeps the rule versions your project recorded, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
 
 In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one library](#update-one-library) or [upgrade a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how to import one library release, change which rules you import, and recover from a failed update.
 
-Start with a project that already [imports rules](/guides/select-rules/). For details about how commands change files, see [Sync and recovery](/reference/sync/).
+Start with a project that already [imports rules](/guides/select-rules/). To publish new rule versions from a library you maintain, see [Version your rules](/guides/version-rules/) instead. For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
 ## Sync and update
 
@@ -82,7 +82,7 @@ code-rules project update --yes
 
 ## Update one library
 
-To update only one library, name its source:
+When your project imports rules from several libraries, you can update just one of them. Name the library's source, its name under `sources` in `.code-rules/config.yaml`:
 
 ```sh
 code-rules project update team
@@ -92,7 +92,7 @@ The update works like a full one, with the same preview and questions, for `team
 
 ## Update one rule to its newest version
 
-To upgrade a single rule without taking anything else from its library, name the rule with its source:
+To upgrade a single rule your project imports, without taking anything else from its library, name the rule after its source, as `SOURCE:RULE`:
 
 ```sh
 code-rules project update team:techs/react/prefer-server-components
