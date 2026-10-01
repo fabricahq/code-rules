@@ -196,7 +196,7 @@ Every breaking change from `v0.1.0`, with its manual migration, for the release 
 **Generated guidance and the managed project guide**
 
 - Each imported rule shows `Version: X.Y.Z` below its rule ID, in rule files and group pages. RULES.md and group pages ask reviewers to cite a rule's version with its ID. Each `generated/libraries/<source-name>/README.md` shows the library release, a rule version table, and the source's pins. Sync or build regenerates all of it; `code-rules project check` reports it stale until then.
-- The managed `.code-rules/README.md` describes pins, updates, and forks. Build, sync, and init refresh an unedited older guide on their own. An edited guide stops them with `unrecognized or manually edited project guide`: move your notes to another file, move the guide aside, and rerun the command.
+- The managed `.code-rules/README.md` describes pins and updates; it doesn't mention forks. Build, sync, and init refresh an unedited older guide on their own. An edited guide stops them with `unrecognized or manually edited project guide`: move your notes to another file, move the guide aside, and rerun the command.
 
 **Commands and JSON output**
 
