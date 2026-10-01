@@ -65,6 +65,7 @@ Write a Markdown rule under the matching local group:
 ```
 
 The group needs `_group.yaml` metadata from a selected library or from `local/<group-id>/`.
+If you later deselect or remove the last library supplying the group, sync copies the group's last imported metadata to `local/<group-id>/_group.yaml` and warns that it did, so the rule keeps its group; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group).
 The rule joins the inherited rules and receives a `local:`-prefixed ID.
 Use the [authoring format](/guides/write-rules/) for its metadata and body.
 
@@ -104,7 +105,7 @@ sources:
         replacedBy: local/techs/typescript/prefer-interfaces.md
 ```
 
-To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `local/` and writes the exclusion for you.
+To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `local/` and writes the exclusion for you, with the forked version as `basedOn`. With `basedOn`, `code-rules project update` lists the library's changes after that version, so you can decide whether your rule needs them; see [Exclude or replace a rule](/reference/configuration/#exclude-or-replace-a-rule).
 
 The resolved rule uses the complete local definition, including its local ID, title, reading cue, impact, body, attribution, and asset references.
 In this example, the generated ID is `local:techs/typescript/prefer-interfaces`.

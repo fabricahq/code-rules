@@ -5,8 +5,8 @@ package imports
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/fs"
+	"maps"
 	"path"
 	"slices"
 	"strconv"
@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 const maxTreeBytes = 8 << 20
@@ -26,15 +27,14 @@ const maxTreeFiles = 10000
 type treeEntry struct {
 	name   string
 	mode   fs.FileMode
-	size   int64
 	object string
 }
 
 // Name returns the final component of an immutable tree path.
 func (e treeEntry) Name() string { return path.Base(e.name) }
 
-// Size returns Git's declared blob size, verified again by the batch protocol on read.
-func (e treeEntry) Size() int64 { return e.size }
+// Size is zero: listing a partial clone's tree doesn't fetch blobs, so sizes are checked when files are read.
+func (e treeEntry) Size() int64 { return 0 }
 
 // Mode preserves symlink and submodule distinction for the shared loader.
 func (e treeEntry) Mode() fs.FileMode { return e.mode }
@@ -49,28 +49,25 @@ func (e treeEntry) IsDir() bool { return e.mode.IsDir() }
 func (e treeEntry) Sys() any { return nil }
 
 // gitFiles supplies metadata without I/O and fetches only files requested by shared catalog validation.
+// Its entries can combine several commits' trees, because blobs are read by object ID from one repository.
 type gitFiles struct {
 	ctx         context.Context
-	revision    *revision
+	repo        *repository
 	entries     map[string]treeEntry
 	directories map[string][]fs.DirEntry
 	total       int
 }
 
-// openTree reads the bounded NUL-framed tree and constructs directories without a checkout.
-func (r *revision) openTree(ctx context.Context) (*gitFiles, error) {
-	if r == nil || r.directory == "" {
-		return nil, fail("closed-revision", "Revision has been closed.", nil)
+// newGitFiles indexes files, a map from path to a file entry, adding the directories their paths imply.
+func newGitFiles(ctx context.Context, repo *repository, files map[string]treeEntry) *gitFiles {
+	entries := map[string]treeEntry{".": {name: ".", mode: fs.ModeDir | 0755}}
+	for name, entry := range files {
+		entries[name] = entry
+		for parent := path.Dir(name); parent != "."; parent = path.Dir(parent) {
+			entries[parent] = treeEntry{name: parent, mode: fs.ModeDir | 0755}
+		}
 	}
-	data, err := r.runner.Output(ctx, r.directory, []string{"ls-tree", "-r", "-l", "-z", r.Commit}, maxTreeBytes)
-	if err != nil {
-		return nil, err
-	}
-	entries, err := parseTree(data)
-	if err != nil {
-		return nil, err
-	}
-	source := &gitFiles{ctx: ctx, revision: r, entries: entries, directories: map[string][]fs.DirEntry{}}
+	source := &gitFiles{ctx: ctx, repo: repo, entries: entries, directories: map[string][]fs.DirEntry{}}
 	for name, entry := range entries {
 		if name == "." {
 			continue
@@ -81,10 +78,11 @@ func (r *revision) openTree(ctx context.Context) (*gitFiles, error) {
 	for _, children := range source.directories {
 		slices.SortFunc(children, func(a, b fs.DirEntry) int { return strings.Compare(a.Name(), b.Name()) })
 	}
-	return source, nil
+	return source
 }
 
-// parseTree rejects malformed framing and unsafe paths before exposing an immutable inventory.
+// parseTree reads `git ls-tree -r -z` output, rejecting malformed framing and unsafe paths, and returns each
+// file's entry by path. Directories aren't included; newGitFiles derives them.
 func parseTree(data []byte) (map[string]treeEntry, error) {
 	if len(data) > maxTreeBytes {
 		return nil, fail("limit-exceeded", "Git tree listing exceeds 8 MiB.", nil)
@@ -92,7 +90,8 @@ func parseTree(data []byte) (map[string]treeEntry, error) {
 	if !utf8.Valid(data) || (len(data) > 0 && data[len(data)-1] != 0) {
 		return nil, fail("unsupported-content", "Git tree must contain complete UTF-8 records.", nil)
 	}
-	entries := map[string]treeEntry{".": {name: ".", mode: fs.ModeDir | 0755}}
+	entries := map[string]treeEntry{}
+	directories := map[string]bool{}
 	count := 0
 	for _, record := range bytes.Split(bytes.TrimSuffix(data, []byte{0}), []byte{0}) {
 		if len(data) == 0 {
@@ -107,7 +106,7 @@ func parseTree(data []byte) (map[string]treeEntry, error) {
 		}
 		header, name, ok := strings.Cut(string(record), "\t")
 		fields := strings.Fields(header)
-		if !ok || len(fields) != 4 || !validObjectID(fields[2]) || !fs.ValidPath(name) || name == "." || strings.ContainsAny(name, "\\\x00") || len(strings.Split(name, "/")) > 64 {
+		if !ok || len(fields) != 3 || !validObjectID(fields[2]) || !fs.ValidPath(name) || name == "." || strings.ContainsAny(name, "\\\x00") || len(strings.Split(name, "/")) > 64 {
 			return nil, fail("unsupported-content", "Unsupported Git tree entry or path.", nil)
 		}
 		entry := treeEntry{name: name, object: fields[2]}
@@ -123,30 +122,58 @@ func parseTree(data []byte) (map[string]treeEntry, error) {
 		default:
 			return nil, fail("unsupported-content", "Unsupported Git tree object mode.", nil)
 		}
-		if fields[1] == "commit" {
-			if fields[3] != "-" {
-				return nil, fail("unsupported-content", "Invalid submodule size.", nil)
-			}
-		} else {
-			size, err := strconv.ParseInt(fields[3], 10, 64)
-			if err != nil || size < 0 {
-				return nil, fail("unsupported-content", "Invalid Git blob size.", nil)
-			}
-			entry.size = size
-		}
-		if _, ok := entries[name]; ok {
+		if _, ok := entries[name]; ok || directories[name] {
 			return nil, fail("unsupported-content", "Duplicate or conflicting Git path.", nil)
 		}
 		entries[name] = entry
 		for parent := path.Dir(name); parent != "."; parent = path.Dir(parent) {
-			existing, ok := entries[parent]
-			if ok && !existing.IsDir() {
+			if _, ok := entries[parent]; ok {
 				return nil, fail("unsupported-content", "File and directory Git paths conflict.", nil)
 			}
-			entries[parent] = treeEntry{name: parent, mode: fs.ModeDir | 0755}
+			directories[parent] = true
 		}
 	}
 	return entries, nil
+}
+
+// ruleFiles returns the files of rule id at a fetched commit, its Markdown file and its asset directory's files,
+// by path. The map is empty when the commit doesn't have the rule.
+func (r *repository) ruleFiles(ctx context.Context, commit, id string) (map[string]treeEntry, error) {
+	index, ok := r.owned[commit]
+	if !ok {
+		tree, err := r.tree(ctx, commit)
+		if err != nil {
+			return nil, err
+		}
+		index = map[string]map[string]treeEntry{}
+		for file, entry := range tree {
+			if owner, ok := rules.VersionedRule(file); ok {
+				if index[owner] == nil {
+					index[owner] = map[string]treeEntry{}
+				}
+				index[owner][file] = entry
+			}
+		}
+		r.owned[commit] = index
+	}
+	return maps.Clone(index[id]), nil
+}
+
+// terms returns the license and notice paths that tree's library manifest declares, or none without a manifest.
+func (r *repository) terms(ctx context.Context, source string, tree map[string]treeEntry) ([]string, error) {
+	entry, ok := tree["rule-library.yaml"]
+	if !ok {
+		return nil, nil
+	}
+	data, err := newGitFiles(ctx, r, map[string]treeEntry{"rule-library.yaml": entry}).ReadFile("rule-library.yaml")
+	if err != nil {
+		return nil, err
+	}
+	declaration, err := rules.ParseLibraryLicense(data, source)
+	if err != nil {
+		return nil, err
+	}
+	return rules.LicensePaths(declaration), nil
 }
 
 // Lstat returns immutable object metadata, preserving links as links rather than following them.
@@ -173,7 +200,8 @@ func (g *gitFiles) ReadDir(name string) ([]fs.DirEntry, error) {
 	return slices.Clone(g.directories[name]), nil
 }
 
-// ReadFile verifies Git's batch framing before retaining a selected blob's original bytes.
+// ReadFile verifies Git's batch framing before retaining a selected blob's original bytes, fetching the blob
+// when it isn't present yet. It refuses a blob over 8 MiB, or one that would take the retained total over 64 MiB.
 func (g *gitFiles) ReadFile(name string) ([]byte, error) {
 	info, err := g.Lstat(name)
 	if err != nil {
@@ -183,21 +211,29 @@ func (g *gitFiles) ReadFile(name string) ([]byte, error) {
 	if !info.Mode().IsRegular() {
 		return nil, fail("unsupported-content", name+": symlinks and submodules are unsupported.", nil)
 	}
-	if entry.size > maxBlobBytes || int64(g.total)+entry.size > maxRetainedBytes {
+	if g.total >= maxRetainedBytes {
 		return nil, fail("limit-exceeded", "Selected library content exceeds import byte limits.", nil)
 	}
-	result, err := g.revision.runner.Run(g.ctx, g.revision.directory, []string{"cat-file", "--batch"}, int(entry.size)+4096, []byte(entry.object+"\n"))
+	limit := min(maxBlobBytes, maxRetainedBytes-g.total)
+	result, err := g.repo.runner.Run(g.ctx, g.repo.directory, []string{"cat-file", "--batch"}, limit+4096, []byte(entry.object+"\n"))
 	if err != nil {
 		return nil, err
 	}
 	if result.Status != 0 {
-		return nil, fail("git-failed", "Could not read library blobs.", nil)
+		return nil, gitFailure("git-failed", "Could not read library files.", result.Diagnostics)
 	}
 	header, body, ok := bytes.Cut(result.Output, []byte{'\n'})
-	expected := fmt.Sprintf("%s blob %d", entry.object, entry.size)
-	if !ok || string(header) != expected || int64(len(body)) != entry.size+1 || body[len(body)-1] != '\n' {
+	size, found := strings.CutPrefix(string(header), entry.object+" blob ")
+	length, parseErr := strconv.Atoi(size)
+	if !ok || !found || parseErr != nil || length < 0 || strconv.Itoa(length) != size {
 		return nil, fail("git-failed", "Git returned inconsistent or incomplete blob contents.", nil)
 	}
-	g.total += int(entry.size)
-	return bytes.Clone(body[:len(body)-1]), nil
+	if length > limit {
+		return nil, fail("limit-exceeded", "Selected library content exceeds import byte limits.", nil)
+	}
+	if len(body) != length+1 || body[length] != '\n' {
+		return nil, fail("git-failed", "Git returned inconsistent or incomplete blob contents.", nil)
+	}
+	g.total += length
+	return bytes.Clone(body[:length]), nil
 }

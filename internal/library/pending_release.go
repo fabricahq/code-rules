@@ -6,7 +6,6 @@ import (
 	"maps"
 	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -17,18 +16,27 @@ type PendingRelease struct {
 	Release int `json:"release"`
 	// Rules is sorted by rule ID and empty when no rule has a pending change.
 	Rules []PendingRule `json:"rules"`
+	// LibraryFiles lists, in path order, the library-wide files in the working tree that differ from the latest
+	// library release, including deleted ones, which the next library release would publish once committed. It is
+	// empty before the first library release, which adds every file.
+	LibraryFiles []string `json:"libraryFiles"`
 }
 
-// PendingRule is one rule's change in the next library release.
+// PendingRule is one rule's change in the next library release, named as the release record and the rows of
+// code-rules project update name them.
 type PendingRule struct {
 	ID     string       `json:"id"`
 	Change rules.Change `json:"change"`
-	// CurrentVersion is nil for a new rule.
-	CurrentVersion *rules.RuleVersion `json:"currentVersion,omitempty"`
-	// NextVersion is nil for a retired rule.
-	NextVersion *rules.RuleVersion `json:"nextVersion,omitempty"`
+	// From is the version the rule had before this library release; it is nil for a new or retired rule.
+	From *rules.RuleVersion `json:"from,omitempty"`
+	// To is the version this library release publishes; it is nil for a retired rule.
+	To *rules.RuleVersion `json:"to,omitempty"`
+	// LastVersion is a retired rule's final version, and nil for every other rule.
+	LastVersion *rules.RuleVersion `json:"lastVersion,omitempty"`
 	// ReplacedBy names a retired rule's replacement, when it has one.
 	ReplacedBy string `json:"replacedBy,omitempty"`
+	// Summaries holds one summary per change note that named the rule, in note order; it is never empty.
+	Summaries []string `json:"summaries"`
 }
 
 // pendingNote is a change note added since the latest library release.
@@ -58,7 +66,7 @@ type releasePlan struct {
 	release int
 	// versions holds every current rule's version after the library release.
 	versions map[string]rules.RuleVersion
-	// changes holds each new or changed rule. A summary joins its notes' summaries, one line per note;
+	// changes holds each new or changed rule, with one summary per note that named it, in note order;
 	// the first library release, which has no notes, gives every rule firstReleaseSummary.
 	changes map[string]rules.RecordedChange
 	retired map[string]rules.RetiredRule
@@ -83,14 +91,14 @@ func (c libraryChanges) review() []string {
 		case retired:
 			problems = append(problems, id+" reuses the ID of a rule that release/"+strconv.Itoa(release)+" retired. Retired IDs can't be reused; give the rule a new ID.")
 		case !published && !named[id]:
-			problems = append(problems, id+" is a new rule, and no pending change note names it. Record it with: code-rules library change "+id)
+			problems = append(problems, id+" is a new rule, and no pending change note names it. Record it with: code-rules library change "+id+" --summary '<what the rule adds>'")
 		case published && c.changed[id] && !named[id]:
-			problems = append(problems, id+" changed since "+latest.tagName()+", where its version is "+version.String()+", and no pending change note names it. Record it with: code-rules library change "+id)
+			problems = append(problems, id+" changed since "+latest.tagName()+", where its version is "+version.String()+", and no pending change note names it. Record it with: code-rules library change "+id+" --bump <major|minor|patch> --summary '<what changed>'")
 		}
 	}
 	for _, id := range slices.Sorted(maps.Keys(latest.record.Rules)) {
 		if !current[id] && len(retiring[id]) == 0 {
-			problems = append(problems, id+", version "+latest.record.Rules[id].String()+", was deleted, and no pending change note retires it. Restore it, or record the retirement with: code-rules library change "+id+" --retire")
+			problems = append(problems, id+", version "+latest.record.Rules[id].String()+", was deleted, and no pending change note retires it. Restore it, or record the retirement with: code-rules library change "+id+" --retire --summary '<why it's retired>'")
 		}
 	}
 	for _, pending := range c.pending {
@@ -167,7 +175,7 @@ func (c libraryChanges) plan() (releasePlan, error) {
 	if latest == nil {
 		for _, id := range c.current {
 			plan.versions[id] = rules.FirstRuleVersion
-			plan.changes[id] = rules.RecordedChange{Change: rules.ChangeNew, Summary: firstReleaseSummary}
+			plan.changes[id] = rules.RecordedChange{Change: rules.ChangeNew, Summaries: []string{firstReleaseSummary}}
 		}
 		return plan, nil
 	}
@@ -193,12 +201,12 @@ func (c libraryChanges) plan() (releasePlan, error) {
 		}
 	}
 	for id, retired := range plan.retired {
-		retired.Summary = strings.Join(summaries[id], "\n")
+		retired.Summaries = summaries[id]
 		plan.retired[id] = retired
 		delete(changes, id)
 	}
 	for _, id := range slices.Sorted(maps.Keys(changes)) {
-		recorded := rules.RecordedChange{Change: changes[id], Summary: strings.Join(summaries[id], "\n")}
+		recorded := rules.RecordedChange{Change: changes[id], Summaries: summaries[id]}
 		next := rules.FirstRuleVersion
 		if recorded.Change != rules.ChangeNew {
 			from := latest.record.Rules[id]
@@ -214,17 +222,17 @@ func (c libraryChanges) plan() (releasePlan, error) {
 	return plan, nil
 }
 
+// record returns the release record that publishes the plan with libraryFiles, the changed library-wide files.
+func (p releasePlan) record(libraryFiles []string) rules.ReleaseRecord {
+	return rules.ReleaseRecord{Release: p.release, Rules: p.versions, Changes: p.changes, Retired: p.retired, LibraryFiles: libraryFiles}
+}
+
 // preview lists each changed, new, and retired rule in ID order.
 func (p releasePlan) preview() PendingRelease {
-	preview := PendingRelease{Release: p.release, Rules: []PendingRule{}}
-	for id, change := range p.changes {
-		next := p.versions[id]
-		preview.Rules = append(preview.Rules, PendingRule{ID: id, Change: change.Change, CurrentVersion: change.From, NextVersion: &next})
-	}
-	for id, retired := range p.retired {
-		last := retired.LastVersion
-		preview.Rules = append(preview.Rules, PendingRule{ID: id, Change: rules.ChangeRetired, CurrentVersion: &last, ReplacedBy: retired.ReplacedBy})
-	}
-	slices.SortFunc(preview.Rules, func(a, b PendingRule) int { return strings.Compare(a.ID, b.ID) })
-	return preview
+	return PendingRelease{Release: p.release, Rules: releaseRules(p.record(nil)), LibraryFiles: []string{}}
+}
+
+// empty reports whether the plan changes, adds, and retires no rules.
+func (p releasePlan) empty() bool {
+	return len(p.changes) == 0 && len(p.retired) == 0
 }

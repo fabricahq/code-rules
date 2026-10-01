@@ -16,25 +16,28 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fakeGitHubCLI } from './fake-github-cli';
 
-test('installs the matching executable and preserves the old file on failure', () => {
-  const executable = '#!/bin/sh\nprintf "preview works\\n"\n';
-  for (const shell of ['sh', 'bash']) {
-    for (const [platform, artifact] of [
-      ['Darwin arm64', '70'],
-      ['Darwin x86_64', '71'],
-      ['Linux aarch64', '72'],
-      ['Linux x86_64', '73'],
-    ]) {
-      for (const mode of [
-        'success',
-        'fresh',
-        'partial',
-        'empty',
-        'directory',
-        'symlink',
-        'directory-symlink',
-        'unsupported',
-      ]) {
+const executable = '#!/bin/sh\nprintf "preview works\\n"\n';
+const modes = {
+  success: 'replaces an existing file with the downloaded executable',
+  fresh: 'writes the executable when no file exists',
+  partial: 'keeps the old file when the download fails',
+  empty: 'keeps the old file when the download is empty',
+  directory: 'refuses to replace a folder',
+  symlink: 'replaces a symlink without changing its target',
+  'directory-symlink': 'refuses to replace a symlink to a folder',
+  unsupported: 'keeps the old file on an unsupported platform',
+} as const;
+
+// One test per case keeps each timeout budget proportional to a single installer run.
+for (const shell of ['sh', 'bash']) {
+  for (const [platform, artifact] of [
+    ['Darwin arm64', '70'],
+    ['Darwin x86_64', '71'],
+    ['Linux aarch64', '72'],
+    ['Linux x86_64', '73'],
+  ]) {
+    for (const [mode, behavior] of Object.entries(modes)) {
+      test(`${behavior} (${shell}, ${platform})`, () => {
         const directory = mkdtempSync(join(tmpdir(), 'preview install '));
         try {
           const bin = join(directory, 'bin');
@@ -133,7 +136,7 @@ test('installs the matching executable and preserves the old file on failure', (
         } finally {
           rmSync(directory, { recursive: true, force: true });
         }
-      }
+      });
     }
   }
-}, 30_000);
+}

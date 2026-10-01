@@ -14,6 +14,7 @@ import (
 type Response struct {
 	Args     []string
 	Stdout   string
+	Stderr   string
 	ExitCode int
 }
 
@@ -28,9 +29,9 @@ type Fake struct {
 	state string
 }
 
-// Install writes a gh executable into binDir. A call whose arguments exactly match a response prints its Stdout and
-// exits with its ExitCode; any other call fails with exit status 1. The script uses only absolute paths to system
-// tools, so it works when PATH contains nothing but binDir.
+// Install writes a gh executable into binDir. A call whose arguments exactly match a response prints its Stdout
+// and Stderr and exits with its ExitCode; any other call fails with exit status 1. The script uses only absolute
+// paths to system tools, so it works when PATH contains nothing but binDir.
 func Install(binDir string, responses []Response) (*Fake, error) {
 	state, err := os.MkdirTemp(binDir, "gh-state-*")
 	if err != nil {
@@ -41,7 +42,7 @@ func Install(binDir string, responses []Response) (*Fake, error) {
 	}
 	for i, response := range responses {
 		prefix := filepath.Join(state, "response-"+strconv.Itoa(i))
-		files := map[string][]byte{".args": joinArgs(response.Args), ".stdout": []byte(response.Stdout), ".code": []byte(strconv.Itoa(response.ExitCode) + "\n")}
+		files := map[string][]byte{".args": joinArgs(response.Args), ".stdout": []byte(response.Stdout), ".stderr": []byte(response.Stderr), ".code": []byte(strconv.Itoa(response.ExitCode) + "\n")}
 		for suffix, data := range files {
 			if err := os.WriteFile(prefix+suffix, data, 0600); err != nil {
 				return nil, err
@@ -60,6 +61,7 @@ i=0
 while [ -f "$state/response-$i.args" ]; do
   if /usr/bin/cmp -s "$state/call-$n.args" "$state/response-$i.args"; then
     /bin/cat "$state/response-$i.stdout"
+    /bin/cat "$state/response-$i.stderr" >&2
     read -r code < "$state/response-$i.code"
     exit "$code"
   fi

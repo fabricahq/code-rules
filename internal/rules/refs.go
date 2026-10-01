@@ -16,13 +16,53 @@ const (
 	GitRefTag    GitRefKind = "tag"
 )
 
-// GitRef describes an exact revision, without establishing that it exists.
+// GitRef is a validated, exact revision: a full commit SHA or a tag, without establishing that it exists. It keeps
+// the text as authored for display and records, and compares by its canonical form. Outside this package, only
+// ParseGitRef and UnmarshalText build a nonzero GitRef, so every nonzero one is valid. The zero value means no ref.
 type GitRef struct {
-	Kind GitRefKind `json:"kind"`
-	// SHA is a lowercase 40-digit commit ID; populated only for GitRefCommit.
-	SHA string `json:"sha,omitempty"`
-	// Name includes refs/tags/; populated only for GitRefTag. Branches are never inferred.
-	Name string `json:"name,omitempty"`
+	kind GitRefKind
+	// canonical is the lowercase 40-digit SHA of a commit, or a tag's full name, including refs/tags/.
+	canonical string
+	// text is the ref as authored, such as release/5 or an uppercase SHA.
+	text string
+}
+
+// IsZero reports whether the ref is the zero value, which means no ref.
+func (r GitRef) IsZero() bool { return r.kind == "" }
+
+// Kind returns GitRefCommit or GitRefTag, or "" for the zero value.
+func (r GitRef) Kind() GitRefKind { return r.kind }
+
+// Canonical returns the lowercase SHA of a commit, or a tag's full name including refs/tags/, which Git resolves
+// exactly; it is empty for the zero value.
+func (r GitRef) Canonical() string { return r.canonical }
+
+// String returns the ref as authored, such as release/5 even when it equals refs/tags/release/5; it is empty for
+// the zero value.
+func (r GitRef) String() string { return r.text }
+
+// Equal reports whether two refs have the same canonical form, so release/5 equals refs/tags/release/5 and a
+// commit SHA equals its uppercase spelling. Two zero values are equal.
+func (r GitRef) Equal(other GitRef) bool {
+	return r.kind == other.kind && r.canonical == other.canonical
+}
+
+// MarshalText returns the ref as authored, or empty text for the zero value.
+func (r GitRef) MarshalText() ([]byte, error) { return []byte(r.text), nil }
+
+// UnmarshalText parses text with ParseGitRef, reading empty text as the zero value, so MarshalText's output
+// round-trips. Invalid text fails with a *ValidationError and leaves r unchanged.
+func (r *GitRef) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		*r = GitRef{}
+		return nil
+	}
+	parsed, err := ParseGitRef(string(text), "ref")
+	if err != nil {
+		return err
+	}
+	*r = parsed
+	return nil
 }
 
 var (
@@ -40,7 +80,13 @@ func ParseGitRef(ref, location string) (GitRef, error) {
 		return GitRef{}, invalid(location, "expected nonempty text")
 	}
 	if commitRef.MatchString(ref) {
-		return GitRef{Kind: GitRefCommit, SHA: strings.ToLower(ref)}, nil
+		if strings.Trim(ref, "0") == "" {
+			return GitRef{}, invalid(location, "the all-zero SHA names no commit; use a full commit SHA or a tag")
+		}
+		return GitRef{kind: GitRefCommit, canonical: strings.ToLower(ref), text: ref}, nil
+	}
+	if strings.HasPrefix(ref, "refs/heads/") {
+		return GitRef{}, invalid(location, ref+" is a branch; ref accepts a tag or a full commit SHA, not a branch")
 	}
 	tag := strings.TrimPrefix(ref, "refs/tags/")
 	if unsafeRef.MatchString(tag) || tag == "@" || strings.HasPrefix(tag, "-") ||
@@ -53,9 +99,9 @@ func ParseGitRef(ref, location string) (GitRef, error) {
 		}
 	}
 	if shortCommitRef.MatchString(ref) {
-		return GitRef{}, invalid(location, "abbreviated commits are unsupported; use a full SHA or refs/tags/<name>")
+		return GitRef{}, invalid(location, "abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2")
 	}
-	return GitRef{Kind: GitRefTag, Name: "refs/tags/" + tag}, nil
+	return GitRef{kind: GitRefTag, canonical: "refs/tags/" + tag, text: ref}, nil
 }
 
 const (

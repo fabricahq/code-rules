@@ -8,17 +8,23 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// AuthoringResult lists absolute authored paths and cleanup warnings. Errors return no result.
+// AuthoringResult lists the absolute paths of the authored files an operation created and changed, and cleanup
+// warnings. Errors return no result.
 type AuthoringResult struct {
-	Files []string `json:"files"`
+	Added   []string `json:"added"`
+	Changed []string `json:"changed"`
 	// Warnings describe cleanup failures after all requested files were committed.
-	Warnings []string `json:"warnings,omitempty"`
+	Warnings []string `json:"warnings"`
 }
+
+// Written returns every path the operation wrote: its created files, then its changed ones.
+func (r AuthoringResult) Written() []string { return append(slices.Clone(r.Added), r.Changed...) }
 
 // RuleOptions distinguishes a supplied body from an unfinished draft in an existing group.
 type RuleOptions struct {
@@ -135,7 +141,11 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 	}
 	for _, source := range config.Sources {
 		snapshot := snapshots[source.Name]
-		if !slices.Contains(snapshot.Groups, id) {
+		reached := slices.Contains(snapshot.Groups, id)
+		for rule := range snapshot.Rules {
+			reached = reached || strings.HasPrefix(rule, id+"/")
+		}
+		if !reached {
 			continue
 		}
 		if data, ok := snapshot.Files[id+"/_group.yaml"]; ok {
@@ -184,7 +194,7 @@ func authoringResult(changes filetxn.Changes, err error) (AuthoringResult, error
 	if err != nil {
 		return AuthoringResult{}, err
 	}
-	return AuthoringResult{Files: changes.Files, Warnings: changes.Warnings}, nil
+	return AuthoringResult{Added: changes.Added, Changed: changes.Changed, Warnings: changes.Warnings}, nil
 }
 
 func failure(code, problem string, cause error) error {

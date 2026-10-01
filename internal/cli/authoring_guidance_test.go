@@ -98,7 +98,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 				if err != nil || !strings.Contains(string(data), "title: Return errors to the caller") || strings.Contains(string(data), "Test boundary conditions") {
 					t.Fatal("example replaced author input", err, string(data))
 				}
-				for _, text := range []string{"Rule draft created:", file, "Open the Markdown file above in your editor", "correct and incorrect examples", "Replace <...> placeholders", "After writing the rule text,"} {
+				for _, text := range []string{"Rule draft created.\nAdded:\n", "techs/go/return-errors.md\n", "Open the Markdown file above in your editor", "correct and incorrect examples", "Replace <...> placeholders", "After writing the rule text,"} {
 					if !strings.Contains(result.Stdout, text) {
 						t.Fatalf("missing completion step %q: %s", text, result.Stdout)
 					}
@@ -140,7 +140,7 @@ func TestRuleAuthoringGuidance(t *testing.T) {
 					t.Fatal(err)
 				}
 				out := run(scope, "add", "rule", "techs/go/context", "--title", "Preserve context", "--when-to-read", "When returning errors.", "--impact", "HIGH", "--impact-description", "Keep failures actionable.", "--body-file", bodyFile)
-				if !strings.Contains(out, "Rule created from --body-file:") || strings.Contains(out, "Replace <...>") || strings.Contains(out, "Example rule:") {
+				if !strings.Contains(out, "Rule created from --body-file.\nAdded:\n") || strings.Contains(out, "Replace <...>") || strings.Contains(out, "Example rule:") {
 					t.Fatal("wrong supplied-body guidance", out)
 				}
 			})
