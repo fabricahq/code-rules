@@ -387,3 +387,31 @@ func TestLibraryCheck_SaysThereIsNothingToPublish(t *testing.T) {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}
 }
+
+// TestLibraryCheck_SaysTheFirstReleasePublishesTheLibraryWideFiles of a library with no rules yet, as library release
+// would, rather than that there's nothing to publish.
+func TestLibraryCheck_SaysTheFirstReleasePublishesTheLibraryWideFiles(t *testing.T) {
+	binary := buildCLI(t)
+	ctx := context.Background()
+	fixture, err := gitfixture.New(ctx, map[string][]byte{
+		"rule-library.yaml":             []byte("formatVersion: 1\n"),
+		"practices/testing/_group.yaml": []byte("name: Testing\ndescription: Testing guidance.\nwhenToRead: When testing.\n"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = fixture.Close() })
+	dir, err := fixture.Clone(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check")
+	if code != 0 || diagnostic != "" || strings.Contains(out, "Nothing to publish") || !strings.Contains(out, "\nPending library release 1\n  No rule changes are pending.\n  The first library release publishes the library-wide files, such as group metadata and shared assets.\n") {
+		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
+	}
+	// Library release agrees: it would publish library release 1.
+	out, diagnostic, code = runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "release", "--dry-run", "--no-github-release")
+	if code != 0 || !strings.HasPrefix(out, "Dry run: library release 1, not published.\n") {
+		t.Fatalf("dry run: exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
+	}
+}
