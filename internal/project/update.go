@@ -158,7 +158,7 @@ func (p *UpdatePlan) Preview(ctx context.Context, decisions []UpdateDecision) (U
 		return UpdateResult{}, unchanged(err, p.recovered)
 	}
 	warnings := append(slices.Clone(p.update.Warnings), keptWarnings(p.kept)...)
-	return UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: warnings}}, nil
+	return UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: warnings, Recovered: p.recovered}}, nil
 }
 
 // Apply installs the planned versions under the writer, adding to config.yaml a pin for each kept rule, an

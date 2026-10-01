@@ -691,6 +691,21 @@ func TestUpdate_NeverSaysNoFilesWereWrittenAfterRecovering(t *testing.T) {
 			}
 		})
 	}
+	// A JSON preview, which only previews, reports the recovery as recovered.
+	t.Run("JSON preview", func(t *testing.T) {
+		u := newUpdateFixture(t)
+		u.write(t, ".code-rules-transaction/staged", "left by an interrupted command")
+		out, diagnostic, code := u.run(t, "project", "update", "--json")
+		var result struct {
+			OK    bool
+			Value struct {
+				Applied, Recovered bool
+			}
+		}
+		if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || !result.OK || result.Value.Applied || !result.Value.Recovered {
+			t.Fatalf("exit %d, %v:\n%s%s", code, err, out, diagnostic)
+		}
+	})
 }
 
 // TestUpdateReport_CountsARefreshedGuideAsAWrite: an applied update that changed no rule but refreshed the managed
