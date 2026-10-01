@@ -1,15 +1,28 @@
-// Check that the canonical group list parser accepts only strict, sorted, uniquely named entries.
+// Check that the canonical group list parser accepts only strict, sorted, uniquely named entries,
+// and that the published canonical-groups.yaml at the repository root passes it.
 
 package rules_test
 
 import (
 	"errors"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/rules"
 )
+
+// TestCanonicalGroupListParses keeps the published list valid, since other tools read it at pinned commits.
+func TestCanonicalGroupListParses(t *testing.T) {
+	data, err := os.ReadFile("../../canonical-groups.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := rules.ParseCanonicalGroups(data, "canonical-groups.yaml"); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestParseCanonicalGroups(t *testing.T) {
 	input := "# Canonical groups\n" +
