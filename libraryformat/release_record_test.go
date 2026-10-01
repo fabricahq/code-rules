@@ -138,3 +138,75 @@ func TestParseReleaseRecord_RefusesDuplicateLibraryFilesInLargeLists(t *testing.
 	}
 }
 
+// TestParseReleaseRecord_IgnoresUnknownFieldsAtEveryLevel reads a record that a later format extended at the top
+// level, in a change, and in a retirement, with values of any shape, as the record without them.
+func TestParseReleaseRecord_IgnoresUnknownFieldsAtEveryLevel(t *testing.T) {
+	const known = "formatVersion: 1\nrelease: 3\n" +
+		"rules:\n  techs/go/a: 1.1.0\n" +
+		"changes:\n  techs/go/a:\n    change: minor\n    from: 1.0.0\n    summaries: [Add an example.]\n" +
+		"retired:\n  techs/go/b:\n    lastVersion: 2.0.0\n    replacedBy: techs/go/a\n    summaries: [Covered by a.]\n" +
+		"libraryFiles: [techs/go/_group.yaml]\n"
+	const extended = "formatVersion: 1\nrelease: 3\npublishedAt: 2026-10-01T12:00:00Z\nsigner: {name: Fixture, keys: [1, 2]}\n" +
+		"rules:\n  techs/go/a: 1.1.0\n" +
+		"changes:\n  techs/go/a:\n    change: minor\n    from: 1.0.0\n    summaries: [Add an example.]\n    notes: [{id: 7}]\n    breaking: false\n" +
+		"retired:\n  techs/go/b:\n    lastVersion: 2.0.0\n    replacedBy: techs/go/a\n    summaries: [Covered by a.]\n    retiredAt: 2026-10-01\n" +
+		"libraryFiles: [techs/go/_group.yaml]\nfutureSection:\n  techs/go/a: {anything: ~}\n"
+	want, err := libraryformat.ParseReleaseRecord([]byte(known), "release/3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := libraryformat.ParseReleaseRecord([]byte(extended), "release/3")
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %+v, %v; want %+v", got, err, want)
+	}
+}
+
+// TestParseReleaseRecord_AppliesDocumentRulesToUnknownFields refuses anchors, aliases, explicit tags, duplicate
+// keys, and several documents even in fields it would otherwise ignore.
+func TestParseReleaseRecord_AppliesDocumentRulesToUnknownFields(t *testing.T) {
+	for name, extra := range map[string]string{
+		"anchor":               "future: &shared {a: 1}\n",
+		"alias":                "future: {a: 1}\nlater: *shared\n",
+		"explicit tag":         "future: !!str 1\n",
+		"duplicate key":        "future: 1\nfuture: 2\n",
+		"nested duplicate key": "future: {a: 1, a: 2}\n",
+		"two documents":        "---\nfuture: 1\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := libraryformat.ParseReleaseRecord([]byte(record2+extra), "release/2"); err == nil {
+				t.Fatal("accepted the record")
+			}
+		})
+	}
+}
+
+// TestParseReleaseRecord_ChecksTheFormatBeforeTheContent reads format 1, reports a newer format with
+// *UnsupportedReleaseRecordError whatever the rest of the record holds, and refuses a missing or malformed format
+// as an invalid record.
+func TestParseReleaseRecord_ChecksTheFormatBeforeTheContent(t *testing.T) {
+	if record, err := libraryformat.ParseReleaseRecord([]byte(record2), "release/2"); err != nil || record.Release != 2 {
+		t.Fatalf("format %d: got %+v, %v", libraryformat.ReleaseRecordFormat, record, err)
+	}
+	for name, input := range map[string]string{
+		"newer format":                "formatVersion: 2\nrelease: 2\nrules:\n  techs/go/a: 1.0.0\n",
+		"newer format, other content": "formatVersion: 2\nrelease: second\nrules: [techs/go/a]\nchanges: none\n",
+		"newer format, format last":   "release: second\nformatVersion: 2\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := libraryformat.ParseReleaseRecord([]byte(input), "release/2")
+			var unsupported *libraryformat.UnsupportedReleaseRecordError
+			if !errors.As(err, &unsupported) || unsupported.FormatVersion != 2 || unsupported.Location != "release/2.formatVersion" {
+				t.Fatalf("got %v; want UnsupportedReleaseRecordError for format 2", err)
+			}
+		})
+	}
+	for name, format := range map[string]string{"missing": "", "zero": "formatVersion: 0\n", "negative": "formatVersion: -1\n", "text": "formatVersion: one\n", "list": "formatVersion: [1]\n"} {
+		t.Run(name, func(t *testing.T) {
+			_, err := libraryformat.ParseReleaseRecord([]byte(format+"release: 2\nrules: {}\n"), "release/2")
+			var unsupported *libraryformat.UnsupportedReleaseRecordError
+			if err == nil || errors.As(err, &unsupported) {
+				t.Fatalf("got %v; want an invalid record", err)
+			}
+		})
+	}
+}
