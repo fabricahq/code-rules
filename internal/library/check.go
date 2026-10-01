@@ -183,7 +183,8 @@ func (g *libraryGit) compare(ctx context.Context, files map[string][]byte, curre
 }
 
 // retiredReplacements warns about each pending retirement of a rule that an earlier library release named as a
-// retired rule's replacement, since projects still importing the earlier rule would be pointed at a retired one.
+// retired rule's replacement: updates point projects still importing the earlier rule on to the replacement the
+// note names, or, without one, at a retired rule.
 func (c libraryChanges) retiredReplacements() []string {
 	_, retiring := c.namedRules()
 	var warnings []string
@@ -193,11 +194,12 @@ func (c libraryChanges) retiredReplacements() []string {
 		if len(changes) == 0 {
 			continue
 		}
-		warning := "The pending retirement of " + replacement + " retires the replacement that release/" + strconv.Itoa(c.history.retired[old]) + " named for " + old + ", so projects still importing " + old + " would be pointed at a retired rule."
-		if changes[0].ReplacedBy == "" {
-			warning += " To let them follow it, name a replacement for " + replacement + " as replacedBy in the note that retires it."
+		retires := "The pending retirement of " + replacement + " retires the replacement that release/" + strconv.Itoa(c.history.retired[old]) + " named for " + old
+		if onward := changes[0].ReplacedBy; onward != "" {
+			warnings = append(warnings, retires+", so updates will point projects still importing "+old+" on to "+onward+", the replacement the note names.")
+			continue
 		}
-		warnings = append(warnings, warning)
+		warnings = append(warnings, retires+", so projects still importing "+old+" would be pointed at a retired rule. To let them follow it, name a replacement for "+replacement+" as replacedBy in the note that retires it.")
 	}
 	return warnings
 }

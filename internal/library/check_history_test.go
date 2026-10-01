@@ -333,7 +333,8 @@ func TestCheck_WarnsAboutADeletedPublishedNote(t *testing.T) {
 }
 
 // TestCheck_WarnsWhenARetirementRetiresAnEarlierReplacement: release 2 retires b in favor of a, and a pending note
-// retires a. Without a replacement for a, the warning asks for one; with one, it only warns.
+// retires a. Without a replacement for a, the warning says projects would be pointed at a retired rule and asks for
+// one; with one, it says updates will point them on to it.
 func TestCheck_WarnsWhenARetirementRetiresAnEarlierReplacement(t *testing.T) {
 	ctx := context.Background()
 	files := libraryFiles()
@@ -358,7 +359,8 @@ func TestCheck_WarnsWhenARetirementRetiresAnEarlierReplacement(t *testing.T) {
 	}
 	edit(t, options.Directory, map[string]string{"changes/three.yaml": "summary: Fold a into c.\nrules:\n  practices/testing/a: {change: retired, replacedBy: practices/testing/c}\n"})
 	result, err = Check(ctx, options)
-	if err != nil || !slices.Contains(result.Warnings, warning) {
+	onward := "The pending retirement of practices/testing/a retires the replacement that release/2 named for practices/testing/b, so updates will point projects still importing practices/testing/b on to practices/testing/c, the replacement the note names."
+	if err != nil || !slices.Contains(result.Warnings, onward) || slices.Contains(result.Warnings, warning) {
 		t.Fatalf("warnings %q, %v", result.Warnings, err)
 	}
 }
