@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/imports"
+	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
@@ -570,5 +571,15 @@ func TestUpdate_NeverSaysNoFilesWereWrittenAfterRecovering(t *testing.T) {
 				t.Fatalf("output:\n%s", transcript)
 			}
 		})
+	}
+}
+
+// TestUpdateReport_CountsARefreshedGuideAsAWrite: an applied update that changed no rule but refreshed the managed
+// guide reports the guide, rather than that no files were written.
+func TestUpdateReport_CountsARefreshedGuideAsAWrite(t *testing.T) {
+	result := project.UpdateResult{Applied: true, Sources: []imports.SourceUpdate{}, FileChanges: project.FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Guide: &project.GuideChange{Path: "README.md"}}}
+	report := updateReport(result, false, false, updateLocation{root: t.TempDir(), workdir: t.TempDir()})
+	if strings.Contains(report.human, "No files were written") || !strings.Contains(report.human, "Code Rules guide updated") {
+		t.Fatalf("report:\n%s", report.human)
 	}
 }

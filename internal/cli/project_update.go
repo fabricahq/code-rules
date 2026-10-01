@@ -288,8 +288,9 @@ func updateReport(result project.UpdateResult, cancelled, shown bool, location u
 	if !shown {
 		formatUpdatePreview(&out, result.Sources)
 	}
-	// An update that applied nothing reads like a preview with nothing to apply.
-	nothing := result.Applied && !result.Moves() && len(result.Added)+len(result.Changed)+len(result.Removed) == 0
+	// An update that applied nothing, not even a refresh of the managed guide, reads like a preview with nothing to
+	// apply.
+	nothing := result.Applied && !result.Moves() && len(result.Added)+len(result.Changed)+len(result.Removed) == 0 && result.Guide == nil
 	if result.Applied && !nothing {
 		if out.Len() > 0 {
 			out.WriteByte('\n')
