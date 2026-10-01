@@ -41,7 +41,11 @@ func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() { err = errors.Join(err, term.Restore(fd, state)) }()
+	defer func() {
+		if restoreErr := term.Restore(fd, state); restoreErr != nil {
+			err = errors.Join(err, restoreErr)
+		}
+	}()
 	terminal := term.NewTerminal(&promptStream{ctx: f.command.Context(), fd: fd, output: f.command.ErrOrStderr()}, terminalText(label)+" ")
 	if width, height, sizeErr := term.GetSize(fd); sizeErr == nil && width > 0 && height > 0 {
 		if err := terminal.SetSize(width, height); err != nil {

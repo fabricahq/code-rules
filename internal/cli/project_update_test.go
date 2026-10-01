@@ -469,3 +469,16 @@ func TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral(t *t
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
+
+// TestBuildAndCheck_ReportAnUnknownExclusionTheSameWay, with the problem and its location on separate lines.
+func TestBuildAndCheck_ReportAnUnknownExclusionTheSameWay(t *testing.T) {
+	u := newUpdateFixture(t)
+	u.write(t, "config.yaml", "schemaVersion: 1\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    groups:\n      - techs/go\n    pins:\n      techs/go/backoff:\n        version: \"1.0.0\"\n        reason: 'Waiting on #45.'\n    exclude:\n      techs/go/loaders:\n        reason: Ours covers our data layer.\n        replacedBy: local/techs/go/use-data-loaders.md\n      techs/go/missing:\n        reason: Typo.\n")
+	want := "Error: names no rule the library supplies to this source; run code-rules project sync to check it against the library\n\nLocation: sources.team.exclude.techs/go/missing\n"
+	for _, command := range []string{"build", "check"} {
+		out, diagnostic, code := u.run(t, "project", command)
+		if code != 1 || diagnostic != want {
+			t.Errorf("%s: exit %d, stdout %q, stderr:\n%s\nwant:\n%s", command, code, out, diagnostic, want)
+		}
+	}
+}

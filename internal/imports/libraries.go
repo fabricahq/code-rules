@@ -82,7 +82,12 @@ func importLibrary(ctx context.Context, source rules.Source, options Options, re
 	if err != nil {
 		return Library{}, err
 	}
-	defer func() { err = errors.Join(err, repo.Close()) }()
+	// Joining only a failed Close keeps err itself, so callers still see its identity, such as a validation error.
+	defer func() {
+		if closeErr := repo.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	plan, err := resolve(ctx, repo, source)
 	if err != nil {
 		return Library{}, err

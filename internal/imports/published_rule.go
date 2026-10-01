@@ -42,7 +42,12 @@ func ReadPublishedRule(ctx context.Context, source rules.Source, id string, vers
 	if err != nil {
 		return PublishedRule{}, err
 	}
-	defer func() { err = errors.Join(err, repo.Close()) }()
+	// Joining only a failed Close keeps err itself, so callers still see its identity, such as a validation error.
+	defer func() {
+		if closeErr := repo.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 	history, err := repo.loadHistory(ctx)
 	if err != nil {
 		return PublishedRule{}, err

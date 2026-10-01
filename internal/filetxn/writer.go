@@ -99,7 +99,12 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	if err := acquireLock(ctx, root); err != nil {
 		return err
 	}
-	defer func() { err = errors.Join(err, root.RemoveAll(lockName)) }()
+	// Joining only a failed removal keeps err itself, so callers still see its identity, such as a validation error.
+	defer func() {
+		if removeErr := root.RemoveAll(lockName); removeErr != nil {
+			err = errors.Join(err, removeErr)
+		}
+	}()
 	if err := recoverChanges(root); err != nil {
 		return err
 	}
