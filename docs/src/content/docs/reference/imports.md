@@ -177,9 +177,9 @@ When Code Rules can't read the library's repository, it can report:
 
 | Error | Meaning and next step |
 | --- | --- |
-| `connection-failed` | Git couldn't reach the repository's host, such as when the host name doesn't resolve, the connection is refused or times out, or TLS fails. The message quotes Git's reason. Check the repository address and your network connection. |
+| `connection-failed` | Git couldn't reach the repository's host, such as when the host name doesn't resolve, the connection is refused or times out, or TLS fails. Check the repository address and your network connection. |
 | `not-found-or-no-access` | The host answered, but the repository doesn't exist or your Git credentials can't read it; servers report both the same way. Check the address and your credentials. |
 | `object-fetch-refused` | The server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; a self-hosted server needs Git protocol version 2 or `uploadpack.allowAnySHA1InWant`. |
-| `git-failed` | Another Git failure. The message quotes Git's last error line. |
+| `git-failed` | Another Git failure. The message says which step failed, such as fetching library files. |
 
-Messages that quote Git show its text or withhold it whole, as [the CLI reference](/reference/cli/#library-release) describes: Git's text is withheld when it could reveal a known credential, such as the password in the repository address, including the address Git uses after `url.*.insteadOf` rewriting, an HTTPS user name, or a token in `GH_TOKEN`. The error code is decided from Git's text either way.
+These messages never include what Git or the server printed, which can hold credentials, such as one that `url.*.insteadOf` rewriting adds to the repository address. Code Rules reads that text only to choose the code and message, as [Text from Git, servers, and the GitHub CLI](/reference/cli/#text-from-git-servers-and-the-github-cli) describes. To read Git's message, run `git ls-remote` with the repository address yourself.

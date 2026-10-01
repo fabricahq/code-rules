@@ -34,11 +34,8 @@ type Options struct {
 // repository owns a temporary bare repository that fetches one library as a partial clone: commits and trees
 // arrive with depth 1 and no blobs, and blobs arrive only when requested. It isn't safe for concurrent use.
 type repository struct {
-	// source names the configured source in diagnostics. url is its repository address, and effective the address
-	// Git uses after rewriting it with url.*.insteadOf; failures withhold Git's text holding either's credentials.
+	// source names the configured source in diagnostics.
 	source    string
-	url       string
-	effective string
 	directory string
 	runner    gitexec.Runner
 	// present lists the commits already fetched, so later fetches request only missing ones.
@@ -69,7 +66,7 @@ func openRepository(ctx context.Context, source rules.Source, options Options) (
 	if err != nil {
 		return nil, fail("temporary-storage", "Cannot create temporary Git storage.", err)
 	}
-	repo := &repository{source: source.Name, url: source.Repository, directory: dir, runner: runner, present: map[string]bool{}, trees: map[string]map[string]treeEntry{}, owned: map[string]map[string]map[string]treeEntry{}}
+	repo := &repository{source: source.Name, directory: dir, runner: runner, present: map[string]bool{}, trees: map[string]map[string]treeEntry{}, owned: map[string]map[string]map[string]treeEntry{}}
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, repo.Close())
@@ -84,11 +81,6 @@ func openRepository(ctx context.Context, source rules.Source, options Options) (
 	if _, err = runner.Output(ctx, dir, []string{"remote", "add", fetchRemote, source.Repository}, 4096); err != nil {
 		return nil, err
 	}
-	effective, err := runner.Output(ctx, dir, []string{"remote", "get-url", fetchRemote}, 64<<10)
-	if err != nil {
-		return nil, err
-	}
-	repo.effective = strings.TrimSpace(string(effective))
 	return repo, nil
 }
 
@@ -125,7 +117,7 @@ func (r *repository) unreachable(ctx context.Context) error {
 	if result.Status == 0 || result.Status == 2 {
 		return nil
 	}
-	return r.remoteFailure(result.Diagnostics)
+	return remoteFailure(result.Diagnostics)
 }
 
 // hasBranch reports whether the library has a branch named name, to explain a ref that names no tag.
@@ -276,7 +268,7 @@ func (r *repository) prefetch(ctx context.Context, entries []treeEntry) error {
 		return err
 	}
 	if fetched.Status != 0 {
-		return r.gitFailure("git-failed", "Could not fetch library files.", fetched.Diagnostics)
+		return gitFailure("git-failed", "Could not fetch library files.", fetched.Diagnostics)
 	}
 	return nil
 }

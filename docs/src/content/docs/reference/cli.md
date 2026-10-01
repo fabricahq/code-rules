@@ -342,9 +342,24 @@ If a run stops after pushing the tag, such as when the GitHub Release page can't
 
 The tag uses Git's configured identity as its tagger, including the `GIT_COMMITTER_*` environment variables.
 
-When the remote refuses the tag push, such as through a pre-receive hook or a GitHub tag ruleset, the command fails with `push-failed` and shows the server's reason: the lines the server printed, which Git prefixes with `remote:`, and Git's `! [remote rejected]` line naming the tag and the reason, at most 20 lines. Git's other output stays hidden because it can contain the remote's URL with credentials.
+When the push fails, the command fails with `push-failed` and deletes the tag it created, so a rerun starts over. Code Rules doesn't show what Git or the server printed, as [Text from Git, servers, and the GitHub CLI](#text-from-git-servers-and-the-github-cli) explains; its message names the cause it recognizes in that text instead:
 
-Code Rules never removes a known credential from text it shows; it shows the text or withholds it whole. The known credentials are the password in the remote's URL, its user name too for HTTP and HTTPS, and the values of `GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, and `GITHUB_ENTERPRISE_TOKEN`. Before showing text from Git, the server, or the GitHub CLI, Code Rules reduces the whole text and each credential to letters and digits, after undoing percent-encoding, backslash escapes, and terminal sequences, normalizing Unicode, and ignoring case. If the text contains a credential that way, or any 8 characters of one in a row, or a URL with user information wrapped across lines, or is over 64 KiB, the message says `Git's message was withheld because it contained a credential` instead. A very short credential, such as a 2-character token, therefore withholds most messages. Text that is shown still has anything that looks like a credential, such as user information in a URL, GitHub and GitLab tokens, `Authorization` header values, and Bearer tokens, replaced with `[redacted]`. The error code doesn't depend on whether the text is shown. Other messages that quote Git or the GitHub CLI, such as `fetch-failed`, `github-release-failed`, a refusal that names the remote's default branch, and failures to import a library, decide the same way. The command deletes the tag it created, so a rerun starts over.
+- a repository rule or tag protection, such as a GitHub ruleset or a GitLab protected tag, with GitHub's error code, such as `GH013`, when the server gave one,
+- the server denied access, or authentication failed,
+- a hook on the server, such as a pre-receive or update hook, declined the tag,
+- the server refused the tag for a reason Code Rules doesn't recognize,
+- Git couldn't connect to the server, or
+- the push failed before the server answered, such as when your pre-push hook stopped it.
+
+To read the server's own message, push a test tag that your tag rules cover yourself, such as `release/0`, which isn't a library release tag:
+
+```sh
+git tag release/0
+git push origin refs/tags/release/0
+git tag --delete release/0
+```
+
+If that push succeeds, delete the test tag from the remote with `git push origin --delete refs/tags/release/0`.
 
 `code-rules library release` refuses before creating anything, with exit code `1` and `error.code` in JSON output, when:
 
@@ -356,7 +371,7 @@ Code Rules never removes a known credential from text it shows; it shows the tex
 | `detached-head` | `HEAD` isn't on a branch. |
 | `no-upstream` | The branch has no upstream branch on a remote. |
 | `push-destination` | The remote pushes to several URLs, or to another repository than it fetches from. |
-| `fetch-failed` | Git couldn't read or fetch from the remote. The message quotes Git's reason, or says it was withheld. |
+| `fetch-failed` | Git couldn't read or fetch from the remote. The message says whether Git couldn't connect to the server, or the server denied access or has no such repository, when it recognizes either; run `git fetch` with the remote's name to read Git's message. |
 | `not-default-branch` | The branch doesn't track the remote's default branch, or the remote reports none. |
 | `no-commits` | The library has no commits yet. |
 | `branch-differs` | The branch has commits the remote lacks, the remote has commits the branch lacks, or the remote branch doesn't exist. |
@@ -379,12 +394,12 @@ After it creates the tag, it can fail with:
 | Code | Failure |
 | --- | --- |
 | `tag-failed` | Git couldn't create the tag, such as when tag signing fails. |
-| `push-failed` | The push failed, including when the remote refused it, as described above. The command deletes the tag it created. |
+| `push-failed` | The push failed, including when the remote refused it, with the cause described above. The command deletes the tag it created. |
 | `release-conflict` | Someone else published the same `release/<number>` first. |
 | `github-cli-failed` | `gh` couldn't run. |
-| `github-release-failed` | `gh` couldn't look up or create the GitHub Release page. The tag is published; run the command again to create the page. |
+| `github-release-failed` | `gh` couldn't look up or create the GitHub Release page. The message names the cause it recognizes: GitHub's rate limit, `gh` signed out or its credentials refused, permission denied, or a repository GitHub can't find; otherwise it says to run `gh release view` to read `gh`'s message. The tag is published; run the command again to create the page. |
 
-**GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, with the release notes as its body. Before changing anything, `code-rules library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. `code-rules library release --dry-run` checks it too, and refuses the same way. Repositories hosted elsewhere get tags only.
+**GitHub Release pages** are created with the [GitHub CLI](https://cli.github.com/), `gh`, for repositories on GitHub.com. Each library release gets one GitHub Release page on its `release/<number>` tag, with the release notes as its body. Before changing anything, `code-rules library release` checks that `gh` is installed and signed in, and refuses if it isn't, unless you pass `--no-github-release`. `code-rules library release --dry-run` checks it too, and refuses the same way. Repositories hosted elsewhere get tags only. The page's URL in the result is built from the repository and the tag, never taken from what `gh` printed.
 
 <span id="help-and-version"></span>
 
@@ -459,6 +474,20 @@ Authoring results include `value.nextSteps`, an ordered list of steps, each an `
 Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Code Rules directory, or to `generated/` for build. Authoring commands, such as init, add group, add rule, add library, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
 
 In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. Human output, prompts, and errors show control characters, which could make a terminal clear or rewrite what it displays, as visible escapes: ESC as `\x1b`, other controls from `\x00` to `\x1f` and `\x7f` the same way, C1 controls as `\u0080` to `\u009f`, and bytes that aren't valid UTF-8 as `\xNN`. Libraries supply much of that text, such as change summaries and rule IDs. JSON output encodes text as JSON strings instead. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [testing PR preview builds](https://github.com/fabricahq/code-rules/blob/main/_engineering/releasing.md#testing-pr-preview-builds).
+
+## Text from Git, servers, and the GitHub CLI
+
+Code Rules never shows text that Git, a Git server, or the GitHub CLI, `gh`, produced: not in human output, JSON output, or errors. That includes Git's error messages, the lines a server or its hooks print, the reason in Git's `! [remote rejected]` line, the default branch a server advertises, and everything `gh` prints. Such text can hold anything, including credentials Code Rules can't know about, such as one a Git credential helper, `GIT_ASKPASS`, or `http.extraHeader` supplies, so Code Rules doesn't try to find and remove them. It reads the text privately to choose one of its own fixed messages and error codes, which name the likely cause and what to check. A message may name a GitHub error code it recognizes, such as `GH013`, because those are a fixed set. To read the original text, run the Git or `gh` command yourself; the message or this reference says which.
+
+Code Rules also never shows credentials in a URL it displays. A repository address it shows, such as a library's remote in `code-rules library release`, has any password, query, and fragment removed, and its user name too unless it's an SSH user name, which names an account. An address it can't parse is replaced by a note. The GitHub Release page URL is built from the repository and the tag, not taken from `gh`.
+
+Code Rules shows as they are:
+
+- names you chose locally, such as branch and remote names,
+- the repository addresses in project configuration, which can't contain credentials, and
+- library content, such as rule files, change notes, group descriptions, and release records.
+
+Human output still shows control characters in that text as visible escapes, as [Command output](#command-output) describes.
 
 ## Exit codes
 

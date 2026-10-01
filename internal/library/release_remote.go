@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -169,16 +170,16 @@ func (g *libraryGit) readRemote(ctx context.Context, u upstream) (remoteState, e
 		return remoteState{}, fmt.Errorf("list the branches and release tags of remote=%q: %w", u.remote, err)
 	}
 	if result.Status != 0 {
-		return remoteState{}, failure("fetch-failed", "Git couldn't read "+u.remote+g.gitReason(result.Diagnostics, u)+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
+		return remoteState{}, fetchFailure("read", u.remote, result.Diagnostics)
 	}
-	return parseRemoteListing(string(result.Output), u, g.runner.Credentials(u.url, u.pushURL))
+	return parseRemoteListing(string(result.Output), u)
 }
 
 // parseRemoteListing reads git ls-remote --symref output for the remote's HEAD, the upstream branch, and its
 // release tags. It fails when the listing is malformed, has more than 20,000 tag records, or shows that the
 // upstream branch isn't the remote's default branch.
-// The advertised default branch comes from the remote, so a refusal names it only when credentials allow showing it.
-func parseRemoteListing(listing string, u upstream, credentials gitexec.Credentials) (remoteState, error) {
+// The advertised default branch's name comes from the server, so a refusal never shows it.
+func parseRemoteListing(listing string, u upstream) (remoteState, error) {
 	state := remoteState{tags: map[int]string{}}
 	records := 0
 	for line := range strings.Lines(listing) {
@@ -213,10 +214,7 @@ func parseRemoteListing(listing string, u upstream, credentials gitexec.Credenti
 		return remoteState{}, failure("not-default-branch", u.remote+" doesn't report a default branch, so code-rules library release can't confirm it's publishing from it.", nil)
 	}
 	if u.ref != state.defaultBranch {
-		if name, shown := credentials.Show(strings.TrimPrefix(state.defaultBranch, "refs/heads/")); shown {
-			return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, "+name+", but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+". Check out "+name+", then run code-rules library release again.", nil)
-		}
-		return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+", which isn't it. The default branch's name was withheld because it contained a credential. Check out the default branch, then run code-rules library release again.", nil)
+		return remoteState{}, failure("not-default-branch", "library releases are published from "+u.remote+"'s default branch, but "+u.branch+" tracks "+strings.TrimPrefix(u.ref, "refs/heads/")+", which isn't it. Check out the default branch, which git remote show "+u.remote+" names, then run code-rules library release again.", nil)
 	}
 	return state, nil
 }
@@ -272,7 +270,7 @@ func (g *libraryGit) syncReleaseTags(ctx context.Context, u upstream, remote rem
 		return releasetag.Tag{}, fmt.Errorf("fetch remote=%q: %w", u.remote, err)
 	}
 	if result.Status != 0 {
-		return releasetag.Tag{}, failure("fetch-failed", "Git couldn't fetch from "+u.remote+g.gitReason(result.Diagnostics, u)+". Check your network connection and access to the repository, then run code-rules library release again.", nil)
+		return releasetag.Tag{}, fetchFailure("fetch from", u.remote, result.Diagnostics)
 	}
 	if err := g.requireFetched(ctx, u, remote); err != nil {
 		return releasetag.Tag{}, err
@@ -530,67 +528,68 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 	return object, nil
 }
 
-// Limits on the server's reason for refusing a push that serverRejection shows.
-const (
-	maxRejectionLines     = 20
-	maxRejectionLineRunes = 200
-)
+// noExternalText ends each failure that Git's or a server's messages would explain, which Code Rules never shows.
+const noExternalText = "Code Rules doesn't show messages from Git or the server; to read them, "
 
-// serverRejection returns the server's reason for refusing a push, from Git's diagnostics: the lines a server
-// hook printed, which Git prefixes with remote:, and each ! [remote rejected] line, which names the ref and the
-// server's reason. Git's other diagnostics can hold the remote's URL with credentials, so they stay hidden. Those
-// lines are shown or withheld together, as gitexec's Show decides on all of them before any is selected or cut,
-// and withheld ones are replaced by a note saying why. It returns at most maxRejectionLines lines, each indented
-// and at most maxRejectionLineRunes long, or "" when the server gave no reason, such as when the push never
-// reached it.
-func (g *libraryGit) serverRejection(diagnostics []byte, u upstream) string {
-	// The decision reads the server's text without the remote: labels Git adds, which would otherwise separate the
-	// pieces of text the server wrapped.
-	var payloads, lines []string
-	for _, line := range strings.FieldsFunc(string(diagnostics), func(r rune) bool { return r == '\n' || r == '\r' }) {
-		line = strings.TrimSpace(line)
-		if text, remote := strings.CutPrefix(line, "remote:"); remote && strings.TrimSpace(text) != "" {
-			payloads = append(payloads, strings.TrimSpace(text))
-			lines = append(lines, "remote: "+gitexec.RedactFormats(strings.TrimSpace(text)))
-		} else if strings.HasPrefix(line, "! [remote rejected]") {
-			payloads = append(payloads, line)
-			lines = append(lines, gitexec.RedactFormats(line))
-		}
-	}
-	if len(lines) == 0 {
-		return ""
-	}
-	if _, ok := g.runner.Credentials(u.url, u.pushURL).Show(strings.Join(payloads, "\n")); !ok {
-		return "  " + gitexec.Withheld + "."
-	}
-	if len(lines) > maxRejectionLines {
-		lines = append(lines[:maxRejectionLines], "...")
-	}
-	for i, line := range lines {
-		lines[i] = "  " + gitexec.Shorten(line, maxRejectionLineRunes)
-	}
-	return strings.Join(lines, "\n")
+// accessFailures are the texts Git and Git servers print when a server refuses the credentials or their access, or
+// reports a repository that doesn't exist, such as GitHub's "Permission to OWNER/REPO denied to USER" and SSH's
+// "Permission denied (publickey)".
+var accessFailures = []string{
+	"permission denied", "permission to", "authentication failed", "access denied", "returned error: 401",
+	"returned error: 403", "could not read username", "could not read password", "not allowed to push",
+	"insufficient permission", "repository not found", "does not appear to be a git repository",
+	"could not read from remote repository",
 }
 
-// gitReason returns Git's first fatal: or error: line from diagnostics, usually the most specific, as
-// " (Git: reason)", at most maxRejectionLineRunes long, when gitexec's Show allows showing the diagnostics; a note
-// that they were withheld when it doesn't; or "" when there is no such line.
-func (g *libraryGit) gitReason(diagnostics []byte, u upstream) string {
-	// The decision reads the lines without the labels Git adds, which would otherwise separate wrapped text.
-	texts, prefixes := []string{}, []string{}
-	for line := range strings.SplitSeq(gitexec.Printable(string(diagnostics)), "\n") {
-		text, prefix := gitexec.WithoutPrefix(line)
-		texts, prefixes = append(texts, text), append(prefixes, prefix)
+// ruleRefusals are the texts servers print when a repository rule or tag protection refuses a tag, such as
+// GitHub's rulesets and GitLab's protected tags.
+var ruleRefusals = []string{"rule violation", "ruleset", "protected tag", "tag protection"}
+
+// gitHubErrorCode matches the codes GitHub gives the rules a push breaks, such as GH013 for a repository rule. A
+// match is one of a fixed set of codes, so a message may name it.
+var gitHubErrorCode = regexp.MustCompile(`\bGH0[0-9]{2}\b`)
+
+// pushRefusal explains why Git couldn't push the tag name to remote, with a static cause chosen from Git's
+// diagnostics, which it never shows: a repository rule or tag protection, naming GitHub's error code when there is
+// one; a host Git couldn't reach; refused access or authentication; a server hook; another refusal from the
+// server; or no answer from the server, such as when a pre-push hook stopped the push.
+func pushRefusal(name, remote string, diagnostics []byte) string {
+	problem := "Git couldn't push " + name + " to " + remote
+	// A server that refused the tag was reached, whatever its message says about connections.
+	refused := gitexec.Mentions(diagnostics, "[remote rejected]", "remote:")
+	switch code := gitHubErrorCode.Find(diagnostics); {
+	case code != nil:
+		problem += ": a repository rule refused the tag (GitHub error " + string(code) + "). Check the repository's rulesets and tag protection rules, and that they let you create release/ tags"
+	case gitexec.Mentions(diagnostics, ruleRefusals...):
+		problem += ": a repository rule or tag protection refused the tag. Check the repository's rulesets and tag protection rules, and that they let you create release/ tags"
+	case !refused && gitexec.Mentions(diagnostics, gitexec.ConnectionFailures...):
+		problem += ": Git couldn't connect to the server. Check the repository address and your network connection"
+	case gitexec.Mentions(diagnostics, accessFailures...):
+		problem += ": the server denied access, or authentication failed. Check your Git credentials and that they let you push tags to the repository"
+	case gitexec.Mentions(diagnostics, "hook declined"):
+		problem += ": a hook on the server declined the tag. Check the repository's server-side hooks, such as pre-receive and update hooks, or ask its administrator"
+	case refused:
+		problem += ": the server refused the tag for a reason Code Rules doesn't recognize. Check the repository's rules for tags and its server-side hooks"
+	default:
+		problem += ". Check your network connection, your access to the repository, and any pre-push hook"
 	}
-	if _, ok := g.runner.Credentials(u.url, u.pushURL).Show(strings.Join(texts, "\n")); !ok {
-		return " (" + gitexec.Withheld + ")"
+	return problem + ", then run code-rules library release again. " + noExternalText + "push a test tag with git push."
+}
+
+// fetchFailure explains why Git couldn't read or fetch from remote, as action says, with a static cause chosen
+// from Git's diagnostics, which it never shows: a host Git couldn't reach, or refused access or a missing
+// repository.
+func fetchFailure(action, remote string, diagnostics []byte) error {
+	problem := "Git couldn't " + action + " " + remote
+	switch {
+	case gitexec.Mentions(diagnostics, gitexec.ConnectionFailures...):
+		problem += ": Git couldn't connect to the server. Check the repository address and your network connection"
+	case gitexec.Mentions(diagnostics, accessFailures...):
+		problem += ": the server denied access, or the repository doesn't exist. Check the repository address, your Git credentials, and your access to the repository"
+	default:
+		problem += ". Check your network connection and access to the repository"
 	}
-	for i, text := range texts {
-		if prefixes[i] == "fatal:" || prefixes[i] == "error:" {
-			return " (Git: " + strings.TrimRight(gitexec.Shorten(gitexec.RedactFormats(text), maxRejectionLineRunes), ". ") + ")"
-		}
-	}
-	return ""
+	return failure("fetch-failed", problem+", then run code-rules library release again. "+noExternalText+"run git fetch "+remote+".", nil)
 }
 
 // pushTag pushes only the tag, running the author's pre-push hook. If the push fails, it deletes the local tag
@@ -603,9 +602,9 @@ func (g *libraryGit) pushTag(ctx context.Context, u upstream, name, object strin
 	if err == nil && pushed.Status == 0 {
 		return nil
 	}
-	problem := failure("push-failed", "Git couldn't push "+name+" to "+u.remote+". Check your access to the repository and any pre-push hook, then run code-rules library release again.", err)
-	if reason := g.serverRejection(pushed.Diagnostics, u); err == nil && reason != "" {
-		problem = failure("push-failed", "Git couldn't push "+name+" to "+u.remote+", which refused it:\n"+reason+"\nCheck your access to the repository and its rules for tags, then run code-rules library release again.", nil)
+	problem := failure("push-failed", "Git couldn't push "+name+" to "+u.remote+". Check your network connection, your access to the repository, and any pre-push hook, then run code-rules library release again.", err)
+	if err == nil {
+		problem = failure("push-failed", pushRefusal(name, u.remote, pushed.Diagnostics), nil)
 	}
 	if err == nil {
 		switch remote, listErr := g.runner.Run(ctx, g.dir, []string{"ls-remote", "--", u.remote, ref}, 64*1024, nil); {

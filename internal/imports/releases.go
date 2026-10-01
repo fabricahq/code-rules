@@ -153,7 +153,7 @@ func (r *repository) loadHistory(ctx context.Context) (releaseHistory, error) {
 		if err := r.unreachable(ctx); err != nil {
 			return releaseHistory{}, err
 		}
-		return releaseHistory{}, r.gitFailure("git-failed", "Could not fetch the library's release tags.", fetched.Diagnostics)
+		return releaseHistory{}, gitFailure("git-failed", "Could not fetch the library's release tags.", fetched.Diagnostics)
 	}
 	tags, err := r.fetchedReleases(ctx, advertised)
 	if err != nil {
@@ -188,7 +188,7 @@ func (r *repository) listReleases(ctx context.Context) ([]libraryRelease, error)
 		return nil, err
 	}
 	if result.Status != 0 {
-		return nil, r.remoteFailure(result.Diagnostics)
+		return nil, remoteFailure(result.Diagnostics)
 	}
 	tags, err := rules.ParseTagAdvertisement(string(result.Output))
 	if err != nil {

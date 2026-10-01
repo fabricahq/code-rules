@@ -57,8 +57,8 @@ type Runner struct {
 // Result separates a normal nonzero Git exit from startup, cancellation, and output-limit failures.
 type Result struct {
 	Output []byte
-	// Diagnostics is the program's stderr. Git's can contain credential-bearing URLs, so never show it without
-	// Runner.Redact, and only the lines a caller needs.
+	// Diagnostics is the program's stderr, which can hold anything a server or helper printed, including
+	// credentials, so it's never shown: callers classify it with Mentions to choose a static message.
 	Diagnostics []byte
 	Status      int
 }

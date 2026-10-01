@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/test/ghfixture"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
@@ -258,7 +257,7 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 		code    string
 		message string
 	}{
-		{name: "branch other than the default", code: "not-default-branch", message: "library releases are published from origin's default branch, main, but feature tracks feature. Check out main",
+		{name: "branch other than the default", code: "not-default-branch", message: "library releases are published from origin's default branch, but feature tracks feature, which isn't it. Check out the default branch, which git remote show origin names,",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				run(t, fixture, options.Directory, "switch", "--quiet", "--create", "feature")
 				run(t, fixture, options.Directory, "push", "--quiet", "--set-upstream", "origin", "feature")
@@ -318,7 +317,7 @@ func TestRelease_RefusesBeforeChangingAnything(t *testing.T) {
 				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository)
 				run(t, fixture, options.Directory, "remote", "set-url", "--add", "--push", "origin", fixture.Repository+"-mirror")
 			}},
-		{name: "unreachable remote", code: "fetch-failed", message: "does not appear to be a git repository). Check your network connection and access to the repository",
+		{name: "unreachable remote", code: "fetch-failed", message: "Git couldn't read origin: the server denied access, or the repository doesn't exist.",
 			arrange: func(t *testing.T, fixture *gitfixture.Fixture, options *Options) {
 				run(t, fixture, options.Directory, "remote", "set-url", "origin", filepath.Join(t.TempDir(), "missing"))
 			}},
@@ -455,7 +454,7 @@ func TestRelease_CreatesTheGitHubReleasePageAndFinishesAfterItFails(t *testing.T
 	commitAndPush(t, fixture, options.Directory, map[string][]byte{"practices/testing/a.md": []byte(ruleText("Changed.")), "changes/a.yaml": []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")})
 	fake := withGitHub(t, fixture, &options, gitHubCalls("release/2", 1))
 	_, err := Release(ctx, ReleaseRequest{Options: options})
-	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; run code-rules library release again to create the page.") {
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "The tag is published; run gh release view release/2 --repo github.com/acme/rules to see gh's message, then run code-rules library release again to create the page.") {
 		t.Fatal(err)
 	}
 	message := tagMessage(t, fixture, remoteDir(fixture), "release/2")
@@ -498,7 +497,7 @@ func TestRelease_FailsWithoutCreatingAPageGHCouldNotLookUp(t *testing.T) {
 	responses[1].Stderr = "HTTP 502: Bad Gateway (https://api.github.com/repos/acme/rules/releases/tags/release/1)\n"
 	fake := withGitHub(t, fixture, &options, responses)
 	_, err := Release(context.Background(), ReleaseRequest{Options: options})
-	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1 (HTTP 502: Bad Gateway") {
+	if errorCode(err) != "github-release-failed" || !strings.Contains(err.Error(), "couldn't look up the GitHub Release page for release/1: gh failed for a reason Code Rules doesn't recognize.") || strings.Contains(err.Error(), "Bad Gateway") {
 		t.Fatal(err)
 	}
 	requireCalls(t, fake, []ghfixture.Call{{Args: responses[0].Args}, {Args: responses[1].Args}})
@@ -724,7 +723,7 @@ func TestRelease_DeletesItsTagWhenThePushFails(t *testing.T) {
 	}
 	local, remote := tags(t, fixture, options.Directory), tags(t, fixture, remoteDir(fixture))
 	_, err := Release(ctx, ReleaseRequest{Options: options})
-	if errorCode(err) != "push-failed" || !strings.Contains(err.Error(), "Git couldn't push release/1 to origin. Check your access to the repository and any pre-push hook") {
+	if errorCode(err) != "push-failed" || !strings.Contains(err.Error(), "Git couldn't push release/1 to origin. Check your network connection, your access to the repository, and any pre-push hook") {
 		t.Fatal(err)
 	}
 	if tags(t, fixture, options.Directory) != local || tags(t, fixture, remoteDir(fixture)) != remote {
@@ -1007,11 +1006,11 @@ func TestParseRemoteListing_ReadsTheDefaultBranchAndReleaseTagsWithinTheRecordLi
 		}
 		return out.String()
 	}
-	state, err := parseRemoteListing(listing(20_000)+commit+"\trefs/tags/release/01\n", main, gitexec.Credentials{})
+	state, err := parseRemoteListing(listing(20_000)+commit+"\trefs/tags/release/01\n", main)
 	if errorCode(err) != "limit-exceeded" {
 		t.Fatalf("20,001 tag records: %v", err)
 	}
-	state, err = parseRemoteListing(listing(20_000), main, gitexec.Credentials{})
+	state, err = parseRemoteListing(listing(20_000), main)
 	if err != nil || state.defaultBranch != "refs/heads/main" || state.head != commit || len(state.tags) != 10_000 || state.latest() != 10_000 || state.tags[1] != tag {
 		t.Fatalf("20,000 tag records: %d tags, latest %d: %v", len(state.tags), state.latest(), err)
 	}
@@ -1021,7 +1020,7 @@ func TestParseRemoteListing_ReadsTheDefaultBranchAndReleaseTagsWithinTheRecordLi
 		{"malformed line", header + "release/1\n", "git-failed"},
 		{"malformed object", header + "xyz\trefs/tags/release/1\n", "git-failed"},
 	} {
-		if _, err := parseRemoteListing(test.listing, main, gitexec.Credentials{}); errorCode(err) != test.code {
+		if _, err := parseRemoteListing(test.listing, main); errorCode(err) != test.code {
 			t.Errorf("%s: %v, want %s", test.name, err, test.code)
 		}
 	}
@@ -1045,6 +1044,7 @@ func TestGitHubRepository_RecognizesOnlyGitHubDotCom(t *testing.T) {
 		{"/srv/git/rules.git", "", "/srv/git/rules.git"},
 		{"https://review-secret:password@github.com/acme/%zz", "", hiddenRemote},
 		{"https://review-secret:password@host.example:port/library.git", "", hiddenRemote},
+		{"https://someone:p@ss@host.example/library.git", "", "https://host.example/library.git"},
 	} {
 		if github, display := gitHubRepository(test.url), displayRepository(test.url); github != test.github || display != test.display {
 			t.Errorf("%s: GitHub repository %q, display %q; want %q, %q", test.url, github, display, test.github, test.display)
