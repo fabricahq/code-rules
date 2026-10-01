@@ -738,3 +738,35 @@ func TestImport_RejectsABasedOnVersionTheRuleNeverPublished(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestImport_RefKeepsItsRecordedCommitAfterAReleaseTagMoves: a source whose ref names release/1, or a commit whose
+// rules record versions from release/1, keeps importing its recorded commit after release/1 moves to another
+// commit, while its original commit stays fetchable.
+func TestImport_RefKeepsItsRecordedCommitAfterAReleaseTagMoves(t *testing.T) {
+	for _, test := range []struct{ name, ref string }{{"library release", "release/1"}, {"commit", ""}} {
+		t.Run(test.name, func(t *testing.T) {
+			h := newHistory(t)
+			ctx := context.Background()
+			ref := test.ref
+			if ref == "" {
+				ref = h.commits[1]
+			}
+			config := h.source(t, `"groups":["techs/go"],"ref":"`+ref+`"`)
+			first, err := h.sync(t, config, nil)
+			if err != nil || first.Snapshot.Commit != h.commits[1] {
+				t.Fatalf("snapshot %+v, %v", first.Snapshot, err)
+			}
+			message, err := h.fixture.Command(ctx, "tag", "--list", "--format=%(contents)", "release/1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := h.fixture.Command(ctx, "tag", "--force", "--annotate", "--cleanup=verbatim", "--message", message+"\n", "release/1", h.commits[3]); err != nil {
+				t.Fatal(err)
+			}
+			again, err := h.sync(t, config, &first.Snapshot)
+			if err != nil || again.Snapshot.Commit != h.commits[1] || !reflect.DeepEqual(versions(again.Snapshot), versions(first.Snapshot)) {
+				t.Fatalf("after release/1 moved: snapshot %+v, %v", again.Snapshot, err)
+			}
+		})
+	}
+}

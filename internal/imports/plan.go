@@ -540,15 +540,17 @@ func (p *planner) retiredEntry(field, id string) string {
 }
 
 // requireUnmoved checks the plan's library releases and versions, which it may have kept from the source record,
-// against the library's release history, reading it when the planner hasn't yet. A rule version its library release
-// doesn't publish, or a library release that supplies a rule or the plan's library-wide files but that the library
-// doesn't have, fails as an invalid source record, as a hand edit or a merge resolution of _source.json can leave it.
-// A source that uses ref is exempt from the second, since it keeps the revision its ref named even after the tag is
-// gone. A library release tag that now names a different commit than the plan records fails with
-// invalid-release-tag.
+// against the library's release history. For a source that follows rule versions, it reads the history when the
+// planner hasn't yet: a rule version its library release doesn't publish, or a library release that supplies a rule
+// or the plan's library-wide files but that the library doesn't have, fails as an invalid source record, as a hand
+// edit or a merge resolution of _source.json can leave it, and a library release tag that now names a different
+// commit than the plan records fails with invalid-release-tag. A source that uses ref keeps the commit its ref named
+// when recorded, even after the tag moves or is gone, so it reads the history only when choosing versions needed it,
+// and then checks only the versions of library releases the history has.
 func (p *planner) requireUnmoved(plan sourcePlan) error {
+	usesRef := !p.source.Ref.IsZero()
 	versioned := plan.release != 0 || slices.ContainsFunc(slices.Collect(maps.Values(plan.rules)), func(rule library.ImportedRule) bool { return rule.Version != nil })
-	if !versioned {
+	if !versioned || usesRef && p.history == nil {
 		return nil
 	}
 	history, err := p.releases()
@@ -566,7 +568,7 @@ func (p *planner) requireUnmoved(plan sourcePlan) error {
 		}
 		release := history.release(rule.Release)
 		if release == nil {
-			if !p.source.Ref.IsZero() {
+			if usesRef {
 				continue
 			}
 			return missing(record+".rules."+id, rule.Release)
@@ -579,15 +581,19 @@ func (p *planner) requireUnmoved(plan sourcePlan) error {
 			return &rules.ValidationError{Location: record + ".rules." + id, Problem: fmt.Sprintf("records version %s from library release %d, %s; restore %s, such as from version control, then run code-rules project sync again", rule.Version, rule.Release, publishes, record)}
 		}
 	}
-	if plan.release != 0 && history.release(plan.release) == nil && p.source.Ref.IsZero() {
+	if plan.release != 0 && history.release(plan.release) == nil && !usesRef {
 		return missing(record+".release", plan.release)
 	}
-	if release := p.history.release(plan.release); plan.release != 0 && release != nil && release.commit != plan.commit {
+	// A recorded ref keeps its commit, wherever its tags point now.
+	if usesRef && p.recorded != nil && p.recorded.Ref.Equal(p.source.Ref) {
+		return nil
+	}
+	if release := history.release(plan.release); plan.release != 0 && release != nil && release.commit != plan.commit {
 		return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for the library's shared files. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run code-rules project sync to use the tag's current commit.", plan.release, p.source.Name, p.source.Name), nil)
 	}
 	for _, id := range slices.Sorted(maps.Keys(plan.rules)) {
 		rule := plan.rules[id]
-		if release := p.history.release(rule.Release); release != nil && release.commit != rule.Commit {
+		if release := history.release(rule.Release); release != nil && release.commit != rule.Commit {
 			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d now names a different commit than vendor/%s/_source.json records for %s. Library release tags must not move; ask the library's maintainer, or delete vendor/%s and run code-rules project sync to use the tag's current commit.", rule.Release, p.source.Name, id, p.source.Name), nil)
 		}
 	}
