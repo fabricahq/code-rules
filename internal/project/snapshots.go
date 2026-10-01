@@ -58,6 +58,14 @@ func reimport(name string) string {
 	return "delete .code-rules/vendor/" + name + "/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions"
 }
 
+// changedOutsideSync refuses the source record of the source name, whose checksum shows it was changed outside sync,
+// for offline commands and sync alike, since nothing in it can be trusted, and says how to recover: restore a record
+// sync wrote, or import the source again.
+func changedOutsideSync(name string) error {
+	record := ".code-rules/vendor/" + name + "/_source.json"
+	return invalidSnapshot("vendor/"+name+"/_source.json", "was changed outside code-rules project sync, such as by hand or in a merge, and only a record sync wrote can be trusted; restore one with git checkout -- "+record+", or, during a merge conflict, take one side with git checkout --ours or --theirs -- "+record+", then run code-rules project sync, which applies any configuration changes; or delete .code-rules/vendor/"+name+"/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions")
+}
+
 // recordChecksum returns the SHA-256 of record's fields other than its checksum, encoded as sync writes them.
 func recordChecksum(record sourceRecord) string {
 	record.Checksum = ""
@@ -151,8 +159,8 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		if err != nil {
 			return nil, err
 		}
-		if record.Unverified {
-			return nil, invalidSnapshot("vendor/"+recordPath, "was changed outside code-rules project sync, such as by hand or in a merge, so its versions and releases can't be trusted offline; run code-rules project sync, which checks them against the library and records them again")
+		if record.unverified {
+			return nil, changedOutsideSync(source.Name)
 		}
 		if err := matchSnapshotSource(source, record); err != nil {
 			return nil, err
@@ -192,66 +200,25 @@ func recordedSnapshots(config rules.Configuration, vendor map[string][]byte) (ma
 		if err != nil {
 			return nil, err
 		}
-		if record.Unverified {
-			if err := requireConfirmedInventory(source.Name, record, vendor); err != nil {
-				return nil, err
-			}
+		if record.unverified {
+			return nil, changedOutsideSync(source.Name)
 		}
 		result[source.Name] = record.Snapshot
 	}
 	return result, nil
 }
 
-// requireConfirmedInventory confirms what a record changed outside sync says about the files vendored for source:
-// every file it lists has the recorded checksum, no other file is vendored, and it records a rule for each rule file
-// it lists and lists the file of each rule it records, so sync never mistakes a missing entry for a removed rule.
-func requireConfirmedInventory(name string, record parsedRecord, vendor map[string][]byte) error {
-	prefix := name + "/"
-	for file, data := range vendor {
-		path, ok := strings.CutPrefix(file, prefix)
-		if !ok || path == "_source.json" {
-			continue
-		}
-		if expected, listed := record.digests[path]; !listed || digest(data) != expected {
-			return library.UnconfirmedRecord(name, "its file inventory, which doesn't match the vendored file "+path)
-		}
-	}
-	for path := range record.digests {
-		if _, ok := vendor[prefix+path]; !ok {
-			return library.UnconfirmedRecord(name, "its file inventory, which lists "+path+", a file that isn't vendored")
-		}
-		if id, isRule := ruleOfFile(path); isRule {
-			if _, recorded := record.Rules[id]; !recorded {
-				return library.UnconfirmedRecord(name, "its rules, which leave out "+id+" although its file is vendored")
-			}
-		}
-	}
-	for _, id := range slices.Sorted(maps.Keys(record.Rules)) {
-		if _, listed := record.digests[id+".md"]; !listed {
-			return library.UnconfirmedRecord(name, "rule "+id+", whose file it doesn't list")
-		}
-	}
-	return nil
-}
-
-// ruleOfFile returns the rule whose Markdown file path is, and true, or false for a path that isn't a rule file,
-// such as group metadata, a rule's or the library's assets, or license files.
-func ruleOfFile(path string) (string, bool) {
-	parts := strings.Split(path, "/")
-	if len(parts) < 3 || (parts[0] != "techs" && parts[0] != "practices") || !strings.HasSuffix(path, ".md") || slices.Contains(parts[1:], "assets") {
-		return "", false
-	}
-	return strings.TrimSuffix(path, ".md"), true
-}
-
 // parsedRecord is a validated source record: its snapshot, without files, and its file digests by stored path.
 type parsedRecord struct {
 	library.Snapshot
 	digests map[string]string
+	// unverified reports a checksum that doesn't match the record's fields, or none: the record was changed outside
+	// sync, so nothing in it can be trusted.
+	unverified bool
 }
 
 // parseSourceRecord validates a format 2 record's exact fields, value syntax, and complete digest inventory, and
-// marks its snapshot Unverified when its checksum, missing or not, doesn't match its fields. Relationships to
+// marks it unverified when its checksum, missing or not, doesn't match its fields. Relationships to
 // configuration are matchSnapshotSource's. A record it can't read fails validation with advice to import the source
 // again, and so does an older format, such as 1; a newer one fails with code unsupported-source-record, asking to
 // upgrade Code Rules.
@@ -267,7 +234,7 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 // readSourceRecord is parseSourceRecord without the next step its validation errors share.
 func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	where := "vendor/" + name + "/_source.json"
-	if err := rules.RequireResolvedMerge(data, where, "run code-rules project sync, which checks the record against the library"); err != nil {
+	if err := rules.RequireResolvedMerge(data, where, "take one side, which sync wrote, such as with git checkout --ours or --theirs -- .code-rules/vendor/"+name+"/_source.json, and run code-rules project sync"); err != nil {
 		return parsedRecord{}, err
 	}
 	var fields map[string]json.RawMessage
@@ -299,7 +266,7 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if decoder.Decode(&record) != nil {
 		return parsedRecord{}, invalidSnapshot(where, "invalid source record field values")
 	}
-	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}, Unverified: record.Checksum != recordChecksum(record)}, digests: record.Files}
+	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files, unverified: record.Checksum != recordChecksum(record)}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
 	}

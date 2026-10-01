@@ -67,11 +67,6 @@ func newPlanner(ctx context.Context, repo *repository, source rules.Source, reco
 // choose plans what the source imports as project sync does, without fetching the commits the plan names that
 // choosing didn't need.
 func (p *planner) choose() (sourcePlan, error) {
-	if p.recorded != nil && p.recorded.Unverified {
-		if err := p.requireConfirmedRecord(); err != nil {
-			return sourcePlan{}, err
-		}
-	}
 	choose := p.planVersions
 	if !p.source.Ref.IsZero() {
 		choose = p.planRevision
@@ -87,59 +82,6 @@ func (p *planner) choose() (sourcePlan, error) {
 	}
 	chosen.retired, err = p.retiredRules(chosen)
 	return chosen, err
-}
-
-// requireConfirmedRecord confirms every fact of a recorded snapshot changed outside sync against the library before
-// sync records it again: each rule's version, library release, and commit, the shared files' library release and
-// commit, each retirement, and, for a source whose ref is unchanged, that the ref still names the recorded commit.
-// No moved or deleted tag is exempt, since nothing else vouches for the record. Anything it can't confirm fails with
-// library.UnconfirmedRecord.
-func (p *planner) requireConfirmedRecord() error {
-	recorded := p.recorded
-	history, err := p.releases()
-	if err != nil {
-		return err
-	}
-	unconfirmed := func(what string, args ...any) error {
-		return library.UnconfirmedRecord(p.source.Name, fmt.Sprintf(what, args...))
-	}
-	if !recorded.Ref.IsZero() && p.source.Ref.Equal(recorded.Ref) {
-		release, commit, err := p.resolveRef()
-		if err != nil {
-			return unconfirmed("the commit its ref %s names, which the library no longer resolves", recorded.Ref)
-		}
-		if commit != recorded.Commit || release != recorded.Release {
-			return unconfirmed("its commit, because ref %s now names another", recorded.Ref)
-		}
-	}
-	if recorded.Release != 0 {
-		release := history.release(recorded.Release)
-		if release == nil || release.commit != recorded.Commit {
-			return unconfirmed("library release %d of its shared files, which the library doesn't have at the recorded commit", recorded.Release)
-		}
-	}
-	for _, id := range slices.Sorted(maps.Keys(recorded.Rules)) {
-		rule := recorded.Rules[id]
-		if rule.Version == nil {
-			if recorded.Ref.IsZero() || rule.Commit != recorded.Commit {
-				return unconfirmed("rule %s, which has no version", id)
-			}
-			continue
-		}
-		release := history.release(rule.Release)
-		if release == nil {
-			return unconfirmed("rule %s at %s, because the library doesn't have library release %d", id, rule.Version, rule.Release)
-		}
-		if published, ok := release.record.Rules[id]; !ok || published != *rule.Version || history.publisher(id, *rule.Version) == nil || release.commit != rule.Commit {
-			return unconfirmed("rule %s at %s from library release %d, which its release record doesn't publish at the recorded commit", id, rule.Version, rule.Release)
-		}
-	}
-	for _, id := range recorded.RetiredRules {
-		if !history.retired(id) {
-			return unconfirmed("that the library retired %s", id)
-		}
-	}
-	return nil
 }
 
 // redundantRules warns about each imported rule the source selects individually although its groups already select
@@ -315,17 +257,6 @@ func (p *planner) planVersions() (sourcePlan, error) {
 	if plan.release == 0 {
 		// Only a removed ref that named a revision other than a library release records none.
 		return plan, p.newestSharedFiles(&plan)
-	}
-	// Only a record changed outside sync takes the shared files from a release older than its rules', which sync
-	// repairs, saying so.
-	oldest := recorded.Release
-	for _, rule := range recorded.Rules {
-		if rule.Release > oldest {
-			oldest = rule.Release
-		}
-	}
-	if oldest > recorded.Release {
-		plan.warnings = append(plan.warnings, fmt.Sprintf("vendor/%s/_source.json recorded library release %d for the shared files, older than library release %d that its rules come from, so sync takes them from release %d.", p.source.Name, recorded.Release, oldest, oldest))
 	}
 	raiseSharedFiles(&plan)
 	return plan, nil
@@ -615,8 +546,8 @@ func (p *planner) retiredEntry(field, id string) string {
 // edit or a merge resolution of _source.json can leave it, and a library release tag that now names a different
 // commit than the plan records fails with invalid-release-tag. A source that uses ref keeps the commit its ref named
 // when recorded, even after the tag moves or is gone, so it reads the history only when choosing versions needed it,
-// and then checks only the versions of library releases the history has. These exemptions hold only for a record
-// sync wrote; requireConfirmedRecord confirms every fact of one changed outside sync first.
+// and then checks only the versions of library releases the history has. Sync reads only records it wrote, whose
+// checksum matches, so these exemptions never cover a record changed outside sync.
 func (p *planner) requireUnmoved(plan sourcePlan) error {
 	usesRef := !p.source.Ref.IsZero()
 	versioned := plan.release != 0 || slices.ContainsFunc(slices.Collect(maps.Values(plan.rules)), func(rule library.ImportedRule) bool { return rule.Version != nil })

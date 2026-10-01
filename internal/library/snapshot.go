@@ -40,9 +40,6 @@ type Snapshot struct {
 	// Files maps each library path to its original bytes, excluding _source.json. The snapshot holds one version of
 	// each imported rule, so every file is stored at its library path.
 	Files map[string][]byte `json:"files"`
-	// Unverified reports a recorded snapshot whose record was changed outside sync, such as by hand or in a merge,
-	// so sync must confirm what it records against the library before trusting it.
-	Unverified bool `json:"-"`
 }
 
 // ImportedRule records one imported rule's version and the library release that published it.
@@ -53,13 +50,6 @@ type ImportedRule struct {
 	Release int                `json:"release,omitempty"`
 	// Commit is the full commit SHA of Release, or the snapshot's Commit when Version is nil.
 	Commit string `json:"commit"`
-}
-
-// UnconfirmedRecord refuses to record again the source record of source, which was changed outside sync, because
-// sync can't confirm what, and names both ways out.
-func UnconfirmedRecord(source, what string) error {
-	record := ".code-rules/vendor/" + source + "/_source.json"
-	return &rules.ValidationError{Location: "vendor/" + source + "/_source.json", Problem: "was changed outside code-rules project sync, such as by hand or in a merge, and sync can't confirm " + what + "; restore it from version control, such as with git checkout -- " + record + ", or delete .code-rules/vendor/" + source + "/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions"}
 }
 
 // Source returns the snapshot's files for the catalog loader to read.

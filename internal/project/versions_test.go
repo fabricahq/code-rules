@@ -587,56 +587,6 @@ func TestSync_StoresOlderRulesAtTheirLibraryPaths(t *testing.T) {
 	requireCurrent(t, options)
 }
 
-// TestSync_RefusesARecordedVersionOrReleaseTheLibraryDoesntHave, as a hand edit or a merge resolution can leave in
-// _source.json: a rule's version that its library release doesn't publish, a rule's library release, or the
-// shared files' library release, that the library doesn't have. Sync writes nothing, and syncs again once the record
-// is restored.
-func TestSync_RefusesARecordedVersionOrReleaseTheLibraryDoesntHave(t *testing.T) {
-	f, options, git := syncProject(t)
-	ctx := context.Background()
-	secondRelease(t, f)
-	if _, err := Sync(ctx, options, git); err != nil {
-		t.Fatal(err)
-	}
-	recorded := string(projectTree(t, options).Files["vendor/team/_source.json"])
-	for _, test := range []struct{ name, from, to, location, problem string }{
-		{"version", `"version": "1.1.0"`, `"version": "1.1.1"`, "vendor/team/_source.json", "can't confirm rule techs/go/errors at 1.1.1 from library release 2"},
-		{"rule's release", "\"version\": \"1.1.0\",\n      \"release\": 2", "\"version\": \"1.1.0\",\n      \"release\": 3", "vendor/team/_source.json", "can't confirm rule techs/go/errors at 1.1.0, because the library doesn't have library release 3"},
-		{"shared files' release", "\"release\": 2,\n  \"resolvedCommit\"", "\"release\": 99,\n  \"resolvedCommit\"", "vendor/team/_source.json", "can't confirm library release 99 of its shared files"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			if !strings.Contains(recorded, test.from) {
-				t.Fatalf("the record lacks %q:\n%s", test.from, recorded)
-			}
-			root, err := openProject(ctx, options, false)
-			if err != nil {
-				t.Fatal(err)
-			}
-			writeFixture(t, root, "vendor/team/_source.json", strings.Replace(recorded, test.from, test.to, 1))
-			root.Close()
-			requireEditedRecord(t, options)
-			before := projectTree(t, options)
-			_, err = Sync(ctx, options, git)
-			var invalid *rules.ValidationError
-			if !errors.As(err, &invalid) || invalid.Location != test.location || !strings.Contains(invalid.Problem, test.problem) || !strings.Contains(invalid.Problem, "git checkout -- .code-rules/vendor/team/_source.json") {
-				t.Fatalf("got %v", err)
-			}
-			if after := projectTree(t, options); after.Digest() != before.Digest() {
-				t.Fatal("a refused sync changed the project")
-			}
-			root, err = openProject(ctx, options, false)
-			if err != nil {
-				t.Fatal(err)
-			}
-			writeFixture(t, root, "vendor/team/_source.json", recorded)
-			root.Close()
-			if _, err := Sync(ctx, options, git); err != nil {
-				t.Fatal(err)
-			}
-		})
-	}
-}
-
 // TestBuild_AnEquivalentRefSpellingLeavesTheSourceRecordUnchanged: changing ref: release/1 to refs/tags/release/1
 // names the same revision, so build and an offline check pass, and sync keeps the recorded spelling byte for byte.
 func TestBuild_AnEquivalentRefSpellingLeavesTheSourceRecordUnchanged(t *testing.T) {
@@ -662,7 +612,7 @@ func TestBuild_AnEquivalentRefSpellingLeavesTheSourceRecordUnchanged(t *testing.
 }
 
 // requireEditedRecord requires offline build and check to refuse team's source record as changed outside sync,
-// pointing to sync, never to build.
+// with the ways out, never build.
 func requireEditedRecord(t *testing.T, options Options) {
 	t.Helper()
 	t.Setenv("PATH", t.TempDir())
@@ -673,73 +623,6 @@ func requireEditedRecord(t *testing.T, options Options) {
 		if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json" || !strings.Contains(invalid.Problem, "changed outside code-rules project sync") || !strings.Contains(invalid.Problem, "run code-rules project sync") || strings.Contains(invalid.Problem, "project build") {
 			t.Errorf("offline %s: %v", name, err)
 		}
-	}
-}
-
-// TestSync_RecordsAgainARecordWithoutItsChecksum, which offline build and check refuse as changed outside sync,
-// restoring the record byte for byte, since the library confirms what it records.
-func TestSync_RecordsAgainARecordWithoutItsChecksum(t *testing.T) {
-	f, options, git := syncProject(t)
-	ctx := context.Background()
-	secondRelease(t, f)
-	if _, err := Sync(ctx, options, git); err != nil {
-		t.Fatal(err)
-	}
-	recorded := string(projectTree(t, options).Files["vendor/team/_source.json"])
-	start := strings.Index(recorded, "  \"checksum\": ")
-	if start < 0 {
-		t.Fatalf("the record has no checksum:\n%s", recorded)
-	}
-	end := start + strings.Index(recorded[start:], "\n") + 1
-	root, err := openProject(ctx, options, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	writeFixture(t, root, "vendor/team/_source.json", recorded[:start]+recorded[end:])
-	root.Close()
-	requireEditedRecord(t, options)
-	if _, err := Sync(ctx, options, git); err != nil {
-		t.Fatal(err)
-	}
-	if after := string(projectTree(t, options).Files["vendor/team/_source.json"]); after != recorded {
-		t.Fatalf("sync wrote:\n%s\nwant:\n%s", after, recorded)
-	}
-	requireCurrent(t, options)
-}
-
-// TestSync_SaysItRaisesARecordedSharedFilesReleaseOlderThanItsRules: a record edited to take the shared files from
-// library release 1, while errors comes from release 2, is repaired, with a warning saying so.
-func TestSync_SaysItRaisesARecordedSharedFilesReleaseOlderThanItsRules(t *testing.T) {
-	f, options, git := syncProject(t)
-	ctx := context.Background()
-	secondRelease(t, f)
-	if _, err := Sync(ctx, options, git); err != nil {
-		t.Fatal(err)
-	}
-	recorded := string(projectTree(t, options).Files["vendor/team/_source.json"])
-	root, err := openProject(ctx, options, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	one, err := f.Command(ctx, "rev-parse", "release/1^{commit}")
-	if err != nil {
-		t.Fatal(err)
-	}
-	record, _ := recordedVersions(t, options)
-	from := "\"release\": 2,\n  \"resolvedCommit\": \"" + record.Commit
-	if !strings.Contains(recorded, from) {
-		t.Fatalf("the record lacks %q:\n%s", from, recorded)
-	}
-	writeFixture(t, root, "vendor/team/_source.json", strings.Replace(recorded, from, "\"release\": 1,\n  \"resolvedCommit\": \""+strings.TrimSpace(one), 1))
-	root.Close()
-	changes, err := Sync(ctx, options, git)
-	if err != nil || !slices.ContainsFunc(changes.Warnings, func(w string) bool {
-		return strings.Contains(w, "vendor/team/_source.json recorded library release 1 for the shared files, older than library release 2")
-	}) {
-		t.Fatalf("sync: %+v, %v", changes, err)
-	}
-	if record, _ := recordedVersions(t, options); record.Release != 2 {
-		t.Fatalf("shared files from release %d", record.Release)
 	}
 }
 
@@ -819,42 +702,65 @@ func editRecord(t *testing.T, options Options, edit func(record map[string]any))
 	writeFixture(t, root, "vendor/team/_source.json", string(encoded)+"\n")
 }
 
-// TestSync_RefusesToRecordAgainWhatItCantConfirm in a record changed outside sync: commits of another release under
-// a ref, a version whose release tag is gone, a rule entry removed from a record that still has its files, and false
-// retirements. Sync writes nothing and names both ways out.
-func TestSync_RefusesToRecordAgainWhatItCantConfirm(t *testing.T) {
+// requireRefusedRecord requires err to refuse team's source record as changed outside sync, naming both ways out.
+func requireRefusedRecord(t *testing.T, err error) {
+	t.Helper()
+	var invalid *rules.ValidationError
+	if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json" || !strings.Contains(invalid.Problem, "changed outside code-rules project sync") ||
+		!strings.Contains(invalid.Problem, "git checkout -- .code-rules/vendor/team/_source.json") || !strings.Contains(invalid.Problem, "git checkout --ours or --theirs") ||
+		!strings.Contains(invalid.Problem, "delete .code-rules/vendor/team/ and run code-rules project sync") || strings.Contains(invalid.Problem, "project build") {
+		t.Fatalf("got %v", err)
+	}
+}
+
+// TestSync_RefusesARecordChangedOutsideSync whatever the change, writing nothing, even when the library would
+// confirm it: a removed checksum, a merge of two records, a partial edit, versions and releases the library doesn't
+// have, a rule from another revision under an unchanged ref, a published rule marked unreleased, and a carrying
+// release recorded as the publisher. Offline build and check refuse it too. Restoring the record sync wrote, as
+// taking one side of a merge conflict does, then lets sync run, and the record is byte for byte what a teammate has.
+func TestSync_RefusesARecordChangedOutsideSync(t *testing.T) {
 	for _, test := range []struct {
-		name   string
-		ref    string
-		before func(t *testing.T, f *gitfixture.Fixture)
-		edit   func(record map[string]any, one, two string)
+		name string
+		ref  string
+		edit func(record map[string]any, one, two string)
 	}{
-		{"another release's commits under ref release/2", "release/2", nil, func(record map[string]any, one, two string) {
-			record["resolvedCommit"] = one
-			for _, rule := range record["rules"].(map[string]any) {
-				if rule.(map[string]any)["commit"] == two {
-					rule.(map[string]any)["commit"] = one
-				}
-			}
+		{"removed checksum", "", func(record map[string]any, one, two string) { delete(record, "checksum") }},
+		{"merge of two records", "", func(record map[string]any, one, two string) {
+			record["rules"].(map[string]any)["techs/go/errors"] = map[string]any{"version": "1.0.0", "release": 1, "commit": one}
 		}},
-		{"invented version after the release tag was deleted", "release/2", func(t *testing.T, f *gitfixture.Fixture) {
-			if _, err := f.Command(context.Background(), "tag", "--delete", "release/2"); err != nil {
-				t.Fatal(err)
-			}
-		}, func(record map[string]any, one, two string) {
-			record["rules"].(map[string]any)["techs/go/errors"].(map[string]any)["version"] = "9.9.9"
-		}},
-		{"a removed rule entry", "", nil, func(record map[string]any, one, two string) {
+		{"partial edit", "", func(record map[string]any, one, two string) {
 			delete(record["rules"].(map[string]any), "techs/go/extra")
 		}},
-		{"false retirements", "", nil, func(record map[string]any, one, two string) {
+		{"version the library doesn't have", "", func(record map[string]any, one, two string) {
+			record["rules"].(map[string]any)["techs/go/errors"].(map[string]any)["version"] = "9.9.9"
+		}},
+		{"shared files' release the library doesn't have", "", func(record map[string]any, one, two string) { record["release"] = 99 }},
+		{"shared files older than the rules", "", func(record map[string]any, one, two string) {
+			record["release"], record["resolvedCommit"] = 1, one
+		}},
+		{"false retirements", "", func(record map[string]any, one, two string) {
 			record["retiredRules"] = []string{"techs/go/errors", "techs/go/typo"}
+		}},
+		{"rule from another revision under an unchanged ref", "release/2", func(record map[string]any, one, two string) {
+			record["rules"].(map[string]any)["techs/go/errors"] = map[string]any{"version": "1.0.0", "release": 1, "commit": one}
+		}},
+		{"published rule marked unreleased", "release/2", func(record map[string]any, one, two string) {
+			record["rules"].(map[string]any)["techs/go/extra"] = map[string]any{"version": nil, "release": nil, "commit": two}
+		}},
+		{"carrying release recorded as the publisher", "", func(record map[string]any, one, two string) {
+			record["rules"].(map[string]any)["techs/go/extra"].(map[string]any)["release"] = 3
 		}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			f, options, git := syncProject(t)
 			ctx := context.Background()
 			secondRelease(t, f)
+			if _, err := f.Commit(ctx, f.Worktree(), "Third release", map[string][]byte{"README.md": []byte("Library.\n")}); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.Release(ctx, 3, "formatVersion: 1\nrelease: 3\nrules:\n  techs/go/errors: 1.1.0\n  techs/go/extra: 1.0.0\n"); err != nil {
+				t.Fatal(err)
+			}
 			fields := map[string]any{"groups": []string{"techs/go"}}
 			if test.ref != "" {
 				fields["ref"] = test.ref
@@ -863,6 +769,7 @@ func TestSync_RefusesToRecordAgainWhatItCantConfirm(t *testing.T) {
 			if _, err := Sync(ctx, options, git); err != nil {
 				t.Fatal(err)
 			}
+			recorded := string(projectTree(t, options).Files["vendor/team/_source.json"])
 			one, err := f.Command(ctx, "rev-parse", "release/1^{commit}")
 			if err != nil {
 				t.Fatal(err)
@@ -871,20 +778,28 @@ func TestSync_RefusesToRecordAgainWhatItCantConfirm(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if test.before != nil {
-				test.before(t, f)
-			}
 			editRecord(t, options, func(record map[string]any) { test.edit(record, strings.TrimSpace(one), strings.TrimSpace(two)) })
+			requireEditedRecord(t, options)
 			before := projectTree(t, options)
 			_, err = Sync(ctx, options, git)
-			var invalid *rules.ValidationError
-			if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json" || !strings.Contains(invalid.Problem, "sync can't confirm") ||
-				!strings.Contains(invalid.Problem, "git checkout -- .code-rules/vendor/team/_source.json") || !strings.Contains(invalid.Problem, "delete .code-rules/vendor/team/ and run code-rules project sync") {
-				t.Fatalf("got %v", err)
-			}
+			requireRefusedRecord(t, err)
 			if after := projectTree(t, options); after.Digest() != before.Digest() {
 				t.Fatal("a refused sync changed the project")
 			}
+			// Taking the side sync wrote, as git checkout --ours does, restores a record sync trusts.
+			root, err := openProject(ctx, options, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeFixture(t, root, "vendor/team/_source.json", recorded)
+			root.Close()
+			if _, err := Sync(ctx, options, git); err != nil {
+				t.Fatal(err)
+			}
+			if after := string(projectTree(t, options).Files["vendor/team/_source.json"]); after != recorded {
+				t.Fatalf("sync after the restore wrote:\n%s\nwant:\n%s", after, recorded)
+			}
+			requireCurrent(t, options)
 		})
 	}
 }
