@@ -11,6 +11,7 @@ A change is breaking when it changes any of these in a way that forces users to 
 - Project and library configuration files and their keys
 - The rule library format: rule, group, and library files, and the IDs other projects reference
 - Library releases: change notes in `changes/`, `release/<number>` tags, and the release record in their tag messages, which other Code Rules versions read
+- The exported API of the `libraryformat` Go package, which other tools import to read libraries
 - Vendored source records (`vendor/<source>/_source.json`), which projects commit
 - Generated files, including `generated/provenance.json`
 - The managed project README format (`.code-rules/README.md`); see [Choosing a version](#choosing-a-version)
@@ -41,6 +42,7 @@ Readers:
 
 - Developers and teams who install the `code-rules` CLI to adopt rules in their projects
 - Authors of rule libraries, who care about changes to the library format and authoring commands
+- Developers of tools, such as catalogs, that read libraries with the `libraryformat` Go package
 
 ## Order of the release notes
 
