@@ -51,7 +51,13 @@ type Writer struct {
 	// rename is the filesystem boundary used by tests to stop a child at an exact rename.
 	rename func(string, string) error
 	active bool
+	// recovered reports that WithWriter first recovered an interrupted earlier operation, changing project files.
+	recovered bool
 }
+
+// Recovered reports whether, before handing over the writer, WithWriter recovered an interrupted earlier operation,
+// restoring or finishing its files, so the project changed even if the caller's own operation writes nothing.
+func (w *Writer) Recovered() bool { return w.recovered }
 
 // lockOwner records host, process, and invocation identity. Ambiguous or remote owners are never reclaimed.
 type lockOwner struct {
@@ -105,10 +111,11 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 			err = errors.Join(err, removeErr)
 		}
 	}()
+	recovered := pendingTransaction(root)
 	if err := recoverChanges(root); err != nil {
 		return err
 	}
-	w := &Writer{ctx: ctx, root: root, active: true, rename: func(from, to string) error { return renameManaged(root, from, to) }}
+	w := &Writer{ctx: ctx, root: root, active: true, recovered: recovered, rename: func(from, to string) error { return renameManaged(root, from, to) }}
 	defer func() { w.active = false }()
 	return operation(w)
 }
@@ -322,6 +329,12 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 // recoverChanges validates every restoration before mutating any target and ignores caller cancellation.
 func recoverChanges(root *os.Root) error {
 	return recoverWithRename(root, func(from, to string) error { return renameManaged(root, from, to) })
+}
+
+// pendingTransaction reports whether an interrupted operation left a transaction for recovery to restore or finish.
+func pendingTransaction(root *os.Root) bool {
+	_, err := root.Lstat(transactionName)
+	return err == nil
 }
 
 // recoverWithRename owns recovery renames; tests use this boundary to reproduce late edits and interruptions.

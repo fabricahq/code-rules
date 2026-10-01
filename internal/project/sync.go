@@ -23,16 +23,19 @@ import (
 // to recover, an *UnchangedError. Authored files stay untouched,
 // except that it adds the metadata of a group whose local rules would otherwise lose it, as install does.
 func Sync(ctx context.Context, options Options, git imports.Options) (FileChanges, error) {
+	// recovered reports that the writer first recovered an interrupted earlier command, which changed files.
+	recovered := false
 	if err := ctx.Err(); err != nil {
-		return FileChanges{}, unchanged(err)
+		return FileChanges{}, unchanged(err, recovered)
 	}
 	root, err := openProject(ctx, options, false)
 	if err != nil {
-		return FileChanges{}, unchanged(err)
+		return FileChanges{}, unchanged(err, recovered)
 	}
 	defer root.Close()
 	var changes FileChanges
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		recovered = w.Recovered()
 		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
@@ -54,7 +57,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		return err
 	})
 	if err != nil {
-		return FileChanges{}, unchanged(err)
+		return FileChanges{}, unchanged(err, recovered)
 	}
 	return changes, nil
 }

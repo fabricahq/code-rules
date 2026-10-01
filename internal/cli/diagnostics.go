@@ -29,7 +29,7 @@ func humanError(destination io.Writer, err error) string {
 	// A command that wrote nothing says so after the problem, keeping a validation error's location on its own line.
 	var unchanged *project.UnchangedError
 	if errors.As(err, &unchanged) && err == error(unchanged) && errors.As(unchanged.Err, &validation) && unchanged.Err == error(validation) {
-		return fmt.Sprintf("%s %s No files were written.\n\nLocation: %s\n", label, terminalText(strings.TrimSuffix(validation.Problem, ".")+"."), terminalText(validation.Location))
+		return fmt.Sprintf("%s %s %s\n\nLocation: %s\n", label, terminalText(strings.TrimSuffix(validation.Problem, ".")+"."), unchanged.Outcome(), terminalText(validation.Location))
 	}
 	return fmt.Sprintf("%s %s\n", label, terminalText(err.Error()))
 }

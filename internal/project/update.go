@@ -84,17 +84,20 @@ func (r UpdateResult) Moves() bool {
 // operation as sync does, and releases the writer before planning, so prompts never hold it. It refuses a project
 // another writer is changing.
 func PlanUpdate(ctx context.Context, options Options, git imports.Options, targets []imports.UpdateTarget) (*UpdatePlan, error) {
+	// recovered reports that the writer first recovered an interrupted earlier command, which changed files.
+	recovered := false
 	if err := ctx.Err(); err != nil {
-		return nil, unchanged(err)
+		return nil, unchanged(err, recovered)
 	}
 	root, err := openProject(ctx, options, false)
 	if err != nil {
-		return nil, unchanged(err)
+		return nil, unchanged(err, recovered)
 	}
 	defer root.Close()
 	var state projectState
 	var guide []byte
-	err = filetxn.WithWriter(ctx, root, func(*filetxn.Writer) error {
+	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		recovered = w.Recovered()
 		if state, err = readProject(ctx, root); err != nil {
 			return err
 		}
@@ -103,16 +106,16 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 		return err
 	})
 	if err != nil {
-		return nil, unchanged(err)
+		return nil, unchanged(err, recovered)
 	}
 	recorded, err := recordedSnapshots(state.config, treeFiles(state.vendor))
 	if err != nil {
-		return nil, unchanged(err)
+		return nil, unchanged(err, recovered)
 	}
 	// imports.PlanUpdate names the source or argument that failed, which is all the context the command needs.
 	update, err := imports.PlanUpdate(ctx, state.config, recorded, targets, git)
 	if err != nil {
-		return nil, unchanged(err)
+		return nil, unchanged(err, recovered)
 	}
 	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide}, nil
 }
@@ -135,20 +138,23 @@ func (p *UpdatePlan) Preview(decisions []UpdateDecision) (UpdateResult, error) {
 // concurrent-change, writing nothing, when the configuration, local rules, vendor or generated output, or managed
 // guide changed after planning.
 func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (UpdateResult, error) {
+	// recovered reports that the writer first recovered an interrupted earlier command, which changed files.
+	recovered := false
 	sources, edits, err := p.decide(decisions)
 	if err != nil {
 		return UpdateResult{}, err
 	}
 	if err := ctx.Err(); err != nil {
-		return UpdateResult{}, unchanged(err)
+		return UpdateResult{}, unchanged(err, recovered)
 	}
 	root, err := openProject(ctx, p.options, false)
 	if err != nil {
-		return UpdateResult{}, unchanged(err)
+		return UpdateResult{}, unchanged(err, recovered)
 	}
 	defer root.Close()
 	var changes FileChanges
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		recovered = w.Recovered()
 		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
@@ -175,7 +181,7 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		return err
 	})
 	if err != nil {
-		return UpdateResult{}, unchanged(err)
+		return UpdateResult{}, unchanged(err, recovered)
 	}
 	return UpdateResult{Applied: true, Sources: sources, FileChanges: changes}, nil
 }

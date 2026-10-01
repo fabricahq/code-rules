@@ -181,3 +181,20 @@ func TestSyncAndUpdate_SayNoFilesWereWrittenWhenTheyFail(t *testing.T) {
 		t.Fatalf("failed sync: %v", err)
 	}
 }
+
+// TestSync_SaysItRecoveredAnInterruptedCommandBeforeFailing, rather than that it wrote no files: sync first cleans
+// up what an interrupted earlier command left, then fails on invalid configuration.
+func TestSync_SaysItRecoveredAnInterruptedCommandBeforeFailing(t *testing.T) {
+	_, options, git := syncProject(t)
+	root, err := openProject(context.Background(), options, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, ".code-rules-transaction/staged", "left by an interrupted command")
+	writeFixture(t, root, configurationFile, `{"schemaVersion":1,"sources":{},"unknown":true}`)
+	root.Close()
+	_, err = Sync(context.Background(), options, git)
+	if err == nil || strings.Contains(err.Error(), "No files were written") || !strings.Contains(err.Error(), "recovered an interrupted earlier command") {
+		t.Fatalf("got %v", err)
+	}
+}
