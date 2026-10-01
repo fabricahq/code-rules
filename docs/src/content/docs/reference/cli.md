@@ -467,7 +467,7 @@ JSON mode writes one response to stdout:
 | --- | --- |
 | `ok` | `true` for success; `false` for failure or an out-of-date project check. |
 | `value` | The command's result, when available. An out-of-date check still includes its report here. |
-| `error` | On failure, an object with `kind` (`usage`, `validation`, `operation`, `cancelled`, or `out-of-date` for a stale project check) and `message`, plus `location` when available. Domain failures include a stable `code`, such as `needs-init`, `missing-group`, or `guide-edited`. |
+| `error` | On failure, an object with `kind` (`usage`, `validation`, `operation`, `cancelled`, or `out-of-date` for a stale project check) and `message`, plus `location` when available. Domain failures include a stable `code`, such as `needs-init`, `missing-group`, or `guide-edited`, and every `usage` error has the code `invalid-arguments`. |
 
 Every list in a value is always present, empty when there's nothing to report, including `warnings`. Enumerated values, such as statuses, kinds, changes, and codes, are kebab-case. Only optional values that aren't lists, such as a `ref` or a `githubRelease` object, are left out when they don't apply.
 

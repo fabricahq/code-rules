@@ -125,6 +125,10 @@ func classifyError(err error) *responseError {
 		result.Kind = "validation"
 		result.Location = validation.Location
 	}
+	// Every usage refusal, such as an unknown flag or flags that can't be combined, has one code.
+	if result.Kind == "usage" && result.Code == "" {
+		result.Code = "invalid-arguments"
+	}
 	return result
 }
 

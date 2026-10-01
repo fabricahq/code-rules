@@ -336,3 +336,31 @@ func TestLibraryAddRule_NextStepsIncludeTheChangeNote(t *testing.T) {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
 	}
 }
+
+// TestUsageRefusals_HaveTheInvalidArgumentsCode: every refused argument or flag combination exits 2 with
+// error.code invalid-arguments, so scripts can tell usage errors apart without parsing messages.
+func TestUsageRefusals_HaveTheInvalidArgumentsCode(t *testing.T) {
+	binary := buildCLI(t)
+	fixture, dir := releasedLibrary(t)
+	// A changed rule leaves only the flags to refuse.
+	writeFiles(t, dir, map[string]string{"practices/testing/a.md": libraryRule("Test the retry limit, clearly.")})
+	for _, args := range [][]string{
+		{"library", "change", "practices/testing/a", "--bump", "major", "--retire", "--summary", "Retire a."},
+		{"library", "change", "practices/testing/a", "--replaced-by", "practices/testing/b", "--bump", "major", "--summary", "Replace a."},
+		{"library", "change", "practices/testing/a", "practices/testing/b", "--retire", "--replaced-by", "practices/testing/c", "--summary", "Replace both."},
+		{"library", "change", "practices/testing/a", "--summary", "No bump.", "--non-interactive"},
+		{"library", "change", "practices/testing/a", "--bump", "patch", "--non-interactive"},
+		{"library", "change"},
+		{"library", "release", "--unknown-flag"},
+		{"project", "update", "--reason", "Why."},
+	} {
+		out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, append(args, "--json")...)
+		var response struct {
+			OK    bool
+			Error responseError
+		}
+		if err := json.Unmarshal([]byte(out), &response); err != nil || code != 2 || response.Error.Kind != "usage" || response.Error.Code != "invalid-arguments" {
+			t.Errorf("%v: exit %d, %v, stderr %q:\n%s", args, code, err, diagnostic, out)
+		}
+	}
+}

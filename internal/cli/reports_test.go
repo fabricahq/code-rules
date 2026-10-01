@@ -125,9 +125,9 @@ func TestCommandErrorKindsDoNotDependOnExecutionOrder(t *testing.T) {
 		kind, code    string
 		empty, cancel bool
 	}{
-		{name: "unknown flag", args: []string{"project", "build", "--bad"}, exit: 2, kind: "usage"},
-		{name: "missing argument", args: []string{"project", "add", "rule"}, exit: 2, kind: "usage"},
-		{name: "missing input", args: []string{"project", "add", "group", "techs/python"}, exit: 2, kind: "usage"},
+		{name: "unknown flag", args: []string{"project", "build", "--bad"}, exit: 2, kind: "usage", code: "invalid-arguments"},
+		{name: "missing argument", args: []string{"project", "add", "rule"}, exit: 2, kind: "usage", code: "invalid-arguments"},
+		{name: "missing input", args: []string{"project", "add", "group", "techs/python"}, exit: 2, kind: "usage", code: "invalid-arguments"},
 		{name: "missing project", args: []string{"project", "build"}, exit: 1, kind: "operation", code: "needs-init", empty: true},
 		{name: "missing group", args: []string{"project", "add", "rule", "techs/python/errors"}, exit: 1, kind: "operation", code: "missing-group"},
 		{name: "duplicate", args: []string{"project", "add", "group", "techs/go"}, exit: 1, kind: "operation", code: "already-exists"},

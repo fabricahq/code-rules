@@ -136,7 +136,7 @@ func TestForkRule_ReportsJSON(t *testing.T) {
 	}{
 		{[]string{"techs/go/errors", "--from", "team@1.2.0", "--reason", "Ours."}, 1, "operation", "version-not-found", ""},
 		{[]string{"practices/testing/verify", "--from", "team@1.0.0"}, 1, "operation", "already-exists", ""},
-		{[]string{"techs/go/errors", "--from", "team@1.0.0"}, 2, "usage", "", ""},
+		{[]string{"techs/go/errors", "--from", "team@1.0.0"}, 2, "usage", "invalid-arguments", ""},
 		{[]string{"techs/go/errors", "--from", "other@1.0.0", "--reason", "Ours."}, 1, "validation", "", "--from"},
 	} {
 		failed := run(test.exit, test.args...)
