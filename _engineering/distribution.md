@@ -8,7 +8,7 @@ The installer appends shell-specific PATH setup after a successful installation.
 
 ## Activation
 
-1. Publish a stable release using the [release process](../_engineering/releasing.md). Do not create a release just to deploy the docs. The release must contain all four macOS/Linux archives and `SHA256SUMS`.
+1. Publish a stable release using the [release process](releasing.md). Do not create a release just to deploy the docs. The release must contain all four macOS/Linux archives and `SHA256SUMS`.
 2. Publish the docs build at `https://code-rules.fabricahq.com`, including `install.sh`. Serve `/install.sh` as the script bytes, not an HTML fallback. Check it with `curl -fsSL https://code-rules.fabricahq.com/install.sh -o /tmp/code-rules-install.sh` and compare it with the reviewed source before trying it in a disposable home directory.
 3. Validate installation, upgrades, and removal in a disposable environment on both supported operating systems. Check that only the executable is installed and that `code-rules --license` prints its embedded license. The hosted endpoint and end-to-end installation still need validation.
 
@@ -18,7 +18,7 @@ The [Fabrica tap](https://github.com/fabricahq/homebrew-tap) owns Homebrew formu
 
 After publishing a stable release, the [release workflow](../.github/workflows/release-planner.yml) triggers the tap's **Update Code Rules** workflow through Fabrica Homebrew Releaser. The tap validates the release assets and commits the formula directly to `main`. Routine formula updates require no pull request or human approval. Prereleases do not update Homebrew.
 
-Changes to updater code and workflows go through review in the tap repository. If an automatic update fails, investigate the failure and rerun the tap workflow manually. A failed tap update leaves the published CLI release intact. See [release integration and recovery](../_engineering/releasing.md#homebrew-updates) and the [tap's maintenance instructions](https://github.com/fabricahq/homebrew-tap#readme).
+Changes to updater code and workflows go through review in the tap repository. If an automatic update fails, investigate the failure and rerun the tap workflow manually. A failed tap update leaves the published CLI release intact. See [release integration and recovery](releasing.md#homebrew-updates) and the [tap's maintenance instructions](https://github.com/fabricahq/homebrew-tap#readme).
 
 Validate `brew install fabricahq/tap/code-rules`, `brew test fabricahq/tap/code-rules`, and removal against a published release in a disposable environment before enabling Homebrew installation instructions.
 

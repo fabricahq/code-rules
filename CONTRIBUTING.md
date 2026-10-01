@@ -47,7 +47,7 @@ TypeScript stays on 6.0.3 because the current Astro checker and ESLint parser re
 
 ## Package binaries
 
-[Release instructions](_engineering/releasing.md) explain release assets, candidate archives, and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. [Release Planner](https://release-planner.fabricahq.com) publishes releases: a release PR supplies editable notes and the version in `releases/v<version>.md`, and builds and tests the release assets; merging it publishes them. The first release is `v0.1.0`. Maintainers can find installer channel activation and tests in [installation distribution](_distribution/README.md).
+[Release instructions](_engineering/releasing.md) explain release assets, candidate archives, and PR download links. Packaging builds committed source and takes an explicit release version. Candidate versions default to a source commit identifier. [Release Planner](https://release-planner.fabricahq.com) publishes releases: a release PR supplies editable notes and the version in `releases/v<version>.md`, and builds and tests the release assets; merging it publishes them. The first release is `v0.1.0`. Maintainers can find installer channel activation and tests in [installation distribution](_engineering/distribution.md).
 
 ## Implementation map
 
