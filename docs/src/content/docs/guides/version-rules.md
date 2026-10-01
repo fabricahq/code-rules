@@ -15,6 +15,18 @@ Each rule has its own version, even though one library repository holds many rul
 
 A version covers the rule's Markdown file and its own supporting files. Library-wide files, such as group descriptions and shared diagrams, aren't part of any rule version.
 
+### How a rule gets a new version
+
+Releasing a new version of a rule takes three steps, and in none of them do you type a version number:
+
+1. **Update the rule.** Edit the rule's Markdown file, and its supporting files if it has any, as needed.
+2. **Run `code-rules library change` with the rule's ID**, such as `code-rules library change practices/testing/verify-retry-limits`. The command asks how large the change was, [major, minor, or patch](#semantic-versions), and for a one-line summary of what changed, then saves your answers in a **change note** in the library's `changes/` directory. In a script, pass `--bump` and `--summary` instead of answering. Commit the note in the same pull request as the rule edit. Once the pull request merges, the change is **pending**: it's on your default branch, but the rule keeps its old version, and projects don't receive the change.
+3. **Publish a library release.** `code-rules library release` turns the pending change notes into new versions. If the rule was at `1.3.0` and its note says `minor`, the library release publishes the rule as `1.4.0`, with your summary.
+
+The new version is then available to every project that imports the rule, and each project adopts it when someone runs `code-rules project update`. You can't release one rule on its own, but a [library release](#library-releases) can contain a single changed rule, so you can publish as soon as a change is ready. Before your library's first library release, rules have no versions and need no change notes; the first library release gives every rule `1.0.0`.
+
+For the commands step by step, see [Change rules after the first library release](#change-rules-after-the-first-library-release) and [Publish a library release](#publish-a-library-release).
+
 ## Semantic versions
 
 Rule versions are [semantic versions](https://semver.org/): three numbers, `MAJOR.MINOR.PATCH`. Which number increases tells you how large the change was. Software uses these numbers to describe changes to an API. For rules, they describe changes to the rule's **obligation**: what work must do to comply with it.
@@ -66,15 +78,21 @@ A library release produces:
 
 Publish a library release whenever you want your pending changes to reach projects. There's no schedule, and no need to wait for a major change: smaller library releases are easier for projects to review. Projects don't have to take a whole library release, either. Each project chooses versions rule by rule, and can import one specific library release when it wants a known snapshot of the library.
 
+### Find a rule's current version
+
+A rule's current version is the one in the newest library release. Rule files carry no version, and files on the default branch can include unreleased edits, so look in the library release instead. Each `release/<number>` tag's [release record](/reference/rule-versions/#release-record) lists the version of every current rule, not only the ones that changed, and tools read it from the tag. For a library on GitHub.com, the newest library release's GitHub Release page, when it has one, shows the same versions under **All rule versions in this library release**.
+
+In a project, the versions you import are listed under **Rule versions** in `.code-rules/generated/libraries/<source-name>/README.md`, and recorded in `.code-rules/generated/provenance.json`; see [Provenance](/reference/provenance/). To adopt a newer version, see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version).
+
 ## How library releases work
 
-You manage versions and library releases with three Code Rules commands. You never create tags by hand.
+You manage versions and library releases with three Code Rules commands. You never set versions or create tags by hand.
 
 - **`code-rules library change`** records a change. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file in the library's `changes/` directory.
 - **`code-rules library check`** confirms that every changed rule has a change note, and previews the versions the next library release will publish.
 - **`code-rules library release`** publishes a [library release](#library-releases).
 
-Change notes pile up on `main` as you merge changes, and they're never deleted. Publishing a library release doesn't change any files: `code-rules library release` computes each rule's next version from the notes added since the previous library release, and records the result in a new `release/<number>` tag. The next library release starts from that tag.
+Change notes pile up on `main` as you merge changes, and they're never deleted. Publishing a library release doesn't change any files: `code-rules library release` computes each rule's next version from the notes added since the previous library release, using the largest change when several notes name the same rule, and records the result in a new `release/<number>` tag. The next library release starts from that tag.
 
 Change notes start with the second library release. Your library's [first library release](#publish-the-first-library-release) gives every rule version `1.0.0`, so it needs no notes. For the exact formats, see [Rule versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
 
@@ -86,7 +104,7 @@ From then on, [record every change with a note](#change-rules-after-the-first-li
 
 ## Change rules after the first library release
 
-After the first library release, every change to a rule needs a change note, recorded with `code-rules library change` in the same pull request as the change. The steps differ slightly for each kind of change.
+After the first library release, every change to a rule needs a change note, recorded with `code-rules library change` in the same pull request as the change. That's also how you change a rule's version: you never set or bump it by hand. Record how large the change is with `code-rules library change RULE_ID --bump major|minor|patch --summary '...'`, and the next `code-rules library release` applies it. The steps differ slightly for each kind of change.
 
 ### Update a rule
 
