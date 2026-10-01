@@ -353,6 +353,9 @@ func TestUsageRefusals_HaveTheInvalidArgumentsCode(t *testing.T) {
 		{"library", "change"},
 		{"library", "release", "--unknown-flag"},
 		{"project", "update", "--reason", "Why."},
+		{"project", "update", "--keep", "team:techs/go/a", "--exclude", "team:techs/go/a", "--reason", "Why."},
+		{"project", "update", "--keep", "team:techs/go/a", "--incorporated", "team:techs/go/a", "--reason", "Why."},
+		{"project", "update", "--exclude", "team:techs/go/a", "--incorporated", "team:techs/go/a", "--reason", "Why."},
 	} {
 		out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, append(args, "--json")...)
 		var response struct {

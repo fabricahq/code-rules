@@ -106,7 +106,8 @@ func updateTargets(args []string) ([]imports.UpdateTarget, error) {
 }
 
 // flagDecisions turns --keep and --exclude into decisions with --reason, and --incorporated into decisions without
-// one, ignoring repeated values. --reason is required with --keep or --exclude and accepted only with one of them.
+// one, ignoring repeated values. --reason is required with --keep or --exclude and accepted only with one of them,
+// and two of the flags naming one rule fail.
 func flagDecisions(keep, exclude, incorporated []string, reason string) ([]project.UpdateDecision, error) {
 	if len(keep)+len(exclude) > 0 && reason == "" {
 		return nil, fmt.Errorf("--keep and --exclude require --reason, which is recorded with each pin and exclusion")
@@ -116,6 +117,8 @@ func flagDecisions(keep, exclude, incorporated []string, reason string) ([]proje
 	}
 	decisions := []project.UpdateDecision{}
 	seen := map[string]bool{}
+	// decided maps each SOURCE:RULE to the flag that decided it, so two flags can't decide one rule.
+	decided := map[string]string{}
 	for _, group := range []struct {
 		flag   string
 		kind   project.UpdateDecisionKind
@@ -132,6 +135,10 @@ func flagDecisions(keep, exclude, incorporated []string, reason string) ([]proje
 			if seen[group.flag+value] {
 				continue
 			}
+			if other, ok := decided[value]; ok {
+				return nil, fmt.Errorf("%s and %s both name %s; decide each rule once", other, group.flag, value)
+			}
+			decided[value] = group.flag
 			seen[group.flag+value] = true
 			decision := project.UpdateDecision{Source: source, Rule: rule, Kind: group.kind, Reason: reason}
 			if group.kind == project.DecisionIncorporated {
