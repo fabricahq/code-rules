@@ -378,7 +378,7 @@ func TestImport_RefToADeletedLibraryReleaseFailsForNewlySelectedRules(t *testing
 }
 
 // TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves restores the commit a tag named when it was recorded, also
-// when the configuration writes the same ref another way, and records the ref as now written.
+// when the configuration writes the same ref another way, and keeps the recorded spelling of that ref.
 func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 	h := newHistory(t)
 	ctx := context.Background()
@@ -398,7 +398,7 @@ func TestImport_RefKeepsItsRecordedCommitAfterTheTagMoves(t *testing.T) {
 		t.Fatalf("snapshot %+v, %v", again.Snapshot, err)
 	}
 	respelled, err := h.sync(t, h.source(t, `"groups":["techs/go"],"ref":"refs/tags/candidate"`), &first.Snapshot)
-	if err != nil || respelled.Snapshot.Commit != h.commits[1] || respelled.Snapshot.Ref.String() != "refs/tags/candidate" {
+	if err != nil || respelled.Snapshot.Commit != h.commits[1] || respelled.Snapshot.Ref.String() != "candidate" {
 		t.Fatalf("the same ref written another way: snapshot %+v, %v", respelled.Snapshot, err)
 	}
 }
