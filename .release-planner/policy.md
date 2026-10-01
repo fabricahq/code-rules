@@ -14,7 +14,7 @@ A change is breaking when it changes any of these in a way that forces users to 
 - Vendored source records (`vendor/<source>/_source.json`), which projects commit
 - Generated files, including `generated/provenance.json`
 - The managed project README format (`.code-rules/README.md`); see [Choosing a version](#choosing-a-version)
-- Supported platforms, and the [release file contract](../_engineering/distribution.md#the-release-file-contract) that the standalone installer, the Homebrew tap, and generated library CI workflows depend on
+- Supported platforms, and the release archive names, `SHA256SUMS`, and attestation signer that the standalone installer, the Homebrew tap, and generated library CI workflows depend on
 
 Internal refactors, CI changes, and website-only changes are not part of the contract.
 

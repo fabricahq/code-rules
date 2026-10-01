@@ -18,7 +18,7 @@ On the release PR, Release Planner calls [build-release.yml](../.github/workflow
 - `manifest.json`, which records the version, source commit, and each archive's checksum
 - `SHA256SUMS`
 
-Installation channels download these files by name, so keep the names stable; [distribution](distribution.md) describes what depends on them. The build is reproducible: rebuilding the same commit produces identical files. The workflow runs with read-only permissions and no secrets. Release Planner attests each file's build provenance on the PR, and merging publishes exactly the files the PR built. After publishing, it attests the published files again from `main`; the channels that [verify attestations](distribution.md#trust-chain) require that one, so only approved, published files pass.
+The standalone installer, the Homebrew tap, and generated library CI workflows download these files by name, so keep the names stable. The build is reproducible: rebuilding the same commit produces identical files. The workflow runs with read-only permissions and no secrets. Release Planner attests each file's build provenance on the PR, and merging publishes exactly the files the PR built. After publishing, it attests the published files again from `main`; the Homebrew tap, generated library CI workflows, and the [manual install instructions](../docs/src/content/docs/start-here/install.md) require that attestation, so only approved, published files pass.
 
 ## Homebrew updates
 
