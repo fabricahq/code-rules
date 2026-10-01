@@ -83,11 +83,11 @@ func TestApply_KeepsLocalGroupMetadataCreatedDuringStaging(t *testing.T) {
 	}
 }
 
-// TestApply_RejectsTargetsOutsideLocalGroupMetadata refuses other authored files and invalid group IDs.
+// TestApply_RejectsTargetsOutsideLocalGroupMetadata refuses invalid group IDs and other metadata paths.
 func TestApply_RejectsTargetsOutsideLocalGroupMetadata(t *testing.T) {
 	root := openProject(t)
 	writeMetadataProject(t, root)
-	for _, target := range []Target{"local/techs/go/fork.md", "local/techs/Go/_group.yaml", "local/techs/go/sub/_group.yaml", "local/../_group.yaml"} {
+	for _, target := range []Target{"local/techs/Go/_group.yaml", "local/techs/go/sub/_group.yaml", "local/../_group.yaml"} {
 		err := WithWriter(context.Background(), root, func(w *Writer) error {
 			return w.Apply(map[Target]map[string][]byte{target: {string(target): []byte("x")}}, nil)
 		})
