@@ -63,6 +63,18 @@ func ParseGroupSelection(input json.RawMessage, location string) (GroupSelection
 	return GroupSelection{Groups: groups}, nil
 }
 
+// Includes reports whether the selection imports group in full: a group it lists, or any group within its
+// wildcard's scope. It checks only the ID, not whether the group exists.
+func (s GroupSelection) Includes(group string) bool {
+	switch s.Pattern {
+	case "*":
+		return strings.HasPrefix(group, "techs/") || strings.HasPrefix(group, "practices/")
+	case "techs/*", "practices/*":
+		return strings.HasPrefix(group, strings.TrimSuffix(s.Pattern, "*"))
+	}
+	return slices.Contains(s.Groups, group)
+}
+
 // JavaScript trim includes BOM but excludes NEL, unlike unicode.IsSpace.
 func jsWhitespace(r rune) bool {
 	return r == 0x0009 || r == 0x000a || r == 0x000b || r == 0x000c || r == 0x000d ||

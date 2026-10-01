@@ -160,9 +160,9 @@ func TestGroupPagesRepeatResolvedReadingGuidance(t *testing.T) {
 				}
 				instructions := []string{"These files are generated. Edit source rules or configuration and rebuild to change them."}
 				if strings.HasPrefix(file, "groups/") {
-					instructions = append(instructions, "## How to use this group", "1. **Read every rule in full.** Open every “Read full rule” link", "2. **Determine which rules apply.**", "3. **Follow every applicable rule.**", "4. **Support each reported violation with evidence.**", "5. **Recheck after changes.**", "do not copy the rule’s impact level", "## Rules")
+					instructions = append(instructions, "## How to use this group", "1. **Read every rule in full.** Open every “Read full rule” link", "2. **Determine which rules apply.**", "3. **Follow every applicable rule.**", "4. **Support each reported violation with evidence.**", "cite the rule ID, its version when the rule lists one, and concrete evidence", "5. **Recheck after changes.**", "do not copy the rule’s impact level", "## Rules")
 				} else {
-					instructions = append(instructions, "## How to use this file", "1. **Assess every group.**", "use **When to read this group** to decide whether to open it", "2. **Open every relevant or plausibly relevant group.**", "3. **Read every rule in each opened group completely.**", "4. **Apply the rules that govern your task.**", "5. **Reassess when context changes.**", "testing guidance can apply even when no test files have changed", "Exclusions and replacements are already applied", "## Technology and practice group indexes")
+					instructions = append(instructions, "## How to use this file", "1. **Assess every group.**", "use **When to read this group** to decide whether to open it", "2. **Open every relevant or plausibly relevant group.**", "3. **Read every rule in each opened group completely.**", "4. **Apply the rules that govern your task.**", "cite the rule ID, its version when the rule lists one, and concrete evidence", "5. **Reassess when context changes.**", "testing guidance can apply even when no test files have changed", "Exclusions and replacements are already applied", "## Technology and practice group indexes")
 				}
 				for _, instruction := range instructions {
 					if !strings.Contains(page, instruction) {

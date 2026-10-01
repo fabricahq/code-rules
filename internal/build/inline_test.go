@@ -95,7 +95,7 @@ func TestPrepareInlineLinks(t *testing.T) {
 				lib.Catalog.Groups[0].Rules = append(lib.Catalog.Groups[0].Rules, rule)
 				lib.Catalog.SupportingFiles[fmt.Sprintf("assets/%d.txt", i)] = []byte("attachment")
 			}
-			libraries["team"] = lib
+			libraries["team"] = versioned(lib.Catalog)
 			resolved, err := resolve(config, libraries, nil)
 			if err != nil {
 				t.Fatal(err)

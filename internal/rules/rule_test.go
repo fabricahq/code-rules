@@ -139,3 +139,15 @@ func TestParseDocumentEncoding(t *testing.T) {
 		}
 	}
 }
+
+// TestRenderRule_DraftHasOneBlankLineAfterItsMetadata starts the template's body right after one blank line.
+func TestRenderRule_DraftHasOneBlankLineAfterItsMetadata(t *testing.T) {
+	metadata := rules.RuleMetadata{Title: "Return errors", WhenToRead: "When returning errors.", Impact: "HIGH", ImpactDescription: "Callers decide."}
+	draft, err := rules.RenderRule("techs/go/errors", metadata, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(draft), "\n---\n\n## Return errors\n") {
+		t.Fatalf("draft:\n%s", draft)
+	}
+}

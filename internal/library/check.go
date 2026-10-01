@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -20,8 +21,8 @@ import (
 
 // CheckResult reports complete adoption counts, explicit licensing and change note caveats, and the next library release.
 type CheckResult struct {
-	Groups         int            `json:"groups"`
-	Rules          int            `json:"rules"`
+	GroupCount     int            `json:"groupCount"`
+	RuleCount      int            `json:"ruleCount"`
 	Warnings       []string       `json:"warnings"`
 	PendingRelease PendingRelease `json:"pendingRelease"`
 }
@@ -32,56 +33,78 @@ type CheckResult struct {
 // before its first library release, needs no notes, and its first library release gives every rule 1.0.0.
 // A final comparison rejects observed changes; ordinary editors are not locked out.
 func Check(ctx context.Context, options Options) (CheckResult, error) {
-	result, _, err := checkLibrary(ctx, options)
-	return result, err
-}
-
-// checkLibrary is Check, also returning the plan of the next library release its preview shows.
-func checkLibrary(ctx context.Context, options Options) (CheckResult, releasePlan, error) {
 	root, err := openLibrary(ctx, options, false)
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return CheckResult{}, err
 	}
 	defer root.Close()
 	if err = filetxn.RequireIdle(root); err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return CheckResult{}, err
 	}
+	git, err := openLibraryGit(ctx, root.Name(), options.Git)
+	if err != nil {
+		return CheckResult{}, err
+	}
+	checked, err := checkLibrary(ctx, root, git)
+	if err != nil {
+		return CheckResult{}, err
+	}
+	if err = requireLibraryUnchanged(ctx, root, checked.input); err != nil {
+		return CheckResult{}, err
+	}
+	if err = filetxn.RequireIdle(root); err != nil {
+		return CheckResult{}, err
+	}
+	return checked.result, nil
+}
+
+// checkedLibrary is a library that passed library check: what check read, how its rules changed since the
+// latest library release, and what the next library release would publish.
+type checkedLibrary struct {
+	result  CheckResult
+	input   checkInput
+	changes libraryChanges
+	plan    releasePlan
+}
+
+// checkLibrary validates the library under root and its change notes against git's library releases; a nil
+// git is a library outside Git. The caller confirms that the library didn't change while it was read.
+func checkLibrary(ctx context.Context, root *os.Root, git *libraryGit) (checkedLibrary, error) {
 	input, err := libraryCheckInput(ctx, root)
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
 	if err = validateLibraryInventory(ctx, input.tree.Files, rules.LicensePaths(input.license)); err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
-	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"})
+	catalog, err := LoadSource(ctx, capturedLibrary{input.tree}, "library", rules.GroupSelection{Pattern: "*"}, nil)
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
-	result := CheckResult{Groups: len(catalog.Groups), Warnings: []string{}}
+	result := CheckResult{GroupCount: len(catalog.Groups), Warnings: []string{}}
 	current := []string{}
 	for _, group := range catalog.Groups {
-		result.Rules += len(group.Rules)
+		result.RuleCount += len(group.Rules)
 		for _, rule := range group.Rules {
 			current = append(current, strings.TrimSuffix(rule.Path, ".md"))
 		}
 	}
 	slices.Sort(current)
-	git, err := openLibraryGit(ctx, root.Name(), options.Git)
-	if err != nil {
-		return CheckResult{}, releasePlan{}, err
-	}
 	changes, warnings, err := git.compare(ctx, input.tree.Files, current, input.notes)
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
 	if problems := changes.review(); len(problems) > 0 {
-		return CheckResult{}, releasePlan{}, failure("change-notes", "change notes don't match the rule changes since "+changes.history.latest.tagName()+":\n  - "+strings.Join(problems, "\n  - "), nil)
+		return checkedLibrary{}, failure("change-notes", "change notes don't match the rule changes since "+changes.history.latest.tagName()+":\n  - "+strings.Join(problems, "\n  - "), nil)
 	}
 	plan, err := changes.plan()
 	if err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
 	result.PendingRelease = plan.preview()
+	if result.PendingRelease.LibraryFiles, err = git.pendingLibraryFiles(ctx, changes.history.latest, input.tree.Files, rules.LicensePaths(input.license)); err != nil {
+		return checkedLibrary{}, err
+	}
 	if input.license == nil {
 		result.Warnings = append(result.Warnings, "License is undeclared. Decide terms before sharing this library.")
 	} else if input.license.SPDXExpression == nil {
@@ -89,15 +112,9 @@ func checkLibrary(ctx context.Context, options Options) (CheckResult, releasePla
 	}
 	result.Warnings = append(result.Warnings, warnings...)
 	if err = ctx.Err(); err != nil {
-		return CheckResult{}, releasePlan{}, err
+		return checkedLibrary{}, err
 	}
-	if err = requireLibraryUnchanged(ctx, root, input); err != nil {
-		return CheckResult{}, releasePlan{}, err
-	}
-	if err = filetxn.RequireIdle(root); err != nil {
-		return CheckResult{}, releasePlan{}, err
-	}
-	return result, plan, nil
+	return checkedLibrary{result: result, input: input, changes: changes, plan: plan}, nil
 }
 
 // parseChangeNote validates one note's format.
@@ -162,7 +179,29 @@ func (g *libraryGit) compare(ctx context.Context, files map[string][]byte, curre
 			warnings = append(warnings, name+" was deleted after a library release published it. Notes are never deleted; restore it.")
 		}
 	}
-	return changes, warnings, nil
+	return changes, append(warnings, changes.retiredReplacements()...), nil
+}
+
+// retiredReplacements warns about each pending retirement of a rule that an earlier library release named as a
+// retired rule's replacement: updates point projects still importing the earlier rule on to the replacement the
+// note names, or, without one, at a retired rule.
+func (c libraryChanges) retiredReplacements() []string {
+	_, retiring := c.namedRules()
+	var warnings []string
+	for _, old := range slices.Sorted(maps.Keys(c.history.replacedBy)) {
+		replacement := c.history.replacedBy[old]
+		changes := retiring[replacement]
+		if len(changes) == 0 {
+			continue
+		}
+		retires := "The pending retirement of " + replacement + " retires the replacement that release/" + strconv.Itoa(c.history.retired[old]) + " named for " + old
+		if onward := changes[0].ReplacedBy; onward != "" {
+			warnings = append(warnings, retires+", so updates will point projects still importing "+old+" on to "+onward+", the replacement the note names.")
+			continue
+		}
+		warnings = append(warnings, retires+", so projects still importing "+old+" would be pointed at a retired rule. To let them follow it, name a replacement for "+replacement+" as replacedBy in the note that retires it.")
+	}
+	return warnings
 }
 
 // ruleFiles returns a rule's versioned files among names, in sorted order: its Markdown file and its asset directory's files.

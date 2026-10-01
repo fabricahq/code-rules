@@ -237,6 +237,20 @@
     }
   },
   {
+    "id": "ref-zero-commit",
+    "operation": "gitRef",
+    "input": "0000000000000000000000000000000000000000",
+    "location": "sources.team.ref",
+    "expected": {
+      "ok": false,
+      "error": {
+        "name": "ValidationError",
+        "message": "sources.team.ref: the all-zero SHA names no commit; use a full commit SHA or a tag",
+        "location": "sources.team.ref"
+      }
+    }
+  },
+  {
     "id": "ref-four-hex",
     "operation": "gitRef",
     "input": "dead",
@@ -245,7 +259,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>",
+        "message": "sources.team.ref: abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2",
         "location": "sources.team.ref"
       }
     }
@@ -259,7 +273,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>",
+        "message": "sources.team.ref: abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2",
         "location": "sources.team.ref"
       }
     }
@@ -273,7 +287,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.ref: abbreviated commits are unsupported; use a full SHA or refs/tags/<name>",
+        "message": "sources.team.ref: abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2",
         "location": "sources.team.ref"
       }
     }
@@ -497,7 +511,7 @@
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.ref: expected a full commit SHA or exact tag name",
+        "message": "sources.team.ref: refs/heads/main is a branch; ref accepts a tag or a full commit SHA, not a branch",
         "location": "sources.team.ref"
       }
     }

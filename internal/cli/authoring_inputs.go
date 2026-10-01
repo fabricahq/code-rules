@@ -65,6 +65,9 @@ func (f *authoringFlags) value(name string) string {
 func (f *authoringFlags) require(names ...string) error {
 	for _, name := range names {
 		if f.value(name) == "" {
+			if !f.interactive() {
+				return usage(fmt.Errorf("--%s is required: pass it as a flag, since without a terminal, or with --json or --non-interactive, the command can't ask for it", name))
+			}
 			label := f.command.Flags().Lookup(name).Usage
 			if prompt, ok := f.prompts[name]; ok {
 				label = prompt

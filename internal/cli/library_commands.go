@@ -36,7 +36,7 @@ func addLibraryCommands(root *cobra.Command, options Options, output *commandOut
 	library := &cobra.Command{Use: "library", Short: "Create and maintain a shared rule library"}
 	library.Long = library.Short + "\n\nLibraries are maintained separately from projects. Projects can define their own rule groups and import groups from libraries.\n\nRun init from the Git repository root. Other library commands can run from any\nsubdirectory. Outside Git, run commands from the library root." + documentationHelp
 	root.AddCommand(library)
-	library.AddCommand(libraryInitCommand(options, output), libraryCheckCommand(options, output), libraryChangeCommand(options, output))
+	library.AddCommand(libraryInitCommand(options, output), libraryCheckCommand(options, output), libraryChangeCommand(options, output), libraryReleaseCommand(options, output))
 	add := &cobra.Command{Use: "add", Short: "Add a library group or rule"}
 	library.AddCommand(add)
 	add.AddCommand(libraryGroupCommand(options, output), libraryRuleCommand(options, output))
@@ -78,7 +78,7 @@ func libraryInitCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = libraryInitializedReport(result, authoringScope{library: true, directory: f.value("directory")})
+		output.report = libraryInitializedReport(result, authoringScope{library: true, directory: f.value("directory"), workdir: f.directory})
 		return nil
 	}
 	return cmd
@@ -123,7 +123,7 @@ func libraryGroupCommand(options Options, output *commandOutput) *cobra.Command 
 		if err != nil {
 			return err
 		}
-		output.report = groupCreatedReport(result.Files, result.Warnings, args[0], authoringScope{library: true, directory: f.value("directory")})
+		output.report = groupCreatedReport(result.Added, result.Changed, result.Warnings, args[0], authoringScope{library: true, directory: f.value("directory"), workdir: f.directory})
 		return nil
 	}
 	return cmd
@@ -150,7 +150,7 @@ func libraryRuleCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = ruleCreatedReport(result.Files, result.Warnings, body == nil, authoringScope{library: true, directory: f.value("directory")}, args[0], plan.NeedsChangeNote())
+		output.report = ruleCreatedReport(result.Added, result.Changed, result.Warnings, body == nil, authoringScope{library: true, directory: f.value("directory"), workdir: f.directory}, args[0], plan.NeedsChangeNote())
 		return nil
 	}
 	return cmd

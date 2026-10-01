@@ -27,7 +27,7 @@ func TestProjectGuideRefresh(t *testing.T) {
 		}
 	}
 	result, err := Initialize(ctx, options)
-	if err != nil || len(result.Files) != 1 || result.Files[0] != filepath.Join(directory, "README.md") {
+	if err != nil || len(result.Written()) != 1 || result.Written()[0] != filepath.Join(directory, "README.md") {
 		t.Fatal(result, err)
 	}
 	for name, want := range map[string][]byte{"README.md": renderProjectGuide(), "config.yaml": config, "local/README.md": local} {
@@ -36,7 +36,7 @@ func TestProjectGuideRefresh(t *testing.T) {
 			t.Fatal(name, err)
 		}
 	}
-	if result, err := Initialize(ctx, options); err != nil || len(result.Files) != 0 {
+	if result, err := Initialize(ctx, options); err != nil || len(result.Written()) != 0 {
 		t.Fatal(result, err)
 	}
 }
