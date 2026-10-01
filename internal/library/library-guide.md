@@ -71,7 +71,7 @@ The result previews the next library release: each rule's change, and its curren
 
 `.github/workflows/code-rules.yml` runs the same check on every pull request, with the Code Rules version that wrote it. Commit it with the library. To move it to a newer Code Rules version, delete it and run `code-rules library init` again.
 
-Review the diff and commit the library. Then publish a library release with `code-rules library release`, which tags the commit and gives each changed rule its new version. The first library release gives every rule version `1.0.0`.
+Review the diff, commit the library, and push it to the remote's default branch. Then publish a library release with `code-rules library release`, which tags that commit, pushes the tag, and gives each changed rule its new version. On GitHub.com it also creates a GitHub Release page with the signed-in GitHub CLI, `gh`, unless you pass `--no-github-release`. The first library release gives every rule version `1.0.0`.
 Give consumers the repository address and group IDs.
 Consumers run `code-rules project add library` in their project, then `code-rules project sync` to import the selected guidance.
 
