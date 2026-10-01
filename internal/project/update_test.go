@@ -67,7 +67,7 @@ func TestUpdate_PreviewWritesNothingAndApplyInstallsIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	preview, err := plan.Preview(nil)
+	preview, err := plan.Preview(context.Background(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestUpdate_RefusesASharedFilesReleaseTagMovedAfterThePreview(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if preview, err := plan.Preview(nil); err != nil || !preview.Moves() {
+	if preview, err := plan.Preview(context.Background(), nil); err != nil || !preview.Moves() {
 		t.Fatalf("an update of shared files alone doesn't move anything: %+v, %v", preview, err)
 	}
 	moveReleaseTag(t, f, "release/2")
@@ -304,7 +304,7 @@ func TestUpdate_RejectsDecisionsThePreviewDoesntOffer(t *testing.T) {
 		"another source's rule": {{Source: "other", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "No."}},
 	} {
 		t.Run(name, func(t *testing.T) {
-			_, previewErr := plan.Preview(decisions)
+			_, previewErr := plan.Preview(context.Background(), decisions)
 			_, applyErr := plan.Apply(context.Background(), decisions)
 			last := decisions[len(decisions)-1]
 			flag := map[UpdateDecisionKind]string{DecisionKeep: "--keep", DecisionExclude: "--exclude"}[last.Kind]
@@ -470,11 +470,11 @@ func TestUpdate_ScopedUpdateThatKeepsItsRuleLeavesTheSharedFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if preview, err := plan.Preview(nil); err != nil || preview.Sources[0].SharedFiles == nil {
+	if preview, err := plan.Preview(context.Background(), nil); err != nil || preview.Sources[0].SharedFiles == nil {
 		t.Fatalf("without a decision the shared files move with the rule: %+v, %v", preview.Sources, err)
 	}
 	keep := []UpdateDecision{{Source: "team", Rule: "techs/go/errors", Kind: DecisionKeep, Reason: "Not yet."}}
-	preview, err := plan.Preview(keep)
+	preview, err := plan.Preview(context.Background(), keep)
 	if err != nil || preview.Sources[0].SharedFiles != nil || preview.Moves() {
 		t.Fatalf("keeping the only moved rule still moves shared files: %+v, %v", preview.Sources, err)
 	}

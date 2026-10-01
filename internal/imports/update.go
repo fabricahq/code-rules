@@ -95,10 +95,12 @@ type RuleUpdate struct {
 	// version ReviewedVersion returns; Reason is recorded with a pin or exclusion. Planning leaves both empty.
 	Decision string `json:"decision,omitempty"`
 	Reason   string `json:"reason,omitempty"`
-	// Overwrites lists, for an update-fork decision, the local files that replacing the fork overwrites or removes:
-	// the local rule and every file in its asset directory, relative to the Code Rules directory. The project's
-	// preview leaves it empty, never nil, for other rows; planning leaves it nil.
+	// Overwrites and Removes list, for an update-fork decision, the local files that replacing the fork writes again
+	// and deletes: of the local rule and the files in its asset directory, those the new fork has and those it
+	// doesn't, relative to the Code Rules directory. The project's preview leaves both empty, never nil, for other
+	// rows; planning leaves them nil.
 	Overwrites []string `json:"overwrites"`
+	Removes    []string `json:"removes"`
 }
 
 // ReviewedVersion returns the newest version a replaced row lists changes up to, which replacing its fork forks and

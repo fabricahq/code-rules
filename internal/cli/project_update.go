@@ -45,7 +45,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 			return err
 		}
 		location := updateLocation{root: directory, workdir: options.Directory, recovered: plan.Recovered()}
-		preview, err := plan.Preview(decisions)
+		preview, err := plan.Preview(cmd.Context(), decisions)
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 			}
 			// Answers change the update, so people confirm what they'll get.
 			if len(decisions) > flagged {
-				if preview, err = plan.Preview(decisions); err != nil {
+				if preview, err = plan.Preview(cmd.Context(), decisions); err != nil {
 					return err
 				}
 				f.introduction += "\n" + answersSummary(preview.Sources)
@@ -191,8 +191,8 @@ func askUpdateDecisions(f *authoringFlags, plan *project.UpdatePlan, preview pro
 				version := row.ReviewedVersion()
 				choices = [2]string{"later", "replace"}
 				context = fmt.Sprintf("%s: replaced by %s, with library changes up to %s.", name, row.LocalRule, version)
-				if overwrites := plan.Overwrites(row.LocalRule); len(overwrites) > 0 {
-					context += fmt.Sprintf("\nReplacing your rule with a fork of %s overwrites your edits to:\n  %s", version, strings.Join(overwrites, "\n  "))
+				if replaced := plan.ReplacedFiles(row.LocalRule); len(replaced) > 0 {
+					context += fmt.Sprintf("\nReplacing your rule with a fork of %s replaces or removes:\n  %s", version, strings.Join(replaced, "\n  "))
 				}
 				question = fmt.Sprintf("Review later, or replace your local rule with %s?", version)
 			default:
@@ -245,7 +245,7 @@ func askChoice(f *authoringFlags, question string, choices [2]string) (string, e
 }
 
 // answersSummary lists the rows the user's answers decided: each kept rule with the version a new pin keeps it
-// at, and each excluded new rule, with the reasons, and each replaced fork, with the files it overwrites.
+// at, and each excluded new rule, with the reasons, and each replaced fork, with the files it replaces and removes.
 func answersSummary(sources []imports.SourceUpdate) string {
 	var out strings.Builder
 	out.WriteString("Your answers:\n")
@@ -258,13 +258,14 @@ func answersSummary(sources []imports.SourceUpdate) string {
 				fmt.Fprintf(&out, "  Exclude %s:%s.\n    Reason: %s\n", source.Name, row.ID, row.Reason)
 			case "update-fork":
 				fmt.Fprintf(&out, "  Replace your rule for %s:%s with a fork of %s", source.Name, row.ID, row.ReviewedVersion())
-				if len(row.Overwrites) == 0 {
+				files := forkFileLines(row)
+				if len(files) == 0 {
 					out.WriteString(".\n")
 					continue
 				}
-				out.WriteString(", overwriting:\n")
-				for _, file := range row.Overwrites {
-					fmt.Fprintf(&out, "    %s\n", file)
+				out.WriteString(":\n")
+				for _, line := range files {
+					fmt.Fprintf(&out, "    %s\n", line)
 				}
 			}
 		}
@@ -424,7 +425,7 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 		}
 	}
 	if row.Change == imports.UpdateReplaced && !forked {
-		lines = append(lines, "To replace your rule with a fork of "+row.ReviewedVersion().String()+", overwriting your edits,", "pass --update-fork "+source+":"+row.ID+".")
+		lines = append(lines, "To replace your rule and its assets with a fork of "+row.ReviewedVersion().String()+",", "pass --update-fork "+source+":"+row.ID+".")
 	}
 	switch {
 	case row.Change == imports.UpdatePinned:
@@ -437,14 +438,22 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 		lines = append(lines, "Excluded by a new exclusion.", "Reason: "+row.Reason)
 	}
 	// A pin keeps only the imported copy, so the fork's replacement shows beside it.
-	switch {
-	case forked && len(row.Overwrites) == 0:
+	if forked {
 		lines = append(lines, "Your rule becomes a fork of "+row.ReviewedVersion().String()+".")
-	case forked:
-		lines = append(lines, "Your rule becomes a fork of "+row.ReviewedVersion().String()+", overwriting:")
-		for _, file := range row.Overwrites {
-			lines = append(lines, "  "+file)
-		}
+		lines = append(lines, forkFileLines(row)...)
+	}
+	return lines
+}
+
+// forkFileLines names, one per line, each local file a row's fork update replaces with the new fork's copy, then
+// each it removes because the new fork doesn't have it.
+func forkFileLines(row imports.RuleUpdate) []string {
+	lines := []string{}
+	for _, file := range row.Overwrites {
+		lines = append(lines, "Replaces "+file)
+	}
+	for _, file := range row.Removes {
+		lines = append(lines, "Removes "+file)
 	}
 	return lines
 }

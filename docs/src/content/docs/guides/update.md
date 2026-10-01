@@ -45,7 +45,7 @@ team
             Add an example for paginated queries.
             Your rule: local/techs/react/use-query-hooks.md, based on 1.1.0.
             Changes since 1.1.0, the version your rule is based on.
-            To replace your rule with a fork of 1.2.0, overwriting your edits,
+            To replace your rule and its assets with a fork of 1.2.0,
             pass --update-fork team:techs/react/use-query-hooks.
   pinned    practices/testing/verify-backoff       1.3.0
             Newest version: 2.0.0.
@@ -68,7 +68,7 @@ When a library release changed [library-wide files](/reference/rule-versions/#wh
 
 Read the major changes, new rules, and retirements closely: each can change what your code must do. For each replaced rule, check whether your own rule needs the same change. Then confirm, and the update applies exactly the changes the preview showed.
 
-For a replaced rule you forked and never edited, or whose edits you no longer need, replace your rule with a fork of the newest version. In a terminal, answer `replace` when the update asks about the rule; it first names the files that replacing overwrites. In a script, pass `--update-fork team:<rule>` with `--yes`; the preview, without `--yes`, lists the files it would overwrite. Either writes the new fork exactly as [forking](/reference/cli/#fork-a-library-rule) that version would, at your rule's path, replaces your rule's asset directory, and sets the exclusion's `basedOn` to the version, all in the same step as the rest of the update. Your edits to the rule and its assets are overwritten, so commit them first; see [Replace a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version).
+For a replaced rule you forked and never edited, or whose edits you no longer need, replace your rule with a fork of the newest version. In a terminal, answer `replace` when the update asks about the rule; it first names the files that replacing replaces or removes. In a script, pass `--update-fork team:<rule>` with `--yes`; the preview, without `--yes`, lists the files it would replace and those it would remove. Either writes the new fork exactly as [forking](/reference/cli/#fork-a-library-rule) that version would, at your rule's path, replaces your rule's asset directory, and sets the exclusion's `basedOn` to the version, all in the same step as the rest of the update. Your edits to the rule and its assets are overwritten, so commit them first; see [Replace a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version).
 
 To keep your edits, merge the library's changes into your rule by hand instead, then set `basedOn` in `.code-rules/config.yaml` to the version you merged, so later updates list only newer changes. Code Rules never moves `basedOn` on its own, because only you know whether your rule took the changes in.
 

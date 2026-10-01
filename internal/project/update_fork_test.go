@@ -78,7 +78,7 @@ func planForkUpdate(t *testing.T, f forkFixture, decisions []UpdateDecision) (*U
 	if err != nil {
 		t.Fatal(err)
 	}
-	preview, err := plan.Preview(decisions)
+	preview, err := plan.Preview(context.Background(), decisions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,9 +107,10 @@ func TestUpdate_ReplacesAForkWithItsNewestVersion(t *testing.T) {
 	before := f.files(t)
 	plan, preview := planForkUpdate(t, f, updateFork)
 	row := previewRow(preview.Sources, "team", "techs/go/errors")
-	overwrites := []string{"local/techs/go/assets/errors/data.bin", "local/techs/go/assets/errors/diagrams/flow.svg", "local/techs/go/assets/errors/guide.md", "local/techs/go/assets/errors/mine.md", "local/techs/go/assets/errors/more.md", "local/techs/go/assets/errors/notes.md", "local/techs/go/errors.md"}
-	if row == nil || row.Decision != "update-fork" || row.To.String() != "2.0.0" || !reflect.DeepEqual(row.Overwrites, overwrites) {
-		t.Fatalf("row %+v, want update-fork to 2.0.0 overwriting %v", row, overwrites)
+	// The new fork writes its rule again and has none of the old assets, which it removes.
+	removes := []string{"local/techs/go/assets/errors/data.bin", "local/techs/go/assets/errors/diagrams/flow.svg", "local/techs/go/assets/errors/guide.md", "local/techs/go/assets/errors/mine.md", "local/techs/go/assets/errors/more.md", "local/techs/go/assets/errors/notes.md"}
+	if row == nil || row.Decision != "update-fork" || row.To.String() != "2.0.0" || !reflect.DeepEqual(row.Overwrites, []string{"local/techs/go/errors.md"}) || !reflect.DeepEqual(row.Removes, removes) {
+		t.Fatalf("row %+v, want update-fork to 2.0.0 overwriting the rule and removing %v", row, removes)
 	}
 	if !reflect.DeepEqual(f.files(t), before) {
 		t.Fatal("the preview wrote files")
@@ -195,7 +196,7 @@ func TestUpdate_ReplacesAHandWrittenReplacementAndRecordsBasedOn(t *testing.T) {
 	}
 	thirdRelease(t, f.fixture, false)
 	plan, preview := planForkUpdate(t, f, updateFork)
-	if row := previewRow(preview.Sources, "team", "techs/go/errors"); row == nil || !reflect.DeepEqual(row.Overwrites, []string{"local/techs/go/assets/our-errors/old.md", "local/techs/go/our-errors.md"}) {
+	if row := previewRow(preview.Sources, "team", "techs/go/errors"); row == nil || !reflect.DeepEqual(row.Overwrites, []string{"local/techs/go/our-errors.md"}) || !reflect.DeepEqual(row.Removes, []string{"local/techs/go/assets/our-errors/old.md"}) {
 		t.Fatalf("row %+v", row)
 	}
 	if _, err := plan.Apply(context.Background(), updateFork); err != nil {
@@ -323,7 +324,7 @@ func TestUpdate_RefusesToUpdateAForkItCant(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = plan.Preview(updateFork)
+			_, err = plan.Preview(context.Background(), updateFork)
 			invalid(t, err, "--update-fork team:techs/go/errors: the update doesn't list this rule as replaced")
 			_, err = plan.Apply(context.Background(), updateFork)
 			invalid(t, err, "doesn't list this rule as replaced")
@@ -343,7 +344,7 @@ func TestUpdate_RefusesToUpdateAForkItCant(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, err = plan.Preview(updateFork)
+		_, err = plan.Preview(context.Background(), updateFork)
 		invalid(t, err, "--update-fork team:techs/go/errors: the library retired this rule, so it has no newest version to fork")
 		if !reflect.DeepEqual(f.files(t), before) {
 			t.Fatal("a refused update changed the project")
@@ -382,7 +383,7 @@ func TestUpdate_RefusesAForkWhoseReleaseTagMovedAfterThePreview(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := plan.Preview(updateFork); err != nil {
+			if _, err := plan.Preview(context.Background(), updateFork); err != nil {
 				t.Fatal(err)
 			}
 			moveReleaseTagTo(t, f.fixture, "release/3", map[string][]byte{"techs/go/errors.md": []byte(forkedRule("Moved content."))})

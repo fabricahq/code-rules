@@ -207,7 +207,7 @@ func TestFork_OfAPinnedRuleRemovesThePin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	preview, err := plan.Preview(nil)
+	preview, err := plan.Preview(context.Background(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -630,7 +630,7 @@ func TestUpdate_KeepingAReplacedRuleStillListsItsChangesForTheFork(t *testing.T)
 		if err != nil {
 			t.Fatal(err)
 		}
-		result, err := plan.Preview(decisions)
+		result, err := plan.Preview(context.Background(), decisions)
 		if err != nil {
 			t.Fatal(err)
 		}

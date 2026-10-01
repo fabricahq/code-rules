@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"path"
 	"slices"
 	"strings"
 
@@ -28,6 +29,8 @@ type UpdatePlan struct {
 	guide   []byte
 	// recovered reports that planning first recovered an interrupted earlier command, which changed files.
 	recovered bool
+	// forks holds each fork Preview or Apply read, by forkKey, so a fork is read from the library once.
+	forks map[string]forkUpdate
 }
 
 // Recovered reports whether planning first recovered an interrupted earlier command, restoring or finishing its
@@ -139,10 +142,17 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 // invalid-arguments, naming the decision's flag and rule, when a decision names a rule twice, keeps a rule the
 // update doesn't move or retire, excludes a rule the update doesn't add, or updates a fork the preview doesn't list
 // as replaced, or when a pin or exclusion has no reason or a fork update has one.
-func (p *UpdatePlan) Preview(decisions []UpdateDecision) (UpdateResult, error) {
-	sources, _, _, err := p.decide(decisions)
+//
+// Preview reads the version each fork update forks, as Apply then installs it, to list the local files the fork
+// overwrites and removes; it fails with invalid-release-tag when that version's library release tag moved after
+// planning.
+func (p *UpdatePlan) Preview(ctx context.Context, decisions []UpdateDecision) (UpdateResult, error) {
+	sources, _, forks, err := p.decide(decisions)
 	if err != nil {
 		return UpdateResult{}, err
+	}
+	if err := p.readForks(ctx, sources, forks); err != nil {
+		return UpdateResult{}, unchanged(err, p.recovered)
 	}
 	return UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: p.update.Warnings}}, nil
 }
@@ -163,12 +173,12 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 	if err := ctx.Err(); err != nil {
 		return UpdateResult{}, unchanged(err, p.recovered || recovered)
 	}
+	if err := p.readForks(ctx, sources, forks); err != nil {
+		return UpdateResult{}, unchanged(err, p.recovered || recovered)
+	}
 	forked := []imports.ForkedRule{}
-	for i := range forks {
-		if err := forks[i].read(ctx, p.update, p.planned.config, p.git); err != nil {
-			return UpdateResult{}, unchanged(err, p.recovered || recovered)
-		}
-		forked = append(forked, imports.ForkedRule{Source: forks[i].source, ID: forks[i].id, Version: forks[i].version})
+	for _, fork := range forks {
+		forked = append(forked, imports.ForkedRule{Source: fork.source, ID: fork.id, Version: fork.version})
 	}
 	root, err := openProject(ctx, p.options, false)
 	if err != nil {
@@ -217,7 +227,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 		sources[i] = source
 		sources[i].Rules = slices.Clone(source.Rules)
 		for j := range sources[i].Rules {
-			sources[i].Rules[j].Overwrites = []string{}
+			sources[i].Rules[j].Overwrites, sources[i].Rules[j].Removes = []string{}, []string{}
 		}
 	}
 	edits := map[string]rules.SourceEdit{}
@@ -259,7 +269,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 				return nil, nil, nil, refuse("the update doesn't list this rule as replaced, because the library has no version newer than the one your local rule is based on, or the update doesn't include the rule; name a rule the preview lists as replaced")
 			}
 			version := *row.ReviewedVersion()
-			row.Decision, row.Overwrites = string(DecisionUpdateFork), p.Overwrites(row.LocalRule)
+			row.Decision = string(DecisionUpdateFork)
 			if edit.BasedOn == nil {
 				edit.BasedOn = map[string]rules.RuleVersion{}
 			}
@@ -287,15 +297,43 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 	return sources, edits, forks, nil
 }
 
-// Overwrites returns the local files that replacing the fork at localRule, a replaced row's local rule, overwrites
-// or removes, as the project was when planned: the rule and every file in its asset directory, relative to the Code
-// Rules directory and sorted. It is empty when none of them exist.
-func (p *UpdatePlan) Overwrites(localRule string) []string {
+// ReplacedFiles returns the local files that replacing the fork at localRule, a replaced row's local rule,
+// overwrites or removes, as the project was when planned: the rule and every file in its asset directory, relative
+// to the Code Rules directory and sorted. It is empty when none of them exist.
+func (p *UpdatePlan) ReplacedFiles(localRule string) []string {
 	overwritten := slices.Sorted(maps.Keys(localPaths(forkPaths(treeFiles(p.planned.local), strings.TrimPrefix(localRule, "local/")))))
 	if overwritten == nil {
 		return []string{}
 	}
 	return overwritten
+}
+
+// readForks reads each of forks that p hasn't read yet, filling its files, and lists in its row of sources the
+// local files the new fork overwrites, which it has too, and removes, which it doesn't.
+func (p *UpdatePlan) readForks(ctx context.Context, sources []imports.SourceUpdate, forks []forkUpdate) error {
+	if p.forks == nil {
+		p.forks = map[string]forkUpdate{}
+	}
+	for i := range forks {
+		key := forks[i].source + ":" + forks[i].id + "@" + forks[i].version.String()
+		if read, ok := p.forks[key]; ok {
+			forks[i].files = read.files
+		} else if err := forks[i].read(ctx, p.update, p.planned.config, p.git); err != nil {
+			return err
+		}
+		p.forks[key] = forks[i]
+		row := previewRow(sources, forks[i].source, forks[i].id)
+		for name := range forkPaths(treeFiles(p.planned.local), forks[i].file) {
+			if _, kept := forks[i].files[name]; kept {
+				row.Overwrites = append(row.Overwrites, path.Join("local", name))
+			} else {
+				row.Removes = append(row.Removes, path.Join("local", name))
+			}
+		}
+		slices.Sort(row.Overwrites)
+		slices.Sort(row.Removes)
+	}
+	return nil
 }
 
 // forkUpdateRefusal returns the invalid-arguments refusal of decision, a fork update, that configuration alone

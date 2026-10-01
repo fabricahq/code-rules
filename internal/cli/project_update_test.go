@@ -146,7 +146,7 @@ const updatePreview = `team
             Add pagination.
             Your rule: local/techs/go/use-data-loaders.md.
             Changes since the imported version 1.0.0; your rule may already have some.
-            To replace your rule with a fork of 1.1.0, overwriting your edits,
+            To replace your rule and its assets with a fork of 1.1.0,
             pass --update-fork team:techs/go/loaders.
   pinned    techs/go/backoff  1.0.0
             Newest version: 2.0.0.
@@ -191,13 +191,13 @@ func TestUpdate_JSONPreviewReportsEveryRowAndWritesNothing(t *testing.T) {
 		t.Fatalf("value %+v", result.Value)
 	}
 	want := []string{
-		`{"id":"techs/go/errors","change":"major","from":"1.0.0","to":"2.0.0","summaries":["Require wrapping."],"summaryVersions":["2.0.0"],"overwrites":[]}`,
-		`{"id":"techs/go/naming","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Add an example."],"summaryVersions":["1.1.0"],"overwrites":[]}`,
-		`{"id":"techs/go/format","change":"patch","from":"1.0.0","to":"1.0.1","summaries":["Fix a typo."],"summaryVersions":["1.0.1"],"overwrites":[]}`,
-		`{"id":"techs/go/verify","change":"new","to":"1.0.0","summaries":["Add the rule."],"summaryVersions":["1.0.0"],"overwrites":[]}`,
-		`{"id":"techs/go/retry","change":"retired","from":"1.0.0","lastVersion":"1.0.0","summaries":["Covered by verify."],"summaryVersions":["1.0.0"],"replacedBy":"techs/go/verify","overwrites":[]}`,
-		`{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"local/techs/go/use-data-loaders.md","overwrites":[]}`,
-		`{"id":"techs/go/backoff","change":"pinned","from":"1.0.0","newest":"2.0.0","summaries":[],"summaryVersions":[],"pin":{"version":"1.0.0","reason":"Waiting on #45."},"overwrites":[]}`,
+		`{"id":"techs/go/errors","change":"major","from":"1.0.0","to":"2.0.0","summaries":["Require wrapping."],"summaryVersions":["2.0.0"],"overwrites":[],"removes":[]}`,
+		`{"id":"techs/go/naming","change":"minor","from":"1.0.0","to":"1.1.0","summaries":["Add an example."],"summaryVersions":["1.1.0"],"overwrites":[],"removes":[]}`,
+		`{"id":"techs/go/format","change":"patch","from":"1.0.0","to":"1.0.1","summaries":["Fix a typo."],"summaryVersions":["1.0.1"],"overwrites":[],"removes":[]}`,
+		`{"id":"techs/go/verify","change":"new","to":"1.0.0","summaries":["Add the rule."],"summaryVersions":["1.0.0"],"overwrites":[],"removes":[]}`,
+		`{"id":"techs/go/retry","change":"retired","from":"1.0.0","lastVersion":"1.0.0","summaries":["Covered by verify."],"summaryVersions":["1.0.0"],"replacedBy":"techs/go/verify","overwrites":[],"removes":[]}`,
+		`{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"local/techs/go/use-data-loaders.md","overwrites":[],"removes":[]}`,
+		`{"id":"techs/go/backoff","change":"pinned","from":"1.0.0","newest":"2.0.0","summaries":[],"summaryVersions":[],"pin":{"version":"1.0.0","reason":"Waiting on #45."},"overwrites":[],"removes":[]}`,
 	}
 	got := []string{}
 	for _, row := range result.Value.Sources[0].Rules {
@@ -277,25 +277,25 @@ func TestUpdate_ComparesAReplacementWithItsBasedOnVersion(t *testing.T) {
 	u := newUpdateFixture(t)
 	u.write(t, "config.yaml", u.basedOnConfig("1.0.0"))
 	out, diagnostic, code := u.run(t, "project", "update")
-	row := "  replaced  techs/go/loaders  1.0.0 -> 1.1.0\n            Add pagination.\n            Your rule: local/techs/go/use-data-loaders.md, based on 1.0.0.\n            Changes since 1.0.0, the version your rule is based on.\n            To replace your rule with a fork of 1.1.0, overwriting your edits,\n            pass --update-fork team:techs/go/loaders.\n"
+	row := "  replaced  techs/go/loaders  1.0.0 -> 1.1.0\n            Add pagination.\n            Your rule: local/techs/go/use-data-loaders.md, based on 1.0.0.\n            Changes since 1.0.0, the version your rule is based on.\n            To replace your rule and its assets with a fork of 1.1.0,\n            pass --update-fork team:techs/go/loaders.\n"
 	if code != 0 || diagnostic != "" || !strings.Contains(out, row) {
 		t.Fatalf("exit %d, stderr %q, stdout:\n%s\nwant the row:\n%s", code, diagnostic, out, row)
 	}
 	out, _, code = u.run(t, "project", "update", "--json")
-	want := `{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"local/techs/go/use-data-loaders.md","basedOn":"1.0.0","overwrites":[]}`
+	want := `{"id":"techs/go/loaders","change":"replaced","from":"1.0.0","to":"1.1.0","summaries":["Add pagination."],"summaryVersions":["1.1.0"],"localRule":"local/techs/go/use-data-loaders.md","basedOn":"1.0.0","overwrites":[],"removes":[]}`
 	if code != 0 || !strings.Contains(compactJSON(t, json.RawMessage(out)), want) {
 		t.Fatalf("exit %d, want the row %s in:\n%s", code, want, out)
 	}
 	// The preview of a fork update names the file it overwrites, in human and JSON output.
 	out, _, code = u.run(t, "project", "update", "--update-fork", "team:techs/go/loaders")
-	forked := "  replaced  techs/go/loaders  1.0.0 -> 1.1.0\n            Add pagination.\n            Your rule: local/techs/go/use-data-loaders.md, based on 1.0.0.\n            Your rule becomes a fork of 1.1.0, overwriting:\n              local/techs/go/use-data-loaders.md\n"
+	forked := "  replaced  techs/go/loaders  1.0.0 -> 1.1.0\n            Add pagination.\n            Your rule: local/techs/go/use-data-loaders.md, based on 1.0.0.\n            Your rule becomes a fork of 1.1.0.\n            Replaces local/techs/go/use-data-loaders.md\n"
 	if code != 0 || !strings.Contains(out, forked) {
 		t.Fatalf("exit %d, want the row:\n%s\nin:\n%s", code, forked, out)
 	}
 	out, diagnostic, code = u.run(t, "project", "update", "--yes", "--json", "--update-fork", "team:techs/go/loaders")
 	type decidedRow struct {
-		ID, Decision string
-		Overwrites   []string
+		ID, Decision        string
+		Overwrites, Removes []string
 	}
 	var result struct {
 		OK    bool
@@ -308,7 +308,7 @@ func TestUpdate_ComparesAReplacementWithItsBasedOnVersion(t *testing.T) {
 		t.Fatalf("exit %d, %v:\n%s%s", code, err, out, diagnostic)
 	}
 	if !slices.ContainsFunc(result.Value.Sources[0].Rules, func(row decidedRow) bool {
-		return row.ID == "techs/go/loaders" && row.Decision == "update-fork" && reflect.DeepEqual(row.Overwrites, []string{"local/techs/go/use-data-loaders.md"})
+		return row.ID == "techs/go/loaders" && row.Decision == "update-fork" && reflect.DeepEqual(row.Overwrites, []string{"local/techs/go/use-data-loaders.md"}) && len(row.Removes) == 0 && row.Removes != nil
 	}) {
 		t.Fatalf("rows %+v", result.Value.Sources[0].Rules)
 	}
@@ -460,7 +460,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 		{Prompt: "team:techs/go/verify: new rule, 1.0.0.\r\nAdd it, or exclude it? [add/exclude]:", Answer: "e"},
 		{Prompt: "Reason for excluding it:", Answer: "Covered locally."},
 		{Prompt: "team:techs/go/retry: retired.\r\nDrop it, or keep 1.0.0? [drop/keep]:", Answer: "drop"},
-		{Prompt: "team:techs/go/loaders: replaced by local/techs/go/use-data-loaders.md, with library changes up to 1.1.0.\r\nReplacing your rule with a fork of 1.1.0 overwrites your edits to:\r\n  local/techs/go/use-data-loaders.md\r\nReview later, or replace your local rule with 1.1.0? [later/replace]:", Answer: "r"},
+		{Prompt: "team:techs/go/loaders: replaced by local/techs/go/use-data-loaders.md, with library changes up to 1.1.0.\r\nReplacing your rule with a fork of 1.1.0 replaces or removes:\r\n  local/techs/go/use-data-loaders.md\r\nReview later, or replace your local rule with 1.1.0? [later/replace]:", Answer: "r"},
 		{Prompt: "Apply the update? [yes/no]:", Answer: "yes"},
 	}
 	result, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, steps)
@@ -475,7 +475,7 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	transcript := strings.ReplaceAll(result.Transcript, "\r\n", "\n")
 	afterQuestions := transcript[strings.LastIndex(transcript, "Review later, or replace your local rule"):]
 	revised, _, confirmation := strings.Cut(afterQuestions, "Apply the update? [yes/no]:")
-	if !confirmation || !strings.Contains(revised, "Your answers:\n  Keep team:techs/go/errors at 1.0.0.\n    Reason: Waiting on review.\n  Exclude team:techs/go/verify.\n    Reason: Covered locally.\n  Replace your rule for team:techs/go/loaders with a fork of 1.1.0, overwriting:\n    local/techs/go/use-data-loaders.md\n") || strings.Contains(revised, "  major ") {
+	if !confirmation || !strings.Contains(revised, "Your answers:\n  Keep team:techs/go/errors at 1.0.0.\n    Reason: Waiting on review.\n  Exclude team:techs/go/verify.\n    Reason: Covered locally.\n  Replace your rule for team:techs/go/loaders with a fork of 1.1.0:\n    Replaces local/techs/go/use-data-loaders.md\n") || strings.Contains(revised, "  major ") {
 		t.Fatalf("the answers, without the preview again, didn't come before the confirmation:\n%s", result.Transcript)
 	}
 	// The terminal showed the preview once, so the result lists only what the update changed.
@@ -606,8 +606,8 @@ func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 // version or the files it overwrites.
 func TestUpdateDetails_ShowsAPinnedForksReplacementBesideThePin(t *testing.T) {
 	old, newest := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 2}
-	row := imports.RuleUpdate{Change: imports.UpdateReplaced, From: &old, Newest: &newest, LocalRule: "local/techs/go/loaders.md", Pin: &rules.Pin{Version: old, Reason: "Not yet."}, Decision: "update-fork", Overwrites: []string{"local/techs/go/assets/loaders/notes.md", "local/techs/go/loaders.md"}, Summaries: []string{}}
-	want := []string{"Your rule: local/techs/go/loaders.md.", "Your pin keeps it at 1.0.0.", "Reason: Not yet.", "Your rule becomes a fork of 2.0.0, overwriting:", "  local/techs/go/assets/loaders/notes.md", "  local/techs/go/loaders.md"}
+	row := imports.RuleUpdate{Change: imports.UpdateReplaced, From: &old, Newest: &newest, LocalRule: "local/techs/go/loaders.md", Pin: &rules.Pin{Version: old, Reason: "Not yet."}, Decision: "update-fork", Overwrites: []string{"local/techs/go/loaders.md"}, Removes: []string{"local/techs/go/assets/loaders/notes.md"}, Summaries: []string{}}
+	want := []string{"Your rule: local/techs/go/loaders.md.", "Your pin keeps it at 1.0.0.", "Reason: Not yet.", "Your rule becomes a fork of 2.0.0.", "Replaces local/techs/go/loaders.md", "Removes local/techs/go/assets/loaders/notes.md"}
 	if got := updateDetails("team", row); !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
