@@ -95,6 +95,90 @@ Version: 1.0.0
 
 **Read full rule:** [Give text and its parsed form one owner](../../rules/fabrica/techs/go/one-owner-for-text-and-parsed-form.md)
 
+### Run Git with gitexec.Isolated for libraries and gitexec.Owned for the user's repository
+
+Rule ID: `local:techs/go/choose-the-git-runner-by-repository-owner`
+
+**When to read:** Before planning, writing, changing, or reviewing Go code that creates a Git runner or runs Git, such as fetching or reading a library someone else publishes, or reading, tagging, or pushing the user's own library repository.
+
+**Impact:** HIGH
+
+**Why it matters:** Honoring the user's hooks and transports in a repository someone else controls lets its address or content run commands, while isolating the user's own repository skips the hooks their pushes rely on.
+
+**Read full rule:** [Run Git with gitexec.Isolated for libraries and gitexec.Owned for the user's repository](../../rules/local/techs/go/choose-the-git-runner-by-repository-owner.md)
+
+### Collect prompt answers before taking the project writer
+
+Rule ID: `local:techs/go/collect-prompt-answers-before-taking-the-writer`
+
+**When to read:** Before planning, writing, changing, or reviewing a Go command that asks a person for input and then writes project or library files, such as adding a group, rule, or library, forking a rule, or answering update questions.
+
+**Impact:** MEDIUM
+
+**Why it matters:** Waiting for a person while holding the writer makes every other command on the project fail with busy for as long as the prompt stays open.
+
+**Read full rule:** [Collect prompt answers before taking the project writer](../../rules/local/techs/go/collect-prompt-answers-before-taking-the-writer.md)
+
+### Let the CLI own output and exit status
+
+Rule ID: `local:techs/go/let-the-cli-own-output-and-exit-status`
+
+**When to read:** Before planning, writing, changing, or reviewing Go code in this repository's internal packages that reports a result, a warning, or a failure, or code in internal/cli that turns those into human output, --json responses, or exit statuses.
+
+**Impact:** HIGH
+
+**Why it matters:** Output or exits from domain packages corrupt the single --json response that agents parse, hide warnings from embedders, and skip the cleanup and exit-status mapping the CLI guarantees.
+
+**Read full rule:** [Let the CLI own output and exit status](../../rules/local/techs/go/let-the-cli-own-output-and-exit-status.md)
+
+### Never show what Git, a Git server, or the GitHub CLI printed
+
+Rule ID: `local:techs/go/never-show-git-diagnostics`
+
+**When to read:** Before planning, writing, changing, or reviewing Go code that runs Git or the GitHub CLI through internal/gitexec, or that turns their failures into errors, warnings, or reports, such as fetching a library, pushing a release tag, or creating a GitHub Release.
+
+**Impact:** HIGH
+
+**Why it matters:** Git and server messages can carry credential-bearing repository addresses and text a hostile server controls, which would leak into terminals, CI logs, and JSON responses.
+
+**Read full rule:** [Never show what Git, a Git server, or the GitHub CLI printed](../../rules/local/techs/go/never-show-git-diagnostics.md)
+
+### Parse and render in memory; read and write files only in the operation
+
+Rule ID: `local:techs/go/parse-and-render-in-memory`
+
+**When to read:** Before planning, writing, changing, or reviewing Go code that parses Code Rules formats, such as configuration, rules, group metadata, release records, or change notes, that renders generated output, or that reads the files those steps need.
+
+**Impact:** MEDIUM-HIGH
+
+**Why it matters:** A parser or renderer that reads files itself escapes the operation's containment, size limits, cancellation, and concurrent-change check, and can't run offline or on bytes a caller already holds.
+
+**Read full rule:** [Parse and render in memory; read and write files only in the operation](../../rules/local/techs/go/parse-and-render-in-memory.md)
+
+### Test command contracts through cli.Run and the compiled binary
+
+Rule ID: `local:techs/go/test-command-contracts-through-the-cli`
+
+**When to read:** Before planning, writing, changing, or reviewing Go tests, or Go changes, that affect what a code-rules command prints, returns in --json, exits with, prompts for, refuses, or writes, including failures and interrupted writes.
+
+**Impact:** HIGH
+
+**Why it matters:** Helper-only tests pass while the assembled command writes to the wrong stream, exits with the wrong status, or leaves partial files, which breaks the contract agents and scripts depend on.
+
+**Read full rule:** [Test command contracts through cli.Run and the compiled binary](../../rules/local/techs/go/test-command-contracts-through-the-cli.md)
+
+### Validate and render the complete result before the first write
+
+Rule ID: `local:techs/go/validate-everything-before-installing`
+
+**When to read:** Before planning, writing, changing, or reviewing Go code that writes project or library files, such as sync, update, build, init, fork, or authoring commands, or that adds a target, an input, or a check to such a write.
+
+**Impact:** HIGH
+
+**Why it matters:** A check that fails partway through writing leaves imported, generated, and configuration files that disagree, which the next build or check rejects or agents read as valid guidance.
+
+**Read full rule:** [Validate and render the complete result before the first write](../../rules/local/techs/go/validate-everything-before-installing.md)
+
 ---
 
 For other technology and practice groups, open [RULES.md](../../RULES.md). These files are generated. Edit source rules or configuration and rebuild to change them.

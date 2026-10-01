@@ -1894,6 +1894,139 @@
           "description": "Adapted from mkosir TypeScript Style Guide guidance (use-template-literal-types-for-patterned-strings; MIT, notice retained in NOTICE.md): restructured to the rule template, trimmed the examples, and noted that template literal types check shape only."
         }
       ]
+    },
+    {
+      "id": "local:techs/go/choose-the-git-runner-by-repository-owner",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/choose-the-git-runner-by-repository-owner.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
+    },
+    {
+      "id": "local:techs/go/collect-prompt-answers-before-taking-the-writer",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/collect-prompt-answers-before-taking-the-writer.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
+    },
+    {
+      "id": "local:techs/go/let-the-cli-own-output-and-exit-status",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/let-the-cli-own-output-and-exit-status.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
+    },
+    {
+      "id": "local:techs/go/never-show-git-diagnostics",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/never-show-git-diagnostics.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
+    },
+    {
+      "id": "local:techs/go/parse-and-render-in-memory",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/parse-and-render-in-memory.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
+    },
+    {
+      "id": "local:techs/go/test-command-contracts-through-the-cli",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/test-command-contracts-through-the-cli.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
+    },
+    {
+      "id": "local:techs/go/validate-everything-before-installing",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/validate-everything-before-installing.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
     }
   ]
 }
