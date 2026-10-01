@@ -224,7 +224,7 @@ techs/terraform:
   description: Terraform configuration and the Terraform CLI; a rule that also holds for OpenTofu belongs in both groups, or in whichever the library targets.
 techs/terragrunt:
   name: Terragrunt
-  description: The Terragrunt wrapper itself, including its configuration, dependencies between units, and commands.
+  description: "Terragrunt, the infrastructure-as-code orchestrator for OpenTofu and Terraform: units, stacks, dependencies between units, includes, and hooks."
 techs/typescript:
   name: TypeScript
   description: TypeScript types, functions, modules, and compiler configuration.
