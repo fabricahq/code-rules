@@ -318,22 +318,26 @@ func (g *libraryGit) requireCurrent(ctx context.Context, u upstream, remoteHead,
 	if len(fields) != 2 {
 		return failure("git-failed", "Git compared the branches in an unexpected format", nil)
 	}
-	ahead, behind := fields[0], fields[1]
+	ahead, aheadErr := strconv.ParseUint(fields[0], 10, 63)
+	behind, behindErr := strconv.ParseUint(fields[1], 10, 63)
+	if aheadErr != nil || behindErr != nil {
+		return failure("git-failed", "Git compared the branches in an unexpected format", nil)
+	}
 	switch {
-	case behind == "0":
+	case behind == 0:
 		return failure("branch-differs", u.branch+" has "+commits(ahead)+" that "+remoteName+" doesn't. A library release publishes only pushed commits: push them, then run code-rules library release again.", nil)
-	case ahead == "0":
+	case ahead == 0:
 		return failure("branch-differs", remoteName+" has "+commits(behind)+" that "+u.branch+" doesn't. Pull them, then run code-rules library release again.", nil)
 	}
 	return failure("branch-differs", u.branch+" and "+remoteName+" have diverged: each has commits the other doesn't. Reconcile them, then run code-rules library release again.", nil)
 }
 
 // commits counts commits in prose, such as "1 commit" or "3 commits".
-func commits(count string) string {
-	if count == "1" {
+func commits(count uint64) string {
+	if count == 1 {
 		return "1 commit"
 	}
-	return count + " commits"
+	return strconv.FormatUint(count, 10) + " commits"
 }
 
 // requireCommitted refuses unless head commits exactly the bytes check read, as regular files, so the library
@@ -510,6 +514,9 @@ func (g *libraryGit) createTag(ctx context.Context, name, commit string, message
 		return "", fmt.Errorf("read tag=%q: %w", name, err)
 	}
 	object := strings.TrimSpace(string(listing))
+	if !objectID.MatchString(object) {
+		return "", failure("git-failed", "Git reported the object ID of "+name+" in an unexpected format", nil)
+	}
 	// A signature can make the tag larger than its message suggested, so the created object is checked too.
 	size, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "-s", object}, 4096)
 	if err != nil {

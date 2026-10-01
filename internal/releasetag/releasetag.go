@@ -75,6 +75,9 @@ func (e *RecordError) Problem() string {
 // Unwrap returns the parser's validation error.
 func (e *RecordError) Unwrap() error { return e.Err }
 
+// objectTypes are the types a Git object can have; a listing with another fails, so no other text reaches a message.
+var objectTypes = []string{"commit", "tree", "blob", "tag"}
+
 // List returns the release/<number> tags in the repository at dir, in ascending number order, leaving out other
 // tags under release/, such as release/01. When merged isn't empty, it lists only the tags reachable from that
 // revision. It doesn't judge what the tags hold. A listing in an unexpected format fails with code git-failed.
@@ -99,7 +102,8 @@ func List(ctx context.Context, runner gitexec.Runner, dir, merged string) ([]Tag
 			continue
 		}
 		size, err := strconv.Atoi(fields[3])
-		if err != nil || size < 0 || !objectID.MatchString(fields[2]) || fields[5] != "" && !objectID.MatchString(fields[5]) {
+		if err != nil || size < 0 || !objectID.MatchString(fields[2]) || fields[5] != "" && !objectID.MatchString(fields[5]) ||
+			!slices.Contains(objectTypes, fields[1]) || fields[4] != "" && !slices.Contains(objectTypes, fields[4]) {
 			return nil, unexpected
 		}
 		tags = append(tags, Tag{Number: number, Object: fields[2], Type: fields[1], Size: size, Target: fields[5], TargetType: fields[4]})

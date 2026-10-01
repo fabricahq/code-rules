@@ -481,6 +481,8 @@ Code Rules never shows text that Git, a Git server, or the GitHub CLI, `gh`, pro
 
 Code Rules also never shows credentials in a URL it displays. A repository address it shows, such as a library's remote in `code-rules library release`, has any password, query, and fragment removed, and its user name too unless it's an SSH user name, which names an account. An address it can't parse is replaced by a note, including one with an authority but no scheme, such as `//host/rules`, and a `user@host:path` address with a colon before its `@`, which could start a password. The GitHub Release page URL is built from the repository and the tag, not taken from `gh`.
 
+Code Rules shows some values that Git computes, after checking their form: commit and object IDs, which must be hexadecimal object IDs; commit counts, which must be nonnegative integers; and object types, which must be one of Git's four. A value in any other form fails with code `git-failed` and a fixed message instead.
+
 Code Rules shows as they are:
 
 - names you chose locally, such as branch and remote names,
