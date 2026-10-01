@@ -487,3 +487,16 @@ func TestBuildAndCheck_ReportAnUnknownExclusionTheSameWay(t *testing.T) {
 		}
 	}
 }
+
+// TestLibraryReadme_MentionsRetainedTermsOnlyWhenTheLibraryDeclaresThem: the fixture's library declares no license,
+// so its generated README says so and doesn't claim the folder keeps copies of terms.
+func TestLibraryReadme_MentionsRetainedTermsOnlyWhenTheLibraryDeclaresThem(t *testing.T) {
+	u := newUpdateFixture(t)
+	data, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "generated", "libraries", "team", "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "copies of declared library license and notice files") || !strings.Contains(string(data), "No library license declaration was supplied.") {
+		t.Fatalf("README:\n%s", data)
+	}
+}

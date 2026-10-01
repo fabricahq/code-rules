@@ -75,7 +75,12 @@ func prepare(resolved resolution, options Options) (Output, error) {
 // generated terms, without interpreting their legal meaning. It says when the source imports unreleased changes.
 func libraryReadme(source resolvedSource) string {
 	file := "libraries/" + source.Name + "/README.md"
-	sections := []string{"# " + escapeText(source.Name), "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.", "**Repository:** " + escapeText(source.Repository)}
+	sections := []string{"# " + escapeText(source.Name)}
+	// Only a library that declares license or notice files has copies here to describe.
+	if source.License != nil && len(licenseMappings(source.Name, source.License)) > 0 {
+		sections = append(sections, "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.")
+	}
+	sections = append(sections, "**Repository:** "+escapeText(source.Repository))
 	if source.Release != 0 {
 		sections = append(sections, fmt.Sprintf("**Library release:** release/%d", source.Release))
 	}
