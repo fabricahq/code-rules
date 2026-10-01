@@ -6,16 +6,18 @@ Security is therefore a core product requirement.
 
 ## What we must protect
 
-1. **Rule-file integrity.** Preserve the selected library revision's original rule bytes. Detect unauthorized changes to retained files and agent-readable output.
+1. **Rule-file integrity.** Preserve the original bytes of each selected rule version. Detect unauthorized changes to retained files and agent-readable output.
    Generated output may intentionally transform Markdown or apply explicit project overrides; those changes must remain attributable to the selected rules and the user's configuration.
-2. **Library-source authenticity.** Fetch the repository and revision the user selected. Never silently substitute another library or revision, or present an unverified origin as authenticated.
-   Users must be able to understand which source and commit supplied their rules.
+2. **Library-source authenticity.** Fetch the selected repository and exactly the rule versions and commits the project records, or the revision its `ref` names. Never silently substitute another library, version, or commit, or present an unverified origin as authenticated.
+   Users must be able to understand which source, library release, and commit supplied each rule.
 3. **Our repository and release integrity.** Protect our source, repository access, dependencies, workflows, and published executables against unauthorized changes.
    A compromised importer or release could undermine both rule integrity and source verification across many consuming repositories.
 
 These are requirements to verify, not a claim that an audit has established every guarantee.
 A checksum proves consistency with its reference record, not authenticity if an attacker can replace both the content and the record.
 Even authentic, unchanged rules can contain harmful instructions. Users must deliberately choose which publishers and rule changes they trust.
+
+Code Rules runs Git on other people's repositories with hooks disabled and only HTTPS and SSH transports allowed. It never shows text from Git, a Git server, or the GitHub CLI, because that text can hold credentials; `internal/gitexec` classifies it privately so callers explain failures with their own messages. The [CLI reference](../docs/src/content/docs/reference/cli.md#text-from-git-servers-and-the-github-cli) states this contract.
 
 ## Security audits
 
@@ -60,7 +62,7 @@ Renovate may refresh existing update branches outside that window.
 
 Renovate manages Go modules, Bun workspaces and their lockfile, workflow actions, and supported runtime inputs.
 A custom manager finds versioned `go run` tools in workflows and CONTRIBUTING.md commands so those pins receive update PRs too.
-The GitHub Actions manager also reads `internal/library/check-workflow.yml`, the workflow `code-rules library init` writes, so its action pins receive update PRs; apply the same update to the guide's copy, which a test compares.
+The GitHub Actions manager also reads `internal/library/check-workflow.yml`, the workflow `code-rules library init` writes, so its action pins receive update PRs; apply the same update to both workflow examples in the [version rules guide](../docs/src/content/docs/guides/version-rules.md). A test compares its **Check changes in CI** copy with the template; nothing checks the other.
 Renovate includes indirect Go requirements. We disable broad lockfile-maintenance runs; dependency PRs regenerate the affected lockfile through the package manager.
 Review transitive changes in each lockfile diff: the cooldown does not establish the safety or age of every dependency a package manager resolves.
 
@@ -87,7 +89,7 @@ Before merging an update, review its source, release notes, changed permissions 
 Confirm all applicable CI checks passed on the current commit. A patch version is not evidence that an update is safe.
 For security fixes, verify that the selected version addresses the advisory. Do not bypass failed checks to accelerate a merge.
 
-Workflow permissions default to read-only. Pull request jobs do not receive publication credentials.
+Workflow permissions default to read-only; the CLI preview downloads workflow also needs `pull-requests: write` to comment. Pull request jobs do not receive publication credentials.
 The release build tests the release source and builds its assets without write access or secrets. Only Release Planner's publication job receives permission to write release data, and it runs no repository code.
 Actions in that job can access its job token; step-level environment variables do not isolate the token from other actions in the job.
 SHA pins and minimal permissions protect against compromised actions as well as compromised publication code.
