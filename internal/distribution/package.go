@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -152,13 +151,15 @@ func Build(ctx context.Context, options Options) (Manifest, error) {
 	return manifest, nil
 }
 
-// output runs a trusted development tool with captured diagnostics and no shell interpolation.
+// output runs a trusted development tool with no shell interpolation and returns its output. A failure reports
+// the command and its exit status but not its output, which can hold anything a helper printed; rerun the command
+// to read it.
 func output(ctx context.Context, directory, name string, args ...string) (string, error) {
 	command := exec.CommandContext(ctx, name, args...)
 	command.Dir = directory
 	result, err := command.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("%s: %w: %s", name, err, strings.TrimSpace(gitexec.RedactFormats(string(result))))
+		return "", fmt.Errorf("%s %s failed; run it to read its output: %w", name, strings.Join(args, " "), err)
 	}
 	return strings.TrimSpace(string(result)), nil
 }
@@ -179,8 +180,9 @@ func buildTarget(ctx context.Context, source, directory, version, revision, targ
 	command := exec.CommandContext(ctx, "go", "build", "-trimpath", "-buildvcs=false", "-ldflags", flags, "-o", binary, "./cmd/code-rules")
 	command.Dir = source
 	command.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS="+platform[0], "GOARCH="+platform[1], "GOWORK=off", "GOFLAGS=", "GOENV=off", "GOAMD64=v1", "GOARM64=v8.0", "GOEXPERIMENT=")
-	if text, err := command.CombinedOutput(); err != nil {
-		return Artifact{}, fmt.Errorf("build %s: %w: %s", target, err, text)
+	// The compiler's output isn't shown; go build ./cmd/code-rules shows it.
+	if err := command.Run(); err != nil {
+		return Artifact{}, fmt.Errorf("build %s failed; run go build ./cmd/code-rules to read the compiler's output: %w", target, err)
 	}
 	data, err := os.ReadFile(binary)
 	if err != nil {
