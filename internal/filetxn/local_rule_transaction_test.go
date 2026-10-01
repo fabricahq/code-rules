@@ -171,48 +171,141 @@ func TestApply_ChangesNoLiveDirectoryBeforeTheInputsAreChecked(t *testing.T) {
 	requireForkProject(t, root, "new", map[string]string{"techs/go/fork.md": "new fork", "techs/go/assets/fork/new.md": "new notes"})
 }
 
-// TestKilledWriterRemovesTheParentsItCreated stops the writer right after it creates local/techs/go/assets, the new
-// asset directory's missing parent; recovery restores every target and removes that directory again.
-func TestKilledWriterRemovesTheParentsItCreated(t *testing.T) {
+// TestKilledWriterRemovesOnlyTheParentsItProvablyCreated stops the writer around creating local/techs/go/assets,
+// the new asset directory's missing parent. Recovery restores every target and removes the directory only when the
+// writer recorded creating it and it is still an empty directory: a directory another process created while the
+// writer was dead, one the writer died before recording, and one another process then put a file in all stay, and
+// recovery reports the last.
+func TestKilledWriterRemovesOnlyTheParentsItProvablyCreated(t *testing.T) {
 	if directory := os.Getenv("CODE_RULES_PARENT_CHILD"); directory != "" {
 		root, err := os.OpenRoot(directory)
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer root.Close()
+		stop := os.Getenv("CODE_RULES_PARENT_STOP")
 		err = WithWriter(context.Background(), root, func(w *Writer) error {
-			mkdir := w.mkdir
+			mkdir, rename := w.mkdir, w.rename
 			w.mkdir = func(name string) error {
+				if stop == "before mkdir" {
+					os.Exit(42)
+				}
 				err := mkdir(name)
-				if err == nil && name == "local/techs/go/assets" {
+				if err == nil && stop == "after mkdir" {
+					os.Exit(42)
+				}
+				return err
+			}
+			w.rename = func(from, to string) error {
+				err := rename(from, to)
+				// Vendor's backup is the first rename after the parents are created and recorded.
+				if err == nil && stop == "after record" && to == transactionName+"/"+backupPrefix+"vendor" {
 					os.Exit(42)
 				}
 				return err
 			}
 			return w.Apply(forkUpdate(map[string][]byte{"new.md": []byte("new notes")}), nil)
 		})
-		t.Fatalf("child did not stop after creating the directory: %v", err)
+		t.Fatalf("child did not stop: %v", err)
 	}
+	for _, test := range []struct {
+		name, stop string
+		// meanwhile is what another process does while the writer is dead.
+		meanwhile func(t *testing.T, root *os.Root)
+		kept      bool
+		files     map[string]string
+		reported  []string
+	}{
+		{"recorded", "after record", nil, false, nil, nil},
+		{"not yet recorded", "after mkdir", nil, true, nil, nil},
+		{"created by another process", "before mkdir", func(t *testing.T, root *os.Root) {
+			if err := root.Mkdir("local/techs/go/assets", 0700); err != nil {
+				t.Fatal(err)
+			}
+		}, true, nil, nil},
+		{"recorded, then given a file", "after record", func(t *testing.T, root *os.Root) {
+			writeFixture(t, root, "local/techs/go/assets/theirs.md", "their file")
+		}, true, map[string]string{"techs/go/assets/theirs.md": "their file"}, []string{"local/techs/go/assets"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			root := openProject(t)
+			writeFixture(t, root, "local/techs/go/fork.md", "old fork")
+			writeFixture(t, root, "vendor/team/rule.md", "old rule")
+			writeFixture(t, root, "generated/RULES.md", "old output")
+			child := exec.Command(os.Args[0], "-test.run=^TestKilledWriterRemovesOnlyTheParentsItProvablyCreated$")
+			child.Env = append(os.Environ(), "CODE_RULES_PARENT_CHILD="+root.Name(), "CODE_RULES_PARENT_STOP="+test.stop)
+			output, err := child.CombinedOutput()
+			var exit *exec.ExitError
+			if !errors.As(err, &exit) || exit.ExitCode() != 42 {
+				t.Fatal(err, string(output))
+			}
+			if test.meanwhile != nil {
+				test.meanwhile(t, root)
+			}
+			var kept []string
+			if err := WithWriter(context.Background(), root, func(w *Writer) error {
+				kept = w.Kept()
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			want := map[string]string{"techs/go/fork.md": "old fork"}
+			maps.Copy(want, test.files)
+			requireForkProject(t, root, "old", want)
+			if _, err := root.Lstat("local/techs/go/assets"); test.kept != (err == nil) {
+				t.Fatalf("directory kept: %v, want %v", err == nil, test.kept)
+			}
+			if !slices.Equal(kept, test.reported) {
+				t.Fatalf("reported %q as kept, want %q", kept, test.reported)
+			}
+		})
+	}
+}
+
+// TestApply_RefusesAParentAnotherProcessCreatedMeanwhile: a directory that appears after the journal is written and
+// before Apply creates it isn't Apply's, so Apply refuses with concurrent-change, rolls back, and keeps it.
+func TestApply_RefusesAParentAnotherProcessCreatedMeanwhile(t *testing.T) {
 	root := openProject(t)
 	writeFixture(t, root, "local/techs/go/fork.md", "old fork")
 	writeFixture(t, root, "vendor/team/rule.md", "old rule")
 	writeFixture(t, root, "generated/RULES.md", "old output")
-	child := exec.Command(os.Args[0], "-test.run=^TestKilledWriterRemovesTheParentsItCreated$")
-	child.Env = append(os.Environ(), "CODE_RULES_PARENT_CHILD="+root.Name())
-	output, err := child.CombinedOutput()
-	var exit *exec.ExitError
-	if !errors.As(err, &exit) || exit.ExitCode() != 42 {
-		t.Fatal(err, string(output))
-	}
-	if _, err := root.Lstat("local/techs/go/assets"); err != nil {
-		t.Fatal("the child didn't create the directory", err)
-	}
-	if err := WithWriter(context.Background(), root, func(*Writer) error { return nil }); err != nil {
+	err := WithWriter(context.Background(), root, func(w *Writer) error {
+		mkdir := w.mkdir
+		w.mkdir = func(name string) error {
+			if err := root.Mkdir(name, 0700); err != nil {
+				t.Fatal(err)
+			}
+			writeFixture(t, root, name+"/theirs.md", "their file")
+			return mkdir(name)
+		}
+		return w.Apply(forkUpdate(map[string][]byte{"new.md": []byte("new notes")}), nil)
+	})
+	projectCode(t, err, "concurrent-change")
+	requireForkProject(t, root, "old", map[string]string{"techs/go/fork.md": "old fork", "techs/go/assets/theirs.md": "their file"})
+}
+
+// TestRemoveCreatedParent removes only an empty directory: it keeps a directory holding a file and a regular file
+// put at its path, reporting both as kept, and does nothing for an absent one.
+func TestRemoveCreatedParent(t *testing.T) {
+	root := openProject(t)
+	if err := root.MkdirAll("local/empty", 0700); err != nil {
 		t.Fatal(err)
 	}
-	requireForkProject(t, root, "old", map[string]string{"techs/go/fork.md": "old fork"})
-	if _, err := root.Lstat("local/techs/go/assets"); !errors.Is(err, fs.ErrNotExist) {
-		t.Fatal("recovery left the directory the interrupted writer created", err)
+	writeFixture(t, root, "local/full/theirs.md", "their file")
+	writeFixture(t, root, "local/file", "their file")
+	for name, want := range map[string]bool{"local/empty": false, "local/full": true, "local/file": true, "local/absent": false} {
+		kept, err := removeCreatedParent(root, name)
+		if err != nil || kept != want {
+			t.Fatalf("%s: kept %v, %v; want %v", name, kept, err, want)
+		}
+	}
+	if _, err := root.Lstat("local/empty"); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatal("kept the empty directory", err)
+	}
+	for _, name := range []string{"local/full/theirs.md", "local/file"} {
+		if data, err := root.ReadFile(name); err != nil || string(data) != "their file" {
+			t.Fatalf("%s: %q, %v", name, data, err)
+		}
 	}
 }
 
@@ -327,6 +420,8 @@ func TestRecovery_RefusesALocalRuleEntryInAnOlderJournal(t *testing.T) {
 		"parent outside local/": {FormatVersion: 6, Entries: []journalEntry{{LocalRuleAssets(forkFile), treeDigest(assets), treeDigest(assets), true}}, Parents: []string{"vendor"}},
 		"parent of no entry":    {FormatVersion: 6, Entries: []journalEntry{{LocalRuleAssets(forkFile), treeDigest(assets), treeDigest(assets), true}}, Parents: []string{"local/practices"}},
 		"parents in format 5":   {FormatVersion: 5, Entries: []journalEntry{{LocalGroupMetadata("techs/go"), treeDigest(nil), treeDigest(assets), false}}, Parents: []string{"local/techs/go"}},
+		"reversed ancestors":    {FormatVersion: 6, Entries: []journalEntry{{LocalRuleAssets(forkFile), treeDigest(assets), treeDigest(assets), true}}, Parents: []string{"local/techs/go/assets", "local/techs"}},
+		"missing intermediate":  {FormatVersion: 6, Entries: []journalEntry{{LocalRuleAssets(forkFile), treeDigest(assets), treeDigest(assets), true}}, Parents: []string{"local/techs", "local/techs/go/assets"}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := openProject(t)

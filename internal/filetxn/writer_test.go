@@ -395,7 +395,7 @@ func TestWriterPreservesEditAtBackupRename(t *testing.T) {
 func TestRecoveryPreservesEditAtRename(t *testing.T) {
 	root := openProject(t)
 	stageInterruption(t, root, false)
-	err := recoverWithRename(root, func(from, to string) error {
+	_, err := recoverWithRename(root, func(from, to string) error {
 		if from == "generated" {
 			writeFixture(t, root, "generated/new", "late edit")
 		}
@@ -407,7 +407,8 @@ func TestRecoveryPreservesEditAtRename(t *testing.T) {
 			t.Fatalf("lost %s", name)
 		}
 	}
-	projectCode(t, recoverChanges(root), "recovery-required")
+	_, err = recoverChanges(root)
+	projectCode(t, err, "recovery-required")
 	data, err := root.ReadFile(transactionName + "/journal.json")
 	var journal journalRecord
 	if err != nil || json.Unmarshal(data, &journal) != nil || journal.FormatVersion != 2 {
@@ -428,7 +429,7 @@ func TestRecoveryResumesAfterQuarantine(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if err := recoverChanges(root); err != nil {
+		if _, err := recoverChanges(root); err != nil {
 			t.Fatal(err)
 		}
 		if data, _ := root.ReadFile("generated/old"); string(data) != "before" {

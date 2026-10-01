@@ -34,8 +34,9 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 	}
 	defer root.Close()
 	var changes FileChanges
+	var kept []string
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
-		recovered = w.Recovered()
+		recovered, kept = w.Recovered(), w.Kept()
 		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
@@ -60,6 +61,7 @@ func Sync(ctx context.Context, options Options, git imports.Options) (FileChange
 		return FileChanges{}, unchanged(err, recovered)
 	}
 	changes.Recovered = recovered
+	changes.Warnings = append(changes.Warnings, keptWarnings(kept)...)
 	return changes, nil
 }
 

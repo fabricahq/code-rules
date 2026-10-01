@@ -27,8 +27,10 @@ type UpdatePlan struct {
 	// absent; Apply refuses to install the plan when any of them changed.
 	planned projectState
 	guide   []byte
-	// recovered reports that planning first recovered an interrupted earlier command, which changed files.
+	// recovered reports that planning first recovered an interrupted earlier command, which changed files, and kept
+	// the directories that recovery kept rather than remove.
 	recovered bool
+	kept      []string
 	// forks holds each fork Preview or Apply read, by forkKey, so a fork is read from the library once.
 	forks map[string]forkUpdate
 }
@@ -106,8 +108,9 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 	defer root.Close()
 	var state projectState
 	var guide []byte
+	var kept []string
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
-		recovered = w.Recovered()
+		recovered, kept = w.Recovered(), w.Kept()
 		if state, err = readProject(ctx, root); err != nil {
 			return err
 		}
@@ -135,7 +138,7 @@ func PlanUpdate(ctx context.Context, options Options, git imports.Options, targe
 	if err != nil {
 		return nil, unchanged(err, recovered)
 	}
-	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide, recovered: recovered}, nil
+	return &UpdatePlan{options: options, git: git, update: update, planned: state, guide: guide, recovered: recovered, kept: kept}, nil
 }
 
 // Preview returns the planned update with each decided row marked, without writing anything. It fails with
@@ -154,7 +157,8 @@ func (p *UpdatePlan) Preview(ctx context.Context, decisions []UpdateDecision) (U
 	if err := p.readForks(ctx, sources, forks); err != nil {
 		return UpdateResult{}, unchanged(err, p.recovered)
 	}
-	return UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: p.update.Warnings}}, nil
+	warnings := append(slices.Clone(p.update.Warnings), keptWarnings(p.kept)...)
+	return UpdateResult{Sources: sources, FileChanges: FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: warnings}}, nil
 }
 
 // Apply installs the planned versions under the writer, adding to config.yaml a pin for each kept rule, an
@@ -186,8 +190,9 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 	}
 	defer root.Close()
 	var changes FileChanges
+	var kept []string
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
-		recovered = w.Recovered()
+		recovered, kept = w.Recovered(), w.Kept()
 		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
@@ -217,6 +222,7 @@ func (p *UpdatePlan) Apply(ctx context.Context, decisions []UpdateDecision) (Upd
 		return UpdateResult{}, unchanged(err, p.recovered || recovered)
 	}
 	changes.Recovered = p.recovered || recovered
+	changes.Warnings = append(changes.Warnings, keptWarnings(append(slices.Clone(p.kept), kept...))...)
 	return UpdateResult{Applied: true, Sources: sources, FileChanges: changes}, nil
 }
 
