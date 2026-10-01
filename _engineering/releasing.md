@@ -4,7 +4,7 @@
 
 Release Planner owns the procedure, the release notes style, and retries; see [Make a release](https://release-planner.fabricahq.com/start-here/release/). [.release-planner/policy.md](../.release-planner/policy.md) owns the version policy and what counts as a breaking change. [.release-planner/config.yml](../.release-planner/config.yml) holds the settings. After changing the config or upgrading Release Planner, run `release-planner install` and commit the result; never edit the generated [release workflow](../.github/workflows/release-planner.yml) by hand. [Research notes](release-style-research.md) record the release note examples that shaped the style.
 
-This document covers what is specific to Code Rules.
+This document covers what is specific to releases of the Code Rules CLI. Library releases, which `code-rules library release` publishes in a library's repository, are a product feature; see [Version your rules](../docs/src/content/docs/guides/version-rules.md).
 
 ## Version policy
 
@@ -38,11 +38,11 @@ Follow [security practices](security-practices.md) for credentials, dependency u
 
 ## Testing PR preview builds
 
-After a successful build, PRs opened by a maintainer from a branch in this repository automatically receive preview links. Fork PRs and other contributors need a maintainer to approve the exact commit before the bot posts links.
+After a successful build, PRs opened from a branch in this repository by someone with write access automatically receive preview links. For fork PRs and other contributors, a maintainer approves the exact commit by running the **CLI preview downloads** workflow with the build's run ID and the full commit SHA.
 
 **Warning: These executables run code from the PR. Use a disposable test environment without credentials or private files. Even `--help` executes the program.**
 
-The PR comment offers direct executable downloads for macOS (Apple Silicon or Intel) and Linux (ARM or Intel/AMD). Download the file for your computer and rename it to `code-rules`, then run:
+The PR comment offers direct executable downloads for macOS (Apple Silicon or Intel) and Linux (ARM or Intel/AMD), and a one-line command that uses the signed-in GitHub CLI to download the file for your computer as `./code-rules` in the current directory, replacing any existing file there. The command runs [`_tools/install-preview.sh`](../_tools/install-preview.sh) from the default branch's workflow commit, never from the PR. To download by hand instead, rename the file to `code-rules`, then run:
 
 ```sh
 chmod +x code-rules
@@ -57,7 +57,7 @@ WARNING: Unreleased preview from commit <full SHA>. For testing only; not for pr
 
 JSON output on stdout remains unchanged. The warning is a reminder, not proof of authenticity: someone modifying the binary could remove it. Preview binaries are not publisher-signed or attested by Code Rules.
 
-No extraction or installation is needed. These previews have not been released. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, regardless of whether the PR is open, closed, or merged.
+No extraction or global installation is needed. These previews have not been released. The comment also links to the build results and license. GitHub sign-in is required; downloads expire after seven days, regardless of whether the PR is open, closed, or merged.
 
 ## Candidate archives
 
