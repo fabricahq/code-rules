@@ -373,3 +373,14 @@ func TestFlagValues_ExplainAnInvalidValueWithoutGoInternals(t *testing.T) {
 		t.Fatalf("exit %d, stdout %q, stderr:\n%s", code, out, diagnostic)
 	}
 }
+
+// TestLibraryCheck_SaysThereIsNothingToPublish, as library release does, when nothing changed since the latest
+// library release.
+func TestLibraryCheck_SaysThereIsNothingToPublish(t *testing.T) {
+	binary := buildCLI(t)
+	fixture, dir := releasedLibrary(t)
+	out, diagnostic, code := runCLIWithEnvironment(t, binary, dir, fixture.Environment, "library", "check")
+	if code != 0 || diagnostic != "" || !strings.HasSuffix(out, "\nNothing to publish: no pending change notes and no library-wide changes since release/1.\n") || strings.Contains(out, "Pending library release") {
+		t.Fatalf("exit %d, stderr %q, stdout:\n%s", code, diagnostic, out)
+	}
+}

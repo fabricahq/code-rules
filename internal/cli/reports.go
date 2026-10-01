@@ -208,6 +208,11 @@ func libraryCheckedReport(result library.CheckResult) commandReport {
 	for _, warning := range result.Warnings {
 		fmt.Fprintf(&out, "Warning: %s\n", warning)
 	}
+	// With nothing pending, check says what library release would, rather than describe an empty release.
+	if len(result.PendingRelease.Rules)+len(result.PendingRelease.LibraryFiles) == 0 {
+		fmt.Fprintf(&out, "\nNothing to publish: no pending change notes and no library-wide changes since release/%d.\n", result.PendingRelease.Release-1)
+		return commandReport{value: result, human: out.String()}
+	}
 	fmt.Fprintf(&out, "\nPending library release %d\n", result.PendingRelease.Release)
 	if len(result.PendingRelease.Rules) == 0 {
 		out.WriteString("  No rule changes are pending.\n")
