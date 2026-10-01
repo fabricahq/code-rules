@@ -45,6 +45,7 @@ Each rule entry includes:
 | `origin` | The source and file supplying the active rule. Imported origins also identify the repository and the exact commit the rule came from. `version` records the rule's version, such as `"1.3.0"`, and `release` the library release that published it; both are `null` when the imported file isn't a published version. |
 | `upstream` | The imported rule's origin, including its `version`, when a local rule replaces it; otherwise `null`. |
 | `replacementReason` | Your configured reason for the replacement; otherwise `null`. |
+| `basedOn` | The library version of the replaced rule that the local rule incorporates, as the exclusion's [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule) records it, such as the version a fork copied; otherwise `null`. It can differ from `upstream`'s `version`, which is the version the project imports. |
 | `license`, `licenseBasis`, and `attribution` | Declared terms and source credits, explained below. |
 
 Local origins use `source: "local"`. Their `repository`, `resolvedCommit`, `version`, and `release` fields are `null` because the rule comes from your project. A [fork](/reference/cli/#fork-a-library-rule) of a library rule records its source in `attribution` instead, when the library is on GitHub.com or GitLab.com or its repository address is an HTTPS URL.
@@ -68,11 +69,12 @@ The replacement's entry contains these fields. This excerpt omits the other orig
     "file": "practices/testing/check-retries.md",
     "version": "2.1.0"
   },
-  "replacementReason": "Use the retry limits required by this service."
+  "replacementReason": "Use the retry limits required by this service.",
+  "basedOn": "2.0.0"
 }
 ```
 
-Read this as: agents receive the local `service-retries` rule, it replaces version 2.1.0 of `team`'s `check-retries` rule, and the reason comes from your project configuration. The imported rule's full origin also records its repository and exact commit.
+Read this as: agents receive the local `service-retries` rule, it replaces version 2.1.0 of `team`'s `check-retries` rule, it incorporates the library's text up to version 2.0.0, and the reason comes from your project configuration. The imported rule's full origin also records its repository and exact commit.
 
 ## Inspect library versions and group guidance
 

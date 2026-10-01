@@ -180,6 +180,7 @@ type provenanceRule struct {
 	Origin       provenanceOrigin    `json:"origin"`
 	Upstream     *provenanceOrigin   `json:"upstream"`
 	Reason       *string             `json:"replacementReason"`
+	BasedOn      *rules.RuleVersion  `json:"basedOn"`
 	LicenseBasis string              `json:"licenseBasis"`
 	License      *provenanceLicense  `json:"license"`
 	Attribution  []rules.Attribution `json:"attribution"`
@@ -242,7 +243,7 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 			if active.License != nil {
 				basis = "library"
 			}
-			result.Rules = append(result.Rules, provenanceRule{ID: active.Rule.ID, Group: active.Rule.Group, Origin: *originProvenance(&active.Origin), Upstream: originProvenance(active.Upstream), Reason: nullableText(active.Reason), LicenseBasis: basis, License: termProvenance(active.Origin.Source, "vendor/"+active.Origin.Source+"/", active.License), Attribution: active.Rule.Attribution})
+			result.Rules = append(result.Rules, provenanceRule{ID: active.Rule.ID, Group: active.Rule.Group, Origin: *originProvenance(&active.Origin), Upstream: originProvenance(active.Upstream), Reason: nullableText(active.Reason), BasedOn: active.BasedOn, LicenseBasis: basis, License: termProvenance(active.Origin.Source, "vendor/"+active.Origin.Source+"/", active.License), Attribution: active.Rule.Attribution})
 		}
 	}
 	slices.SortFunc(result.Sources, func(a, b provenanceSource) int { return strings.Compare(a.Name, b.Name) })

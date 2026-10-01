@@ -190,7 +190,7 @@ Every breaking change from `v0.1.0`, with its manual migration, for the release 
 **Provenance** (`generated/provenance.json`)
 
 - `sources[]` drops `version`, `resolvedTag`, and `resolvedVersion`, and adds `pins`, `release`, and `ruleSelection`.
-- `rules[].origin` adds `version` and `release`, `null` for local rules and unreleased imports; `rules[].upstream` adds `version` and `release`.
+- `rules[].origin` adds `version` and `release`, `null` for local rules and unreleased imports; `rules[].upstream` adds `version` and `release`; `rules[].basedOn` is new, the version a local replacement incorporates as its exclusion's `basedOn` records it, such as a fork's forked version, or `null`.
 - `generatedNotice` says build and sync work from any subdirectory in Git repositories. Tools that read provenance must follow these fields; `code-rules project sync` regenerates the file.
 
 **Generated guidance and the managed project guide**
