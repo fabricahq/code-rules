@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
+	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"golang.org/x/term"
 )
@@ -22,7 +24,22 @@ func humanError(destination io.Writer, err error) string {
 	}
 	var validation *rules.ValidationError
 	if errors.As(err, &validation) && err == validation {
-		return fmt.Sprintf("\n%s %s\n\nLocation: %s\n", label, terminalText(validation.Problem), terminalText(validation.Location))
+		return fmt.Sprintf("%s %s\n\nLocation: %s\n", label, terminalText(sentence(validation.Problem)), terminalText(validation.Location))
 	}
-	return fmt.Sprintf("\n%s %s\n", label, terminalText(err.Error()))
+	// A command that wrote nothing says so after the problem, keeping a validation error's location on its own line.
+	var unchanged *project.UnchangedError
+	if errors.As(err, &unchanged) && err == error(unchanged) && errors.As(unchanged.Err, &validation) && unchanged.Err == error(validation) {
+		return fmt.Sprintf("%s %s %s\n\nLocation: %s\n", label, terminalText(sentence(validation.Problem)), unchanged.Outcome(), terminalText(validation.Location))
+	}
+	return fmt.Sprintf("%s %s\n", label, terminalText(sentence(err.Error())))
+}
+
+// sentence ends a message with a period, as the CLI shows every message, unless it ends with punctuation already or
+// spans several lines, whose last line may be a command to copy.
+func sentence(message string) string {
+	message = strings.TrimRight(message, " ")
+	if message == "" || strings.Contains(message, "\n") || strings.ContainsAny(message[len(message)-1:], ".!?:") {
+		return message
+	}
+	return message + "."
 }

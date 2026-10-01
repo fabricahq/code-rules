@@ -65,15 +65,18 @@ func TestReleaseMessageFixtures(t *testing.T) {
 	}
 }
 
-// TestParseReleaseTagObject_SkipsHeadersAndSignature reads the record from a signed tag object's message only.
+// TestParseReleaseTagObject_SkipsHeadersAndSignature reads the record from a signed tag object's message only,
+// whether the tag is signed with GPG or SSH.
 func TestParseReleaseTagObject_SkipsHeadersAndSignature(t *testing.T) {
-	object := "object 0123456789012345678901234567890123456789\ntype commit\ntag release/2\ntagger Fixture <fixture@example.invalid> 0 +0000\n\nNotes.\n\n---\nformatVersion: 1\nrelease: 2\nrules: {}\n-----BEGIN PGP SIGNATURE-----\nU0lH\n-----END PGP SIGNATURE-----\n"
-	notes, record, err := rules.ParseReleaseTagObject("release/2", []byte(object))
-	if err != nil || notes != "Notes." || record.Release != 2 || len(record.Rules) != 0 {
-		t.Fatalf("got %q, %+v, %v", notes, record, err)
-	}
-	if _, _, err := rules.ParseReleaseTagObject("release/3", []byte(object)); err == nil {
-		t.Fatal("accepted a record for another library release")
+	for _, signature := range []string{"-----BEGIN PGP SIGNATURE-----\nU0lH\n-----END PGP SIGNATURE-----\n", "-----BEGIN SSH SIGNATURE-----\nU1NIU0lH\n-----END SSH SIGNATURE-----\n"} {
+		object := "object 0123456789012345678901234567890123456789\ntype commit\ntag release/2\ntagger Fixture <fixture@example.invalid> 0 +0000\n\nNotes.\n\n---\nformatVersion: 1\nrelease: 2\nrules:\n  techs/go/a: 1.0.0\n" + signature
+		notes, record, err := rules.ParseReleaseTagObject("release/2", []byte(object))
+		if err != nil || notes != "Notes." || record.Release != 2 || len(record.Rules) != 1 {
+			t.Fatalf("got %q, %+v, %v", notes, record, err)
+		}
+		if _, _, err := rules.ParseReleaseTagObject("release/3", []byte(object)); err == nil {
+			t.Fatal("accepted a record for another library release")
+		}
 	}
 }
 

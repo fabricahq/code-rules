@@ -169,11 +169,11 @@ Projects see the old rule retired, with the new rule as its replacement.
 
 ### Change a shared file or group description
 
-Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. The next library release publishes them, even if no rule changed.
+Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. `code-rules library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
 
-A project receives library-wide files from the newest library release among the rule versions it imports. A library release that changes only shared files therefore reaches a project once an update moves one of its imported rules to that library release or a later one.
+A project receives library-wide files from one library release at a time. `code-rules project update` moves them to the newest library release, even when no rule moves, so a library release that changes only shared files reaches projects with their next update. A project that starts importing your library, or selects more of it, also gets them from the newest library release.
 
-Keep everything that defines a rule's obligation in the rule itself. A rule pinned to an older version can link to newer shared files, from the library release of the project's other rule versions, so shared files should only explain and illustrate.
+Keep everything that defines a rule's obligation in the rule itself. A rule pinned to an older version can link to newer shared files, from the library release that supplies the project's library-wide files, so shared files should only explain and illustrate.
 
 ### Check your changes
 
@@ -191,6 +191,8 @@ Library is valid: 3 group(s), 6 rule(s).
 Pending library release 3
   practices/testing/verify-retry-limits  minor  1.2.0 -> 1.3.0
 ```
+
+When you changed library-wide files, such as a group description, the preview lists them under `Library-wide files changed since release/2:`, so you know the next library release publishes them even if no rule changed.
 
 Commit each rule and its note together. Reviewers can then review the rule and the wording of its note in the same pull request.
 
@@ -222,36 +224,32 @@ If you don't want a GitHub Release page, or the library isn't hosted on GitHub.c
 
 For a library release that changes four rules and a group description, the generated page, titled `release/4`, looks like this:
 
-```md
-Library release 4 changes 4 rules:
-1 major, 1 minor, 1 new, and 1 retired.
-
-## Major changes
-
-Code that complied with the previous rule version could fail
-the new one, so review these before updating.
-
-- **practices/testing/verify-retry-limits** `1.3.0` → `2.0.0`
-  Require a test at the limit for every retry policy.
-
-## Minor changes
-
-- **techs/react/test-hooks-in-isolation** `2.1.0` → `2.2.0`
-  Add an example for custom hooks.
+```md wrap
+Library release 4 changes 4 rules: 1 new, 1 major, 1 minor, and 1 retired.
 
 ## New rules
 
 - **practices/testing/verify-retries** `1.0.0`
-  Add a broader rule about testing retries.
+  - Add a broader rule about testing retries.
+
+## Major changes
+
+Code that complied with the previous rule version could fail the new one, so review these before updating.
+
+- **practices/testing/verify-retry-limits** `1.3.0` → `2.0.0`
+  - Require a test at the limit for every retry policy.
+
+## Minor changes
+
+- **techs/react/test-hooks-in-isolation** `2.1.0` → `2.2.0`
+  - Add an example for custom hooks.
 
 ## Retired rules
 
-- **practices/testing/check-retry-backoff**, last version `1.2.0`
-  Covered by the broader rule about testing retries.
-  Replaced by **practices/testing/verify-retries**.
+- **practices/testing/check-retry-backoff**, last version `1.2.0`, replaced by **practices/testing/verify-retries**
+  - Covered by the broader rule about testing retries.
 
-This library release also updates shared files, such as group
-descriptions or shared assets.
+This library release also updates shared files, such as group descriptions or shared assets.
 
 <details>
 <summary>All rule versions in this library release</summary>
@@ -268,7 +266,7 @@ descriptions or shared assets.
 </details>
 ```
 
-Code Rules generates all of it from the change notes and the library's changes: the counts, the sections, which appear only when they have entries, the versions, a sentence saying the library release also updates shared files when it does, except in the first library release, which adds them all, and the table. The notes never list shared files by name; the tag's release record does. A library release that changes no rules opens by saying it updates shared files instead. Each summary is copied from its note. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
+Code Rules generates all of it from the change notes and the library's changes: the counts, the sections, which appear only when they have entries, the versions, a sentence saying the library release also updates shared files when it does, except in the first library release, which adds them all, and the table. The notes never list shared files by name; the tag's release record does. A library release that changes no rules opens by saying it updates shared files instead. Each summary is copied from its note, as an item under its rule. Every paragraph and list item is one line, because GitHub shows each line break in a GitHub Release page as a new line. The only judgment in it is yours, recorded in the notes before publishing: each change level, summary, and replacement.
 
 To add a general message, such as an introduction to what this library release is about, edit the GitHub Release page on GitHub. The page is only the announcement. The tag message keeps the generated text, and it's what projects read when they update.
 
@@ -327,7 +325,9 @@ jobs:
       - run: code-rules library check
 ```
 
-The install step downloads that version's Linux archive and `SHA256SUMS` from the Code Rules GitHub Release page, verifies that Code Rules' release workflow built `SHA256SUMS`, and installs the archive only when `SHA256SUMS` lists that exact archive with its checksum. A release whose files were replaced, even with another genuine release's, fails the step instead of installing the wrong version.
+The install step downloads that version's Linux archive and `SHA256SUMS` from the Code Rules GitHub Release page, verifies that Code Rules' release workflow built `SHA256SUMS`, and installs the archive only when `SHA256SUMS` lists that exact archive with its checksum. A release whose files were replaced, even with another genuine release's, fails the step instead of installing the wrong version. The step prints the version it installed, such as `Installed Code Rules 0.2.0.`, in the job's log and summary.
+
+The workflow keeps using that version until you change it; rerunning `code-rules library init` never changes an existing workflow. To check with a newer Code Rules, such as one that checks a feature your library started using, [upgrade Code Rules](/start-here/install/#upgrade), delete `.github/workflows/code-rules.yml`, and run `code-rules library init` again, which writes the workflow for the version you run. Review the difference and commit it.
 
 `code-rules library check` needs every tag and the full history to compare rules with the latest library release, so the workflow checks out with `fetch-depth: 0`.
 
@@ -338,8 +338,10 @@ To make the check required before merging, add a branch ruleset in **Settings > 
 | Problem | What to do |
 | --- | --- |
 | `code-rules library release` stopped after pushing the tag, such as when GitHub was unavailable. | Run it again. It finds the tag on the current commit and creates the GitHub Release page. |
+| The remote refused the tag push, such as a server hook or a GitHub tag ruleset. | The error names the cause Code Rules recognized, such as a repository rule with GitHub's error code `GH013`, a server hook that declined the tag, or denied access, but not the server's own message, which can hold anything, including credentials. Check the repository's tag rules and hooks. To read the server's message, push a test tag yourself, as [the CLI reference](/reference/cli/#library-release) shows. Fix the cause, such as getting permission to create `release/<number>` tags, then run `code-rules library release` again. The command deleted the tag it created, so the rerun starts over. |
 | A release tag points to a different commit. | Someone created or moved a `release/<number>` tag by hand. Don't move published tags; projects may have imported them. Ask the tag's author, then restore it to its original commit. |
 | Check fails in a shallow clone. | Fetch the full history and tags, such as with `git fetch --unshallow --tags`, or `fetch-depth: 0` in CI. |
+| Check fails because the clone has change notes but no release tags, such as a clone made with `git clone --no-tags`. | Fetch the tags with `git fetch --tags`, or check out with `fetch-depth: 0` in CI. Without them, the library would look as if it had never published a library release. |
 
 ## Next steps
 

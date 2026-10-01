@@ -83,11 +83,11 @@ func TestApply_KeepsLocalGroupMetadataCreatedDuringStaging(t *testing.T) {
 	}
 }
 
-// TestApply_RejectsTargetsOutsideLocalGroupMetadata refuses other authored files and invalid group IDs.
+// TestApply_RejectsTargetsOutsideLocalGroupMetadata refuses invalid group IDs and other metadata paths.
 func TestApply_RejectsTargetsOutsideLocalGroupMetadata(t *testing.T) {
 	root := openProject(t)
 	writeMetadataProject(t, root)
-	for _, target := range []Target{"local/techs/go/fork.md", "local/techs/Go/_group.yaml", "local/techs/go/sub/_group.yaml", "local/../_group.yaml"} {
+	for _, target := range []Target{"local/techs/Go/_group.yaml", "local/techs/go/sub/_group.yaml", "local/../_group.yaml"} {
 		err := WithWriter(context.Background(), root, func(w *Writer) error {
 			return w.Apply(map[Target]map[string][]byte{target: {string(target): []byte("x")}}, nil)
 		})
@@ -160,7 +160,7 @@ func TestRecovery_RefusesLocalMetadataBehindASymlinkedParent(t *testing.T) {
 	if err := root.Mkdir(transactionName, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{5, []journalEntry{{target, treeDigest(nil), treeDigest(after), false}}}); err != nil {
+	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{FormatVersion: 5, Entries: []journalEntry{{target, treeDigest(nil), treeDigest(after), false}}}); err != nil {
 		t.Fatal(err)
 	}
 	projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { return nil }), "recovery-required")
@@ -202,7 +202,7 @@ func TestRecovery_RefusesALocalMetadataEntryInAnOlderJournal(t *testing.T) {
 	if err := root.Mkdir(transactionName, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{4, []journalEntry{{target, treeDigest(nil), treeDigest(after), false}}}); err != nil {
+	if err := durableJSON(root, transactionName+"/journal.json", journalRecord{FormatVersion: 4, Entries: []journalEntry{{target, treeDigest(nil), treeDigest(after), false}}}); err != nil {
 		t.Fatal(err)
 	}
 	projectCode(t, WithWriter(context.Background(), root, func(*Writer) error { return nil }), "recovery-required")

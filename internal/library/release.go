@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -67,7 +67,9 @@ type GitHubReleasePage struct {
 // It fetches first, and refuses unless the checked-out branch is the remote's default branch, matches the
 // remote exactly, and has no uncommitted library changes, and library check passes. When a release tag
 // already tags the commit, it creates only what's missing, such as the GitHub Release page after gh failed.
-// A dry run fetches, checks, and describes the library release without creating anything.
+// A dry run fetches, checks, and describes the library release without creating anything. When the tag is
+// published but the GitHub Release page fails, it returns the result so far, without GitHubRelease, with the error;
+// every other failure returns a zero result.
 func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error) {
 	root, err := openLibrary(ctx, request.Options, false)
 	if err != nil {
@@ -99,10 +101,11 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	if result.Commit, err = git.headCommit(ctx); err != nil {
 		return ReleaseResult{}, err
 	}
-	unpushed, unpushedObject, err := git.syncReleaseTags(ctx, branch, remote, result.Commit)
+	unpushedTag, err := git.syncReleaseTags(ctx, branch, remote, result.Commit)
 	if err != nil {
 		return ReleaseResult{}, err
 	}
+	unpushed := unpushedTag.Number
 	if err = git.requireCurrent(ctx, branch, remote.head, result.Commit); err != nil {
 		return ReleaseResult{}, err
 	}
@@ -118,10 +121,11 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		return ReleaseResult{}, err
 	}
 	// gh is nil unless a GitHub Release page applies. It and the tagger are checked only when there's
-	// something to publish, but before anything is created.
+	// something to publish, but before anything is created; a dry run checks gh too, so it refuses as the real run
+	// would.
 	var gh *gitHubCLI
 	requireGitHubCLI := func() error {
-		if request.DryRun || result.GitHubRepository == "" || request.NoGitHubRelease {
+		if result.GitHubRepository == "" || request.NoGitHubRelease {
 			return nil
 		}
 		cli, err := findGitHubCLI(ctx, request.Git.Environment, root.Name())
@@ -149,11 +153,11 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 		}
 		if unpushed != 0 {
 			// An interrupted run left its tag on this commit; push it only if it publishes what this run would.
-			if err = git.requireUnpublishedTag(ctx, unpushed, unpushedObject, planned); err != nil {
+			if err = git.requireUnpublishedTag(ctx, unpushedTag, planned); err != nil {
 				return ReleaseResult{}, err
 			}
 			describe(&result, planned.record, planned.notes)
-			object = unpushedObject
+			object = unpushedTag.Object
 			if err = requireGitHubCLI(); err != nil {
 				return ReleaseResult{}, err
 			}
@@ -169,9 +173,9 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 			if tagger, err = git.requireCommitterIdentity(ctx); err != nil {
 				return ReleaseResult{}, err
 			}
-			if err = requireGitHubCLI(); err != nil {
-				return ReleaseResult{}, err
-			}
+		}
+		if err = requireGitHubCLI(); err != nil {
+			return ReleaseResult{}, err
 		}
 		if err = requireTagSize(result.Tag, tagObjectSize(result.Tag, result.Commit, tagger, planned.message)); err != nil {
 			return ReleaseResult{}, err
@@ -202,7 +206,8 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 	if gh != nil {
 		page, err := publishReleasePage(ctx, *gh, result.GitHubRepository, result.Tag, result.Notes)
 		if err != nil {
-			return ReleaseResult{}, err
+			// The tag is published, so the result says so beside the error.
+			return result, err
 		}
 		result.GitHubRelease = &page
 	}
@@ -233,31 +238,23 @@ func planRelease(ctx context.Context, git *libraryGit, checked checkedLibrary, h
 	return planned, nil
 }
 
-// requireUnpublishedTag refuses to publish release tag number, object in this clone, unless its release notes
-// and record are exactly those of planned, the library release its commit would publish now.
-func (g *libraryGit) requireUnpublishedTag(ctx context.Context, number int, object string, planned plannedRelease) error {
-	name := "release/" + strconv.Itoa(number)
+// requireUnpublishedTag refuses to publish tag, a release tag only this clone has, unless its release notes and
+// record are exactly those of planned, the library release its commit would publish now.
+func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.Tag, planned plannedRelease) error {
+	name := tag.Name()
 	// The whole object counts, including a signature the record's parser ignores, because projects read the object.
-	size, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "-s", object}, 4096)
-	if err != nil {
-		return fmt.Errorf("read the size of tag=%q: %w", name, err)
-	}
-	objectSize, err := strconv.Atoi(strings.TrimSpace(string(size)))
-	if err != nil {
-		return failure("git-failed", "Git reported the size of "+name+" in an unexpected format", nil)
-	}
-	if err := requireTagSize(name, objectSize); err != nil {
+	if err := requireTagSize(name, tag.Size); err != nil {
 		return fmt.Errorf("%w This clone's %s is that large; delete it with git tag --delete %s", err, name, name)
 	}
-	body, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "tag", object}, maxFileBytes+64*1024)
+	body, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "tag", tag.Object}, releasetag.MaxBytes+64*1024)
 	if err != nil {
 		return fmt.Errorf("read tag=%q: %w", name, err)
 	}
-	notes, record, err := parseReleaseTag(body, number)
+	notes, record, err := rules.ParseReleaseTagObject(name, body)
 	// A newer Code Rules may have created the tag and stopped before pushing it; this version can't compare it.
-	var unreadable *filetxn.Error
-	if errors.As(err, &unreadable) && unreadable.Code == "unsupported-release-record" {
-		return err
+	var unsupported *rules.UnsupportedReleaseRecordError
+	if errors.As(err, &unsupported) {
+		return unsupportedRecord(name, unsupported.FormatVersion)
 	}
 	if err == nil && !planned.empty && notes == planned.notes && reflect.DeepEqual(record, planned.record) {
 		return nil

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
@@ -36,10 +37,24 @@ type Report struct {
 	Files    map[string][]byte `json:"files"`
 }
 
+// timing describes why and when a step ended: the scenario context's error, the signal that ended the process when
+// one did, and how long the step and the scenario had run.
+func timing(ctx context.Context, step, scenario time.Time, signal string) string {
+	text := fmt.Sprintf("context: %v; step took %s; scenario ran %s", ctx.Err(), time.Since(step).Round(time.Millisecond), time.Since(scenario).Round(time.Millisecond))
+	if deadline, ok := ctx.Deadline(); ok {
+		text += fmt.Sprintf("; deadline %s after the scenario started", deadline.Sub(scenario).Round(time.Second))
+	}
+	if signal != "" {
+		text += "; ended by signal " + signal
+	}
+	return text
+}
+
 // Run exercises a real native CLI from library authoring through Git sync and offline checks.
 // All writes and Git history belong to disposable directories; no external network or global install is used.
 func Run(ctx context.Context, binary, scenario string) (report Report, err error) {
 	report = Report{Scenario: scenario, Steps: []Step{}, Verified: []string{}}
+	started := time.Now()
 	if !slices.Contains([]string{"lifecycle", "stale-output", "versions", "changed-vendor", "failed-sync"}, scenario) {
 		return report, fmt.Errorf("unknown acceptance scenario")
 	}
@@ -84,18 +99,24 @@ func Run(ctx context.Context, binary, scenario string) (report Report, err error
 		var out, diagnostic bytes.Buffer
 		command.Stdout = &out
 		command.Stderr = &diagnostic
+		stepStarted := time.Now()
 		runErr := command.Run()
 		code := 0
+		signal := ""
 		if runErr != nil {
 			var exit *exec.ExitError
 			if !errors.As(runErr, &exit) {
-				return runErr
+				return fmt.Errorf("%s: %w (%s)", label, runErr, timing(ctx, stepStarted, started, ""))
 			}
 			code = exit.ExitCode()
+			if status, ok := exit.Sys().(syscall.WaitStatus); ok && status.Signaled() {
+				signal = status.Signal().String()
+			}
 		}
 		report.Steps = append(report.Steps, Step{label, args, out.String(), diagnostic.String(), code})
 		if code != want {
-			return fmt.Errorf("%s: exit %d, expected %d: %s", label, code, want, diagnostic.String())
+			// An exit of -1 means a signal ended the process, such as the scenario's deadline killing it.
+			return fmt.Errorf("%s: exit %d, expected %d (%s): %s", label, code, want, timing(ctx, stepStarted, started, signal), diagnostic.String())
 		}
 		if want != 0 && strings.TrimSpace(diagnostic.String()) == "" && !(len(args) > 1 && args[0] == "project" && args[1] == "check" && reportsCheckProblems(out.Bytes())) {
 			return fmt.Errorf("%s: refusal returned no diagnostic", label)

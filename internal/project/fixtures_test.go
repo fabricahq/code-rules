@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // openProject creates a disposable project root owned by the test.
@@ -38,6 +39,16 @@ func writeFixture(t *testing.T, root *os.Root, name, text string) {
 }
 
 // projectCode checks a stable caller-visible category without matching incidental prose.
+// gitRef parses text as a ref, failing the test when it isn't one.
+func gitRef(t *testing.T, text string) rules.GitRef {
+	t.Helper()
+	ref, err := rules.ParseGitRef(text, "ref")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ref
+}
+
 func projectCode(t *testing.T, err error, want string) {
 	t.Helper()
 	var failure *filetxn.Error

@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -26,18 +27,20 @@ const sourceRecordFormat = 2
 // sourceRecord is the format 2 record in vendor/<source>/_source.json: the source's configuration when it was
 // recorded, the revision that supplied its library-wide files, each imported rule's version, and file digests.
 type sourceRecord struct {
-	FormatVersion int                          `json:"formatVersion"`
-	Repository    string                       `json:"repository"`
-	Pins          map[string]rules.RuleVersion `json:"pins,omitempty"`
-	Exclude       []string                     `json:"exclude,omitempty"`
-	Ref           string                       `json:"ref,omitempty"`
-	Release       int                          `json:"release,omitempty"`
-	Commit        string                       `json:"resolvedCommit"`
-	Selection     json.RawMessage              `json:"groupSelection"`
-	RuleSelection []string                     `json:"ruleSelection,omitempty"`
-	Groups        []string                     `json:"groups"`
-	Rules         map[string]recordRule        `json:"rules"`
-	Files         map[string]string            `json:"files"`
+	FormatVersion int `json:"formatVersion"`
+	// Checksum is the SHA-256 of the record's other fields, so offline checks can tell a record changed outside
+	// sync, such as by hand or in a merge, from one sync wrote.
+	Checksum      string                `json:"checksum,omitempty"`
+	Repository    string                `json:"repository"`
+	Ref           string                `json:"ref,omitempty"`
+	Release       int                   `json:"release,omitempty"`
+	Commit        string                `json:"resolvedCommit"`
+	Selection     json.RawMessage       `json:"groupSelection"`
+	RuleSelection []string              `json:"ruleSelection,omitempty"`
+	Groups        []string              `json:"groups"`
+	Rules         map[string]recordRule `json:"rules"`
+	RetiredRules  []string              `json:"retiredRules"`
+	Files         map[string]string     `json:"files"`
 }
 
 // recordRule is one imported rule's version record; Version and Release are null for an unreleased rule.
@@ -48,7 +51,37 @@ type recordRule struct {
 }
 
 // unsupportedRecord explains how to replace a source record this version can't read.
-const unsupportedRecord = "unsupported source record; delete .code-rules/vendor/ and run code-rules project sync to import it again"
+const unsupportedRecord = "unsupported source record; delete .code-rules/vendor/ and run code-rules project sync to import it again, which imports unpinned rules at their newest versions"
+
+// reimport is the next step for a source record sync can't read: importing the source again, as if it were new.
+func reimport(name string) string {
+	return "delete .code-rules/vendor/" + name + "/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions"
+}
+
+// changedOutsideSync refuses the source record of the source name, whose checksum shows it was changed outside sync,
+// for offline commands and sync alike, since nothing in it can be trusted, and says how to recover: restore a record
+// sync wrote, or import the source again.
+func changedOutsideSync(name string) error {
+	record := ".code-rules/vendor/" + name + "/_source.json"
+	return invalidSnapshot("vendor/"+name+"/_source.json", "was changed outside code-rules project sync, such as by hand or in a merge, and only a record sync wrote can be trusted; restore one with git checkout -- "+record+", or, during a merge conflict, take one side with git checkout --ours or --theirs -- "+record+", then run code-rules project sync, which applies any configuration changes; or delete .code-rules/vendor/"+name+"/ and run code-rules project sync to import the source again, which imports its unpinned rules at their newest versions")
+}
+
+// isChangedOutsideSync reports whether err is changedOutsideSync's refusal of the source name's record.
+func isChangedOutsideSync(err error, name string) bool {
+	var invalid *rules.ValidationError
+	refusal := changedOutsideSync(name).(*rules.ValidationError)
+	return errors.As(err, &invalid) && *invalid == *refusal
+}
+
+// recordChecksum returns the SHA-256 of record's fields other than its checksum, encoded as sync writes them.
+func recordChecksum(record sourceRecord) string {
+	record.Checksum = ""
+	encoded, err := json.Marshal(record)
+	if err != nil {
+		return ""
+	}
+	return digest(encoded)
+}
 
 // encodeSnapshots prepares complete vendor bytes for parsed configuration, without writing files. Each snapshot
 // must satisfy the same checks offline builds apply. Inputs stay unchanged; returned maps and byte slices belong
@@ -61,18 +94,16 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 	for _, source := range config.Sources {
 		snapshot, ok := snapshots[source.Name]
 		if !ok {
-			return nil, invalidSnapshot(source.Name, "missing source snapshot; run code-rules project sync")
+			return nil, invalidSnapshot("vendor/"+source.Name, "missing source snapshot; run code-rules project sync")
 		}
 		selection, err := json.Marshal(snapshot.Selection)
 		if err != nil {
 			return nil, fmt.Errorf("encode selection for %s: %v", source.Name, err)
 		}
-		record := sourceRecord{FormatVersion: sourceRecordFormat, Repository: snapshot.Repository, Ref: snapshot.Ref, Release: snapshot.Release, Commit: snapshot.Commit, Selection: selection, RuleSelection: snapshot.RuleSelection, Groups: snapshot.Groups, Rules: map[string]recordRule{}, Files: map[string]string{}}
-		if len(snapshot.Pins) > 0 {
-			record.Pins = snapshot.Pins
-		}
-		if len(snapshot.Exclude) > 0 {
-			record.Exclude = snapshot.Exclude
+		record := sourceRecord{FormatVersion: sourceRecordFormat, Repository: snapshot.Repository, Ref: snapshot.Ref.String(), Release: snapshot.Release, Commit: snapshot.Commit, Selection: selection, RuleSelection: snapshot.RuleSelection, Groups: snapshot.Groups, Rules: map[string]recordRule{}, Files: map[string]string{}}
+		record.RetiredRules = snapshot.RetiredRules
+		if record.RetiredRules == nil {
+			record.RetiredRules = []string{}
 		}
 		for id, rule := range snapshot.Rules {
 			entry := recordRule{Version: rule.Version, Commit: rule.Commit}
@@ -86,11 +117,12 @@ func encodeSnapshots(config rules.Configuration, snapshots map[string]snapshot) 
 		}
 		for _, file := range slices.Sorted(maps.Keys(snapshot.Files)) {
 			if file == "_source.json" {
-				return nil, invalidSnapshot(source.Name, "_source.json is reserved for the source record")
+				return nil, invalidSnapshot("vendor/"+source.Name, "_source.json is reserved for the source record")
 			}
 			record.Files[file] = digest(snapshot.Files[file])
 			output[source.Name+"/"+file] = bytes.Clone(snapshot.Files[file])
 		}
+		record.Checksum = recordChecksum(record)
 		var encoded bytes.Buffer
 		encoder := json.NewEncoder(&encoded)
 		encoder.SetEscapeHTML(false)
@@ -128,7 +160,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 		recordPath := source.Name + "/_source.json"
 		data, ok := vendor[recordPath]
 		if !ok {
-			return nil, invalidSnapshot(recordPath, "missing source record; run code-rules project sync")
+			return nil, invalidSnapshot("vendor/"+recordPath, "missing source record; run code-rules project sync")
 		}
 		record, err := parseSourceRecord(data, source.Name)
 		if err != nil {
@@ -143,7 +175,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 			full := source.Name + "/" + file
 			data, ok := vendor[full]
 			if !ok || digest(data) != record.digests[file] {
-				return nil, invalidSnapshot(full, "missing or modified imported content; run code-rules project sync")
+				return nil, invalidSnapshot("vendor/"+full, "missing or modified imported content; run code-rules project sync")
 			}
 			record.Files[file] = bytes.Clone(data)
 			expected[full] = true
@@ -152,7 +184,7 @@ func decodeSnapshots(config rules.Configuration, vendor map[string][]byte) (map[
 	}
 	for _, file := range slices.Sorted(maps.Keys(vendor)) {
 		if !expected[file] {
-			return nil, invalidSnapshot(file, "unexpected imported file or removed source; run code-rules project sync")
+			return nil, invalidSnapshot("vendor/"+file, "unexpected imported file or removed source; run code-rules project sync")
 		}
 	}
 	return result, nil
@@ -183,11 +215,27 @@ type parsedRecord struct {
 	digests map[string]string
 }
 
-// parseSourceRecord validates a format 2 record's exact fields, value syntax, and complete digest inventory.
-// Relationships to configuration are matchSnapshotSource's. An older format, such as 1, fails validation with advice
-// to import the source again; a newer one fails with code unsupported-source-record, asking to upgrade Code Rules.
+// parseSourceRecord is the one way to read a source record from disk. It validates a format 2 record's exact fields,
+// value syntax, and complete digest inventory, and refuses, with changedOutsideSync, a record whose checksum doesn't
+// match its fields, or that has none, so no caller can use a record changed outside sync. Relationships to
+// configuration are matchSnapshotSource's. A record it can't read fails validation with advice to import the source
+// again, and so does an older format, such as 1; a newer one fails with code unsupported-source-record, asking to
+// upgrade Code Rules.
 func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
-	where := name + "/_source.json"
+	record, err := readSourceRecord(data, name)
+	var invalid *rules.ValidationError
+	if errors.As(err, &invalid) && err == error(invalid) && !strings.Contains(invalid.Problem, "code-rules project sync") {
+		return parsedRecord{}, &rules.ValidationError{Location: invalid.Location, Problem: invalid.Problem + "; " + reimport(name)}
+	}
+	return record, err
+}
+
+// readSourceRecord is parseSourceRecord without the next step its validation errors share.
+func readSourceRecord(data []byte, name string) (parsedRecord, error) {
+	where := "vendor/" + name + "/_source.json"
+	if err := rules.RequireResolvedMerge(data, where, "take one side, which sync wrote, such as with git checkout --ours or --theirs -- .code-rules/vendor/"+name+"/_source.json, and run code-rules project sync"); err != nil {
+		return parsedRecord{}, err
+	}
 	var fields map[string]json.RawMessage
 	if !utf8.Valid(data) || json.Unmarshal(data, &fields) != nil || fields == nil {
 		return parsedRecord{}, invalidSnapshot(where, "expected a UTF-8 source record object")
@@ -200,13 +248,13 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if format != sourceRecordFormat {
 		return parsedRecord{}, invalidSnapshot(where, unsupportedRecord)
 	}
-	allowed := []string{"formatVersion", "repository", "pins", "exclude", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "files"}
+	allowed := []string{"formatVersion", "checksum", "repository", "ref", "release", "resolvedCommit", "groupSelection", "ruleSelection", "groups", "rules", "retiredRules", "files"}
 	for _, key := range slices.Sorted(maps.Keys(fields)) {
 		if !slices.Contains(allowed, key) || bytes.Equal(bytes.TrimSpace(fields[key]), []byte("null")) {
 			return parsedRecord{}, invalidSnapshot(where+"."+key, "unknown or null source record field")
 		}
 	}
-	for _, key := range []string{"repository", "resolvedCommit", "groupSelection", "groups", "rules", "files"} {
+	for _, key := range []string{"repository", "resolvedCommit", "groupSelection", "groups", "rules", "retiredRules", "files"} {
 		if _, ok := fields[key]; !ok {
 			return parsedRecord{}, invalidSnapshot(where+"."+key, "missing source record field")
 		}
@@ -217,12 +265,16 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if decoder.Decode(&record) != nil {
 		return parsedRecord{}, invalidSnapshot(where, "invalid source record field values")
 	}
-	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Pins: map[string]rules.RuleVersion{}, Ref: record.Ref, Release: record.Release, Commit: record.Commit, Exclude: []string{}, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
+	result := parsedRecord{Snapshot: library.Snapshot{Repository: record.Repository, Release: record.Release, Commit: record.Commit, RuleSelection: []string{}, Rules: map[string]library.ImportedRule{}}, digests: record.Files}
+	if record.Checksum != recordChecksum(record) {
+		return parsedRecord{}, changedOutsideSync(name)
+	}
 	if _, err := rules.ParseRepository(fields["repository"], where+".repository"); err != nil {
 		return parsedRecord{}, err
 	}
 	if record.Ref != "" {
-		if _, err := rules.ParseGitRef(record.Ref, where+".ref"); err != nil {
+		var err error
+		if result.Ref, err = rules.ParseGitRef(record.Ref, where+".ref"); err != nil {
 			return parsedRecord{}, err
 		}
 	}
@@ -232,20 +284,12 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	if !fullCommit(record.Commit) {
 		return parsedRecord{}, invalidSnapshot(where+".resolvedCommit", "expected a full commit SHA")
 	}
-	for id, version := range record.Pins {
-		if err := rules.ValidateRuleID(id, where+".pins."+id); err != nil {
-			return parsedRecord{}, err
-		}
-		result.Pins[id] = version
-	}
 	var err error
 	if result.Selection, err = rules.ParseGroupSelection(fields["groupSelection"], where+".groupSelection"); err != nil {
 		return parsedRecord{}, err
 	}
-	if raw, ok := fields["exclude"]; ok {
-		if result.Exclude, err = rules.ParseRuleList(raw, where+".exclude"); err != nil {
-			return parsedRecord{}, err
-		}
+	if result.RetiredRules, err = rules.ParseRuleList(fields["retiredRules"], where+".retiredRules"); err != nil {
+		return parsedRecord{}, err
 	}
 	if raw, ok := fields["ruleSelection"]; ok {
 		if result.RuleSelection, err = rules.ParseRuleList(raw, where+".ruleSelection"); err != nil {
@@ -299,23 +343,23 @@ func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 // matchSnapshotSource checks a record against its source's configuration without fetching Git, as documented in
 // "What offline checks can verify": the recorded identity and selections, pinned versions, and ref.
 func matchSnapshotSource(source rules.Source, record parsedRecord) error {
-	where := source.Name + "/_source.json"
-	if source.Repository != record.Repository || source.Ref != record.Ref || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
+	where := "vendor/" + source.Name + "/_source.json"
+	if source.Repository != record.Repository || !source.Ref.Equal(record.Ref) || source.Groups.Pattern != record.Selection.Pattern || !slices.Equal(source.Groups.Groups, record.Selection.Groups) || !slices.Equal(source.Rules, record.RuleSelection) {
 		return invalidSnapshot(where, "source identity or selection changed; run code-rules project sync")
 	}
 	for _, id := range slices.Sorted(maps.Keys(source.Pins)) {
 		pin := source.Pins[id]
+		// A pin of a rule the library retired keeps nothing, so any version passes; sync warns about it.
 		rule, imported := record.Rules[id]
-		recordedPin, recorded := record.Pins[id]
-		if imported && (rule.Version == nil || *rule.Version != pin.Version) || !imported && (!recorded || recordedPin != pin.Version) {
+		if imported && (rule.Version == nil || *rule.Version != pin.Version) || !imported && !slices.Contains(record.RetiredRules, id) {
 			return invalidSnapshot(where, "sources."+source.Name+".pins."+id+" names a version the snapshot doesn't import; run code-rules project sync")
 		}
 	}
-	// Sync records exclusions only after checking them, so one naming a rule the snapshot doesn't import is known
-	// to name a retired rule; any other could be a typo that leaves the intended rule active.
+	// An exclusion naming neither an imported rule nor a retired one could be a typo that leaves the intended rule
+	// active; only the library, which sync reads, can tell.
 	for _, id := range slices.Sorted(maps.Keys(source.Exclude)) {
-		if _, imported := record.Rules[id]; !imported && !slices.Contains(record.Exclude, id) {
-			return invalidSnapshot(where, "sources."+source.Name+".exclude."+id+" names a rule the snapshot doesn't import; run code-rules project sync to check it")
+		if _, imported := record.Rules[id]; !imported && !slices.Contains(record.RetiredRules, id) {
+			return invalidSnapshot("sources."+source.Name+".exclude."+id, "names no rule the library supplies to this source; run code-rules project sync to check it against the library")
 		}
 	}
 	if source.Groups.Pattern == "" && !slices.Equal(record.Groups, source.Groups.Groups) {
@@ -345,28 +389,29 @@ func matchSnapshotSource(source rules.Source, record parsedRecord) error {
 		commits[rule.Release] = rule.Commit
 		newest = max(newest, rule.Release)
 	}
-	if source.Ref == "" && newest != 0 && record.Release != newest {
-		return invalidSnapshot(where+".release", "expected the newest library release among the imported rule versions")
+	if source.Ref.IsZero() && record.Release < newest {
+		return invalidSnapshot(where+".release", "expected the library release that supplies the shared files to be at least as new as every imported rule version's library release")
 	}
 	return nil
 }
 
 // matchRevision checks the record's library release and commit against how the source chooses versions.
 func matchRevision(source rules.Source, record parsedRecord) error {
-	where := source.Name + "/_source.json"
-	if source.ParsedRef == nil {
+	where := "vendor/" + source.Name + "/_source.json"
+	ref := source.Ref
+	if ref.IsZero() {
 		if record.Release == 0 {
 			return invalidSnapshot(where+".release", "a source without ref records the library release that supplied its files")
 		}
 		return nil
 	}
-	if source.ParsedRef.Kind == rules.GitRefCommit {
-		if record.Commit != source.ParsedRef.SHA {
+	if ref.Kind() == rules.GitRefCommit {
+		if record.Commit != ref.Canonical() {
 			return invalidSnapshot(where, "resolved commit differs from requested commit")
 		}
 	}
-	number, err := rules.ParseReleaseTag(strings.TrimPrefix(source.ParsedRef.Name, "refs/tags/"))
-	if source.ParsedRef.Kind != rules.GitRefTag || err != nil {
+	number, err := rules.ParseReleaseTag(strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
+	if ref.Kind() != rules.GitRefTag || err != nil {
 		if record.Release != 0 {
 			return invalidSnapshot(where+".release", "a ref that isn't a library release tag records no library release")
 		}
@@ -377,7 +422,7 @@ func matchRevision(source rules.Source, record parsedRecord) error {
 	}
 	for _, id := range slices.Sorted(maps.Keys(record.Rules)) {
 		if record.Rules[id].Release > number {
-			return invalidSnapshot(where+".rules."+id, "a rule imported from "+source.Ref+" can't come from a later library release")
+			return invalidSnapshot(where+".rules."+id, "a rule imported from "+source.Ref.String()+" can't come from a later library release")
 		}
 	}
 	return nil
@@ -386,7 +431,7 @@ func matchRevision(source rules.Source, record parsedRecord) error {
 // fullCommit accepts a lowercase 40-digit commit SHA.
 func fullCommit(text string) bool {
 	ref, err := rules.ParseGitRef(text, "commit")
-	return err == nil && ref.Kind == rules.GitRefCommit && ref.SHA == text
+	return err == nil && ref.Kind() == rules.GitRefCommit && ref.Canonical() == text
 }
 
 // digest hashes exact bytes, preserving binary data and line endings.

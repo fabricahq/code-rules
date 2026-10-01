@@ -58,7 +58,7 @@ Before adapting material from a book, article, or another library, establish the
 
 ## What imports preserve
 
-Imports copy license and declared notice files, like other library-wide files, from the newest library release among the imported rule versions, or from the revision a source's `ref` names. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
+Imports copy license and declared notice files, like other library-wide files, from the library release that supplies the source's library-wide files, which `code-rules project update` moves to the newest library release, or from the revision a source's `ref` names. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
 The offline builder accepts preassembled snapshots and checks that declared files are present.
 It returns unchanged license and notice copies at generated paths, but does not fetch source files or write them to disk.
 The consuming workspace retains them alongside the imported rules:

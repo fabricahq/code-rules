@@ -89,7 +89,7 @@ With the same configuration and recorded versions, an import produces the same p
 
 The newest library release is the one with the highest `release/<number>` tag. Each [library release](/reference/rule-versions/#library-releases) tag's message records every rule's version and the changes that library release published.
 
-To choose a rule's version, Code Rules reads the rule's history from the release records in the `release/<number>` tags, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from the tagged commit of the library release that published that version. Library-wide files, including the shared files rules link to, come from the newest library release among the imported rule versions, or from the newest library release when the source imports no rules.
+To choose a rule's version, Code Rules reads the rule's history from the release records in the `release/<number>` tags, and picks the newest version, or the one the rule is pinned to. It then imports the rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) from the tagged commit of the library release that published that version. Library-wide files, including the shared files rules link to, come from the one library release that `vendor/<source-name>/_source.json` records as `release`, which is never older than the library release of any imported rule version. A new source or newly selected rules take them from the newest library release, `code-rules project update` moves them there, and `code-rules project sync` keeps the recorded one; see [What a version covers](/reference/rule-versions/#what-a-version-covers).
 
 A rule absent from a library release was retired, and the release record's `retired` entry records why. A rule the project pinned before its retirement keeps importing its pinned version.
 
@@ -112,7 +112,7 @@ Code Rules fetches and validates all selected libraries before replacing your pr
 Validation rejects:
 
 - Invalid or reserved source names, repeated repositories, and duplicate rule IDs that include the same source name.
-- Missing groups, or rules named in an exclusion, pin, or `rules` entry that the source doesn't import. An entry naming a rule the library retired produces a warning instead, when the source would otherwise import that rule: its group is selected, it is listed in `rules`, or the last sync imported it.
+- Missing groups, or rules named in an exclusion, pin, or `rules` entry that the source doesn't import. An entry naming a rule the library retired produces a warning instead, when the source would otherwise import that rule: its group is selected, it is listed in `rules`, or the last sync imported it or recorded it as retired. Offline checks accept the same exclusions, because the snapshot records those retired rules in `retiredRules`.
 - A missing `replacedBy` file, or one local file named as the replacement for more than one rule.
 - Invalid metadata, unsafe file paths, and symbolic links.
 
@@ -135,7 +135,7 @@ Code Rules reads original Git file contents without checking out the library. It
 Code Rules copies supporting material from [two asset locations](/reference/rule-format/#supporting-assets):
 
 - **A rule's own assets:** the adjacent `assets/<rule-name>/` directory. Code Rules copies this directory in full when it imports the rule.
-- **Shared assets:** files in the library-root `assets/` directory. Code Rules copies the files a selected rule or its Markdown assets link to, including files they link to in turn, from the newest library release among the imported rule versions.
+- **Shared assets:** files in the library-root `assets/` directory. Code Rules copies the files a selected rule or its Markdown assets link to, including files they link to in turn, from the library release that supplies the source's library-wide files.
 
 Markdown links, images, and reference links must point to files within the allowed locations. Missing files and links into another rule's private assets cause an error. Code Rules preserves external URLs as links without downloading their contents.
 
@@ -169,5 +169,19 @@ When finding the newest library release, Code Rules can report:
 | Error | Meaning and next step |
 | --- | --- |
 | `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with the source's `ref`. |
-| `version-not-found` | A pin names a version the rule never published, or the tag or commit in `ref` doesn't exist. Check the pin or `ref`. |
+| `version-not-found` | A pin names a version the rule never published, the tag or commit in `ref` doesn't exist, or the server says it doesn't have a commit that `vendor/<source-name>/_source.json` records, because the library rewrote its history. Check the pin or `ref`. For a missing recorded commit, ask the library's maintainer to restore it, or set `ref` to a tag or commit the library still has; deleting `vendor/<source-name>/` and syncing is the last resort, because it chooses versions again. A fetch that fails for any other reason, such as a dropped connection, reports that reason's code instead, never this one. |
+| `ref-is-branch` | The source's `ref` names a branch. `ref` accepts only a tag or a full commit SHA, so every import can be reproduced. |
 | `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Code Rules reads, because a later Code Rules published it. Upgrade Code Rules. |
+
+When Code Rules can't read the library's repository, it can report:
+
+| Error | Meaning and next step |
+| --- | --- |
+| `connection-failed` | Git couldn't reach the repository's host, such as when the host name doesn't resolve, the connection is refused or times out, or the TLS connection fails. Check the repository address and your network connection. |
+| `https-certificate-failed` | The HTTPS server's certificate couldn't be verified. Check that your system trusts it: Git's `http.sslCAInfo` setting, your system's certificate store, and any proxy that intercepts TLS. |
+| `ssh-host-key-failed` | The SSH host key couldn't be verified. Check the server's entry in your `known_hosts` file. |
+| `not-found-or-no-access` | Git or the server reported that the repository doesn't exist or that your Git credentials can't read it; servers report both the same way. Check the address and your credentials. |
+| `object-fetch-refused` | The server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; a self-hosted server needs Git protocol version 2 or `uploadpack.allowAnySHA1InWant`. |
+| `git-failed` | Another Git failure, including one whose cause Code Rules doesn't recognize. The message says which step failed, such as fetching library files. |
+
+These messages never include what Git or the server printed, which can hold credentials, such as one that `url.*.insteadOf` rewriting adds to the repository address. Code Rules reads that text only to choose the code and message, as [Text from Git, servers, and the GitHub CLI](/reference/cli/#text-from-git-servers-and-the-github-cli) describes. To read Git's message, run `git ls-remote` with the repository address yourself.

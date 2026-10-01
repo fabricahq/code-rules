@@ -30,7 +30,10 @@ func TestNativeLifecycle(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 			defer cancel()
+			started := time.Now()
 			report, err := Run(ctx, wrapper, scenario)
+			// The duration shows how close a scenario came to its deadline under the machine's load.
+			t.Logf("scenario %s took %s in %d steps", scenario, time.Since(started).Round(time.Millisecond), len(report.Steps))
 			if err != nil {
 				t.Fatalf("%v\n%+v", err, report.Steps)
 			}

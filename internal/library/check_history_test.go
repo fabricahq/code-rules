@@ -332,6 +332,39 @@ func TestCheck_WarnsAboutADeletedPublishedNote(t *testing.T) {
 	}
 }
 
+// TestCheck_WarnsWhenARetirementRetiresAnEarlierReplacement: release 2 retires b in favor of a, and a pending note
+// retires a. Without a replacement for a, the warning says projects would be pointed at a retired rule and asks for
+// one; with one, it says updates will point them on to it.
+func TestCheck_WarnsWhenARetirementRetiresAnEarlierReplacement(t *testing.T) {
+	ctx := context.Background()
+	files := libraryFiles()
+	files["practices/testing/c.md"] = []byte(ruleText("Test everything about retries."))
+	fixture, options := authorClone(t, files, strings.Replace(releaseOne, "  practices/testing/b: 1.0.0\n", "  practices/testing/b: 1.0.0\n  practices/testing/c: 1.0.0\n", 1)+"  practices/testing/c:\n    change: new\n    summaries:\n      - Add c.\n")
+	if _, err := fixture.Commit(ctx, options.Directory, "Release 2", map[string][]byte{"practices/testing/b.md": nil, "changes/two.yaml": []byte("summary: Fold b into a.\nrules:\n  practices/testing/b: {change: retired, replacedBy: practices/testing/a}\n")}); err != nil {
+		t.Fatal(err)
+	}
+	two := "Library release 2.\n---\nformatVersion: 1\nrelease: 2\nrules:\n  practices/testing/a: 1.0.0\n  practices/testing/c: 1.0.0\nretired:\n  practices/testing/b:\n    lastVersion: 1.0.0\n    replacedBy: practices/testing/a\n    summaries:\n      - Fold b into a.\n"
+	if err := fixture.Tag(ctx, options.Directory, "release/2", two); err != nil {
+		t.Fatal(err)
+	}
+	warning := "The pending retirement of practices/testing/a retires the replacement that release/2 named for practices/testing/b, so projects still importing practices/testing/b would be pointed at a retired rule."
+	result, err := Check(ctx, options)
+	if err != nil || slices.ContainsFunc(result.Warnings, func(w string) bool { return strings.HasPrefix(w, "The pending retirement") }) {
+		t.Fatalf("warned before anything retired the replacement: %v, %v", result.Warnings, err)
+	}
+	edit(t, options.Directory, map[string]string{"practices/testing/a.md": "", "practices/testing/assets/a": "", "changes/three.yaml": "summary: Retire a.\nrules:\n  practices/testing/a: retired\n"})
+	result, err = Check(ctx, options)
+	if err != nil || !slices.Contains(result.Warnings, warning+" To let them follow it, name a replacement for practices/testing/a as replacedBy in the note that retires it.") {
+		t.Fatalf("warnings %q, %v", result.Warnings, err)
+	}
+	edit(t, options.Directory, map[string]string{"changes/three.yaml": "summary: Fold a into c.\nrules:\n  practices/testing/a: {change: retired, replacedBy: practices/testing/c}\n"})
+	result, err = Check(ctx, options)
+	onward := "The pending retirement of practices/testing/a retires the replacement that release/2 named for practices/testing/b, so updates will point projects still importing practices/testing/b on to practices/testing/c, the replacement the note names."
+	if err != nil || !slices.Contains(result.Warnings, onward) || slices.Contains(result.Warnings, warning) {
+		t.Fatalf("warnings %q, %v", result.Warnings, err)
+	}
+}
+
 // TestCheck_IgnoresLineEndingConversion compares content as Git stores it, so a checkout's converted line endings aren't a change.
 func TestCheck_IgnoresLineEndingConversion(t *testing.T) {
 	ctx := context.Background()
@@ -384,6 +417,25 @@ func TestCheck_RejectsHistoryItCannotCompare(t *testing.T) {
 		options.Directory = shallow
 		if _, err := Check(ctx, options); errorCode(err) != "shallow-clone" || !strings.Contains(err.Error(), "git fetch --unshallow --tags") || !strings.Contains(err.Error(), "fetch-depth: 0") {
 			t.Fatal(err)
+		}
+	})
+	t.Run("clone without tags", func(t *testing.T) {
+		files := libraryFiles()
+		files["changes/clarify-a.yaml"] = []byte("summary: Clarify a.\nrules:\n  practices/testing/a: patch\n")
+		fixture, options := authorClone(t, files, releaseOne)
+		untagged := filepath.Join(t.TempDir(), "untagged")
+		if _, err := fixture.CommandIn(ctx, filepath.Dir(untagged), "clone", "--quiet", "--no-tags", "--template=", fixture.Repository, untagged); err != nil {
+			t.Fatal(err)
+		}
+		options.Directory = untagged
+		if _, err := Check(ctx, options); errorCode(err) != "missing-release-tags" || !strings.Contains(err.Error(), "git fetch --tags") || !strings.Contains(err.Error(), "fetch-depth: 0") {
+			t.Fatal(err)
+		}
+		if _, err := fixture.CommandIn(ctx, untagged, "fetch", "--quiet", "--tags"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Check(ctx, options); err != nil {
+			t.Fatalf("check after fetching the tags: %v", err)
 		}
 	})
 	// Every hand-made release tag fails with one code; an invalid record also keeps the parser's location.
@@ -489,14 +541,5 @@ func TestCheck_AsksToUpgradeForANewerReleaseRecordFormat(t *testing.T) {
 	_, err := Check(context.Background(), options)
 	if errorCode(err) != "unsupported-release-record" || !strings.Contains(err.Error(), "Upgrade Code Rules") {
 		t.Fatalf("got %v", err)
-	}
-}
-
-// TestParseReleaseTag_IgnoresASignature reads the record from a signed tag, whose signature follows the message.
-func TestParseReleaseTag_IgnoresASignature(t *testing.T) {
-	object := "object 0123456789012345678901234567890123456789\ntype commit\ntag release/1\ntagger Fixture <fixture@example.invalid> 0 +0000\n\n" + releaseOne + "-----BEGIN SSH SIGNATURE-----\nU1NIU0lH\n-----END SSH SIGNATURE-----\n"
-	notes, record, err := parseReleaseTag([]byte(object), 1)
-	if err != nil || notes != "Library release 1." || record.Release != 1 || len(record.Rules) != 2 {
-		t.Fatal(notes, record, err)
 	}
 }

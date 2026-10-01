@@ -245,7 +245,7 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 	if !bytes.Equal(files[".code-rules/local/techs/go/assets/errors/diagram.bin"], files[".code-rules/vendor/team/techs/go/assets/errors/diagram.bin"]) {
 		return fmt.Errorf("the fork didn't copy the rule's asset")
 	}
-	if err := contains("configuration", string(files[".code-rules/config.yaml"]), "      techs/go/errors:\n        reason: "+forkReason+"\n        replacedBy: local/techs/go/errors.md\n"); err != nil {
+	if err := contains("configuration", string(files[".code-rules/config.yaml"]), "      techs/go/errors:\n        reason: "+forkReason+"\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"2.0.0\"\n"); err != nil {
 		return err
 	}
 	if files[".code-rules/generated/rules/local/techs/go/errors.md"] == nil || files[".code-rules/generated/rules/team/techs/go/errors.md"] != nil {
@@ -369,7 +369,7 @@ func lifecycleScenario(ctx context.Context, report *Report, invoke invocation, f
 		return err
 	}
 	if err := contains("update preview", last().Stdout,
-		"  replaced  techs/go/errors    2.0.0 -> 2.1.0\n            Add an example of naming the operation.\n            Your rule: local/techs/go/errors.md.\n",
+		"  replaced  techs/go/errors    2.0.0 -> 2.1.0\n            Add an example of naming the operation.\n            Your rule: local/techs/go/errors.md, based on 2.0.0.\n",
 		"  retired   techs/go/wrapping  1.1.0\n            The errors rule now covers wrapping.\n            Your pin keeps it at 1.1.0.\n            Reason: "+pinReason+"\n"); err != nil {
 		return err
 	}

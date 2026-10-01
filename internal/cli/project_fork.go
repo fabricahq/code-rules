@@ -50,23 +50,18 @@ func forkRule(cmd *cobra.Command, id string, f *authoringFlags, options Options,
 	if err != nil {
 		return err
 	}
-	output.report = ruleForkedReport(result, id, from, plan)
+	output.report = ruleForkedReport(result, id, from, plan, f.directory)
 	return nil
 }
 
 // ruleForkedReport lists the fork's files and explains what the fork replaced and how to build it.
-func ruleForkedReport(result project.AuthoringResult, id string, from project.ForkSource, plan *project.ForkPlan) commandReport {
+func ruleForkedReport(result project.AuthoringResult, id string, from project.ForkSource, plan *project.ForkPlan, workdir string) commandReport {
 	var out strings.Builder
-	fmt.Fprintf(&out, "Rule forked from %s %s, published in library release release/%d:\n", from.Library, from.Version, plan.Release())
-	for _, file := range result.Written() {
-		fmt.Fprintf(&out, "  %s\n", file)
-	}
-	for _, warning := range result.Warnings {
-		fmt.Fprintf(&out, "Warning: %s\n", warning)
-	}
+	fmt.Fprintf(&out, "Rule forked from %s %s, published in library release %d.\n", from.Library, from.Version, plan.Release())
+	formatAuthored(&out, result.Added, result.Changed, result.Warnings, workdir)
 	instruction := "Next: Edit the forked rule to change what it says. A fork has no version: it changes\nonly when you edit it. The library's license still applies to the copied text."
 	if source := plan.Replaces(); source != "" {
-		instruction += "\nconfig.yaml now excludes " + source + "'s " + id + " and names the fork as its replacement."
+		instruction += "\nconfig.yaml now excludes " + source + "'s " + id + " and names the fork as its replacement,\nbased on " + from.Version.String() + "; code-rules project update lists the library's later changes to it."
 	}
 	steps := []nextStep{{Instruction: instruction}, {Instruction: "Then rebuild this project's guidance:", Commands: []string{"code-rules project build", "code-rules project check"}}}
 	return authoredReport(&out, result.Added, result.Changed, result.Warnings, steps)

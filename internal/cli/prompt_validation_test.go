@@ -39,7 +39,7 @@ func TestInteractiveImpactRetry(t *testing.T) {
 				t.Fatal(err, result)
 			}
 			transcript := strings.ReplaceAll(result.Transcript, "\r\n", "\n")
-			if !strings.Contains(transcript, "\n\nError: impact must be one of") || strings.Count(transcript, "Rule title:") != 1 || strings.Count(transcript, "Example rule:") != 1 || strings.Index(transcript, "Error:") > strings.LastIndex(transcript, "Why it matters:") {
+			if !strings.Contains(transcript, "\nError: impact must be one of") || strings.Count(transcript, "Rule title:") != 1 || strings.Count(transcript, "Example rule:") != 1 || strings.Index(transcript, "Error:") > strings.LastIndex(transcript, "Why it matters:") {
 				t.Fatal(transcript)
 			}
 			root := dir

@@ -75,7 +75,12 @@ func prepare(resolved resolution, options Options) (Output, error) {
 // generated terms, without interpreting their legal meaning. It says when the source imports unreleased changes.
 func libraryReadme(source resolvedSource) string {
 	file := "libraries/" + source.Name + "/README.md"
-	sections := []string{"# " + escapeText(source.Name), "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.", "**Repository:** " + escapeText(source.Repository)}
+	sections := []string{"# " + escapeText(source.Name)}
+	// Only a library that declares license or notice files has copies here to describe.
+	if source.License != nil && len(licenseMappings(source.Name, source.License)) > 0 {
+		sections = append(sections, "This folder retains byte-for-byte copies of declared library license and notice files. Do not edit these copies; change the upstream library and run `code-rules project sync`.")
+	}
+	sections = append(sections, "**Repository:** "+escapeText(source.Repository))
 	if source.Release != 0 {
 		sections = append(sections, fmt.Sprintf("**Library release:** release/%d", source.Release))
 	}
@@ -86,7 +91,7 @@ func libraryReadme(source resolvedSource) string {
 	if source.Ref != "" && source.Release == 0 && slices.ContainsFunc(slices.Collect(maps.Values(source.Versions)), func(rule library.ImportedRule) bool { return rule.Version == nil }) {
 		sections = append(sections, "**Imported from unreleased changes.** This source's ref isn't a library release, so the source doesn't follow rule versions: rules with unreleased changes have no version to cite.")
 	}
-	sections = append(sections, "## Rule versions", ruleVersionTable(source.Versions))
+	sections = append(sections, "## Rule versions", ruleVersionTable(source))
 	if len(source.Pins) > 0 {
 		sections = append(sections, "## Pins", "`code-rules project update` keeps these rules at their pinned versions.", pinList(source.Pins))
 	}
@@ -106,20 +111,37 @@ func libraryReadme(source resolvedSource) string {
 	return strings.Join(sections, "\n\n") + "\n"
 }
 
-// ruleVersionTable lists each imported rule, including excluded ones, with its version and the library release
-// that published it.
-func ruleVersionTable(versions map[string]library.ImportedRule) string {
+// ruleVersionTable lists each imported rule of source with its version, the library release that published it, and
+// whether agents read it: an excluded rule, which the source still imports so updates can report its changes, is
+// marked excluded, or replaced by its local rule, and a retired rule the source still imports is marked retired,
+// with the ref or pin that keeps it.
+func ruleVersionTable(source resolvedSource) string {
+	versions, exclude := source.Versions, source.Exclude
 	if len(versions) == 0 {
 		return "This source imports no rules."
 	}
-	rows := []string{"| Rule | Version | Library release |", "| --- | --- | --- |"}
+	rows := []string{"| Rule | Version | Library release | Status |", "| --- | --- | --- | --- |"}
 	for _, id := range slices.Sorted(maps.Keys(versions)) {
 		rule := versions[id]
+		status := "Active"
+		pin, pinned := source.Pins[id]
+		switch exclusion, excluded := exclude[id]; {
+		case excluded && exclusion.ReplacedBy != "":
+			status = "Replaced by `" + exclusion.ReplacedBy + "`"
+		case excluded:
+			status = "Excluded"
+		case slices.Contains(source.Retired, id) && source.Ref != "":
+			status = "Retired upstream; kept by ref " + source.Ref
+		case slices.Contains(source.Retired, id) && pinned:
+			status = "Retired, pinned at " + pin.Version.String()
+		case slices.Contains(source.Retired, id):
+			status = "Retired; the next update drops it"
+		}
 		if rule.Version == nil {
-			rows = append(rows, "| `"+id+"` | No version | Unreleased |")
+			rows = append(rows, "| `"+id+"` | No version | Unreleased | "+status+" |")
 			continue
 		}
-		rows = append(rows, fmt.Sprintf("| `%s` | %s | release/%d |", id, rule.Version, rule.Release))
+		rows = append(rows, fmt.Sprintf("| `%s` | %s | release/%d | %s |", id, rule.Version, rule.Release, status))
 	}
 	return strings.Join(rows, "\n")
 }
@@ -173,6 +195,7 @@ type provenanceRule struct {
 	Origin       provenanceOrigin    `json:"origin"`
 	Upstream     *provenanceOrigin   `json:"upstream"`
 	Reason       *string             `json:"replacementReason"`
+	BasedOn      *rules.RuleVersion  `json:"basedOn"`
 	LicenseBasis string              `json:"licenseBasis"`
 	License      *provenanceLicense  `json:"license"`
 	Attribution  []rules.Attribution `json:"attribution"`
@@ -235,7 +258,7 @@ func renderProvenance(resolved resolution, version string) ([]byte, error) {
 			if active.License != nil {
 				basis = "library"
 			}
-			result.Rules = append(result.Rules, provenanceRule{ID: active.Rule.ID, Group: active.Rule.Group, Origin: *originProvenance(&active.Origin), Upstream: originProvenance(active.Upstream), Reason: nullableText(active.Reason), LicenseBasis: basis, License: termProvenance(active.Origin.Source, "vendor/"+active.Origin.Source+"/", active.License), Attribution: active.Rule.Attribution})
+			result.Rules = append(result.Rules, provenanceRule{ID: active.Rule.ID, Group: active.Rule.Group, Origin: *originProvenance(&active.Origin), Upstream: originProvenance(active.Upstream), Reason: nullableText(active.Reason), BasedOn: active.BasedOn, LicenseBasis: basis, License: termProvenance(active.Origin.Source, "vendor/"+active.Origin.Source+"/", active.License), Attribution: active.Rule.Attribution})
 		}
 	}
 	slices.SortFunc(result.Sources, func(a, b provenanceSource) int { return strings.Compare(a.Name, b.Name) })

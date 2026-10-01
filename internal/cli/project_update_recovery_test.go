@@ -6,6 +6,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"maps"
 	"os"
@@ -177,5 +178,34 @@ func requireRecoveredUpdate(t *testing.T, u updateFixture) {
 	}
 	if out, diagnostic, code := runCLI(t, u.binary, u.directory, "project", "check"); code != 0 {
 		t.Fatalf("offline check: exit %d\n%s%s", code, out, diagnostic)
+	}
+}
+
+// TestSyncAndBuild_SayWhenTheyFirstRecoveredAnInterruptedCommand, in human and JSON output, even when they then
+// change no files of their own, and say nothing of it otherwise.
+func TestSyncAndBuild_SayWhenTheyFirstRecoveredAnInterruptedCommand(t *testing.T) {
+	u := newUpdateFixture(t)
+	note := "First recovered an interrupted earlier command, which restored or finished that command's files.\n"
+	for _, command := range []string{"sync", "build"} {
+		t.Run(command, func(t *testing.T) {
+			u.write(t, ".code-rules-transaction/staged", "left by an interrupted command")
+			out, diagnostic, code := u.run(t, "project", command)
+			if code != 0 || !strings.HasPrefix(out, note) {
+				t.Fatalf("exit %d:\n%s%s", code, out, diagnostic)
+			}
+			u.write(t, ".code-rules-transaction/staged", "left by an interrupted command")
+			out, diagnostic, code = u.run(t, "project", command, "--json")
+			var result struct {
+				OK    bool
+				Value struct{ Recovered bool }
+			}
+			if err := json.Unmarshal([]byte(out), &result); err != nil || code != 0 || !result.OK || !result.Value.Recovered {
+				t.Fatalf("exit %d, %v:\n%s%s", code, err, out, diagnostic)
+			}
+			out, _, code = u.run(t, "project", command)
+			if code != 0 || strings.Contains(out, "recovered") {
+				t.Fatalf("a command that recovered nothing says it did: exit %d:\n%s", code, out)
+			}
+		})
 	}
 }
