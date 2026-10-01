@@ -119,16 +119,19 @@ Official release publication remains a separate reviewed process.
 
 ### GitHub setup and activation
 
-Repository configuration does not install the Renovate GitHub App or enforce branch protection.
+Repository configuration does not install the Renovate GitHub App or enforce these protection and access settings.
 
 1. Grant the [Mend Renovate GitHub App](https://github.com/apps/renovate) access to `fabricahq/code-rules`. Limit its installation to repositories the organization intends it to manage.
 2. Keep the dependency graph and GitHub's **Dependabot alerts** enabled. Renovate reads these alerts; Dependabot does not need to create PRs.
 3. Leave **Dependabot security updates** disabled and do not add a Dependabot version-update configuration. Renovate owns update PRs.
 4. Give Renovate read access to vulnerability alerts and complete its onboarding after this configuration reaches `main`.
 5. Verify the Dependency Dashboard lists Go modules, Bun dependencies, actions, runtimes, and all three Go tools. Investigate extraction errors before relying on automation.
-6. Use main-branch protection or a ruleset to require PRs and the applicable CI checks. Grant Renovate no merge bypass. Review protection separately from the bot's `automerge: false` policy.
+6. Use a ruleset or branch protection on `main` to require PRs and the applicable CI checks, and to block deletion and force pushes. Grant Renovate no merge bypass. Review protection separately from the bot's `automerge: false` policy.
+7. If administrators need bypass access, set their ruleset bypass mode to **For pull requests only**, never **Always allow**. They can then bypass review requirements through a PR, but cannot push directly.
+8. Restrict the `release` and `downstream` environments to the `main` branch, with no reviewers or wait timers.
+9. Enable immutable releases so published assets and tags cannot be replaced.
 
-Verify live installation permissions, alert settings, and branch protections in GitHub before claiming they are active.
+Verify live installation permissions, alert settings, protections, environments, and release settings in GitHub before claiming they are active.
 Record dated evidence in the repository security audit instead of relying on a setup snapshot in this document.
 
 ## Policy references

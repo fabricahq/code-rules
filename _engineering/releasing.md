@@ -24,7 +24,7 @@ The standalone installer, the Homebrew tap, and generated library CI workflows d
 
 After a stable release publishes, Release Planner's `downstream` job runs **Update Code Rules** (`update-code-rules.yml`) in [fabricahq/homebrew-tap](https://github.com/fabricahq/homebrew-tap) with the release's `tag` and `version`. Prereleases do not update the formula. The tap verifies that `SHA256SUMS` was attested by `release-planner.yml` on `main`, and validates the published archives and checksums, before committing an update directly to `main`. Routine formula updates require no pull request or human approval; changes to updater code and workflows go through review in the tap repository.
 
-The job authenticates through **Fabrica Homebrew Releaser**, a shared trigger App for trusted Fabrica products. It is installed only on the tap with Actions write and Metadata read permissions. Its credentials live in this repository's `downstream` environment, which allows only the `main` branch: the `DOWNSTREAM_APP_CLIENT_ID` variable and the `DOWNSTREAM_APP_PRIVATE_KEY` secret. The job checks out no source and creates a short-lived token restricted to the tap. [CR-7](https://linear.app/ohmygoshjosh/issue/CR-7/replace-shared-homebrew-trigger-keys-with-an-oidc-dispatch-service) tracks replacing shared-key access with an OIDC dispatch service for Fabrica tools.
+The job authenticates through **Fabrica Homebrew Releaser**, a shared trigger App for trusted Fabrica products. It is installed only on the tap with Actions write and Metadata read permissions. Its credentials live in this repository's `downstream` environment: the `DOWNSTREAM_APP_CLIENT_ID` variable and the `DOWNSTREAM_APP_PRIVATE_KEY` secret. The job checks out no source and creates a short-lived token restricted to the tap. [CR-7](https://linear.app/ohmygoshjosh/issue/CR-7/replace-shared-homebrew-trigger-keys-with-an-oidc-dispatch-service) tracks replacing shared-key access with an OIDC dispatch service for Fabrica tools.
 
 The tap uses a separate publishing App whose key stays in its protected environment. Product repositories never receive that key.
 
@@ -32,9 +32,7 @@ If the dispatch fails, use **Re-run failed jobs** on the Release run. If the tap
 
 ## Repository protection
 
-Configure the `release` and `downstream` environments to allow only the `main` branch, with no reviewers or wait timers. Require pull requests for changes to `main` and protect its history from deletion and force pushes. Enable immutable releases so published assets and tags cannot be replaced. If administrators need bypass access, set their ruleset bypass mode to **For pull requests only**, never **Always allow**. They can then bypass review requirements through a PR, but cannot push directly.
-
-Follow [security practices](security-practices.md) for credentials, dependency updates, and review protections. Resolve repository permission restrictions before releasing; do not work around them with a personal token. These controls authenticate the release workflow and preserve published artifacts; they cannot detect malicious code approved into that workflow.
+Releases depend on the branch, ruleset, environment, and immutable-release settings in [GitHub setup](security-practices.md#github-setup-and-activation), and on the credential and review practices in the rest of that document. Resolve repository permission restrictions before releasing; do not work around them with a personal token. These controls authenticate the release workflow and preserve published artifacts; they cannot detect malicious code approved into that workflow.
 
 ## Testing PR preview builds
 
