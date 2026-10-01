@@ -119,6 +119,18 @@ Rule ID: `local:techs/go/collect-prompt-answers-before-taking-the-writer`
 
 **Read full rule:** [Collect prompt answers before taking the project writer](../../rules/local/techs/go/collect-prompt-answers-before-taking-the-writer.md)
 
+### Comment the role, the result, and the hidden constraint in Go
+
+Rule ID: `local:techs/go/comment-role-result-and-constraints`
+
+**When to read:** Before writing, changing, or reviewing Go files in this repository, including tests: their header comments, doc comments on exported and unexported declarations, and comments on values or lines whose reason the code doesn't show.
+
+**Impact:** MEDIUM
+
+**Why it matters:** Missing headers and contract comments force readers and agents to trace implementations to learn what a file is for, who owns a result, and what nil means, and guessed rationales become false specifications.
+
+**Read full rule:** [Comment the role, the result, and the hidden constraint in Go](../../rules/local/techs/go/comment-role-result-and-constraints.md)
+
 ### Let the CLI own output and exit status
 
 Rule ID: `local:techs/go/let-the-cli-own-output-and-exit-status`

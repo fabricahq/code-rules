@@ -1260,44 +1260,6 @@
       ]
     },
     {
-      "id": "fabrica:techs/typescript/comment-role-result-and-constraints",
-      "group": "techs/typescript",
-      "origin": {
-        "source": "fabrica",
-        "file": "techs/typescript/comment-role-result-and-constraints.md",
-        "repository": "https://github.com/fabricahq/public-rules.git",
-        "ref": null,
-        "resolvedCommit": "568e32f46cc3bf557ab90e82b8df6d661b839112",
-        "version": "1.0.0",
-        "release": 1
-      },
-      "upstream": null,
-      "replacementReason": null,
-      "basedOn": null,
-      "licenseBasis": "library",
-      "license": {
-        "spdxExpression": "MIT",
-        "files": [
-          "vendor/fabrica/LICENSE.md"
-        ],
-        "attributionFiles": [
-          "vendor/fabrica/NOTICE.md"
-        ],
-        "generatedFiles": [
-          "libraries/fabrica/licenses/LICENSE.md"
-        ],
-        "generatedAttributionFiles": [
-          "libraries/fabrica/licenses/notices/001.md"
-        ]
-      },
-      "attribution": [
-        {
-          "url": "https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx",
-          "description": "Adapted from mkosir TypeScript Style Guide guidance (comment-role-result-and-constraints; MIT, notice retained in NOTICE.md): restructured to the rule template; the guidance and examples are otherwise preserved."
-        }
-      ]
-    },
-    {
       "id": "fabrica:techs/typescript/declare-constants-with-as-const",
       "group": "techs/typescript",
       "origin": {
@@ -1934,6 +1896,25 @@
       "attribution": []
     },
     {
+      "id": "local:techs/go/comment-role-result-and-constraints",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/comment-role-result-and-constraints.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
+    },
+    {
       "id": "local:techs/go/let-the-cli-own-output-and-exit-status",
       "group": "techs/go",
       "origin": {
@@ -2027,6 +2008,42 @@
       "licenseBasis": "undeclared",
       "license": null,
       "attribution": []
+    },
+    {
+      "id": "local:techs/typescript/comment-role-result-and-constraints",
+      "group": "techs/typescript",
+      "origin": {
+        "source": "local",
+        "file": "techs/typescript/comment-role-result-and-constraints.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": {
+        "source": "fabrica",
+        "file": "techs/typescript/comment-role-result-and-constraints.md",
+        "repository": "https://github.com/fabricahq/public-rules.git",
+        "ref": null,
+        "resolvedCommit": "568e32f46cc3bf557ab90e82b8df6d661b839112",
+        "version": "1.0.0",
+        "release": 1
+      },
+      "replacementReason": "This repository's comment policy also covers its website's Astro components and private helpers, as its ESLint configuration enforces.",
+      "basedOn": "1.0.0",
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": [
+        {
+          "url": "https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx",
+          "description": "Adapted from mkosir TypeScript Style Guide guidance (comment-role-result-and-constraints; MIT, notice retained in NOTICE.md): restructured to the rule template; the guidance and examples are otherwise preserved."
+        },
+        {
+          "url": "https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/comment-role-result-and-constraints.md",
+          "description": "Forked from version 1.0.0 of techs/typescript/comment-role-result-and-constraints, published in library release 1 at commit 568e32f46cc3bf557ab90e82b8df6d661b839112."
+        }
+      ]
     }
   ]
 }

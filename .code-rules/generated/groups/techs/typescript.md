@@ -53,20 +53,6 @@ Version: 1.0.0
 
 **Read full rule:** [Avoid silencing the type checker](../../rules/fabrica/techs/typescript/avoid-silencing-the-type-checker.md)
 
-### Comment the role, the result, and the hidden constraint
-
-Rule ID: `fabrica:techs/typescript/comment-role-result-and-constraints`
-
-Version: 1.0.0
-
-**When to read:** Before writing, changing, or reviewing TypeScript files, exported functions, types, components, or code whose purpose, behavior, or constraints are not obvious from names and types.
-
-**Impact:** MEDIUM
-
-**Why it matters:** Missing or narrating comments force readers and agents to trace implementations to learn what files and functions do, and guessed rationales become false specifications.
-
-**Read full rule:** [Comment the role, the result, and the hidden constraint](../../rules/fabrica/techs/typescript/comment-role-result-and-constraints.md)
-
 ### Declare constants with as const, and satisfies when a type exists
 
 Rule ID: `fabrica:techs/typescript/declare-constants-with-as-const`
@@ -290,6 +276,18 @@ Version: 1.0.0
 **Why it matters:** Typing patterned strings as string lets typos and invalid combinations compile and fail at runtime.
 
 **Read full rule:** [Use template literal types for patterned strings](../../rules/fabrica/techs/typescript/use-template-literal-types-for-patterned-strings.md)
+
+### Comment the role, the result, and the hidden constraint
+
+Rule ID: `local:techs/typescript/comment-role-result-and-constraints`
+
+**When to read:** Before writing, changing, or reviewing TypeScript, JavaScript, or Astro files in this repository's website and tools, their exported functions, types, and components, or code whose purpose, behavior, or constraints are not obvious from names and types.
+
+**Impact:** MEDIUM
+
+**Why it matters:** Missing or narrating comments force readers and agents to trace implementations to learn what files and functions do, and guessed rationales become false specifications.
+
+**Read full rule:** [Comment the role, the result, and the hidden constraint](../../rules/local/techs/typescript/comment-role-result-and-constraints.md)
 
 ---
 

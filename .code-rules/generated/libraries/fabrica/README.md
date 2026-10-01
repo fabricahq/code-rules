@@ -46,7 +46,7 @@ This folder retains byte-for-byte copies of declared library license and notice 
 | `techs/javascript/version-and-minimize-browser-storage` | 1.0.0 | release/1 | Active |
 | `techs/typescript/annotate-types-at-boundaries` | 1.0.0 | release/1 | Active |
 | `techs/typescript/avoid-silencing-the-type-checker` | 1.0.0 | release/1 | Active |
-| `techs/typescript/comment-role-result-and-constraints` | 1.0.0 | release/1 | Active |
+| `techs/typescript/comment-role-result-and-constraints` | 1.0.0 | release/1 | Replaced by `local/techs/typescript/comment-role-result-and-constraints.md` |
 | `techs/typescript/declare-constants-with-as-const` | 1.0.0 | release/1 | Active |
 | `techs/typescript/distinguish-null-from-undefined` | 1.0.0 | release/1 | Active |
 | `techs/typescript/generate-service-types-from-contracts` | 1.0.0 | release/1 | Active |
