@@ -21,6 +21,10 @@ func TestProjectInitGuidance(t *testing.T) {
 		if strings.Contains(out, "Updated files:") || strings.Contains(out, directory) {
 			t.Fatal("init led with internal file changes", out)
 		}
+		// Like other authoring commands, init lists the files it added, relative to the working directory.
+		if !strings.Contains(out, "Added:\n  .code-rules/config.yaml\n  .code-rules/local/README.md\n  .code-rules/README.md\n") || strings.Contains(out, "Project configuration:") {
+			t.Fatal("init doesn't list the files it added", out)
+		}
 		if !strings.Contains(out, "Or use a shared library") || !strings.Contains(out, "code-rules project sync") {
 			t.Fatal("missing shared-library path", out)
 		}

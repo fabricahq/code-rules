@@ -312,7 +312,7 @@ After the first library release, check compares each rule's [versioned content](
 
 Check warns when a note that a library release already published was edited, because the edit has no effect. It also warns when such a note was deleted, because notes are never deleted; restore it. When a pending note retires a rule that an earlier library release named as a retired rule's replacement, check warns about it: when the note names a replacement, that updates will point projects still importing the earlier rule on to it; otherwise, that they would be pointed at a retired rule, suggesting a replacement as `replacedBy`. A pending retirement whose `replacedBy` isn't a rule in the library fails.
 
-This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
+This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. Check never fetches, so it refuses such a clone; `code-rules library release` fetches the remote's release tags itself. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
 When checks pass, the result previews the pending library release: each rule, its change, and its current and next version. When nothing is pending, it says there is nothing to publish, as `code-rules library release` does. When library-wide files, such as group metadata, shared assets, or license files, changed since the latest library release, the preview lists them too, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `code-rules project update` name them. `code-rules library release` reports the rules it publishes in `value.rules` the same way.
 
@@ -371,7 +371,7 @@ If that push succeeds, delete the test tag from the remote with `git push origin
 | --- | --- |
 | `not-a-repository` | The library isn't the root of a Git repository. |
 | `shallow-clone` | The clone has partial history. Fetch it with `git fetch --unshallow --tags`, or check out with `fetch-depth: 0` in CI. |
-| `missing-release-tags` | The commit has change notes, but the clone has no `release/<number>` tags. Fetch them with `git fetch --tags`. |
+| `missing-release-tags` | The commit has change notes, but neither the clone nor the remote has `release/<number>` tags. The command fetches the remote's release tags before checking, so it doesn't refuse a clone made with `git clone --no-tags`; that fetch adds them to the clone, also on a dry run. |
 | `detached-head` | `HEAD` isn't on a branch. |
 | `no-upstream` | The branch has no upstream branch on a remote. |
 | `push-destination` | The remote pushes to several URLs, or to another repository than it fetches from. |
@@ -449,7 +449,7 @@ Invalid interactive answers repeat the same question while retaining earlier ans
 
 Both init commands, both check commands, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; `code-rules project check`, `code-rules project sync`, `code-rules project update`, and `code-rules project build` do not need or accept it.
 
-String options accept one value and cannot be repeated, except `--groups`, `--rules`, `--keep`, and `--exclude`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
+String options accept one value and cannot be repeated, except `--groups`, `--rules`, `--keep`, `--exclude`, and `--incorporated`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 
 Scaffolding commands validate paths and detect collisions before writing. They preserve existing authored files and roll back failed creation attempts. They do not publish content or convert arbitrary third-party material. For the authoring workflow, see [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 

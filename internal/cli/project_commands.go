@@ -77,7 +77,7 @@ func projectInitCommand(options Options, output *commandOutput) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		output.report = projectInitializedReport(result)
+		output.report = projectInitializedReport(result, f.directory)
 		return nil
 	}
 	return initialize

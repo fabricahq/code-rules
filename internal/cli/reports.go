@@ -85,17 +85,20 @@ func nonNil(list []string) []string {
 	return list
 }
 
-func projectInitializedReport(result project.AuthoringResult) commandReport {
+// projectInitializedReport lists the files a first init added, relative to workdir, as other authoring reports do,
+// or, when the project was already initialized, where its configuration is.
+func projectInitializedReport(result project.AuthoringResult, workdir string) commandReport {
 	var out strings.Builder
 	if len(result.Written()) == 0 {
 		out.WriteString("Code Rules is already initialized.\nNo files changed.\n")
+		for _, warning := range result.Warnings {
+			fmt.Fprintf(&out, "Warning: %s\n", warning)
+		}
+		out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.yaml\n")
 	} else {
 		out.WriteString("Code Rules initialized!\n")
+		formatAuthored(&out, result.Added, result.Changed, result.Warnings, workdir)
 	}
-	for _, warning := range result.Warnings {
-		fmt.Fprintf(&out, "Warning: %s\n", warning)
-	}
-	out.WriteString("\nCode Rules directory: .code-rules\nProject configuration: .code-rules/config.yaml\n")
 	steps := []nextStep{{Instruction: "Run code-rules project --help to manage this project's rules.", Commands: []string{"code-rules project --help"}}}
 	if len(result.Written()) > 0 {
 		steps = []nextStep{
