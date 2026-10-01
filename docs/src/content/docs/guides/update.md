@@ -44,8 +44,9 @@ team
   replaced  techs/react/use-query-hooks            1.1.0 -> 1.2.0
             Add an example for paginated queries.
             Your rule: local/techs/react/use-query-hooks.md, based on 1.1.0.
-            Changes since 1.1.0, the version your rule is based on. When it has them,
-            record that with --incorporated team:techs/react/use-query-hooks.
+            Changes since 1.1.0, the version your rule is based on.
+            To replace your rule and its assets with a fork of 1.2.0,
+            pass --update-fork team:techs/react/use-query-hooks.
   pinned    practices/testing/verify-backoff       1.3.0
             Newest version: 2.0.0.
             Reason: Waiting on the author's response to acme/.code-rules#45.
@@ -60,14 +61,16 @@ When a rule moves through several versions, each summary starts with the version
 | `major` | Work that complied with the previous version could fail this one. |
 | `new` | A rule the library added to a group you import. |
 | `retired` | The library stopped publishing the rule, so your agents will stop reading it. The preview names its replacement when there is one. |
-| `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule) since the version your rule is based on, its `basedOn`, which a fork records. The preview lists those changes. Without `basedOn`, it lists the changes since the version the project imports, which your rule may already have. Your rule doesn't change. |
+| `replaced` | The library changed a rule you [replaced with your own](/guides/select-rules/#replace-a-rule) since the version your rule is based on, its `basedOn`, which a fork records. The preview lists those changes. Without `basedOn`, it lists the changes since the version the project imports, which your rule may already have. Your rule doesn't change unless you replace it with a fork of the newest version. |
 | `pinned` | A newer version exists, but your [pin](#keep-a-rule-at-its-current-version) keeps the rule where it is. |
 
 When a library release changed [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group descriptions or shared diagrams, the preview ends the source with a line such as `Shared files: release 3 -> 4`. The update brings them in even when no rule changes.
 
 Read the major changes, new rules, and retirements closely: each can change what your code must do. For each replaced rule, check whether your own rule needs the same change. Then confirm, and the update applies exactly the changes the preview showed.
 
-Once your rule has a replaced rule's changes, record it, so later updates list only newer ones. In a terminal, answer `incorporated` when the update asks about the rule; in a script, pass `--incorporated team:<rule>` with `--yes`. Either sets the exclusion's `basedOn` to the newest version in the same configuration write as the update. You can also edit `basedOn` in `.code-rules/config.yaml` yourself. Code Rules never moves it on its own, because only you know whether your rule took the changes in.
+For a replaced rule you forked and never edited, or whose edits you no longer need, replace your rule with a fork of the newest version. In a terminal, answer `replace` when the update asks about the rule; it first names the files that replacing replaces or removes. In a script, pass `--update-fork team:<rule>` with `--yes`; the preview, without `--yes`, lists the files it would replace and those it would remove. Either writes the new fork exactly as [forking](/reference/cli/#fork-a-library-rule) that version would, at your rule's path, replaces your rule's asset directory, and sets the exclusion's `basedOn` to the version, all in the same step as the rest of the update. Your edits to the rule and its assets are overwritten, so commit them first; see [Replace a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version).
+
+To keep your edits, merge the library's changes into your rule by hand instead, then set `basedOn` in `.code-rules/config.yaml` to the version you merged, so later updates list only newer changes. Code Rules never moves `basedOn` on its own, because only you know whether your rule took the changes in.
 
 In a terminal, the command also asks about each new rule: add it, or exclude it. Excluding a rule asks for a reason and writes an [exclusion](/guides/select-rules/#exclude-a-rule), so the rule doesn't join now or on later updates. In a script, pass `--exclude team:<rule> --reason '…'` with `--yes` to do the same.
 

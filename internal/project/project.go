@@ -41,6 +41,9 @@ type FileChanges struct {
 	// sources importing a ref that isn't a library release. Then, in group order, each local group metadata file
 	// they wrote. Build reports none.
 	Warnings []string `json:"warnings"`
+	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
+	// that command's files, which the lists above don't include.
+	Recovered bool `json:"recovered"`
 }
 
 // GuideChange reports a managed-guide update separately from generated-relative file paths.
@@ -61,7 +64,9 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	}
 	defer root.Close()
 	var changes FileChanges
+	recovered := false
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		recovered = w.Recovered()
 		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
@@ -87,6 +92,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err != nil {
 		return FileChanges{}, err
 	}
+	changes.Recovered = recovered
 	return changes, nil
 }
 

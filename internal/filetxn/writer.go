@@ -25,17 +25,18 @@ const transactionName = ".code-rules-transaction"
 const backupPrefix = "old-"
 
 // maxJournalEntries is how many targets a journal of each format version can hold: format 2 holds the two managed
-// trees, format 3 adds a project guide, format 4 adds the configuration, and format 5 adds local group metadata.
-var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4, 5: 4 + maxLocalGroupMetadata}
+// trees, format 3 adds a project guide, format 4 adds the configuration, format 5 adds local group metadata, and
+// format 6 adds local rules and their asset directories, which it alone can remove.
+var maxJournalEntries = map[int]int{1: 2, 2: 2, 3: 3, 4: 4, 5: 4 + maxLocalGroupMetadata, 6: 4 + maxLocalGroupMetadata + 2*maxLocalRules}
 
 // maxJournalFormat is the newest journal format; Apply writes the oldest one that can hold its targets.
-const maxJournalFormat = 5
+const maxJournalFormat = 6
 
 const lockName = ".code-rules-lock"
 const cleanupName = ".code-rules-cleanup"
 
-// Target is a managed directory, project guide, the project configuration, or a local group's metadata. Authored
-// rules are never targets.
+// Target is a managed directory, project guide, the project configuration, a local group's metadata, or a local
+// rule or its asset directory, which only update replaces, when it replaces a fork.
 type Target string
 
 const (
@@ -48,8 +49,9 @@ const (
 type Writer struct {
 	ctx  context.Context
 	root *os.Root
-	// rename is the filesystem boundary used by tests to stop a child at an exact rename.
+	// rename and mkdir are the filesystem boundaries used by tests to stop a child at an exact rename or directory.
 	rename func(string, string) error
+	mkdir  func(string) error
 	active bool
 	// recovered reports that WithWriter first recovered an interrupted earlier operation, changing project files.
 	recovered bool
@@ -115,7 +117,7 @@ func WithWriter(ctx context.Context, root *os.Root, operation func(*Writer) erro
 	if err := recoverChanges(root); err != nil {
 		return err
 	}
-	w := &Writer{ctx: ctx, root: root, active: true, recovered: recovered, rename: func(from, to string) error { return renameManaged(root, from, to) }}
+	w := &Writer{ctx: ctx, root: root, active: true, recovered: recovered, rename: func(from, to string) error { return renameManaged(root, from, to) }, mkdir: func(name string) error { return root.Mkdir(name, 0755) }}
 	defer func() { w.active = false }()
 	return operation(w)
 }
@@ -174,7 +176,10 @@ func acquireLock(ctx context.Context, root *os.Root) error {
 
 // Apply stages complete managed targets and rechecks caller inputs before replacing live output.
 // It rolls back on failure when no later edits would be lost, and recovery restores or finishes every target in
-// the transaction together. Empty output is a no-op.
+// the transaction together. Empty output is a no-op. A nil file map removes a local rule's asset directory, and
+// does nothing when it is absent. It changes nothing outside its transaction directory until assertUnchanged has
+// passed and the journal is written; only then does it create the missing parent directories of local rule targets.
+// A rollback leaves those directories in place, empty, since nothing proves who made a directory at that path.
 // This promises recoverability, not simultaneous visibility of two renames or power-loss durability.
 func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func() error) (err error) {
 	if w == nil || !w.active {
@@ -192,17 +197,27 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		}
 	}
 	order := []Target{Vendor, Generated, GuideReadme, GuideStandalone, Config}
+	metadata, localRules := 0, 0
 	for target, files := range output {
 		if !validTarget(target) {
-			return failure("invalid-target", fmt.Sprintf("%q: only managed trees, project guides, the configuration, and local group metadata may be replaced", target), nil)
+			return failure("invalid-target", fmt.Sprintf("%q: only managed trees, project guides, the configuration, local group metadata, and local rules and their asset directories may be replaced", target), nil)
 		}
-		if localGroupMetadataTarget(target) {
+		if files == nil && !localRuleAssetsTarget(target) {
+			return failure("invalid-target", fmt.Sprintf("%q: only a local rule's asset directory may be removed", target), nil)
+		}
+		switch {
+		case localGroupMetadataTarget(target):
+			metadata++
+		case localRuleTarget(target):
+			localRules++
+		}
+		if localTarget(target) {
 			order = append(order, target)
-		}
-		if fileTarget(target) {
 			if err := requireRealParents(w.root, target); err != nil {
 				return err
 			}
+		}
+		if fileTarget(target) && !localRuleTarget(target) {
 			if err := rejectAlias(w.root, string(target)); err != nil {
 				return err
 			}
@@ -211,16 +226,19 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			return err
 		}
 	}
-	// Local group metadata follows the fixed targets in path order, so journals are deterministic.
+	// Local targets follow the fixed targets in path order, so journals are deterministic.
 	fixed := 5
-	if len(order)-fixed > maxLocalGroupMetadata {
-		return failure("invalid-target", fmt.Sprintf("one transaction can hold at most %d local group metadata files", maxLocalGroupMetadata), nil)
+	if metadata > maxLocalGroupMetadata || localRules > maxLocalRules || len(order)-fixed-metadata-localRules > maxLocalRules {
+		return failure("invalid-target", fmt.Sprintf("one transaction can hold at most %d local group metadata files and %d local rules with their asset directories", maxLocalGroupMetadata, maxLocalRules), nil)
 	}
 	slices.Sort(order[fixed:])
 	if err := w.root.Mkdir(transactionName, 0700); err != nil {
 		return err
 	}
 	prepared := false
+	// parents lists, outermost first, the missing parent directories of local rule targets to create once the
+	// journal is written. Nothing removes them again, so a rollback leaves them, empty.
+	parents := []string{}
 	defer func() {
 		if err == nil {
 			return
@@ -245,6 +263,29 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		if err != nil {
 			return err
 		}
+		if files == nil {
+			if before != nil {
+				entries = append(entries, journalEntry{target, treeDigest(before), treeDigest(nil), true})
+			}
+			continue
+		}
+		if localRuleTarget(target) || localRuleAssetsTarget(target) {
+			missing, err := missingParents(w.root, path.Dir(string(target)))
+			if err != nil {
+				return err
+			}
+			for _, directory := range missing {
+				if !slices.Contains(parents, directory) {
+					parents = append(parents, directory)
+				}
+			}
+			// A target whose parent is still missing can't collide with an existing spelling.
+			if len(missing) == 0 {
+				if err := rejectAlias(w.root, string(target)); err != nil {
+					return err
+				}
+			}
+		}
 		staged := path.Join(transactionName, "new-"+entryName(target))
 		if err := writeTarget(w.ctx, w.root, target, staged, files); err != nil {
 			return err
@@ -259,6 +300,10 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 			return err
 		}
 		entries = append(entries, journalEntry{target, treeDigest(before), treeDigest(after), before != nil})
+	}
+	// Only removals of absent asset directories leave nothing to replace.
+	if len(entries) == 0 {
+		return w.root.RemoveAll(transactionName)
 	}
 	if assertUnchanged != nil {
 		if err := assertUnchanged(); err != nil {
@@ -283,13 +328,20 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 		case entry.Name == Config:
 			formatVersion = max(formatVersion, 4)
 		case localGroupMetadataTarget(entry.Name):
-			formatVersion = 5
+			formatVersion = max(formatVersion, 5)
+		case localRuleTarget(entry.Name), localRuleAssetsTarget(entry.Name):
+			formatVersion = 6
 		}
 	}
 	if err := durableJSON(w.root, path.Join(transactionName, "journal.json"), journalRecord{formatVersion, entries}); err != nil {
 		return err
 	}
 	prepared = true
+	for _, directory := range parents {
+		if err := w.createParent(directory); err != nil {
+			return err
+		}
+	}
 	for _, entry := range entries {
 		if err := w.ctx.Err(); err != nil {
 			return err
@@ -308,6 +360,9 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 				return failure("concurrent-change", string(entry.Name)+": output changed before replacement; preserve its backup", nil)
 			}
 		}
+		if removes(entry) {
+			continue
+		}
 		if err := w.rename(path.Join(transactionName, "new-"+entryName(entry.Name)), string(entry.Name)); err != nil {
 			return err
 		}
@@ -325,6 +380,53 @@ func (w *Writer) Apply(output map[Target]map[string][]byte, assertUnchanged func
 	_ = finishCommitted(w.root)
 	return nil
 }
+
+// missingParents returns, outermost first, the directories from directory up to the first existing one that don't
+// exist yet. An existing one must be a directory, not a symbolic link.
+func missingParents(root *os.Root, directory string) ([]string, error) {
+	missing := []string{}
+	for ; directory != "." && directory != ""; directory = path.Dir(directory) {
+		info, err := root.Lstat(directory)
+		if errors.Is(err, fs.ErrNotExist) {
+			missing = append(missing, directory)
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if !info.IsDir() {
+			return nil, failure("unsafe-path", directory+": expected a directory without symlinks", nil)
+		}
+		break
+	}
+	slices.Reverse(missing)
+	return missing, nil
+}
+
+// createParent creates directory, a missing parent of a local rule target, refusing a name that collides with an
+// existing spelling. A directory that appeared meanwhile is used as it is, since nothing removes parents; anything
+// else there, such as a file or a symbolic link, is refused.
+func (w *Writer) createParent(directory string) error {
+	if err := rejectAlias(w.root, directory); err != nil {
+		return err
+	}
+	err := w.mkdir(directory)
+	if !errors.Is(err, fs.ErrExist) {
+		return err
+	}
+	info, err := w.root.Lstat(directory)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return failure("unsafe-path", directory+": expected a directory without symlinks", nil)
+	}
+	return nil
+}
+
+// removes reports whether entry removes its target rather than replacing it, which only a local rule's asset
+// directory can.
+func removes(entry journalEntry) bool { return entry.After == treeDigest(nil) }
 
 // recoverChanges validates every restoration before mutating any target and ignores caller cancellation.
 func recoverChanges(root *os.Root) error {
@@ -393,7 +495,8 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 	}
 	seen := map[Target]bool{}
 	for _, entry := range record.Entries {
-		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4) || (localGroupMetadataTarget(entry.Name) && record.FormatVersion < 5)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || entry.After == treeDigest(nil) {
+		localRule := localRuleTarget(entry.Name) || localRuleAssetsTarget(entry.Name)
+		if (!validTarget(entry.Name) || (guideTarget(entry.Name) && record.FormatVersion < 3) || (entry.Name == Config && record.FormatVersion < 4) || (localGroupMetadataTarget(entry.Name) && record.FormatVersion < 5) || (localRule && record.FormatVersion < 6)) || seen[entry.Name] || !validDigest(entry.Before) || !validDigest(entry.After) || entry.Existed == (entry.Before == treeDigest(nil)) || (removes(entry) && (!localRuleAssetsTarget(entry.Name) || !entry.Existed)) {
 			return failure("recovery-required", "invalid transaction entry; preserve it for manual recovery", nil)
 		}
 		seen[entry.Name] = true
@@ -501,6 +604,8 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 			}
 		}
 	}
+	// Parent directories the transaction created stay, even when empty: a path proves nothing about who made the
+	// directory there now, and an empty directory under local/ is harmless.
 	return root.RemoveAll(transactionName)
 }
 

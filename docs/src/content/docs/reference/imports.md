@@ -169,7 +169,7 @@ When finding the newest library release, Code Rules can report:
 | Error | Meaning and next step |
 | --- | --- |
 | `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with the source's `ref`. |
-| `version-not-found` | A pin names a version the rule never published, or the tag or commit in `ref` doesn't exist. Check the pin or `ref`. |
+| `version-not-found` | A pin names a version the rule never published, the tag or commit in `ref` doesn't exist, or the server says it doesn't have a commit that `vendor/<source-name>/_source.json` records, because the library rewrote its history. Check the pin or `ref`. For a missing recorded commit, ask the library's maintainer to restore it, or set `ref` to a tag or commit the library still has; deleting `vendor/<source-name>/` and syncing is the last resort, because it chooses versions again. A fetch that fails for any other reason, such as a dropped connection, reports that reason's code instead, never this one. |
 | `ref-is-branch` | The source's `ref` names a branch. `ref` accepts only a tag or a full commit SHA, so every import can be reproduced. |
 | `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Code Rules reads, because a later Code Rules published it. Upgrade Code Rules. |
 
@@ -178,8 +178,8 @@ When Code Rules can't read the library's repository, it can report:
 | Error | Meaning and next step |
 | --- | --- |
 | `connection-failed` | Git couldn't reach the repository's host, such as when the host name doesn't resolve, the connection is refused or times out, or the TLS connection fails. Check the repository address and your network connection. |
-| `certificate-failed` | Git couldn't verify the server's TLS certificate. Check that your system trusts it: Git's `http.sslCAInfo` setting, your system's certificate store, and any proxy that intercepts TLS. |
-| `host-key-failed` | Git couldn't verify the server's SSH host key. Check the server's entry in your `known_hosts` file. |
+| `https-certificate-failed` | The HTTPS server's certificate couldn't be verified. Check that your system trusts it: Git's `http.sslCAInfo` setting, your system's certificate store, and any proxy that intercepts TLS. |
+| `ssh-host-key-failed` | The SSH host key couldn't be verified. Check the server's entry in your `known_hosts` file. |
 | `not-found-or-no-access` | Git or the server reported that the repository doesn't exist or that your Git credentials can't read it; servers report both the same way. Check the address and your credentials. |
 | `object-fetch-refused` | The server refused to send a file by its object ID, which Code Rules needs to read one version of each rule without downloading the whole repository. GitHub.com and GitLab.com allow it; a self-hosted server needs Git protocol version 2 or `uploadpack.allowAnySHA1InWant`. |
 | `git-failed` | Another Git failure, including one whose cause Code Rules doesn't recognize. The message says which step failed, such as fetching library files. |

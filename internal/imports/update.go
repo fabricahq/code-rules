@@ -91,13 +91,19 @@ type RuleUpdate struct {
 	// Pin is the configured pin of a pinned rule, or of a retired rule a pin keeps.
 	Pin *rules.Pin `json:"pin,omitempty"`
 	// Decision is "keep" when the project pins the rule at From instead of applying the change, "exclude" when it
-	// excludes a new rule, or "incorporated" when it records that a replaced rule's local rule incorporates the
-	// changes up to To; Reason is recorded with a pin or exclusion. Planning leaves both empty.
+	// excludes a new rule, or "update-fork" when it replaces a replaced rule's local rule with a fork of the
+	// version ReviewedVersion returns; Reason is recorded with a pin or exclusion. Planning leaves both empty.
 	Decision string `json:"decision,omitempty"`
 	Reason   string `json:"reason,omitempty"`
+	// Overwrites and Removes list, for an update-fork decision, the local files that replacing the fork writes again
+	// and deletes: of the local rule and the files in its asset directory, those the new fork has and those it
+	// doesn't, relative to the Code Rules directory. The project's preview leaves both empty, never nil, for other
+	// rows; planning leaves them nil.
+	Overwrites []string `json:"overwrites"`
+	Removes    []string `json:"removes"`
 }
 
-// ReviewedVersion returns the newest version a replaced row lists changes up to, which marking it incorporated
+// ReviewedVersion returns the newest version a replaced row lists changes up to, which replacing its fork forks and
 // records as basedOn: To, or Newest when a pin keeps the imported copy. It is nil for other rows.
 func (r RuleUpdate) ReviewedVersion() *rules.RuleVersion {
 	if r.Change != UpdateReplaced {
@@ -187,12 +193,18 @@ func (s plannedSource) decided(source rules.Source) (sourcePlan, error) {
 	return plan, p.settle(&plan)
 }
 
+// ForkedRule is a version of a rule that a project forks during an update, from a source the update names.
+type ForkedRule struct {
+	Source, ID string
+	Version    rules.RuleVersion
+}
+
 // Import imports every source of configuration, the planned configuration plus the pins and exclusions the
 // project decided on, or returns no partial result, as ImportLibraries does. Each source the update names imports
 // exactly its planned versions, except that a rule configuration pins keeps its version from before the update,
-// and fails when a library release tag those versions come from has moved since planning; any other source imports
-// what sync would.
-func (u Update) Import(ctx context.Context, configuration rules.Configuration, options Options) (map[string]Library, error) {
+// and fails when a library release tag those versions, or the versions in forked, come from has moved since
+// planning; any other source imports what sync would.
+func (u Update) Import(ctx context.Context, configuration rules.Configuration, options Options, forked []ForkedRule) (map[string]Library, error) {
 	return importSources(ctx, configuration, options, func(ctx context.Context, repo *repository, source rules.Source) (sourcePlan, error) {
 		planned, named := u.plans[source.Name]
 		if !named {
@@ -202,16 +214,50 @@ func (u Update) Import(ctx context.Context, configuration rules.Configuration, o
 		if err != nil {
 			return sourcePlan{}, err
 		}
-		return plan, repo.requireTagsUnmoved(ctx, source, plan)
+		// A fork's library release needs the same check even when a pin or the update's scope keeps the imported copy
+		// at an older one.
+		releases := map[int]string{}
+		for _, fork := range forked {
+			if fork.Source != source.Name {
+				continue
+			}
+			release, err := publishingRelease(planned.history, fork.ID, fork.Version)
+			if err != nil {
+				return sourcePlan{}, err
+			}
+			releases[release.number] = release.commit
+		}
+		return plan, repo.requireTagsUnmoved(ctx, source, plan, releases)
+	})
+}
+
+// ReadFork reads version of rule id from source, which the update names, as ReadPublishedRule does, from the
+// library release that planning found published it. It fails with invalid-release-tag, before reading the rule's
+// files, when that release's tag now names another commit, so a fork never holds content the preview didn't plan.
+func (u Update) ReadFork(ctx context.Context, source rules.Source, id string, version rules.RuleVersion, options Options) (PublishedRule, error) {
+	planned, named := u.plans[source.Name]
+	if !named {
+		return PublishedRule{}, fmt.Errorf("source %s isn't part of the update", source.Name)
+	}
+	expected, err := publishingRelease(planned.history, id, version)
+	if err != nil {
+		return PublishedRule{}, err
+	}
+	return readPublishedRule(ctx, source, id, version, options, func(release *libraryRelease) error {
+		if release.number != expected.number || release.commit != expected.commit {
+			return fail("invalid-release-tag", fmt.Sprintf("Library release tag release/%d, which published version %s of %s, now names a different commit than when code-rules project update previewed source %s. Library release tags must not move; ask the library's maintainer, then run code-rules project update again.", expected.number, version, id, source.Name), nil)
+		}
+		return nil
 	})
 }
 
 // requireTagsUnmoved fails with code invalid-release-tag when a library release tag that the plan's rules or
-// library-wide files come from now names another commit than the plan recorded, so an update never installs
-// versions its preview read from a tag that has moved since. A tag the library deleted passes, as it does for sync,
-// and a plan that depends on no library release reads no tags.
-func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source, plan sourcePlan) error {
-	recorded := map[int]string{}
+// library-wide files come from, or one of releases, which maps library release numbers to the commits planning
+// read, now names another commit than recorded, so an update never installs versions its preview read from a tag
+// that has moved since. A tag the library deleted passes, as it does for sync, and a plan that depends on no library
+// release reads no tags.
+func (r *repository) requireTagsUnmoved(ctx context.Context, source rules.Source, plan sourcePlan, releases map[int]string) error {
+	recorded := maps.Clone(releases)
 	if plan.release != 0 {
 		recorded[plan.release] = plan.commit
 	}
@@ -375,9 +421,8 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 // ones, except that pins keep rules where they are. A nil scope also adds the rules the library added to the
 // selected groups. It returns every rule the source then imports, with its version, and a preview row for each
 // change: none for a rule excluded without a replacement, and replaced for one with a replacement. A replacement
-// that records basedOn is listed whenever the newest version is newer than basedOn, with the changes after it, even
-// when the imported copy doesn't move; one that doesn't is listed when the imported copy moves, with the changes
-// since the imported version.
+// is listed whenever the newest version is newer than its basedOn, or the imported version when it records none,
+// with the changes after that version, even when a pin keeps the imported copy where it is.
 func (p *planner) update(before sourcePlan, scope []string) (map[string]library.ImportedRule, []RuleUpdate, error) {
 	history, err := p.versioned()
 	if err != nil {
@@ -397,19 +442,24 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 		listed := !excluded || exclusion.ReplacedBy != ""
 		pin, pinned := p.source.Pins[id]
 		switch {
-		// A replacement's basedOn is its own review baseline: a pin keeps the imported copy, not the review.
-		case published && excluded && exclusion.BasedOn != nil:
+		// A replacement is reviewed against its basedOn, or else the imported version, and a pin keeps only the
+		// imported copy, never the review.
+		case published && excluded && exclusion.ReplacedBy != "":
 			if !pinned && latest.Compare(*current.Version) > 0 {
 				if after[id], err = p.publishedVersion(id, latest); err != nil {
 					return nil, nil, err
 				}
 			}
-			if latest.Compare(*exclusion.BasedOn) > 0 {
+			baseline := current.Version
+			if exclusion.BasedOn != nil {
+				baseline = exclusion.BasedOn
+			}
+			if latest.Compare(*baseline) > 0 {
 				row := RuleUpdate{ID: id, Change: UpdateReplaced, From: current.Version, To: &latest, LocalRule: exclusion.ReplacedBy, BasedOn: exclusion.BasedOn}
 				if pinned {
 					row.To, row.Newest, row.Pin = nil, &latest, &pin
 				}
-				row.Summaries, row.SummaryVersions = history.summaries(id, exclusion.BasedOn, latest)
+				row.Summaries, row.SummaryVersions = history.summaries(id, baseline, latest)
 				rows = append(rows, row)
 			}
 		case pinned && !listed:
@@ -441,9 +491,6 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 			}
 			row := RuleUpdate{ID: id, Change: versionChange(*current.Version, latest), From: current.Version, To: &latest}
 			row.Summaries, row.SummaryVersions = history.summaries(id, current.Version, latest)
-			if excluded {
-				row.Change, row.LocalRule = UpdateReplaced, exclusion.ReplacedBy
-			}
 			rows = append(rows, row)
 		}
 	}

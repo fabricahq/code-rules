@@ -50,7 +50,7 @@ Commands print human-readable output by default. Add `--json` when another tool 
 code-rules project check --json
 ```
 
-Sync, update, and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`.
+Sync, update, and build report counts and sorted lists of added, changed, and removed paths. JSON output includes those lists in `added`, `changed`, and `removed`. When the command first [recovered an interrupted one](#recover-from-an-interrupted-update), it says so before the counts, which don't include the files the recovery restored or finished, and JSON output sets `recovered` to `true`, also for an update's preview, which writes nothing of its own; a declined update says it in its message.
 
 - Sync and update paths start with `vendor/` or `generated/`. Update also lists `config.yaml` when it writes a pin or an exclusion, and both list a `local/<group-id>/_group.yaml` they add.
 - Build paths are relative to `generated/`.
@@ -92,7 +92,7 @@ A local rule needs its group's metadata, from `local/<group-id>/_group.yaml` or 
 
 ## Recover from an interrupted update
 
-Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml` in the same step, so recovery restores or finishes `config.yaml`, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `local/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`.
+Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml`, and each fork it [replaces with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version), in the same step, so recovery restores or finishes `config.yaml`, the replaced local rules and their asset directories, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `local/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`. A failed or interrupted update may leave empty directories under `local/`, such as a group's first `assets/` directory that [replacing a fork](/reference/cli/#replace-a-fork-with-the-newest-version) created. They're harmless: every command ignores them, and you can delete them.
 
 If the update completed but cleanup was interrupted, the next sync or build finishes deleting the backups. The completed update remains complete.
 

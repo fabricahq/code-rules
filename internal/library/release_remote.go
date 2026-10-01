@@ -552,8 +552,8 @@ var gitHubRuleCodes = []string{"GH006", "GH013"}
 
 // Static explanations of a server Git couldn't verify.
 const (
-	certificateFailure = ": Git couldn't verify the server's TLS certificate. Check that your system trusts it: Git's http.sslCAInfo setting, your system's certificate store, and any proxy that intercepts TLS"
-	hostKeyFailure     = ": Git couldn't verify the server's SSH host key. Check the server's entry in your known_hosts file"
+	certificateFailure = ": the HTTPS server's certificate couldn't be verified. Check that your system trusts it: Git's http.sslCAInfo setting, your system's certificate store, and any proxy that intercepts TLS"
+	hostKeyFailure     = ": the SSH host key couldn't be verified. Check the server's entry in your known_hosts file"
 )
 
 // pushRefusal explains why Git couldn't push the tag name to remote, with a static cause chosen from Git's
@@ -572,9 +572,9 @@ func pushRefusal(name, remote string, diagnostics []byte) string {
 		problem += ": the server refused the tag for a reason Code Rules doesn't recognize (GitHub error " + code + "). Check the repository's rules for tags and its server-side hooks"
 	case gitexec.Mentions(diagnostics, ruleRefusals...):
 		problem += ": a repository rule or tag protection refused the tag. Check the repository's rulesets and tag protection rules, and that they let you create release/<number> tags"
-	case !refused && gitexec.Mentions(diagnostics, gitexec.CertificateFailures...):
+	case !refused && gitexec.Mentions(diagnostics, gitexec.HTTPSCertificateFailures...):
 		problem += certificateFailure
-	case !refused && gitexec.Mentions(diagnostics, gitexec.HostKeyFailures...):
+	case !refused && gitexec.Mentions(diagnostics, gitexec.SSHHostKeyFailures...):
 		problem += hostKeyFailure
 	case !refused && gitexec.Mentions(diagnostics, gitexec.ConnectionFailures...):
 		problem += ": Git couldn't connect to the server. Check the repository address and your network connection"
@@ -596,9 +596,9 @@ func pushRefusal(name, remote string, diagnostics []byte) string {
 func fetchFailure(action, remote string, diagnostics []byte) error {
 	problem := "Git couldn't " + action + " " + remote
 	switch {
-	case gitexec.Mentions(diagnostics, gitexec.CertificateFailures...):
+	case gitexec.Mentions(diagnostics, gitexec.HTTPSCertificateFailures...):
 		problem += certificateFailure
-	case gitexec.Mentions(diagnostics, gitexec.HostKeyFailures...):
+	case gitexec.Mentions(diagnostics, gitexec.SSHHostKeyFailures...):
 		problem += hostKeyFailure
 	case gitexec.Mentions(diagnostics, gitexec.ConnectionFailures...):
 		problem += ": Git couldn't connect to the server. Check the repository address and your network connection"

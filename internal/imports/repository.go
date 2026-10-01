@@ -129,8 +129,8 @@ func (r *repository) hasBranch(ctx context.Context, name string) (bool, error) {
 	return result.Status == 0, nil
 }
 
-// fetchCommits fetches each commit that isn't present yet. A commit the repository doesn't have fails with
-// code version-not-found and missing's explanation.
+// fetchCommits fetches each commit that isn't present yet. A commit the server says it doesn't have fails with
+// code version-not-found and missing's explanation; any other failure is explained as fetchFailure does.
 func (r *repository) fetchCommits(ctx context.Context, commits []string, missing string) error {
 	wanted := []string{}
 	for _, commit := range commits {
@@ -147,10 +147,7 @@ func (r *repository) fetchCommits(ctx context.Context, commits []string, missing
 		return err
 	}
 	if fetched.Status != 0 {
-		if err := r.unreachable(ctx); err != nil {
-			return err
-		}
-		return fail("version-not-found", missing, nil)
+		return fetchFailure(fetched.Diagnostics, "a commit that the source record names", missing)
 	}
 	for _, commit := range wanted {
 		if _, err := r.commit(ctx, commit); err != nil {
@@ -173,19 +170,18 @@ func (r *repository) fetchRef(ctx context.Context, source rules.Source) (string,
 		return "", err
 	}
 	if fetched.Status != 0 {
-		if err := r.unreachable(ctx); err != nil {
-			return "", err
-		}
-		if ref.Kind() == rules.GitRefTag {
-			branch, err := r.hasBranch(ctx, strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
-			if err != nil {
-				return "", err
+		err := fetchFailure(fetched.Diagnostics, "sources."+source.Name+".ref", fmt.Sprintf("sources.%s.ref: the library has no tag or commit %s; check the ref.", source.Name, source.Ref))
+		// Only a server that says it has no such tag can mean that the ref names a branch.
+		if isMissing(err) && ref.Kind() == rules.GitRefTag {
+			branch, branchErr := r.hasBranch(ctx, strings.TrimPrefix(ref.Canonical(), "refs/tags/"))
+			if branchErr != nil {
+				return "", branchErr
 			}
 			if branch {
 				return "", fail("ref-is-branch", fmt.Sprintf("sources.%s.ref: %s is a branch; ref accepts a tag or a full commit SHA, not a branch, so every import can be reproduced.", source.Name, source.Ref), nil)
 			}
 		}
-		return "", fail("version-not-found", fmt.Sprintf("sources.%s.ref: the library has no tag or commit %s; check the ref.", source.Name, source.Ref), nil)
+		return "", err
 	}
 	commit, err := r.commit(ctx, ref.Canonical())
 	if err != nil {

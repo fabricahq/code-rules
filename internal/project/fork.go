@@ -106,7 +106,7 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 	if err != nil {
 		return nil, err
 	}
-	if plan.files, err = forkFiles(id, published, attribution); err != nil {
+	if plan.files, err = forkFiles(id, id+".md", published, attribution); err != nil {
 		return nil, fmt.Errorf("fork %s@%s: %w", id, from.Version, err)
 	}
 	if published.GroupMetadata != nil {
@@ -326,19 +326,29 @@ func forkAttribution(repository, id string, version rules.RuleVersion, published
 	return &rules.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release %d at commit %s.", version, id, published.Release, published.Commit)}, nil
 }
 
-// forkFiles returns the fork's files by path relative to local/. The rule and its asset directory keep their
-// library paths; each shared asset moves from assets/ into the rule's asset directory, keeping its path below
-// assets/. Markdown links to moved files are rewritten, and attribution, when not nil, is added to the rule. It
-// fails when two files would share a path, or when a Markdown file links to anything outside the fork, such as
-// a declared license file, because local rules can't depend on library files.
-func forkFiles(id string, published imports.PublishedRule, attribution *rules.Attribution) (map[string][]byte, error) {
-	rulePath := id + ".md"
+// forkFiles returns the files of a fork of rule id at rulePath, by path relative to local/: the rule moves to
+// rulePath and its asset directory to rulePath's, so a fork at the rule's own path, id.md, keeps their library
+// paths; each shared asset moves from assets/ into that asset directory, keeping its path below assets/. Markdown
+// links to moved files are rewritten, and attribution, when not nil, is added to the rule. It fails when two files
+// would share a path, or when a Markdown file links to anything outside the fork, such as a declared license file,
+// because local rules can't depend on library files.
+func forkFiles(id, rulePath string, published imports.PublishedRule, attribution *rules.Attribution) (map[string][]byte, error) {
+	libraryAssets, assets := rules.RuleAssetDirectory(id+".md"), rules.RuleAssetDirectory(rulePath)
 	moved := map[string]string{}
 	sources := map[string]string{}
 	for _, file := range slices.Sorted(maps.Keys(published.Files)) {
-		target := file
-		if shared, ok := strings.CutPrefix(file, "assets/"); ok {
-			target = rules.RuleAssetDirectory(rulePath) + shared
+		owned, isOwned := strings.CutPrefix(file, libraryAssets)
+		shared, isShared := strings.CutPrefix(file, "assets/")
+		var target string
+		switch {
+		case file == id+".md":
+			target = rulePath
+		case isOwned:
+			target = assets + owned
+		case isShared:
+			target = assets + shared
+		default:
+			return nil, &rules.ValidationError{Location: id + ".md", Problem: fmt.Sprintf("the library's %s is neither the rule, its asset, nor a shared asset, so a fork can't place it", file)}
 		}
 		if other, taken := sources[target]; taken {
 			return nil, &rules.ValidationError{Location: rulePath, Problem: fmt.Sprintf("the library's %s and %s would both become %s in the fork; rename one in the library", other, file, target)}

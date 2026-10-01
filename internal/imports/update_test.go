@@ -80,7 +80,7 @@ func rows(update Update) []string {
 // install imports config as the update plans it, as project update does after its preview.
 func (h history) install(t *testing.T, update Update, config rules.Configuration) Library {
 	t.Helper()
-	result, err := update.Import(context.Background(), config, Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment})
+	result, err := update.Import(context.Background(), config, Options{GitPath: h.fixture.GitPath, Environment: h.fixture.Environment}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -524,6 +524,34 @@ func TestPlanUpdate_ListsAPinnedReplacementsChangesAfterItsBasedOnVersion(t *tes
 			}
 			if got := rows(update); !reflect.DeepEqual(got, []string{test.row}) {
 				t.Fatalf("rows %q, want %q", got, test.row)
+			}
+			if got := versions(h.install(t, update, config).Snapshot)["techs/go/a"]; got != test.imported {
+				t.Fatalf("the pin didn't keep the imported copy: %s", got)
+			}
+		})
+	}
+}
+
+// TestPlanUpdate_ListsAPinnedReplacementWithoutBasedOnAsReplaced: without basedOn, a replaced row compares with the
+// imported version, and a pin that keeps the imported copy hides no changes, since the pin governs only that copy.
+func TestPlanUpdate_ListsAPinnedReplacementWithoutBasedOnAsReplaced(t *testing.T) {
+	h := newHistory(t)
+	for _, test := range []struct {
+		name, pin, imported string
+		want                []string
+	}{
+		{"pinned at an older version", "1.0.0", "1.0.0@1", []string{"replaced techs/go/a from 1.0.0 newest 2.0.0 local local/techs/go/a.md pin 1.0.0 (Keep.): Add an example. | Require more."}},
+		{"pinned at the newest version", "2.0.0", "2.0.0@3", []string{}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config := h.source(t, `"rules":["techs/go/a"],"pins":{"techs/go/a":{"version":"`+test.pin+`","reason":"Keep."}},"exclude":{"techs/go/a":{"reason":"Ours.","replacedBy":"local/techs/go/a.md"}}`)
+			recorded := h.record(t, config, 3, map[string]string{"techs/go/a": test.imported})
+			update, err := h.plan(t, config, &recorded)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := rows(update); !reflect.DeepEqual(got, test.want) {
+				t.Fatalf("rows %q, want %q", got, test.want)
 			}
 			if got := versions(h.install(t, update, config).Snapshot)["techs/go/a"]; got != test.imported {
 				t.Fatalf("the pin didn't keep the imported copy: %s", got)

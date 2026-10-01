@@ -42,8 +42,8 @@ func releaseRules(record rules.ReleaseRecord) []PendingRule {
 }
 
 // renderReleaseNotes returns a library release's Markdown notes, without a trailing newline: a line counting
-// the rule changes, a section for each kind of change that has entries, in the order major, minor, patch, new,
-// and retired, a sentence noting shared files when a library release after the first also lists library-wide
+// the rule changes, a section for each kind of change that has entries, in the order new, major, minor, patch,
+// and retired, so readers meet the rules they'd adopt before the changes to rules they have, a sentence noting shared files when a library release after the first also lists library-wide
 // files, and a collapsed table of every rule's version. Each rule is a list item with its summaries, one per
 // change note, as nested items, except in the first library release, whose rules all have the same placeholder
 // summary, firstReleaseSummary. Every paragraph and list item is one line. Library-wide files are never listed.
@@ -53,7 +53,7 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 	sections := []struct {
 		change  rules.Change
 		heading string
-	}{{rules.ChangeMajor, "Major changes"}, {rules.ChangeMinor, "Minor changes"}, {rules.ChangePatch, "Patch changes"}, {rules.ChangeNew, "New rules"}}
+	}{{rules.ChangeNew, "New rules"}, {rules.ChangeMajor, "Major changes"}, {rules.ChangeMinor, "Minor changes"}, {rules.ChangePatch, "Patch changes"}}
 	for _, section := range sections {
 		var items []string
 		for _, id := range slices.Sorted(maps.Keys(record.Changes)) {
@@ -106,7 +106,8 @@ func renderReleaseNotes(record rules.ReleaseRecord) string {
 	return out.String()
 }
 
-// countLine opens the notes, such as "Library release 4 changes 4 rules: 1 major and 3 new.", on one line. A
+// countLine opens the notes, such as "Library release 4 changes 4 rules: 3 new and 1 major.", on one line, counting
+// each kind of change in the order of the sections. A
 // library release that changes no rules says it updates shared files instead, and the first library release says
 // how many rules it publishes, since they are all new.
 func countLine(record rules.ReleaseRecord) string {
@@ -130,7 +131,7 @@ func countLine(record rules.ReleaseRecord) string {
 		return heading + "no rules. It updates shared files, such as group descriptions or shared assets."
 	}
 	var kinds []string
-	for _, change := range []rules.Change{rules.ChangeMajor, rules.ChangeMinor, rules.ChangePatch, rules.ChangeNew, rules.ChangeRetired} {
+	for _, change := range []rules.Change{rules.ChangeNew, rules.ChangeMajor, rules.ChangeMinor, rules.ChangePatch, rules.ChangeRetired} {
 		if counts[change] > 0 {
 			kinds = append(kinds, strconv.Itoa(counts[change])+" "+string(change))
 		}

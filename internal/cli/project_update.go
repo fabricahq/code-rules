@@ -18,34 +18,39 @@ import (
 // projectUpdateCommand previews newer rule versions and applies them after confirmation or with --yes.
 func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command {
 	cmd := &cobra.Command{Use: "update [SOURCE | SOURCE:RULE ...]", Short: "Preview and apply newer rule versions from libraries", Args: cobra.ArbitraryArgs}
-	cmd.Long = "Preview newer rule versions, new rules, and retirements from your libraries, then\napply them after you confirm. With no arguments, every source is updated.\nSOURCE, such as team, updates one library. SOURCE:RULE, such as\nteam:techs/go/errors, moves only that rule and adds no new rules. Sources that\nuse ref don't move.\n\nIn a terminal, update asks about each major change and retirement (adopt it, or\nkeep the current version with a pin) and each new rule (add it, or exclude it),\nthen asks you to confirm. It also asks whether each local rule that replaces a\nlibrary rule now incorporates the library's changes it lists (mark them\nincorporated, or review them later). Without a terminal, or with --json, it\nonly shows the preview unless you pass --yes. The update applies exactly the\nversions the preview showed." + documentationHelp
+	cmd.Long = "Preview newer rule versions, new rules, and retirements from your libraries, then\napply them after you confirm. With no arguments, every source is updated.\nSOURCE, such as team, updates one library. SOURCE:RULE, such as\nteam:techs/go/errors, moves only that rule and adds no new rules. Sources that\nuse ref don't move.\n\nIn a terminal, update asks about each major change and retirement (adopt it, or\nkeep the current version with a pin), each new rule (add it, or exclude it), and\neach local rule that replaces a changed library rule (review the changes later,\nor replace your rule with a fork of the newest version, overwriting your edits),\nthen asks you to confirm. Without a terminal, or with --json, it only shows the\npreview unless you pass --yes. The update applies exactly the versions the\npreview showed." + documentationHelp
 	f := &authoringFlags{command: cmd, values: map[string]*singleString{}, directory: options.Directory}
 	cmd.PostRunE = f.finishPrompts
 	cmd.Flags().Bool("yes", false, "Apply the previewed changes without asking; required without a terminal or with --json")
-	var keep, exclude, incorporated []string
+	var keep, exclude, forks []string
 	cmd.Flags().StringArrayVar(&keep, "keep", nil, "Pin `SOURCE:RULE` at its current version instead of updating it (repeat); requires --reason")
 	cmd.Flags().StringArrayVar(&exclude, "exclude", nil, "Exclude the new rule `SOURCE:RULE` instead of adding it (repeat); requires --reason")
-	cmd.Flags().StringArrayVar(&incorporated, "incorporated", nil, "Record that your local rule replacing `SOURCE:RULE` incorporates the listed changes, setting its basedOn to the newest version (repeat)")
+	cmd.Flags().StringArrayVar(&forks, "update-fork", nil, "Replace your local rule that replaces `SOURCE:RULE` with a fork of the newest version, overwriting your edits, and set its basedOn to that version (repeat)")
 	f.add(cmd, "reason", "Reason recorded with each pin and exclusion the update writes")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		// Every refusal says that the update wrote nothing, as a failed sync or update does.
 		targets, err := updateTargets(args)
 		if err != nil {
-			return usage(err)
+			return usage(&project.UnchangedError{Err: err})
 		}
-		decisions, err := flagDecisions(keep, exclude, incorporated, f.value("reason"))
+		decisions, err := flagDecisions(keep, exclude, forks, f.value("reason"))
 		if err != nil {
-			return usage(err)
+			return usage(&project.UnchangedError{Err: err})
 		}
 		directory, err := commandDirectory(cmd.Context(), options.Directory, "project", false)
 		if err != nil {
-			return err
+			return &project.UnchangedError{Err: err}
 		}
-		plan, err := project.PlanUpdate(cmd.Context(), project.Options{Directory: directory, ToolVersion: options.Version}, options.Git, targets)
+		f.status("Reading library releases...")
+		plan, err := project.PlanUpdate(cmd.Context(), project.Options{Directory: directory, ToolVersion: options.Version}, options.Git, targets, decisions)
 		if err != nil {
 			return err
 		}
 		location := updateLocation{root: directory, workdir: options.Directory, recovered: plan.Recovered()}
-		preview, err := plan.Preview(decisions)
+		if updatesForks(decisions) {
+			f.status("Reading forked rule versions...")
+		}
+		preview, err := plan.Preview(cmd.Context(), decisions)
 		if err != nil {
 			return err
 		}
@@ -59,12 +64,15 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		asked := interactive && preview.Moves()
 		if asked {
 			flagged := len(decisions)
-			if decisions, err = askUpdateDecisions(f, preview, decisions); err != nil {
+			if decisions, err = askUpdateDecisions(f, plan, preview, decisions); err != nil {
 				return location.promptFailure(err)
 			}
 			// Answers change the update, so people confirm what they'll get.
 			if len(decisions) > flagged {
-				if preview, err = plan.Preview(decisions); err != nil {
+				if updatesForks(decisions[flagged:]) {
+					f.status("Reading forked rule versions...")
+				}
+				if preview, err = plan.Preview(cmd.Context(), decisions); err != nil {
 					return err
 				}
 				f.introduction += "\n" + answersSummary(preview.Sources)
@@ -79,6 +87,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 				return nil
 			}
 		}
+		f.status("Fetching the update...")
 		result, err := plan.Apply(cmd.Context(), decisions)
 		if err != nil {
 			return err
@@ -87,6 +96,11 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		return nil
 	}
 	return cmd
+}
+
+// updatesForks reports whether decisions replace a fork, which reads the forked version from its library.
+func updatesForks(decisions []project.UpdateDecision) bool {
+	return slices.ContainsFunc(decisions, func(decision project.UpdateDecision) bool { return decision.Kind == project.DecisionUpdateFork })
 }
 
 // updateTargets parses SOURCE and SOURCE:RULE arguments; whether each names a configured source and an imported
@@ -108,10 +122,10 @@ func updateTargets(args []string) ([]imports.UpdateTarget, error) {
 	return targets, nil
 }
 
-// flagDecisions turns --keep and --exclude into decisions with --reason, and --incorporated into decisions without
+// flagDecisions turns --keep and --exclude into decisions with --reason, and --update-fork into decisions without
 // one, ignoring repeated values. --reason is required with --keep or --exclude and accepted only with one of them,
 // and two of the flags naming one rule fail.
-func flagDecisions(keep, exclude, incorporated []string, reason string) ([]project.UpdateDecision, error) {
+func flagDecisions(keep, exclude, forks []string, reason string) ([]project.UpdateDecision, error) {
 	if len(keep)+len(exclude) > 0 && reason == "" {
 		return nil, fmt.Errorf("--keep and --exclude require --reason, which is recorded with each pin and exclusion")
 	}
@@ -126,7 +140,7 @@ func flagDecisions(keep, exclude, incorporated []string, reason string) ([]proje
 		flag   string
 		kind   project.UpdateDecisionKind
 		values []string
-	}{{"--keep", project.DecisionKeep, keep}, {"--exclude", project.DecisionExclude, exclude}, {"--incorporated", project.DecisionIncorporated, incorporated}} {
+	}{{"--keep", project.DecisionKeep, keep}, {"--exclude", project.DecisionExclude, exclude}, {"--update-fork", project.DecisionUpdateFork, forks}} {
 		for _, value := range group.values {
 			source, rule, ok := strings.Cut(value, ":")
 			if !ok || source == "" {
@@ -144,7 +158,7 @@ func flagDecisions(keep, exclude, incorporated []string, reason string) ([]proje
 			decided[value] = group.flag
 			seen[group.flag+value] = true
 			decision := project.UpdateDecision{Source: source, Rule: rule, Kind: group.kind, Reason: reason}
-			if group.kind == project.DecisionIncorporated {
+			if group.kind == project.DecisionUpdateFork {
 				decision.Reason = ""
 			}
 			decisions = append(decisions, decision)
@@ -154,15 +168,17 @@ func flagDecisions(keep, exclude, incorporated []string, reason string) ([]proje
 }
 
 // askUpdateDecisions shows the preview and asks about each major change, retirement, new rule, and replaced rule the
-// flags didn't decide. It returns the flags' decisions followed by one for each rule kept, excluded, or marked
-// incorporated. The preview stays in f.introduction when there is nothing to ask.
-func askUpdateDecisions(f *authoringFlags, preview project.UpdateResult, decisions []project.UpdateDecision) ([]project.UpdateDecision, error) {
+// flags didn't decide, naming the local files that replacing each fork of plan overwrites. It returns the flags'
+// decisions followed by one for each rule kept, excluded, or whose fork is replaced. The preview stays in
+// f.introduction when there is nothing to ask.
+func askUpdateDecisions(f *authoringFlags, plan *project.UpdatePlan, preview project.UpdateResult, decisions []project.UpdateDecision) ([]project.UpdateDecision, error) {
 	var intro strings.Builder
 	formatUpdatePreview(&intro, preview.Sources)
 	f.introduction = intro.String()
 	for _, source := range preview.Sources {
 		for _, row := range source.Rules {
-			if row.Decision != "" || row.Pin != nil {
+			// A pin keeps a rule where it is, except that a fork can still follow the newest version.
+			if row.Decision != "" || row.Pin != nil && row.Change != imports.UpdateReplaced {
 				continue
 			}
 			// Each question names its rule on a line of its own, so prompts stay short enough not to wrap.
@@ -186,9 +202,13 @@ func askUpdateDecisions(f *authoringFlags, preview project.UpdateResult, decisio
 				question = "Add it, or exclude it?"
 				reasonLabel = "Reason for excluding it:"
 			case imports.UpdateReplaced:
-				choices = [2]string{"later", "incorporated"}
-				context = fmt.Sprintf("%s: replaced by %s, with library changes up to %s.", name, row.LocalRule, row.ReviewedVersion())
-				question = "Review later, or mark incorporated?"
+				version := row.ReviewedVersion()
+				choices = [2]string{"later", "replace"}
+				context = fmt.Sprintf("%s: replaced by %s, with library changes up to %s.", name, row.LocalRule, version)
+				if replaced := plan.ReplacedFiles(row.LocalRule); len(replaced) > 0 {
+					context += fmt.Sprintf("\nReplacing your rule with a fork of %s replaces or removes:\n  %s", version, strings.Join(replaced, "\n  "))
+				}
+				question = fmt.Sprintf("Review later, or replace your local rule with %s?", version)
 			default:
 				continue
 			}
@@ -201,7 +221,7 @@ func askUpdateDecisions(f *authoringFlags, preview project.UpdateResult, decisio
 				continue
 			}
 			if row.Change == imports.UpdateReplaced {
-				decisions = append(decisions, project.UpdateDecision{Source: source.Name, Rule: row.ID, Kind: project.DecisionIncorporated})
+				decisions = append(decisions, project.UpdateDecision{Source: source.Name, Rule: row.ID, Kind: project.DecisionUpdateFork})
 				continue
 			}
 			reason, err := f.askValidated(reasonLabel, func(value string) error {
@@ -239,7 +259,7 @@ func askChoice(f *authoringFlags, question string, choices [2]string) (string, e
 }
 
 // answersSummary lists the rows the user's answers decided: each kept rule with the version a new pin keeps it
-// at, and each excluded new rule, with the reasons, and each replacement marked incorporated, with its new basedOn.
+// at, and each excluded new rule, with the reasons, and each replaced fork, with the files it replaces and removes.
 func answersSummary(sources []imports.SourceUpdate) string {
 	var out strings.Builder
 	out.WriteString("Your answers:\n")
@@ -250,8 +270,17 @@ func answersSummary(sources []imports.SourceUpdate) string {
 				fmt.Fprintf(&out, "  Keep %s:%s at %s.\n    Reason: %s\n", source.Name, row.ID, row.From, row.Reason)
 			case "exclude":
 				fmt.Fprintf(&out, "  Exclude %s:%s.\n    Reason: %s\n", source.Name, row.ID, row.Reason)
-			case "incorporated":
-				fmt.Fprintf(&out, "  Mark %s:%s incorporated: your rule is based on %s.\n", source.Name, row.ID, row.ReviewedVersion())
+			case "update-fork":
+				fmt.Fprintf(&out, "  Replace your rule for %s:%s with a fork of %s", source.Name, row.ID, row.ReviewedVersion())
+				files := forkFileLines(row)
+				if len(files) == 0 {
+					out.WriteString(".\n")
+					continue
+				}
+				out.WriteString(":\n")
+				for _, line := range files {
+					fmt.Fprintf(&out, "    %s\n", line)
+				}
 			}
 		}
 	}
@@ -395,15 +424,22 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 		}
 		lines = append(lines, summary)
 	}
+	forked := row.Decision == "update-fork"
 	switch {
-	case row.BasedOn != nil && row.Decision == "incorporated":
-		lines = append(lines, "Your rule: "+row.LocalRule+", based on "+row.BasedOn.String()+".")
 	case row.BasedOn != nil:
-		lines = append(lines, "Your rule: "+row.LocalRule+", based on "+row.BasedOn.String()+".",
-			"Changes since "+row.BasedOn.String()+", the version your rule is based on. When it has them,", "record that with --incorporated "+source+":"+row.ID+".")
+		lines = append(lines, "Your rule: "+row.LocalRule+", based on "+row.BasedOn.String()+".")
+		if !forked {
+			lines = append(lines, "Changes since "+row.BasedOn.String()+", the version your rule is based on.")
+		}
 	case row.LocalRule != "":
+		lines = append(lines, "Your rule: "+row.LocalRule+".")
 		// Without basedOn, the row can only compare with the imported version.
-		lines = append(lines, "Your rule: "+row.LocalRule+".", "Changes since the imported version "+row.From.String()+"; your rule may already have some.")
+		if !forked {
+			lines = append(lines, "Changes since the imported version "+row.From.String()+"; your rule may already have some.")
+		}
+	}
+	if row.Change == imports.UpdateReplaced && !forked {
+		lines = append(lines, "To replace your rule and its assets with a fork of "+row.ReviewedVersion().String()+",", "pass --update-fork "+source+":"+row.ID+".")
 	}
 	switch {
 	case row.Change == imports.UpdatePinned:
@@ -414,8 +450,24 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 		lines = append(lines, "Kept at "+row.From.String()+" by a new pin.", "Reason: "+row.Reason)
 	case row.Decision == "exclude":
 		lines = append(lines, "Excluded by a new exclusion.", "Reason: "+row.Reason)
-	case row.Decision == "incorporated":
-		lines = append(lines, "Marked incorporated: your rule is now based on "+row.ReviewedVersion().String()+".")
+	}
+	// A pin keeps only the imported copy, so the fork's replacement shows beside it.
+	if forked {
+		lines = append(lines, "Your rule becomes a fork of "+row.ReviewedVersion().String()+".")
+		lines = append(lines, forkFileLines(row)...)
+	}
+	return lines
+}
+
+// forkFileLines names, one per line, each local file a row's fork update replaces with the new fork's copy, then
+// each it removes because the new fork doesn't have it.
+func forkFileLines(row imports.RuleUpdate) []string {
+	lines := []string{}
+	for _, file := range row.Overwrites {
+		lines = append(lines, "Replaces "+file)
+	}
+	for _, file := range row.Removes {
+		lines = append(lines, "Removes "+file)
 	}
 	return lines
 }

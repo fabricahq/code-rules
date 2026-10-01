@@ -169,7 +169,7 @@ func TestSyncAndUpdate_SayNoFilesWereWrittenWhenTheyFail(t *testing.T) {
 	cancelled, cancel := context.WithCancel(context.Background())
 	cancel()
 	_, syncErr := Sync(cancelled, options, git)
-	_, planErr := PlanUpdate(cancelled, options, git, nil)
+	_, planErr := PlanUpdate(cancelled, options, git, nil, nil)
 	for name, err := range map[string]error{"sync": syncErr, "update": planErr} {
 		if err == nil || err.Error() != "cancelled; no files were written" || !errors.Is(err, context.Canceled) {
 			t.Errorf("cancelled %s: %v", name, err)

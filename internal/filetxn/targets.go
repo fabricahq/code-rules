@@ -1,4 +1,5 @@
-// Adapt managed directories, the two project-guide filenames, and the configuration to the same recoverable transaction.
+// Adapt managed directories, the two project-guide filenames, the configuration, and the local files sync and update
+// write to the same recoverable transaction.
 
 package filetxn
 
@@ -35,6 +36,22 @@ func LocalGroupMetadata(group string) Target { return Target("local/" + group + 
 // small enough to read during recovery.
 const maxLocalGroupMetadata = 1000
 
+// LocalRule is the Markdown file of the local rule at file, a rule path relative to local/, such as
+// techs/go/errors.md, and LocalRuleAssets is that rule's asset directory, local/techs/go/assets/errors. Only
+// project update replaces them, when it replaces a fork with a newer one, so recovery restores or finishes the rule,
+// its assets, the configuration that records the fork's version, and the output generated from them together. A
+// nil file map for LocalRuleAssets removes the directory. Apply creates their missing parent directories.
+func LocalRule(file string) Target { return Target("local/" + file) }
+
+// LocalRuleAssets is the asset directory of the local rule at file; see LocalRule.
+func LocalRuleAssets(file string) Target {
+	return Target("local/" + strings.TrimSuffix(rules.RuleAssetDirectory(file), "/"))
+}
+
+// maxLocalRules bounds the local rules one transaction can replace, each with its asset directory, so its journal
+// stays small enough to read during recovery.
+const maxLocalRules = 1000
+
 func guideTarget(target Target) bool { return target == GuideReadme || target == GuideStandalone }
 
 // localGroupMetadataTarget reports whether target is a LocalGroupMetadata target of a valid group ID.
@@ -44,13 +61,38 @@ func localGroupMetadataTarget(target Target) bool {
 	return local && metadata && rules.ValidateGroupID(group, "group") == nil
 }
 
+// localRuleTarget reports whether target is a LocalRule target: the Markdown file of a rule path under local/.
+func localRuleTarget(target Target) bool {
+	file, local := strings.CutPrefix(string(target), "local/")
+	id, versioned := rules.VersionedRule(file)
+	return local && versioned && file == id+".md"
+}
+
+// localRuleAssetsTarget reports whether target is a LocalRuleAssets target: the asset directory of a rule path
+// under local/.
+func localRuleAssetsTarget(target Target) bool {
+	directory, local := strings.CutPrefix(string(target), "local/")
+	parent := path.Dir(directory)
+	if !local || path.Base(parent) != "assets" {
+		return false
+	}
+	file := path.Dir(parent) + "/" + path.Base(directory) + ".md"
+	return localRuleTarget(LocalRule(file)) && LocalRuleAssets(file) == target
+}
+
+// localTarget reports whether target is an authored file or directory under local/, which follows the fixed targets
+// in a transaction.
+func localTarget(target Target) bool {
+	return localGroupMetadataTarget(target) || localRuleTarget(target) || localRuleAssetsTarget(target)
+}
+
 // fileTarget reports whether target is a single file rather than a directory tree.
 func fileTarget(target Target) bool {
-	return guideTarget(target) || target == Config || localGroupMetadataTarget(target)
+	return guideTarget(target) || target == Config || localGroupMetadataTarget(target) || localRuleTarget(target)
 }
 
 func validTarget(target Target) bool {
-	return target == Vendor || target == Generated || fileTarget(target)
+	return target == Vendor || target == Generated || fileTarget(target) || localRuleAssetsTarget(target)
 }
 
 // requireRealParents fails with unsafe-path when a parent directory of target, such as local/techs for local group
@@ -75,7 +117,7 @@ func requireRealParents(root *os.Root, target Target) error {
 }
 
 // entryName names target's staged output, backup, and displaced copy inside the transaction directory, which holds
-// no subdirectories for file targets: a local group metadata path's slashes become +, which no target contains.
+// no subdirectories for them: the slashes of a path under local/ become +, which no target contains.
 func entryName(target Target) string { return strings.ReplaceAll(string(target), "/", "+") }
 
 // renameCheck is where Apply probes that this filesystem can publish a file target without replacing another file.

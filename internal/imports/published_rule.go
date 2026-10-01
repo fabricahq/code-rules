@@ -32,7 +32,13 @@ type PublishedRule struct {
 // without writing outside temporary storage. The library release that published the version is found from the
 // release records in its release/<number> tags. It fails with code releases-not-found before the library's first
 // library release, and version-not-found when the rule never published version.
-func ReadPublishedRule(ctx context.Context, source rules.Source, id string, version rules.RuleVersion, options Options) (_ PublishedRule, err error) {
+func ReadPublishedRule(ctx context.Context, source rules.Source, id string, version rules.RuleVersion, options Options) (PublishedRule, error) {
+	return readPublishedRule(ctx, source, id, version, options, nil)
+}
+
+// readPublishedRule is ReadPublishedRule, failing with expect's error, when expect isn't nil, before reading any rule
+// file of the library release it finds.
+func readPublishedRule(ctx context.Context, source rules.Source, id string, version rules.RuleVersion, options Options, expect func(*libraryRelease) error) (_ PublishedRule, err error) {
 	ctx, cancel, err := withTimeout(ctx, options)
 	if err != nil {
 		return PublishedRule{}, err
@@ -55,6 +61,11 @@ func ReadPublishedRule(ctx context.Context, source rules.Source, id string, vers
 	release, err := publishingRelease(history, id, version)
 	if err != nil {
 		return PublishedRule{}, err
+	}
+	if expect != nil {
+		if err := expect(release); err != nil {
+			return PublishedRule{}, err
+		}
 	}
 	tree, err := repo.tree(ctx, release.commit)
 	if err != nil {

@@ -315,7 +315,7 @@ func (p *planner) planRevision() (sourcePlan, error) {
 	recorded := p.recorded
 	if recorded != nil && p.source.Ref.Equal(recorded.Ref) {
 		plan.release, plan.commit = recorded.Release, recorded.Commit
-		if err := p.repo.fetchCommits(p.ctx, []string{plan.commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref is missing from the library's repository. Delete vendor/%s and run code-rules project sync to resolve the ref again.", p.source.Name, p.source.Name, p.source.Name)); err != nil {
+		if err := p.repo.fetchCommits(p.ctx, []string{plan.commit}, fmt.Sprintf("The commit that vendor/%s/_source.json records for sources.%s.ref is missing from the library's repository, so the library may have rewritten its history. Ask the library's maintainer to restore it, or set sources.%s.ref to a tag or commit the library still has, then run code-rules project sync. As a last resort, delete vendor/%s and run code-rules project sync to resolve the ref again, which may import different content.", p.source.Name, p.source.Name, p.source.Name, p.source.Name)); err != nil {
 			return sourcePlan{}, err
 		}
 	} else {
