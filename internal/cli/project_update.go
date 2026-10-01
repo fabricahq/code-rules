@@ -163,7 +163,8 @@ func askUpdateDecisions(f *authoringFlags, plan *project.UpdatePlan, preview pro
 	f.introduction = intro.String()
 	for _, source := range preview.Sources {
 		for _, row := range source.Rules {
-			if row.Decision != "" || row.Pin != nil {
+			// A pin keeps a rule where it is, except that a fork can still follow the newest version.
+			if row.Decision != "" || row.Pin != nil && row.Change != imports.UpdateReplaced {
 				continue
 			}
 			// Each question names its rule on a line of its own, so prompts stay short enough not to wrap.
@@ -434,6 +435,9 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 		lines = append(lines, "Kept at "+row.From.String()+" by a new pin.", "Reason: "+row.Reason)
 	case row.Decision == "exclude":
 		lines = append(lines, "Excluded by a new exclusion.", "Reason: "+row.Reason)
+	}
+	// A pin keeps only the imported copy, so the fork's replacement shows beside it.
+	switch {
 	case forked && len(row.Overwrites) == 0:
 		lines = append(lines, "Your rule becomes a fork of "+row.ReviewedVersion().String()+".")
 	case forked:

@@ -602,6 +602,38 @@ func TestBuild_NamesItsPathsRelativeToTheWorkingDirectory(t *testing.T) {
 	}
 }
 
+// TestUpdateDetails_ShowsAPinnedForksReplacementBesideThePin: a pin on the imported copy doesn't hide the fork's
+// version or the files it overwrites.
+func TestUpdateDetails_ShowsAPinnedForksReplacementBesideThePin(t *testing.T) {
+	old, newest := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 2}
+	row := imports.RuleUpdate{Change: imports.UpdateReplaced, From: &old, Newest: &newest, LocalRule: "local/techs/go/loaders.md", Pin: &rules.Pin{Version: old, Reason: "Not yet."}, Decision: "update-fork", Overwrites: []string{"local/techs/go/assets/loaders/notes.md", "local/techs/go/loaders.md"}, Summaries: []string{}}
+	want := []string{"Your rule: local/techs/go/loaders.md.", "Your pin keeps it at 1.0.0.", "Reason: Not yet.", "Your rule becomes a fork of 2.0.0, overwriting:", "  local/techs/go/assets/loaders/notes.md", "  local/techs/go/loaders.md"}
+	if got := updateDetails("team", row); !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
+
+// TestUpdate_AsksAboutAPinnedForkInATerminal: a pin on the imported copy doesn't stop the terminal from offering to
+// replace the fork with the newest version.
+func TestUpdate_AsksAboutAPinnedForkInATerminal(t *testing.T) {
+	u := newUpdateFixture(t)
+	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 1\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    groups:\n      - techs/go\n    pins:\n      techs/go/backoff:\n        version: \"1.0.0\"\n        reason: 'Waiting on #45.'\n      techs/go/loaders:\n        version: \"1.0.0\"\n        reason: Not yet.\n    exclude:\n      techs/go/loaders:\n        reason: Ours covers our data layer.\n        replacedBy: local/techs/go/use-data-loaders.md\n")
+	steps := []terminalfixture.Step{
+		{Prompt: "[adopt/keep]:", Answer: "adopt"},
+		{Prompt: "[add/exclude]:", Answer: "add"},
+		{Prompt: "[drop/keep]:", Answer: "drop"},
+		{Prompt: "Review later, or replace your local rule with 1.1.0? [later/replace]:", Answer: "replace"},
+		{Prompt: "Apply the update? [yes/no]:", Answer: "yes"},
+	}
+	result, err := terminalfixture.RunWithEnvironment(context.Background(), u.binary, u.directory, u.fixture.Environment, []string{"project", "update"}, steps)
+	if err != nil || result.ExitCode != 0 {
+		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
+	}
+	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "local", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) || u.versions(t)["loaders"] != "1.0.0" {
+		t.Fatalf("local rule, %v:\n%s\nversions %v", err, fork, u.versions(t))
+	}
+}
+
 // TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement instead of recommending it.
 func TestUpdateDetails_NamesTheLocalRuleThatAlreadyReplacesARetiredRulesReplacement(t *testing.T) {
 	last := rules.RuleVersion{Major: 1}
