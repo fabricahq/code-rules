@@ -40,11 +40,15 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		if err != nil {
 			return err
 		}
+		f.status("Reading library releases...")
 		plan, err := project.PlanUpdate(cmd.Context(), project.Options{Directory: directory, ToolVersion: options.Version}, options.Git, targets, decisions)
 		if err != nil {
 			return err
 		}
 		location := updateLocation{root: directory, workdir: options.Directory, recovered: plan.Recovered()}
+		if updatesForks(decisions) {
+			f.status("Reading forked rule versions...")
+		}
 		preview, err := plan.Preview(cmd.Context(), decisions)
 		if err != nil {
 			return err
@@ -64,6 +68,9 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 			}
 			// Answers change the update, so people confirm what they'll get.
 			if len(decisions) > flagged {
+				if updatesForks(decisions[flagged:]) {
+					f.status("Reading forked rule versions...")
+				}
 				if preview, err = plan.Preview(cmd.Context(), decisions); err != nil {
 					return err
 				}
@@ -79,6 +86,7 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 				return nil
 			}
 		}
+		f.status("Fetching the update...")
 		result, err := plan.Apply(cmd.Context(), decisions)
 		if err != nil {
 			return err
@@ -87,6 +95,11 @@ func projectUpdateCommand(options Options, output *commandOutput) *cobra.Command
 		return nil
 	}
 	return cmd
+}
+
+// updatesForks reports whether decisions replace a fork, which reads the forked version from its library.
+func updatesForks(decisions []project.UpdateDecision) bool {
+	return slices.ContainsFunc(decisions, func(decision project.UpdateDecision) bool { return decision.Kind == project.DecisionUpdateFork })
 }
 
 // updateTargets parses SOURCE and SOURCE:RULE arguments; whether each names a configured source and an imported

@@ -23,6 +23,14 @@ func (f *authoringFlags) interactive() bool {
 	return !disabled && !structured && inputFile && outputFile && term.IsTerminal(int(in.Fd())) && term.IsTerminal(int(out.Fd()))
 }
 
+// status tells a person at a terminal, on its own line of stderr, what the command is about to wait on, such as
+// reading libraries, so a slow network doesn't look like a hang. It writes nothing without a terminal or with --json.
+func (f *authoringFlags) status(text string) {
+	if f.interactive() {
+		_, _ = fmt.Fprintln(f.command.ErrOrStderr(), text)
+	}
+}
+
 // ask uses Go's terminal editor for pasted text and restores terminal settings on every return path.
 func (f *authoringFlags) ask(label string) (answer string, err error) {
 	if !f.interactive() {

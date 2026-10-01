@@ -468,8 +468,9 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 		t.Fatalf("exit %d, %v\n%s", result.ExitCode, err, result.Transcript)
 	}
 	beforePrompts, _, prompted := strings.Cut(strings.ReplaceAll(result.Transcript, "\r\n", "\n"), "Adopt it, or keep")
-	if !prompted || !strings.HasPrefix(beforePrompts, updatePreview) {
-		t.Fatalf("the complete preview didn't come before the first prompt:\n%s", result.Transcript)
+	// A status line says what the command waits on before it reads the libraries.
+	if !prompted || !strings.HasPrefix(beforePrompts, "Reading library releases...\n"+updatePreview) {
+		t.Fatalf("the status and the complete preview didn't come before the first prompt:\n%s", result.Transcript)
 	}
 	// The preview with the answers applied comes after the last question and before the confirmation.
 	transcript := strings.ReplaceAll(result.Transcript, "\r\n", "\n")
@@ -477,6 +478,13 @@ func TestUpdate_AsksInATerminal(t *testing.T) {
 	revised, _, confirmation := strings.Cut(afterQuestions, "Apply the update? [yes/no]:")
 	if !confirmation || !strings.Contains(revised, "Your answers:\n  Keep team:techs/go/errors at 1.0.0.\n    Reason: Waiting on review.\n  Exclude team:techs/go/verify.\n    Reason: Covered locally.\n  Replace your rule for team:techs/go/loaders with a fork of 1.1.0:\n    Replaces local/techs/go/use-data-loaders.md\n") || strings.Contains(revised, "  major ") {
 		t.Fatalf("the answers, without the preview again, didn't come before the confirmation:\n%s", result.Transcript)
+	}
+	// Reading the forked version after the answers, and fetching the update after the confirmation, each say so.
+	if _, afterAnswer, _ := strings.Cut(transcript, "[later/replace]: r\n"); !strings.HasPrefix(afterAnswer, "Reading forked rule versions...\n") {
+		t.Fatalf("no status before reading the fork:\n%s", result.Transcript)
+	}
+	if _, afterConfirmation, _ := strings.Cut(transcript, "Apply the update? [yes/no]: yes\n"); !strings.HasPrefix(afterConfirmation, "Fetching the update...\n") {
+		t.Fatalf("no status before fetching the update:\n%s", result.Transcript)
 	}
 	// The terminal showed the preview once, so the result lists only what the update changed.
 	if strings.Count(transcript, "  pinned    techs/go/backoff") != 1 || !strings.HasPrefix(result.Stdout, "Update complete: ") {
