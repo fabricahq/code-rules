@@ -39,7 +39,7 @@ Use this guide to **manage rules**. Use `.code-rules/generated/RULES.md` to **re
 1. Identify the requested change: add local guidance, adopt a library, change an existing definition, or verify generated output.
 2. Run the corresponding commands below. Run `code-rules project init` **from the Git repository root**. Other project commands can run from any subdirectory and use the root's `.code-rules/config.yaml`. Outside Git, run commands from the project root, the parent of `.code-rules/`.
 3. Supply the project's intended metadata and guidance. The examples below illustrate command syntax; replace their values before using them in a real project.
-4. Build after local edits. Sync after changing a library's repository, ref, version constraint, or group selection. Inspect the resulting diff and resolve errors before reporting completion.
+4. Build after local edits. Sync after changing a library's repository, selected groups or rules, pins, or ref. Inspect the resulting diff and resolve errors before reporting completion.
 5. Run check. Exit 0 confirms that generated files match their inputs and this guide matches the installed CLI; it does not verify application code against the rules.
 
 Human-readable output is the default. Add `--json` to any command for a structured response. JSON mode never prompts: supply all required flags. Inspect `ok`, `value`, and `error` and the process exit status. Exit 1 means operation failure or stale output; exit 2 means invalid usage. Use `--help` on a command for all options.
@@ -80,29 +80,56 @@ code-rules project check
 
 Confirm that `.code-rules/local/techs/go/return-errors.md` contains the complete rule and that the generated Go group includes it. The body file is an authoring input; future edits belong in the local rule file. If you omit `--body-file`, open the created Markdown file in your editor. Keep its metadata between the `---` lines; below it, write the instructions, rationale, correct and incorrect examples, and validation steps. Replace template placeholders and remove unused sections before building.
 
-Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions or replacements in the configuration when overriding imported rules; adding a local rule does not automatically replace an imported rule.
+Follow the [rule authoring rubric](https://github.com/fabricahq/code-rules/blob/main/docs/src/content/docs/reference/rule-authoring.md). Use explicit exclusions in the configuration, optionally naming a local rule as `replacedBy`, when overriding imported rules; adding a local rule does not automatically replace an imported rule.
 
 #### Add a third-party library
 
-Obtain the publisher's Git repository address, a released tag or full commit, and the group paths you intend to adopt. Inspect the library's guidance and license terms before adopting it. Replace this illustrative repository and selection:
+Obtain the publisher's Git repository address and the group paths you intend to adopt. Inspect the library's guidance and license terms before adopting it. Replace this illustrative repository and selection:
 
 ```sh
 code-rules project add library team \
   --repository 'https://github.com/example/engineering-rules' \
-  --ref v1.0.0 \
   --groups techs/go
 code-rules project sync
 code-rules project check
 ```
 
-`code-rules project add library` records the declaration without fetching. `code-rules project sync` fetches configured sources, validates them, and installs vendor and generated files together. If any source fails, the previous complete output stays in place. Inspect the selected revision and retained terms in `.code-rules/generated/provenance.json` and `.code-rules/vendor/team/`.
+`code-rules project add library` records the declaration without fetching. `code-rules project sync` imports each selected rule's newest version from the library's releases, validates it, and installs vendor and generated files together. It records every rule's version in `.code-rules/vendor/team/_source.json`, and later syncs import those same versions. If any source fails, the previous complete output stays in place. Inspect the rule versions and retained terms in `.code-rules/generated/libraries/team/README.md` and `.code-rules/vendor/team/`.
 
-Use `--ref` for an exact tag, full commit SHA, or version constraint. For a version constraint, replace `--ref v1.0.0` with `--ref '>= 1.0.0, < 2.0.0'`. Repeat `--groups` for multiple groups. For a wildcard, quote it: `--groups 'techs/*'` or `--groups '*'`.
+Repeat `--groups` for multiple groups. For a wildcard, quote it: `--groups 'techs/*'` or `--groups '*'`. To import single rules without the rest of their group, repeat `--rules` with library rule IDs such as `techs/go/shared`; supply at least one `--groups` or `--rules`. `--ref` imports the library exactly as it was at one tag, such as a library release tag `release/5`, or a full commit SHA. Branch names and abbreviated commits aren't supported.
+
+#### Keep a rule at its current version
+
+To keep an imported rule at its version, read the version from `.code-rules/vendor/<source>/_source.json` and add a pin under that source in `.code-rules/config.yaml`, with the reason you were given:
+
+```yaml
+pins:
+  techs/go/shared:
+    version: "1.0.0"
+    reason: Waiting on the author's response to our question.
+```
+
+Then run `code-rules project sync`. A pin can also move a rule to another published version, up or down. During an update, `--keep` writes the same pin for you.
+
+#### Update rules
+
+`code-rules project sync` never moves a rule to a newer version. Adopt newer rule versions, new rules, and retirements only when the person you work for asks, never as part of another task. Preview the update first, then apply it:
+
+```sh
+code-rules project update
+code-rules project update --yes
+code-rules project check
+```
+
+The preview lists each library's changes with the summary of every version in between: `major`, `minor`, and `patch` changes, `new` rules, `retired` rules, `replaced` rules (library rules the project replaced with a local rule), and `pinned` rules that a pin keeps where they are. Major changes, new rules, and retirements can change what the code must do: show them to the person who asked, and don't apply a major change without their consent. Without a terminal, `code-rules project update` only previews and exits 0; `--yes` applies exactly the previewed versions. Add `--json` for the preview's rows in `value.sources`.
+
+To keep a rule at its current version, add `--keep team:<rule-id> --reason '<why>'`, which writes a pin. To decline a new rule, add `--exclude team:<rule-id> --reason '<why>'`, which writes an exclusion. Name `team` to update only that library, or `team:<rule-id>` to move only that rule. The update writes pins and exclusions to `.code-rules/config.yaml` together with `vendor/` and `generated/`; review all three before committing.
 
 #### Maintain and verify the project
 
 - After editing local rules, run `code-rules project build`, then `code-rules project check`. In Git repositories, both work from any subdirectory.
-- After changing source selection, run `code-rules project sync`, then `code-rules project check`. Sync resolves tags again, so inspect revision changes before committing them.
+- After changing a library's repository, selected groups or rules, pins, or ref, run `code-rules project sync`, then `code-rules project check`. Sync imports the recorded versions of the other rules and chooses versions only for what changed; inspect the changes in `vendor/` before committing them.
+- To adopt newer rule versions, run `code-rules project update` as described above; sync and check never do.
 - Review configuration, local rules, vendor snapshots, and generated output together. Keep project-specific notes in a separate file.
 - Use `code-rules library --help` when authoring a separately published library. Project-local authoring and publisher authoring use different command trees.
 

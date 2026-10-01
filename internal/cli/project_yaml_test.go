@@ -43,11 +43,14 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Preserve a user's comments, quoted scalar, and exception policy when another library is added.
-	text := "# Company rule selections\n" + strings.Replace(string(data), "exclude: {}", "exclude:\n      techs/go/old: 'Keep our local policy' # retained reason", 1)
+	if !strings.Contains(string(data), "    ref: v1.2.3\n") || strings.Contains(string(data), "exclude") {
+		t.Fatal("unexpected source declaration", string(data))
+	}
+	text := "# Company rule selections\n" + strings.Replace(string(data), "    ref: v1.2.3\n", "    ref: v1.2.3\n    exclude:\n      techs/go/old:\n        reason: 'Keep our local policy' # retained reason\n", 1)
 	if err := os.WriteFile(name, []byte(text), 0600); err != nil {
 		t.Fatal(err)
 	}
-	run("project", "add", "library", "security", "--repository", "https://example.invalid/security.git", "--ref", ">= 1.0.0, < 2.0.0", "--groups", "practices/*", "--non-interactive")
+	run("project", "add", "library", "security", "--repository", "https://example.invalid/security.git", "--ref", "v2.0.0", "--groups", "practices/*", "--non-interactive")
 	data, err = os.ReadFile(name)
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +64,7 @@ func TestYAMLProjectLifecycle(t *testing.T) {
 			t.Fatal("lost authored YAML", marker, string(data))
 		}
 	}
-	if config.Sources[0].Version != ">= 1.0.0, < 2.0.0" || config.Sources[1].Exclude["techs/go/old"] != "Keep our local policy" {
+	if config.Sources[0].Ref.String() != "v2.0.0" || config.Sources[1].Exclude["techs/go/old"].Reason != "Keep our local policy" {
 		t.Fatal(config)
 	}
 	before := projectFileContents(t, directory)
@@ -101,7 +104,7 @@ func TestAddingLibrariesPreservesFoldedExclusion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data = []byte(strings.Replace(string(data), "exclude: {}", "exclude:\n      techs/go/old: > # keep this reason\n        Heading:\n\n          * first item\n          * second item", 1))
+	data = []byte(strings.Replace(string(data), "    ref: v1.0.0\n", "    ref: v1.0.0\n    exclude:\n      techs/go/old:\n        reason: > # keep this reason\n          Heading:\n\n            * first item\n            * second item\n", 1))
 	if err := os.WriteFile(name, data, 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +112,7 @@ func TestAddingLibrariesPreservesFoldedExclusion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := before.Sources[0].Exclude["techs/go/old"]
+	want := before.Sources[0].Exclude["techs/go/old"].Reason
 	for _, alias := range []string{"second", "third"} {
 		run("project", "add", "library", alias, "--repository", "https://example.invalid/"+alias+".git", "--ref", "v1.0.0", "--groups", "*", "--non-interactive")
 		data, err = os.ReadFile(name)
@@ -123,7 +126,7 @@ func TestAddingLibrariesPreservesFoldedExclusion(t *testing.T) {
 		var got string
 		for _, source := range config.Sources {
 			if source.Name == "existing" {
-				got = source.Exclude["techs/go/old"]
+				got = source.Exclude["techs/go/old"].Reason
 			}
 		}
 		if got != want {

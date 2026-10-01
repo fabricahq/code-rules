@@ -20,7 +20,8 @@ type LicenseDeclaration struct {
 }
 
 // ParseLibraryLicense validates authored YAML and returns safe declared paths without checking file presence.
-// Missing licensing returns nil, not an inferred license. Unknown manifest fields are allowed;
+// Declared paths must be library-wide files, never a rule's Markdown file or a file in an asset directory inside
+// a group. Missing licensing returns nil, not an inferred license. Unknown manifest fields are allowed;
 // license fields are strict. Callers read retained bytes through their confined file reader.
 func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error) {
 	location := source + "/rule-library.yaml"
@@ -51,7 +52,7 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 	if err := knownJSONFields(fields, []string{"file", "notices", "spdxExpression", "expression"}, location); err != nil {
 		return nil, err
 	}
-	file, err := jsonPath(fields["file"], location+".file")
+	file, err := termsPath(fields["file"], location+".file")
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +62,7 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 	}
 	notices := make([]string, len(rawNotices))
 	for i, raw := range rawNotices {
-		path, err := jsonPath(raw, fmt.Sprintf("%s.notices[%d]", location, i))
+		path, err := termsPath(raw, fmt.Sprintf("%s.notices[%d]", location, i))
 		if err != nil {
 			return nil, err
 		}
@@ -93,6 +94,20 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 		}
 	}
 	return &result, nil
+}
+
+// termsPath reads a declared license or notice path, which must be a library-wide file: a rule's Markdown file or
+// a file in an asset directory inside a group belongs to that rule's version, so declaring it would let a library
+// release replace a rule version's content.
+func termsPath(input json.RawMessage, location string) (string, error) {
+	path, err := jsonPath(input, location)
+	if err != nil {
+		return "", err
+	}
+	if isRuleContent(path) {
+		return "", invalid(location, quote(path)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root")
+	}
+	return path, nil
 }
 
 // controlCharacter identifies bytes that cannot occur in a single-line SPDX expression.

@@ -11,10 +11,10 @@ import (
 type ProblemKind string
 
 const (
-	MissingFile    ProblemKind = "missing_file"
-	StaleContents  ProblemKind = "stale_contents"
-	UnexpectedFile ProblemKind = "unexpected_file"
-	OutdatedGuide  ProblemKind = "outdated_readme"
+	MissingFile    ProblemKind = "missing-file"
+	StaleContents  ProblemKind = "stale-contents"
+	UnexpectedFile ProblemKind = "unexpected-file"
+	OutdatedGuide  ProblemKind = "outdated-readme"
 )
 
 // RepairAction identifies the project operation that can repair an observed mismatch.

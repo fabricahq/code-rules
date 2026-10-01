@@ -9,6 +9,7 @@ import (
 	"maps"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/filetxn"
@@ -27,13 +28,22 @@ type Options struct {
 	GroupInlineMaxBytes *int
 }
 
-// FileChanges lists sorted changed paths. Build uses generated-relative paths; Sync prefixes managed tree names.
+// FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
+// names, list local/<group>/_group.yaml when they add a local group's metadata, and update also lists config.yaml
+// when it writes pins or exclusions.
 // Empty lists mean matching tree output; Guide reports a separate managed-guide update.
 type FileChanges struct {
 	Added   []string     `json:"added"`
 	Changed []string     `json:"changed"`
 	Removed []string     `json:"removed"`
 	Guide   *GuideChange `json:"guide,omitempty"`
+	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
+	// sources importing a ref that isn't a library release. Then, in group order, each local group metadata file
+	// they wrote. Build reports none.
+	Warnings []string `json:"warnings"`
+	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
+	// that command's files, which the lists above don't include.
+	Recovered bool `json:"recovered"`
 }
 
 // GuideChange reports a managed-guide update separately from generated-relative file paths.
@@ -54,7 +64,9 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	}
 	defer root.Close()
 	var changes FileChanges
+	recovered := false
 	err = filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		recovered = w.Recovered()
 		before, err := readProject(ctx, root)
 		if err != nil {
 			return err
@@ -63,7 +75,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		if err != nil {
 			return err
 		}
-		output, err := prepareProject(ctx, root, before, options)
+		output, err := prepareProject(ctx, before, options)
 		if err != nil {
 			return err
 		}
@@ -80,6 +92,7 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err != nil {
 		return FileChanges{}, err
 	}
+	changes.Recovered = recovered
 	return changes, nil
 }
 
@@ -108,7 +121,7 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	if err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
-	output, err := prepareProject(ctx, root, before, options)
+	output, err := prepareProject(ctx, before, options)
 	if err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
@@ -176,8 +189,9 @@ func readProject(ctx context.Context, root *os.Root) (projectState, error) {
 	return state, nil
 }
 
-// prepareProject verifies persisted identity, reloads native library semantics, resolves, and renders in memory.
-func prepareProject(ctx context.Context, root *os.Root, state projectState, options Options) (build.Output, error) {
+// prepareProject verifies persisted identity, reloads native library semantics from the verified bytes, resolves,
+// and renders in memory.
+func prepareProject(ctx context.Context, state projectState, options Options) (build.Output, error) {
 	snapshots, err := decodeSnapshots(state.config, treeFiles(state.vendor))
 	if err != nil {
 		return build.Output{}, err
@@ -185,24 +199,33 @@ func prepareProject(ctx context.Context, root *os.Root, state projectState, opti
 	libraries := map[string]build.Library{}
 	for _, source := range state.config.Sources {
 		snapshot := snapshots[source.Name]
-		sourceRoot, err := root.OpenRoot("vendor/" + source.Name)
+		catalog, err := loadSnapshot(ctx, source, snapshot)
 		if err != nil {
 			return build.Output{}, err
 		}
-		catalog, loadErr := library.Load(ctx, sourceRoot, source.Name, source.Groups)
-		closeErr := sourceRoot.Close()
-		if loadErr != nil {
-			return build.Output{}, loadErr
-		}
-		if closeErr != nil {
-			return build.Output{}, closeErr
-		}
-		if err := verifyLoadedSnapshot(source.Name, catalog, snapshot); err != nil {
-			return build.Output{}, err
-		}
-		libraries[source.Name] = build.Library{Catalog: catalog, Commit: snapshot.Commit, Tag: snapshot.Tag}
+		libraries[source.Name] = build.Library{Catalog: catalog, Snapshot: snapshot}
 	}
 	return renderProject(ctx, state, libraries, options)
+}
+
+// loadSnapshot validates the library content of a verified snapshot, assembling each rule from the library
+// release that published it, and checks that it holds exactly the recorded rules and files.
+func loadSnapshot(ctx context.Context, source rules.Source, snapshot snapshot) (library.Catalog, error) {
+	// An individually selected rule the snapshot doesn't import was retired when it was recorded.
+	individual := []string{}
+	for _, id := range source.Rules {
+		if _, ok := snapshot.Rules[id]; ok {
+			individual = append(individual, id)
+		}
+	}
+	catalog, err := library.LoadSource(ctx, snapshot.Source(), source.Name, source.Groups, individual)
+	if err != nil {
+		return library.Catalog{}, err
+	}
+	if err := verifyLoadedSnapshot(source, catalog, snapshot); err != nil {
+		return library.Catalog{}, err
+	}
+	return catalog, nil
 }
 
 // renderProject resolves local definitions and renders the same output for offline builds and sync.
@@ -230,10 +253,15 @@ func requireUnchanged(ctx context.Context, root *os.Root, before projectState) e
 	if err != nil {
 		return err
 	}
-	if !bytes.Equal(before.configBytes, after.configBytes) || before.local.Digest() != after.local.Digest() || before.vendor.Digest() != after.vendor.Digest() || before.generated.Digest() != after.generated.Digest() {
+	if !sameProject(before, after) {
 		return failure("concurrent-change", "project inputs or managed output changed during the operation; retry after edits finish", nil)
 	}
 	return nil
+}
+
+// sameProject reports whether two reads hold the same configuration bytes and local, vendor, and generated trees.
+func sameProject(a, b projectState) bool {
+	return bytes.Equal(a.configBytes, b.configBytes) && a.local.Digest() == b.local.Digest() && a.vendor.Digest() == b.vendor.Digest() && a.generated.Digest() == b.generated.Digest()
 }
 
 // treeFiles projects original bytes while treating an absent directory as an empty inventory.
@@ -246,7 +274,7 @@ func treeFiles(tree *filetxn.Tree) map[string][]byte {
 
 // compareFiles produces deterministic byte-level changes without treating timestamp changes as output changes.
 func compareFiles(before, after map[string][]byte) FileChanges {
-	changes := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}}
+	changes := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: []string{}}
 	for _, name := range slices.Sorted(maps.Keys(after)) {
 		data, ok := before[name]
 		if !ok {
@@ -263,26 +291,30 @@ func compareFiles(before, after map[string][]byte) FileChanges {
 	return changes
 }
 
-// verifyLoadedSnapshot ties every parsed document and supporting byte to the immutable verified snapshot.
-// A later filesystem recheck alone cannot detect a transient edit that was reverted after loading.
-func verifyLoadedSnapshot(source string, catalog library.Catalog, snapshot snapshot) error {
-	groups := make([]string, 0, len(catalog.Groups))
-	files := maps.Clone(catalog.SupportingFiles)
-	if files == nil {
-		files = map[string][]byte{}
-	}
+// verifyLoadedSnapshot requires the loaded catalog to hold exactly the snapshot's recorded groups, rules, and
+// files, each stored where the snapshot's rule versions place it, with unchanged bytes.
+func verifyLoadedSnapshot(source rules.Source, catalog library.Catalog, snapshot snapshot) error {
+	groups := []string{}
+	loaded := []string{}
 	for _, group := range catalog.Groups {
-		groups = append(groups, group.ID)
+		if source.Groups.Includes(group.ID) {
+			groups = append(groups, group.ID)
+		}
 		for _, rule := range group.Rules {
-			files[rule.Path] = []byte(rule.Document)
+			loaded = append(loaded, strings.TrimSuffix(rule.Path, ".md"))
 		}
 	}
+	slices.Sort(loaded)
+	if !slices.Equal(loaded, slices.Sorted(maps.Keys(snapshot.Rules))) {
+		return failure("invalid-snapshot", source.Name+": the snapshot's rule files differ from the rules its record lists; run code-rules project sync", nil)
+	}
+	files := catalog.Files()
 	if !slices.Equal(groups, snapshot.Groups) || !slices.Equal(slices.Sorted(maps.Keys(files)), slices.Sorted(maps.Keys(snapshot.Files))) {
-		return failure("invalid-snapshot", source+": recorded groups or inventory differ from the selected library; run code-rules project sync", nil)
+		return failure("invalid-snapshot", source.Name+": recorded groups or inventory differ from the selected library; run code-rules project sync", nil)
 	}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !bytes.Equal(files[file], snapshot.Files[file]) {
-			return failure("concurrent-change", source+":"+file+": loaded content differs from verified snapshot bytes; retry after edits finish", nil)
+			return failure("concurrent-change", source.Name+":"+file+": loaded content differs from verified snapshot bytes; retry after edits finish", nil)
 		}
 	}
 	return nil

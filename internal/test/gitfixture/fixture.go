@@ -12,8 +12,10 @@ import (
 	"strings"
 )
 
-// Fixture owns a local repository and a private SSH transport that runs Git upload-pack over stdio.
-// No listener, external network, user Git configuration, or process-wide environment change is needed.
+// Fixture owns a local repository and a private SSH transport that runs Git upload-pack or receive-pack over stdio,
+// so clients can fetch with partial-clone filters and push. Clients use Git protocol version 2, as with GitHub, so
+// they can fetch objects by ID, including the blobs a partial clone omits. No listener, external network, user Git
+// configuration, or process-wide environment change is needed.
 type Fixture struct {
 	Directory    string
 	Repository   string
@@ -60,6 +62,10 @@ func New(ctx context.Context, files map[string][]byte) (_ *Fixture, err error) {
 	if _, err = f.Command(ctx, "init", "--quiet", "--template=", "--initial-branch=main"); err != nil {
 		return nil, err
 	}
+	// Accept pushes to the checked-out main branch by updating the fixture's working tree too.
+	if _, err = f.Command(ctx, "config", "receive.denyCurrentBranch", "updateInstead"); err != nil {
+		return nil, err
+	}
 	for name, data := range files {
 		if !fs.ValidPath(name) || name == "." || strings.ContainsAny(name, "\\\x00") {
 			return nil, fmt.Errorf("invalid fixture file path")
@@ -80,7 +86,7 @@ func New(ctx context.Context, files map[string][]byte) (_ *Fixture, err error) {
 	if _, err = f.Command(ctx, "add", "--all"); err != nil {
 		return nil, err
 	}
-	if _, err = f.Command(ctx, "-c", "commit.gpgsign=false", "commit", "--quiet", "--allow-empty", "-m", "Fixture first revision"); err != nil {
+	if _, err = f.Command(ctx, "commit", "--quiet", "--allow-empty", "-m", "Fixture first revision"); err != nil {
 		return nil, err
 	}
 	f.FirstCommit, err = f.Command(ctx, "rev-parse", "HEAD")
@@ -90,36 +96,107 @@ func New(ctx context.Context, files map[string][]byte) (_ *Fixture, err error) {
 	if _, err = f.Command(ctx, "tag", "v1.0.0"); err != nil {
 		return nil, err
 	}
-	if _, err = f.Command(ctx, "-c", "commit.gpgsign=false", "commit", "--quiet", "--allow-empty", "-m", "Fixture second revision"); err != nil {
+	if _, err = f.Command(ctx, "commit", "--quiet", "--allow-empty", "-m", "Fixture second revision"); err != nil {
 		return nil, err
 	}
 	f.LatestCommit, err = f.Command(ctx, "rev-parse", "HEAD")
 	if err != nil {
 		return nil, err
 	}
-	if _, err = f.Command(ctx, "-c", "tag.gpgsign=false", "tag", "-a", "v1.2.0", "-m", "Fixture annotated release"); err != nil {
+	if _, err = f.Command(ctx, "tag", "-a", "v1.2.0", "-m", "Fixture annotated release"); err != nil {
 		return nil, err
 	}
 	transport := filepath.Join(dir, "ssh")
-	// This trusted helper ignores remote arguments and serves only this owned fixture repository.
-	script := "#!/bin/sh\nexec " + Quote(executable) + " upload-pack " + Quote(repo) + "\n"
+	// This trusted helper serves only this owned fixture repository, choosing the service Git requested.
+	script := "#!/bin/sh\n" + serve(executable, repo) + "\n"
 	if err := os.WriteFile(transport, []byte(script), 0700); err != nil {
 		return nil, err
 	}
-	f.Environment = append(f.Environment, "GIT_SSH_COMMAND="+Quote(transport), "GIT_SSH_VARIANT=simple")
+	f.Environment = append(f.Environment, "GIT_SSH_COMMAND="+Quote(transport), "GIT_SSH_VARIANT=ssh")
 	return f, nil
+}
+
+// serve returns shell that runs receive-pack for a push and upload-pack, with partial-clone filters allowed, otherwise.
+// Git passes the requested service in the helper's arguments.
+func serve(executable, repo string) string {
+	return "case \"$*\" in *git-receive-pack*) exec " + Quote(executable) + " receive-pack " + Quote(repo) + " ;; *) exec " + Quote(executable) + " -c uploadpack.allowFilter=true upload-pack " + Quote(repo) + " ;; esac"
 }
 
 // Command mutates or inspects only the owned fixture repository using isolated Git configuration.
 func (f *Fixture) Command(ctx context.Context, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, f.GitPath, append([]string{"-c", "core.hooksPath=/dev/null", "-c", "gc.auto=0", "-c", "maintenance.auto=false"}, args...)...)
-	cmd.Dir = filepath.Join(f.Directory, "repository")
+	return f.CommandIn(ctx, filepath.Join(f.Directory, "repository"), args...)
+}
+
+// CommandIn runs Git in dir, such as a clone from Clone, with the fixture's isolated configuration and transport.
+// It returns stdout without surrounding whitespace.
+func (f *Fixture) CommandIn(ctx context.Context, dir string, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, f.GitPath, append([]string{"-c", "core.hooksPath=/dev/null", "-c", "gc.auto=0", "-c", "maintenance.auto=false", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"}, args...)...)
+	cmd.Dir = dir
 	cmd.Env = f.Environment
 	data, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("fixture Git setup failed: %w", err)
 	}
 	return strings.TrimSpace(string(data)), nil
+}
+
+// Clone makes a full clone of the fixture repository in a new directory the fixture owns, as a library author's
+// checkout: origin is the fixture's repository address, so fetches and pushes go through its transport.
+func (f *Fixture) Clone(ctx context.Context) (string, error) {
+	parent, err := os.MkdirTemp(f.Directory, "clone-*")
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(parent, "checkout")
+	if _, err := f.CommandIn(ctx, parent, "clone", "--quiet", "--template=", f.Repository, dir); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+// Commit writes files in dir, deleting those mapped to nil, and commits every change. It returns the new commit.
+func (f *Fixture) Commit(ctx context.Context, dir, message string, files map[string][]byte) (string, error) {
+	for name, data := range files {
+		if !fs.ValidPath(name) || name == "." {
+			return "", fmt.Errorf("invalid fixture file path")
+		}
+		file := filepath.Join(dir, filepath.FromSlash(name))
+		if data == nil {
+			if err := os.Remove(file); err != nil {
+				return "", err
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
+			return "", err
+		}
+		if err := os.WriteFile(file, data, 0600); err != nil {
+			return "", err
+		}
+	}
+	if _, err := f.CommandIn(ctx, dir, "add", "--all"); err != nil {
+		return "", err
+	}
+	if _, err := f.CommandIn(ctx, dir, "commit", "--quiet", "--allow-empty", "-m", message); err != nil {
+		return "", err
+	}
+	return f.CommandIn(ctx, dir, "rev-parse", "HEAD")
+}
+
+// Tag creates an annotated tag on dir's HEAD, such as release/1 with a release tag's message.
+func (f *Fixture) Tag(ctx context.Context, dir, name, message string) error {
+	_, err := f.CommandIn(ctx, dir, "tag", "--annotate", "--cleanup=verbatim", "--message", message, name)
+	return err
+}
+
+// Worktree returns the fixture repository's working tree, for Commit, Tag, and Release on the served repository itself.
+func (f *Fixture) Worktree() string { return filepath.Join(f.Directory, "repository") }
+
+// Release publishes library release number on the served repository's HEAD, as code-rules library release would:
+// an annotated release/<number> tag whose message is release notes, a line containing only ---, and record,
+// the release record's YAML.
+func (f *Fixture) Release(ctx context.Context, number int, record string) error {
+	return f.Tag(ctx, f.Worktree(), fmt.Sprintf("release/%d", number), fmt.Sprintf("Library release %d.\n\n---\n%s", number, record))
 }
 
 // Close releases all repository and helper files owned by the fixture.
@@ -141,7 +218,7 @@ func (f *Fixture) Route(fixtures map[string]*Fixture) ([]string, error) {
 		if alias == "" || strings.ContainsAny(alias, "'\"\\\n\r`$*?[]()|;&<> ") {
 			return nil, fmt.Errorf("invalid fixture alias")
 		}
-		script += "  *\"'" + alias + "'\"*) exec " + Quote(f.GitPath) + " upload-pack " + Quote(filepath.Join(entry.Directory, "repository")) + " ;;\n"
+		script += "  *\"'" + alias + "'\"*) " + serve(f.GitPath, filepath.Join(entry.Directory, "repository")) + " ;;\n"
 	}
 	script += "  *) exit 1 ;;\nesac\n"
 	helper := filepath.Join(f.Directory, "ssh-router")

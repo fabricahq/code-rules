@@ -41,7 +41,7 @@ func TestCheckWithFiles(t *testing.T) {
 			if err != nil || len(generated.Added)+len(generated.Changed)+len(generated.Removed) != 0 {
 				t.Fatal(generated, files, err)
 			}
-			want := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}}
+			want := FileChanges{Added: []string{}, Changed: []string{}, Removed: []string{}, Warnings: []string{}}
 			if state == "missing" {
 				want.Added = []string{"README.md"}
 			}

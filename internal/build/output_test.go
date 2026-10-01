@@ -10,36 +10,36 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
-// TestPrepareReadableProvenance keeps constraint operators readable while preserving JSON string contents.
+// TestPrepareReadableProvenance keeps HTML-significant characters readable while preserving JSON string contents.
 func TestPrepareReadableProvenance(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	constraint := ">= 1.0.0, < 2.0.0"
-	resolved.Sources[0].Ref = ""
-	resolved.Sources[0].Version = constraint
+	ref := "rules&<v1>"
+	resolved.Sources[0].Ref = ref
 	version := "review & <test> \"quoted\"\\path\nnext"
 	output, err := prepare(resolved, Options{ToolVersion: version, IndexMaxLines: defaultIndexMaxLines})
 	if err != nil {
 		t.Fatal(err)
 	}
 	data := output.Files["provenance.json"]
-	if !bytes.Contains(data, []byte(`"version": ">= 1.0.0, < 2.0.0"`)) {
-		t.Fatalf("constraint is not readable in generated JSON: %s", data)
+	if !bytes.Contains(data, []byte(`"ref": "rules&<v1>"`)) {
+		t.Fatalf("ref is not readable in generated JSON: %s", data)
 	}
 	var parsed struct {
 		ToolVersion string
-		Sources     []struct{ Version string }
+		Sources     []struct{ Ref string }
 	}
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatal(err)
 	}
-	if parsed.ToolVersion != version || len(parsed.Sources) != 1 || parsed.Sources[0].Version != constraint {
+	if parsed.ToolVersion != version || len(parsed.Sources) != 1 || parsed.Sources[0].Ref != ref {
 		t.Fatalf("JSON changed the supplied text: %+v", parsed)
 	}
 	if !bytes.HasSuffix(data, []byte("\n")) || bytes.HasSuffix(data, []byte("\n\n")) {
@@ -82,7 +82,7 @@ func TestPrepareToolVersionWhitespace(t *testing.T) {
 
 // TestPrepareRetainsTermsWithoutActiveRules copies binary terms unchanged even after every upstream rule is excluded.
 func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
-	config, libraries := fixture(t, `{"techs/go/errors":"Use local policy"}`, `{}`)
+	config, libraries := fixture(t, `{"techs/go/errors":{"reason":"Use local policy"}}`)
 	supplied := libraries["team"]
 	terms := []byte{'x', '\r', '\n', 0, 255}
 	supplied.Catalog.License = &rules.LicenseDeclaration{Files: []string{"LICENSE"}, AttributionFiles: []string{"NOTICE"}}
@@ -130,7 +130,7 @@ func TestPrepareRetainsTermsWithoutActiveRules(t *testing.T) {
 
 // TestPrepareReplacementProvenance retains upstream identity but assigns only the local definition's license basis.
 func TestPrepareReplacementProvenance(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{"techs/go/errors":{"file":"local/techs/go/custom.md","reason":"Project policy"}}`)
+	config, libraries := fixture(t, `{"techs/go/errors":{"reason":"Project policy","replacedBy":"local/techs/go/custom.md"}}`)
 	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/custom.md": []byte(document)})
 	if err != nil {
 		t.Fatal(err)
@@ -165,7 +165,7 @@ func TestPrepareReplacementProvenance(t *testing.T) {
 
 // TestPrepareNoPartialOutput rejects missing term bytes and invalid budgets after resolution.
 func TestPrepareNoPartialOutput(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -185,7 +185,7 @@ func TestPrepareNoPartialOutput(t *testing.T) {
 
 // TestProvenanceCompatibility keeps source-relative terms and explicit absent identity fields.
 func TestProvenanceCompatibility(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	lib := libraries["team"]
 	lib.Catalog.License = &rules.LicenseDeclaration{Files: []string{"LICENSE"}, AttributionFiles: []string{"NOTICE"}}
 	lib.Catalog.SupportingFiles["LICENSE"] = []byte("Terms")
@@ -257,7 +257,7 @@ func TestProvenanceCompatibility(t *testing.T) {
 
 // TestProvenanceGuidanceOrder retains library-first provenance without changing effective local priority.
 func TestProvenanceGuidanceOrder(t *testing.T) {
-	config, libraries := fixture(t, `{}`, `{}`)
+	config, libraries := fixture(t, `{}`)
 	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/_group.yaml": []byte(`{"name":"Local Go","description":"Local policy","whenToRead":"When editing Go"}`)})
 	if err != nil {
 		t.Fatal(err)
@@ -282,5 +282,160 @@ func TestProvenanceGuidanceOrder(t *testing.T) {
 	}
 	if !reflect.DeepEqual(resolved.Groups[0].Guidance, original) {
 		t.Fatal("mutated input guidance")
+	}
+}
+
+// generateWith resolves and renders the fixture after alter changes its source's snapshot, with group pages
+// limited to summaries.
+func generateWith(t *testing.T, alter func(*library.Snapshot, *rules.Source)) map[string]string {
+	t.Helper()
+	config, libraries := fixture(t, `{}`)
+	team := libraries["team"]
+	alter(&team.Snapshot, &config.Sources[0])
+	libraries["team"] = team
+	resolved, err := resolve(config, libraries, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	summaries := 0
+	output, err := prepare(resolved, Options{ToolVersion: "test", IndexMaxLines: defaultIndexMaxLines, GroupInlineMaxBytes: &summaries})
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{}
+	for name, data := range output.Files {
+		files[name] = string(data)
+	}
+	return files
+}
+
+// TestPrepareShowsEachImportedRulesVersion puts the version below the rule ID in guidance, and records it,
+// its library release, and the rule's own commit in provenance and the library summary.
+func TestPrepareShowsEachImportedRulesVersion(t *testing.T) {
+	older := strings.Repeat("b", 40)
+	files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
+		version := rules.RuleVersion{Major: 1, Minor: 3}
+		snapshot.Release = 2
+		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: older}
+		source.Ref = rules.GitRef{}
+		source.Pins = map[string]rules.Pin{"techs/go/errors": {Version: version, Reason: "Waiting on | review."}}
+	})
+	for _, name := range []string{"rules/team/techs/go/errors.md", "groups/techs/go.md"} {
+		if !strings.Contains(files[name], "Rule ID: `team:techs/go/errors`\n\nVersion: 1.3.0\n\n**When to read:**") {
+			t.Errorf("%s doesn't show the version below the rule ID:\n%s", name, files[name])
+		}
+	}
+	if !strings.Contains(files["rules/team/techs/go/errors.md"], "https://github.com/acme/rules/blob/"+older+"/techs/go/errors.md") {
+		t.Error("the source link doesn't use the rule's own commit")
+	}
+	var provenance struct {
+		GeneratedNotice string
+		Sources         []struct{ Release int }
+		Rules           []struct {
+			Origin struct {
+				Version        *string
+				Release        *int
+				ResolvedCommit string
+			}
+		}
+	}
+	if err := json.Unmarshal([]byte(files["provenance.json"]), &provenance); err != nil {
+		t.Fatal(err)
+	}
+	origin := provenance.Rules[0].Origin
+	if provenance.Sources[0].Release != 2 || origin.Version == nil || *origin.Version != "1.3.0" || origin.Release == nil || *origin.Release != 1 || origin.ResolvedCommit != older {
+		t.Fatalf("provenance %+v", provenance)
+	}
+	if !strings.Contains(provenance.GeneratedNotice, "In Git repositories, build and sync work from any subdirectory") {
+		t.Errorf("notice %q", provenance.GeneratedNotice)
+	}
+	summary := files["libraries/team/README.md"]
+	for _, text := range []string{"**Library release:** release/2", "| `techs/go/errors` | 1.3.0 | release/1 |", "## Pins\n\n`code-rules project update` keeps these rules at their pinned versions.\n\n- `techs/go/errors`: 1.3.0. Reason: Waiting on \\| review.\n"} {
+		if !strings.Contains(summary, text) {
+			t.Errorf("library summary lacks %q:\n%s", text, summary)
+		}
+	}
+	if strings.Contains(summary, "unreleased") || strings.Contains(summary, "Requested revision") {
+		t.Errorf("library summary describes a ref it doesn't have:\n%s", summary)
+	}
+}
+
+// TestPrepareOmitsTheUnreleasedNoteWhenEveryRuleIsPublished covers a ref that isn't a library release tag but
+// names a revision whose rules all match published versions.
+func TestPrepareOmitsTheUnreleasedNoteWhenEveryRuleIsPublished(t *testing.T) {
+	files := generateWith(t, func(snapshot *library.Snapshot, _ *rules.Source) {
+		version := rules.RuleVersion{Major: 1}
+		snapshot.Release = 0
+		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: commit}
+	})
+	summary := files["libraries/team/README.md"]
+	if strings.Contains(summary, "unreleased") || !strings.Contains(summary, "| `techs/go/errors` | 1.0.0 | release/1 |") || !strings.Contains(summary, "**Requested revision:** v1.0.0") {
+		t.Errorf("library summary:\n%s", summary)
+	}
+}
+
+// TestPrepareShowsNoVersionForUnreleasedRules records null versions and says the source imports unreleased changes.
+func TestPrepareShowsNoVersionForUnreleasedRules(t *testing.T) {
+	files := generateWith(t, func(snapshot *library.Snapshot, _ *rules.Source) {
+		snapshot.Release = 0
+		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Commit: commit}
+	})
+	for _, name := range []string{"rules/team/techs/go/errors.md", "groups/techs/go.md"} {
+		if strings.Contains(files[name], "Version:") {
+			t.Errorf("%s shows a version for an unreleased rule", name)
+		}
+	}
+	if !strings.Contains(files["provenance.json"], `"version": null,`) || !strings.Contains(files["provenance.json"], `"release": null`) {
+		t.Errorf("provenance lacks null version fields:\n%s", files["provenance.json"])
+	}
+	summary := files["libraries/team/README.md"]
+	for _, text := range []string{"**Imported from unreleased changes.**", "| `techs/go/errors` | No version | Unreleased |", "**Requested revision:** v1.0.0"} {
+		if !strings.Contains(summary, text) {
+			t.Errorf("library summary lacks %q:\n%s", text, summary)
+		}
+	}
+	if strings.Contains(summary, "## Pins") {
+		t.Errorf("library summary lists pins the source doesn't have:\n%s", summary)
+	}
+}
+
+// TestPrepareMarksExcludedRulesInTheLibrarySummary, which the source still imports but agents don't read.
+func TestPrepareMarksExcludedRulesInTheLibrarySummary(t *testing.T) {
+	files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
+		version := rules.RuleVersion{Major: 1}
+		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: commit}
+		source.Exclude = map[string]rules.Exclusion{"techs/go/errors": {Reason: "Not for us."}}
+	})
+	if summary := files["libraries/team/README.md"]; !strings.Contains(summary, "| Rule | Version | Library release | Status |\n") || !strings.Contains(summary, "| `techs/go/errors` | 1.0.0 | release/1 | Excluded |") {
+		t.Errorf("library summary:\n%s", summary)
+	}
+}
+
+// TestLibraryReadme_ShowsAKeptRetiredRuleAsRetired: a rule the library retired that a pin keeps at its last version,
+// listed both in rules and in retiredRules, is marked retired and pinned, not active; one an update didn't move yet
+// is marked retired.
+func TestLibraryReadme_ShowsAKeptRetiredRuleAsRetired(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		pinned, ref bool
+		status      string
+	}{{"pinned", true, false, "Retired, pinned at 1.3.0"}, {"not yet dropped", false, false, "Retired; the next update drops it"}, {"held by ref", false, true, "Retired upstream; kept by ref v1.0.0"}} {
+		t.Run(test.name, func(t *testing.T) {
+			files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
+				version := rules.RuleVersion{Major: 1, Minor: 3}
+				snapshot.Release = 2
+				snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: strings.Repeat("b", 40)}
+				snapshot.RetiredRules = []string{"techs/go/errors"}
+				if !test.ref {
+					source.Ref = rules.GitRef{}
+				}
+				if test.pinned {
+					source.Pins = map[string]rules.Pin{"techs/go/errors": {Version: version, Reason: "Still useful."}}
+				}
+			})
+			if row := "| `techs/go/errors` | 1.3.0 | release/1 | " + test.status + " |"; !strings.Contains(files["libraries/team/README.md"], row) {
+				t.Errorf("README lacks %q:\n%s", row, files["libraries/team/README.md"])
+			}
+		})
 	}
 }

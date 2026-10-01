@@ -8,10 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/test/terminalfixture"
+	"go.yaml.in/yaml/v4"
 )
 
 // TestInteractiveAuthoring uses a real PTY and verifies prompt results, refusal, EOF, and cancellation without partial writes.
@@ -26,8 +28,8 @@ func TestInteractiveAuthoring(t *testing.T) {
 	}{
 		{"group", []terminalfixture.Step{{Prompt: "Group name:", Answer: "  Go  "}, {Prompt: "Group description:", Answer: "Go guidance."}, {Prompt: "When to read:", Answer: "When editing Go."}}, 0, true, nil},
 		{"EOF", []terminalfixture.Step{{Prompt: "Group name:", EOF: true}}, 2, false, nil},
-		{"interrupt", []terminalfixture.Step{{Prompt: "Group name:", Interrupt: true}}, 1, false, nil},
-		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group name:", Answer: "\x03"}}, 1, false, nil},
+		{"interrupt", []terminalfixture.Step{{Prompt: "Group name:", Interrupt: true}}, 130, false, nil},
+		{"typed-ctrl-c", []terminalfixture.Step{{Prompt: "Group name:", Answer: "\x03"}}, 130, false, nil},
 		{"blank-retry", []terminalfixture.Step{{Prompt: "Group name:", Answer: "   "}, {Prompt: "Group name:", Answer: "Go"}, {Prompt: "Group description:", Answer: "Go guidance."}, {Prompt: "When to read:", Answer: "When editing Go."}}, 0, true, nil},
 		{"blank-EOF", []terminalfixture.Step{{Prompt: "Group name:", Answer: "   "}, {Prompt: "Group name:", EOF: true}}, 2, false, nil},
 		{"unattended", nil, 2, false, []string{"--non-interactive"}},
@@ -77,19 +79,40 @@ func TestInteractiveAuthoring(t *testing.T) {
 	}
 }
 
-// TestInteractiveSource checks repository, revision, and group selection through a real terminal.
+// TestInteractiveSource prompts for the repository and, unless --rules selects rules, groups; never for the optional ref.
 func TestInteractiveSource(t *testing.T) {
 	binary := buildCLI(t)
-	directory := t.TempDir()
-	if _, stderr, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
-		t.Fatal(stderr)
+	repository := terminalfixture.Step{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"}
+	for _, test := range []struct {
+		name  string
+		flags []string
+		steps []terminalfixture.Step
+		want  map[string]any
+	}{
+		{"groups", nil, []terminalfixture.Step{repository, {Prompt: "Groups (comma-separated paths, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}},
+			map[string]any{"repository": "https://github.com/acme/rules", "groups": []any{"techs/go", "techs/rust"}}},
+		{"rules", []string{"--rules", "techs/go/wrap-errors"}, []terminalfixture.Step{repository},
+			map[string]any{"repository": "https://github.com/acme/rules", "rules": []any{"techs/go/wrap-errors"}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			directory := t.TempDir()
+			if _, stderr, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
+				t.Fatal(stderr)
+			}
+			result, err := terminalfixture.Run(context.Background(), binary, directory, append([]string{"project", "add", "library", "team"}, test.flags...), test.steps)
+			if err != nil || result.ExitCode != 0 {
+				t.Fatal(err, result)
+			}
+			data, err := os.ReadFile(filepath.Join(directory, ".code-rules/config.yaml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var config struct{ Sources map[string]map[string]any }
+			if err := yaml.Unmarshal(data, &config); err != nil || !reflect.DeepEqual(config.Sources["team"], test.want) {
+				t.Fatal(string(data), err)
+			}
+		})
 	}
-	steps := []terminalfixture.Step{{Prompt: "Git repository URL:", Answer: "https://github.com/acme/rules"}, {Prompt: "Ref (tag, full commit SHA, or version range):", Answer: ">= 1.2.3"}, {Prompt: "Groups (comma-separated paths, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}}
-	result, err := terminalfixture.Run(context.Background(), binary, directory, []string{"project", "add", "library", "team"}, steps)
-	if err != nil || result.ExitCode != 0 {
-		t.Fatal(err, result)
-	}
-
 }
 
 // TestLongTerminalPaste preserves text beyond the operating system's canonical line buffer.

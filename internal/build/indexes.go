@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/fabricahq/code-rules/internal/rules"
 )
 
 // defaultIndexMaxLines keeps ordinary summaries together before pagination.
@@ -69,7 +71,7 @@ func indexPages(file, header string, entries []string, footer string, maxLines i
 		partFile := indexPartPath(file, page)
 		navigation := indexPageNavigation(file, page, len(parts))
 		output[partFile] = indexDocument(navigation+"\n\n"+header, entries, indexPageFooter(footer, navigation))
-		links = append(links, fmt.Sprintf("- [Page %d of %d](%s)", page, len(parts), encodedPath(path.Base(partFile))))
+		links = append(links, fmt.Sprintf("- [Page %d of %d](%s)", page, len(parts), rules.EncodeLinkPath(path.Base(partFile))))
 	}
 	directory := indexDocument(header, append([]string{"Read every numbered page to inspect this complete index. Rule bodies remain in their linked files."}, links...), footer)
 	if strings.Count(directory, "\n") > maxLines {
@@ -86,12 +88,12 @@ func indexPartPath(file string, page int) string {
 
 // indexPageNavigation identifies the page and links directly to its neighbors and directory.
 func indexPageNavigation(file string, page, total int) string {
-	links := []string{fmt.Sprintf("**Page %d of %d**", page, total), "[All pages](" + encodedPath(path.Base(file)) + ")"}
+	links := []string{fmt.Sprintf("**Page %d of %d**", page, total), "[All pages](" + rules.EncodeLinkPath(path.Base(file)) + ")"}
 	if page > 1 {
-		links = append(links, "[Previous page]("+encodedPath(path.Base(indexPartPath(file, page-1)))+")")
+		links = append(links, "[Previous page]("+rules.EncodeLinkPath(path.Base(indexPartPath(file, page-1)))+")")
 	}
 	if page < total {
-		links = append(links, "[Next page]("+encodedPath(path.Base(indexPartPath(file, page+1)))+")")
+		links = append(links, "[Next page]("+rules.EncodeLinkPath(path.Base(indexPartPath(file, page+1)))+")")
 	}
 	return strings.Join(links, " | ")
 }
@@ -133,7 +135,7 @@ func renderIndexes(resolved resolution, maxLines, inlineMaxBytes int) (map[strin
 		file := "groups/" + group.ID + ".md"
 		name := groupTitle(group)
 		cues := groupReadingGuidance(group)
-		groupEntries = append(groupEntries, "### "+name+"\n\n"+cues+"\n\n**Open group:** ["+name+"]("+encodedPath(file)+")")
+		groupEntries = append(groupEntries, "### "+name+"\n\n"+cues+"\n\n**Open group:** ["+name+"]("+rules.EncodeLinkPath(file)+")")
 		footer := "For other technology and practice groups, open [RULES.md](../../RULES.md). These files are generated. Edit source rules or configuration and rebuild to change them."
 		if inlineMaxBytes > 0 && len(group.Rules) > 0 {
 			page, fits, err := inlineGroupPage(group, paths, file, footer, inlineMaxBytes)
@@ -148,7 +150,11 @@ func renderIndexes(resolved resolution, maxLines, inlineMaxBytes int) (map[strin
 		entries := []string{}
 		for _, active := range group.Rules {
 			r := active.Rule
-			entries = append(entries, "### "+escapeText(r.Title)+"\n\nRule ID: `"+r.ID+"`\n\n**When to read:** "+escapeText(r.WhenToRead)+"\n\n**Impact:** "+escapeText(string(r.Impact))+"\n\n**Why it matters:** "+escapeText(r.ImpactDescription)+"\n\n**Read full rule:** ["+escapeText(r.Title)+"]("+relativeURL(file, rulePath(r))+")")
+			version := ""
+			if active.Origin.Version != nil {
+				version = "Version: " + active.Origin.Version.String() + "\n\n"
+			}
+			entries = append(entries, "### "+escapeText(r.Title)+"\n\nRule ID: `"+r.ID+"`\n\n"+version+"**When to read:** "+escapeText(r.WhenToRead)+"\n\n**Impact:** "+escapeText(string(r.Impact))+"\n\n**Why it matters:** "+escapeText(r.ImpactDescription)+"\n\n**Read full rule:** ["+escapeText(r.Title)+"]("+rules.RelativeLink(file, rulePath(r))+")")
 		}
 		if len(entries) == 0 {
 			entries = append(entries, "No active rules in this group.")
@@ -236,7 +242,7 @@ func indexHeader(groups []resolvedGroup) string {
 		"1. **Assess every group.** Read every entry under **Technology and practice group indexes**, including entries on every numbered page if the index is paginated. Compare each **When to read this group** cue with your task, the code’s behavior, and surrounding contracts. Use **Description** to understand the group’s subject; use **When to read this group** to decide whether to open it. Consider practices as well as technologies; testing guidance can apply even when no test files have changed. During review or diagnosis, make this selection independently of the implementer’s selection.",
 		"2. **Open every relevant or plausibly relevant group.** Follow its **Open group** link when any of its reading cues matches or could match your task. If applicability is uncertain, open the group and inspect its rules before deciding to skip it.",
 		"3. **Read every rule in each opened group completely.** Follow the group’s **How to use this group** instructions. Read full rules on the page, or follow every **Read full rule** link when the page contains summaries. Follow pagination links until you have read every rule in that group. Retrieve any truncated text before continuing. If a required file cannot be read, report the missing guidance before proceeding with work that depends on it.",
-		"4. **Apply the rules that govern your task.** Determine applicability from each rule’s reading cue, full guidance, and exceptions. Follow every applicable rule regardless of impact. For each reported violation, cite the rule ID and concrete evidence. Determine finding severity from actual consequences; selecting a group or rule does not establish a violation.",
+		"4. **Apply the rules that govern your task.** Determine applicability from each rule’s reading cue, full guidance, and exceptions. Follow every applicable rule regardless of impact. For each reported violation, cite the rule ID, its version when the rule lists one, and concrete evidence. Determine finding severity from actual consequences; selecting a group or rule does not establish a violation.",
 		"5. **Reassess when context changes.** When the task’s scope changes, repeat group selection and read any newly relevant groups. After compaction, reread this file and the rules needed for the current task before continuing.",
 		"## Technology and practice group indexes",
 	), "\n\n")
@@ -259,7 +265,7 @@ func groupIndexHeader(id, name, cues string, inline bool) string {
 		read,
 		"2. **Determine which rules apply.** Compare each rule’s “When to read” cue, guidance, and exceptions with your task, the code’s behavior, and surrounding contracts. If a rule plausibly applies, inspect the relevant code and context before deciding to skip it.",
 		"3. **Follow every applicable rule.** Apply its guidance and respect its exceptions, regardless of impact. When present, use Implementation guidance for planning or code changes and Validation guidance for reviews, tests, or diagnosis. Use both when the task includes both activities.",
-		"4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.",
+		"4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID, its version when the rule lists one, and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.",
 		"5. **Recheck after changes.** When the task’s scope changes, reassess which rules apply. After compaction, reread the rules needed for the current task before continuing.",
 		"## Rules",
 	}, "\n\n")
