@@ -110,6 +110,15 @@ Artifacts remain accessible in Actions before promotion; the approval gate contr
 GitHub artifact digests can detect changed bytes against a trusted reference, but do not establish benign behavior.
 Previews are untrusted and are not an installation channel; official release publication remains a separate reviewed process.
 
+### Documentation previews
+
+[Pull request previews](../docs/README.md#pull-request-previews) describes how a pull request's documentation build is published to Cloudflare Pages and who approves it.
+
+The Documentation workflow builds PR code with read-only permissions and no secrets, and uploads the built site as an artifact.
+The separate **Documentation previews** workflow runs from the default branch, treats that artifact as data, validates it, and deploys it with wrangler from main's lockfile. It never checks out or runs PR code.
+Only its `docs-preview` environment holds the Cloudflare token, admitting `main` only; previews from forks or from authors without write access wait for a maintainer's approval in the `docs-preview-approval` environment. The workflow fails closed if either environment loses its protection.
+The token can change every Pages project in Fabrica's account, so it is a dedicated token with only Pages permission and an expiry date, as the Cloudflare unit's README in the infrastructure repository describes.
+
 ### GitHub setup and activation
 
 Repository configuration does not install the Renovate GitHub App or enforce these protection and access settings.
