@@ -1,0 +1,32 @@
+---
+/** @fileoverview Renders a brand asset preview on its intended background with download links. */
+
+interface Download {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  title: string;
+  src: string;
+  alt: string;
+  /** The background the asset is designed for; previews use the brand's fixed surface colors in both themes. */
+  tone: 'light' | 'dark';
+  /** Rendered preview width in CSS pixels. */
+  width?: number;
+  downloads: Download[];
+}
+
+const { title, src, alt, tone, width = 240, downloads } = Astro.props;
+---
+<figure class="not-content m-0 border border-border rounded-panel overflow-hidden bg-surface">
+  <div class:list={['grid place-items-center min-h-44 px-8 py-10', tone === 'dark' ? 'bg-[#202020]' : 'bg-[#f6f6f6]']}>
+    <img src={src} alt={alt} style={`width:${width}px`} class="max-w-full h-auto" loading="lazy" />
+  </div>
+  <figcaption class="flex flex-col gap-1 px-5 py-4 text-sm leading-[1.6]">
+    <span class="text-ink font-medium">{title}</span>
+    <span class="flex flex-wrap gap-x-4 gap-y-1 [&_a]:text-muted [&_a]:underline [&_a]:underline-offset-4 [&_a:hover]:text-ink">
+      {downloads.map((download) => <a href={download.href} download>{download.label}</a>)}
+    </span>
+  </figcaption>
+</figure>

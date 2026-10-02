@@ -29,6 +29,10 @@ export default defineConfig({
     title: 'Code Rules',
     description: 'The package manager for your engineering rules',
     favicon: '/favicon.svg',
+    head: [
+      { tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' } },
+      { tag: 'link', attrs: { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' } },
+    ],
     disable404Route: true,
     customCss: ['./src/styles/tailwind.css', './src/styles/custom.css', './src/styles/home.css'],
     components: {
@@ -80,6 +84,7 @@ export default defineConfig({
           { label: 'Rule versions', slug: 'reference/rule-versions' },
         ] },
         { label: 'CLI commands', slug: 'reference/cli' },
+      { label: 'Brand', slug: 'reference/brand' },
       ] },
       { label: 'For agents', collapsed: true, items: [{ label: 'Plan, write, and review', slug: 'for-agents' }] },
     ],
