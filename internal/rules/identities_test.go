@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -61,7 +61,7 @@ func TestSharedExpectations(t *testing.T) {
 				t.Fatalf("unknown operation %q", test.Operation)
 			}
 			if !test.Expected.OK {
-				var validation *authored.ValidationError
+				var validation *decode.ValidationError
 				if !errors.As(err, &validation) {
 					t.Fatalf("want ValidationError, got %v", err)
 				}

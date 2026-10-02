@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -64,7 +64,7 @@ func parseSourceInput(input SourceInput) (rules.Source, error) {
 		return rules.Source{}, err
 	}
 	if source.Groups.Pattern == "" && len(source.Groups.Groups) == 0 && len(source.Rules) == 0 {
-		return rules.Source{}, &authored.ValidationError{Location: "--groups", Problem: "supply at least one --groups or --rules"}
+		return rules.Source{}, &decode.ValidationError{Location: "--groups", Problem: "supply at least one --groups or --rules"}
 	}
 	return source, nil
 }

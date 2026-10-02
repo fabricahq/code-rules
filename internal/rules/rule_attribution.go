@@ -10,7 +10,7 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // AddRuleAttribution returns document, a rule at path, with entry after its existing attribution entries. When the
@@ -36,8 +36,8 @@ func AddRuleAttribution(document, path string, entry coderules.Attribution) (str
 		newline = "\r\n"
 	}
 	var metadata yaml.Node
-	if err := yaml.NewDecoder(strings.NewReader(authored.DecodeSurrogatePairs(document[start:end]))).Decode(&metadata); err != nil {
-		return "", authored.Invalid(path, "invalid YAML: "+err.Error())
+	if err := yaml.NewDecoder(strings.NewReader(decode.DecodeSurrogatePairs(document[start:end]))).Decode(&metadata); err != nil {
+		return "", decode.Invalid(path, "invalid YAML: "+err.Error())
 	}
 	item := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: []*yaml.Node{
 		{Kind: yaml.ScalarNode, Tag: "!!str", Value: "url"}, textNode(entry.URL),
@@ -83,13 +83,13 @@ func requireAttributionAdded(original coderules.Rule, result, path string, entry
 	}
 	added := len(parsed.Attribution) - 1
 	if added != len(original.Attribution) || parsed.Attribution[added].Description != entry.Description {
-		return authored.Invalid(path, "could not add the attribution entry; add it by hand")
+		return decode.Invalid(path, "could not add the attribution entry; add it by hand")
 	}
 	want := original
 	want.Attribution = append(slices.Clone(original.Attribution), parsed.Attribution[added])
 	want.Document = result
 	if !reflect.DeepEqual(want, parsed) {
-		return authored.Invalid(path, "adding an attribution entry would change the rule's other metadata; add it by hand")
+		return decode.Invalid(path, "adding an attribution entry would change the rule's other metadata; add it by hand")
 	}
 	return nil
 }

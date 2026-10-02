@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -52,7 +52,7 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 // requireSync checks that decoding fails with a validation error that tells the user to sync.
 func requireSync(t *testing.T, got map[string]snapshot, err error) {
 	t.Helper()
-	var validation *authored.ValidationError
+	var validation *decode.ValidationError
 	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.Location, "vendor/team/_source.json") || !strings.Contains(validation.Problem, "run code-rules project sync") {
 		t.Fatalf("got %v, %v; want a failure that asks for sync", got, err)
 	}
@@ -232,7 +232,7 @@ func TestSnapshotExclusionOfAnUnknownRuleRequiresSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"exclude":{"techs/go/erorrs":{"reason":"Typo."}}`), vendor)
-	var validation *authored.ValidationError
+	var validation *decode.ValidationError
 	if got != nil || !errors.As(err, &validation) || validation.Location != "sources.team.exclude.techs/go/erorrs" || !strings.Contains(validation.Problem, "names no rule the library supplies") || !strings.Contains(validation.Problem, "run code-rules project sync") {
 		t.Fatalf("got %v, %v; want a failure naming the entry that asks for sync", got, err)
 	}
@@ -263,7 +263,7 @@ func TestSnapshotCorruptionReturnsNoPartialResult(t *testing.T) {
 			}
 			tc.alter(v)
 			got, e := decodeSnapshots(c, v)
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if got != nil || !errors.As(e, &validation) {
 				t.Fatalf("got %v, %v", got, e)
 			}
@@ -346,7 +346,7 @@ func TestSnapshotFormatOneIsUnsupported(t *testing.T) {
 		"offline": func() error { _, err := decodeSnapshots(config, vendor); return err },
 		"sync":    func() error { _, err := recordedSnapshots(config, vendor); return err },
 	} {
-		var validation *authored.ValidationError
+		var validation *decode.ValidationError
 		if err := read(); !errors.As(err, &validation) || !strings.Contains(validation.Problem, "delete .code-rules/vendor/ and run code-rules project sync") {
 			t.Errorf("%s: %v", name, err)
 		}

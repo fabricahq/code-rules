@@ -1,8 +1,9 @@
-// Package authored decodes the YAML and JSON that people write for Code Rules, such as rule metadata, release
-// records, and project configuration, with one strict policy, and reports invalid input as a *ValidationError at
-// the location the caller names. It accesses no files; the coderules package and Code Rules' internal parsers
-// share it, so every format applies the same rules.
-package authored
+// Package decode holds the strict rules every Code Rules format shares for decoding YAML and JSON text into generic
+// values, before a format's own parser interprets them: one document, no anchors, aliases, explicit tags, or
+// duplicate keys, and text without malformed Unicode. Each format's fields and rules live with that format. It does
+// no file, Git, or network access, and reports invalid input as its own *ValidationError at the location the caller
+// names.
+package decode
 
 import (
 	"fmt"

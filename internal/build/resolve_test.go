@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -177,7 +177,7 @@ func TestResolveReplacementFileReuse(t *testing.T) {
 				}
 				return
 			}
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if !errors.As(err, &validation) || validation.Location != "local/techs/go/custom.md" || validation.Problem != "replacement file is reused for multiple targets" || got.Groups != nil || got.Sources != nil {
 				t.Fatalf("got %+v, %v; want reuse refusal and no result", got, err)
 			}

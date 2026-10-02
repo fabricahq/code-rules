@@ -9,7 +9,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 )
 
@@ -30,18 +30,18 @@ type CanonicalGroup struct {
 // Names and descriptions are single lines, and names are unique under Unicode case folding.
 // On error, the result is nil.
 func ParseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, error) {
-	document, data, err := authored.YAML(input, location)
+	document, data, err := decode.YAML(input, location)
 	if err != nil {
 		return nil, err
 	}
 	root := document.Content[0]
 	if root.Kind != yaml.MappingNode {
-		return nil, authored.Invalid(location, "expected a mapping from group ID to name and description")
+		return nil, decode.Invalid(location, "expected a mapping from group ID to name and description")
 	}
 	if len(root.Content) == 0 {
-		return nil, authored.Invalid(location, "expected at least one group")
+		return nil, decode.Invalid(location, "expected at least one group")
 	}
-	entries, err := authored.Object(data, location)
+	entries, err := decode.Object(data, location)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func ParseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, erro
 			return nil, err
 		}
 		if len(groups) > 0 && id <= groups[len(groups)-1].ID {
-			return nil, authored.Invalid(entryLocation, authored.Quote(id)+" must come before "+authored.Quote(groups[len(groups)-1].ID)+": sort entries by group ID")
+			return nil, decode.Invalid(entryLocation, decode.Quote(id)+" must come before "+decode.Quote(groups[len(groups)-1].ID)+": sort entries by group ID")
 		}
 		group, err := canonicalGroup(id, entries[id], entryLocation)
 		if err != nil {
@@ -63,7 +63,7 @@ func ParseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, erro
 		// Unicode case folding equates names that lowercasing keeps apart, such as Σ and ς.
 		for _, earlier := range groups {
 			if strings.EqualFold(group.Name, earlier.Name) {
-				return nil, authored.Invalid(entryLocation+".name", authored.Quote(group.Name)+" is already the name of "+authored.Quote(earlier.ID))
+				return nil, decode.Invalid(entryLocation+".name", decode.Quote(group.Name)+" is already the name of "+decode.Quote(earlier.ID))
 			}
 		}
 		groups = append(groups, group)
@@ -72,11 +72,11 @@ func ParseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, erro
 }
 
 func canonicalGroup(id string, input json.RawMessage, location string) (CanonicalGroup, error) {
-	fields, err := authored.Object(input, location)
+	fields, err := decode.Object(input, location)
 	if err != nil {
 		return CanonicalGroup{}, err
 	}
-	if err := authored.KnownFields(fields, []string{"name", "description"}, location); err != nil {
+	if err := decode.KnownFields(fields, []string{"name", "description"}, location); err != nil {
 		return CanonicalGroup{}, err
 	}
 	name, err := canonicalText(fields["name"], location+".name")
@@ -99,7 +99,7 @@ func canonicalText(input json.RawMessage, location string) (string, error) {
 		return "", err
 	}
 	if strings.ContainsFunc(text, controlOrLineSeparator) {
-		return "", authored.Invalid(location, "expected one line of text without control characters")
+		return "", decode.Invalid(location, "expected one line of text without control characters")
 	}
 	return text, nil
 }

@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 func TestGroupMetadataSharedExpectations(t *testing.T) {
@@ -39,7 +39,7 @@ func TestGroupMetadataSharedExpectations(t *testing.T) {
 				}
 				return
 			}
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("want ValidationError, got %v", err)
 			}
@@ -80,7 +80,7 @@ func TestGroupMetadataRejectsInvalidUTF8(t *testing.T) {
 	input := append([]byte(`{"name":"`), 0xff)
 	input = append(input, []byte(`","description":"Go rules","whenToRead":"When editing."}`)...)
 	got, err := groupMetadataFields(input, "group")
-	var validation *authored.ValidationError
+	var validation *decode.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "group.name" || validation.Problem != "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape" {
 		t.Fatalf("want Unicode validation error at group.name, got %v", err)
 	}

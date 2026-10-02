@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 var (
@@ -20,10 +20,10 @@ var (
 // assets name. It checks syntax only; it does not establish that the group exists.
 func ValidateGroupID(value, location string) error {
 	if !groupPattern.MatchString(value) {
-		return authored.Invalid(location, "invalid group ID "+authored.Quote(value)+": expected format "+groupPattern.String())
+		return decode.Invalid(location, "invalid group ID "+decode.Quote(value)+": expected format "+groupPattern.String())
 	}
 	if strings.HasSuffix(value, "/assets") {
-		return authored.Invalid(location, "invalid group ID "+authored.Quote(value)+`: "assets" is a reserved group name`)
+		return decode.Invalid(location, "invalid group ID "+decode.Quote(value)+`: "assets" is a reserved group name`)
 	}
 	return nil
 }
@@ -31,24 +31,24 @@ func ValidateGroupID(value, location string) error {
 // GroupFromPath returns the owning group of a contained Markdown rule path.
 // Containment errors take precedence over rule syntax, then group syntax errors.
 func GroupFromPath(path, location string) (string, error) {
-	if !authored.Contained(path) {
-		return "", authored.Invalid(location, "expected a contained relative path, got "+authored.Quote(path)+`: use forward slashes; no leading slash, drive prefix, empty segments, "." or ".." segments, or control characters`)
+	if !decode.Contained(path) {
+		return "", decode.Invalid(location, "expected a contained relative path, got "+decode.Quote(path)+`: use forward slashes; no leading slash, drive prefix, empty segments, "." or ".." segments, or control characters`)
 	}
 	parts := strings.Split(path, "/")
 	if len(parts) < 3 || !strings.HasSuffix(path, ".md") {
-		return "", authored.Invalid(location, "invalid rule path "+authored.Quote(path)+": expected a .md file beneath a group directory")
+		return "", decode.Invalid(location, "invalid rule path "+decode.Quote(path)+": expected a .md file beneath a group directory")
 	}
 	for i, part := range parts {
 		if i > 0 && part == "assets" {
-			return "", authored.Invalid(location, "invalid rule path "+authored.Quote(path)+`: "assets" is reserved for supporting files, not rules`)
+			return "", decode.Invalid(location, "invalid rule path "+decode.Quote(path)+`: "assets" is reserved for supporting files, not rules`)
 		}
 		if i >= 2 && !rulePartPattern.MatchString(part) {
-			return "", authored.Invalid(location, "invalid rule path "+authored.Quote(path)+": rule file and subdirectory names must match "+rulePartPattern.String())
+			return "", decode.Invalid(location, "invalid rule path "+decode.Quote(path)+": rule file and subdirectory names must match "+rulePartPattern.String())
 		}
 	}
 	group := strings.Join(parts[:2], "/")
 	if err := ValidateGroupID(group, location); err != nil {
-		return "", fmt.Errorf("rule path %s: %w", authored.Quote(path), err)
+		return "", fmt.Errorf("rule path %s: %w", decode.Quote(path), err)
 	}
 	return group, nil
 }

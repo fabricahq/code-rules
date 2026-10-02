@@ -1,6 +1,6 @@
 // Decode paired UTF-16 escapes in YAML double-quoted scalars without changing authored text.
 
-package authored
+package decode
 
 import (
 	"regexp"

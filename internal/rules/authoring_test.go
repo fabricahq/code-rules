@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -41,7 +41,7 @@ func TestRenderGroup_WritesTrimmedMetadataThatParsesBack(t *testing.T) {
 // TestRenderGroup_RefusesBlankText reports the blank field at its location in the group file.
 func TestRenderGroup_RefusesBlankText(t *testing.T) {
 	_, err := rules.RenderGroup(coderules.GroupMetadata{Name: "Go", Description: " \t", WhenToRead: "When editing Go."})
-	var validation *authored.ValidationError
+	var validation *decode.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "_group.yaml.description" || validation.Problem != "expected nonempty text" {
 		t.Fatalf("got %v", err)
 	}

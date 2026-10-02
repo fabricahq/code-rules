@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // TestReleaseMessageFixtures checks the notes, the parsed record, and exact diagnostics.
@@ -52,7 +52,7 @@ func TestReleaseMessageFixtures(t *testing.T) {
 				return
 			}
 			if !test.Expected.OK {
-				var validation *authored.ValidationError
+				var validation *decode.ValidationError
 				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Error)
 				}
@@ -118,7 +118,7 @@ func TestParseReleaseRecord_LimitsEachCollection(t *testing.T) {
 				t.Fatalf("refused %d entries: %v", limit, err)
 			}
 			_, err := coderules.ParseReleaseRecord(recordWith(section, limit+1), "release/2")
-			var invalid *authored.ValidationError
+			var invalid *decode.ValidationError
 			want := fmt.Sprintf("expected at most %d,000 entries", limit/1000)
 			if !errors.As(err, &invalid) || invalid.Location != "release/2."+section || invalid.Problem != want {
 				t.Fatalf("got %v; want %q", err, want)
@@ -132,7 +132,7 @@ func TestParseReleaseRecord_LimitsEachCollection(t *testing.T) {
 func TestParseReleaseRecord_RefusesDuplicateLibraryFilesInLargeLists(t *testing.T) {
 	record := append(recordWith("libraryFiles", 19_999), "  - assets/f0.md\n"...)
 	_, err := coderules.ParseReleaseRecord(record, "release/2")
-	var invalid *authored.ValidationError
+	var invalid *decode.ValidationError
 	if !errors.As(err, &invalid) || invalid.Location != "release/2.libraryFiles[19999]" || !strings.Contains(invalid.Problem, "duplicate path") {
 		t.Fatalf("got %v", err)
 	}

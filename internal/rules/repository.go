@@ -11,7 +11,7 @@ import (
 
 	"github.com/nlnwa/whatwg-url/url"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // Repository identifies a Git source without rewriting its transport address.
@@ -43,11 +43,11 @@ var (
 // Parsing does not establish that a repository exists or is accessible.
 func ParseRepository(input json.RawMessage, location string) (Repository, error) {
 	var address string
-	if json.Unmarshal(input, &address) != nil || strings.TrimFunc(address, authored.IsSpace) == "" {
-		return Repository{}, authored.Invalid(location, "expected nonempty text")
+	if json.Unmarshal(input, &address) != nil || strings.TrimFunc(address, decode.IsSpace) == "" {
+		return Repository{}, decode.Invalid(location, "expected nonempty text")
 	}
-	if !authored.ValidUnicode(input) || strings.ContainsFunc(address, unsafeRepositoryCharacter) {
-		return Repository{}, authored.Invalid(location, "repository must not contain whitespace, backslashes, query parameters, or fragments")
+	if !decode.ValidUnicode(input) || strings.ContainsFunc(address, unsafeRepositoryCharacter) {
+		return Repository{}, decode.Invalid(location, "repository must not contain whitespace, backslashes, query parameters, or fragments")
 	}
 	uri := repositoryURL.FindStringSubmatch(address)
 	var scp []string
@@ -68,14 +68,14 @@ func ParseRepository(input json.RawMessage, location string) (Repository, error)
 		}
 		urlText = "ssh://" + scp[1] + "@" + scp[2] + "/"
 	default:
-		return Repository{}, authored.Invalid(location, "repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported")
+		return Repository{}, decode.Invalid(location, "repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported")
 	}
 	if err != nil {
 		return Repository{}, err
 	}
 	parsed, err := url.Parse(urlText)
 	if err != nil {
-		return Repository{}, authored.Invalid(location, "invalid Git repository URL")
+		return Repository{}, decode.Invalid(location, "invalid Git repository URL")
 	}
 	badAuthority := false
 	if uri != nil && strings.Contains(uri[2], "@") {
@@ -85,13 +85,13 @@ func ParseRepository(input json.RawMessage, location string) (Repository, error)
 	if parsed.Hostname() == "" || parsed.Password() != "" || badAuthority ||
 		(parsed.Scheme() == "https" && parsed.Username() != "") ||
 		(parsed.Username() != "" && !repositoryUser.MatchString(parsed.Username())) {
-		return Repository{}, authored.Invalid(location, "repository requires a host and must not embed credentials; SSH may specify a username")
+		return Repository{}, decode.Invalid(location, "repository requires a host and must not embed credentials; SSH may specify a username")
 	}
 	host := strings.TrimSuffix(strings.ToLower(parsed.Hostname()), ".")
 	if !repositoryIPv6.MatchString(host) {
 		for _, label := range strings.Split(host, ".") {
 			if !repositoryLabel.MatchString(label) {
-				return Repository{}, authored.Invalid(location, "repository hostname must be a DNS name or IP address")
+				return Repository{}, decode.Invalid(location, "repository hostname must be a DNS name or IP address")
 			}
 		}
 	}
@@ -149,7 +149,7 @@ func (r Repository) FileURL(commit, path string, raw bool) (string, bool) {
 
 // unsafeRepositoryCharacter rejects ambiguous separators, whitespace, and controls before URL parsing.
 func unsafeRepositoryCharacter(r rune) bool {
-	return authored.IsSpace(r) || r < 32 || r == 127 || r == '\\' || r == '?' || r == '#'
+	return decode.IsSpace(r) || r < 32 || r == 127 || r == '\\' || r == '?' || r == '#'
 }
 
 // repositoryPath validates authored segments before URL normalization can erase traversal.
@@ -162,11 +162,11 @@ func repositoryPath(path, location string, uri bool) (string, error) {
 			var err error
 			decoded, err = neturl.PathUnescape(part)
 			if err != nil || !utf8.ValidString(decoded) {
-				return "", authored.Invalid(location, "repository path contains invalid percent encoding")
+				return "", decode.Invalid(location, "repository path contains invalid percent encoding")
 			}
 		}
 		if decoded == "" || decoded == "." || decoded == ".." || strings.ContainsFunc(decoded, unsafeRepositorySegment) || (uri && strings.Contains(decoded, "%")) {
-			return "", authored.Invalid(location, "repository path contains an empty, dot, or unsafe segment")
+			return "", decode.Invalid(location, "repository path contains an empty, dot, or unsafe segment")
 		}
 		if uri {
 			parts[i] = encodeRepositorySegment(decoded, true)

@@ -1,6 +1,6 @@
 // Decode authored YAML with one shared strict policy before applying each document schema.
 
-package authored
+package decode
 
 import (
 	"bytes"

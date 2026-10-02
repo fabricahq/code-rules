@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -48,7 +48,7 @@ func TestRepositorySharedExpectations(t *testing.T) {
 				}
 				repository, err := rules.ParseRepository(input.Repository, test.Location)
 				if !test.Expected.OK {
-					var validation *authored.ValidationError
+					var validation *decode.ValidationError
 					if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 						t.Fatalf("got %v; want %s", err, test.Expected.Error.Message)
 					}
@@ -84,7 +84,7 @@ func TestRepositorySharedExpectations(t *testing.T) {
 				}
 				return
 			}
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 				t.Fatalf("got %v; want %s", err, test.Expected.Error.Message)
 			}
@@ -114,7 +114,7 @@ func FuzzParseRepository(f *testing.F) {
 	f.Fuzz(func(t *testing.T, input string) {
 		got, err := rules.ParseRepository(json.RawMessage(input), "repo")
 		if err != nil {
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if !errors.As(err, &validation) || !reflect.DeepEqual(got, rules.Repository{}) {
 				t.Fatalf("invalid failure result: %#v, %v", got, err)
 			}

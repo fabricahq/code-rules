@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -110,7 +110,7 @@ func TestLoadRejectsInvalidLibraries(t *testing.T) {
 			}
 			_, root := fixture(t, files)
 			got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"})
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if !errors.As(err, &validation) || !reflect.DeepEqual(got, library.Catalog{}) {
 				t.Fatalf("got %+v, %v", got, err)
 			}
@@ -169,7 +169,7 @@ func TestLoadRequiresDeclaredTerms(t *testing.T) {
 			delete(files, missing)
 			_, root := fixture(t, files)
 			got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{}})
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if !errors.As(err, &validation) || validation.Location != missing || !reflect.DeepEqual(got, library.Catalog{}) {
 				t.Fatalf("missing %s: got %+v, %v", missing, got, err)
 			}
@@ -181,7 +181,7 @@ func TestLoadRequiresDeclaredTerms(t *testing.T) {
 func TestLoadRejectsLegacyManifestName(t *testing.T) {
 	_, root := fixture(t, map[string]string{"rule-library.json": `{"formatVersion":1}`})
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{}})
-	var validation *authored.ValidationError
+	var validation *decode.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "rule-library.yaml" || !reflect.DeepEqual(got, library.Catalog{}) {
 		t.Fatalf("legacy manifest: got %+v, %v", got, err)
 	}
@@ -276,7 +276,7 @@ func TestLoadOwnsOriginalDocuments(t *testing.T) {
 func TestLoadRejectsReservedSource(t *testing.T) {
 	_, root := fixture(t, validFiles())
 	got, err := library.Load(context.Background(), root, "local", rules.GroupSelection{Pattern: "*"})
-	var validation *authored.ValidationError
+	var validation *decode.ValidationError
 	if !errors.As(err, &validation) || validation.Location != "source" || !strings.Contains(err.Error(), "reserved") || got.Groups != nil {
 		t.Fatalf("reserved source returned %+v, %v", got, err)
 	}
@@ -293,7 +293,7 @@ func TestLoadRejectsHardLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "*"})
-	var validation *authored.ValidationError
+	var validation *decode.ValidationError
 	if !errors.As(err, &validation) || !strings.Contains(err.Error(), "hard links") || got.Groups != nil {
 		t.Fatalf("hard link returned %+v, %v", got, err)
 	}

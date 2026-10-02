@@ -8,7 +8,7 @@ import (
 	"slices"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 )
 
@@ -29,27 +29,27 @@ type NoteChange struct {
 // ParseChangeNote validates one change note's YAML. location names the note, such as changes/2026-09-29-verify-retry-limits-7f3a9c.yaml.
 // Rule IDs are checked for syntax only; whether each rule exists, and whether its change matches the library, is a library check.
 func ParseChangeNote(input []byte, location string) (ChangeNote, error) {
-	_, data, err := authored.YAML(input, location)
+	_, data, err := decode.YAML(input, location)
 	if err != nil {
 		return ChangeNote{}, err
 	}
-	fields, err := authored.Object(data, location)
+	fields, err := decode.Object(data, location)
 	if err != nil {
 		return ChangeNote{}, err
 	}
-	if err := authored.KnownFields(fields, []string{"summary", "rules"}, location); err != nil {
+	if err := decode.KnownFields(fields, []string{"summary", "rules"}, location); err != nil {
 		return ChangeNote{}, err
 	}
-	summary, err := authored.Line(fields["summary"], location+".summary")
+	summary, err := decode.Line(fields["summary"], location+".summary")
 	if err != nil {
 		return ChangeNote{}, err
 	}
-	entries, err := authored.Object(fields["rules"], location+".rules")
+	entries, err := decode.Object(fields["rules"], location+".rules")
 	if err != nil {
 		return ChangeNote{}, err
 	}
 	if len(entries) == 0 {
-		return ChangeNote{}, authored.Invalid(location+".rules", "expected at least one rule")
+		return ChangeNote{}, decode.Invalid(location+".rules", "expected at least one rule")
 	}
 	note := ChangeNote{Summary: summary, Rules: map[string]NoteChange{}}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
@@ -74,28 +74,28 @@ func noteChange(input json.RawMessage, id, location string) (NoteChange, error) 
 		case coderules.ChangeMajor, coderules.ChangeMinor, coderules.ChangePatch, coderules.ChangeNew, coderules.ChangeRetired:
 			return NoteChange{Change: change}, nil
 		}
-		return NoteChange{}, authored.Invalid(location, "unknown change "+authored.Quote(name)+"; expected major, minor, patch, new, or retired")
+		return NoteChange{}, decode.Invalid(location, "unknown change "+decode.Quote(name)+"; expected major, minor, patch, new, or retired")
 	}
-	fields, err := authored.Object(input, location)
+	fields, err := decode.Object(input, location)
 	if err != nil {
-		return NoteChange{}, authored.Invalid(location, "expected major, minor, patch, new, retired, or an object with change: retired")
+		return NoteChange{}, decode.Invalid(location, "expected major, minor, patch, new, retired, or an object with change: retired")
 	}
-	if err := authored.KnownFields(fields, []string{"change", "replacedBy"}, location); err != nil {
+	if err := decode.KnownFields(fields, []string{"change", "replacedBy"}, location); err != nil {
 		return NoteChange{}, err
 	}
 	if json.Unmarshal(fields["change"], &name) != nil || coderules.Change(name) != coderules.ChangeRetired {
-		return NoteChange{}, authored.Invalid(location+".change", "expected retired; only a retirement can name a replacement")
+		return NoteChange{}, decode.Invalid(location+".change", "expected retired; only a retirement can name a replacement")
 	}
 	result := NoteChange{Change: coderules.ChangeRetired}
 	if raw, ok := fields["replacedBy"]; ok {
 		if json.Unmarshal(raw, &result.ReplacedBy) != nil {
-			return NoteChange{}, authored.Invalid(location+".replacedBy", "expected a rule ID")
+			return NoteChange{}, decode.Invalid(location+".replacedBy", "expected a rule ID")
 		}
 		if err := librarypath.ValidateRuleID(result.ReplacedBy, location+".replacedBy"); err != nil {
 			return NoteChange{}, err
 		}
 		if result.ReplacedBy == id {
-			return NoteChange{}, authored.Invalid(location+".replacedBy", "a rule can't replace itself")
+			return NoteChange{}, decode.Invalid(location+".replacedBy", "a rule can't replace itself")
 		}
 	}
 	return result, nil

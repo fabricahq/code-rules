@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -35,7 +35,7 @@ func TestChangeNoteFixtures(t *testing.T) {
 		t.Run(test.ID, func(t *testing.T) {
 			got, err := rules.ParseChangeNote([]byte(test.Input), test.Location)
 			if !test.Expected.OK {
-				var validation *authored.ValidationError
+				var validation *decode.ValidationError
 				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Error)
 				}

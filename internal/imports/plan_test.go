@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -258,7 +258,7 @@ func TestImport_EntriesNamingRetiredRulesWarnAndUnknownOnesFail(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			imported, err := h.sync(t, h.source(t, test.fields), nil)
 			if test.location != "" {
-				var validation *authored.ValidationError
+				var validation *decode.ValidationError
 				if !errors.As(err, &validation) || validation.Location != test.location {
 					t.Fatalf("got %v, want a failure at %s", err, test.location)
 				}
@@ -479,7 +479,7 @@ func TestImport_RefusesALibraryReleaseDeclaringTermsInsideARulesVersion(t *testi
 		"techs/go/b.md":                     versionedRule("b 1.1.0"),
 	}, "formatVersion: 1\nrelease: 2\nrules:\n  techs/go/a: 1.0.0\n  techs/go/b: 1.1.0\nchanges:\n  techs/go/b: {change: minor, from: 1.0.0, summaries: [Add an example.]}\n")
 	imported, err := h.sync(t, h.source(t, `"groups":["techs/go"],"pins":{"techs/go/a":{"version":"1.0.0","reason":"Keep."}}`), nil)
-	var invalid *authored.ValidationError
+	var invalid *decode.ValidationError
 	if !errors.As(err, &invalid) || !strings.Contains(invalid.Location, "rule-library.yaml: license.file") || !strings.Contains(invalid.Problem, "rule's version") {
 		t.Fatalf("imported %q with error %v; want the license declaration refused", imported.Snapshot.Files["techs/go/assets/a/requirements.md"], err)
 	}

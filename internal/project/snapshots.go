@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/librarypath"
@@ -443,5 +443,5 @@ func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeT
 
 // invalidSnapshot reports caller-visible validation failures without logging source contents.
 func invalidSnapshot(location, problem string) error {
-	return &authored.ValidationError{Location: location, Problem: problem}
+	return &decode.ValidationError{Location: location, Problem: problem}
 }

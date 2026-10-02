@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 func TestSplitDocumentSharedExpectations(t *testing.T) {
@@ -37,7 +37,7 @@ func TestSplitDocumentSharedExpectations(t *testing.T) {
 				}
 				return
 			}
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 				t.Fatalf("got %#v, %v; want %s", got, err, test.Expected.Error.Message)
 			}

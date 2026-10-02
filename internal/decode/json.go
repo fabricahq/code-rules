@@ -1,6 +1,6 @@
 // Decode case-sensitive JSON fields while preserving authored text and diagnostic paths.
 
-package authored
+package decode
 
 import (
 	"encoding/json"

@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // GroupMetadata describes a group for selection, as its _group.yaml file declares it. Text has no surrounding
@@ -25,7 +25,7 @@ type GroupMetadata struct {
 // specific error, since a library declares one license for all its rules. On error, the returned metadata is the
 // zero value.
 func ParseGroupMetadata(input []byte, location string) (GroupMetadata, error) {
-	_, data, err := authored.YAML(input, location)
+	_, data, err := decode.YAML(input, location)
 	if err != nil {
 		return GroupMetadata{}, err
 	}
@@ -38,16 +38,16 @@ func ParseGroupMetadata(input []byte, location string) (GroupMetadata, error) {
 // On error, the returned metadata is the zero value.
 func groupMetadataFields(input json.RawMessage, location string) (GroupMetadata, error) {
 	if !json.Valid(input) {
-		return GroupMetadata{}, authored.Invalid(location, "invalid JSON")
+		return GroupMetadata{}, decode.Invalid(location, "invalid JSON")
 	}
 	// Raw fields preserve exact key matching and defer decoding field values.
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(input, &fields); err != nil || fields == nil {
-		return GroupMetadata{}, authored.Invalid(location, "expected an object")
+		return GroupMetadata{}, decode.Invalid(location, "expected an object")
 	}
 	for _, key := range []string{"license", "licenses"} {
 		if _, present := fields[key]; present {
-			return GroupMetadata{}, authored.Invalid(location+"."+key, "declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported")
+			return GroupMetadata{}, decode.Invalid(location+"."+key, "declare one license for the whole library in rule-library.yaml; group-level licenses are unsupported")
 		}
 	}
 	// Sort keys so multiple unknown fields produce a deterministic first error.
@@ -55,7 +55,7 @@ func groupMetadataFields(input json.RawMessage, location string) (GroupMetadata,
 		switch key {
 		case "name", "description", "whenToRead":
 		default:
-			return GroupMetadata{}, authored.Invalid(location+"."+key, "unknown field; allowed fields: name, description, whenToRead")
+			return GroupMetadata{}, decode.Invalid(location+"."+key, "unknown field; allowed fields: name, description, whenToRead")
 		}
 	}
 	name, err := metadataText(fields["name"], location+".name")
@@ -76,16 +76,16 @@ func groupMetadataFields(input json.RawMessage, location string) (GroupMetadata,
 // metadataText returns a JSON string's text without surrounding whitespace, rejecting malformed Unicode, values
 // that aren't strings, and blank text.
 func metadataText(input json.RawMessage, location string) (string, error) {
-	if len(input) > 0 && input[0] == '"' && !authored.ValidUnicode(input) {
-		return "", authored.Invalid(location, "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape")
+	if len(input) > 0 && input[0] == '"' && !decode.ValidUnicode(input) {
+		return "", decode.Invalid(location, "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape")
 	}
 	var text string
 	if err := json.Unmarshal(input, &text); err != nil {
-		return "", authored.Invalid(location, "expected nonempty text")
+		return "", decode.Invalid(location, "expected nonempty text")
 	}
-	text = strings.TrimFunc(text, authored.IsSpace)
+	text = strings.TrimFunc(text, decode.IsSpace)
 	if text == "" {
-		return "", authored.Invalid(location, "expected nonempty text")
+		return "", decode.Invalid(location, "expected nonempty text")
 	}
 	return text, nil
 }

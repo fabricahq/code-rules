@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // RuleVersion is a published rule version: plain major.minor.patch, without prerelease or build suffixes. Versions
@@ -43,7 +43,7 @@ var ruleVersionPattern = regexp.MustCompile(`^(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]
 func ParseRuleVersion(text, location string) (RuleVersion, error) {
 	parts := ruleVersionPattern.FindStringSubmatch(text)
 	if parts == nil {
-		return RuleVersion{}, authored.Invalid(location, "invalid rule version "+authored.Quote(text)+": expected major.minor.patch, such as 1.3.0")
+		return RuleVersion{}, decode.Invalid(location, "invalid rule version "+decode.Quote(text)+": expected major.minor.patch, such as 1.3.0")
 	}
 	major, _ := strconv.Atoi(parts[1])
 	minor, _ := strconv.Atoi(parts[2])

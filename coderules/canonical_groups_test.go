@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // TestCanonicalGroupListParses keeps the published list valid, since other tools read it at pinned commits.
@@ -77,7 +77,7 @@ func TestParseCanonicalGroupsRejectsInvalidLists(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := coderules.ParseCanonicalGroups([]byte(test.input), "list")
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("want ValidationError, got %v", err)
 			}

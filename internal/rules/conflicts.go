@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // conflictMarkers start the lines Git writes around the two sides of a merge conflict.
@@ -19,7 +19,7 @@ func RequireResolvedMerge(data []byte, location, next string) error {
 		text := strings.TrimRight(string(line), "\r\n")
 		for _, marker := range conflictMarkers {
 			if text == marker || strings.HasPrefix(text, marker+" ") {
-				return authored.Invalid(location, "has unresolved merge conflicts, marked by lines such as "+marker+"; resolve them, then "+next)
+				return decode.Invalid(location, "has unresolved merge conflicts, marked by lines such as "+marker+"; resolve them, then "+next)
 			}
 		}
 	}

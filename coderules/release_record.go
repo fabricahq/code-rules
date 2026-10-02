@@ -10,7 +10,7 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 )
 
@@ -78,7 +78,7 @@ const (
 // requireAtMost fails when a collection at location holds more than limit entries.
 func requireAtMost(count, limit int, location string) error {
 	if count > limit {
-		return authored.Invalid(location, "expected at most "+thousands(limit)+" entries")
+		return decode.Invalid(location, "expected at most "+thousands(limit)+" entries")
 	}
 	return nil
 }
@@ -101,19 +101,19 @@ func thousands(count int) string {
 // rules and that the first library release lists every rule as new, and it refuses more than 10,000 entries in
 // rules, changes, or retired, and more than 20,000 in libraryFiles.
 func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
-	document, err := authored.Document(input, location)
+	document, err := decode.Document(input, location)
 	if err != nil {
 		return ReleaseRecord{}, err
 	}
 	root := document.Content[0]
 	if root.Kind != yaml.MappingNode {
-		return ReleaseRecord{}, authored.Invalid(location, "expected an object")
+		return ReleaseRecord{}, decode.Invalid(location, "expected an object")
 	}
 	// The format comes first: a later format may hold content this version can't interpret at all.
 	var format json.RawMessage
 	if node := field(root, "formatVersion"); node != nil {
 		// A value that isn't a plain scalar leaves format empty, which recordFormat reports as invalid.
-		format, _ = authored.JSON(node, location+".formatVersion")
+		format, _ = decode.JSON(node, location+".formatVersion")
 	}
 	if err := recordFormat(format, location+".formatVersion"); err != nil {
 		return ReleaseRecord{}, err
@@ -177,7 +177,7 @@ func knownFields(mapping *yaml.Node, location string, known map[string][]string)
 		where := location + "." + key.Value
 		var err error
 		if entryFields == nil || value.Kind != yaml.MappingNode {
-			fields[key.Value], err = authored.JSON(value, where)
+			fields[key.Value], err = decode.JSON(value, where)
 		} else {
 			fields[key.Value], err = knownEntries(value, where, entryFields)
 		}
@@ -194,12 +194,12 @@ func knownEntries(mapping *yaml.Node, location string, names []string) (json.Raw
 	for i := 0; i+1 < len(mapping.Content); i += 2 {
 		key, value := mapping.Content[i], mapping.Content[i+1]
 		if key.Tag != "!!str" {
-			return nil, authored.Invalid(location, "mapping keys must be strings; quote wildcard selectors")
+			return nil, decode.Invalid(location, "mapping keys must be strings; quote wildcard selectors")
 		}
 		where := location + "." + key.Value
 		var err error
 		if value.Kind != yaml.MappingNode {
-			entries[key.Value], err = authored.JSON(value, where)
+			entries[key.Value], err = decode.JSON(value, where)
 		} else {
 			known := map[string][]string{}
 			for _, name := range names {
@@ -221,11 +221,11 @@ func knownEntries(mapping *yaml.Node, location string, names []string) (json.Raw
 // starts with a changes entry for 1.0.0, and to retire nothing, since no rule had a version before it.
 func requireFirstRelease(record ReleaseRecord, location string) error {
 	if len(record.Retired) > 0 {
-		return authored.Invalid(location+".retired", "the first library release can't retire rules")
+		return decode.Invalid(location+".retired", "the first library release can't retire rules")
 	}
 	for _, id := range slices.Sorted(maps.Keys(record.Rules)) {
 		if change, ok := record.Changes[id]; !ok || change.Change != ChangeNew {
-			return authored.Invalid(location+".changes."+id, "the first library release must list every rule as new")
+			return decode.Invalid(location+".changes."+id, "the first library release must list every rule as new")
 		}
 	}
 	return nil
@@ -236,7 +236,7 @@ func recordFormat(input json.RawMessage, location string) error {
 	format, err := strconv.Atoi(string(input))
 	switch {
 	case err != nil || format < 1:
-		return authored.Invalid(location, "expected the release record format, a whole number such as 1")
+		return decode.Invalid(location, "expected the release record format, a whole number such as 1")
 	case format > ReleaseRecordFormat:
 		return &UnsupportedReleaseRecordError{Location: location, FormatVersion: format}
 	}
@@ -247,14 +247,14 @@ func recordFormat(input json.RawMessage, location string) error {
 func releaseNumber(input json.RawMessage, location string) (int, error) {
 	number, err := strconv.Atoi(string(input))
 	if err != nil || number < 1 || number >= 1_000_000_000 {
-		return 0, authored.Invalid(location, "expected a library release number, starting at 1")
+		return 0, decode.Invalid(location, "expected a library release number, starting at 1")
 	}
 	return number, nil
 }
 
 // recordedVersions reads the required map of every current rule to its version; it may be empty.
 func recordedVersions(input json.RawMessage, location string) (map[string]RuleVersion, error) {
-	entries, err := authored.Object(input, location)
+	entries, err := decode.Object(input, location)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func recordedVersions(input json.RawMessage, location string) (map[string]RuleVe
 
 // recordedChanges requires each changed rule's version in rules to follow from its change and previous version.
 func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, location string) (map[string]RecordedChange, error) {
-	entries, err := authored.Object(input, location)
+	entries, err := decode.Object(input, location)
 	if err != nil {
 		return nil, err
 	}
@@ -290,14 +290,14 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 		if err := librarypath.ValidateRuleID(id, entryLocation); err != nil {
 			return nil, err
 		}
-		fields, err := authored.Object(entries[id], entryLocation)
+		fields, err := decode.Object(entries[id], entryLocation)
 		if err != nil {
 			return nil, err
 		}
 		var change RecordedChange
 		var name string
 		if json.Unmarshal(fields["change"], &name) != nil {
-			return nil, authored.Invalid(entryLocation+".change", "expected new, major, minor, or patch")
+			return nil, decode.Invalid(entryLocation+".change", "expected new, major, minor, or patch")
 		}
 		change.Change = Change(name)
 		if change.Summaries, err = recordSummaries(fields["summaries"], entryLocation+".summaries"); err != nil {
@@ -305,20 +305,20 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 		}
 		current, ok := versions[id]
 		if !ok {
-			return nil, authored.Invalid(entryLocation, "changed rule is missing from rules")
+			return nil, decode.Invalid(entryLocation, "changed rule is missing from rules")
 		}
 		raw, hasFrom := fields["from"]
 		switch change.Change {
 		case ChangeNew:
 			if hasFrom {
-				return nil, authored.Invalid(entryLocation+".from", "a new rule has no previous version")
+				return nil, decode.Invalid(entryLocation+".from", "a new rule has no previous version")
 			}
 			if current != FirstRuleVersion {
-				return nil, authored.Invalid(entryLocation, "a new rule must be version 1.0.0 in rules, got "+current.String())
+				return nil, decode.Invalid(entryLocation, "a new rule must be version 1.0.0 in rules, got "+current.String())
 			}
 		case ChangeMajor, ChangeMinor, ChangePatch:
 			if !hasFrom {
-				return nil, authored.Invalid(entryLocation+".from", "expected the rule's previous version")
+				return nil, decode.Invalid(entryLocation+".from", "expected the rule's previous version")
 			}
 			from, err := versionField(raw, entryLocation+".from")
 			if err != nil {
@@ -326,14 +326,14 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 			}
 			next, err := from.Next(change.Change)
 			if err != nil {
-				return nil, authored.Invalid(entryLocation, err.Error())
+				return nil, decode.Invalid(entryLocation, err.Error())
 			}
 			if next != current {
-				return nil, authored.Invalid(entryLocation, "a "+name+" change from "+from.String()+" leads to "+next.String()+", but rules records "+current.String())
+				return nil, decode.Invalid(entryLocation, "a "+name+" change from "+from.String()+" leads to "+next.String()+", but rules records "+current.String())
 			}
 			change.From = &from
 		default:
-			return nil, authored.Invalid(entryLocation+".change", "unknown change "+authored.Quote(name)+"; expected new, major, minor, or patch")
+			return nil, decode.Invalid(entryLocation+".change", "unknown change "+decode.Quote(name)+"; expected new, major, minor, or patch")
 		}
 		changes[id] = change
 	}
@@ -342,7 +342,7 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 
 // retiredRules requires each retired rule to be absent from rules and any replacement to be present.
 func retiredRules(input json.RawMessage, versions map[string]RuleVersion, location string) (map[string]RetiredRule, error) {
-	entries, err := authored.Object(input, location)
+	entries, err := decode.Object(input, location)
 	if err != nil {
 		return nil, err
 	}
@@ -356,9 +356,9 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 			return nil, err
 		}
 		if _, current := versions[id]; current {
-			return nil, authored.Invalid(entryLocation, "a retired rule can't also be in rules")
+			return nil, decode.Invalid(entryLocation, "a retired rule can't also be in rules")
 		}
-		fields, err := authored.Object(entries[id], entryLocation)
+		fields, err := decode.Object(entries[id], entryLocation)
 		if err != nil {
 			return nil, err
 		}
@@ -371,10 +371,10 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 		}
 		if raw, ok := fields["replacedBy"]; ok {
 			if json.Unmarshal(raw, &rule.ReplacedBy) != nil {
-				return nil, authored.Invalid(entryLocation+".replacedBy", "expected a rule ID")
+				return nil, decode.Invalid(entryLocation+".replacedBy", "expected a rule ID")
 			}
 			if _, current := versions[rule.ReplacedBy]; !current {
-				return nil, authored.Invalid(entryLocation+".replacedBy", "replacement "+authored.Quote(rule.ReplacedBy)+" is missing from rules")
+				return nil, decode.Invalid(entryLocation+".replacedBy", "replacement "+decode.Quote(rule.ReplacedBy)+" is missing from rules")
 			}
 		}
 		retired[id] = rule
@@ -387,7 +387,7 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 	var items []json.RawMessage
 	if json.Unmarshal(input, &items) != nil || items == nil {
-		return nil, authored.Invalid(location, "expected a list of file paths")
+		return nil, decode.Invalid(location, "expected a list of file paths")
 	}
 	if err := requireAtMost(len(items), maxLibraryFiles, location); err != nil {
 		return nil, err
@@ -395,15 +395,15 @@ func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 	paths := make([]string, 0, len(items))
 	seen := make(map[string]bool, len(items))
 	for i, item := range items {
-		path, err := authored.Path(item, location+"["+strconv.Itoa(i)+"]")
+		path, err := decode.Path(item, location+"["+strconv.Itoa(i)+"]")
 		if err != nil {
 			return nil, err
 		}
 		if seen[path] {
-			return nil, authored.Invalid(location+"["+strconv.Itoa(i)+"]", "duplicate path "+authored.Quote(path))
+			return nil, decode.Invalid(location+"["+strconv.Itoa(i)+"]", "duplicate path "+decode.Quote(path))
 		}
 		if librarypath.IsRuleContent(path) {
-			return nil, authored.Invalid(location+"["+strconv.Itoa(i)+"]", authored.Quote(path)+" belongs to a rule's version, not the library-wide files")
+			return nil, decode.Invalid(location+"["+strconv.Itoa(i)+"]", decode.Quote(path)+" belongs to a rule's version, not the library-wide files")
 		}
 		seen[path] = true
 		paths = append(paths, path)
@@ -415,7 +415,7 @@ func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 func versionField(input json.RawMessage, location string) (RuleVersion, error) {
 	var text string
 	if json.Unmarshal(input, &text) != nil {
-		return RuleVersion{}, authored.Invalid(location, "expected a rule version, such as 1.3.0")
+		return RuleVersion{}, decode.Invalid(location, "expected a rule version, such as 1.3.0")
 	}
 	return ParseRuleVersion(text, location)
 }
@@ -425,11 +425,11 @@ func versionField(input json.RawMessage, location string) (RuleVersion, error) {
 func recordSummaries(input json.RawMessage, location string) ([]string, error) {
 	var items []json.RawMessage
 	if json.Unmarshal(input, &items) != nil || len(items) == 0 {
-		return nil, authored.Invalid(location, "expected a list with one summary per change note")
+		return nil, decode.Invalid(location, "expected a list with one summary per change note")
 	}
 	summaries := make([]string, len(items))
 	for i, item := range items {
-		summary, err := authored.Line(item, location+"["+strconv.Itoa(i)+"]")
+		summary, err := decode.Line(item, location+"["+strconv.Itoa(i)+"]")
 		if err != nil {
 			return nil, err
 		}

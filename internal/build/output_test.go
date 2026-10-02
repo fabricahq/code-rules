@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -65,7 +65,7 @@ func TestPrepareToolVersionWhitespace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			output, err := prepare(resolution{}, Options{ToolVersion: tc.version, IndexMaxLines: defaultIndexMaxLines})
 			if !tc.valid {
-				var validation *authored.ValidationError
+				var validation *decode.ValidationError
 				if !errors.As(err, &validation) || validation.Location != "toolVersion" || output.Files != nil {
 					t.Fatalf("expected toolVersion validation error and no output, got %v and %d files", err, len(output.Files))
 				}

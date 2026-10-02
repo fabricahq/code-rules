@@ -15,7 +15,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -71,7 +71,7 @@ func TestLoadRejectsAssetFailures(t *testing.T) {
 			}
 			_, root := fixture(t, files)
 			got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{"techs/go"}})
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if !errors.As(err, &validation) || got.Groups != nil {
 				t.Fatalf("expected validation failure without partial catalog: %+v, %v", got, err)
 			}
@@ -165,7 +165,7 @@ func TestLoadRejectsTermsInsideRuleContent(t *testing.T) {
 				files["LICENSE"], files[term] = "License\r\n", "Notice\n"
 				_, root := fixture(t, files)
 				got, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: groups})
-				var invalid *authored.ValidationError
+				var invalid *decode.ValidationError
 				if !errors.As(err, &invalid) || invalid.Location != "team/rule-library.yaml: license.notices[0]" || got.Groups != nil {
 					t.Fatalf("got %+v, %v; want the notice path refused", got, err)
 				}
@@ -225,7 +225,7 @@ func TestLoadRejectsSharedAssetLinksSpelledDifferently(t *testing.T) {
 			files["techs/go/errors.md"] = &fstest.MapFile{Data: []byte(document + "\n![Diagram](/assets/diagram.png)\n")}
 			files[test.file] = &fstest.MapFile{Data: []byte("shared")}
 			_, err := library.LoadSource(context.Background(), caseInsensitiveFiles{files}, "team", rules.GroupSelection{Groups: []string{"techs/go"}}, nil)
-			var validation *authored.ValidationError
+			var validation *decode.ValidationError
 			if test.valid && err != nil || !test.valid && (!errors.As(err, &validation) || !strings.Contains(validation.Problem, "spelled differently")) {
 				t.Fatalf("got %v, valid %t", err, test.valid)
 			}

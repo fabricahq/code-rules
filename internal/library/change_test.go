@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -291,7 +291,7 @@ func TestChange_RequiresABumpAndSummaryToCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The note parser rejects a summary of more than one line, so the command never writes one.
-	var validation *authored.ValidationError
+	var validation *decode.ValidationError
 	if _, err := plan.Commit(ctx, coderules.ChangePatch, "One.\nTwo.", noteDay); !errors.As(err, &validation) || !strings.HasSuffix(validation.Location, ".summary") {
 		t.Fatal(err)
 	}
