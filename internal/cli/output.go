@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/spf13/cobra"
@@ -111,7 +111,7 @@ func (o *commandOutput) finish(streams Streams, cmd *cobra.Command, err error) i
 func classifyError(err error) *responseError {
 	result := &responseError{Kind: "operation", Message: sentence(err.Error())}
 	var invalid *usageError
-	var validation *authored.ValidationError
+	var validation errs.ValidationError
 	var domain *filetxn.Error
 	var git *gitexec.Error
 	switch {
@@ -129,7 +129,7 @@ func classifyError(err error) *responseError {
 		result.Kind = "usage"
 	case errors.As(err, &validation):
 		result.Kind = "validation"
-		result.Location = validation.Location
+		result.Location = validation.ValidationLocation()
 	}
 	// Every usage refusal, such as an unknown flag or flags that can't be combined, has one code.
 	if result.Kind == "usage" && result.Code == "" {

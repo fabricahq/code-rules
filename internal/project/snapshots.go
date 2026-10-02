@@ -16,6 +16,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -71,9 +72,9 @@ func changedOutsideSync(name string) error {
 
 // isChangedOutsideSync reports whether err is changedOutsideSync's refusal of the source name's record.
 func isChangedOutsideSync(err error, name string) bool {
-	var invalid *authored.ValidationError
-	refusal := changedOutsideSync(name).(*authored.ValidationError)
-	return errors.As(err, &invalid) && *invalid == *refusal
+	var invalid errs.ValidationError
+	refusal := changedOutsideSync(name).(errs.ValidationError)
+	return errors.As(err, &invalid) && invalid.ValidationLocation() == refusal.ValidationLocation() && invalid.ValidationProblem() == refusal.ValidationProblem()
 }
 
 // recordChecksum returns the SHA-256 of record's fields other than its checksum, encoded as sync writes them.
@@ -226,9 +227,9 @@ type parsedRecord struct {
 // upgrade Code Rules.
 func parseSourceRecord(data []byte, name string) (parsedRecord, error) {
 	record, err := readSourceRecord(data, name)
-	var invalid *authored.ValidationError
-	if errors.As(err, &invalid) && err == error(invalid) && !strings.Contains(invalid.Problem, "code-rules project sync") {
-		return parsedRecord{}, &authored.ValidationError{Location: invalid.Location, Problem: invalid.Problem + "; " + reimport(name)}
+	var invalid errs.ValidationError
+	if errors.As(err, &invalid) && err == error(invalid) && !strings.Contains(invalid.ValidationProblem(), "code-rules project sync") {
+		return parsedRecord{}, invalidSnapshot(invalid.ValidationLocation(), invalid.ValidationProblem()+"; "+reimport(name))
 	}
 	return record, err
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/authored"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -322,9 +323,9 @@ func PlanUpdate(ctx context.Context, configuration rules.Configuration, recorded
 // cancellation: a validation error of the source's configuration, of its source record, or of a SOURCE:RULE argument
 // naming it, or a message about one of its fields. Other failures, such as an invalid release record in the library, need it.
 func sourceError(source string, err error) error {
-	var validation *authored.ValidationError
+	var validation errs.ValidationError
 	if errors.As(err, &validation) && err == error(validation) {
-		location := validation.Location
+		location := validation.ValidationLocation()
 		if location == "sources."+source || strings.HasPrefix(location, "sources."+source+".") || strings.HasPrefix(location, source+":") || strings.HasPrefix(location, "vendor/"+source+"/") {
 			return err
 		}
