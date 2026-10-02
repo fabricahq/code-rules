@@ -1961,11 +1961,11 @@
       "attribution": []
     },
     {
-      "id": "local:techs/go/collect-prompt-answers-before-taking-the-writer",
+      "id": "local:techs/go/comment-role-result-and-constraints",
       "group": "techs/go",
       "origin": {
         "source": "local",
-        "file": "techs/go/collect-prompt-answers-before-taking-the-writer.md",
+        "file": "techs/go/comment-role-result-and-constraints.md",
         "repository": null,
         "ref": null,
         "resolvedCommit": null,
@@ -1980,11 +1980,11 @@
       "attribution": []
     },
     {
-      "id": "local:techs/go/comment-role-result-and-constraints",
+      "id": "local:techs/go/follow-the-project-write-protocol",
       "group": "techs/go",
       "origin": {
         "source": "local",
-        "file": "techs/go/comment-role-result-and-constraints.md",
+        "file": "techs/go/follow-the-project-write-protocol.md",
         "repository": null,
         "ref": null,
         "resolvedCommit": null,
@@ -2099,25 +2099,6 @@
       "origin": {
         "source": "local",
         "file": "techs/go/test-command-contracts-through-the-cli.md",
-        "repository": null,
-        "ref": null,
-        "resolvedCommit": null,
-        "version": null,
-        "release": null
-      },
-      "upstream": null,
-      "replacementReason": null,
-      "basedOn": null,
-      "licenseBasis": "undeclared",
-      "license": null,
-      "attribution": []
-    },
-    {
-      "id": "local:techs/go/validate-everything-before-installing",
-      "group": "techs/go",
-      "origin": {
-        "source": "local",
-        "file": "techs/go/validate-everything-before-installing.md",
         "repository": null,
         "ref": null,
         "resolvedCommit": null,

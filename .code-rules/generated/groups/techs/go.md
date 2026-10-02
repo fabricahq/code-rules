@@ -107,18 +107,6 @@ Rule ID: `local:techs/go/choose-the-git-runner-by-repository-owner`
 
 **Read full rule:** [Run Git with gitexec.Isolated for libraries and gitexec.Owned for the user's repository](../../rules/local/techs/go/choose-the-git-runner-by-repository-owner.md)
 
-### Collect prompt answers before taking the project writer
-
-Rule ID: `local:techs/go/collect-prompt-answers-before-taking-the-writer`
-
-**When to read:** Before planning, writing, changing, or reviewing a Go command that asks a person for input and then writes project or library files, such as adding a group, rule, or library, forking a rule, or answering update questions.
-
-**Impact:** MEDIUM
-
-**Why it matters:** Waiting for a person while holding the writer makes every other command on the project fail with busy for as long as the prompt stays open.
-
-**Read full rule:** [Collect prompt answers before taking the project writer](../../rules/local/techs/go/collect-prompt-answers-before-taking-the-writer.md)
-
 ### Comment the role, the result, and the hidden constraint in Go
 
 Rule ID: `local:techs/go/comment-role-result-and-constraints`
@@ -130,6 +118,18 @@ Rule ID: `local:techs/go/comment-role-result-and-constraints`
 **Why it matters:** Missing headers and contract comments force readers and agents to trace implementations to learn what a file is for, who owns a result, and what nil means, and guessed rationales become false specifications.
 
 **Read full rule:** [Comment the role, the result, and the hidden constraint in Go](../../rules/local/techs/go/comment-role-result-and-constraints.md)
+
+### Follow the project write protocol
+
+Rule ID: `local:techs/go/follow-the-project-write-protocol`
+
+**When to read:** Before planning, writing, changing, or reviewing Go code that writes project or library files, such as sync, update, build, init, fork, or authoring commands, including commands that ask a person for input first, or a change that adds a target, an input, or a check to such a write.
+
+**Impact:** HIGH
+
+**Why it matters:** Waiting for a person while holding the writer locks every other command out of the project, and a check that fails after the first write leaves imported, generated, and configuration files that disagree.
+
+**Read full rule:** [Follow the project write protocol](../../rules/local/techs/go/follow-the-project-write-protocol.md)
 
 ### Give each package its own ValidationError
 
@@ -202,18 +202,6 @@ Rule ID: `local:techs/go/test-command-contracts-through-the-cli`
 **Why it matters:** Helper-only tests pass while the assembled command writes to the wrong stream, exits with the wrong status, or leaves partial files, which breaks the contract agents and scripts depend on.
 
 **Read full rule:** [Test command contracts through cli.Run and the compiled binary](../../rules/local/techs/go/test-command-contracts-through-the-cli.md)
-
-### Validate and render the complete result before the first write
-
-Rule ID: `local:techs/go/validate-everything-before-installing`
-
-**When to read:** Before planning, writing, changing, or reviewing Go code that writes project or library files, such as sync, update, build, init, fork, or authoring commands, or that adds a target, an input, or a check to such a write.
-
-**Impact:** HIGH
-
-**Why it matters:** A check that fails partway through writing leaves imported, generated, and configuration files that disagree, which the next build or check rejects or agents read as valid guidance.
-
-**Read full rule:** [Validate and render the complete result before the first write](../../rules/local/techs/go/validate-everything-before-installing.md)
 
 ---
 
