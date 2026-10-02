@@ -167,17 +167,17 @@ Rule ID: `local:techs/go/never-show-git-diagnostics`
 
 **Read full rule:** [Never show what Git, a Git server, or the GitHub CLI printed](../../rules/local/techs/go/never-show-git-diagnostics.md)
 
-### Parse and render in memory; read and write files only in the operation
+### Parse and render in memory; leave all I/O to the operation
 
 Rule ID: `local:techs/go/parse-and-render-in-memory`
 
-**When to read:** Before planning, writing, changing, or reviewing Go code that parses Code Rules formats, such as configuration, rules, group metadata, release records, or change notes, that renders generated output, or that reads the files those steps need.
+**When to read:** Before planning, writing, changing, or reviewing Go code that parses Code Rules formats, such as configuration, rules, group metadata, or release records, that renders generated output, or that reads the files those steps need.
 
 **Impact:** MEDIUM-HIGH
 
-**Why it matters:** A parser or renderer that reads files itself escapes the operation's containment, size limits, cancellation, and concurrent-change check, and can't run offline or on bytes a caller already holds.
+**Why it matters:** A parser or renderer that reads files itself escapes the operation's containment, size limits, cancellation, and concurrent-change check.
 
-**Read full rule:** [Parse and render in memory; read and write files only in the operation](../../rules/local/techs/go/parse-and-render-in-memory.md)
+**Read full rule:** [Parse and render in memory; leave all I/O to the operation](../../rules/local/techs/go/parse-and-render-in-memory.md)
 
 ---
 
