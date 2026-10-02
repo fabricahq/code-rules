@@ -1,0 +1,12 @@
+{
+  "name": "@code-rules/docs-preview",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "wrangler": "4.146.0"
+  },
+  "packageManager": "bun@1.4.2"
+}

@@ -12,10 +12,10 @@
     "docs:links:all": "bun docs/_tools/link-checker/cli.ts --external",
     "docs:links": "bun run --cwd docs links",
     "check": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run docs:check && bun run docs:build && bun run docs:links",
-    "format:check": "prettier --single-quote --check _tools/*.ts \"docs/_tools/**/*.ts\" eslint.config.mjs",
+    "format:check": "prettier --single-quote --check _tools/*.ts \"docs/_tools/**/*.ts\" \".github/docs-preview/*.mjs\" eslint.config.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --project tsconfig.json",
-    "test": "bun test ./_tools ./docs/_tools"
+    "test": "bun test ./_tools ./docs/_tools ./.github/docs-preview"
   },
   "packageManager": "bun@1.4.2",
   "devDependencies": {

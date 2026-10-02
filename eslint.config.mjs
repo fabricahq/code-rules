@@ -9,6 +9,7 @@ const sourceFiles = [
   'docs/_tools/**/*.ts',
   'docs/src/**/*.{ts,astro,mjs}',
   'docs/*.mjs',
+  '.github/docs-preview/*.mjs',
   'eslint.config.mjs',
 ];
 
