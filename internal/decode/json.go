@@ -14,11 +14,11 @@ import (
 // Object distinguishes malformed JSON from missing, null, or non-object values.
 func Object(input json.RawMessage, location string) (map[string]json.RawMessage, error) {
 	if len(input) > 0 && !json.Valid(input) {
-		return nil, Invalid(location, "invalid JSON")
+		return nil, invalid(location, "invalid JSON")
 	}
 	var fields map[string]json.RawMessage
 	if json.Unmarshal(input, &fields) != nil || fields == nil {
-		return nil, Invalid(location, "expected an object")
+		return nil, invalid(location, "expected an object")
 	}
 	return fields, nil
 }
@@ -27,7 +27,7 @@ func Object(input json.RawMessage, location string) (map[string]json.RawMessage,
 func KnownFields(fields map[string]json.RawMessage, allowed []string, location string) error {
 	for _, key := range slices.Sorted(maps.Keys(fields)) {
 		if !slices.Contains(allowed, key) {
-			return Invalid(location, "unknown field "+key)
+			return invalid(location, "unknown field "+key)
 		}
 	}
 	return nil
@@ -37,10 +37,10 @@ func KnownFields(fields map[string]json.RawMessage, allowed []string, location s
 func Text(input json.RawMessage, location string) (string, error) {
 	var text string
 	if json.Unmarshal(input, &text) != nil || strings.TrimFunc(text, IsSpace) == "" {
-		return "", Invalid(location, "expected nonempty text")
+		return "", invalid(location, "expected nonempty text")
 	}
 	if !ValidUnicode(input) {
-		return "", Invalid(location, "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape")
+		return "", invalid(location, "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape")
 	}
 	return text, nil
 }
@@ -52,7 +52,7 @@ func Path(input json.RawMessage, location string) (string, error) {
 		return "", err
 	}
 	if !Contained(text) {
-		return "", Invalid(location, "expected a contained relative path, got "+Quote(text))
+		return "", invalid(location, "expected a contained relative path, got "+Quote(text))
 	}
 	return text, nil
 }
@@ -67,10 +67,10 @@ func Line(input json.RawMessage, location string) (string, error) {
 	}
 	line := strings.TrimFunc(text, IsSpace)
 	if strings.ContainsAny(line, "\n\r") {
-		return "", Invalid(location, "expected one line")
+		return "", invalid(location, "expected one line")
 	}
 	if strings.ContainsFunc(line, func(r rune) bool { return r < 0x20 || (r >= 0x7f && r <= 0x9f) }) {
-		return "", Invalid(location, "expected text without control characters, such as tabs or escape sequences")
+		return "", invalid(location, "expected text without control characters, such as tabs or escape sequences")
 	}
 	return line, nil
 }

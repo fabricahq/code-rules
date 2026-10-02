@@ -4,8 +4,6 @@ package coderules
 
 import (
 	"regexp"
-
-	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 var documentPattern = regexp.MustCompile(`(?s)^---\r?\n(.*?)\r?\n---(?:\r?\n|$)(.*)$`)
@@ -23,7 +21,7 @@ type DocumentText struct {
 func SplitDocument(text, location string) (DocumentText, error) {
 	parts := documentPattern.FindStringSubmatch(text)
 	if parts == nil {
-		return DocumentText{}, decode.Invalid(location, "expected YAML frontmatter followed by Markdown")
+		return DocumentText{}, invalid(location, "expected YAML frontmatter followed by Markdown")
 	}
 	return DocumentText{Frontmatter: parts[1], Body: parts[2]}, nil
 }

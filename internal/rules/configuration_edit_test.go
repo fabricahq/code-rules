@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -93,8 +93,8 @@ func TestEditConfigurationSource_RefusesEditsItCantApply(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			out, err := rules.EditConfigurationSource(input, test.alias, test.edit)
-			var validation *decode.ValidationError
-			if out != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.Location, test.where) {
+			var validation errs.ValidationError
+			if out != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.ValidationLocation(), test.where) {
 				t.Fatalf("got %s, %v", out, err)
 			}
 		})
@@ -145,8 +145,8 @@ sources:
 		t.Fatalf("basedOn %v", based)
 	}
 	for _, id := range []string{"techs/go/c", "techs/go/missing"} {
-		var invalid *decode.ValidationError
-		if _, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]coderules.RuleVersion{id: version("1.0.0")}}); !errors.As(err, &invalid) || invalid.Location != "sources.team.exclude."+id {
+		var invalid errs.ValidationError
+		if _, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]coderules.RuleVersion{id: version("1.0.0")}}); !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.exclude."+id {
 			t.Errorf("%s: got %v", id, err)
 		}
 	}

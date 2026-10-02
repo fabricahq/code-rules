@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -466,12 +466,12 @@ func TestPlanUpdate_RejectsTargetsItCantMove(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := h.plan(t, test.config, nil, test.target)
-			var validation *decode.ValidationError
+			var validation errs.ValidationError
 			where := test.target.Source
 			if test.target.Rule != "" {
 				where += ":" + test.target.Rule
 			}
-			if !errors.As(err, &validation) || validation.Location != where {
+			if !errors.As(err, &validation) || validation.ValidationLocation() != where {
 				t.Fatalf("got %v, want a failure at %s", err, where)
 			}
 		})

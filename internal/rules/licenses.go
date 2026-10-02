@@ -29,7 +29,7 @@ type LicenseDeclaration struct {
 func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error) {
 	location := source + "/rule-library.yaml"
 	if !utf8.Valid(text) {
-		return nil, decode.Invalid(location, "expected UTF-8 text")
+		return nil, invalid(location, "expected UTF-8 text")
 	}
 	_, data, err := decode.YAML(text, location)
 	if err != nil {
@@ -41,7 +41,7 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 	}
 	var format float64
 	if json.Unmarshal(manifest["formatVersion"], &format) != nil || format != 1 {
-		return nil, decode.Invalid(location+": formatVersion", "only library formatVersion 1 is supported")
+		return nil, invalid(location+": formatVersion", "only library formatVersion 1 is supported")
 	}
 	raw, ok := manifest["license"]
 	if !ok {
@@ -61,7 +61,7 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 	}
 	var rawNotices []json.RawMessage
 	if json.Unmarshal(fields["notices"], &rawNotices) != nil || rawNotices == nil {
-		return nil, decode.Invalid(location+".notices", "expected an array of notice paths")
+		return nil, invalid(location+".notices", "expected an array of notice paths")
 	}
 	notices := make([]string, len(rawNotices))
 	for i, raw := range rawNotices {
@@ -72,7 +72,7 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 		notices[i] = path
 	}
 	if _, ok := fields["expression"]; ok {
-		return nil, decode.Invalid(location+".expression", "renamed to license.spdxExpression; move the declaration to that field")
+		return nil, invalid(location+".expression", "renamed to license.spdxExpression; move the declaration to that field")
 	}
 	var expression *string
 	if raw, ok := fields["spdxExpression"]; ok {
@@ -81,10 +81,10 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 			return nil, err
 		}
 		if strings.ContainsFunc(text, controlCharacter) {
-			return nil, decode.Invalid(location+".spdxExpression", "expected a single-line license expression")
+			return nil, invalid(location+".spdxExpression", "expected a single-line license expression")
 		}
 		if !validSPDXExpression(text) {
-			return nil, decode.Invalid(location+".spdxExpression", "expected an SPDX expression using recognized identifiers or LicenseRef- custom terms")
+			return nil, invalid(location+".spdxExpression", "expected an SPDX expression using recognized identifiers or LicenseRef- custom terms")
 		}
 		expression = &text
 	}
@@ -108,7 +108,7 @@ func termsPath(input json.RawMessage, location string) (string, error) {
 		return "", err
 	}
 	if librarypath.IsRuleContent(path) {
-		return "", decode.Invalid(location, decode.Quote(path)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root")
+		return "", invalid(location, decode.Quote(path)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root")
 	}
 	return path, nil
 }

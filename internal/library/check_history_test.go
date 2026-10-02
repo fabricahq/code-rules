@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -308,8 +308,8 @@ func TestCheck_OnlyWarnsAboutAnInvalidEditToAPublishedNote(t *testing.T) {
 		t.Fatal(result, err)
 	}
 	edit(t, options.Directory, map[string]string{"changes/two.yaml": "summary: [unclosed\n"})
-	var validation *decode.ValidationError
-	if _, err := Check(ctx, options); !errors.As(err, &validation) || validation.Location != "changes/two.yaml" {
+	var validation errs.ValidationError
+	if _, err := Check(ctx, options); !errors.As(err, &validation) || validation.ValidationLocation() != "changes/two.yaml" {
 		t.Fatalf("accepted an invalid pending note: %v", err)
 	}
 }
@@ -397,8 +397,8 @@ func TestCheck_BeforeTheFirstLibraryRelease(t *testing.T) {
 				t.Fatal(result, err)
 			}
 			edit(t, options.Directory, map[string]string{"changes/early.yaml": "summary: Unknown change.\nrules:\n  practices/testing/a: huge\n"})
-			var validation *decode.ValidationError
-			if _, err := Check(ctx, options); !errors.As(err, &validation) || validation.Location != "changes/early.yaml.rules.practices/testing/a" {
+			var validation errs.ValidationError
+			if _, err := Check(ctx, options); !errors.As(err, &validation) || validation.ValidationLocation() != "changes/early.yaml.rules.practices/testing/a" {
 				t.Fatalf("invalid note accepted: %v", err)
 			}
 		})
@@ -460,11 +460,11 @@ func TestCheck_RejectsHistoryItCannotCompare(t *testing.T) {
 				t.Fatal(err)
 			}
 			_, err := Check(ctx, options)
-			var validation *decode.ValidationError
+			var validation errs.ValidationError
 			if errorCode(err) != "invalid-release-tag" || !strings.Contains(err.Error(), "by hand") {
 				t.Fatalf("accepted %s: %v", name, err)
 			}
-			if test.location != "" && (!errors.As(err, &validation) || validation.Location != test.location) {
+			if test.location != "" && (!errors.As(err, &validation) || validation.ValidationLocation() != test.location) {
 				t.Fatalf("%s lost its location: %v", name, err)
 			}
 		})
@@ -526,8 +526,8 @@ func TestCheck_RejectsTermsInsideARulesVersion(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			_, options := authorClone(t, files, tags...)
 			_, err := Check(context.Background(), options)
-			var invalid *decode.ValidationError
-			if !errors.As(err, &invalid) || !strings.HasSuffix(invalid.Location, "rule-library.yaml: license.file") || !strings.Contains(invalid.Problem, "belongs to a rule's version") {
+			var invalid errs.ValidationError
+			if !errors.As(err, &invalid) || !strings.HasSuffix(invalid.ValidationLocation(), "rule-library.yaml: license.file") || !strings.Contains(invalid.ValidationProblem(), "belongs to a rule's version") {
 				t.Fatalf("got %v; want the license path refused", err)
 			}
 		})

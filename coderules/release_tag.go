@@ -9,8 +9,6 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
-
-	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // ErrNotReleaseTag identifies a tag name that isn't a library release tag, release/<number>. Code Rules ignores
@@ -57,11 +55,11 @@ func ParseReleaseMessage(tag string, message []byte) (string, ReleaseRecord, err
 			return "", ReleaseRecord{}, err
 		}
 		if record.Release != number {
-			return "", ReleaseRecord{}, decode.Invalid(tag+".release", "the record is for library release "+strconv.Itoa(record.Release)+", but its tag is "+tag)
+			return "", ReleaseRecord{}, invalid(tag+".release", "the record is for library release "+strconv.Itoa(record.Release)+", but its tag is "+tag)
 		}
 		return notes, record, nil
 	}
-	return "", ReleaseRecord{}, decode.Invalid(tag, "expected release notes, a line containing only ---, and a release record")
+	return "", ReleaseRecord{}, invalid(tag, "expected release notes, a line containing only ---, and a release record")
 }
 
 // signatureHeaders begin a signature that Git appends to a signed tag's message.

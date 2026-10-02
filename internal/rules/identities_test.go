@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -61,12 +61,12 @@ func TestSharedExpectations(t *testing.T) {
 				t.Fatalf("unknown operation %q", test.Operation)
 			}
 			if !test.Expected.OK {
-				var validation *decode.ValidationError
+				var validation errs.ValidationError
 				if !errors.As(err, &validation) {
 					t.Fatalf("want ValidationError, got %v", err)
 				}
-				if err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
-					t.Fatalf("got %q at %q; want %q at %q", err.Error(), validation.Location, test.Expected.Error.Message, test.Expected.Error.Location)
+				if err.Error() != test.Expected.Error.Message || validation.ValidationLocation() != test.Expected.Error.Location {
+					t.Fatalf("got %q at %q; want %q at %q", err.Error(), validation.ValidationLocation(), test.Expected.Error.Message, test.Expected.Error.Location)
 				}
 				return
 			}

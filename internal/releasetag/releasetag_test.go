@@ -12,7 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -104,8 +105,8 @@ func TestListAndRead_ReleaseTagsInNumberOrder(t *testing.T) {
 	}
 	err = releasetag.Read(ctx, runner, dir, []releasetag.Tag{all[0], all[2]}, func(int, releasetag.Release) error { return nil })
 	var invalid *releasetag.RecordError
-	var validation *decode.ValidationError
-	if !errors.As(err, &invalid) || invalid.Tag != "release/4" || !errors.As(err, &validation) || validation.Location != "release/4" {
+	var validation errs.ValidationError
+	if !errors.As(err, &invalid) || invalid.Tag != "release/4" || !errors.As(err, &validation) || validation.ValidationLocation() != "release/4" {
 		t.Fatalf("read a tag without a record: %v", err)
 	}
 }
@@ -176,7 +177,7 @@ func TestRecordError_NamesTheTagOnce(t *testing.T) {
 		{"release/3.release", "invalid release record: release/3.release: expected a mapping"},
 		{"record", "invalid release record: release/3: record: expected a mapping"},
 	} {
-		err := &releasetag.RecordError{Tag: "release/3", Err: &decode.ValidationError{Location: test.location, Problem: "expected a mapping"}}
+		err := &releasetag.RecordError{Tag: "release/3", Err: &coderules.ValidationError{Location: test.location, Problem: "expected a mapping"}}
 		if got := err.Error(); got != test.want {
 			t.Errorf("location %s: got %q, want %q", test.location, got, test.want)
 		}

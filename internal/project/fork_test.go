@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -386,8 +386,8 @@ func TestFork_NeverReplacesAnExistingExclusion(t *testing.T) {
 	writeFixture(t, root, configurationFile, config)
 	source, _ := ParseForkSource("team@1.0.0")
 	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
-	var invalid *decode.ValidationError
-	if !errors.As(err, &invalid) || invalid.Location != "sources.team.exclude.techs/go/errors" {
+	var invalid errs.ValidationError
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.exclude.techs/go/errors" {
 		t.Fatalf("got %v", err)
 	}
 	if got := string(f.files(t)["config.yaml"]); got != config {
@@ -407,8 +407,8 @@ func code(want string) func(error) bool {
 // location matches a validation error at a location.
 func location(want string) func(error) bool {
 	return func(err error) bool {
-		var invalid *decode.ValidationError
-		return errors.As(err, &invalid) && invalid.Location == want
+		var invalid errs.ValidationError
+		return errors.As(err, &invalid) && invalid.ValidationLocation() == want
 	}
 }
 
@@ -545,8 +545,8 @@ func TestFork_OfASelectedRuleNeedsASyncedRecord(t *testing.T) {
 	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"    ref: release/1\n")
 	source, _ := ParseForkSource("team@1.0.0")
 	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
-	var invalid *decode.ValidationError
-	if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json" || !strings.Contains(invalid.Problem, "run code-rules project sync") {
+	var invalid errs.ValidationError
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "run code-rules project sync") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -590,8 +590,8 @@ func TestForkFiles_RefusesRelativeRawHTMLLinks(t *testing.T) {
 				}
 				return
 			}
-			var validation *decode.ValidationError
-			if !errors.As(err, &validation) || !strings.Contains(validation.Problem, "raw HTML") {
+			var validation errs.ValidationError
+			if !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "raw HTML") {
 				t.Fatalf("got %v, want a refusal of the raw HTML link", err)
 			}
 		})

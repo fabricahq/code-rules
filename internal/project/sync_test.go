@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -149,7 +149,7 @@ func TestSyncFailurePreservesManagedTrees(t *testing.T) {
 			if scenario == "cancelled" && !errors.Is(err, context.Canceled) {
 				t.Fatal("lost cancellation", err)
 			}
-			var validation *decode.ValidationError
+			var validation errs.ValidationError
 			if scenario == "invalid-local" && !errors.As(err, &validation) {
 				t.Fatal("lost validation error", err)
 			}

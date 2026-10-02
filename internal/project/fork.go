@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/librarypath"
@@ -32,7 +31,7 @@ type ForkSource struct {
 func ParseForkSource(value string) (ForkSource, error) {
 	at := strings.LastIndex(value, "@")
 	if at <= 0 {
-		return ForkSource{}, &decode.ValidationError{Location: "--from", Problem: fmt.Sprintf("%q: expected LIBRARY@VERSION, such as team@1.3.0", value)}
+		return ForkSource{}, &ValidationError{Location: "--from", Problem: fmt.Sprintf("%q: expected LIBRARY@VERSION, such as team@1.3.0", value)}
 	}
 	version, err := coderules.ParseRuleVersion(value[at+1:], "--from")
 	if err != nil {
@@ -88,7 +87,7 @@ func PlanFork(ctx context.Context, id string, from ForkSource, options Options, 
 				return err
 			}
 			if _, excluded := replaces.Exclude[id]; excluded {
-				return &decode.ValidationError{Location: "sources." + replaces.Name + ".exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
+				return &ValidationError{Location: "sources." + replaces.Name + ".exclude." + id, Problem: "the source already excludes this rule, and a fork never replaces an existing exclusion; delete the entry to fork the rule"}
 			}
 			plan.replaces = replaces.Name
 			if pin, pinned := replaces.Pins[id]; pinned {
@@ -141,9 +140,9 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 	replacedBy := path.Join("local", p.id+".md")
 	switch {
 	case p.replaces != "" && strings.TrimSpace(reason) == "":
-		return AuthoringResult{}, &decode.ValidationError{Location: "--reason", Problem: "give the reason the project uses the fork instead of the rule it imports from " + p.replaces}
+		return AuthoringResult{}, &ValidationError{Location: "--reason", Problem: "give the reason the project uses the fork instead of the rule it imports from " + p.replaces}
 	case p.replaces == "" && reason != "":
-		return AuthoringResult{}, &decode.ValidationError{Location: "--reason", Problem: "the project doesn't import this rule, so the fork replaces nothing and has no exclusion to record a reason in"}
+		return AuthoringResult{}, &ValidationError{Location: "--reason", Problem: "the project doesn't import this rule, so the fork replaces nothing and has no exclusion to record a reason in"}
 	}
 	result, err := editProject(ctx, p.options, func(root *os.Root, original []byte, config rules.Configuration) ([]filetxn.File, error) {
 		if !bytes.Equal(original, p.configBytes) {
@@ -259,7 +258,7 @@ func forkLibrary(config rules.Configuration, name, id, group string) (rules.Sour
 	if !strings.Contains(name, ":") {
 		index := slices.IndexFunc(config.Sources, func(source rules.Source) bool { return source.Name == name })
 		if index < 0 {
-			return rules.Source{}, nil, &decode.ValidationError{Location: "--from", Problem: "no source named " + name + " in .code-rules/config.yaml; name a configured source or the library's repository address"}
+			return rules.Source{}, nil, &ValidationError{Location: "--from", Problem: "no source named " + name + " in .code-rules/config.yaml; name a configured source or the library's repository address"}
 		}
 		configured = &config.Sources[index]
 		library.Repository = configured.Repository
@@ -351,10 +350,10 @@ func forkFiles(id, rulePath string, published imports.PublishedRule, attribution
 		case isShared:
 			target = assets + shared
 		default:
-			return nil, &decode.ValidationError{Location: id + ".md", Problem: fmt.Sprintf("the library's %s is neither the rule, its asset, nor a shared asset, so a fork can't place it", file)}
+			return nil, &ValidationError{Location: id + ".md", Problem: fmt.Sprintf("the library's %s is neither the rule, its asset, nor a shared asset, so a fork can't place it", file)}
 		}
 		if other, taken := sources[target]; taken {
-			return nil, &decode.ValidationError{Location: rulePath, Problem: fmt.Sprintf("the library's %s and %s would both become %s in the fork; rename one in the library", other, file, target)}
+			return nil, &ValidationError{Location: rulePath, Problem: fmt.Sprintf("the library's %s and %s would both become %s in the fork; rename one in the library", other, file, target)}
 		}
 		moved[file], sources[target] = target, file
 	}
@@ -429,7 +428,7 @@ func requireSelfContained(files map[string][]byte) error {
 		}
 		for _, link := range links {
 			if _, _, local, err := rules.RelativeTarget(link, file); err != nil || local {
-				return &decode.ValidationError{Location: file, Problem: fmt.Sprintf("links to %s in raw HTML, which a fork can't use: local rules can't have relative links in raw HTML; use a Markdown link in the library", link)}
+				return &ValidationError{Location: file, Problem: fmt.Sprintf("links to %s in raw HTML, which a fork can't use: local rules can't have relative links in raw HTML; use a Markdown link in the library", link)}
 			}
 		}
 		targets, err := rules.MarkdownTargets(string(files[file]), file)
@@ -438,7 +437,7 @@ func requireSelfContained(files map[string][]byte) error {
 		}
 		for _, target := range targets {
 			if _, ok := files[target]; !ok {
-				return &decode.ValidationError{Location: file, Problem: fmt.Sprintf("links to %s, which a fork can't copy: a fork holds only the rule, its asset directory, and the shared assets its Markdown links reach, because local rules can't depend on library files", target)}
+				return &ValidationError{Location: file, Problem: fmt.Sprintf("links to %s, which a fork can't copy: a fork holds only the rule, its asset directory, and the shared assets its Markdown links reach, because local rules can't depend on library files", target)}
 			}
 		}
 	}

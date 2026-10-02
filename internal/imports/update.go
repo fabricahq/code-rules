@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/library"
@@ -353,10 +352,10 @@ func updateScopes(configuration rules.Configuration, targets []UpdateTarget) (ma
 		}
 		index := slices.IndexFunc(configuration.Sources, func(source rules.Source) bool { return source.Name == target.Source })
 		if index < 0 {
-			return nil, &decode.ValidationError{Location: where, Problem: "no source named " + target.Source + " in .code-rules/config.yaml"}
+			return nil, &ValidationError{Location: where, Problem: "no source named " + target.Source + " in .code-rules/config.yaml"}
 		}
 		if !configuration.Sources[index].Ref.IsZero() {
-			return nil, &decode.ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run code-rules project sync"}
+			return nil, &ValidationError{Location: where, Problem: "the source imports one revision with ref, so update doesn't move it; change sources." + target.Source + ".ref and run code-rules project sync"}
 		}
 		if target.Rule == "" {
 			whole[target.Source] = true
@@ -398,7 +397,7 @@ func planSourceUpdate(ctx context.Context, source rules.Source, recorded *librar
 	}
 	for _, id := range scope {
 		if _, imported := before.rules[id]; !imported {
-			return plannedSource{}, SourceUpdate{}, nil, &decode.ValidationError{Location: source.Name + ":" + id, Problem: "source " + source.Name + " doesn't import this rule; name a rule it imports"}
+			return plannedSource{}, SourceUpdate{}, nil, &ValidationError{Location: source.Name + ":" + id, Problem: "source " + source.Name + " doesn't import this rule; name a rule it imports"}
 		}
 	}
 	moved, rows, err := p.update(before, scope)

@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 )
 
@@ -43,8 +43,8 @@ func TestParseRuleSharedExpectations(t *testing.T) {
 				}
 				return
 			}
-			var validation *decode.ValidationError
-			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
+			var validation errs.ValidationError
+			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.ValidationLocation() != test.Expected.Error.Location {
 				t.Fatalf("got %#v, %v; want %s", got, err, test.Expected.Error.Message)
 			}
 			if !reflect.DeepEqual(got, coderules.Rule{}) {
@@ -71,7 +71,7 @@ func FuzzParseRule(f *testing.F) {
 	f.Fuzz(func(t *testing.T, text string) {
 		got, err := coderules.ParseRule(text, "techs/go/example.md", "fuzz")
 		if err != nil {
-			var validation *decode.ValidationError
+			var validation errs.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("untyped failure: %v", err)
 			}
@@ -135,8 +135,8 @@ func TestParseRuleDocumentEncoding(t *testing.T) {
 			}
 			continue
 		}
-		var validation *decode.ValidationError
-		if !errors.As(err, &validation) || validation.Location != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, coderules.Rule{}) {
+		var validation errs.ValidationError
+		if !errors.As(err, &validation) || validation.ValidationLocation() != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, coderules.Rule{}) {
 			t.Fatalf("expected UTF-8 error and zero rule, got %#v, %v", got, err)
 		}
 	}

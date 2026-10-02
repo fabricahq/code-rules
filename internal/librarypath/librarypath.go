@@ -20,10 +20,10 @@ var (
 // assets name. It checks syntax only; it does not establish that the group exists.
 func ValidateGroupID(value, location string) error {
 	if !groupPattern.MatchString(value) {
-		return decode.Invalid(location, "invalid group ID "+decode.Quote(value)+": expected format "+groupPattern.String())
+		return invalid(location, "invalid group ID "+decode.Quote(value)+": expected format "+groupPattern.String())
 	}
 	if strings.HasSuffix(value, "/assets") {
-		return decode.Invalid(location, "invalid group ID "+decode.Quote(value)+`: "assets" is a reserved group name`)
+		return invalid(location, "invalid group ID "+decode.Quote(value)+`: "assets" is a reserved group name`)
 	}
 	return nil
 }
@@ -32,18 +32,18 @@ func ValidateGroupID(value, location string) error {
 // Containment errors take precedence over rule syntax, then group syntax errors.
 func GroupFromPath(path, location string) (string, error) {
 	if !decode.Contained(path) {
-		return "", decode.Invalid(location, "expected a contained relative path, got "+decode.Quote(path)+`: use forward slashes; no leading slash, drive prefix, empty segments, "." or ".." segments, or control characters`)
+		return "", invalid(location, "expected a contained relative path, got "+decode.Quote(path)+`: use forward slashes; no leading slash, drive prefix, empty segments, "." or ".." segments, or control characters`)
 	}
 	parts := strings.Split(path, "/")
 	if len(parts) < 3 || !strings.HasSuffix(path, ".md") {
-		return "", decode.Invalid(location, "invalid rule path "+decode.Quote(path)+": expected a .md file beneath a group directory")
+		return "", invalid(location, "invalid rule path "+decode.Quote(path)+": expected a .md file beneath a group directory")
 	}
 	for i, part := range parts {
 		if i > 0 && part == "assets" {
-			return "", decode.Invalid(location, "invalid rule path "+decode.Quote(path)+`: "assets" is reserved for supporting files, not rules`)
+			return "", invalid(location, "invalid rule path "+decode.Quote(path)+`: "assets" is reserved for supporting files, not rules`)
 		}
 		if i >= 2 && !rulePartPattern.MatchString(part) {
-			return "", decode.Invalid(location, "invalid rule path "+decode.Quote(path)+": rule file and subdirectory names must match "+rulePartPattern.String())
+			return "", invalid(location, "invalid rule path "+decode.Quote(path)+": rule file and subdirectory names must match "+rulePartPattern.String())
 		}
 	}
 	group := strings.Join(parts[:2], "/")

@@ -69,7 +69,7 @@ func ParseRule(text, path, source string) (Rule, error) {
 		return Rule{}, err
 	}
 	if !utf8.ValidString(text) {
-		return Rule{}, decode.Invalid(location, "expected UTF-8 text")
+		return Rule{}, invalid(location, "expected UTF-8 text")
 	}
 	document, err := SplitDocument(text, location)
 	if err != nil {
@@ -81,7 +81,7 @@ func ParseRule(text, path, source string) (Rule, error) {
 	}
 	for _, key := range []string{"license", "licenses"} {
 		if _, exists := fields[key]; exists {
-			return Rule{}, decode.Invalid(location+"."+key, "declare one license for the whole library in rule-library.yaml; rule-level licenses are unsupported")
+			return Rule{}, invalid(location+"."+key, "declare one license for the whole library in rule-library.yaml; rule-level licenses are unsupported")
 		}
 	}
 	if err := ruleKnownFields(fields, location, "title", "impact", "impactDescription", "whenToRead", "tags", "attribution"); err != nil {
@@ -92,7 +92,7 @@ func ParseRule(text, path, source string) (Rule, error) {
 		return Rule{}, err
 	}
 	if strings.TrimFunc(document.Body, decode.IsSpace) == "" {
-		return Rule{}, decode.Invalid(location+".body", "expected nonempty text")
+		return Rule{}, invalid(location+".body", "expected nonempty text")
 	}
 	result.Attribution, err = ruleAttribution(fields["attribution"], location+".attribution")
 	if err != nil {
@@ -108,7 +108,7 @@ func ParseRule(text, path, source string) (Rule, error) {
 func ruleKnownFields(fields map[string]*yaml.Node, location string, allowed ...string) error {
 	for _, key := range slices.Sorted(maps.Keys(fields)) {
 		if !slices.Contains(allowed, key) {
-			return decode.Invalid(location+"."+key, "unknown field; allowed fields: "+strings.Join(allowed, ", "))
+			return invalid(location+"."+key, "unknown field; allowed fields: "+strings.Join(allowed, ", "))
 		}
 	}
 	return nil
@@ -149,7 +149,7 @@ func ruleFields(fields map[string]*yaml.Node, location string) (Rule, error) {
 // ruleText requires a nonblank YAML string and returns its untrimmed value.
 func ruleText(node *yaml.Node, location string) (string, error) {
 	if node == nil || !yamlString(node) || strings.TrimFunc(node.Value, decode.IsSpace) == "" {
-		return "", decode.Invalid(location, "expected nonempty text")
+		return "", invalid(location, "expected nonempty text")
 	}
 	return node.Value, nil
 }
@@ -161,7 +161,7 @@ func ruleTags(node *yaml.Node, location string) error {
 		return err
 	}
 	if !yamlArray(node) {
-		return decode.Invalid(location, "expected an array of strings")
+		return invalid(location, "expected an array of strings")
 	}
 	seen := make(map[string]bool)
 	duplicate := false
@@ -174,7 +174,7 @@ func ruleTags(node *yaml.Node, location string) error {
 		seen[text] = true
 	}
 	if duplicate {
-		return decode.Invalid(location, "duplicate entries")
+		return invalid(location, "duplicate entries")
 	}
 	return nil
 }
@@ -186,7 +186,7 @@ func ruleAttribution(node *yaml.Node, location string) ([]Attribution, error) {
 		return result, nil
 	}
 	if !yamlArray(node) {
-		return nil, decode.Invalid(location, "expected an attribution array")
+		return nil, invalid(location, "expected an attribution array")
 	}
 	for i, entry := range yamlEntries(node) {
 		where := fmt.Sprintf("%s[%d]", location, i)
@@ -203,10 +203,10 @@ func ruleAttribution(node *yaml.Node, location string) ([]Attribution, error) {
 		}
 		parsed, err := url.Parse(text)
 		if err != nil {
-			return nil, decode.Invalid(where+".url", "expected an absolute HTTP(S) URL")
+			return nil, invalid(where+".url", "expected an absolute HTTP(S) URL")
 		}
 		if (parsed.Scheme() != "http" && parsed.Scheme() != "https") || parsed.Username() != "" || parsed.Password() != "" {
-			return nil, decode.Invalid(where+".url", "expected an absolute HTTP(S) URL without credentials")
+			return nil, invalid(where+".url", "expected an absolute HTTP(S) URL without credentials")
 		}
 		description, err := ruleText(fields["description"], where+".description")
 		if err != nil {
@@ -225,7 +225,7 @@ func ParseImpact(value, location string) (Impact, error) {
 	case ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow:
 		return impact, nil
 	default:
-		return "", decode.Invalid(location, fmt.Sprintf("impact must be one of %s, %s, %s, %s, %s, %s; got %s",
+		return "", invalid(location, fmt.Sprintf("impact must be one of %s, %s, %s, %s, %s, %s; got %s",
 			ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow, decode.Quote(value)))
 	}
 }

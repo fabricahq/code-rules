@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
@@ -206,8 +206,8 @@ func TestSync_RefusesModifiedVendoredGroupMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = Sync(context.Background(), options, imports.Options{GitPath: "/nonexistent/git"})
-	var invalid *decode.ValidationError
-	if !errors.As(err, &invalid) || invalid.Location != "vendor/team/techs/go/_group.yaml" || !strings.Contains(invalid.Problem, "run code-rules project sync with the previous configuration") {
+	var invalid errs.ValidationError
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/techs/go/_group.yaml" || !strings.Contains(invalid.ValidationProblem(), "run code-rules project sync with the previous configuration") {
 		t.Fatalf("got %v", err)
 	}
 	after, err := filetxn.ReadTree(context.Background(), root, ".")
@@ -470,7 +470,7 @@ func TestSync_RefusesAFormatOneRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = Sync(context.Background(), options, git)
-	var validation *decode.ValidationError
+	var validation errs.ValidationError
 	if !errors.As(err, &validation) || !strings.Contains(err.Error(), "delete .code-rules/vendor/ and run code-rules project sync") {
 		t.Fatalf("got %v", err)
 	}
@@ -518,7 +518,7 @@ func TestProject_TellsWhetherToUpgradeOrResyncForAnotherSourceRecordFormat(t *te
 				writeFixture(t, root, "vendor/team/_source.json", strings.Replace(string(record), `"formatVersion": 2`, replacement, 1))
 				err = operation(options, git)
 				var failure *filetxn.Error
-				var invalid *decode.ValidationError
+				var invalid errs.ValidationError
 				switch {
 				case format > 2 && (!errors.As(err, &failure) || failure.Code != "unsupported-source-record" || !strings.Contains(err.Error(), "upgrade Code Rules") || strings.Contains(err.Error(), "delete")):
 					t.Fatalf("got %v; want unsupported-source-record asking to upgrade", err)
@@ -620,8 +620,8 @@ func requireEditedRecord(t *testing.T, options Options) {
 	_, buildErr := Build(context.Background(), options)
 	_, checkErr := Check(context.Background(), options)
 	for name, err := range map[string]error{"build": buildErr, "check": checkErr} {
-		var invalid *decode.ValidationError
-		if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json" || !strings.Contains(invalid.Problem, "changed outside code-rules project sync") || !strings.Contains(invalid.Problem, "run code-rules project sync") || strings.Contains(invalid.Problem, "project build") {
+		var invalid errs.ValidationError
+		if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "changed outside code-rules project sync") || !strings.Contains(invalid.ValidationProblem(), "run code-rules project sync") || strings.Contains(invalid.ValidationProblem(), "project build") {
 			t.Errorf("offline %s: %v", name, err)
 		}
 	}
@@ -642,8 +642,8 @@ func TestSourceRecord_AnUnreadableRecordSaysHowToImportTheSourceAgain(t *testing
 	writeFixture(t, root, "vendor/team/_source.json", strings.Replace(recorded, "{\n", "{\n  \"pins\": {},\n", 1))
 	root.Close()
 	_, err = Sync(ctx, options, git)
-	var invalid *decode.ValidationError
-	if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json.pins" || !strings.Contains(invalid.Problem, "delete .code-rules/vendor/team/ and run code-rules project sync") || !strings.Contains(invalid.Problem, "newest versions") {
+	var invalid errs.ValidationError
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json.pins" || !strings.Contains(invalid.ValidationProblem(), "delete .code-rules/vendor/team/ and run code-rules project sync") || !strings.Contains(invalid.ValidationProblem(), "newest versions") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -669,8 +669,8 @@ func TestCheck_NamesAFileWithUnresolvedMergeConflicts(t *testing.T) {
 		}
 		writeFixture(t, root, test.file, conflicted(string(tree.Files[test.file])))
 		_, err = Check(ctx, options)
-		var invalid *decode.ValidationError
-		if !errors.As(err, &invalid) || invalid.Location != test.location || !strings.Contains(invalid.Problem, "unresolved merge conflicts") {
+		var invalid errs.ValidationError
+		if !errors.As(err, &invalid) || invalid.ValidationLocation() != test.location || !strings.Contains(invalid.ValidationProblem(), "unresolved merge conflicts") {
 			t.Errorf("%s: %v", test.file, err)
 		}
 		writeFixture(t, root, test.file, string(tree.Files[test.file]))
@@ -706,10 +706,10 @@ func editRecord(t *testing.T, options Options, edit func(record map[string]any))
 // requireRefusedRecord requires err to refuse team's source record as changed outside sync, naming both ways out.
 func requireRefusedRecord(t *testing.T, err error) {
 	t.Helper()
-	var invalid *decode.ValidationError
-	if !errors.As(err, &invalid) || invalid.Location != "vendor/team/_source.json" || !strings.Contains(invalid.Problem, "changed outside code-rules project sync") ||
-		!strings.Contains(invalid.Problem, "git checkout -- .code-rules/vendor/team/_source.json") || !strings.Contains(invalid.Problem, "git checkout --ours or --theirs") ||
-		!strings.Contains(invalid.Problem, "delete .code-rules/vendor/team/ and run code-rules project sync") || strings.Contains(invalid.Problem, "project build") {
+	var invalid errs.ValidationError
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "vendor/team/_source.json" || !strings.Contains(invalid.ValidationProblem(), "changed outside code-rules project sync") ||
+		!strings.Contains(invalid.ValidationProblem(), "git checkout -- .code-rules/vendor/team/_source.json") || !strings.Contains(invalid.ValidationProblem(), "git checkout --ours or --theirs") ||
+		!strings.Contains(invalid.ValidationProblem(), "delete .code-rules/vendor/team/ and run code-rules project sync") || strings.Contains(invalid.ValidationProblem(), "project build") {
 		t.Fatalf("got %v", err)
 	}
 }

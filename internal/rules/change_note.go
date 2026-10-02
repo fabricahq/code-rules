@@ -49,7 +49,7 @@ func ParseChangeNote(input []byte, location string) (ChangeNote, error) {
 		return ChangeNote{}, err
 	}
 	if len(entries) == 0 {
-		return ChangeNote{}, decode.Invalid(location+".rules", "expected at least one rule")
+		return ChangeNote{}, invalid(location+".rules", "expected at least one rule")
 	}
 	note := ChangeNote{Summary: summary, Rules: map[string]NoteChange{}}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
@@ -74,28 +74,28 @@ func noteChange(input json.RawMessage, id, location string) (NoteChange, error) 
 		case coderules.ChangeMajor, coderules.ChangeMinor, coderules.ChangePatch, coderules.ChangeNew, coderules.ChangeRetired:
 			return NoteChange{Change: change}, nil
 		}
-		return NoteChange{}, decode.Invalid(location, "unknown change "+decode.Quote(name)+"; expected major, minor, patch, new, or retired")
+		return NoteChange{}, invalid(location, "unknown change "+decode.Quote(name)+"; expected major, minor, patch, new, or retired")
 	}
 	fields, err := decode.Object(input, location)
 	if err != nil {
-		return NoteChange{}, decode.Invalid(location, "expected major, minor, patch, new, retired, or an object with change: retired")
+		return NoteChange{}, invalid(location, "expected major, minor, patch, new, retired, or an object with change: retired")
 	}
 	if err := decode.KnownFields(fields, []string{"change", "replacedBy"}, location); err != nil {
 		return NoteChange{}, err
 	}
 	if json.Unmarshal(fields["change"], &name) != nil || coderules.Change(name) != coderules.ChangeRetired {
-		return NoteChange{}, decode.Invalid(location+".change", "expected retired; only a retirement can name a replacement")
+		return NoteChange{}, invalid(location+".change", "expected retired; only a retirement can name a replacement")
 	}
 	result := NoteChange{Change: coderules.ChangeRetired}
 	if raw, ok := fields["replacedBy"]; ok {
 		if json.Unmarshal(raw, &result.ReplacedBy) != nil {
-			return NoteChange{}, decode.Invalid(location+".replacedBy", "expected a rule ID")
+			return NoteChange{}, invalid(location+".replacedBy", "expected a rule ID")
 		}
 		if err := librarypath.ValidateRuleID(result.ReplacedBy, location+".replacedBy"); err != nil {
 			return NoteChange{}, err
 		}
 		if result.ReplacedBy == id {
-			return NoteChange{}, decode.Invalid(location+".replacedBy", "a rule can't replace itself")
+			return NoteChange{}, invalid(location+".replacedBy", "a rule can't replace itself")
 		}
 	}
 	return result, nil

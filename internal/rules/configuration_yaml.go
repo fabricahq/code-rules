@@ -38,7 +38,7 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 	}
 	sources := mappingValue(document.Content[0], "sources")
 	if mappingValue(sources, alias) != nil {
-		return nil, decode.Invalid("sources."+alias, "source already exists")
+		return nil, invalid("sources."+alias, "source already exists")
 	}
 	var groups any
 	if source.Groups.Pattern != "" {
@@ -96,7 +96,7 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 	}
 	source := mappingValue(mappingValue(document.Content[0], "sources"), alias)
 	if source == nil {
-		return nil, decode.Invalid("sources."+alias, "source doesn't exist")
+		return nil, invalid("sources."+alias, "source doesn't exist")
 	}
 	source.Style = 0
 	if err := removeEntries(source, "pins", edit.Unpin, "sources."+alias); err != nil {
@@ -111,7 +111,7 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 	for _, id := range slices.Sorted(maps.Keys(edit.BasedOn)) {
 		exclusion := mappingValue(mappingValue(source, "exclude"), id)
 		if exclusion == nil || mappingValue(exclusion, "replacedBy") == nil {
-			return nil, decode.Invalid("sources."+alias+".exclude."+id, "the source doesn't replace this rule, so it has no basedOn version to set")
+			return nil, invalid("sources."+alias+".exclude."+id, "the source doesn't replace this rule, so it has no basedOn version to set")
 		}
 		version := edit.BasedOn[id]
 		if existing := mappingValue(exclusion, "basedOn"); existing != nil {
@@ -153,7 +153,7 @@ func removeEntries(source *yaml.Node, field string, ids []string, where string) 
 			}
 		}
 		if index < 0 {
-			return decode.Invalid(where+"."+field+"."+id, "the source has no such entry to remove")
+			return invalid(where+"."+field+"."+id, "the source has no such entry to remove")
 		}
 		target.Content = slices.Delete(target.Content, index, index+2)
 	}
@@ -182,7 +182,7 @@ func addEntries(source *yaml.Node, field string, entries map[string]*yaml.Node, 
 	target.Style = 0
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		if mappingValue(target, id) != nil {
-			return decode.Invalid(where+"."+field+"."+id, "the source already has this entry; edit it in the configuration instead")
+			return invalid(where+"."+field+"."+id, "the source already has this entry; edit it in the configuration instead")
 		}
 		target.Content = append(target.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: id}, entries[id])
 	}

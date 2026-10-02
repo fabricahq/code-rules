@@ -12,7 +12,7 @@ import (
 // The value is an opaque build label, so it need not be a semantic version.
 func ValidateToolVersion(version string) error {
 	if strings.TrimFunc(version, decode.IsSpace) == "" {
-		return decode.Invalid("toolVersion", "expected nonempty text")
+		return invalid("toolVersion", "expected nonempty text")
 	}
 	return nil
 }

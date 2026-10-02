@@ -44,10 +44,10 @@ var (
 func ParseRepository(input json.RawMessage, location string) (Repository, error) {
 	var address string
 	if json.Unmarshal(input, &address) != nil || strings.TrimFunc(address, decode.IsSpace) == "" {
-		return Repository{}, decode.Invalid(location, "expected nonempty text")
+		return Repository{}, invalid(location, "expected nonempty text")
 	}
 	if !decode.ValidUnicode(input) || strings.ContainsFunc(address, unsafeRepositoryCharacter) {
-		return Repository{}, decode.Invalid(location, "repository must not contain whitespace, backslashes, query parameters, or fragments")
+		return Repository{}, invalid(location, "repository must not contain whitespace, backslashes, query parameters, or fragments")
 	}
 	uri := repositoryURL.FindStringSubmatch(address)
 	var scp []string
@@ -68,14 +68,14 @@ func ParseRepository(input json.RawMessage, location string) (Repository, error)
 		}
 		urlText = "ssh://" + scp[1] + "@" + scp[2] + "/"
 	default:
-		return Repository{}, decode.Invalid(location, "repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported")
+		return Repository{}, invalid(location, "repository must be an explicit HTTPS URL, ssh:// URL, or user@host:path address; owner/name shorthand is unsupported")
 	}
 	if err != nil {
 		return Repository{}, err
 	}
 	parsed, err := url.Parse(urlText)
 	if err != nil {
-		return Repository{}, decode.Invalid(location, "invalid Git repository URL")
+		return Repository{}, invalid(location, "invalid Git repository URL")
 	}
 	badAuthority := false
 	if uri != nil && strings.Contains(uri[2], "@") {
@@ -85,13 +85,13 @@ func ParseRepository(input json.RawMessage, location string) (Repository, error)
 	if parsed.Hostname() == "" || parsed.Password() != "" || badAuthority ||
 		(parsed.Scheme() == "https" && parsed.Username() != "") ||
 		(parsed.Username() != "" && !repositoryUser.MatchString(parsed.Username())) {
-		return Repository{}, decode.Invalid(location, "repository requires a host and must not embed credentials; SSH may specify a username")
+		return Repository{}, invalid(location, "repository requires a host and must not embed credentials; SSH may specify a username")
 	}
 	host := strings.TrimSuffix(strings.ToLower(parsed.Hostname()), ".")
 	if !repositoryIPv6.MatchString(host) {
 		for _, label := range strings.Split(host, ".") {
 			if !repositoryLabel.MatchString(label) {
-				return Repository{}, decode.Invalid(location, "repository hostname must be a DNS name or IP address")
+				return Repository{}, invalid(location, "repository hostname must be a DNS name or IP address")
 			}
 		}
 	}
@@ -162,11 +162,11 @@ func repositoryPath(path, location string, uri bool) (string, error) {
 			var err error
 			decoded, err = neturl.PathUnescape(part)
 			if err != nil || !utf8.ValidString(decoded) {
-				return "", decode.Invalid(location, "repository path contains invalid percent encoding")
+				return "", invalid(location, "repository path contains invalid percent encoding")
 			}
 		}
 		if decoded == "" || decoded == "." || decoded == ".." || strings.ContainsFunc(decoded, unsafeRepositorySegment) || (uri && strings.Contains(decoded, "%")) {
-			return "", decode.Invalid(location, "repository path contains an empty, dot, or unsafe segment")
+			return "", invalid(location, "repository path contains an empty, dot, or unsafe segment")
 		}
 		if uri {
 			parts[i] = encodeRepositorySegment(decoded, true)

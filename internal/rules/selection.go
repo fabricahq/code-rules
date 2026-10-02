@@ -28,31 +28,31 @@ type GroupSelection struct {
 // locations retain original indices even though the returned IDs are sorted.
 func ParseGroupSelection(input json.RawMessage, location string) (GroupSelection, error) {
 	if len(input) == 0 {
-		return GroupSelection{}, decode.Invalid(location, selectionFormat)
+		return GroupSelection{}, invalid(location, selectionFormat)
 	}
 	var value any
 	if err := json.Unmarshal(input, &value); err != nil {
-		return GroupSelection{}, decode.Invalid(location, "expected a groups JSON value")
+		return GroupSelection{}, invalid(location, "expected a groups JSON value")
 	}
 	if pattern, ok := value.(string); ok && (pattern == "*" || pattern == "techs/*" || pattern == "practices/*") {
 		return GroupSelection{Pattern: pattern}, nil
 	}
 	items, ok := value.([]any)
 	if !ok {
-		return GroupSelection{}, decode.Invalid(location, selectionFormat)
+		return GroupSelection{}, invalid(location, selectionFormat)
 	}
 	groups := make([]string, len(items))
 	for i, item := range items {
 		text, ok := item.(string)
 		if !ok || strings.TrimFunc(text, decode.IsSpace) == "" {
-			return GroupSelection{}, decode.Invalid(fmt.Sprintf("%s[%d]", location, i), "expected nonempty text")
+			return GroupSelection{}, invalid(fmt.Sprintf("%s[%d]", location, i), "expected nonempty text")
 		}
 		groups[i] = text
 	}
 	seen := make(map[string]bool, len(groups))
 	for _, group := range groups {
 		if seen[group] {
-			return GroupSelection{}, decode.Invalid(location, "duplicate entries")
+			return GroupSelection{}, invalid(location, "duplicate entries")
 		}
 		seen[group] = true
 	}

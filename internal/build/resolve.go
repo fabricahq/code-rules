@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -315,7 +314,7 @@ func validateLocalLinks(files map[string][]byte, localRules map[string]coderules
 
 // invalid identifies input relationships that prevent an effective rule set from being produced.
 func invalid(location, problem string) error {
-	return &decode.ValidationError{Location: location, Problem: problem}
+	return &ValidationError{Location: location, Problem: problem}
 }
 
 // resolveGuidance chooses the complete local definition when present, otherwise retains all imported definitions.

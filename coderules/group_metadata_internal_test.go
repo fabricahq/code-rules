@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 )
 
 func TestGroupMetadataSharedExpectations(t *testing.T) {
@@ -39,12 +39,12 @@ func TestGroupMetadataSharedExpectations(t *testing.T) {
 				}
 				return
 			}
-			var validation *decode.ValidationError
+			var validation errs.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("want ValidationError, got %v", err)
 			}
-			if err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
-				t.Fatalf("got %q at %q; want %q at %q", err.Error(), validation.Location, test.Expected.Error.Message, test.Expected.Error.Location)
+			if err.Error() != test.Expected.Error.Message || validation.ValidationLocation() != test.Expected.Error.Location {
+				t.Fatalf("got %q at %q; want %q at %q", err.Error(), validation.ValidationLocation(), test.Expected.Error.Message, test.Expected.Error.Location)
 			}
 			if !reflect.DeepEqual(got, GroupMetadata{}) {
 				t.Fatalf("failed parsing returned partial metadata: %+v", got)
@@ -80,8 +80,8 @@ func TestGroupMetadataRejectsInvalidUTF8(t *testing.T) {
 	input := append([]byte(`{"name":"`), 0xff)
 	input = append(input, []byte(`","description":"Go rules","whenToRead":"When editing."}`)...)
 	got, err := groupMetadataFields(input, "group")
-	var validation *decode.ValidationError
-	if !errors.As(err, &validation) || validation.Location != "group.name" || validation.Problem != "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape" {
+	var validation errs.ValidationError
+	if !errors.As(err, &validation) || validation.ValidationLocation() != "group.name" || validation.ValidationProblem() != "expected valid Unicode text: invalid UTF-8 or unpaired surrogate escape" {
 		t.Fatalf("want Unicode validation error at group.name, got %v", err)
 	}
 	if got != (GroupMetadata{}) {

@@ -79,29 +79,29 @@ var (
 // Location is the caller's complete diagnostic field path, such as sources.team.ref.
 func ParseGitRef(ref, location string) (GitRef, error) {
 	if strings.TrimFunc(ref, decode.IsSpace) == "" {
-		return GitRef{}, decode.Invalid(location, "expected nonempty text")
+		return GitRef{}, invalid(location, "expected nonempty text")
 	}
 	if commitRef.MatchString(ref) {
 		if strings.Trim(ref, "0") == "" {
-			return GitRef{}, decode.Invalid(location, "the all-zero SHA names no commit; use a full commit SHA or a tag")
+			return GitRef{}, invalid(location, "the all-zero SHA names no commit; use a full commit SHA or a tag")
 		}
 		return GitRef{kind: GitRefCommit, canonical: strings.ToLower(ref), text: ref}, nil
 	}
 	if strings.HasPrefix(ref, "refs/heads/") {
-		return GitRef{}, decode.Invalid(location, ref+" is a branch; ref accepts a tag or a full commit SHA, not a branch")
+		return GitRef{}, invalid(location, ref+" is a branch; ref accepts a tag or a full commit SHA, not a branch")
 	}
 	tag := strings.TrimPrefix(ref, "refs/tags/")
 	if unsafeRef.MatchString(tag) || tag == "@" || strings.HasPrefix(tag, "-") ||
 		(strings.HasPrefix(ref, "refs/") && !strings.HasPrefix(ref, "refs/tags/")) {
-		return GitRef{}, decode.Invalid(location, "expected a full commit SHA or exact tag name")
+		return GitRef{}, invalid(location, "expected a full commit SHA or exact tag name")
 	}
 	for _, part := range strings.Split(tag, "/") {
 		if part == "" || strings.HasPrefix(part, ".") || strings.HasSuffix(part, ".lock") || strings.HasSuffix(part, ".") {
-			return GitRef{}, decode.Invalid(location, "expected a full commit SHA or exact tag name")
+			return GitRef{}, invalid(location, "expected a full commit SHA or exact tag name")
 		}
 	}
 	if shortCommitRef.MatchString(ref) {
-		return GitRef{}, decode.Invalid(location, "abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2")
+		return GitRef{}, invalid(location, "abbreviated commits are unsupported; use a full commit SHA or a tag name, such as release/2")
 	}
 	return GitRef{kind: GitRefTag, canonical: "refs/tags/" + tag, text: ref}, nil
 }
@@ -122,16 +122,16 @@ func TagVersion(tag, location string) (string, error) {
 	version := strings.TrimPrefix(tag, "v")
 	// All accepted characters are ASCII, so this byte limit equals npm's string limit.
 	if len(version) > 256 {
-		return "", decode.Invalid(location, "version must be at most 256 characters, excluding the optional v prefix")
+		return "", invalid(location, "version must be at most 256 characters, excluding the optional v prefix")
 	}
 	parts := versionTag.FindStringSubmatch(version)
 	if parts == nil {
-		return "", decode.Invalid(location, "expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5")
+		return "", invalid(location, "expected a complete semantic version tag, such as v1.2.3 or 1.2.3-beta.1+build.5")
 	}
 	for _, part := range parts[1:4] {
 		number, err := strconv.ParseUint(part, 10, 64)
 		if err != nil || number > maxVersionComponent {
-			return "", decode.Invalid(location, "major, minor, and patch must each be at most 9007199254740991")
+			return "", invalid(location, "major, minor, and patch must each be at most 9007199254740991")
 		}
 	}
 	return version, nil

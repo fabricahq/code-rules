@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/errs"
 )
 
 // TestCanonicalGroupListParses keeps the published list valid, since other tools read it at pinned commits.
@@ -77,12 +77,12 @@ func TestParseCanonicalGroupsRejectsInvalidLists(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			got, err := coderules.ParseCanonicalGroups([]byte(test.input), "list")
-			var validation *decode.ValidationError
+			var validation errs.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("want ValidationError, got %v", err)
 			}
-			if validation.Location != test.location || !strings.Contains(validation.Problem, test.problem) {
-				t.Fatalf("got %q at %q; want a problem containing %q at %q", validation.Problem, validation.Location, test.problem, test.location)
+			if validation.ValidationLocation() != test.location || !strings.Contains(validation.ValidationProblem(), test.problem) {
+				t.Fatalf("got %q at %q; want a problem containing %q at %q", validation.ValidationProblem(), validation.ValidationLocation(), test.problem, test.location)
 			}
 			if got != nil {
 				t.Fatalf("failed parsing returned a partial list: %+v", got)

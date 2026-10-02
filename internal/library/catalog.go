@@ -19,7 +19,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/decode"
 	"github.com/fabricahq/code-rules/internal/librarypath"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -167,7 +166,7 @@ func LoadSource(ctx context.Context, input FileSource, source string, selection 
 
 // bad assigns validation context without logging authored file contents.
 func bad(location, problem string) error {
-	return &decode.ValidationError{Location: location, Problem: problem}
+	return &ValidationError{Location: location, Problem: problem}
 }
 
 // read rejects observed symlink components and bounds actual bytes through a confined handle.
