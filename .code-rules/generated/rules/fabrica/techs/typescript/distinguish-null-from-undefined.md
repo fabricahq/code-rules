@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/typescript/distinguish-null-from-undefined`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, or reviewing TypeScript types, function results, request payloads, or database updates where a value can be absent or empty.
 
 **Impact:** LOW
@@ -55,7 +57,7 @@ A codebase that consistently uses only `undefined` and handles clearing another 
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/typescript/distinguish-null-from-undefined.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/distinguish-null-from-undefined.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(distinguish-null-from-undefined; MIT, notice retained in NOTICE.md\): restructured to the rule template with examples and the payload and database distinction.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

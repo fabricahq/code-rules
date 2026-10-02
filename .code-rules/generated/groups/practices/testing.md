@@ -19,7 +19,7 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 
 3. **Follow every applicable rule.** Apply its guidance and respect its exceptions, regardless of impact. When present, use Implementation guidance for planning or code changes and Validation guidance for reviews, tests, or diagnosis. Use both when the task includes both activities.
 
-4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
+4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID, its version when the rule lists one, and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
 
 5. **Recheck after changes.** When the task’s scope changes, reassess which rules apply. After compaction, reread the rules needed for the current task before continuing.
 
@@ -28,6 +28,8 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 ### Choose tests by risk and cost
 
 Rule ID: `fabrica:practices/testing/choose-tests-by-risk`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, or reviewing the tests for a change, or deciding whether an existing test is worth keeping, such as when adding a feature, changing complex logic, or pruning a slow or brittle suite.
 
@@ -41,6 +43,8 @@ Rule ID: `fabrica:practices/testing/choose-tests-by-risk`
 
 Rule ID: `fabrica:practices/testing/cover-boundary-cases`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, changing, or reviewing code or tests that process collections, check ranges or thresholds, compute positions, or relate two items, such as validation limits, pagination, sorting, or moving items in a list or tree.
 
 **Impact:** MEDIUM
@@ -52,6 +56,8 @@ Rule ID: `fabrica:practices/testing/cover-boundary-cases`
 ### Keep tests independent
 
 Rule ID: `fabrica:practices/testing/keep-tests-independent`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, debugging, or reviewing automated tests that share data, global state, or services, such as tests against a shared database, browser tests that run in parallel workers, tests that change configuration or the clock, or tests that call external services.
 
@@ -65,6 +71,8 @@ Rule ID: `fabrica:practices/testing/keep-tests-independent`
 
 Rule ID: `fabrica:practices/testing/name-tests-for-behavior-and-condition`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, or reviewing test names or descriptions in any test framework.
 
 **Impact:** LOW
@@ -76,6 +84,8 @@ Rule ID: `fabrica:practices/testing/name-tests-for-behavior-and-condition`
 ### Run focused tests while iterating, and the full suite before finishing
 
 Rule ID: `fabrica:practices/testing/run-focused-tests-while-iterating`
+
+Version: 1.0.0
 
 **When to read:** Before running tests during implementation, debugging, or review, or before declaring a change complete.
 
@@ -89,6 +99,8 @@ Rule ID: `fabrica:practices/testing/run-focused-tests-while-iterating`
 
 Rule ID: `fabrica:practices/testing/test-at-the-lowest-layer`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, or reviewing a test and choosing whether it should be a unit, integration, or end-to-end test, including regression tests for bug fixes.
 
 **Impact:** MEDIUM-HIGH
@@ -101,6 +113,8 @@ Rule ID: `fabrica:practices/testing/test-at-the-lowest-layer`
 
 Rule ID: `fabrica:practices/testing/test-bug-fixes-before-fixing`
 
+Version: 1.0.0
+
 **When to read:** Before planning, diagnosing, fixing, or reviewing the fix for a behavior defect, such as a reported bug, a failing production case, or an edge case that escaped the tests.
 
 **Impact:** HIGH
@@ -112,6 +126,8 @@ Rule ID: `fabrica:practices/testing/test-bug-fixes-before-fixing`
 ### Test observable behavior
 
 Rule ID: `fabrica:practices/testing/test-observable-behavior`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, changing, or reviewing automated tests, or refactoring code that has tests, such as deciding what a test should assert or which dependencies to replace with test doubles.
 

@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/javascript/version-and-minimize-browser-storage`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, changing, or reviewing code that stores data in localStorage or sessionStorage, or that changes the shape of data already stored there.
 
 **Impact:** MEDIUM
@@ -74,7 +76,7 @@ Storing a single primitive preference, such as a theme name, under a stable key 
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/javascript/version-and-minimize-browser-storage.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/javascript/version-and-minimize-browser-storage.md)
 
 **Attribution:** [Adapted from the Vercel Agent Skills rule client-localstorage-schema: moved from the React group, restructured to the rule template, and added validation of parsed data.](<https://github.com/vercel-labs/agent-skills/blob/4ec6f84b61cd3c931046c3e6e398f3ae7de372f7/skills/react-best-practices/rules/client-localstorage-schema.md>)
 

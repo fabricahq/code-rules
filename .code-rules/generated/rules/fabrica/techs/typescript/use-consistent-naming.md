@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/typescript/use-consistent-naming`
 
+Version: 1.0.0
+
 **When to read:** Before naming or reviewing names of TypeScript variables, constants, functions, types, generic parameters, React components, props, event handlers, or Hooks.
 
 **Impact:** LOW
@@ -63,7 +65,7 @@ A name required by an external API or framework, such as a library's option key,
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/typescript/use-consistent-naming.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/use-consistent-naming.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(use-consistent-naming; MIT, notice retained in NOTICE.md\): restructured to the rule template, fixed examples that did not parse, and removed the requirement that custom Hooks return objects.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

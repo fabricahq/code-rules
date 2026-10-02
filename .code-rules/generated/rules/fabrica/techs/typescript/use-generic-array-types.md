@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/typescript/use-generic-array-types`
 
+Version: 1.0.0
+
 **When to read:** Before writing or reviewing TypeScript array type annotations.
 
 **Impact:** LOW
@@ -47,7 +49,7 @@ A project that consistently uses `T[]` instead is not a violation.
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/typescript/use-generic-array-types.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/use-generic-array-types.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(use-generic-array-types; MIT, notice retained in NOTICE.md\): restructured to the rule template and framed as a consistency convention.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

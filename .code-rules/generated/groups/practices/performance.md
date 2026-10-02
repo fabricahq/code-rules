@@ -19,7 +19,7 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 
 3. **Follow every applicable rule.** Apply its guidance and respect its exceptions, regardless of impact. When present, use Implementation guidance for planning or code changes and Validation guidance for reviews, tests, or diagnosis. Use both when the task includes both activities.
 
-4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
+4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID, its version when the rule lists one, and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
 
 5. **Recheck after changes.** When the task’s scope changes, reassess which rules apply. After compaction, reread the rules needed for the current task before continuing.
 
@@ -28,6 +28,8 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 ### Optimize measured hot paths by removing repeated work
 
 Rule ID: `fabrica:practices/performance/optimize-measured-hot-paths`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, changing, reviewing, or diagnosing code that is slow or runs very often over collections, such as lookups inside loops, repeated passes over large lists, or computations repeated on every render or request.
 

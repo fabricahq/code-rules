@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/typescript/use-template-literal-types-for-patterned-strings`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, or reviewing TypeScript types for strings that follow a pattern, such as API paths, translation keys, CSS class or color tokens, or event names.
 
 **Impact:** LOW-MEDIUM
@@ -55,7 +57,7 @@ A free-form string, such as a user's display name, should stay `string`.
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/typescript/use-template-literal-types-for-patterned-strings.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/use-template-literal-types-for-patterned-strings.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(use-template-literal-types-for-patterned-strings; MIT, notice retained in NOTICE.md\): restructured to the rule template, trimmed the examples, and noted that template literal types check shape only.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 

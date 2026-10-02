@@ -19,7 +19,7 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 
 3. **Follow every applicable rule.** Apply its guidance and respect its exceptions, regardless of impact. When present, use Implementation guidance for planning or code changes and Validation guidance for reviews, tests, or diagnosis. Use both when the task includes both activities.
 
-4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
+4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID, its version when the rule lists one, and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
 
 5. **Recheck after changes.** When the task’s scope changes, reassess which rules apply. After compaction, reread the rules needed for the current task before continuing.
 
@@ -28,6 +28,8 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 ### Avoid layout thrashing
 
 Rule ID: `fabrica:techs/javascript/avoid-layout-thrashing`
+
+Version: 1.0.0
 
 **When to read:** Before writing, changing, reviewing, or diagnosing browser code that changes element styles and also reads layout, such as measuring elements with getBoundingClientRect, offsetWidth, or getComputedStyle, including code in UI framework Effects.
 
@@ -41,6 +43,8 @@ Rule ID: `fabrica:techs/javascript/avoid-layout-thrashing`
 
 Rule ID: `fabrica:techs/javascript/await-only-on-paths-that-need-the-result`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, changing, or reviewing asynchronous functions with branches or early returns, such as handlers that check a flag, a cheap condition, or a cached value before doing more work.
 
 **Impact:** MEDIUM
@@ -52,6 +56,8 @@ Rule ID: `fabrica:techs/javascript/await-only-on-paths-that-need-the-result`
 ### Defer non-critical browser work to idle time
 
 Rule ID: `fabrica:techs/javascript/defer-non-critical-work-to-idle-time`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, changing, or reviewing browser code that does secondary work in response to user input or page load, such as analytics, persisting drafts, prefetching, or processing large data.
 
@@ -65,6 +71,8 @@ Rule ID: `fabrica:techs/javascript/defer-non-critical-work-to-idle-time`
 
 Rule ID: `fabrica:techs/javascript/keep-import-and-file-paths-analyzable`
 
+Version: 1.0.0
+
 **When to read:** Before planning, writing, changing, or reviewing code that chooses modules with dynamic import\(\) or builds file-system paths from variables in code a bundler or file tracer processes, such as pages, plugins, or server functions.
 
 **Impact:** MEDIUM
@@ -76,6 +84,8 @@ Rule ID: `fabrica:techs/javascript/keep-import-and-file-paths-analyzable`
 ### Start independent asynchronous work concurrently
 
 Rule ID: `fabrica:techs/javascript/start-independent-async-work-concurrently`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, changing, or reviewing code that awaits several asynchronous operations, such as request handlers, server functions, or data loaders that call multiple services or queries.
 
@@ -89,6 +99,8 @@ Rule ID: `fabrica:techs/javascript/start-independent-async-work-concurrently`
 
 Rule ID: `fabrica:techs/javascript/use-passive-scroll-and-touch-listeners`
 
+Version: 1.0.0
+
 **When to read:** Before writing, changing, or reviewing browser code that adds touchstart, touchmove, wheel, or mousewheel listeners, or diagnosing delayed scrolling on touch devices.
 
 **Impact:** MEDIUM
@@ -100,6 +112,8 @@ Rule ID: `fabrica:techs/javascript/use-passive-scroll-and-touch-listeners`
 ### Version and minimize data in browser storage
 
 Rule ID: `fabrica:techs/javascript/version-and-minimize-browser-storage`
+
+Version: 1.0.0
 
 **When to read:** Before planning, writing, changing, or reviewing code that stores data in localStorage or sessionStorage, or that changes the shape of data already stored there.
 

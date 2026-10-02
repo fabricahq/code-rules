@@ -19,7 +19,7 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 
 3. **Follow every applicable rule.** Apply its guidance and respect its exceptions, regardless of impact. When present, use Implementation guidance for planning or code changes and Validation guidance for reviews, tests, or diagnosis. Use both when the task includes both activities.
 
-4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
+4. **Support each reported violation with evidence.** During review or diagnosis, determine applicability independently of the implementer’s rule selection. For each finding, cite the rule ID, its version when the rule lists one, and concrete evidence showing how the code violates the rule. Assess severity from the actual consequences; do not copy the rule’s impact level. Selecting a rule does not establish a violation.
 
 5. **Recheck after changes.** When the task’s scope changes, reassess which rules apply. After compaction, reread the rules needed for the current task before continuing.
 
@@ -28,6 +28,8 @@ This page contains summaries. Before planning, implementing, reviewing, testing,
 ### Give a quick start that runs as written
 
 Rule ID: `fabrica:practices/readmes/give-a-quick-start-that-runs-as-written`
+
+Version: 1.0.0
 
 **When to read:** Before writing, changing, or reviewing install or getting-started instructions in a README, such as install commands, version numbers, setup steps, example commands, and sample output, or before a release that changes any of them.
 
@@ -41,6 +43,8 @@ Rule ID: `fabrica:practices/readmes/give-a-quick-start-that-runs-as-written`
 
 Rule ID: `fabrica:practices/readmes/keep-the-readme-an-entry-point`
 
+Version: 1.0.0
+
 **When to read:** Before adding or reviewing detailed material in a README, such as configuration tables, command references, FAQs, file formats, architecture notes, or build and contribution instructions, or when a README grows well past its quick start.
 
 **Impact:** MEDIUM
@@ -52,6 +56,8 @@ Rule ID: `fabrica:practices/readmes/keep-the-readme-an-entry-point`
 ### Match the README's presentation to the product's tier
 
 Rule ID: `fabrica:practices/readmes/match-presentation-to-product-tier`
+
+Version: 1.0.0
 
 **When to read:** Before writing, restructuring, or reviewing a README's overall layout and tone, such as its title block, badges, opening pitch, section headings, and feature descriptions.
 
@@ -65,6 +71,8 @@ Rule ID: `fabrica:practices/readmes/match-presentation-to-product-tier`
 
 Rule ID: `fabrica:practices/readmes/open-with-what-the-product-does`
 
+Version: 1.0.0
+
 **When to read:** Before writing or reviewing the opening of a README, such as its title, tagline, first paragraphs, badges, and any notices or links placed above the description.
 
 **Impact:** MEDIUM
@@ -76,6 +84,8 @@ Rule ID: `fabrica:practices/readmes/open-with-what-the-product-does`
 ### State what the product does not do
 
 Rule ID: `fabrica:practices/readmes/state-what-the-product-does-not-do`
+
+Version: 1.0.0
 
 **When to read:** Before writing or reviewing a README's description of what a product can do, such as its features, supported platforms and services, status, or comparisons with alternatives.
 

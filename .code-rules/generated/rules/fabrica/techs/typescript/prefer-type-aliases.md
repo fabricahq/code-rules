@@ -5,6 +5,8 @@
 
 Rule ID: `fabrica:techs/typescript/prefer-type-aliases`
 
+Version: 1.0.0
+
 **When to read:** Before declaring or reviewing TypeScript object types, or when choosing between type and interface.
 
 **Impact:** LOW
@@ -61,7 +63,7 @@ An `interface` that augments a global or library type is not a violation.
 
 ## Source and attribution
 
-**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/ed9e72c7c424129b3dfc7176ec58b2de3f61e3ea/techs/typescript/prefer-type-aliases.md)
+**Rule source:** [Original rule](https://github.com/fabricahq/public-rules/blob/568e32f46cc3bf557ab90e82b8df6d661b839112/techs/typescript/prefer-type-aliases.md)
 
 **Attribution:** [Adapted from mkosir TypeScript Style Guide guidance \(prefer-type-aliases; MIT, notice retained in NOTICE.md\): restructured to the rule template and replaced an example that did not parse.](<https://github.com/mkosir/typescript-style-guide/blob/86bebd58a987e23277dba02028c0ee2d6ffb5073/website/src/pages/index.mdx>)
 
