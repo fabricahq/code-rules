@@ -14,13 +14,14 @@ Rule ID: `local:techs/go/collect-prompt-answers-before-taking-the-writer`
 ## Guidance
 
 When an operation needs a person's input, split it into a plan and a commit.
-The plan checks what it can without holding the writer, `internal/cli` collects every answer, and only then does the commit take writer ownership, recheck what the plan saw, and write.
+The plan reads and checks what it can and releases the writer before it returns, `internal/cli` collects every answer, and only then does the commit take writer ownership, recheck what the plan saw, and write.
 Never wait for a person while holding the writer.
 
 ### Implementation
 
 - Return a plan from the domain package, such as `project.PlanLocalRule`, `project.PlanSource`, or `project.PlanUpdate`.
-  The plan checks the target before any question, so a person isn't asked about a command that would fail anyway, and it holds no writer when it returns.
+  The plan checks the target before any question, so a person isn't asked about a command that would fail anyway.
+  A plan may take the writer briefly, as `project.PlanUpdate` does to recover an interrupted command and read the project, but it releases the writer before it returns, so no question is ever asked while the writer is held.
 - Ask the questions in `internal/cli`, between plan and commit. `--json` and `--non-interactive` never prompt, so every input comes from flags.
 - Take the writer in the commit, such as `LocalRulePlan.Commit` or `UpdatePlan.Apply`, through `filetxn.WithWriter` or `filetxn.Edit`.
   Recheck what the plan relied on and fail, writing nothing, when it changed: `LocalRulePlan.Commit` checks the group and target again, and `UpdatePlan.Apply` fails with `concurrent-change`.
