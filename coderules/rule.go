@@ -1,6 +1,6 @@
 // Parse complete rule documents while retaining their authored text.
 
-package rules
+package coderules
 
 import (
 	"fmt"
@@ -11,11 +11,15 @@ import (
 
 	"github.com/nlnwa/whatwg-url/url"
 	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
-// Impact is the rule's declared consequence level. Parse accepts only the six constants.
+// Impact is the rule's declared consequence level. ParseRule and ParseImpact accept only the six constants.
 type Impact string
 
+// Impacts a rule can declare, from the most to the least consequential.
 const (
 	ImpactCritical   Impact = "CRITICAL"
 	ImpactHigh       Impact = "HIGH"
@@ -27,34 +31,45 @@ const (
 
 // Attribution is an author-declared citation, not a license grant or verified origin.
 type Attribution struct {
+	// URL is an absolute HTTP(S) URL without credentials, serialized as the WHATWG URL Standard does.
 	URL         string `json:"url"`
 	Description string `json:"description"`
 }
 
-// Rule contains validated selection fields and one exact original document.
-// Document includes delimiters, frontmatter, and body without reserialization.
-// SplitDocument exposes its original sections when needed. Attribution is an
-// empty slice when absent; validated tags remain in Document.
+// Rule contains a rule file's validated metadata and its exact original document. Text fields keep their authored
+// whitespace. Attribution is an empty slice when absent; validated tags remain in Document.
 type Rule struct {
-	ID                string        `json:"id"`
-	Group             string        `json:"group"`
+	// ID is the source-qualified rule ID: the source passed to ParseRule, a colon, and the library rule ID, such as
+	// fabrica:practices/testing/verify-retries.
+	ID string `json:"id"`
+	// Group is the ID of the group the rule belongs to, such as practices/testing.
+	Group string `json:"group"`
+	// Path is the rule's path in its library, such as practices/testing/verify-retries.md.
 	Path              string        `json:"path"`
 	Title             string        `json:"title"`
 	Impact            Impact        `json:"impact"`
 	ImpactDescription string        `json:"impactDescription"`
 	WhenToRead        string        `json:"whenToRead"`
 	Attribution       []Attribution `json:"attribution"`
-	Document          string        `json:"document"`
+	// Document is the whole file, delimiters, frontmatter, and body, without reserialization; SplitDocument returns
+	// its sections.
+	Document string `json:"document"`
 }
 
-// Parse validates a rule's path, UTF-8 document, YAML metadata, nonblank body, and attribution.
-// Unknown metadata and attribution fields are rejected.
-// Source is a caller-owned alias, not an authenticated origin. Path is a relative
-// rule path; neither argument causes file access. Text values retain whitespace.
-// On any failure, Parse returns the zero Rule and a ValidationError.
-func Parse(text, path, source string) (Rule, error) {
+// ParseRule parses the rule file text found at path, a rule's path in its library such as
+// practices/testing/verify-retries.md, which determines its ID and group. It validates the path, the UTF-8
+// document, its YAML frontmatter metadata, the nonblank Markdown body, and attribution, and rejects unknown
+// metadata and attribution fields. source names the library the rule comes from, such as fabrica; it qualifies the
+// rule's ID and starts error locations, and it isn't an authenticated origin. On any failure, ParseRule returns the
+// zero Rule.
+func ParseRule(text, path, source string) (Rule, error) {
+	rule, err := parseRule(text, path, source)
+	return rule, translate(err)
+}
+
+func parseRule(text, path, source string) (Rule, error) {
 	location := source + ":" + path
-	group, err := GroupFromPath(path, location)
+	group, err := librarytree.GroupFromPath(path, location)
 	if err != nil {
 		return Rule{}, err
 	}
@@ -81,7 +96,7 @@ func Parse(text, path, source string) (Rule, error) {
 	if err != nil {
 		return Rule{}, err
 	}
-	if strings.TrimFunc(document.Body, jsWhitespace) == "" {
+	if strings.TrimFunc(document.Body, decode.IsSpace) == "" {
 		return Rule{}, invalid(location+".body", "expected nonempty text")
 	}
 	result.Attribution, err = ruleAttribution(fields["attribution"], location+".attribution")
@@ -138,7 +153,7 @@ func ruleFields(fields map[string]*yaml.Node, location string) (Rule, error) {
 
 // ruleText requires a nonblank YAML string and returns its untrimmed value.
 func ruleText(node *yaml.Node, location string) (string, error) {
-	if node == nil || !yamlString(node) || strings.TrimFunc(node.Value, jsWhitespace) == "" {
+	if node == nil || !yamlString(node) || strings.TrimFunc(node.Value, decode.IsSpace) == "" {
 		return "", invalid(location, "expected nonempty text")
 	}
 	return node.Value, nil
@@ -207,7 +222,8 @@ func ruleAttribution(node *yaml.Node, location string) ([]Attribution, error) {
 	return result, nil
 }
 
-// ParseImpact accepts the six declared consequence levels without normalizing authored values.
+// ParseImpact returns value as an Impact when it is exactly one of the six levels, such as HIGH, without
+// normalizing case or whitespace. location names the value in errors.
 func ParseImpact(value, location string) (Impact, error) {
 	impact := Impact(value)
 	switch impact {
@@ -215,6 +231,6 @@ func ParseImpact(value, location string) (Impact, error) {
 		return impact, nil
 	default:
 		return "", invalid(location, fmt.Sprintf("impact must be one of %s, %s, %s, %s, %s, %s; got %s",
-			ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow, quote(value)))
+			ImpactCritical, ImpactHigh, ImpactMediumHigh, ImpactMedium, ImpactLowMedium, ImpactLow, decode.Quote(value)))
 	}
 }

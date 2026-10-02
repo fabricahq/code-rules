@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -18,7 +19,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if _, err := Initialize(ctx, options, nil, "1.2.3"); err != nil {
 		t.Fatal(err)
 	}
-	metadata := rules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
+	metadata := coderules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
 	group, err := PlanGroup(ctx, "techs/go", options)
 	if err != nil {
 		t.Fatal(err)

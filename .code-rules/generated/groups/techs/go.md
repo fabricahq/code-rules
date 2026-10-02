@@ -131,6 +131,30 @@ Rule ID: `local:techs/go/comment-role-result-and-constraints`
 
 **Read full rule:** [Comment the role, the result, and the hidden constraint in Go](../../rules/local/techs/go/comment-role-result-and-constraints.md)
 
+### Give each package its own ValidationError
+
+Rule ID: `local:techs/go/give-each-package-its-own-validation-error`
+
+**When to read:** Before planning, writing, changing, or reviewing Go code in this repository that reports invalid input, such as a bad configuration field, flag, or file, or that recognizes another package's invalid-input error, such as when classifying failures in internal/cli.
+
+**Impact:** MEDIUM
+
+**Why it matters:** A check for one package's concrete validation error misses invalid input from every other package, which then reaches agents as an operation failure without a location.
+
+**Read full rule:** [Give each package its own ValidationError](../../rules/local/techs/go/give-each-package-its-own-validation-error.md)
+
+### Keep the coderules package parse-only and public
+
+Rule ID: `local:techs/go/keep-the-coderules-package-parse-only-and-public`
+
+**When to read:** Before planning, writing, changing, or reviewing Go code in the public coderules package or the internal packages it uses, its exports, errors, or tests, or Code Rules code that reads release tags, release records, rule files, group metadata, or the canonical group list.
+
+**Impact:** HIGH
+
+**Why it matters:** A second parser lets Code Rules and other tools disagree about the same library, and effects, unneeded exports, or leaked internal error types break the public API other tools depend on.
+
+**Read full rule:** [Keep the coderules package parse-only and public](../../rules/local/techs/go/keep-the-coderules-package-parse-only-and-public.md)
+
 ### Let the CLI own output and exit status
 
 Rule ID: `local:techs/go/let-the-cli-own-output-and-exit-status`

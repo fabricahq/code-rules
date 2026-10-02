@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -17,7 +18,7 @@ func TestAuthoringPlansRevalidateLiveState(t *testing.T) {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	metadata := rules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
+	metadata := coderules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}
 	group, err := PlanLocalGroup(ctx, "techs/go", options)
 	if err != nil {
 		t.Fatal(err)
@@ -70,7 +71,7 @@ func TestRulePlanPreservesCompetingFile(t *testing.T) {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := AddLocalGroup(ctx, "techs/go", rules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}, options); err != nil {
+	if _, err := AddLocalGroup(ctx, "techs/go", coderules.GroupMetadata{Name: "Go", Description: "Go guidance.", WhenToRead: "When editing Go."}, options); err != nil {
 		t.Fatal(err)
 	}
 	plan, err := PlanLocalRule(ctx, "techs/go/errors", options)

@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -147,8 +148,8 @@ func TestImportRejectsSelectedContent(t *testing.T) {
 				t.Fatal("invalid content returned usable import")
 			}
 			if kind == "missing-manifest" {
-				var validation *rules.ValidationError
-				if !errors.As(err, &validation) || validation.Location != "rule-library.yaml" {
+				var validation errs.ValidationError
+				if !errors.As(err, &validation) || validation.ValidationLocation() != "rule-library.yaml" {
 					t.Fatalf("lost manifest error identity: %v", err)
 				}
 				for _, detail := range []string{"source team: ", "missing library manifest at the repository root", "declares the library format and optional license"} {

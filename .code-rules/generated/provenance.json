@@ -1999,6 +1999,44 @@
       "attribution": []
     },
     {
+      "id": "local:techs/go/give-each-package-its-own-validation-error",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/give-each-package-its-own-validation-error.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
+    },
+    {
+      "id": "local:techs/go/keep-the-coderules-package-parse-only-and-public",
+      "group": "techs/go",
+      "origin": {
+        "source": "local",
+        "file": "techs/go/keep-the-coderules-package-parse-only-and-public.md",
+        "repository": null,
+        "ref": null,
+        "resolvedCommit": null,
+        "version": null,
+        "release": null
+      },
+      "upstream": null,
+      "replacementReason": null,
+      "basedOn": null,
+      "licenseBasis": "undeclared",
+      "license": null,
+      "attribution": []
+    },
+    {
       "id": "local:techs/go/let-the-cli-own-output-and-exit-status",
       "group": "techs/go",
       "origin": {

@@ -63,7 +63,7 @@ func parseSourceInput(input SourceInput) (rules.Source, error) {
 		return rules.Source{}, err
 	}
 	if source.Groups.Pattern == "" && len(source.Groups.Groups) == 0 && len(source.Rules) == 0 {
-		return rules.Source{}, &rules.ValidationError{Location: "--groups", Problem: "supply at least one --groups or --rules"}
+		return rules.Source{}, &ValidationError{Location: "--groups", Problem: "supply at least one --groups or --rules"}
 	}
 	return source, nil
 }

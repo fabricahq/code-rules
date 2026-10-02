@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // GitRefKind distinguishes a complete commit SHA from an exact tag name.
@@ -76,7 +78,7 @@ var (
 // commit-shaped tags require the explicit tag prefix. Errors return a zero GitRef.
 // Location is the caller's complete diagnostic field path, such as sources.team.ref.
 func ParseGitRef(ref, location string) (GitRef, error) {
-	if strings.TrimFunc(ref, jsWhitespace) == "" {
+	if strings.TrimFunc(ref, decode.IsSpace) == "" {
 		return GitRef{}, invalid(location, "expected nonempty text")
 	}
 	if commitRef.MatchString(ref) {

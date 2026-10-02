@@ -11,7 +11,9 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -24,25 +26,25 @@ type ruleOrigin struct {
 	// Commit is the commit that supplied the rule's files.
 	Commit string `json:"resolvedCommit,omitempty"`
 	// Version is nil, and Release is 0, for a local rule or an imported rule that isn't a published version.
-	Version *rules.RuleVersion `json:"version,omitempty"`
-	Release int                `json:"release,omitempty"`
+	Version *coderules.RuleVersion `json:"version,omitempty"`
+	Release int                    `json:"release,omitempty"`
 }
 
 // resolvedRule owns one parsed effective document. Upstream is non-nil only for replacements.
 type resolvedRule struct {
-	Rule     rules.Rule  `json:"rule"`
-	Origin   ruleOrigin  `json:"origin"`
-	Upstream *ruleOrigin `json:"upstream"`
-	Reason   string      `json:"replacementReason,omitempty"`
+	Rule     coderules.Rule `json:"rule"`
+	Origin   ruleOrigin     `json:"origin"`
+	Upstream *ruleOrigin    `json:"upstream"`
+	Reason   string         `json:"replacementReason,omitempty"`
 	// BasedOn is the library version a replacement incorporates, as its exclusion records it, or nil.
-	BasedOn *rules.RuleVersion        `json:"basedOn,omitempty"`
+	BasedOn *coderules.RuleVersion    `json:"basedOn,omitempty"`
 	License *rules.LicenseDeclaration `json:"license"`
 }
 
 // groupGuidance identifies the source of one complete group metadata definition.
 type groupGuidance struct {
-	Source   string              `json:"source"`
-	Metadata rules.GroupMetadata `json:"metadata"`
+	Source   string                  `json:"source"`
+	Metadata coderules.GroupMetadata `json:"metadata"`
 }
 
 // resolvedGroup contains effective rules and guidance chosen by resolve, plus original guidance for provenance.
@@ -134,7 +136,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		if source.Ref.Kind() == rules.GitRefCommit && !source.Ref.Equal(ref) {
 			return resolution{}, invalid(source.Name, "resolved commit differs from configured commit")
 		}
-		candidates := map[string]rules.Rule{}
+		candidates := map[string]coderules.Rule{}
 		ids := []string{}
 		seenGroups := map[string]bool{}
 		for _, group := range supplied.Catalog.Groups {
@@ -142,7 +144,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 				return resolution{}, invalid(group.ID, "duplicate group")
 			}
 			seenGroups[group.ID] = true
-			if err := rules.ValidateGroupID(group.ID, source.Name); err != nil {
+			if err := librarytree.ValidateGroupID(group.ID, source.Name); err != nil {
 				return resolution{}, err
 			}
 			if source.Groups.Includes(group.ID) {
@@ -151,7 +153,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			target := ensureGroup(groups, group.ID)
 			target.Guidance = append(target.Guidance, groupGuidance{source.Name, group.Metadata})
 			for _, candidate := range group.Rules {
-				parsed, err := rules.Parse(candidate.Document, candidate.Path, source.Name)
+				parsed, err := coderules.ParseRule(candidate.Document, candidate.Path, source.Name)
 				if err != nil {
 					return resolution{}, err
 				}
@@ -250,13 +252,13 @@ func ensureGroup(groups map[string]*resolvedGroup, id string) *resolvedGroup {
 }
 
 // parseLocal validates every local definition before any replacement or exclusion can hide errors.
-func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[string]rules.Rule, error) {
-	result := map[string]rules.Rule{}
+func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[string]coderules.Rule, error) {
+	result := map[string]coderules.Rule{}
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		if !fs.ValidPath(file) || file == "." || strings.ContainsAny(file, "\\:") || strings.ContainsFunc(file, func(r rune) bool { return r < 32 || r == 127 }) {
 			return nil, invalid(file, "expected a contained portable local path")
 		}
-		if file == "README.md" || rules.IsGroupReadme(file) {
+		if file == "README.md" || librarytree.IsGroupReadme(file) {
 			continue
 		}
 		if slices.Contains(strings.Split(file, "/"), "assets") && !(strings.Count(file, "/") == 2 && path.Base(file) == "_group.yaml" && (strings.HasPrefix(file, "techs/") || strings.HasPrefix(file, "practices/"))) {
@@ -264,10 +266,10 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 		}
 		if path.Base(file) == "_group.yaml" {
 			id := path.Dir(file)
-			if err := rules.ValidateGroupID(id, "local/"+file); err != nil {
+			if err := librarytree.ValidateGroupID(id, "local/"+file); err != nil {
 				return nil, err
 			}
-			metadata, err := rules.ParseGroupMetadataYAML(json.RawMessage(files[file]), "local/"+file)
+			metadata, err := coderules.ParseGroupMetadata(json.RawMessage(files[file]), "local/"+file)
 			if err != nil {
 				return nil, err
 			}
@@ -280,7 +282,7 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 		if rules.HasDraftMarker(files[file]) {
 			return nil, invalid("local/"+file, "complete the draft and remove its code-rules:draft marker")
 		}
-		parsed, err := rules.Parse(string(files[file]), file, "local")
+		parsed, err := coderules.ParseRule(string(files[file]), file, "local")
 		if err != nil {
 			return nil, err
 		}
@@ -291,7 +293,7 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 
 // validateLocalLinks checks local rules and Markdown attachments against the shared destination policy.
 // It checks retained attachments even if no active rule links to them; target existence belongs to rendering.
-func validateLocalLinks(files map[string][]byte, localRules map[string]rules.Rule) error {
+func validateLocalLinks(files map[string][]byte, localRules map[string]coderules.Rule) error {
 	for _, file := range slices.Sorted(maps.Keys(files)) {
 		_, rule := localRules[file]
 		if !rule && (rules.AssetDirectory(file) == "" || !strings.HasSuffix(file, ".md")) {
@@ -312,7 +314,7 @@ func validateLocalLinks(files map[string][]byte, localRules map[string]rules.Rul
 
 // invalid identifies input relationships that prevent an effective rule set from being produced.
 func invalid(location, problem string) error {
-	return &rules.ValidationError{Location: location, Problem: problem}
+	return &ValidationError{Location: location, Problem: problem}
 }
 
 // resolveGuidance chooses the complete local definition when present, otherwise retains all imported definitions.

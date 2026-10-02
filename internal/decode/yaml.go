@@ -1,28 +1,31 @@
 // Decode authored YAML with one shared strict policy before applying each document schema.
 
-package rules
+package decode
 
 import (
 	"bytes"
 	"encoding/json"
-	"go.yaml.in/yaml/v4"
 	"io"
 	"unicode/utf8"
+
+	"go.yaml.in/yaml/v4"
 )
 
-func authoredYAML(input []byte, location string) (*yaml.Node, []byte, error) {
-	document, err := authoredDocument(input, location)
+// YAML decodes input like Document and also converts its content to JSON like JSON, for schemas that read every
+// field.
+func YAML(input []byte, location string) (*yaml.Node, []byte, error) {
+	document, err := Document(input, location)
 	if err != nil {
 		return nil, nil, err
 	}
-	data, err := strictJSON(document.Content[0], location)
+	data, err := JSON(document.Content[0], location)
 	return document, data, err
 }
 
-// authoredDocument decodes exactly one YAML document with content and checks the rules that hold for every node
+// Document decodes exactly one YAML document with content and checks the rules that hold for every node
 // of an authored document: no anchors, aliases, explicit tags, or duplicate keys, scalar mapping keys, and at most
 // 32 levels of nesting. It interprets no scalar values, so callers can ignore fields whose values they can't read.
-func authoredDocument(input []byte, location string) (*yaml.Node, error) {
+func Document(input []byte, location string) (*yaml.Node, error) {
 	if !utf8.Valid(input) {
 		return nil, invalid(location, "expected UTF-8 YAML")
 	}
@@ -38,14 +41,14 @@ func authoredDocument(input []byte, location string) (*yaml.Node, error) {
 	if len(document.Content) != 1 {
 		return nil, invalid(location, "expected a mapping")
 	}
-	if err := authoredHygiene(document.Content[0], location, 0); err != nil {
+	if err := hygiene(document.Content[0], location, 0); err != nil {
 		return nil, err
 	}
 	return &document, nil
 }
 
-// authoredHygiene checks node and everything below it against authoredDocument's rules.
-func authoredHygiene(node *yaml.Node, location string, depth int) error {
+// hygiene checks node and everything below it against Document's rules.
+func hygiene(node *yaml.Node, location string, depth int) error {
 	if depth > 32 {
 		return invalid(location, "YAML nesting is too deep")
 	}
@@ -64,13 +67,13 @@ func authoredHygiene(node *yaml.Node, location string, depth int) error {
 				return invalid(location+"."+key.Value, "duplicate field")
 			}
 			seen[key.Value] = true
-			if err := authoredHygiene(node.Content[i+1], location+"."+key.Value, depth+1); err != nil {
+			if err := hygiene(node.Content[i+1], location+"."+key.Value, depth+1); err != nil {
 				return err
 			}
 		}
 	case yaml.SequenceNode:
 		for _, child := range node.Content {
-			if err := authoredHygiene(child, location, depth+1); err != nil {
+			if err := hygiene(child, location, depth+1); err != nil {
 				return err
 			}
 		}
@@ -78,17 +81,17 @@ func authoredHygiene(node *yaml.Node, location string, depth int) error {
 	return nil
 }
 
-// strictJSON converts node to JSON, accepting only strings, finite numbers, booleans, and null among scalars, as
+// JSON converts node to JSON, accepting only strings, finite numbers, booleans, and null among scalars, as
 // every authored field a reader interprets requires.
-func strictJSON(node *yaml.Node, location string) ([]byte, error) {
-	value, err := authoredValue(node, location, 0)
+func JSON(node *yaml.Node, location string) ([]byte, error) {
+	value, err := jsonValue(node, location, 0)
 	if err != nil {
 		return nil, err
 	}
 	return json.Marshal(value)
 }
 
-func authoredValue(node *yaml.Node, location string, depth int) (any, error) {
+func jsonValue(node *yaml.Node, location string, depth int) (any, error) {
 	if depth > 32 {
 		return nil, invalid(location, "YAML nesting is too deep")
 	}
@@ -106,7 +109,7 @@ func authoredValue(node *yaml.Node, location string, depth int) (any, error) {
 			if _, exists := result[key.Value]; exists {
 				return nil, invalid(location+"."+key.Value, "duplicate field")
 			}
-			value, err := authoredValue(node.Content[i+1], location+"."+key.Value, depth+1)
+			value, err := jsonValue(node.Content[i+1], location+"."+key.Value, depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -116,7 +119,7 @@ func authoredValue(node *yaml.Node, location string, depth int) (any, error) {
 	case yaml.SequenceNode:
 		result := make([]any, 0, len(node.Content))
 		for _, child := range node.Content {
-			value, err := authoredValue(child, location, depth+1)
+			value, err := jsonValue(child, location, depth+1)
 			if err != nil {
 				return nil, err
 			}

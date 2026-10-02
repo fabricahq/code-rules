@@ -20,7 +20,9 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -35,7 +37,7 @@ type ChangeRequest struct {
 	// IDs are library rule IDs, such as practices/testing/verify-retry-limits, in the order given.
 	IDs []string
 	// Bump is major, minor, or patch for rules that have a version, and empty for new or retired rules.
-	Bump rules.Change
+	Bump coderules.Change
 	// Summary is one line for project maintainers; for a retirement, it explains why.
 	Summary string
 	// Retire records that the rules were retired; their Markdown files must already be gone.
@@ -78,7 +80,7 @@ func PlanChange(ctx context.Context, request ChangeRequest, options Options) (*C
 // by date's calendar day, the first rule, and a random suffix, so notes written on different branches don't
 // collide. It never edits or deletes an existing note, and revalidates the complete request under writer ownership.
 // A retirement whose replacement isn't a rule yet succeeds with a warning.
-func (p *ChangePlan) Commit(ctx context.Context, bump rules.Change, summary string, date time.Time) (AuthoringResult, error) {
+func (p *ChangePlan) Commit(ctx context.Context, bump coderules.Change, summary string, date time.Time) (AuthoringResult, error) {
 	if p == nil || len(p.request.IDs) == 0 {
 		return AuthoringResult{}, failure("invalid-operation", "expected a planned change note", nil)
 	}
@@ -247,7 +249,7 @@ func validateRequest(request ChangeRequest) error {
 		return failure("invalid-arguments", "name at least one rule", nil)
 	}
 	for i, id := range request.IDs {
-		if err := rules.ValidateRuleID(id, "ID"); err != nil {
+		if err := librarytree.ValidateRuleID(id, "ID"); err != nil {
 			return err
 		}
 		if slices.Contains(request.IDs[:i], id) {
@@ -255,7 +257,7 @@ func validateRequest(request ChangeRequest) error {
 		}
 	}
 	switch request.Bump {
-	case "", rules.ChangeMajor, rules.ChangeMinor, rules.ChangePatch:
+	case "", coderules.ChangeMajor, coderules.ChangeMinor, coderules.ChangePatch:
 	default:
 		return failure("invalid-arguments", "--bump must be major, minor, or patch", nil)
 	}
@@ -263,7 +265,7 @@ func validateRequest(request ChangeRequest) error {
 		if !request.Retire || len(request.IDs) != 1 {
 			return failure("invalid-arguments", "--replaced-by requires --retire and a single rule", nil)
 		}
-		if err := rules.ValidateRuleID(request.ReplacedBy, "--replaced-by"); err != nil {
+		if err := librarytree.ValidateRuleID(request.ReplacedBy, "--replaced-by"); err != nil {
 			return err
 		}
 		if request.ReplacedBy == request.IDs[0] {
@@ -356,13 +358,13 @@ func renderNote(request ChangeRequest, versioned bool, name string) ([]byte, err
 		var change *yaml.Node
 		switch {
 		case request.Retire && request.ReplacedBy != "":
-			change = &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{text("change"), text(string(rules.ChangeRetired)), text("replacedBy"), text(request.ReplacedBy)}}
+			change = &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{text("change"), text(string(coderules.ChangeRetired)), text("replacedBy"), text(request.ReplacedBy)}}
 		case request.Retire:
-			change = text(string(rules.ChangeRetired))
+			change = text(string(coderules.ChangeRetired))
 		case versioned:
 			change = text(string(request.Bump))
 		default:
-			change = text(string(rules.ChangeNew))
+			change = text(string(coderules.ChangeNew))
 		}
 		entries.Content = append(entries.Content, text(id), change)
 	}

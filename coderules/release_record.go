@@ -1,19 +1,22 @@
 // Parse the release record in a library release tag's message without accessing Git.
 
-package rules
+package coderules
 
 import (
-	"bytes"
 	"encoding/json"
 	"maps"
-	"regexp"
 	"slices"
 	"strconv"
 
 	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
-// ReleaseRecord is the permanent record of one library release, read from its release/<number> tag.
+// ReleaseRecord is the permanent record of one library release, read from its release/<number> tag's message. Rule
+// IDs are library rule IDs, such as practices/testing/verify-retries. A parsed record's maps and LibraryFiles are
+// never nil.
 type ReleaseRecord struct {
 	// Release is the library release number, starting at 1.
 	Release int `json:"release"`
@@ -44,22 +47,22 @@ type RetiredRule struct {
 	Summaries   []string    `json:"summaries"`
 }
 
-// releaseSeparator divides a release tag's Markdown notes from its YAML record.
-const releaseSeparator = "---"
-
-// ReleaseRecordFormat is the release record format this version of Code Rules writes and reads, recorded in each
-// record's formatVersion. It changes only for incompatible changes: readers ignore fields they don't know, so new
+// ReleaseRecordFormat is the newest release record format this version of Code Rules writes and reads, recorded in
+// each record's formatVersion. It changes only for incompatible changes: readers ignore fields they don't know, so new
 // optional fields keep the format.
 const ReleaseRecordFormat = 1
 
-// UnsupportedReleaseRecordError reports a release record in a format newer than this version of Code Rules reads,
-// which a newer Code Rules published. Upgrading Code Rules reads it.
+// UnsupportedReleaseRecordError reports a release record whose formatVersion is above ReleaseRecordFormat: a newer
+// Code Rules published it, and only a version of Code Rules, and of this package, that supports its format can read
+// it. Check for it with errors.As.
 type UnsupportedReleaseRecordError struct {
 	// Location is the record's formatVersion field, such as release/4.formatVersion.
-	Location      string
+	Location string
+	// FormatVersion is the record's format, above ReleaseRecordFormat.
 	FormatVersion int
 }
 
+// Error names the record's format and asks the reader to upgrade Code Rules.
 func (e *UnsupportedReleaseRecordError) Error() string {
 	return e.Location + ": the release record uses format " + strconv.Itoa(e.FormatVersion) + ", but this version of Code Rules reads only format " + strconv.Itoa(ReleaseRecordFormat) + "; upgrade Code Rules to read this library release"
 }
@@ -89,79 +92,21 @@ func thousands(count int) string {
 	return text
 }
 
-var releaseTagPattern = regexp.MustCompile(`^release/([1-9][0-9]{0,8})$`)
-
-// ParseReleaseTag returns the library release number of a tag named release/<number>, such as release/4.
-// It rejects other tag names, including leading zeros, so each library release has exactly one tag name.
-func ParseReleaseTag(name string) (int, error) {
-	parts := releaseTagPattern.FindStringSubmatch(name)
-	if parts == nil {
-		return 0, invalid(name, "expected a library release tag named release/<number>, such as release/4")
-	}
-	number, _ := strconv.Atoi(parts[1])
-	return number, nil
-}
-
-// ParseReleaseMessage parses the message of the library release tag named tag. It splits the message at its last
-// line containing only ---, returning the Markdown release notes before it and the parsed record after it; the
-// notes may contain --- lines themselves. The record's release number must match the tag's.
-func ParseReleaseMessage(tag string, message []byte) (string, ReleaseRecord, error) {
-	number, err := ParseReleaseTag(tag)
-	if err != nil {
-		return "", ReleaseRecord{}, err
-	}
-	lines := bytes.Split(message, []byte("\n"))
-	for i := len(lines) - 1; i >= 0; i-- {
-		if string(bytes.TrimRight(lines[i], "\r")) != releaseSeparator {
-			continue
-		}
-		notes := string(bytes.TrimRight(bytes.Join(lines[:i], []byte("\n")), "\r\n"))
-		record, err := ParseReleaseRecord(bytes.Join(lines[i+1:], []byte("\n")), tag)
-		if err != nil {
-			return "", ReleaseRecord{}, err
-		}
-		if record.Release != number {
-			return "", ReleaseRecord{}, invalid(tag+".release", "the record is for library release "+strconv.Itoa(record.Release)+", but its tag is "+tag)
-		}
-		return notes, record, nil
-	}
-	return "", ReleaseRecord{}, invalid(tag, "expected release notes, a line containing only ---, and a release record")
-}
-
-// signatureHeaders begin a signature that Git appends to a signed tag's message.
-var signatureHeaders = []string{"-----BEGIN PGP SIGNATURE-----", "-----BEGIN PGP MESSAGE-----", "-----BEGIN SSH SIGNATURE-----", "-----BEGIN SIGNED MESSAGE-----"}
-
-// ParseReleaseTagObject parses the release notes and record in a raw annotated tag object, as git cat-file
-// prints it, of the library release tag named tag, like ParseReleaseMessage. It skips the object's headers and
-// ignores a signature after the message.
-func ParseReleaseTagObject(tag string, object []byte) (string, ReleaseRecord, error) {
-	_, message, ok := bytes.Cut(object, []byte("\n\n"))
-	if !ok {
-		message = nil
-	}
-	// Git treats the last line starting a signature as its start.
-	end := len(message)
-	for offset := 0; offset < len(message); {
-		line := message[offset:]
-		if slices.ContainsFunc(signatureHeaders, func(header string) bool { return bytes.HasPrefix(line, []byte(header)) }) {
-			end = offset
-		}
-		next := bytes.IndexByte(line, '\n')
-		if next < 0 {
-			break
-		}
-		offset += next + 1
-	}
-	return ParseReleaseMessage(tag, message[:end])
-}
-
-// ParseReleaseRecord validates a release record's YAML, including that each change leads to the version in rules.
-// It refuses more than 10,000 entries in rules, changes, or retired, and more than 20,000 in libraryFiles. It
-// ignores fields it doesn't know, at any level, so later formats can add fields that older readers skip. A
-// formatVersion above ReleaseRecordFormat fails with *UnsupportedReleaseRecordError; a missing or invalid one
-// with *ValidationError.
+// ParseReleaseRecord parses a release record: the YAML after the last --- line of a library release tag's message.
+// location names the record in errors, such as its tag name. It reads formatVersion before anything else and
+// fails with *UnsupportedReleaseRecordError when it's above ReleaseRecordFormat, so it never misreads a newer
+// format. It ignores fields it doesn't know, at any level and whatever their values, so later formats can add
+// fields that older readers skip; the record must still be one YAML document without anchors, aliases, explicit
+// tags, or duplicate keys. It validates every field it knows, including that each change leads to the version in
+// rules and that the first library release lists every rule as new, and it refuses more than 10,000 entries in
+// rules, changes, or retired, and more than 20,000 in libraryFiles.
 func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
-	document, err := authoredDocument(input, location)
+	record, err := parseReleaseRecord(input, location)
+	return record, translate(err)
+}
+
+func parseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
+	document, err := decode.Document(input, location)
 	if err != nil {
 		return ReleaseRecord{}, err
 	}
@@ -173,7 +118,7 @@ func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
 	var format json.RawMessage
 	if node := field(root, "formatVersion"); node != nil {
 		// A value that isn't a plain scalar leaves format empty, which recordFormat reports as invalid.
-		format, _ = strictJSON(node, location+".formatVersion")
+		format, _ = decode.JSON(node, location+".formatVersion")
 	}
 	if err := recordFormat(format, location+".formatVersion"); err != nil {
 		return ReleaseRecord{}, err
@@ -237,7 +182,7 @@ func knownFields(mapping *yaml.Node, location string, known map[string][]string)
 		where := location + "." + key.Value
 		var err error
 		if entryFields == nil || value.Kind != yaml.MappingNode {
-			fields[key.Value], err = strictJSON(value, where)
+			fields[key.Value], err = decode.JSON(value, where)
 		} else {
 			fields[key.Value], err = knownEntries(value, where, entryFields)
 		}
@@ -259,7 +204,7 @@ func knownEntries(mapping *yaml.Node, location string, names []string) (json.Raw
 		where := location + "." + key.Value
 		var err error
 		if value.Kind != yaml.MappingNode {
-			entries[key.Value], err = strictJSON(value, where)
+			entries[key.Value], err = decode.JSON(value, where)
 		} else {
 			known := map[string][]string{}
 			for _, name := range names {
@@ -314,7 +259,7 @@ func releaseNumber(input json.RawMessage, location string) (int, error) {
 
 // recordedVersions reads the required map of every current rule to its version; it may be empty.
 func recordedVersions(input json.RawMessage, location string) (map[string]RuleVersion, error) {
-	entries, err := jsonObject(input, location)
+	entries, err := decode.Object(input, location)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +268,7 @@ func recordedVersions(input json.RawMessage, location string) (map[string]RuleVe
 	}
 	versions := map[string]RuleVersion{}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
-		if err := ValidateRuleID(id, location+"."+id); err != nil {
+		if err := librarytree.ValidateRuleID(id, location+"."+id); err != nil {
 			return nil, err
 		}
 		version, err := versionField(entries[id], location+"."+id)
@@ -337,7 +282,7 @@ func recordedVersions(input json.RawMessage, location string) (map[string]RuleVe
 
 // recordedChanges requires each changed rule's version in rules to follow from its change and previous version.
 func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, location string) (map[string]RecordedChange, error) {
-	entries, err := jsonObject(input, location)
+	entries, err := decode.Object(input, location)
 	if err != nil {
 		return nil, err
 	}
@@ -347,10 +292,10 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 	changes := map[string]RecordedChange{}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		entryLocation := location + "." + id
-		if err := ValidateRuleID(id, entryLocation); err != nil {
+		if err := librarytree.ValidateRuleID(id, entryLocation); err != nil {
 			return nil, err
 		}
-		fields, err := jsonObject(entries[id], entryLocation)
+		fields, err := decode.Object(entries[id], entryLocation)
 		if err != nil {
 			return nil, err
 		}
@@ -393,7 +338,7 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 			}
 			change.From = &from
 		default:
-			return nil, invalid(entryLocation+".change", "unknown change "+quote(name)+"; expected new, major, minor, or patch")
+			return nil, invalid(entryLocation+".change", "unknown change "+decode.Quote(name)+"; expected new, major, minor, or patch")
 		}
 		changes[id] = change
 	}
@@ -402,7 +347,7 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 
 // retiredRules requires each retired rule to be absent from rules and any replacement to be present.
 func retiredRules(input json.RawMessage, versions map[string]RuleVersion, location string) (map[string]RetiredRule, error) {
-	entries, err := jsonObject(input, location)
+	entries, err := decode.Object(input, location)
 	if err != nil {
 		return nil, err
 	}
@@ -412,13 +357,13 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 	retired := map[string]RetiredRule{}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		entryLocation := location + "." + id
-		if err := ValidateRuleID(id, entryLocation); err != nil {
+		if err := librarytree.ValidateRuleID(id, entryLocation); err != nil {
 			return nil, err
 		}
 		if _, current := versions[id]; current {
 			return nil, invalid(entryLocation, "a retired rule can't also be in rules")
 		}
-		fields, err := jsonObject(entries[id], entryLocation)
+		fields, err := decode.Object(entries[id], entryLocation)
 		if err != nil {
 			return nil, err
 		}
@@ -434,7 +379,7 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 				return nil, invalid(entryLocation+".replacedBy", "expected a rule ID")
 			}
 			if _, current := versions[rule.ReplacedBy]; !current {
-				return nil, invalid(entryLocation+".replacedBy", "replacement "+quote(rule.ReplacedBy)+" is missing from rules")
+				return nil, invalid(entryLocation+".replacedBy", "replacement "+decode.Quote(rule.ReplacedBy)+" is missing from rules")
 			}
 		}
 		retired[id] = rule
@@ -455,15 +400,15 @@ func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 	paths := make([]string, 0, len(items))
 	seen := make(map[string]bool, len(items))
 	for i, item := range items {
-		path, err := jsonPath(item, location+"["+strconv.Itoa(i)+"]")
+		path, err := decode.Path(item, location+"["+strconv.Itoa(i)+"]")
 		if err != nil {
 			return nil, err
 		}
 		if seen[path] {
-			return nil, invalid(location+"["+strconv.Itoa(i)+"]", "duplicate path "+quote(path))
+			return nil, invalid(location+"["+strconv.Itoa(i)+"]", "duplicate path "+decode.Quote(path))
 		}
-		if isRuleContent(path) {
-			return nil, invalid(location+"["+strconv.Itoa(i)+"]", quote(path)+" belongs to a rule's version, not the library-wide files")
+		if librarytree.IsRuleContent(path) {
+			return nil, invalid(location+"["+strconv.Itoa(i)+"]", decode.Quote(path)+" belongs to a rule's version, not the library-wide files")
 		}
 		seen[path] = true
 		paths = append(paths, path)
@@ -478,4 +423,22 @@ func versionField(input json.RawMessage, location string) (RuleVersion, error) {
 		return RuleVersion{}, invalid(location, "expected a rule version, such as 1.3.0")
 	}
 	return ParseRuleVersion(text, location)
+}
+
+// recordSummaries reads a release record's non-empty list of summaries, one per change note, in order. Each follows
+// a change note's summary rules.
+func recordSummaries(input json.RawMessage, location string) ([]string, error) {
+	var items []json.RawMessage
+	if json.Unmarshal(input, &items) != nil || len(items) == 0 {
+		return nil, invalid(location, "expected a list with one summary per change note")
+	}
+	summaries := make([]string, len(items))
+	for i, item := range items {
+		summary, err := decode.Line(item, location+"["+strconv.Itoa(i)+"]")
+		if err != nil {
+			return nil, err
+		}
+		summaries[i] = summary
+	}
+	return summaries, nil
 }

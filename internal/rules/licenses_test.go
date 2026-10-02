@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -36,8 +37,8 @@ func TestLicenseFixtures(t *testing.T) {
 		t.Run(test.ID, func(t *testing.T) {
 			got, err := rules.ParseLibraryLicense([]byte(test.Input.Manifest), test.Location)
 			if !test.Expected.OK {
-				var validation *rules.ValidationError
-				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location || got != nil {
+				var validation errs.ValidationError
+				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.ValidationLocation() != test.Expected.Error.Location || got != nil {
 					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Error)
 				}
 				return

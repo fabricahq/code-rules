@@ -7,9 +7,10 @@ import (
 	"errors"
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -34,8 +35,8 @@ func TestChangeNoteFixtures(t *testing.T) {
 		t.Run(test.ID, func(t *testing.T) {
 			got, err := rules.ParseChangeNote([]byte(test.Input), test.Location)
 			if !test.Expected.OK {
-				var validation *rules.ValidationError
-				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
+				var validation errs.ValidationError
+				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.ValidationLocation() != test.Expected.Error.Location {
 					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Error)
 				}
 				return
@@ -54,14 +55,16 @@ func TestChangeNoteFixtures(t *testing.T) {
 	}
 }
 
-// TestValidateRuleID_AcceptsEveryLoadableRulePath keeps change notes able to name every rule the loader accepts.
-func TestValidateRuleID_AcceptsEveryLoadableRulePath(t *testing.T) {
-	for _, path := range []string{"practices/testing/verify-retry-limits.md", "practices/testing/example.md.md", "techs/react/hooks/test-in-isolation.md"} {
-		if _, err := rules.GroupFromPath(path, "path"); err != nil {
-			t.Fatalf("%s is not a loadable rule path: %v", path, err)
-		}
-		if err := rules.ValidateRuleID(strings.TrimSuffix(path, ".md"), "id"); err != nil {
-			t.Errorf("rule %s has an ID change notes reject: %v", path, err)
+// TestLargerChange_PicksTheLargestVersionChange resolves several pending notes on one rule.
+func TestLargerChange_PicksTheLargestVersionChange(t *testing.T) {
+	for _, test := range []struct{ a, b, want coderules.Change }{
+		{coderules.ChangePatch, coderules.ChangeMajor, coderules.ChangeMajor},
+		{coderules.ChangeMajor, coderules.ChangeMinor, coderules.ChangeMajor},
+		{coderules.ChangeMinor, coderules.ChangePatch, coderules.ChangeMinor},
+		{coderules.ChangePatch, coderules.ChangePatch, coderules.ChangePatch},
+	} {
+		if got := rules.LargerChange(test.a, test.b); got != test.want {
+			t.Errorf("larger of %s and %s: got %s, want %s", test.a, test.b, got, test.want)
 		}
 	}
 }

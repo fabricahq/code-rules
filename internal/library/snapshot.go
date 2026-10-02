@@ -10,6 +10,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -46,8 +47,8 @@ type Snapshot struct {
 type ImportedRule struct {
 	// Version is nil, and Release is 0, when the rule's files aren't a published version, which only a ref other
 	// than a library release can import.
-	Version *rules.RuleVersion `json:"version"`
-	Release int                `json:"release,omitempty"`
+	Version *coderules.RuleVersion `json:"version"`
+	Release int                    `json:"release,omitempty"`
 	// Commit is the full commit SHA of Release, or the snapshot's Commit when Version is nil.
 	Commit string `json:"commit"`
 }

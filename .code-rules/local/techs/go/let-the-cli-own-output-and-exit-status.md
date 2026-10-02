@@ -14,8 +14,8 @@ They never write to standard output or standard error, prompt, or exit.
 ### Implementation
 
 - Return what a person or agent needs to see as data: a field of the result, such as `project.FileChanges.Warnings`, or an error.
-- Give each failure a stable code that callers can map, such as a `*gitexec.Error` or the package's own error type.
-  `internal/cli` classifies the error into the response's `kind`, `code`, and `location`, and chooses the exit status: `1` for a failed operation, `2` for a usage error, and `130` for an interrupt.
+- Give each failure a stable code that callers can map, such as a `*gitexec.Error` or the package's own error type, and report invalid input as the package's own `ValidationError`.
+  `internal/cli` classifies the error into the response's `kind`, `code`, and `location`, recognizing invalid input through the `errs.ValidationError` interface, and chooses the exit status: `1` for a failed operation, `2` for a usage error, and `130` for an interrupt.
 - `--json` writes exactly one response to standard output, including for failures, and never prompts.
   Keep human-only text, such as a progress line, in `internal/cli`, which leaves it out of JSON output.
 - Report an expected failure, such as invalid configuration, once, as the command's result. Don't also log it.

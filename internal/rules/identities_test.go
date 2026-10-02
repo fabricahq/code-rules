@@ -1,4 +1,4 @@
-// Check the public rules API against migration expectations and ownership guarantees.
+// Check group IDs, rule paths, and group selections against shared migration expectations and ownership guarantees.
 
 package rules_test
 
@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/fabricahq/code-rules/internal/errs"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -43,9 +45,9 @@ func TestSharedExpectations(t *testing.T) {
 				}
 				if test.Operation == "groupID" {
 					value = text
-					err = rules.ValidateGroupID(text, test.Location)
+					err = librarytree.ValidateGroupID(text, test.Location)
 				} else {
-					value, err = rules.GroupFromPath(text, test.Location)
+					value, err = librarytree.GroupFromPath(text, test.Location)
 				}
 			case "selection":
 				var selection rules.GroupSelection
@@ -59,12 +61,12 @@ func TestSharedExpectations(t *testing.T) {
 				t.Fatalf("unknown operation %q", test.Operation)
 			}
 			if !test.Expected.OK {
-				var validation *rules.ValidationError
+				var validation errs.ValidationError
 				if !errors.As(err, &validation) {
 					t.Fatalf("want ValidationError, got %v", err)
 				}
-				if err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
-					t.Fatalf("got %q at %q; want %q at %q", err.Error(), validation.Location, test.Expected.Error.Message, test.Expected.Error.Location)
+				if err.Error() != test.Expected.Error.Message || validation.ValidationLocation() != test.Expected.Error.Location {
+					t.Fatalf("got %q at %q; want %q at %q", err.Error(), validation.ValidationLocation(), test.Expected.Error.Message, test.Expected.Error.Location)
 				}
 				return
 			}
@@ -108,30 +110,6 @@ func TestMalformedSelectionJSON(t *testing.T) {
 		_, err := rules.ParseGroupSelection(json.RawMessage(input), "groups")
 		if err == nil || err.Error() != "groups: expected a groups JSON value" {
 			t.Fatalf("%q: got %v", input, err)
-		}
-	}
-}
-
-// TestVersionedRule_NamesTheRuleThatOwnsAFile covers rule files, owned assets, and library-wide files.
-func TestVersionedRule_NamesTheRuleThatOwnsAFile(t *testing.T) {
-	for file, want := range map[string]string{
-		"techs/go/errors.md":                    "techs/go/errors",
-		"techs/go/nested/errors.md":             "techs/go/nested/errors",
-		"techs/go/assets/errors/diagram.png":    "techs/go/errors",
-		"techs/go/assets/errors/deep/notes.md":  "techs/go/errors",
-		"techs/go/nested/assets/errors/data.md": "techs/go/nested/errors",
-		"techs/go/_group.yaml":                  "",
-		"techs/go/README.md":                    "",
-		"techs/go/assets/loose.png":             "",
-		"assets/shared.md":                      "",
-		"rule-library.yaml":                     "",
-		"LICENSE.md":                            "",
-		"changes/one.yaml":                      "",
-		"techs/go/LICENSE.md":                   "",
-	} {
-		got, ok := rules.VersionedRule(file)
-		if got != want || ok != (want != "") {
-			t.Errorf("VersionedRule(%q) = %q, %v; want %q", file, got, ok, want)
 		}
 	}
 }

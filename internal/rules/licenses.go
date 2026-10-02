@@ -9,6 +9,9 @@ import (
 	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
+
+	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
@@ -28,11 +31,11 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 	if !utf8.Valid(text) {
 		return nil, invalid(location, "expected UTF-8 text")
 	}
-	_, data, err := authoredYAML(text, location)
+	_, data, err := decode.YAML(text, location)
 	if err != nil {
 		return nil, err
 	}
-	manifest, err := jsonObject(data, location)
+	manifest, err := decode.Object(data, location)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +47,12 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 	if !ok {
 		return nil, nil
 	}
-	fields, err := jsonObject(raw, location+": license")
+	fields, err := decode.Object(raw, location+": license")
 	if err != nil {
 		return nil, err
 	}
 	location += ": license"
-	if err := knownJSONFields(fields, []string{"file", "notices", "spdxExpression", "expression"}, location); err != nil {
+	if err := decode.KnownFields(fields, []string{"file", "notices", "spdxExpression", "expression"}, location); err != nil {
 		return nil, err
 	}
 	file, err := termsPath(fields["file"], location+".file")
@@ -73,7 +76,7 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 	}
 	var expression *string
 	if raw, ok := fields["spdxExpression"]; ok {
-		text, err := jsonText(raw, location+".spdxExpression")
+		text, err := decode.Text(raw, location+".spdxExpression")
 		if err != nil {
 			return nil, err
 		}
@@ -100,12 +103,12 @@ func ParseLibraryLicense(text []byte, source string) (*LicenseDeclaration, error
 // a file in an asset directory inside a group belongs to that rule's version, so declaring it would let a library
 // release replace a rule version's content.
 func termsPath(input json.RawMessage, location string) (string, error) {
-	path, err := jsonPath(input, location)
+	path, err := decode.Path(input, location)
 	if err != nil {
 		return "", err
 	}
-	if isRuleContent(path) {
-		return "", invalid(location, quote(path)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root")
+	if librarytree.IsRuleContent(path) {
+		return "", invalid(location, decode.Quote(path)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root")
 	}
 	return path, nil
 }

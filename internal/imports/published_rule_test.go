@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
@@ -54,7 +55,7 @@ func forkLibrary(t *testing.T) (*gitfixture.Fixture, Options) {
 // readPublished reads version of rule id from the fixture as source team.
 func readPublished(t *testing.T, f *gitfixture.Fixture, options Options, id, version string) (PublishedRule, error) {
 	t.Helper()
-	parsed, err := rules.ParseRuleVersion(version, "version")
+	parsed, err := coderules.ParseRuleVersion(version, "version")
 	if err != nil {
 		t.Fatal(err)
 	}

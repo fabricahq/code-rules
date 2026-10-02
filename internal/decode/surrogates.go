@@ -1,6 +1,6 @@
 // Decode paired UTF-16 escapes in YAML double-quoted scalars without changing authored text.
 
-package rules
+package decode
 
 import (
 	"regexp"
@@ -14,13 +14,16 @@ import (
 
 var yamlSurrogatePair = regexp.MustCompile(`\\(?:u[Dd][89AaBb][0-9A-Fa-f]{2}|U0000[Dd][89AaBb][0-9A-Fa-f]{2})\\(?:u[Dd][CcDdEeFf][0-9A-Fa-f]{2}|U0000[Dd][CcDdEeFf][0-9A-Fa-f]{2})`)
 
-// yamlScalarEscapes locates quoted scalars with one masked parse, then repairs only those source spans.
-// Masking keeps every line and column intact. Its values are discarded, so plain,
-// single-quoted and block text never inherit the temporary replacements.
-func yamlScalarEscapes(text string) string {
+// DecodeSurrogatePairs returns YAML text with each escaped UTF-16 surrogate pair in a double-quoted scalar, such as
+// 🐹, replaced by the character it encodes, as the reference implementation reads it. Plain,
+// single-quoted, and block scalars, unpaired escapes, and text that isn't valid YAML stay unchanged.
+func DecodeSurrogatePairs(text string) string {
 	if !yamlSurrogatePair.MatchString(text) {
 		return text
 	}
+	// Locate quoted scalars with one masked parse, then repair only those source spans. Masking keeps every line
+	// and column intact. Its values are discarded, so plain, single-quoted and block text never inherit the
+	// temporary replacements.
 	masked := yamlSurrogatePair.ReplaceAllStringFunc(text, maskYAMLPair)
 	var document yaml.Node
 	if yaml.NewDecoder(strings.NewReader(masked)).Decode(&document) != nil {

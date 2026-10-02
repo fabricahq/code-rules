@@ -1,22 +1,27 @@
 // Parse, compare, and advance rule versions and the change levels that move them.
 
-package rules
+package coderules
 
 import (
 	"fmt"
 	"regexp"
 	"strconv"
+
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
-// RuleVersion is a published rule version: plain major.minor.patch, without prerelease or build suffixes.
+// RuleVersion is a published rule version: plain major.minor.patch, without prerelease or build suffixes. Versions
+// are comparable with ==; use Compare to order them.
 type RuleVersion struct {
 	Major, Minor, Patch int
 }
 
-// Change is how one library release changed a rule.
+// Change is how a library release changed a rule, or how a change note says the next one will. A release record's
+// changes use new, major, minor, or patch; only change notes use retired, since a record lists retired rules apart.
 type Change string
 
-// Changes a change note or release record can give a rule. Major, minor, and patch apply only to a rule that has a version.
+// Changes a change note or release record can give a rule. Major, minor, and patch apply only to a rule that has a
+// version.
 const (
 	ChangeMajor   Change = "major"
 	ChangeMinor   Change = "minor"
@@ -28,16 +33,17 @@ const (
 // FirstRuleVersion is every new rule's version, including every rule in a library's first library release.
 var FirstRuleVersion = RuleVersion{Major: 1}
 
-// MaxRuleVersionComponent is the largest major, minor, or patch number a rule version can have.
-const MaxRuleVersionComponent = 999_999_999
+// maxRuleVersionComponent is the largest major, minor, or patch number a rule version can have.
+const maxRuleVersionComponent = 999_999_999
 
 var ruleVersionPattern = regexp.MustCompile(`^(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})$`)
 
-// ParseRuleVersion accepts only canonical major.minor.patch text, such as 1.3.0, with components up to MaxRuleVersionComponent.
+// ParseRuleVersion accepts only canonical major.minor.patch text, such as 1.3.0, with each component at most
+// 999,999,999 and no leading zeros. location names the text in errors.
 func ParseRuleVersion(text, location string) (RuleVersion, error) {
 	parts := ruleVersionPattern.FindStringSubmatch(text)
 	if parts == nil {
-		return RuleVersion{}, invalid(location, "invalid rule version "+quote(text)+": expected major.minor.patch, such as 1.3.0")
+		return RuleVersion{}, invalid(location, "invalid rule version "+decode.Quote(text)+": expected major.minor.patch, such as 1.3.0")
 	}
 	major, _ := strconv.Atoi(parts[1])
 	minor, _ := strconv.Atoi(parts[2])
@@ -65,7 +71,7 @@ func (v RuleVersion) Compare(other RuleVersion) int {
 
 // Next returns the version after v for a major, minor, or patch change, resetting lower components.
 // It returns v unchanged for any other change, and an error when the changed component would exceed
-// MaxRuleVersionComponent, so it never returns a version ParseRuleVersion rejects.
+// 999,999,999, so it never returns a version ParseRuleVersion rejects.
 func (v RuleVersion) Next(change Change) (RuleVersion, error) {
 	next := v
 	switch change {
@@ -76,8 +82,8 @@ func (v RuleVersion) Next(change Change) (RuleVersion, error) {
 	case ChangePatch:
 		next = RuleVersion{Major: v.Major, Minor: v.Minor, Patch: v.Patch + 1}
 	}
-	if next.Major > MaxRuleVersionComponent || next.Minor > MaxRuleVersionComponent || next.Patch > MaxRuleVersionComponent {
-		return v, fmt.Errorf("a %s change from %s exceeds the largest rule version number, %d", change, v, MaxRuleVersionComponent)
+	if next.Major > maxRuleVersionComponent || next.Minor > maxRuleVersionComponent || next.Patch > maxRuleVersionComponent {
+		return v, fmt.Errorf("a %s change from %s exceeds the largest rule version number, %d", change, v, maxRuleVersionComponent)
 	}
 	return next, nil
 }
@@ -95,25 +101,4 @@ func (v *RuleVersion) UnmarshalText(text []byte) error {
 	}
 	*v = parsed
 	return nil
-}
-
-// changeRank orders version changes so several notes on one rule resolve to the largest; other changes rank zero.
-func changeRank(change Change) int {
-	switch change {
-	case ChangePatch:
-		return 1
-	case ChangeMinor:
-		return 2
-	case ChangeMajor:
-		return 3
-	}
-	return 0
-}
-
-// LargerChange returns whichever of two version changes moves a rule further; ties return a.
-func LargerChange(a, b Change) Change {
-	if changeRank(b) > changeRank(a) {
-		return b
-	}
-	return a
 }

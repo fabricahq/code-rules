@@ -14,7 +14,9 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -106,8 +108,8 @@ func editProject(ctx context.Context, options Options, prepare func(*os.Root, []
 }
 
 // AddLocalGroup creates one complete local group definition without overwriting existing metadata.
-func AddLocalGroup(ctx context.Context, id string, metadata rules.GroupMetadata, options Options) (AuthoringResult, error) {
-	if err := rules.ValidateGroupID(id, "group"); err != nil {
+func AddLocalGroup(ctx context.Context, id string, metadata coderules.GroupMetadata, options Options) (AuthoringResult, error) {
+	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
 	data, err := rules.RenderGroup(metadata)
@@ -131,7 +133,7 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 	}
 	if local != nil {
 		if data, ok := local.Files[id+"/_group.yaml"]; ok {
-			_, err = rules.ParseGroupMetadataYAML(data, id)
+			_, err = coderules.ParseGroupMetadata(data, id)
 			return err == nil, err
 		}
 	}
@@ -153,7 +155,7 @@ func groupAvailable(ctx context.Context, root *os.Root, config rules.Configurati
 			continue
 		}
 		if data, ok := snapshot.Files[id+"/_group.yaml"]; ok {
-			_, err = rules.ParseGroupMetadataYAML(data, id)
+			_, err = coderules.ParseGroupMetadata(data, id)
 			return err == nil, err
 		}
 	}

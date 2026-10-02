@@ -14,6 +14,7 @@ import (
 	"github.com/fabricahq/code-rules/internal/build"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -198,7 +199,7 @@ func groupsWithoutLocalMetadata(state projectState) []string {
 	local := treeFiles(state.local)
 	groups := []string{}
 	for file := range local {
-		id, versioned := rules.VersionedRule(file)
+		id, versioned := librarytree.VersionedRule(file)
 		if !versioned || file != id+".md" {
 			continue
 		}

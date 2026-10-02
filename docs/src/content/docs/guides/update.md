@@ -1,13 +1,13 @@
 ---
 title: "Update rules"
-description: "Preview each rule change, keep rules where they are when you need to, and adopt the rest deliberately."
+description: "Upgrade the rules your project imports to newer versions: preview each change, keep rules where they are when you need to, and adopt the rest deliberately."
 ---
 
-Updating rules brings changes from the libraries you use into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them.
+This guide is for projects that import rules from libraries. Updating rules brings changes from those libraries into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them. Plain `code-rules project sync` keeps the rule versions your project recorded, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
 
-In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, update a single library or rule, and commit the result. You'll also learn how to import one library release, change which rules you import, and recover from a failed update.
+In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one library](#update-one-library) or [upgrade a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how to import one library release, change which rules you import, and recover from a failed update.
 
-Start with a project that already [imports rules](/guides/select-rules/). For details about how commands change files, see [Sync and recovery](/reference/sync/).
+Start with a project that already [imports rules](/guides/select-rules/). To publish new rule versions from a library you maintain, see [Version your rules](/guides/version-rules/) instead. For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
 ## Sync and update
 
@@ -80,6 +80,28 @@ In a script or CI job, where there's no terminal to confirm in, the command only
 code-rules project update --yes
 ```
 
+## Update one library
+
+When your project imports rules from several libraries, you can update just one of them. Name the library's source, its name under `sources` in `.code-rules/config.yaml`:
+
+```sh
+code-rules project update team
+```
+
+The update works like a full one, with the same preview and questions, for `team` only. Your other libraries stay where they are until your next full update.
+
+## Update one rule to its newest version
+
+To upgrade a single rule your project imports, without taking anything else from its library, name the rule after its source, as `SOURCE:RULE`:
+
+```sh
+code-rules project update team:techs/react/prefer-server-components
+```
+
+The preview and the update cover only that rule. The library's new rules, its other rule changes, and its shared files stay where they are, with one exception: when the rule's new version comes from a newer library release than your shared files, they move to that library release, because a rule version can rely on the shared files its library release published. To upgrade several rules together, name each of them.
+
+A pinned rule doesn't move; [delete its pin](#keep-a-rule-at-its-current-version) first.
+
 ## Keep a rule at its current version
 
 When an update brings a change you're not ready for, keep that rule where it is with a **pin**, and let everything else update. A pin records the version and why you're keeping it:
@@ -112,24 +134,13 @@ There are three ways to add one:
 
 A pinned rule keeps its identity: it still appears as the library's rule, with its version, in your generated guidance and provenance. Every update preview lists it, with its newest version and your reason, so the decision isn't forgotten.
 
-When you're ready to adopt the newer version, delete the pin and update that rule:
+When you're ready to adopt the newer version, delete the pin and [update that rule](#update-one-rule-to-its-newest-version):
 
 ```sh
 code-rules project update team:practices/testing/verify-retry-limits
 ```
 
 A pin can also move a rule to a specific version: set `version`, and `code-rules project sync` moves the rule to exactly that version, up or down. To change what a rule says instead, [fork it](/reference/cli/#fork-a-library-rule) into your project's local rules. See [Pin a rule](/reference/configuration/#pin-a-rule) for the details.
-
-## Update one library or one rule
-
-To limit an update, name what to update:
-
-```sh
-code-rules project update team
-code-rules project update team:techs/react/prefer-server-components
-```
-
-The first updates only the `team` library. The second moves only that rule; nothing else changes, including new rules and shared files, unless the rule's new version comes from a newer library release than your shared files: they then move to that library release. The rest waits for your next full update. Nothing is recorded in configuration, so use a pin when you want the decision to last.
 
 ## Handle retirements
 

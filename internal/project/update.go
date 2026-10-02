@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -272,7 +273,7 @@ func (p *UpdatePlan) decide(decisions []UpdateDecision) ([]imports.SourceUpdate,
 			version := *row.ReviewedVersion()
 			row.Decision = string(DecisionUpdateFork)
 			if edit.BasedOn == nil {
-				edit.BasedOn = map[string]rules.RuleVersion{}
+				edit.BasedOn = map[string]coderules.RuleVersion{}
 			}
 			edit.BasedOn[decision.Rule] = version
 			forks = append(forks, forkUpdate{source: decision.Source, id: decision.Rule, version: version, file: strings.TrimPrefix(row.LocalRule, "local/")})
@@ -366,7 +367,7 @@ func invalidArguments(problem string) error { return failure("invalid-arguments"
 // source, becomes a fork of version. read fills files.
 type forkUpdate struct {
 	source, id, file string
-	version          rules.RuleVersion
+	version          coderules.RuleVersion
 	// files holds the new fork's files by path relative to local/: the rule at file and its asset directory.
 	files map[string][]byte
 }

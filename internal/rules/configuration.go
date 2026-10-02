@@ -9,6 +9,10 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/decode"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // Configuration contains sources in alias order; an empty list is a local-only project.
@@ -37,8 +41,8 @@ type Source struct {
 
 // Pin keeps one rule at an exact published version, with the project's reason.
 type Pin struct {
-	Version RuleVersion `json:"version" yaml:"version"`
-	Reason  string      `json:"reason" yaml:"reason"`
+	Version coderules.RuleVersion `json:"version" yaml:"version"`
+	Reason  string                `json:"reason" yaml:"reason"`
 }
 
 // Exclusion leaves one rule out of generated guidance, with the project's reason.
@@ -49,7 +53,7 @@ type Exclusion struct {
 	// BasedOn is the library version of the excluded rule that the replacement incorporates, which updates compare
 	// the library's newer versions with; it is nil when the project doesn't record one, and only a replacement has
 	// one. Configuration alone owns it.
-	BasedOn *RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
+	BasedOn *coderules.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
 }
 
 var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -58,21 +62,21 @@ var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 // contradictory source declarations. Errors return no partial configuration.
 // Strings retain authored spacing. Source aliases, group IDs, and rule IDs are sorted.
 func ParseConfiguration(input json.RawMessage) (Configuration, error) {
-	fields, err := jsonObject(input, "configuration")
+	fields, err := decode.Object(input, "configuration")
 	if err != nil {
 		return Configuration{}, err
 	}
 	if _, ok := fields["localGroups"]; ok {
 		return Configuration{}, invalid("localGroups", "remove localGroups; local groups are discovered from local/<group>/_group.yaml")
 	}
-	if err := knownJSONFields(fields, []string{"schemaVersion", "sources"}, "configuration"); err != nil {
+	if err := decode.KnownFields(fields, []string{"schemaVersion", "sources"}, "configuration"); err != nil {
 		return Configuration{}, err
 	}
 	var schema float64
 	if json.Unmarshal(fields["schemaVersion"], &schema) != nil || schema != 1 {
 		return Configuration{}, invalid("schemaVersion", "only version 1 is supported")
 	}
-	sources, err := jsonObject(fields["sources"], "sources")
+	sources, err := decode.Object(fields["sources"], "sources")
 	if err != nil {
 		return Configuration{}, err
 	}
@@ -95,14 +99,14 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 	if !sourceNamePattern.MatchString(name) || name == "local" {
 		return Source{}, invalid(where, "invalid or reserved source name")
 	}
-	fields, err := jsonObject(input, where)
+	fields, err := decode.Object(input, where)
 	if err != nil {
 		return Source{}, err
 	}
-	if err := knownJSONFields(fields, []string{"repository", "groups", "rules", "pins", "ref", "exclude"}, where); err != nil {
+	if err := decode.KnownFields(fields, []string{"repository", "groups", "rules", "pins", "ref", "exclude"}, where); err != nil {
 		return Source{}, err
 	}
-	repository, err := jsonText(fields["repository"], where+".repository")
+	repository, err := decode.Text(fields["repository"], where+".repository")
 	if err != nil {
 		return Source{}, err
 	}
@@ -122,7 +126,7 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 		if first := strings.TrimSpace(string(raw)); first != "" && strings.ContainsRune("-0123456789", rune(first[0])) {
 			return Source{}, invalid(where+".ref", "expected a tag or full commit SHA in quotes; YAML reads an unquoted value of digits as a number")
 		}
-		text, err := jsonText(raw, where+".ref")
+		text, err := decode.Text(raw, where+".ref")
 		if err != nil {
 			return Source{}, err
 		}
@@ -174,7 +178,7 @@ func ParseRuleList(input json.RawMessage, location string) ([]string, error) {
 	}
 	ids := make([]string, len(items))
 	for i, item := range items {
-		text, err := jsonText(item, fmt.Sprintf("%s[%d]", location, i))
+		text, err := decode.Text(item, fmt.Sprintf("%s[%d]", location, i))
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +192,7 @@ func ParseRuleList(input json.RawMessage, location string) ([]string, error) {
 		seen[id] = true
 	}
 	for i, id := range ids {
-		if err := ValidateRuleID(id, fmt.Sprintf("%s[%d]", location, i)); err != nil {
+		if err := librarytree.ValidateRuleID(id, fmt.Sprintf("%s[%d]", location, i)); err != nil {
 			return nil, err
 		}
 	}
@@ -203,27 +207,27 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 	if input == nil {
 		return result, nil
 	}
-	entries, err := jsonObject(input, location)
+	entries, err := decode.Object(input, location)
 	if err != nil {
 		return nil, err
 	}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		where := location + "." + id
-		if err := ValidateRuleID(id, where); err != nil {
+		if err := librarytree.ValidateRuleID(id, where); err != nil {
 			return nil, err
 		}
-		fields, err := jsonObject(entries[id], where)
+		fields, err := decode.Object(entries[id], where)
 		if err != nil {
 			return nil, err
 		}
-		if err := knownJSONFields(fields, []string{"version", "reason"}, where); err != nil {
+		if err := decode.KnownFields(fields, []string{"version", "reason"}, where); err != nil {
 			return nil, err
 		}
 		version, err := quotedVersion(fields["version"], where+".version")
 		if err != nil {
 			return nil, err
 		}
-		reason, err := jsonText(fields["reason"], where+".reason")
+		reason, err := decode.Text(fields["reason"], where+".reason")
 		if err != nil {
 			return nil, err
 		}
@@ -233,12 +237,12 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 }
 
 // quotedVersion parses an exact rule version written as a JSON string, such as "1.3.0".
-func quotedVersion(raw json.RawMessage, location string) (RuleVersion, error) {
+func quotedVersion(raw json.RawMessage, location string) (coderules.RuleVersion, error) {
 	var text string
 	if json.Unmarshal(raw, &text) != nil {
-		return RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
+		return coderules.RuleVersion{}, invalid(location, `expected an exact rule version in quotes, such as "1.3.0"`)
 	}
-	return ParseRuleVersion(text, location)
+	return coderules.ParseRuleVersion(text, location)
 }
 
 // parseExclusions validates each exclusion's rule ID, reason, optional contained local replacement, and, for a
@@ -249,29 +253,29 @@ func parseExclusions(input json.RawMessage, location string) (map[string]Exclusi
 	if input == nil {
 		return result, nil
 	}
-	entries, err := jsonObject(input, location)
+	entries, err := decode.Object(input, location)
 	if err != nil {
 		return nil, err
 	}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		where := location + "." + id
-		if err := ValidateRuleID(id, where); err != nil {
+		if err := librarytree.ValidateRuleID(id, where); err != nil {
 			return nil, err
 		}
-		fields, err := jsonObject(entries[id], where)
+		fields, err := decode.Object(entries[id], where)
 		if err != nil {
 			return nil, err
 		}
-		if err := knownJSONFields(fields, []string{"reason", "replacedBy", "basedOn"}, where); err != nil {
+		if err := decode.KnownFields(fields, []string{"reason", "replacedBy", "basedOn"}, where); err != nil {
 			return nil, err
 		}
-		reason, err := jsonText(fields["reason"], where+".reason")
+		reason, err := decode.Text(fields["reason"], where+".reason")
 		if err != nil {
 			return nil, err
 		}
 		exclusion := Exclusion{Reason: reason}
 		if raw, ok := fields["replacedBy"]; ok {
-			file, err := jsonPath(raw, where+".replacedBy")
+			file, err := decode.Path(raw, where+".replacedBy")
 			if err != nil {
 				return nil, err
 			}

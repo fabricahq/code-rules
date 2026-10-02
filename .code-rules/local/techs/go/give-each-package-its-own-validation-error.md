@@ -1,0 +1,78 @@
+---
+title: Give each package its own ValidationError
+whenToRead: Before planning, writing, changing, or reviewing Go code in this repository that reports invalid input, such as a bad configuration field, flag, or file, or that recognizes another package's invalid-input error, such as when classifying failures in internal/cli.
+impact: MEDIUM
+impactDescription: A check for one package's concrete validation error misses invalid input from every other package, which then reaches agents as an operation failure without a location.
+---
+
+## Give each package its own ValidationError
+
+A package that reports invalid input exports its own `ValidationError`, with a `Location` and a `Problem`, that satisfies the `errs.ValidationError` interface.
+Code that reads another package's invalid-input error recognizes it with `errors.As` into an `errs.ValidationError`, never into another package's concrete type.
+When it reports a new problem, it returns its own package's type.
+
+### Implementation
+
+- Define the type in the package's `validation_error.go`, as `internal/project/validation_error.go` does, with `Error`, `ValidationLocation`, and `ValidationProblem` methods and the compile-time check `var _ errs.ValidationError = (*ValidationError)(nil)`.
+- Keep `internal/errs` for contracts several packages share, such as the `ValidationError` interface. Don't add concrete error types or helpers there.
+- To read invalid input from another package, as `classifyError` and `humanError` in `internal/cli` and `sourceError` in `internal/imports` do, declare `var validation errs.ValidationError` and use `errors.As(err, &validation)`. Read `ValidationLocation()` and `ValidationProblem()`, and never branch on the problem's text.
+- To report a new problem, return `&ValidationError{Location: ..., Problem: ...}` of the current package, even when a nearby error came from another package.
+- `Location` is diagnostic text, such as `sources.team.groups`, `--from`, or a file path. It is never a path to access.
+
+### Rationale
+
+Each package owns its error types, so a package's errors can change without editing a shared package, and no package imports another only to construct its error.
+The shared interface lets the CLI and other callers recognize invalid input from every package in one place.
+A check for one package's concrete type silently misses invalid input from every other package, which then reaches agents as an operation failure without a location.
+
+### Examples
+
+#### Application: Recognizing invalid input
+
+**Incorrect (counterexample):**
+
+```go
+var validation *project.ValidationError
+if errors.As(err, &validation) {
+	result.Kind = "validation"
+	result.Location = validation.Location
+}
+```
+
+Invalid input that `internal/imports`, `internal/library`, or `coderules` reported comes back with kind `operation` and no location.
+
+**Correct:**
+
+```go
+var validation errs.ValidationError
+// ...
+case errors.As(err, &validation):
+	result.Kind = "validation"
+	result.Location = validation.ValidationLocation()
+```
+
+`classifyError` recognizes every package's validation error through the shared interface.
+
+#### Application: Reporting a new problem
+
+**Incorrect (counterexample):**
+
+```go
+// In internal/project, reusing another package's type.
+return rules.Source{}, &rules.ValidationError{Location: "--groups", Problem: "supply at least one --groups or --rules"}
+```
+
+**Correct:**
+
+```go
+return rules.Source{}, &ValidationError{Location: "--groups", Problem: "supply at least one --groups or --rules"}
+```
+
+The project package reports its own problem with its own type; callers still recognize it through `errs.ValidationError`.
+
+### Validation
+
+For each package a change adds invalid-input errors to, check that it has its own `ValidationError` with the `errs.ValidationError` assertion.
+Search changed code for `errors.As` into another package's `*ValidationError` and for construction of another package's `ValidationError`; both should be absent.
+
+Not a violation: a package's tests asserting on its own concrete `*ValidationError`, or `coderules` exposing `*coderules.ValidationError` to callers outside Code Rules, which can't import `internal/errs`.

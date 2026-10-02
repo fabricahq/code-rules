@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -25,15 +27,15 @@ func fixture(t *testing.T, exclude string) (rules.Configuration, map[string]Libr
 	if err != nil {
 		t.Fatal(err)
 	}
-	rule, err := rules.Parse(document, "techs/go/errors.md", "team")
+	rule, err := coderules.ParseRule(document, "techs/go/errors.md", "team")
 	if err != nil {
 		t.Fatal(err)
 	}
-	meta, err := rules.ParseGroupMetadata(json.RawMessage(metadata), "group")
+	meta, err := coderules.ParseGroupMetadata([]byte(metadata), "group")
 	if err != nil {
 		t.Fatal(err)
 	}
-	return config, map[string]Library{"team": versioned(library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{rule}}}, License: nil, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}})}
+	return config, map[string]Library{"team": versioned(library.Catalog{Selection: config.Sources[0].Groups, Groups: []library.Group{{ID: "techs/go", Metadata: meta, Rules: []coderules.Rule{rule}}}, License: nil, SupportingFiles: map[string][]byte{"techs/go/_group.yaml": []byte(metadata)}})}
 }
 
 // versioned supplies catalog with a snapshot record that imports each of its rules at version 1.0.0 from
@@ -42,7 +44,7 @@ func versioned(catalog library.Catalog) Library {
 	snapshot := library.Snapshot{Release: 1, Commit: commit, Rules: map[string]library.ImportedRule{}}
 	for _, group := range catalog.Groups {
 		for _, rule := range group.Rules {
-			snapshot.Rules[strings.TrimSuffix(rule.Path, ".md")] = library.ImportedRule{Version: &rules.FirstRuleVersion, Release: 1, Commit: commit}
+			snapshot.Rules[strings.TrimSuffix(rule.Path, ".md")] = library.ImportedRule{Version: &coderules.FirstRuleVersion, Release: 1, Commit: commit}
 		}
 	}
 	return Library{Catalog: catalog, Snapshot: snapshot}
@@ -130,14 +132,14 @@ func TestResolveFailures(t *testing.T) {
 // TestResolveReplacementFileReuse refuses one local file replacing two rules, within one source or across
 // sources, and accepts distinct replacement files.
 func TestResolveReplacementFileReuse(t *testing.T) {
-	meta, err := rules.ParseGroupMetadata(json.RawMessage(metadata), "group")
+	meta, err := coderules.ParseGroupMetadata([]byte(metadata), "group")
 	if err != nil {
 		t.Fatal(err)
 	}
 	catalog := func(source string, paths ...string) Library {
-		group := library.Group{ID: "techs/go", Metadata: meta, Rules: []rules.Rule{}}
+		group := library.Group{ID: "techs/go", Metadata: meta, Rules: []coderules.Rule{}}
 		for _, path := range paths {
-			rule, err := rules.Parse(document, path, source)
+			rule, err := coderules.ParseRule(document, path, source)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -175,8 +177,8 @@ func TestResolveReplacementFileReuse(t *testing.T) {
 				}
 				return
 			}
-			var validation *rules.ValidationError
-			if !errors.As(err, &validation) || validation.Location != "local/techs/go/custom.md" || validation.Problem != "replacement file is reused for multiple targets" || got.Groups != nil || got.Sources != nil {
+			var validation errs.ValidationError
+			if !errors.As(err, &validation) || validation.ValidationLocation() != "local/techs/go/custom.md" || validation.ValidationProblem() != "replacement file is reused for multiple targets" || got.Groups != nil || got.Sources != nil {
 				t.Fatalf("got %+v, %v; want reuse refusal and no result", got, err)
 			}
 		})
@@ -186,7 +188,7 @@ func TestResolveReplacementFileReuse(t *testing.T) {
 // TestResolveRecordsEachRulesVersionAndCommit gives each imported rule the version and commit its snapshot records.
 func TestResolveRecordsEachRulesVersionAndCommit(t *testing.T) {
 	config, libraries := fixture(t, `{}`)
-	older, version := strings.Repeat("b", 40), rules.RuleVersion{Major: 1, Minor: 2}
+	older, version := strings.Repeat("b", 40), coderules.RuleVersion{Major: 1, Minor: 2}
 	team := libraries["team"]
 	team.Snapshot.Release = 3
 	team.Snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 2, Commit: older}
@@ -323,7 +325,7 @@ func TestResolveGroupGuidance(t *testing.T) {
 			imported := libraries["team"].Catalog.Groups[0].Metadata
 			libraries["aaa"] = libraries["team"]
 			local := map[string][]byte{}
-			localMeta := rules.GroupMetadata{Name: "Project Go", Description: "Project policy.", WhenToRead: "When editing this project."}
+			localMeta := coderules.GroupMetadata{Name: "Project Go", Description: "Project policy.", WhenToRead: "When editing this project."}
 			if withLocal {
 				data, err := json.Marshal(localMeta)
 				if err != nil {
@@ -370,7 +372,7 @@ func TestResolveNumericRuleOrder(t *testing.T) {
 				if reverse {
 					i = len(names) - 1 - i
 				}
-				rule, err := rules.Parse(document, "techs/go/"+names[i]+".md", "team")
+				rule, err := coderules.ParseRule(document, "techs/go/"+names[i]+".md", "team")
 				if err != nil {
 					t.Fatal(err)
 				}

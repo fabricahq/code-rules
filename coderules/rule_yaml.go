@@ -1,6 +1,6 @@
 // Adapt YAML nodes to the rule format without coercing authored text fields.
 
-package rules
+package coderules
 
 import (
 	"fmt"
@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // The reference uses YAML 1.2 core scalars. go-yaml also recognizes legacy dates,
@@ -27,7 +29,7 @@ var (
 
 // ruleYAML parses one frontmatter object and rejects malformed YAML, duplicate keys, and aliases.
 func ruleYAML(text, location string) (map[string]*yaml.Node, error) {
-	decoder := yaml.NewDecoder(strings.NewReader(yamlScalarEscapes(text)))
+	decoder := yaml.NewDecoder(strings.NewReader(decode.DecodeSurrogatePairs(text)))
 	var document yaml.Node
 	if err := decoder.Decode(&document); err != nil {
 		if err == io.EOF {
@@ -74,7 +76,7 @@ func inspectYAML(node *yaml.Node, location string) (bool, error) {
 			}
 			identity := kind + ":" + value
 			if seen[identity] {
-				return false, invalid(location, fmt.Sprintf("invalid YAML: duplicate mapping key %s at line %d, column %d", quote(key.Value), key.Line, key.Column))
+				return false, invalid(location, fmt.Sprintf("invalid YAML: duplicate mapping key %s at line %d, column %d", decode.Quote(key.Value), key.Line, key.Column))
 			}
 			seen[identity] = true
 		}
@@ -121,7 +123,7 @@ func inspectYAML(node *yaml.Node, location string) (bool, error) {
 					}
 					identity := kind + ":" + value
 					if seen[identity] {
-						return false, invalid(location, "invalid YAML: duplicate ordered-map key "+quote(key.Value))
+						return false, invalid(location, "invalid YAML: duplicate ordered-map key "+decode.Quote(key.Value))
 					}
 					seen[identity] = true
 				}

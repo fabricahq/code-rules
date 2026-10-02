@@ -18,6 +18,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -43,9 +45,9 @@ type Catalog struct {
 
 // Group includes display metadata and path-sorted rules; empty groups are valid.
 type Group struct {
-	ID       string              `json:"id"`
-	Metadata rules.GroupMetadata `json:"metadata"`
-	Rules    []rules.Rule        `json:"rules"`
+	ID       string                  `json:"id"`
+	Metadata coderules.GroupMetadata `json:"metadata"`
+	Rules    []coderules.Rule        `json:"rules"`
 }
 
 // reader binds resource limits and cancellation to one rooted catalog read.
@@ -164,7 +166,7 @@ func LoadSource(ctx context.Context, input FileSource, source string, selection 
 
 // bad assigns validation context without logging authored file contents.
 func bad(location, problem string) error {
-	return &rules.ValidationError{Location: location, Problem: problem}
+	return &ValidationError{Location: location, Problem: problem}
 }
 
 // read rejects observed symlink components and bounds actual bytes through a confined handle.
@@ -304,7 +306,7 @@ func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]strin
 					continue
 				}
 			}
-			if err := rules.ValidateGroupID(id, id); err != nil {
+			if err := librarytree.ValidateGroupID(id, id); err != nil {
 				return nil, err
 			}
 			if !entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
@@ -320,7 +322,7 @@ func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]strin
 func individualRules(ids []string) (map[string]map[string]bool, error) {
 	result := map[string]map[string]bool{}
 	for _, id := range ids {
-		group, err := rules.GroupFromPath(id+".md", "rules")
+		group, err := librarytree.GroupFromPath(id+".md", "rules")
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +342,7 @@ func (r *reader) group(id, source string, terms []string, only map[string]bool) 
 	if err != nil {
 		return Group{}, err
 	}
-	metadata, err := rules.ParseGroupMetadataYAML(data, source+"/"+metadataPath)
+	metadata, err := coderules.ParseGroupMetadata(data, source+"/"+metadataPath)
 	if err != nil {
 		return Group{}, err
 	}
@@ -349,7 +351,7 @@ func (r *reader) group(id, source string, terms []string, only map[string]bool) 
 		return Group{}, err
 	}
 	slices.Sort(paths)
-	group := Group{ID: id, Metadata: metadata, Rules: []rules.Rule{}}
+	group := Group{ID: id, Metadata: metadata, Rules: []coderules.Rule{}}
 	for _, path := range paths {
 		data, err := r.read(path)
 		if err != nil {
@@ -361,7 +363,7 @@ func (r *reader) group(id, source string, terms []string, only map[string]bool) 
 		if strings.HasPrefix(strings.ReplaceAll(string(data[:min(len(data), 128)]), "\r\n", "\n"), "version https://git-lfs.github.com/spec/v1\n") {
 			return Group{}, bad(path, "Git LFS pointers are unsupported")
 		}
-		rule, err := rules.Parse(string(data), path, source)
+		rule, err := coderules.ParseRule(string(data), path, source)
 		if err != nil {
 			return Group{}, err
 		}
@@ -403,10 +405,10 @@ func (r *reader) rulePaths(directory, metadata string, terms []string, only map[
 		if !entry.Type().IsRegular() {
 			return bad(path, "expected an ordinary file")
 		}
-		if rules.IsGroupReadme(path) {
+		if librarytree.IsGroupReadme(path) {
 			continue
 		}
-		if _, err := rules.GroupFromPath(path, path); err != nil {
+		if _, err := librarytree.GroupFromPath(path, path); err != nil {
 			return err
 		}
 		*paths = append(*paths, path)

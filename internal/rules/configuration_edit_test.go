@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -25,7 +27,7 @@ sources:
       - techs/go
     exclude: {techs/go/old: {reason: Not used here.}}
 `)
-	version, err := rules.ParseRuleVersion("1.3.0", "version")
+	version, err := coderules.ParseRuleVersion("1.3.0", "version")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +76,7 @@ func TestEditConfigurationSource_RemovesPinsAndAnEmptiedPinsMap(t *testing.T) {
 // wouldn't validate, returning no bytes.
 func TestEditConfigurationSource_RefusesEditsItCantApply(t *testing.T) {
 	input := []byte("schemaVersion: 1\nsources:\n  team:\n    repository: https://example.invalid/team.git\n    groups: '*'\n    pins:\n      techs/go/a:\n        version: \"1.0.0\"\n        reason: Kept.\n  by-ref:\n    repository: https://example.invalid/ref.git\n    groups: '*'\n    ref: release/2\n")
-	version, err := rules.ParseRuleVersion("2.0.0", "version")
+	version, err := coderules.ParseRuleVersion("2.0.0", "version")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,8 +93,8 @@ func TestEditConfigurationSource_RefusesEditsItCantApply(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			out, err := rules.EditConfigurationSource(input, test.alias, test.edit)
-			var validation *rules.ValidationError
-			if out != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.Location, test.where) {
+			var validation errs.ValidationError
+			if out != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.ValidationLocation(), test.where) {
 				t.Fatalf("got %s, %v", out, err)
 			}
 		})
@@ -119,14 +121,14 @@ sources:
       techs/go/c:
         reason: Not used.
 `)
-	version := func(text string) rules.RuleVersion {
-		parsed, err := rules.ParseRuleVersion(text, "version")
+	version := func(text string) coderules.RuleVersion {
+		parsed, err := coderules.ParseRuleVersion(text, "version")
 		if err != nil {
 			t.Fatal(err)
 		}
 		return parsed
 	}
-	out, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]rules.RuleVersion{"techs/go/a": version("1.2.0"), "techs/go/b": version("2.0.0")}})
+	out, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]coderules.RuleVersion{"techs/go/a": version("1.2.0"), "techs/go/b": version("2.0.0")}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,8 +145,8 @@ sources:
 		t.Fatalf("basedOn %v", based)
 	}
 	for _, id := range []string{"techs/go/c", "techs/go/missing"} {
-		var invalid *rules.ValidationError
-		if _, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]rules.RuleVersion{id: version("1.0.0")}}); !errors.As(err, &invalid) || invalid.Location != "sources.team.exclude."+id {
+		var invalid errs.ValidationError
+		if _, err := rules.EditConfigurationSource(input, "team", rules.SourceEdit{BasedOn: map[string]coderules.RuleVersion{id: version("1.0.0")}}); !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.exclude."+id {
 			t.Errorf("%s: got %v", id, err)
 		}
 	}

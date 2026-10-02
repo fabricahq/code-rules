@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -35,7 +37,7 @@ func snapshotConfig(t *testing.T, fields string) rules.Configuration {
 func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 	t.Helper()
 	config := snapshotConfig(t, `"groups":["techs/go"]`)
-	one, two := rules.RuleVersion{Major: 1}, rules.RuleVersion{Major: 1, Minor: 1}
+	one, two := coderules.RuleVersion{Major: 1}, coderules.RuleVersion{Major: 1, Minor: 1}
 	return config, map[string]snapshot{"team": {Repository: config.Sources[0].Repository, RetiredRules: []string{}, Release: 2, Commit: releaseTwo, Groups: []string{"techs/go"}, Selection: config.Sources[0].Groups, RuleSelection: []string{},
 		Rules: map[string]library.ImportedRule{"techs/go/errors": {Version: &two, Release: 2, Commit: releaseTwo}, "techs/go/naming": {Version: &one, Release: 1, Commit: releaseOne}},
 		Files: map[string][]byte{
@@ -50,8 +52,8 @@ func snapshotFixture(t *testing.T) (rules.Configuration, map[string]snapshot) {
 // requireSync checks that decoding fails with a validation error that tells the user to sync.
 func requireSync(t *testing.T, got map[string]snapshot, err error) {
 	t.Helper()
-	var validation *rules.ValidationError
-	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.Location, "vendor/team/_source.json") || !strings.Contains(validation.Problem, "run code-rules project sync") {
+	var validation errs.ValidationError
+	if got != nil || !errors.As(err, &validation) || !strings.HasPrefix(validation.ValidationLocation(), "vendor/team/_source.json") || !strings.Contains(validation.ValidationProblem(), "run code-rules project sync") {
 		t.Fatalf("got %v, %v; want a failure that asks for sync", got, err)
 	}
 }
@@ -230,8 +232,8 @@ func TestSnapshotExclusionOfAnUnknownRuleRequiresSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := decodeSnapshots(snapshotConfig(t, `"groups":["techs/go"],"exclude":{"techs/go/erorrs":{"reason":"Typo."}}`), vendor)
-	var validation *rules.ValidationError
-	if got != nil || !errors.As(err, &validation) || validation.Location != "sources.team.exclude.techs/go/erorrs" || !strings.Contains(validation.Problem, "names no rule the library supplies") || !strings.Contains(validation.Problem, "run code-rules project sync") {
+	var validation errs.ValidationError
+	if got != nil || !errors.As(err, &validation) || validation.ValidationLocation() != "sources.team.exclude.techs/go/erorrs" || !strings.Contains(validation.ValidationProblem(), "names no rule the library supplies") || !strings.Contains(validation.ValidationProblem(), "run code-rules project sync") {
 		t.Fatalf("got %v, %v; want a failure naming the entry that asks for sync", got, err)
 	}
 }
@@ -261,7 +263,7 @@ func TestSnapshotCorruptionReturnsNoPartialResult(t *testing.T) {
 			}
 			tc.alter(v)
 			got, e := decodeSnapshots(c, v)
-			var validation *rules.ValidationError
+			var validation errs.ValidationError
 			if got != nil || !errors.As(e, &validation) {
 				t.Fatalf("got %v, %v", got, e)
 			}
@@ -344,8 +346,8 @@ func TestSnapshotFormatOneIsUnsupported(t *testing.T) {
 		"offline": func() error { _, err := decodeSnapshots(config, vendor); return err },
 		"sync":    func() error { _, err := recordedSnapshots(config, vendor); return err },
 	} {
-		var validation *rules.ValidationError
-		if err := read(); !errors.As(err, &validation) || !strings.Contains(validation.Problem, "delete .code-rules/vendor/ and run code-rules project sync") {
+		var validation errs.ValidationError
+		if err := read(); !errors.As(err, &validation) || !strings.Contains(validation.ValidationProblem(), "delete .code-rules/vendor/ and run code-rules project sync") {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
@@ -377,7 +379,7 @@ func TestRecordedSnapshotsReadRecordsWithoutCheckingConfiguration(t *testing.T) 
 // TestSnapshotRefChecks verifies what offline checks can about ref: the commit a SHA names, the library release
 // a release tag names, and no library release for any other tag.
 func TestSnapshotRefChecks(t *testing.T) {
-	one := rules.RuleVersion{Major: 1}
+	one := coderules.RuleVersion{Major: 1}
 	for _, test := range []struct {
 		name, ref string
 		release   int
