@@ -46,6 +46,13 @@ Write pages under `src/content/docs/` in folders matching the sidebar sections: 
 Keep the homepage at `index.mdx` and navigation in `astro.config.mjs` aligned with page slugs. When moving a public page, update links and add a redirect from its old URL.
 Homepage composition lives in `src/components/HomePage.astro` and its illustration components.
 
+### Brand assets
+
+The Code Rules mark is the Corner check: a rule card with an open corner and a clear checkmark.
+`src/components/CodeRulesMark.astro` renders it inline in the current text color for the site header and homepage.
+The favicons in `public/` (`favicon.svg`, `favicon.ico`, and `apple-touch-icon.png`) come from the Code Rules brand package; the SVG follows the browser's light or dark theme.
+Keep the symbol upright, in one flat color, with its open corner and check angle intact; use the dedicated favicon exports rather than the symbol at sizes below 48px.
+
 ### Styling
 
 Follow the [CSS and Tailwind guidelines](_internal/css.md) for styling ownership, responsive breakpoints, design tokens, and reuse.

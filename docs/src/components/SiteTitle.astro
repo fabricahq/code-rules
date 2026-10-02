@@ -1,5 +1,7 @@
 ---
-/** @fileoverview Renders the Fabrica Assemble mark and baseline-aligned brand links in both themes. */
+/** @fileoverview Renders the Fabrica Assemble mark, the Code Rules mark, and baseline-aligned brand links in both themes. */
+
+import CodeRulesMark from './CodeRulesMark.astro';
 ---
 <div class="inline-flex gap-2 items-baseline text-ink no-underline text-[1.05rem] font-[650] tracking-[-.04em] whitespace-nowrap max-md:text-base [&_a]:inline-flex [&_a]:items-center [&_a]:min-h-11 [&_a]:no-underline" aria-label="Fabrica / Code Rules">
   <a class="relative gap-[.4rem] pl-[19px] text-(--sl-color-gray-3) text-[.85em] font-normal hover:text-ink" href="https://fabricahq.com">
@@ -13,5 +15,8 @@
     <span>Fabrica</span>
   </a>
   <span class="text-muted font-normal" aria-hidden="true">/</span>
-  <a class="text-inherit hover:text-black dark:hover:text-white" href="/" aria-label="Code Rules home">Code Rules</a>
+  <a class="relative gap-[.4rem] pl-[21px] text-inherit hover:text-black dark:hover:text-white" href="/" aria-label="Code Rules home">
+    <CodeRulesMark class="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-auto" />
+    <span>Code Rules</span>
+  </a>
 </div>

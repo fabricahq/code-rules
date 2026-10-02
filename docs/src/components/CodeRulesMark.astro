@@ -1,0 +1,14 @@
+---
+/** @fileoverview Renders the Code Rules Corner check symbol in the current text color. */
+
+interface Props {
+  /** Classes that size and position the mark; it keeps its 43:40 aspect ratio. */
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+// The brand symbol's 64-unit grid, cropped to the stroke bounds so callers size the glyph itself.
+---
+<svg class={className} aria-hidden="true" focusable="false" viewBox="12 12 43 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M36 14H17a3 3 0 0 0-3 3v30a3 3 0 0 0 3 3h30a3 3 0 0 0 3-3V35M27 25l9 9 17-20" stroke="currentColor" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
