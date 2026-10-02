@@ -30,6 +30,11 @@ type CanonicalGroup struct {
 // Names and descriptions are single lines, and names are unique under Unicode case folding.
 // On error, the result is nil.
 func ParseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, error) {
+	groups, err := parseCanonicalGroups(input, location)
+	return groups, translate(err)
+}
+
+func parseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, error) {
 	document, data, err := decode.YAML(input, location)
 	if err != nil {
 		return nil, err

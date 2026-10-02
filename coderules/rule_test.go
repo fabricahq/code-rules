@@ -12,8 +12,6 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // TestParseRuleSharedExpectations checks exact rule values and typed, zero-result failures against shared fixtures.
@@ -43,8 +41,8 @@ func TestParseRuleSharedExpectations(t *testing.T) {
 				}
 				return
 			}
-			var validation errs.ValidationError
-			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.ValidationLocation() != test.Expected.Error.Location {
+			var validation *coderules.ValidationError
+			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 				t.Fatalf("got %#v, %v; want %s", got, err, test.Expected.Error.Message)
 			}
 			if !reflect.DeepEqual(got, coderules.Rule{}) {
@@ -57,9 +55,9 @@ func TestParseRuleSharedExpectations(t *testing.T) {
 // TestParseRulePathBeforeDocument checks that an invalid path fails before document parsing begins.
 func TestParseRulePathBeforeDocument(t *testing.T) {
 	_, err := coderules.ParseRule("malformed", "../escape.md", "team")
-	_, expected := librarytree.GroupFromPath("../escape.md", "team:../escape.md")
-	if err == nil || err.Error() != expected.Error() {
-		t.Fatalf("got %v; want path error %v", err, expected)
+	var invalid *coderules.ValidationError
+	if !errors.As(err, &invalid) || invalid.Location != "team:../escape.md" || !strings.HasPrefix(invalid.Problem, "expected a contained relative path") {
+		t.Fatalf("got %v; want the path refused", err)
 	}
 }
 
@@ -71,7 +69,7 @@ func FuzzParseRule(f *testing.F) {
 	f.Fuzz(func(t *testing.T, text string) {
 		got, err := coderules.ParseRule(text, "techs/go/example.md", "fuzz")
 		if err != nil {
-			var validation errs.ValidationError
+			var validation *coderules.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("untyped failure: %v", err)
 			}
@@ -135,8 +133,8 @@ func TestParseRuleDocumentEncoding(t *testing.T) {
 			}
 			continue
 		}
-		var validation errs.ValidationError
-		if !errors.As(err, &validation) || validation.ValidationLocation() != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, coderules.Rule{}) {
+		var validation *coderules.ValidationError
+		if !errors.As(err, &validation) || validation.Location != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, coderules.Rule{}) {
 			t.Fatalf("expected UTF-8 error and zero rule, got %#v, %v", got, err)
 		}
 	}

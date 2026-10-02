@@ -14,9 +14,10 @@
 // read the rule files and _group.yaml files at the tagged commit.
 //
 // Errors start with the input's location, such as a tag name, a field in a record, or a file path, and describe
-// the problem for people. Callers can branch on two errors: ErrNotReleaseTag, for a tag name that isn't a library
-// release tag, and *UnsupportedReleaseRecordError, for a release record in a newer format than this version
-// reads. Every other error means the input is invalid.
+// the problem for people. Callers can inspect three errors: ErrNotReleaseTag, with errors.Is, for a tag name that
+// isn't a library release tag; *UnsupportedReleaseRecordError, with errors.As, for a release record in a newer
+// format than this version reads; and *ValidationError, with errors.As, for the location and problem of any other
+// invalid input. Every error these functions return means the input is invalid.
 //
 // This is a public API that follows Code Rules' own version: each Code Rules release includes it, and it may
 // change before Code Rules 1.0.0.

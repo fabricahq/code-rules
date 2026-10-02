@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
 )
 
 // TestReleaseMessageFixtures checks the notes, the parsed record, and exact diagnostics.
@@ -52,8 +51,8 @@ func TestReleaseMessageFixtures(t *testing.T) {
 				return
 			}
 			if !test.Expected.OK {
-				var validation errs.ValidationError
-				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.ValidationLocation() != test.Expected.Error.Location {
+				var validation *coderules.ValidationError
+				if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 					t.Fatalf("got %+v, %v; want %+v", got, err, test.Expected.Error)
 				}
 				return
@@ -118,9 +117,9 @@ func TestParseReleaseRecord_LimitsEachCollection(t *testing.T) {
 				t.Fatalf("refused %d entries: %v", limit, err)
 			}
 			_, err := coderules.ParseReleaseRecord(recordWith(section, limit+1), "release/2")
-			var invalid errs.ValidationError
+			var invalid *coderules.ValidationError
 			want := fmt.Sprintf("expected at most %d,000 entries", limit/1000)
-			if !errors.As(err, &invalid) || invalid.ValidationLocation() != "release/2."+section || invalid.ValidationProblem() != want {
+			if !errors.As(err, &invalid) || invalid.Location != "release/2."+section || invalid.Problem != want {
 				t.Fatalf("got %v; want %q", err, want)
 			}
 		})
@@ -132,8 +131,8 @@ func TestParseReleaseRecord_LimitsEachCollection(t *testing.T) {
 func TestParseReleaseRecord_RefusesDuplicateLibraryFilesInLargeLists(t *testing.T) {
 	record := append(recordWith("libraryFiles", 19_999), "  - assets/f0.md\n"...)
 	_, err := coderules.ParseReleaseRecord(record, "release/2")
-	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "release/2.libraryFiles[19999]" || !strings.Contains(invalid.ValidationProblem(), "duplicate path") {
+	var invalid *coderules.ValidationError
+	if !errors.As(err, &invalid) || invalid.Location != "release/2.libraryFiles[19999]" || !strings.Contains(invalid.Problem, "duplicate path") {
 		t.Fatalf("got %v", err)
 	}
 }

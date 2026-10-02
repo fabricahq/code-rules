@@ -101,6 +101,11 @@ func thousands(count int) string {
 // rules and that the first library release lists every rule as new, and it refuses more than 10,000 entries in
 // rules, changes, or retired, and more than 20,000 in libraryFiles.
 func ParseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
+	record, err := parseReleaseRecord(input, location)
+	return record, translate(err)
+}
+
+func parseReleaseRecord(input []byte, location string) (ReleaseRecord, error) {
 	document, err := decode.Document(input, location)
 	if err != nil {
 		return ReleaseRecord{}, err

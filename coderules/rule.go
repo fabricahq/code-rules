@@ -63,6 +63,11 @@ type Rule struct {
 // rule's ID and starts error locations, and it isn't an authenticated origin. On any failure, ParseRule returns the
 // zero Rule.
 func ParseRule(text, path, source string) (Rule, error) {
+	rule, err := parseRule(text, path, source)
+	return rule, translate(err)
+}
+
+func parseRule(text, path, source string) (Rule, error) {
 	location := source + ":" + path
 	group, err := librarytree.GroupFromPath(path, location)
 	if err != nil {

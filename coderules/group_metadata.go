@@ -27,7 +27,7 @@ type GroupMetadata struct {
 func ParseGroupMetadata(input []byte, location string) (GroupMetadata, error) {
 	_, data, err := decode.YAML(input, location)
 	if err != nil {
-		return GroupMetadata{}, err
+		return GroupMetadata{}, translate(err)
 	}
 	return groupMetadataFields(data, location)
 }

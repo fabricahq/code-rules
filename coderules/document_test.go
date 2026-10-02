@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/errs"
 )
 
 func TestSplitDocumentSharedExpectations(t *testing.T) {
@@ -37,8 +36,8 @@ func TestSplitDocumentSharedExpectations(t *testing.T) {
 				}
 				return
 			}
-			var validation errs.ValidationError
-			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.ValidationLocation() != test.Expected.Error.Location {
+			var validation *coderules.ValidationError
+			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 				t.Fatalf("got %#v, %v; want %s", got, err, test.Expected.Error.Message)
 			}
 			if got != (coderules.DocumentText{}) {
