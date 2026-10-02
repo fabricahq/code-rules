@@ -49,9 +49,9 @@ Homepage composition lives in `src/components/HomePage.astro` and its illustrati
 ### Brand assets
 
 The Code Rules mark is the Corner check: a rule card with an open corner and a clear checkmark.
-The [brand reference](src/content/docs/reference/brand.mdx) explains how to use it and links every downloadable export in `public/brand/`: logos, app icons, and favicons.
+The [brand reference](src/content/docs/reference/brand.mdx) explains how to use it and links every downloadable logo export in `public/brand/`.
 `src/components/CodeRulesMark.astro` renders the symbol inline in the current text color above the homepage hero, and `src/components/BrandAsset.astro` renders the reference page's previews.
-The site's own favicons at the root of `public/` (`favicon.svg`, `favicon.ico`, and `apple-touch-icon.png`) are copies of the favicon exports; update both when the mark changes.
+The site's favicons at the root of `public/` (`favicon.svg`, `favicon.ico`, and `apple-touch-icon.png`) come from the brand package; its favicon and app icon exports are deliberately not published for download because they identify Code Rules itself.
 
 ### Styling
 

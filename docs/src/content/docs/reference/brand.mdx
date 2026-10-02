@@ -1,6 +1,6 @@
 ---
 title: Brand
-description: Download the Code Rules logo, app icons, and favicons, and learn how to use them.
+description: Download the Code Rules logo and learn how to use it.
 ---
 
 import BrandAsset from '../../../components/BrandAsset.astro';
@@ -94,115 +94,14 @@ Show the horizontal logo at 160px wide or larger; below that, use the symbol.
   />
 </div>
 
-## App icons
-
-Use the dark 512px PNG for app and profile icons.
-The opaque square includes padding, so platforms can display it with square, rounded, or circular corners.
-
-<div class="not-content grid gap-6 md:grid-cols-2">
-  <BrandAsset
-    title="App icon, dark"
-    src="/brand/icons/code-rules-app-dark.svg"
-    alt="Code Rules app icon: a white Corner check on a dark square"
-    tone="light"
-    width={96}
-    downloads={[
-      { label: 'SVG', href: '/brand/icons/code-rules-app-dark.svg' },
-      { label: 'PNG 32', href: '/brand/icons/code-rules-app-dark-32.png' },
-      { label: 'PNG 64', href: '/brand/icons/code-rules-app-dark-64.png' },
-      { label: 'PNG 128', href: '/brand/icons/code-rules-app-dark-128.png' },
-      { label: 'PNG 256', href: '/brand/icons/code-rules-app-dark-256.png' },
-      { label: 'PNG 512', href: '/brand/icons/code-rules-app-dark-512.png' },
-      { label: 'PNG 1024', href: '/brand/icons/code-rules-app-dark-1024.png' },
-    ]}
-  />
-  <BrandAsset
-    title="App icon, light"
-    src="/brand/icons/code-rules-app-light.svg"
-    alt="Code Rules app icon: a dark Corner check on a white square"
-    tone="dark"
-    width={96}
-    downloads={[
-      { label: 'SVG', href: '/brand/icons/code-rules-app-light.svg' },
-      { label: 'PNG 32', href: '/brand/icons/code-rules-app-light-32.png' },
-      { label: 'PNG 64', href: '/brand/icons/code-rules-app-light-64.png' },
-      { label: 'PNG 128', href: '/brand/icons/code-rules-app-light-128.png' },
-      { label: 'PNG 256', href: '/brand/icons/code-rules-app-light-256.png' },
-      { label: 'PNG 512', href: '/brand/icons/code-rules-app-light-512.png' },
-      { label: 'PNG 1024', href: '/brand/icons/code-rules-app-light-1024.png' },
-    ]}
-  />
-</div>
-
-## Favicons
-
-The favicon is drawn on a 16px grid with wider gaps between the check and the card, so it stays legible in a browser tab.
-Use these exports at 16 to 48px instead of scaling the symbol down.
-The adaptive SVG follows the browser's light or dark theme; the ICO carries 16, 32, and 48px images for browsers without SVG favicon support.
-
-<div class="not-content grid gap-6 md:grid-cols-2">
-  <BrandAsset
-    title="Browser favicon"
-    src="/brand/favicons/code-rules-dark.svg"
-    alt="The favicon glyph: a simplified Corner check"
-    tone="light"
-    width={48}
-    downloads={[
-      { label: 'Adaptive SVG', href: '/brand/favicons/favicon.svg' },
-      { label: 'ICO', href: '/brand/favicons/favicon.ico' },
-      { label: 'Apple touch icon', href: '/brand/favicons/apple-touch-icon.png' },
-    ]}
-  />
-  <BrandAsset
-    title="Favicon tile"
-    src="/brand/favicons/code-rules-tile.svg"
-    alt="The favicon glyph in white on a dark square tile"
-    tone="dark"
-    width={48}
-    downloads={[
-      { label: 'SVG', href: '/brand/favicons/code-rules-tile.svg' },
-      { label: 'PNG 16', href: '/brand/favicons/code-rules-tile-16.png' },
-      { label: 'PNG 32', href: '/brand/favicons/code-rules-tile-32.png' },
-      { label: 'PNG 48', href: '/brand/favicons/code-rules-tile-48.png' },
-    ]}
-  />
-  <BrandAsset
-    title="Favicon glyph, dark"
-    src="/brand/favicons/code-rules-dark.svg"
-    alt="The favicon glyph in dark ink"
-    tone="light"
-    width={48}
-    downloads={[
-      { label: 'SVG', href: '/brand/favicons/code-rules-dark.svg' },
-      { label: 'PNG 16', href: '/brand/favicons/code-rules-dark-16.png' },
-      { label: 'PNG 32', href: '/brand/favicons/code-rules-dark-32.png' },
-      { label: 'PNG 48', href: '/brand/favicons/code-rules-dark-48.png' },
-    ]}
-  />
-  <BrandAsset
-    title="Favicon glyph, white"
-    src="/brand/favicons/code-rules-white.svg"
-    alt="The favicon glyph in white"
-    tone="dark"
-    width={48}
-    downloads={[
-      { label: 'SVG', href: '/brand/favicons/code-rules-white.svg' },
-      { label: 'PNG 16', href: '/brand/favicons/code-rules-white-16.png' },
-      { label: 'PNG 32', href: '/brand/favicons/code-rules-white-32.png' },
-      { label: 'PNG 48', href: '/brand/favicons/code-rules-white-48.png' },
-    ]}
-  />
-</div>
-
 ## Colors
 
 The identity uses one flat color at a time on a grayscale palette.
 
 | Name | Hex | Use |
 | --- | --- | --- |
-| Ink | `#1C1C1C` | The dark logo, symbol, and favicon glyph |
-| App tile | `#202020` | The dark app icon and favicon tile background |
-| White | `#FFFFFF` | The white logo and the light app icon background |
+| Ink | `#1C1C1C` | The dark logo and symbol |
+| White | `#FFFFFF` | The white logo |
 | Surface | `#F6F6F6` | Light panels behind the dark logo |
 
 ## Typography
@@ -214,8 +113,8 @@ When you set "Code Rules" in running text, use your own typeface; do not recreat
 ## Usage guidelines
 
 - Keep the symbol upright and proportional. Preserve the open corner, rounded strokes, and check angle.
-- Keep at least two stroke widths of clear space around the symbol. The exported logos and app icons already include padding.
+- Keep at least two stroke widths of clear space around the symbol. The exported logos already include padding.
 - Use one flat color. Avoid gradients, shadows, outlines, and text inside the symbol.
 - Use the white logo on dark backgrounds and the dark logo on light backgrounds.
-- Use the dedicated favicon exports at 16 to 48px and the horizontal logo at 160px wide or larger.
+- Use the horizontal logo at 160px wide or larger and the symbol below that. Do not use the symbol as a favicon or app icon; those identify Code Rules itself.
 - Do not combine the symbol with another product's mark or use it to suggest endorsement.
