@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -206,7 +207,7 @@ func parseRemoteListing(listing string, u upstream) (remoteState, error) {
 			}
 		}
 		// Code Rules ignores other tags under release/, such as release/01, and peeled ^{} entries.
-		if number, err := rules.ParseReleaseTag(strings.TrimPrefix(name, "refs/tags/")); err == nil && strings.HasPrefix(name, "refs/tags/") {
+		if number, err := coderules.ParseReleaseTag(strings.TrimPrefix(name, "refs/tags/")); err == nil && strings.HasPrefix(name, "refs/tags/") {
 			state.tags[number] = value
 		}
 	}

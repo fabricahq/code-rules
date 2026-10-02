@@ -16,6 +16,7 @@ import (
 
 	"github.com/fabricahq/code-rules/internal/gitexec"
 	"github.com/fabricahq/code-rules/internal/library"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -212,7 +213,7 @@ func (r *repository) snapshotFiles(ctx context.Context, source rules.Source, pla
 	files := map[string]treeEntry{}
 	prefetch := []treeEntry{}
 	for file, entry := range main {
-		if _, versioned := rules.VersionedRule(file); versioned {
+		if _, versioned := librarytree.VersionedRule(file); versioned {
 			continue
 		}
 		files[file] = entry

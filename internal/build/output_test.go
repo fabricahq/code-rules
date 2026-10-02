@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -63,8 +65,8 @@ func TestPrepareToolVersionWhitespace(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			output, err := prepare(resolution{}, Options{ToolVersion: tc.version, IndexMaxLines: defaultIndexMaxLines})
 			if !tc.valid {
-				var validation *rules.ValidationError
-				if !errors.As(err, &validation) || validation.Location != "toolVersion" || output.Files != nil {
+				var validation errs.ValidationError
+				if !errors.As(err, &validation) || validation.ValidationLocation() != "toolVersion" || output.Files != nil {
 					t.Fatalf("expected toolVersion validation error and no output, got %v and %d files", err, len(output.Files))
 				}
 				return
@@ -314,7 +316,7 @@ func generateWith(t *testing.T, alter func(*library.Snapshot, *rules.Source)) ma
 func TestPrepareShowsEachImportedRulesVersion(t *testing.T) {
 	older := strings.Repeat("b", 40)
 	files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
-		version := rules.RuleVersion{Major: 1, Minor: 3}
+		version := coderules.RuleVersion{Major: 1, Minor: 3}
 		snapshot.Release = 2
 		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: older}
 		source.Ref = rules.GitRef{}
@@ -364,7 +366,7 @@ func TestPrepareShowsEachImportedRulesVersion(t *testing.T) {
 // names a revision whose rules all match published versions.
 func TestPrepareOmitsTheUnreleasedNoteWhenEveryRuleIsPublished(t *testing.T) {
 	files := generateWith(t, func(snapshot *library.Snapshot, _ *rules.Source) {
-		version := rules.RuleVersion{Major: 1}
+		version := coderules.RuleVersion{Major: 1}
 		snapshot.Release = 0
 		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: commit}
 	})
@@ -402,7 +404,7 @@ func TestPrepareShowsNoVersionForUnreleasedRules(t *testing.T) {
 // TestPrepareMarksExcludedRulesInTheLibrarySummary, which the source still imports but agents don't read.
 func TestPrepareMarksExcludedRulesInTheLibrarySummary(t *testing.T) {
 	files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
-		version := rules.RuleVersion{Major: 1}
+		version := coderules.RuleVersion{Major: 1}
 		snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: commit}
 		source.Exclude = map[string]rules.Exclusion{"techs/go/errors": {Reason: "Not for us."}}
 	})
@@ -422,7 +424,7 @@ func TestLibraryReadme_ShowsAKeptRetiredRuleAsRetired(t *testing.T) {
 	}{{"pinned", true, false, "Retired, pinned at 1.3.0"}, {"not yet dropped", false, false, "Retired; the next update drops it"}, {"held by ref", false, true, "Retired upstream; kept by ref v1.0.0"}} {
 		t.Run(test.name, func(t *testing.T) {
 			files := generateWith(t, func(snapshot *library.Snapshot, source *rules.Source) {
-				version := rules.RuleVersion{Major: 1, Minor: 3}
+				version := coderules.RuleVersion{Major: 1, Minor: 3}
 				snapshot.Release = 2
 				snapshot.Rules["techs/go/errors"] = library.ImportedRule{Version: &version, Release: 1, Commit: strings.Repeat("b", 40)}
 				snapshot.RetiredRules = []string{"techs/go/errors"}

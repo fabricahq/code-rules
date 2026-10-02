@@ -9,9 +9,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/imports"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/project"
-	"github.com/fabricahq/code-rules/internal/rules"
 	"github.com/spf13/cobra"
 )
 
@@ -113,7 +114,7 @@ func updateTargets(args []string) ([]imports.UpdateTarget, error) {
 			return nil, fmt.Errorf("%q: expected SOURCE or SOURCE:RULE, such as team or team:techs/go/errors", arg)
 		}
 		if scoped {
-			if err := rules.ValidateRuleID(rule, arg); err != nil {
+			if err := librarytree.ValidateRuleID(rule, arg); err != nil {
 				return nil, err
 			}
 		}
@@ -146,7 +147,7 @@ func flagDecisions(keep, exclude, forks []string, reason string) ([]project.Upda
 			if !ok || source == "" {
 				return nil, fmt.Errorf("%s %q: expected SOURCE:RULE, such as team:techs/go/errors", group.flag, value)
 			}
-			if err := rules.ValidateRuleID(rule, group.flag+" "+value); err != nil {
+			if err := librarytree.ValidateRuleID(rule, group.flag+" "+value); err != nil {
 				return nil, err
 			}
 			if seen[group.flag+value] {
@@ -417,7 +418,7 @@ func updateDetails(source string, row imports.RuleUpdate) []string {
 		lines = append(lines, "Replaced by "+row.ReplacedBy+".")
 	}
 	// A row spanning several versions labels each summary with its version, so people can tell which change is which.
-	spans := slices.ContainsFunc(row.SummaryVersions, func(version rules.RuleVersion) bool { return version != row.SummaryVersions[0] })
+	spans := slices.ContainsFunc(row.SummaryVersions, func(version coderules.RuleVersion) bool { return version != row.SummaryVersions[0] })
 	for i, summary := range row.Summaries {
 		if spans && i < len(row.SummaryVersions) {
 			summary = row.SummaryVersions[i].String() + ": " + summary

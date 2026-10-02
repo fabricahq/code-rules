@@ -1,8 +1,10 @@
 // Separate a rule's frontmatter envelope from its body without interpreting either.
 
-package rules
+package coderules
 
-import "regexp"
+import (
+	"regexp"
+)
 
 var documentPattern = regexp.MustCompile(`(?s)^---\r?\n(.*?)\r?\n---(?:\r?\n|$)(.*)$`)
 
@@ -13,9 +15,9 @@ type DocumentText struct {
 	Body        string `json:"body"`
 }
 
-// SplitDocument separates required YAML frontmatter from Markdown. It validates
-// only the delimiters, not YAML syntax, metadata fields, or Markdown content.
-// On error, the returned document is the zero value.
+// SplitDocument separates a rule document's required YAML frontmatter, between --- lines, from its Markdown body,
+// such as a parsed Rule's Document. It validates only the delimiters, not YAML syntax, metadata fields, or Markdown
+// content; location names the document in errors. On error, the returned document is the zero value.
 func SplitDocument(text, location string) (DocumentText, error) {
 	parts := documentPattern.FindStringSubmatch(text)
 	if parts == nil {

@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/gitexec"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -147,7 +148,7 @@ func (r *repository) ruleFiles(ctx context.Context, commit, id string) (map[stri
 		}
 		index = map[string]map[string]treeEntry{}
 		for file, entry := range tree {
-			if owner, ok := rules.VersionedRule(file); ok {
+			if owner, ok := librarytree.VersionedRule(file); ok {
 				if index[owner] == nil {
 					index[owner] = map[string]treeEntry{}
 				}

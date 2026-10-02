@@ -1,6 +1,6 @@
 // Verify complete rules through the public parser and independent shared cases.
 
-package rules_test
+package coderules_test
 
 import (
 	"encoding/json"
@@ -11,11 +11,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fabricahq/code-rules/internal/rules"
+	"github.com/fabricahq/code-rules/coderules"
 )
 
-// TestParseSharedExpectations checks exact rule values and typed, zero-result failures against shared fixtures.
-func TestParseSharedExpectations(t *testing.T) {
+// TestParseRuleSharedExpectations checks exact rule values and typed, zero-result failures against shared fixtures.
+func TestParseRuleSharedExpectations(t *testing.T) {
 	data, err := os.ReadFile("testdata/rules/cases.json")
 	if err != nil {
 		t.Fatal(err)
@@ -25,7 +25,7 @@ func TestParseSharedExpectations(t *testing.T) {
 		Input    struct{ Text, Path, Source string }
 		Expected struct {
 			OK    bool
-			Value rules.Rule
+			Value coderules.Rule
 			Error *struct{ Name, Message, Location string }
 		}
 	}
@@ -34,46 +34,46 @@ func TestParseSharedExpectations(t *testing.T) {
 	}
 	for _, test := range cases {
 		t.Run(test.ID, func(t *testing.T) {
-			got, err := rules.Parse(test.Input.Text, test.Input.Path, test.Input.Source)
+			got, err := coderules.ParseRule(test.Input.Text, test.Input.Path, test.Input.Source)
 			if test.Expected.OK {
 				if err != nil || !reflect.DeepEqual(got, test.Expected.Value) {
 					t.Fatalf("got %#v, %v; want %#v", got, err, test.Expected.Value)
 				}
 				return
 			}
-			var validation *rules.ValidationError
+			var validation *coderules.ValidationError
 			if !errors.As(err, &validation) || err.Error() != test.Expected.Error.Message || validation.Location != test.Expected.Error.Location {
 				t.Fatalf("got %#v, %v; want %s", got, err, test.Expected.Error.Message)
 			}
-			if !reflect.DeepEqual(got, rules.Rule{}) {
+			if !reflect.DeepEqual(got, coderules.Rule{}) {
 				t.Fatalf("failure returned partial data: %#v", got)
 			}
 		})
 	}
 }
 
-// TestParsePathBeforeDocument checks that an invalid path fails before document parsing begins.
-func TestParsePathBeforeDocument(t *testing.T) {
-	_, err := rules.Parse("malformed", "../escape.md", "team")
-	_, expected := rules.GroupFromPath("../escape.md", "team:../escape.md")
-	if err == nil || err.Error() != expected.Error() {
-		t.Fatalf("got %v; want path error %v", err, expected)
+// TestParseRulePathBeforeDocument checks that an invalid path fails before document parsing begins.
+func TestParseRulePathBeforeDocument(t *testing.T) {
+	_, err := coderules.ParseRule("malformed", "../escape.md", "team")
+	var invalid *coderules.ValidationError
+	if !errors.As(err, &invalid) || invalid.Location != "team:../escape.md" || !strings.HasPrefix(invalid.Problem, "expected a contained relative path") {
+		t.Fatalf("got %v; want the path refused", err)
 	}
 }
 
-// FuzzParse checks arbitrary documents for typed failures, zero partial results, and preserved text on success.
-func FuzzParse(f *testing.F) {
+// FuzzParseRule checks arbitrary documents for typed failures, zero partial results, and preserved text on success.
+func FuzzParseRule(f *testing.F) {
 	f.Add("---\ntitle: Rule\nimpact: HIGH\nimpactDescription: Avoid failure.\nwhenToRead: When coding.\n---\nBody")
 	f.Add("---\na: &a [*a]\n---\nBody")
 	f.Add("---\ntitle: [\n---\nBody")
 	f.Fuzz(func(t *testing.T, text string) {
-		got, err := rules.Parse(text, "techs/go/example.md", "fuzz")
+		got, err := coderules.ParseRule(text, "techs/go/example.md", "fuzz")
 		if err != nil {
-			var validation *rules.ValidationError
+			var validation *coderules.ValidationError
 			if !errors.As(err, &validation) {
 				t.Fatalf("untyped failure: %v", err)
 			}
-			if !reflect.DeepEqual(got, rules.Rule{}) {
+			if !reflect.DeepEqual(got, coderules.Rule{}) {
 				t.Fatal("partial result on failure")
 			}
 			return
@@ -84,10 +84,10 @@ func FuzzParse(f *testing.F) {
 	})
 }
 
-// TestParseManyEscapedScalars checks a large tag collection without changing its authored text.
-func TestParseManyEscapedScalars(t *testing.T) {
+// TestParseRuleManyEscapedScalars checks a large tag collection without changing its authored text.
+func TestParseRuleManyEscapedScalars(t *testing.T) {
 	text := escapedTagDocument(2000)
-	got, err := rules.Parse(text, "techs/go/example.md", "lab")
+	got, err := coderules.ParseRule(text, "techs/go/example.md", "lab")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,14 +96,14 @@ func TestParseManyEscapedScalars(t *testing.T) {
 	}
 }
 
-// BenchmarkParseEscapedScalars measures scaling across documents containing many independently quoted escape pairs.
-func BenchmarkParseEscapedScalars(b *testing.B) {
+// BenchmarkParseRuleEscapedScalars measures scaling across documents containing many independently quoted escape pairs.
+func BenchmarkParseRuleEscapedScalars(b *testing.B) {
 	for _, count := range []int{500, 1000, 2000} {
 		b.Run(fmt.Sprint(count), func(b *testing.B) {
 			text := escapedTagDocument(count)
 			b.ReportAllocs()
 			for b.Loop() {
-				if _, err := rules.Parse(text, "techs/go/example.md", "lab"); err != nil {
+				if _, err := coderules.ParseRule(text, "techs/go/example.md", "lab"); err != nil {
 					b.Fatal(err)
 				}
 			}
@@ -122,32 +122,20 @@ func escapedTagDocument(count int) string {
 	return text.String()
 }
 
-// TestParseDocumentEncoding rejects malformed bytes while preserving valid Unicode verbatim.
-func TestParseDocumentEncoding(t *testing.T) {
+// TestParseRuleDocumentEncoding rejects malformed bytes while preserving valid Unicode verbatim.
+func TestParseRuleDocumentEncoding(t *testing.T) {
 	prefix := "---\ntitle: Rule\nimpact: HIGH\nimpactDescription: Avoid failure.\nwhenToRead: When coding.\n---\n"
 	for _, body := range []string{"Guidance: \xff", "Guidance: \xe2\x82", "Guidance: café 🐹 \ufffd"} {
-		got, err := rules.Parse(prefix+body, "techs/go/example.md", "local")
+		got, err := coderules.ParseRule(prefix+body, "techs/go/example.md", "local")
 		if strings.HasPrefix(body, "Guidance: café") {
 			if err != nil || got.Document != prefix+body {
 				t.Fatalf("valid Unicode changed: %#v, %v", got, err)
 			}
 			continue
 		}
-		var validation *rules.ValidationError
-		if !errors.As(err, &validation) || validation.Location != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, rules.Rule{}) {
+		var validation *coderules.ValidationError
+		if !errors.As(err, &validation) || validation.Location != "local:techs/go/example.md" || !strings.Contains(err.Error(), "UTF-8") || !reflect.DeepEqual(got, coderules.Rule{}) {
 			t.Fatalf("expected UTF-8 error and zero rule, got %#v, %v", got, err)
 		}
-	}
-}
-
-// TestRenderRule_DraftHasOneBlankLineAfterItsMetadata starts the template's body right after one blank line.
-func TestRenderRule_DraftHasOneBlankLineAfterItsMetadata(t *testing.T) {
-	metadata := rules.RuleMetadata{Title: "Return errors", WhenToRead: "When returning errors.", Impact: "HIGH", ImpactDescription: "Callers decide."}
-	draft, err := rules.RenderRule("techs/go/errors", metadata, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(draft), "\n---\n\n## Return errors\n") {
-		t.Fatalf("draft:\n%s", draft)
 	}
 }

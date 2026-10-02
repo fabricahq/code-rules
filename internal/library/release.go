@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/releasetag"
 	"github.com/fabricahq/code-rules/internal/rules"
@@ -216,7 +217,7 @@ func Release(ctx context.Context, request ReleaseRequest) (ReleaseResult, error)
 
 // plannedRelease is the library release a commit publishes after the latest library release in its history.
 type plannedRelease struct {
-	record  rules.ReleaseRecord
+	record  coderules.ReleaseRecord
 	notes   string
 	message []byte
 	// empty reports that the commit changes no rules and no library-wide files, so there's nothing to publish.
@@ -250,20 +251,20 @@ func (g *libraryGit) requireUnpublishedTag(ctx context.Context, tag releasetag.T
 	if err != nil {
 		return fmt.Errorf("read tag=%q: %w", name, err)
 	}
-	notes, record, err := rules.ParseReleaseTagObject(name, body)
+	release, err := releasetag.ParseObject(name, body)
 	// A newer Code Rules may have created the tag and stopped before pushing it; this version can't compare it.
-	var unsupported *rules.UnsupportedReleaseRecordError
+	var unsupported *coderules.UnsupportedReleaseRecordError
 	if errors.As(err, &unsupported) {
 		return unsupportedRecord(name, unsupported.FormatVersion)
 	}
-	if err == nil && !planned.empty && notes == planned.notes && reflect.DeepEqual(record, planned.record) {
+	if err == nil && !planned.empty && release.Notes == planned.notes && reflect.DeepEqual(release.Record, planned.record) {
 		return nil
 	}
 	return failure("release-tag-mismatch", name+" exists only in this clone, and it isn't the library release this commit publishes: its release notes or record differ from what code-rules library release computes from the change notes since the remote's latest library release. Only code-rules library release creates release tags; delete this one with git tag --delete "+name+", then run code-rules library release again.", nil)
 }
 
 // describe fills in what a library release publishes.
-func describe(result *ReleaseResult, record rules.ReleaseRecord, notes string) {
+func describe(result *ReleaseResult, record coderules.ReleaseRecord, notes string) {
 	result.Release = record.Release
 	result.Tag = "release/" + strconv.Itoa(record.Release)
 	result.Rules = releaseRules(record)

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
@@ -36,13 +37,13 @@ func validateAnswer(name, value string) error {
 	}
 	switch name {
 	case "bump":
-		switch rules.Change(value) {
-		case rules.ChangeMajor, rules.ChangeMinor, rules.ChangePatch:
+		switch coderules.Change(value) {
+		case coderules.ChangeMajor, coderules.ChangeMinor, coderules.ChangePatch:
 			return nil
 		}
 		return fmt.Errorf("--bump must be major, minor, or patch")
 	case "impact":
-		_, err := rules.ParseImpact(value, "--impact")
+		_, err := coderules.ParseImpact(value, "--impact")
 		return err
 	case "repository":
 		data, err := json.Marshal(value)

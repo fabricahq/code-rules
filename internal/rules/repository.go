@@ -10,6 +10,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/nlnwa/whatwg-url/url"
+
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // Repository identifies a Git source without rewriting its transport address.
@@ -41,10 +43,10 @@ var (
 // Parsing does not establish that a repository exists or is accessible.
 func ParseRepository(input json.RawMessage, location string) (Repository, error) {
 	var address string
-	if json.Unmarshal(input, &address) != nil || strings.TrimFunc(address, jsWhitespace) == "" {
+	if json.Unmarshal(input, &address) != nil || strings.TrimFunc(address, decode.IsSpace) == "" {
 		return Repository{}, invalid(location, "expected nonempty text")
 	}
-	if !validUnicodeString(input) || strings.ContainsFunc(address, unsafeRepositoryCharacter) {
+	if !decode.ValidUnicode(input) || strings.ContainsFunc(address, unsafeRepositoryCharacter) {
 		return Repository{}, invalid(location, "repository must not contain whitespace, backslashes, query parameters, or fragments")
 	}
 	uri := repositoryURL.FindStringSubmatch(address)
@@ -147,7 +149,7 @@ func (r Repository) FileURL(commit, path string, raw bool) (string, bool) {
 
 // unsafeRepositoryCharacter rejects ambiguous separators, whitespace, and controls before URL parsing.
 func unsafeRepositoryCharacter(r rune) bool {
-	return jsWhitespace(r) || r < 32 || r == 127 || r == '\\' || r == '?' || r == '#'
+	return decode.IsSpace(r) || r < 32 || r == 127 || r == '\\' || r == '?' || r == '#'
 }
 
 // repositoryPath validates authored segments before URL normalization can erase traversal.

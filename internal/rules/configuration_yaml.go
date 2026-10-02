@@ -8,12 +8,15 @@ import (
 	"slices"
 
 	"go.yaml.in/yaml/v4"
+
+	"github.com/fabricahq/code-rules/coderules"
+	"github.com/fabricahq/code-rules/internal/decode"
 )
 
 // ParseConfigurationYAML validates one UTF-8 YAML document using the configuration schema.
 // Only string-keyed mappings, sequences, and JSON scalar types are supported; aliases and tags are rejected.
 func ParseConfigurationYAML(input []byte) (Configuration, error) {
-	_, data, err := authoredYAML(input, "configuration")
+	_, data, err := decode.YAML(input, "configuration")
 	if err != nil {
 		return Configuration{}, err
 	}
@@ -26,7 +29,7 @@ func ParseConfigurationYAML(input []byte) (Configuration, error) {
 // Folded scalars use literal style in the result because the YAML encoder can change their values.
 // The complete resulting configuration is validated before any bytes are returned.
 func AppendConfigurationSource(input []byte, alias string, source Source) ([]byte, error) {
-	document, data, err := authoredYAML(input, "configuration")
+	document, data, err := decode.YAML(input, "configuration")
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +75,7 @@ type SourceEdit struct {
 	// Unpin names rules whose existing pins the edit removes.
 	Unpin []string
 	// BasedOn sets the basedOn version of each existing replacement it names, adding or replacing the field.
-	BasedOn map[string]RuleVersion
+	BasedOn map[string]coderules.RuleVersion
 }
 
 // EditConfigurationSource adds pins and exclusions to the existing source alias, removes the pins edit.Unpin
@@ -84,7 +87,7 @@ type SourceEdit struct {
 // A rule the source already pins or excludes fails rather than being replaced. Folded scalars use literal style,
 // as in AppendConfigurationSource. The complete resulting configuration is validated before any bytes are returned.
 func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byte, error) {
-	document, data, err := authoredYAML(input, "configuration")
+	document, data, err := decode.YAML(input, "configuration")
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +220,7 @@ func exclusionNodes(exclude map[string]Exclusion) map[string]*yaml.Node {
 }
 
 // versionNode encodes a rule version double-quoted, such as "1.3.0", so YAML reads it as text.
-func versionNode(version RuleVersion) *yaml.Node {
+func versionNode(version coderules.RuleVersion) *yaml.Node {
 	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: version.String(), Style: yaml.DoubleQuotedStyle}
 }
 
