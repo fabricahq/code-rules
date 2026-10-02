@@ -131,18 +131,6 @@ Rule ID: `local:techs/go/follow-the-project-write-protocol`
 
 **Read full rule:** [Follow the project write protocol](../../rules/local/techs/go/follow-the-project-write-protocol.md)
 
-### Give each package its own ValidationError
-
-Rule ID: `local:techs/go/give-each-package-its-own-validation-error`
-
-**When to read:** Before planning, writing, changing, or reviewing Go code in this repository that reports invalid input, such as a bad configuration field, flag, or file, or that recognizes another package's invalid-input error, such as when classifying failures in internal/cli.
-
-**Impact:** MEDIUM
-
-**Why it matters:** A check for one package's concrete validation error misses invalid input from every other package, which then reaches agents as an operation failure without a location.
-
-**Read full rule:** [Give each package its own ValidationError](../../rules/local/techs/go/give-each-package-its-own-validation-error.md)
-
 ### Keep the coderules package parse-only and public
 
 Rule ID: `local:techs/go/keep-the-coderules-package-parse-only-and-public`
@@ -155,17 +143,17 @@ Rule ID: `local:techs/go/keep-the-coderules-package-parse-only-and-public`
 
 **Read full rule:** [Keep the coderules package parse-only and public](../../rules/local/techs/go/keep-the-coderules-package-parse-only-and-public.md)
 
-### Let the CLI own output and exit status
+### Let the CLI own the command contract
 
-Rule ID: `local:techs/go/let-the-cli-own-output-and-exit-status`
+Rule ID: `local:techs/go/let-the-cli-own-the-command-contract`
 
-**When to read:** Before planning, writing, changing, or reviewing Go code in this repository's internal packages that reports a result, a warning, or a failure, or code in internal/cli that turns those into human output, --json responses, or exit statuses.
+**When to read:** Before planning, writing, changing, or reviewing Go code that reports a result, warning, or failure, that turns one into human output, a --json response, a prompt, or an exit status, or that tests what a code-rules command prints, returns, or exits with.
 
 **Impact:** HIGH
 
-**Why it matters:** Output or exits from domain packages corrupt the single --json response that agents parse, hide warnings from embedders, and skip the cleanup and exit-status mapping the CLI guarantees.
+**Why it matters:** Output, prompts, or exits outside internal/cli corrupt the --json response and exit statuses that agents and scripts depend on, and tests below the CLI boundary pass while the assembled command breaks them.
 
-**Read full rule:** [Let the CLI own output and exit status](../../rules/local/techs/go/let-the-cli-own-output-and-exit-status.md)
+**Read full rule:** [Let the CLI own the command contract](../../rules/local/techs/go/let-the-cli-own-the-command-contract.md)
 
 ### Never show what Git, a Git server, or the GitHub CLI printed
 
@@ -190,18 +178,6 @@ Rule ID: `local:techs/go/parse-and-render-in-memory`
 **Why it matters:** A parser or renderer that reads files itself escapes the operation's containment, size limits, cancellation, and concurrent-change check, and can't run offline or on bytes a caller already holds.
 
 **Read full rule:** [Parse and render in memory; read and write files only in the operation](../../rules/local/techs/go/parse-and-render-in-memory.md)
-
-### Test command contracts through cli.Run and the compiled binary
-
-Rule ID: `local:techs/go/test-command-contracts-through-the-cli`
-
-**When to read:** Before planning, writing, changing, or reviewing Go tests, or Go changes, that affect what a code-rules command prints, returns in --json, exits with, prompts for, refuses, or writes, including failures and interrupted writes.
-
-**Impact:** HIGH
-
-**Why it matters:** Helper-only tests pass while the assembled command writes to the wrong stream, exits with the wrong status, or leaves partial files, which breaks the contract agents and scripts depend on.
-
-**Read full rule:** [Test command contracts through cli.Run and the compiled binary](../../rules/local/techs/go/test-command-contracts-through-the-cli.md)
 
 ---
 
