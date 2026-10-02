@@ -13,7 +13,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -144,7 +144,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 				return resolution{}, invalid(group.ID, "duplicate group")
 			}
 			seenGroups[group.ID] = true
-			if err := librarypath.ValidateGroupID(group.ID, source.Name); err != nil {
+			if err := librarytree.ValidateGroupID(group.ID, source.Name); err != nil {
 				return resolution{}, err
 			}
 			if source.Groups.Includes(group.ID) {
@@ -258,7 +258,7 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 		if !fs.ValidPath(file) || file == "." || strings.ContainsAny(file, "\\:") || strings.ContainsFunc(file, func(r rune) bool { return r < 32 || r == 127 }) {
 			return nil, invalid(file, "expected a contained portable local path")
 		}
-		if file == "README.md" || librarypath.IsGroupReadme(file) {
+		if file == "README.md" || librarytree.IsGroupReadme(file) {
 			continue
 		}
 		if slices.Contains(strings.Split(file, "/"), "assets") && !(strings.Count(file, "/") == 2 && path.Base(file) == "_group.yaml" && (strings.HasPrefix(file, "techs/") || strings.HasPrefix(file, "practices/"))) {
@@ -266,7 +266,7 @@ func parseLocal(files map[string][]byte, groups map[string]*resolvedGroup) (map[
 		}
 		if path.Base(file) == "_group.yaml" {
 			id := path.Dir(file)
-			if err := librarypath.ValidateGroupID(id, "local/"+file); err != nil {
+			if err := librarytree.ValidateGroupID(id, "local/"+file); err != nil {
 				return nil, err
 			}
 			metadata, err := coderules.ParseGroupMetadata(json.RawMessage(files[file]), "local/"+file)

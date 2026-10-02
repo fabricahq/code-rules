@@ -10,7 +10,7 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // CanonicalGroup is one entry on the canonical group list. Text has no surrounding whitespace.
@@ -50,7 +50,7 @@ func ParseCanonicalGroups(input []byte, location string) ([]CanonicalGroup, erro
 	for i := 0; i < len(root.Content); i += 2 {
 		id := root.Content[i].Value
 		entryLocation := location + "." + id
-		if err := librarypath.ValidateGroupID(id, entryLocation); err != nil {
+		if err := librarytree.ValidateGroupID(id, entryLocation); err != nil {
 			return nil, err
 		}
 		if len(groups) > 0 && id <= groups[len(groups)-1].ID {

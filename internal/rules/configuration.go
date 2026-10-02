@@ -12,7 +12,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // Configuration contains sources in alias order; an empty list is a local-only project.
@@ -192,7 +192,7 @@ func ParseRuleList(input json.RawMessage, location string) ([]string, error) {
 		seen[id] = true
 	}
 	for i, id := range ids {
-		if err := librarypath.ValidateRuleID(id, fmt.Sprintf("%s[%d]", location, i)); err != nil {
+		if err := librarytree.ValidateRuleID(id, fmt.Sprintf("%s[%d]", location, i)); err != nil {
 			return nil, err
 		}
 	}
@@ -213,7 +213,7 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 	}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		where := location + "." + id
-		if err := librarypath.ValidateRuleID(id, where); err != nil {
+		if err := librarytree.ValidateRuleID(id, where); err != nil {
 			return nil, err
 		}
 		fields, err := decode.Object(entries[id], where)
@@ -259,7 +259,7 @@ func parseExclusions(input json.RawMessage, location string) (map[string]Exclusi
 	}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		where := location + "." + id
-		if err := librarypath.ValidateRuleID(id, where); err != nil {
+		if err := librarytree.ValidateRuleID(id, where); err != nil {
 			return nil, err
 		}
 		fields, err := decode.Object(entries[id], where)

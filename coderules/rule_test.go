@@ -13,7 +13,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // TestParseRuleSharedExpectations checks exact rule values and typed, zero-result failures against shared fixtures.
@@ -57,7 +57,7 @@ func TestParseRuleSharedExpectations(t *testing.T) {
 // TestParseRulePathBeforeDocument checks that an invalid path fails before document parsing begins.
 func TestParseRulePathBeforeDocument(t *testing.T) {
 	_, err := coderules.ParseRule("malformed", "../escape.md", "team")
-	_, expected := librarypath.GroupFromPath("../escape.md", "team:../escape.md")
+	_, expected := librarytree.GroupFromPath("../escape.md", "team:../escape.md")
 	if err == nil || err.Error() != expected.Error() {
 		t.Fatalf("got %v; want path error %v", err, expected)
 	}

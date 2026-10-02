@@ -19,7 +19,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/coderules"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -306,7 +306,7 @@ func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]strin
 					continue
 				}
 			}
-			if err := librarypath.ValidateGroupID(id, id); err != nil {
+			if err := librarytree.ValidateGroupID(id, id); err != nil {
 				return nil, err
 			}
 			if !entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
@@ -322,7 +322,7 @@ func (r *reader) groups(selection rules.GroupSelection, terms []string) ([]strin
 func individualRules(ids []string) (map[string]map[string]bool, error) {
 	result := map[string]map[string]bool{}
 	for _, id := range ids {
-		group, err := librarypath.GroupFromPath(id+".md", "rules")
+		group, err := librarytree.GroupFromPath(id+".md", "rules")
 		if err != nil {
 			return nil, err
 		}
@@ -405,10 +405,10 @@ func (r *reader) rulePaths(directory, metadata string, terms []string, only map[
 		if !entry.Type().IsRegular() {
 			return bad(path, "expected an ordinary file")
 		}
-		if librarypath.IsGroupReadme(path) {
+		if librarytree.IsGroupReadme(path) {
 			continue
 		}
-		if _, err := librarypath.GroupFromPath(path, path); err != nil {
+		if _, err := librarytree.GroupFromPath(path, path); err != nil {
 			return err
 		}
 		*paths = append(*paths, path)

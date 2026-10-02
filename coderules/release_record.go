@@ -11,7 +11,7 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // ReleaseRecord is the permanent record of one library release, read from its release/<number> tag's message. Rule
@@ -263,7 +263,7 @@ func recordedVersions(input json.RawMessage, location string) (map[string]RuleVe
 	}
 	versions := map[string]RuleVersion{}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
-		if err := librarypath.ValidateRuleID(id, location+"."+id); err != nil {
+		if err := librarytree.ValidateRuleID(id, location+"."+id); err != nil {
 			return nil, err
 		}
 		version, err := versionField(entries[id], location+"."+id)
@@ -287,7 +287,7 @@ func recordedChanges(input json.RawMessage, versions map[string]RuleVersion, loc
 	changes := map[string]RecordedChange{}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		entryLocation := location + "." + id
-		if err := librarypath.ValidateRuleID(id, entryLocation); err != nil {
+		if err := librarytree.ValidateRuleID(id, entryLocation); err != nil {
 			return nil, err
 		}
 		fields, err := decode.Object(entries[id], entryLocation)
@@ -352,7 +352,7 @@ func retiredRules(input json.RawMessage, versions map[string]RuleVersion, locati
 	retired := map[string]RetiredRule{}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		entryLocation := location + "." + id
-		if err := librarypath.ValidateRuleID(id, entryLocation); err != nil {
+		if err := librarytree.ValidateRuleID(id, entryLocation); err != nil {
 			return nil, err
 		}
 		if _, current := versions[id]; current {
@@ -402,7 +402,7 @@ func libraryFiles(input json.RawMessage, location string) ([]string, error) {
 		if seen[path] {
 			return nil, invalid(location+"["+strconv.Itoa(i)+"]", "duplicate path "+decode.Quote(path))
 		}
-		if librarypath.IsRuleContent(path) {
+		if librarytree.IsRuleContent(path) {
 			return nil, invalid(location+"["+strconv.Itoa(i)+"]", decode.Quote(path)+" belongs to a rule's version, not the library-wide files")
 		}
 		seen[path] = true

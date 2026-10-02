@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 const selectionFormat = `expected an array of group IDs or one of "*", "techs/*", "practices/*"`
@@ -57,7 +57,7 @@ func ParseGroupSelection(input json.RawMessage, location string) (GroupSelection
 		seen[group] = true
 	}
 	for i, group := range groups {
-		if err := librarypath.ValidateGroupID(group, fmt.Sprintf("%s[%d]", location, i)); err != nil {
+		if err := librarytree.ValidateGroupID(group, fmt.Sprintf("%s[%d]", location, i)); err != nil {
 			return GroupSelection{}, err
 		}
 	}

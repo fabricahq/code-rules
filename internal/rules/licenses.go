@@ -11,7 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // LicenseDeclaration records authored terms and paths, without interpreting legal meaning.
@@ -107,7 +107,7 @@ func termsPath(input json.RawMessage, location string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if librarypath.IsRuleContent(path) {
+	if librarytree.IsRuleContent(path) {
 		return "", invalid(location, decode.Quote(path)+" belongs to a rule's version; keep license and notice files outside rules and their asset directories, such as at the library root")
 	}
 	return path, nil

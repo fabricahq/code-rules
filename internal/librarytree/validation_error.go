@@ -1,6 +1,6 @@
 // The validation error this package reports for invalid input.
 
-package librarypath
+package librarytree
 
 import "github.com/fabricahq/code-rules/internal/errs"
 

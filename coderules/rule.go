@@ -13,7 +13,7 @@ import (
 	"go.yaml.in/yaml/v4"
 
 	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // Impact is the rule's declared consequence level. ParseRule and ParseImpact accept only the six constants.
@@ -64,7 +64,7 @@ type Rule struct {
 // zero Rule.
 func ParseRule(text, path, source string) (Rule, error) {
 	location := source + ":" + path
-	group, err := librarypath.GroupFromPath(path, location)
+	group, err := librarytree.GroupFromPath(path, location)
 	if err != nil {
 		return Rule{}, err
 	}

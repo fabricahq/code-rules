@@ -1,6 +1,8 @@
-// Package librarypath identifies groups, rules, and library-wide files by their paths in a rule library. It checks
-// syntax only, accesses no files, and never cleans or normalizes paths, which use forward slashes on every OS.
-package librarypath
+// Package librarytree describes the structure of files and directories in a Code Rules library, and the group and
+// rule IDs derived from positions in that tree: which paths are rules, their assets, group READMEs, or
+// library-wide files. It checks syntax only, accesses no files, and never cleans or normalizes paths, which use
+// forward slashes on every OS.
+package librarytree
 
 import (
 	"fmt"

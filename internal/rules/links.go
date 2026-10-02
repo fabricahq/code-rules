@@ -16,7 +16,7 @@ import (
 	"github.com/yuin/goldmark/v2/parser"
 	"github.com/yuin/goldmark/v2/text"
 
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 var externalScheme = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:`)
@@ -162,7 +162,7 @@ func RequireAllowedTarget(file, target string, terms []string) error {
 	if file == target || slices.Contains(terms, target) {
 		return nil
 	}
-	if _, err := librarypath.GroupFromPath(target, file); err == nil {
+	if _, err := librarytree.GroupFromPath(target, file); err == nil {
 		return invalid(file, "links to other rule documents are not allowed: "+target+"; move shared supporting material to the library-root assets/ directory")
 	}
 	own := AssetDirectory(file)

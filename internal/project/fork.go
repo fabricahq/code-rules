@@ -16,7 +16,7 @@ import (
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -241,7 +241,7 @@ func checkForkTarget(ctx context.Context, root *os.Root, id string) (string, err
 	if strings.HasSuffix(id, ".md") {
 		return "", failure("invalid-rule-path", "use a rule path without the .md extension", nil)
 	}
-	group, err := librarypath.GroupFromPath(id+".md", "rule")
+	group, err := librarytree.GroupFromPath(id+".md", "rule")
 	if err != nil {
 		return "", err
 	}

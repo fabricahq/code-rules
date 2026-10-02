@@ -19,7 +19,7 @@ import (
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
 	"github.com/fabricahq/code-rules/internal/gitexec"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -286,7 +286,7 @@ func editLibrary(ctx context.Context, options Options, group string, prepare fun
 
 // AddGroup creates complete metadata without changing existing library content.
 func AddGroup(ctx context.Context, id string, metadata coderules.GroupMetadata, options Options) (AuthoringResult, error) {
-	if err := librarypath.ValidateGroupID(id, "group"); err != nil {
+	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
 	data, err := rules.RenderGroup(metadata)
@@ -319,7 +319,7 @@ func hasGroupMetadata(ctx context.Context, root *os.Root, id string) (bool, erro
 
 // AddRule creates supplied guidance or a marked unfinished canonical draft, in an existing group.
 func AddRule(ctx context.Context, id string, metadata rules.RuleMetadata, options RuleOptions) (AuthoringResult, error) {
-	group, err := librarypath.GroupFromPath(id+".md", "rule")
+	group, err := librarytree.GroupFromPath(id+".md", "rule")
 	if err != nil {
 		return AuthoringResult{}, err
 	}

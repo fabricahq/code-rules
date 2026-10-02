@@ -9,7 +9,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/decode"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 )
 
 // ChangeNote records one change to one or more rules for the next library release.
@@ -54,7 +54,7 @@ func ParseChangeNote(input []byte, location string) (ChangeNote, error) {
 	note := ChangeNote{Summary: summary, Rules: map[string]NoteChange{}}
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
 		entryLocation := location + ".rules." + id
-		if err := librarypath.ValidateRuleID(id, entryLocation); err != nil {
+		if err := librarytree.ValidateRuleID(id, entryLocation); err != nil {
 			return ChangeNote{}, err
 		}
 		change, err := noteChange(entries[id], id, entryLocation)
@@ -91,7 +91,7 @@ func noteChange(input json.RawMessage, id, location string) (NoteChange, error) 
 		if json.Unmarshal(raw, &result.ReplacedBy) != nil {
 			return NoteChange{}, invalid(location+".replacedBy", "expected a rule ID")
 		}
-		if err := librarypath.ValidateRuleID(result.ReplacedBy, location+".replacedBy"); err != nil {
+		if err := librarytree.ValidateRuleID(result.ReplacedBy, location+".replacedBy"); err != nil {
 			return NoteChange{}, err
 		}
 		if result.ReplacedBy == id {

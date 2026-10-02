@@ -22,7 +22,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -249,7 +249,7 @@ func validateRequest(request ChangeRequest) error {
 		return failure("invalid-arguments", "name at least one rule", nil)
 	}
 	for i, id := range request.IDs {
-		if err := librarypath.ValidateRuleID(id, "ID"); err != nil {
+		if err := librarytree.ValidateRuleID(id, "ID"); err != nil {
 			return err
 		}
 		if slices.Contains(request.IDs[:i], id) {
@@ -265,7 +265,7 @@ func validateRequest(request ChangeRequest) error {
 		if !request.Retire || len(request.IDs) != 1 {
 			return failure("invalid-arguments", "--replaced-by requires --retire and a single rule", nil)
 		}
-		if err := librarypath.ValidateRuleID(request.ReplacedBy, "--replaced-by"); err != nil {
+		if err := librarytree.ValidateRuleID(request.ReplacedBy, "--replaced-by"); err != nil {
 			return err
 		}
 		if request.ReplacedBy == request.IDs[0] {

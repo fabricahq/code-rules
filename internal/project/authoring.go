@@ -16,7 +16,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -109,7 +109,7 @@ func editProject(ctx context.Context, options Options, prepare func(*os.Root, []
 
 // AddLocalGroup creates one complete local group definition without overwriting existing metadata.
 func AddLocalGroup(ctx context.Context, id string, metadata coderules.GroupMetadata, options Options) (AuthoringResult, error) {
-	if err := librarypath.ValidateGroupID(id, "group"); err != nil {
+	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return AuthoringResult{}, err
 	}
 	data, err := rules.RenderGroup(metadata)

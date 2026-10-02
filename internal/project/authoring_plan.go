@@ -11,7 +11,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/filetxn"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -104,7 +104,7 @@ func planProjectAuthoring(ctx context.Context, options Options, check func(*os.R
 }
 
 func checkLocalGroup(ctx context.Context, root *os.Root, id string) error {
-	if err := librarypath.ValidateGroupID(id, "group"); err != nil {
+	if err := librarytree.ValidateGroupID(id, "group"); err != nil {
 		return err
 	}
 	return filetxn.RequireAbsent(ctx, root, path.Join("local", id, "_group.yaml"), path.Join("local", id, "README.md"))
@@ -114,7 +114,7 @@ func checkLocalRule(ctx context.Context, root *os.Root, config rules.Configurati
 	if strings.HasSuffix(id, ".md") {
 		return failure("invalid-rule-path", "use a rule path without the .md extension", nil)
 	}
-	group, err := librarypath.GroupFromPath(id+".md", "rule")
+	group, err := librarytree.GroupFromPath(id+".md", "rule")
 	if err != nil {
 		return err
 	}

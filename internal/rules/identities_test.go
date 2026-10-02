@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/fabricahq/code-rules/internal/errs"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -45,9 +45,9 @@ func TestSharedExpectations(t *testing.T) {
 				}
 				if test.Operation == "groupID" {
 					value = text
-					err = librarypath.ValidateGroupID(text, test.Location)
+					err = librarytree.ValidateGroupID(text, test.Location)
 				} else {
-					value, err = librarypath.GroupFromPath(text, test.Location)
+					value, err = librarytree.GroupFromPath(text, test.Location)
 				}
 			case "selection":
 				var selection rules.GroupSelection

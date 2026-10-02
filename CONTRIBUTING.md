@@ -93,7 +93,7 @@ Use a new output directory for each attempt. Verify archive checksums against a 
 
 - `coderules`: the public Go package for reading libraries; the root package of the same name only embeds the license for the CLI. It parses library release tags, release records, rule files, group metadata, and the canonical group list, for Code Rules and for other tools such as catalogs, without Git, filesystem, or network access. Its exports are a public API that follows Code Rules' version, so keep them deliberate.
 - `internal/decode`: decode authored YAML and JSON with one strict policy, and report invalid input as a `ValidationError` at its location.
-- `internal/librarypath`: identify groups, rules, and library-wide files by their paths in a library.
+- `internal/librarytree`: identify groups, rules, and library-wide files by their paths in a library.
 - `internal/rules`: validated configuration, change notes, license declarations, Git references, links, and rendering of authored rules and groups.
 - `internal/library`: initialize, author, check, load, and publish rule libraries.
 - `internal/imports`: choose rule versions from library release tags, import libraries with verified Git provenance, and read published rule versions for forks.

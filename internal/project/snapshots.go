@@ -17,7 +17,7 @@ import (
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/errs"
 	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -309,7 +309,7 @@ func readSourceRecord(data []byte, name string) (parsedRecord, error) {
 	result.Groups = groups.Groups
 	for id, rule := range record.Rules {
 		location := where + ".rules." + id
-		if err := librarypath.ValidateRuleID(id, location); err != nil {
+		if err := librarytree.ValidateRuleID(id, location); err != nil {
 			return parsedRecord{}, err
 		}
 		if (rule.Version == nil) != (rule.Release == nil) || (rule.Release != nil && *rule.Release < 1) || !fullCommit(rule.Commit) {

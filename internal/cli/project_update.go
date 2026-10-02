@@ -11,7 +11,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/imports"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -114,7 +114,7 @@ func updateTargets(args []string) ([]imports.UpdateTarget, error) {
 			return nil, fmt.Errorf("%q: expected SOURCE or SOURCE:RULE, such as team or team:techs/go/errors", arg)
 		}
 		if scoped {
-			if err := librarypath.ValidateRuleID(rule, arg); err != nil {
+			if err := librarytree.ValidateRuleID(rule, arg); err != nil {
 				return nil, err
 			}
 		}
@@ -147,7 +147,7 @@ func flagDecisions(keep, exclude, forks []string, reason string) ([]project.Upda
 			if !ok || source == "" {
 				return nil, fmt.Errorf("%s %q: expected SOURCE:RULE, such as team:techs/go/errors", group.flag, value)
 			}
-			if err := librarypath.ValidateRuleID(rule, group.flag+" "+value); err != nil {
+			if err := librarytree.ValidateRuleID(rule, group.flag+" "+value); err != nil {
 				return nil, err
 			}
 			if seen[group.flag+value] {

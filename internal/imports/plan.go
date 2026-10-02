@@ -11,7 +11,7 @@ import (
 
 	"github.com/fabricahq/code-rules/coderules"
 	"github.com/fabricahq/code-rules/internal/library"
-	"github.com/fabricahq/code-rules/internal/librarypath"
+	"github.com/fabricahq/code-rules/internal/librarytree"
 	"github.com/fabricahq/code-rules/internal/rules"
 )
 
@@ -644,7 +644,7 @@ func sameGroupSelection(a, b rules.GroupSelection) bool {
 func rulesInTree(tree map[string]treeEntry) []string {
 	ids := []string{}
 	for file := range tree {
-		if id, ok := librarypath.VersionedRule(file); ok && file == id+".md" {
+		if id, ok := librarytree.VersionedRule(file); ok && file == id+".md" {
 			ids = append(ids, id)
 		}
 	}
