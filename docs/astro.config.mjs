@@ -84,6 +84,7 @@ export default defineConfig({
           { label: 'Rule versions', slug: 'reference/rule-versions' },
         ] },
         { label: 'CLI commands', slug: 'reference/cli' },
+      { label: 'Brand', slug: 'reference/brand' },
       ] },
       { label: 'For agents', collapsed: true, items: [{ label: 'Plan, write, and review', slug: 'for-agents' }] },
     ],
