@@ -5,10 +5,13 @@ import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
 import tailwindcss from '@tailwindcss/vite';
 import accessibleAsideTitles from './src/plugins/accessible-aside-titles.mjs';
+import { cloudflareWebAnalytics } from './src/analytics.mjs';
+
+// Served at the domain root; page links are root-relative.
+const site = 'https://code-rules.fabricahq.com';
 
 export default defineConfig({
-  // Served at the domain root; page links are root-relative.
-  site: 'https://code-rules.fabricahq.com',
+  site,
   devToolbar: { enabled: false },
   // Keep native bindings outside the SSR bundle: https://vite.dev/config/ssr-options.html#ssr-external
   // Satteri's installed index.js resolves platform binaries relative to its package.
@@ -32,6 +35,8 @@ export default defineConfig({
     head: [
       { tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' } },
       { tag: 'link', attrs: { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' } },
+      // The Web Analytics site token is public and grants no access.
+      cloudflareWebAnalytics({ host: new URL(site).hostname, token: 'ad5e47e228f942f7a16b047a95854176' }),
     ],
     disable404Route: true,
     customCss: ['./src/styles/tailwind.css', './src/styles/custom.css', './src/styles/home.css'],

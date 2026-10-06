@@ -39,6 +39,7 @@ These commands do not publish the site.
 The Documentation workflow publishes the site, including `install.sh`, to GitHub Pages at <https://code-rules.fabricahq.com> after a push to `main` passes every docs check, including the external link check. Pull requests and other branches only run the checks.
 The site is served at the domain root, and page links are root-relative; do not set Astro's `base`.
 GitHub Pages settings, the custom domain, and its DNS record are managed in Fabrica's infrastructure repository, not here.
+Every page loads Cloudflare Web Analytics, which counts visits without cookies, only when served from code-rules.fabricahq.com, so local builds and tests report nothing. `src/analytics.mjs` builds that script, and `astro.config.mjs` holds the public site token from the Cloudflare dashboard. The footer links to Fabrica's privacy policy, which describes the analytics.
 
 ## Maintain the docs
 
