@@ -44,7 +44,7 @@ Use a [technology group](/concepts/groups/#technologies) when the obligation dep
 Use a [practice group](/concepts/groups/#practices) when it transfers across technologies.
 Use an [area group](/concepts/groups/#areas) when it describes how one part of a specific project works, such as its billing module or a content sync, and stops being true outside that part.
 
-Area groups exist only in a project's local rules. Other project-specific rules that still concern a technology or practice, such as a project's own testing conventions, go in that project's local `techs/` or `practices/` groups.
+Area groups exist only in a project's local rules. Not every project-specific rule belongs in one, though. If a rule is about a technology or practice, put it in a local technology or practice group, even when only this project follows it. For example, a project's own testing conventions belong in its local `practices/testing` group.
 
 For a new group, use a [canonical group ID](/concepts/groups/#canonical-group-ids) if one fits, and add [group metadata](/reference/rule-format/#group-metadata) that helps agents recognize relevant work.
 
