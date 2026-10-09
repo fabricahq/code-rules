@@ -7,6 +7,8 @@ A **rule** is a Markdown file that tells an agent how to apply one engineering p
 
 This guide explains how to draft and review a rule using the shared template and quality criteria. You'll choose a group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
 
+If you're not sure the guidance should be a rule rather than a script, lint rule, skill, or README, start with [Decide what belongs in a rule](/guides/choose-rules/).
+
 You can write rules with any agent or editor. For the CLI steps to create your first rule, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
 ## Rubric, template, and skill

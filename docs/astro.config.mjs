@@ -62,6 +62,7 @@ export default defineConfig({
         { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', collapsed: true, items: [
+        { label: 'When to write a rule', slug: 'guides/choose-rules' },
         { label: 'Write a rule', slug: 'guides/write-rules' },
         { label: 'Projects', collapsed: true, items: [
           { label: 'Import rules', slug: 'guides/select-rules' },
