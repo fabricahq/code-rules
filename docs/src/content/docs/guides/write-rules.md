@@ -40,7 +40,9 @@ It should ask about missing policy decisions instead of silently choosing them f
 
 Use a technology group when the obligation depends on a named technology.
 Use a practice group when it transfers across technologies.
-Place project-specific contracts in the applicable project's local rules.
+Use an [area group](/concepts/groups/#areas) when it describes how one part of a specific project works, such as its billing module or a content sync, and stops being true outside that part.
+
+Area groups exist only in a project's local rules. Other project-specific rules that still concern a technology or practice, such as a project's own testing conventions, go in that project's local `techs/` or `practices/` groups.
 
 For a new group, use a [canonical group ID](/concepts/groups/#canonical-group-ids) if one fits, and add [group metadata](/reference/rule-format/#group-metadata) that helps agents recognize relevant work.
 

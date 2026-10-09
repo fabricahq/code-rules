@@ -5,7 +5,7 @@ description: "What Code Rules accepts in rule files, group metadata, and support
 
 This page defines what Code Rules accepts in a rule file and in group metadata. The same format applies to rules in a library and to a project's local rules. For how to write a rule well, see [Rule rubric and template](/reference/rule-authoring/).
 
-Each rule is a Markdown file, and related rules belong to a **group**: a directory under `techs/` or `practices/` that holds a `_group.yaml` file. [Library format](/reference/library-format/) covers where groups live in a library.
+Each rule is a Markdown file, and related rules belong to a **group**: a directory under `techs/`, `practices/`, or `areas/` that holds a `_group.yaml` file. Area groups are local only; see [Group types](/concepts/groups/#group-types). [Library format](/reference/library-format/) covers where groups live in a library.
 
 Group metadata and rule frontmatter use YAML. Duplicate keys, anchors, aliases, and explicit tags are rejected.
 

@@ -34,7 +34,7 @@ Do not rely on automatic discovery of nested `AGENTS.md` files to load the rules
 ## Plan and implement
 
 1. Read the task and the generated index.
-2. Identify affected technologies and engineering practices.
+2. Identify the affected areas of the project, technologies, and engineering practices.
 3. Compare each group's **When to read this group** cue with the work. Use its **Description** to understand scope. Open every relevant or plausibly relevant group.
 4. Read every rule in each opened group completely, including all pages and linked full definitions. Then assess applicability using each rule's **When to read** cue, guidance, and exceptions.
 5. Account for applicable obligations in the plan and implementation.

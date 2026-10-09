@@ -88,6 +88,8 @@ Rule exclusions and replacements still apply. Agents still select relevant rules
 When a newer library release adds groups within the selector's scope, `code-rules project update` adds them and their rules. Review those additions in the changed source records and generated provenance.
 Offline builds do not discover changes on the remote repository.
 
+Libraries never contain [area groups](/concepts/groups/#areas), so a source's `groups`, `rules`, `pins`, and `exclude` can't name an `areas/` ID.
+
 Select at least one group or individual rule. For `groups`, use one supported selector string or an explicit array of group IDs. Wildcard arrays, mixed selectors, and arbitrary globs such as `techs/**` are unsupported.
 Local metadata can describe a group that is also selected from a library, including through a wildcard.
 
