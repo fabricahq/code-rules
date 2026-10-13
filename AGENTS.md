@@ -115,6 +115,7 @@ For comments, this repository's comment rules supersede the app's comment policy
 
 The Go CLI is released. The installable authoring skill remains separate work.
 Describe proposed behavior honestly, and verify availability against the implementation before claiming support.
+Don't describe a feature before it exists, unless you're previewing its docs as part of building it.
 
 When a product decision changes, update the owning concept, guide, or reference and its examples together.
 Keep configuration details and command contracts in those documents rather than duplicating them here.
