@@ -1037,7 +1037,7 @@
     "id": "selection-valid-53",
     "operation": "selection",
     "input": [],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": true,
       "value": []
@@ -1049,7 +1049,7 @@
     "input": [
       "techs/go"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": true,
       "value": [
@@ -1065,7 +1065,7 @@
       "practices/testing",
       "techs/bash"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": true,
       "value": [
@@ -1079,7 +1079,7 @@
     "id": "selection-valid-56",
     "operation": "selection",
     "input": "*",
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": true,
       "value": "*"
@@ -1089,7 +1089,7 @@
     "id": "selection-valid-57",
     "operation": "selection",
     "input": "techs/*",
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": true,
       "value": "techs/*"
@@ -1099,7 +1099,7 @@
     "id": "selection-valid-58",
     "operation": "selection",
     "input": "practices/*",
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": true,
       "value": "practices/*"
@@ -1109,13 +1109,13 @@
     "id": "selection-shape-59",
     "operation": "selection",
     "input": null,
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
-        "location": "sources.team.groups"
+        "message": "--groups: expected one of \"*\", \"techs/*\", \"practices/*\", or an array of group IDs and those wildcards",
+        "location": "--groups"
       }
     },
     "referenceExpected": {
@@ -1131,13 +1131,13 @@
     "id": "selection-shape-60",
     "operation": "selection",
     "input": true,
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
-        "location": "sources.team.groups"
+        "message": "--groups: expected one of \"*\", \"techs/*\", \"practices/*\", or an array of group IDs and those wildcards",
+        "location": "--groups"
       }
     },
     "referenceExpected": {
@@ -1153,13 +1153,13 @@
     "id": "selection-shape-61",
     "operation": "selection",
     "input": 42,
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
-        "location": "sources.team.groups"
+        "message": "--groups: expected one of \"*\", \"techs/*\", \"practices/*\", or an array of group IDs and those wildcards",
+        "location": "--groups"
       }
     },
     "referenceExpected": {
@@ -1175,13 +1175,13 @@
     "id": "selection-shape-62",
     "operation": "selection",
     "input": {},
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
-        "location": "sources.team.groups"
+        "message": "--groups: expected one of \"*\", \"techs/*\", \"practices/*\", or an array of group IDs and those wildcards",
+        "location": "--groups"
       }
     },
     "referenceExpected": {
@@ -1197,13 +1197,13 @@
     "id": "selection-shape-63",
     "operation": "selection",
     "input": "techs/go",
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
-        "location": "sources.team.groups"
+        "message": "--groups: expected one of \"*\", \"techs/*\", \"practices/*\", or an array of group IDs and those wildcards",
+        "location": "--groups"
       }
     },
     "referenceExpected": {
@@ -1219,13 +1219,13 @@
     "id": "selection-shape-64",
     "operation": "selection",
     "input": "techs/**",
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
-        "location": "sources.team.groups"
+        "message": "--groups: expected one of \"*\", \"techs/*\", \"practices/*\", or an array of group IDs and those wildcards",
+        "location": "--groups"
       }
     },
     "referenceExpected": {
@@ -1241,13 +1241,13 @@
     "id": "selection-shape-65",
     "operation": "selection",
     "input": " * ",
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
-        "location": "sources.team.groups"
+        "message": "--groups: expected one of \"*\", \"techs/*\", \"practices/*\", or an array of group IDs and those wildcards",
+        "location": "--groups"
       }
     },
     "referenceExpected": {
@@ -1265,13 +1265,13 @@
     "input": [
       ""
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: expected nonempty text",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: expected nonempty text",
+        "location": "--groups[0]"
       }
     }
   },
@@ -1282,13 +1282,13 @@
       "techs/go",
       " "
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[1]: expected nonempty text",
-        "location": "sources.team.groups[1]"
+        "message": "--groups[1]: expected nonempty text",
+        "location": "--groups[1]"
       }
     }
   },
@@ -1298,13 +1298,13 @@
     "input": [
       null
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: expected nonempty text",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: expected nonempty text",
+        "location": "--groups[0]"
       }
     }
   },
@@ -1314,13 +1314,13 @@
     "input": [
       false
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: expected nonempty text",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: expected nonempty text",
+        "location": "--groups[0]"
       }
     }
   },
@@ -1332,13 +1332,13 @@
         "techs/go"
       ]
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: expected nonempty text",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: expected nonempty text",
+        "location": "--groups[0]"
       }
     }
   },
@@ -1350,13 +1350,13 @@
       "bad",
       ""
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[2]: expected nonempty text",
-        "location": "sources.team.groups[2]"
+        "message": "--groups[2]: expected nonempty text",
+        "location": "--groups[2]"
       }
     }
   },
@@ -1366,13 +1366,13 @@
     "input": [
       "﻿"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: expected nonempty text",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: expected nonempty text",
+        "location": "--groups[0]"
       }
     }
   },
@@ -1382,13 +1382,13 @@
     "input": [
       " "
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: expected nonempty text",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: expected nonempty text",
+        "location": "--groups[0]"
       }
     }
   },
@@ -1399,13 +1399,13 @@
       "techs/go",
       "techs/go"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: duplicate entries",
-        "location": "sources.team.groups"
+        "message": "--groups: duplicate entries",
+        "location": "--groups"
       }
     }
   },
@@ -1416,30 +1416,26 @@
       "bad",
       "bad"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: duplicate entries",
-        "location": "sources.team.groups"
+        "message": "--groups: duplicate entries",
+        "location": "--groups"
       }
     }
   },
   {
-    "id": "selection-id-76",
+    "id": "selection-wildcard-in-array",
     "operation": "selection",
     "input": [
       "*"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
-      "ok": false,
-      "error": {
-        "name": "ValidationError",
-        "message": "sources.team.groups[0]: invalid group ID \"*\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
-        "location": "sources.team.groups[0]"
-      }
+      "ok": true,
+      "value": "*"
     },
     "referenceExpected": {
       "ok": false,
@@ -1451,20 +1447,21 @@
     }
   },
   {
-    "id": "selection-id-77",
+    "id": "selection-wildcard-with-groups",
     "operation": "selection",
     "input": [
       "techs/go",
-      "techs/*"
+      "techs/*",
+      "practices/testing"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
-      "ok": false,
-      "error": {
-        "name": "ValidationError",
-        "message": "sources.team.groups[1]: invalid group ID \"techs/*\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
-        "location": "sources.team.groups[1]"
-      }
+      "ok": true,
+      "value": [
+        "practices/testing",
+        "techs/*",
+        "techs/go"
+      ]
     },
     "referenceExpected": {
       "ok": false,
@@ -1476,18 +1473,31 @@
     }
   },
   {
+    "id": "selection-wildcards-combine",
+    "operation": "selection",
+    "input": [
+      "techs/*",
+      "practices/*"
+    ],
+    "location": "--groups",
+    "expected": {
+      "ok": true,
+      "value": "*"
+    }
+  },
+  {
     "id": "selection-id-78",
     "operation": "selection",
     "input": [
       " techs/go"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: invalid group ID \" techs/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: invalid group ID \" techs/go\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "--groups[0]"
       }
     },
     "referenceExpected": {
@@ -1505,13 +1515,13 @@
     "input": [
       ""
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: invalid group ID \"\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: invalid group ID \"\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "--groups[0]"
       }
     },
     "referenceExpected": {
@@ -1530,13 +1540,13 @@
       "techs/z",
       "bad"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[1]: invalid group ID \"bad\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
-        "location": "sources.team.groups[1]"
+        "message": "--groups[1]: invalid group ID \"bad\": expected format ^(techs|practices)/[a-z][a-z0-9-]*$",
+        "location": "--groups[1]"
       }
     },
     "referenceExpected": {
@@ -1551,13 +1561,13 @@
   {
     "id": "selection-missing",
     "operation": "selection",
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
-        "location": "sources.team.groups"
+        "message": "--groups: expected one of \"*\", \"techs/*\", \"practices/*\", or an array of group IDs and those wildcards",
+        "location": "--groups"
       }
     },
     "referenceExpected": {
@@ -1575,13 +1585,13 @@
     "input": [
       "techs/assets"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: invalid group ID \"techs/assets\": \"assets\" is a reserved group name",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: invalid group ID \"techs/assets\": \"assets\" is a reserved group name",
+        "location": "--groups[0]"
       }
     },
     "referenceExpected": {
@@ -1599,13 +1609,13 @@
     "input": [
       "practices/assets"
     ],
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups[0]: invalid group ID \"practices/assets\": \"assets\" is a reserved group name",
-        "location": "sources.team.groups[0]"
+        "message": "--groups[0]: invalid group ID \"practices/assets\": \"assets\" is a reserved group name",
+        "location": "--groups[0]"
       }
     },
     "referenceExpected": {
@@ -1643,13 +1653,13 @@
     "id": "selection-unknown-wildcard-prefix",
     "operation": "selection",
     "input": "text/*",
-    "location": "sources.team.groups",
+    "location": "--groups",
     "expected": {
       "ok": false,
       "error": {
         "name": "ValidationError",
-        "message": "sources.team.groups: expected an array of group IDs or one of \"*\", \"techs/*\", \"practices/*\"",
-        "location": "sources.team.groups"
+        "message": "--groups: expected one of \"*\", \"techs/*\", \"practices/*\", or an array of group IDs and those wildcards",
+        "location": "--groups"
       }
     },
     "referenceExpected": {

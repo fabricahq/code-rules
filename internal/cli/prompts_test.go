@@ -90,9 +90,9 @@ func TestInteractiveSource(t *testing.T) {
 		want  map[string]any
 	}{
 		{"groups", nil, []terminalfixture.Step{repository, {Prompt: "Groups (comma-separated paths, *, practices/*, or techs/*):", Answer: "techs/go, techs/rust"}},
-			map[string]any{"repository": "https://github.com/acme/rules", "groups": []any{"techs/go", "techs/rust"}}},
+			map[string]any{"repository": "https://github.com/acme/rules", "rules": map[string]any{"include": []any{"techs/go/*", "techs/rust/*"}}}},
 		{"rules", []string{"--rules", "techs/go/wrap-errors"}, []terminalfixture.Step{repository},
-			map[string]any{"repository": "https://github.com/acme/rules", "rules": []any{"techs/go/wrap-errors"}}},
+			map[string]any{"repository": "https://github.com/acme/rules", "rules": map[string]any{"include": []any{"techs/go/wrap-errors"}}}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			directory := t.TempDir()

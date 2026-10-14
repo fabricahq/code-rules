@@ -69,7 +69,7 @@ func newUpdateFixtureWith(t *testing.T, binary string) updateFixture {
 		t.Fatal(code, out, diagnostic)
 	}
 	u.write(t, "local/techs/go/use-data-loaders.md", string(updateRule("Our loaders rule.")))
-	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 1\nsources:\n  team:\n    repository: "+f.Repository+"\n    groups:\n      - techs/go\n    pins:\n      techs/go/backoff:\n        version: \"1.0.0\"\n        reason: 'Waiting on #45.'\n    exclude:\n      techs/go/loaders:\n        reason: Ours covers our data layer.\n        replacedBy: local/techs/go/use-data-loaders.md\n")
+	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 2\nsources:\n  team:\n    repository: "+f.Repository+"\n    rules:\n      include:\n        - techs/go/*\n      pins:\n        - id: techs/go/backoff\n          version: \"1.0.0\"\n          reason: 'Waiting on #45.'\n      exclude:\n        - id: techs/go/loaders\n          reason: Ours covers our data layer.\n          replacedBy: techs/go/use-data-loaders\n")
 	if out, diagnostic, code := u.run(t, "project", "sync"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
@@ -246,7 +246,7 @@ func TestUpdate_YesAppliesWithKeepAndExclude(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, text := range []string{"# Team rules\n", "      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Not yet.\n", "      techs/go/retry:\n        version: \"1.0.0\"\n        reason: Not yet.\n", "      techs/go/verify:\n        reason: Not yet.\n"} {
+	for _, text := range []string{"# Team rules\n", "        - id: techs/go/errors\n          version: \"1.0.0\"\n          reason: Not yet.\n", "        - id: techs/go/retry\n          version: \"1.0.0\"\n          reason: Not yet.\n", "        - id: techs/go/verify\n          reason: Not yet.\n"} {
 		if !strings.Contains(string(config), text) {
 			t.Fatalf("configuration lacks %q:\n%s", text, config)
 		}
@@ -267,7 +267,7 @@ func TestUpdate_YesAppliesWithKeepAndExclude(t *testing.T) {
 
 // basedOnConfig is the fixture's configuration with the loaders replacement based on version.
 func (u updateFixture) basedOnConfig(version string) string {
-	return "# Team rules\nschemaVersion: 1\nsources:\n  team:\n    repository: " + u.fixture.Repository + "\n    groups:\n      - techs/go\n    pins:\n      techs/go/backoff:\n        version: \"1.0.0\"\n        reason: 'Waiting on #45.'\n    exclude:\n      techs/go/loaders:\n        reason: Ours covers our data layer.\n        replacedBy: local/techs/go/use-data-loaders.md\n        basedOn: \"" + version + "\" # forked\n"
+	return "# Team rules\nschemaVersion: 2\nsources:\n  team:\n    repository: " + u.fixture.Repository + "\n    rules:\n      include:\n        - techs/go/*\n      pins:\n        - id: techs/go/backoff\n          version: \"1.0.0\"\n          reason: 'Waiting on #45.'\n      exclude:\n        - id: techs/go/loaders\n          reason: Ours covers our data layer.\n          replacedBy: techs/go/use-data-loaders\n          basedOn: \"" + version + "\" # forked\n"
 }
 
 // TestUpdate_ComparesAReplacementWithItsBasedOnVersion lists the library's changes after basedOn, in human and
@@ -314,7 +314,7 @@ func TestUpdate_ComparesAReplacementWithItsBasedOnVersion(t *testing.T) {
 		t.Fatalf("rows %+v", result.Value.Sources[0].Rules)
 	}
 	config, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "config.yaml"))
-	if err != nil || !strings.Contains(string(config), "        replacedBy: local/techs/go/use-data-loaders.md\n        basedOn: \"1.1.0\" # forked\n") {
+	if err != nil || !strings.Contains(string(config), "          replacedBy: techs/go/use-data-loaders\n          basedOn: \"1.1.0\" # forked\n") {
 		t.Fatalf("configuration, %v:\n%s", err, config)
 	}
 	if fork, err := os.ReadFile(filepath.Join(u.directory, ".code-rules", "local", "techs", "go", "use-data-loaders.md")); err != nil || string(fork) != string(updateRule("loaders 1.1.0")) {
@@ -329,7 +329,7 @@ func TestUpdate_ComparesAReplacementWithItsBasedOnVersion(t *testing.T) {
 		Error responseError
 	}{}
 	out, _, code = u.run(t, "project", "sync", "--json")
-	if err := json.Unmarshal([]byte(out), &failure); err != nil || code != 1 || failure.Error.Code != "version-not-found" || !strings.Contains(failure.Error.Message, "sources.team.exclude.techs/go/loaders.basedOn: the rule never published version 9.0.0; check basedOn. Its published versions, newest first: 1.1.0, 1.0.0.") {
+	if err := json.Unmarshal([]byte(out), &failure); err != nil || code != 1 || failure.Error.Code != "version-not-found" || !strings.Contains(failure.Error.Message, "sources.team.rules.exclude.techs/go/loaders.basedOn: the rule never published version 9.0.0; check basedOn. Its published versions, newest first: 1.1.0, 1.0.0.") {
 		t.Fatalf("exit %d, %v:\n%s", code, err, out)
 	}
 }
@@ -390,7 +390,7 @@ func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
 		{[]string{"--update-fork", "team:techs/go/loaders", "--keep", "team:techs/go/loaders", "--reason", "Why."}, 2, "--keep and --update-fork both name team:techs/go/loaders"},
 		{[]string{"--update-fork", "team:techs/go/loaders", "--exclude", "team:techs/go/loaders", "--reason", "Why."}, 2, "--exclude and --update-fork both name team:techs/go/loaders"},
 		{[]string{"--update-fork", "techs/go/loaders"}, 2, "expected SOURCE:RULE"},
-		{[]string{"--update-fork", "team:techs/go/errors", "--yes"}, 2, "Error: --update-fork team:techs/go/errors: sources.team doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run code-rules project add rule techs/go/errors --from team@VERSION. No files were written.\n"},
+		{[]string{"--update-fork", "team:techs/go/errors", "--yes"}, 2, "Error: --update-fork team:techs/go/errors: sources.team.rules.exclude doesn't exclude this rule with replacedBy, so no local rule replaces it; to fork the rule, run code-rules project add rule techs/go/errors --from team@VERSION. No files were written.\n"},
 		{[]string{"--update-fork", "other:techs/go/loaders", "--yes"}, 2, "--update-fork other:techs/go/loaders: no source named other in .code-rules/config.yaml"},
 		{[]string{"team:techs/go/naming", "--update-fork", "team:techs/go/loaders", "--yes"}, 2, "--update-fork team:techs/go/loaders: the update doesn't list this rule as replaced"},
 		{[]string{"--incorporated", "team:techs/go/loaders"}, 2, "unknown flag: --incorporated"},
@@ -415,7 +415,7 @@ func TestUpdate_RejectsInvalidRequestsWithoutWriting(t *testing.T) {
 func TestUpdate_RefusesToUpdateTheForkOfARetiredRule(t *testing.T) {
 	u := newUpdateFixture(t)
 	u.write(t, "local/techs/go/our-retry.md", string(updateRule("Our retry rule.")))
-	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 1\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    groups:\n      - techs/go\n    exclude:\n      techs/go/retry:\n        reason: Ours.\n        replacedBy: local/techs/go/our-retry.md\n")
+	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 2\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    rules:\n      include:\n        - techs/go/*\n      exclude:\n        - id: techs/go/retry\n          reason: Ours.\n          replacedBy: techs/go/our-retry\n")
 	before := projectFileContents(t, u.directory)
 	out, diagnostic, code := u.run(t, "project", "update", "--yes", "--json", "--update-fork", "team:techs/go/retry")
 	var response struct {
@@ -567,8 +567,8 @@ func TestUpdateDetails_LabelsSummariesWithTheirVersionsWhenARowSpansSeveral(t *t
 // TestBuildAndCheck_ReportAnUnknownExclusionTheSameWay, with the problem and its location on separate lines.
 func TestBuildAndCheck_ReportAnUnknownExclusionTheSameWay(t *testing.T) {
 	u := newUpdateFixture(t)
-	u.write(t, "config.yaml", "schemaVersion: 1\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    groups:\n      - techs/go\n    pins:\n      techs/go/backoff:\n        version: \"1.0.0\"\n        reason: 'Waiting on #45.'\n    exclude:\n      techs/go/loaders:\n        reason: Ours covers our data layer.\n        replacedBy: local/techs/go/use-data-loaders.md\n      techs/go/missing:\n        reason: Typo.\n")
-	want := "Error: names no rule the library supplies to this source; run code-rules project sync to check it against the library.\n\nLocation: sources.team.exclude.techs/go/missing\n"
+	u.write(t, "config.yaml", "schemaVersion: 2\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    rules:\n      include:\n        - techs/go/*\n      pins:\n        - id: techs/go/backoff\n          version: \"1.0.0\"\n          reason: 'Waiting on #45.'\n      exclude:\n        - id: techs/go/loaders\n          reason: Ours covers our data layer.\n          replacedBy: techs/go/use-data-loaders\n        - id: techs/go/missing\n          reason: Typo.\n")
+	want := "Error: names no rule the library supplies to this source; run code-rules project sync to check it against the library.\n\nLocation: sources.team.rules.exclude.techs/go/missing\n"
 	for _, command := range []string{"build", "check"} {
 		out, diagnostic, code := u.run(t, "project", command)
 		if code != 1 || diagnostic != want {
@@ -630,7 +630,7 @@ func TestUpdateDetails_ShowsAPinnedForksReplacementBesideThePin(t *testing.T) {
 // replace the fork with the newest version.
 func TestUpdate_AsksAboutAPinnedForkInATerminal(t *testing.T) {
 	u := newUpdateFixture(t)
-	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 1\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    groups:\n      - techs/go\n    pins:\n      techs/go/backoff:\n        version: \"1.0.0\"\n        reason: 'Waiting on #45.'\n      techs/go/loaders:\n        version: \"1.0.0\"\n        reason: Not yet.\n    exclude:\n      techs/go/loaders:\n        reason: Ours covers our data layer.\n        replacedBy: local/techs/go/use-data-loaders.md\n")
+	u.write(t, "config.yaml", "# Team rules\nschemaVersion: 2\nsources:\n  team:\n    repository: "+u.fixture.Repository+"\n    rules:\n      include:\n        - techs/go/*\n      pins:\n        - id: techs/go/backoff\n          version: \"1.0.0\"\n          reason: 'Waiting on #45.'\n        - id: techs/go/loaders\n          version: \"1.0.0\"\n          reason: Not yet.\n      exclude:\n        - id: techs/go/loaders\n          reason: Ours covers our data layer.\n          replacedBy: techs/go/use-data-loaders\n")
 	steps := []terminalfixture.Step{
 		{Prompt: "[adopt/keep]:", Answer: "adopt"},
 		{Prompt: "[add/exclude]:", Answer: "add"},

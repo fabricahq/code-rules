@@ -95,7 +95,7 @@ func TestErrors_EndWithAPeriod(t *testing.T) {
 	if out, diagnostic, code := runCLI(t, binary, dir, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	if err := os.WriteFile(filepath.Join(dir, ".code-rules", "config.yaml"), []byte("schemaVersion: 1\nsources: {}\nversion: 2\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ".code-rules", "config.yaml"), []byte("schemaVersion: 2\nsources: {}\nversion: 2\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	for _, args := range [][]string{{"project", "update", "--reason", "Why."}, {"project", "check"}} {

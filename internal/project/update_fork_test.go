@@ -138,7 +138,7 @@ func TestUpdate_ReplacesAForkWithItsNewestVersion(t *testing.T) {
 		}
 	}
 	config := string(after["config.yaml"])
-	if !strings.Contains(config, "        replacedBy: local/techs/go/errors.md\n        basedOn: \"2.0.0\"\n") {
+	if !strings.Contains(config, "          replacedBy: techs/go/errors\n          basedOn: \"2.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", config)
 	}
 	if !slices.Contains(applied.Changed, "local/techs/go/errors.md") || !slices.Contains(applied.Changed, "config.yaml") || !slices.Contains(applied.Added, "local/techs/go/assets/errors/table.md") || !slices.Contains(applied.Removed, "local/techs/go/assets/errors/mine.md") {
@@ -171,7 +171,7 @@ func newProjectSyncedTo(t *testing.T, f forkFixture) forkFixture {
 		t.Fatal(err)
 	}
 	config := string(f.files(t)["config.yaml"])
-	config = config[:strings.Index(config, "    exclude:")]
+	config = config[:strings.Index(config, "      exclude:")]
 	writeFixture(t, root, configurationFile, config)
 	if _, err := Sync(ctx, options, f.git); err != nil {
 		t.Fatal(err)
@@ -190,7 +190,7 @@ func TestUpdate_ReplacesAHandWrittenReplacementAndRecordsBasedOn(t *testing.T) {
 	defer root.Close()
 	writeFixture(t, root, "local/techs/go/our-errors.md", forkedRule("Our own rule."))
 	writeFixture(t, root, "local/techs/go/assets/our-errors/old.md", "Old.\n")
-	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"    exclude:\n      techs/go/errors:\n        reason: Ours.\n        replacedBy: local/techs/go/our-errors.md\n")
+	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"      exclude:\n        - id: techs/go/errors\n          reason: Ours.\n          replacedBy: techs/go/our-errors\n")
 	if _, err := Build(context.Background(), f.options); err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +213,7 @@ func TestUpdate_ReplacesAHandWrittenReplacementAndRecordsBasedOn(t *testing.T) {
 	if _, ok := after["local/techs/go/errors.md"]; ok {
 		t.Fatal("the update wrote a fork at the library rule's path")
 	}
-	if config := string(after["config.yaml"]); !strings.Contains(config, "        replacedBy: local/techs/go/our-errors.md\n        basedOn: \"2.0.0\"\n") {
+	if config := string(after["config.yaml"]); !strings.Contains(config, "          replacedBy: techs/go/our-errors\n          basedOn: \"2.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", config)
 	}
 }
@@ -228,7 +228,7 @@ func TestUpdate_GivesAReplacementItsGroupsFirstAssetDirectory(t *testing.T) {
 	}
 	defer root.Close()
 	writeFixture(t, root, "local/techs/go/our-errors.md", forkedRule("Our own rule."))
-	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"    exclude:\n      techs/go/errors:\n        reason: Ours.\n        replacedBy: local/techs/go/our-errors.md\n")
+	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"      exclude:\n        - id: techs/go/errors\n          reason: Ours.\n          replacedBy: techs/go/our-errors\n")
 	if _, err := Build(context.Background(), f.options); err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +252,7 @@ func TestUpdate_ReplacesAForkWhosePinKeepsTheImportedCopy(t *testing.T) {
 	}
 	defer root.Close()
 	config := string(f.files(t)["config.yaml"])
-	writeFixture(t, root, configurationFile, strings.Replace(config, "    exclude:\n", "    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Not yet.\n    exclude:\n", 1))
+	writeFixture(t, root, configurationFile, strings.Replace(config, "      exclude:\n", "      pins:\n        - id: techs/go/errors\n          version: \"1.0.0\"\n          reason: Not yet.\n      exclude:\n", 1))
 	plan, preview := planForkUpdate(t, f, updateFork)
 	if row := previewRow(preview.Sources, "team", "techs/go/errors"); row == nil || row.Pin == nil || row.To != nil || row.Newest.String() != "2.0.0" || row.Decision != "update-fork" {
 		t.Fatalf("row %+v", row)
@@ -264,7 +264,7 @@ func TestUpdate_ReplacesAForkWhosePinKeepsTheImportedCopy(t *testing.T) {
 	if got := string(after["local/techs/go/errors.md"]); got != forkedRule("Read [the table](assets/errors/table.md) and [the diagram](assets/errors/diagrams/new.svg).") {
 		t.Fatalf("fork %q", got)
 	}
-	if config := string(after["config.yaml"]); !strings.Contains(config, "    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n") || !strings.Contains(config, "        basedOn: \"2.0.0\"\n") {
+	if config := string(after["config.yaml"]); !strings.Contains(config, "      pins:\n        - id: techs/go/errors\n          version: \"1.0.0\"\n") || !strings.Contains(config, "          basedOn: \"2.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", config)
 	}
 	var record struct {
@@ -293,7 +293,7 @@ func TestUpdate_RefusesToUpdateAForkItCant(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer root.Close()
-		writeFixture(t, root, configurationFile, strings.Replace(string(f.files(t)["config.yaml"]), "    exclude:\n", "    exclude:\n      techs/go/licensed:\n        reason: Not used.\n", 1))
+		writeFixture(t, root, configurationFile, strings.Replace(string(f.files(t)["config.yaml"]), "      exclude:\n", "      exclude:\n        - id: techs/go/licensed\n          reason: Not used.\n", 1))
 		before := f.files(t)
 		// No Git can run, so each refusal comes before reading a library.
 		noGit := imports.Options{GitPath: filepath.Join(t.TempDir(), "missing-git")}
@@ -301,8 +301,8 @@ func TestUpdate_RefusesToUpdateAForkItCant(t *testing.T) {
 			decision UpdateDecision
 			text     string
 		}{
-			{UpdateDecision{Source: "team", Rule: "techs/go/added", Kind: DecisionUpdateFork}, "--update-fork team:techs/go/added: sources.team doesn't exclude this rule with replacedBy"},
-			{UpdateDecision{Source: "team", Rule: "techs/go/licensed", Kind: DecisionUpdateFork}, "--update-fork team:techs/go/licensed: sources.team doesn't exclude this rule with replacedBy"},
+			{UpdateDecision{Source: "team", Rule: "techs/go/added", Kind: DecisionUpdateFork}, "--update-fork team:techs/go/added: sources.team.rules.exclude doesn't exclude this rule with replacedBy"},
+			{UpdateDecision{Source: "team", Rule: "techs/go/licensed", Kind: DecisionUpdateFork}, "--update-fork team:techs/go/licensed: sources.team.rules.exclude doesn't exclude this rule with replacedBy"},
 			{UpdateDecision{Source: "other", Rule: "techs/go/errors", Kind: DecisionUpdateFork}, "--update-fork other:techs/go/errors: no source named other"},
 			{UpdateDecision{Source: "team", Rule: "techs/go/errors", Kind: DecisionUpdateFork, Reason: "Why."}, "records no reason"},
 		} {
@@ -376,7 +376,7 @@ func TestUpdate_RefusesAForkWhoseReleaseTagMovedAfterThePreview(t *testing.T) {
 					t.Fatal(err)
 				}
 				config := string(f.files(t)["config.yaml"])
-				writeFixture(t, root, configurationFile, strings.Replace(config, "    exclude:\n", "    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Not yet.\n    exclude:\n", 1))
+				writeFixture(t, root, configurationFile, strings.Replace(config, "      exclude:\n", "      pins:\n        - id: techs/go/errors\n          version: \"1.0.0\"\n          reason: Not yet.\n      exclude:\n", 1))
 				root.Close()
 			}
 			plan, err := PlanUpdate(ctx, f.options, f.git, test.targets, updateFork)

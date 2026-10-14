@@ -14,7 +14,7 @@ import (
 // renderFixture resolves a local rule with a caller-supplied body and optional supporting files.
 func renderFixture(t *testing.T, body string, support map[string][]byte) (map[string]string, error) {
 	t.Helper()
-	config, libraries := fixture(t, `{}`)
+	config, libraries := fixture(t, `[]`)
 	files := map[string][]byte{"techs/go/local.md": []byte(strings.Split(document, "---\n#")[0] + "---\n" + body)}
 	for file, data := range support {
 		files[file] = data
@@ -70,9 +70,9 @@ func TestRenderRejectsUnsafeReferences(t *testing.T) {
 func TestRenderRejectsRuleLinks(t *testing.T) {
 	for _, state := range []string{"selected", "excluded", "unselected"} {
 		t.Run(state, func(t *testing.T) {
-			exclude := `{}`
+			exclude := `[]`
 			if state == "excluded" {
-				exclude = `{"techs/go/other":{"reason":"Project policy"}}`
+				exclude = `[{"id":"techs/go/other","reason":"Project policy"}]`
 			}
 			config, libraries := fixture(t, exclude)
 			supplied := libraries["team"]
@@ -147,7 +147,7 @@ func TestRenderIgnoresInertHTML(t *testing.T) {
 
 // TestRenderRejectsFileDirectoryConflict refuses an output path that must be both file and directory.
 func TestRenderRejectsFileDirectoryConflict(t *testing.T) {
-	config, libraries := fixture(t, `{}`)
+	config, libraries := fixture(t, `[]`)
 	resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/a.md": []byte(document), "techs/go/a.md/b.md": []byte(document)})
 	if err != nil {
 		t.Fatal(err)
@@ -160,7 +160,7 @@ func TestRenderRejectsFileDirectoryConflict(t *testing.T) {
 // TestRenderReferenceImages keeps shared image definitions usable as both images and file links.
 func TestRenderReferenceImages(t *testing.T) {
 	for _, body := range []string{"![diagram][asset]\n\n[asset]: /assets/diagram.png", "[download][asset] ![diagram][asset]\n\n[asset]: /assets/diagram.png"} {
-		config, libraries := fixture(t, `{}`)
+		config, libraries := fixture(t, `[]`)
 		lib := libraries["team"]
 		lib.Catalog.Groups[0].Rules[0].Document = document + "\n" + body
 		lib.Catalog.SupportingFiles["assets/diagram.png"] = []byte("image bytes")
@@ -190,7 +190,7 @@ func TestRenderRejectsInvalidUTF8(t *testing.T) {
 
 // TestRenderRejectsInvalidDocumentBytes checks callers that construct a resolved value directly.
 func TestRenderRejectsInvalidDocumentBytes(t *testing.T) {
-	config, libraries := fixture(t, `{}`)
+	config, libraries := fixture(t, `[]`)
 	resolved, err := resolve(config, libraries, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -207,7 +207,7 @@ func TestRenderRejectsInvalidDocumentBytes(t *testing.T) {
 func TestRenderFlattensMetadataLineEndings(t *testing.T) {
 	for _, ending := range []string{`\r`, `\n`, `\r\n`} {
 		t.Run(ending, func(t *testing.T) {
-			config, libraries := fixture(t, `{}`)
+			config, libraries := fixture(t, `[]`)
 			value := `"Safe` + ending + `## Extra"`
 			text := "---\ntitle: " + value + "\nimpact: HIGH\nimpactDescription: " + value + "\nwhenToRead: " + value + "\n---\nGuidance."
 			resolved, err := resolve(config, libraries, map[string][]byte{"techs/go/local.md": []byte(text)})

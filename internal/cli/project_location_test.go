@@ -15,7 +15,7 @@ func TestProjectCommandsRejectCustomConfiguration(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
 	custom := filepath.Join(directory, "custom.json")
-	if err := os.WriteFile(custom, []byte(`{"schemaVersion":1,"sources":{}}`), 0600); err != nil {
+	if err := os.WriteFile(custom, []byte(`{"schemaVersion":2,"sources":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	before := projectFileContents(t, directory)
@@ -65,7 +65,7 @@ func TestProjectUsesOnlyRootCodeRulesDirectory(t *testing.T) {
 	directory := t.TempDir()
 	// An unrelated configuration file must never become project state implicitly.
 	custom := filepath.Join(directory, "config.yaml")
-	original := []byte(`{"schemaVersion":1,"sources":{}}`)
+	original := []byte(`{"schemaVersion":2,"sources":{}}`)
 	if err := os.WriteFile(custom, original, 0600); err != nil {
 		t.Fatal(err)
 	}

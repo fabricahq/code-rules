@@ -72,7 +72,7 @@ func newForkFixture(t *testing.T, repository string) forkFixture {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, configurationFile, "# Team rules.\nschemaVersion: 1\nsources:\n  team:\n    repository: "+repository+"\n    groups:\n      - techs/go\n")
+	writeFixture(t, root, configurationFile, "# Team rules.\nschemaVersion: 2\nsources:\n  team:\n    repository: "+repository+"\n    rules:\n      include:\n        - techs/go/*\n")
 	git := imports.Options{GitPath: f.GitPath, Environment: f.Environment}
 	if _, err := Sync(ctx, options, git); err != nil {
 		t.Fatal(err)
@@ -139,7 +139,7 @@ func TestFork_ReplacesAnImportedRuleWithAnOlderVersion(t *testing.T) {
 		t.Fatalf("copied shared asset %q", got)
 	}
 	config := string(after["config.yaml"])
-	if !strings.HasPrefix(config, "# Team rules.\n") || !strings.Contains(config, "    exclude:\n      techs/go/errors:\n        reason: Our services need the original wording.\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.0.0\"\n") {
+	if !strings.HasPrefix(config, "# Team rules.\n") || !strings.Contains(config, "      exclude:\n        - id: techs/go/errors\n          reason: Our services need the original wording.\n          replacedBy: techs/go/errors\n          basedOn: \"1.0.0\"\n") {
 		t.Fatalf("configuration %q", config)
 	}
 	if _, err := Build(context.Background(), f.options); err != nil {
@@ -186,7 +186,7 @@ func TestFork_OfAPinnedRuleRemovesThePin(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	writeFixture(t, root, configurationFile, "# Team rules.\nschemaVersion: 1\nsources:\n  team:\n    repository: "+f.fixture.Repository+"\n    groups:\n      - techs/go\n    pins:\n      techs/go/errors:\n        version: \"1.0.0\"\n        reason: Not ready.\n")
+	writeFixture(t, root, configurationFile, "# Team rules.\nschemaVersion: 2\nsources:\n  team:\n    repository: "+f.fixture.Repository+"\n    rules:\n      include:\n        - techs/go/*\n      pins:\n        - id: techs/go/errors\n          version: \"1.0.0\"\n          reason: Not ready.\n")
 	if _, err := Sync(ctx, f.options, f.git); err != nil {
 		t.Fatal(err)
 	}
@@ -194,11 +194,11 @@ func TestFork_OfAPinnedRuleRemovesThePin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Warnings) != 1 || !strings.HasPrefix(result.Warnings[0], "Removed sources.team.pins.techs/go/errors, which kept the rule at 1.0.0, because the fork replaces the imported rule.") {
+	if len(result.Warnings) != 1 || !strings.HasPrefix(result.Warnings[0], "Removed sources.team.rules.pins.techs/go/errors, which kept the rule at 1.0.0, because the fork replaces the imported rule.") {
 		t.Fatalf("warnings %q", result.Warnings)
 	}
 	config := string(f.files(t)["config.yaml"])
-	if strings.Contains(config, "pins") || !strings.Contains(config, "    exclude:\n      techs/go/errors:\n        reason: Ours.\n        replacedBy: local/techs/go/errors.md\n        basedOn: \"1.0.0\"\n") {
+	if strings.Contains(config, "pins") || !strings.Contains(config, "      exclude:\n        - id: techs/go/errors\n          reason: Ours.\n          replacedBy: techs/go/errors\n          basedOn: \"1.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", config)
 	}
 	if _, err := Build(ctx, f.options); err != nil {
@@ -279,7 +279,7 @@ func TestFork_OfAnImportedRuleByRepositoryAddressExcludesIt(t *testing.T) {
 	if _, err := plan.Commit(context.Background(), "Ours."); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(f.files(t)["config.yaml"]), "replacedBy: local/techs/go/errors.md") {
+	if !strings.Contains(string(f.files(t)["config.yaml"]), "replacedBy: techs/go/errors") {
 		t.Fatal("no exclusion")
 	}
 }
@@ -382,12 +382,12 @@ func TestFork_NeverReplacesAnExistingExclusion(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	config := string(f.files(t)["config.yaml"]) + "    exclude:\n      techs/go/errors:\n        reason: Not for us.\n"
+	config := string(f.files(t)["config.yaml"]) + "      exclude:\n        - id: techs/go/errors\n          reason: Not for us.\n"
 	writeFixture(t, root, configurationFile, config)
 	source, _ := ParseForkSource("team@1.0.0")
 	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
 	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.exclude.techs/go/errors" {
+	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.rules.exclude.techs/go/errors" {
 		t.Fatalf("got %v", err)
 	}
 	if got := string(f.files(t)["config.yaml"]); got != config {
@@ -427,7 +427,7 @@ func TestFork_OfARuleARefDoesNotImportWritesNoExclusion(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	config := "schemaVersion: 1\nsources:\n  team:\n    repository: " + f.fixture.Repository + "\n    groups:\n      - techs/go\n    ref: release/1\n"
+	config := "schemaVersion: 2\nsources:\n  team:\n    repository: " + f.fixture.Repository + "\n    ref: release/1\n    rules:\n      include:\n        - techs/go/*\n"
 	writeFixture(t, root, configurationFile, config)
 	if _, err := Sync(context.Background(), f.options, f.git); err != nil {
 		t.Fatal(err)
@@ -464,7 +464,7 @@ func TestFork_KeepsTheLibrarysGroupDescription(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	writeFixture(t, root, configurationFile, "schemaVersion: 1\nsources:\n  team:\n    repository: "+f.fixture.Repository+"\n    rules:\n      - practices/testing/verify\n")
+	writeFixture(t, root, configurationFile, "schemaVersion: 2\nsources:\n  team:\n    repository: "+f.fixture.Repository+"\n    rules:\n      include:\n        - practices/testing/verify\n")
 	if _, err := Sync(context.Background(), f.options, f.git); err != nil {
 		t.Fatal(err)
 	}
@@ -494,7 +494,7 @@ func TestUpdate_KeepsTheGroupMetadataAForkOfARetiredRuleNeeds(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	writeFixture(t, root, configurationFile, "schemaVersion: 1\nsources:\n  team:\n    repository: "+f.fixture.Repository+"\n    rules:\n      - techs/go/errors\n")
+	writeFixture(t, root, configurationFile, "schemaVersion: 2\nsources:\n  team:\n    repository: "+f.fixture.Repository+"\n    rules:\n      include:\n        - techs/go/errors\n")
 	if _, err := Sync(ctx, f.options, f.git); err != nil {
 		t.Fatal(err)
 	}

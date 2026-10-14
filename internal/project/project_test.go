@@ -27,7 +27,7 @@ func localProject(t *testing.T) (*os.Root, Options) {
 	if _, err := Initialize(context.Background(), Options{Directory: filepath.Dir(root.Name())}); err != nil {
 		t.Fatal(err)
 	}
-	writeFixture(t, root, "config.yaml", `{"schemaVersion":1,"sources":{}}`)
+	writeFixture(t, root, "config.yaml", `{"schemaVersion":2,"sources":{}}`)
 	writeFixture(t, root, "local/techs/go/_group.yaml", projectMetadata)
 	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
 	return root, Options{Directory: filepath.Dir(root.Name()), ToolVersion: "1.2.3"}
@@ -40,7 +40,7 @@ func importedProject(t *testing.T) (*os.Root, Options) {
 	if err := root.RemoveAll("local"); err != nil {
 		t.Fatal(err)
 	}
-	configJSON := []byte(`{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"]}}}`)
+	configJSON := []byte(`{"schemaVersion":2,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","rules":{"include":["techs/go/*"]}}}}`)
 	writeFixture(t, root, "config.yaml", string(configJSON))
 	config, err := rules.ParseConfiguration(configJSON)
 	if err != nil {
@@ -249,7 +249,7 @@ func TestOfflineRejectsRuleFilesTheRecordDoesntDescribe(t *testing.T) {
 // doesn't import, until sync checks it.
 func TestOfflineRejectsAnExclusionSyncDidntCheck(t *testing.T) {
 	root, options := importedProject(t)
-	writeFixture(t, root, "config.yaml", `{"schemaVersion":1,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","groups":["techs/go"],"exclude":{"techs/go/erorrs":{"reason":"Typo."}}}}}`)
+	writeFixture(t, root, "config.yaml", `{"schemaVersion":2,"sources":{"team":{"repository":"https://github.com/acme/rules","ref":"v1.0.0","rules":{"include":["techs/go/*"],"exclude":[{"id":"techs/go/erorrs","reason":"Typo."}]}}}}`)
 	if _, err := Check(context.Background(), options); err == nil || !strings.Contains(err.Error(), "run code-rules project sync") {
 		t.Fatalf("check accepted an unchecked exclusion: %v", err)
 	}

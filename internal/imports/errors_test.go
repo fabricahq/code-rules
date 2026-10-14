@@ -65,7 +65,7 @@ func TestGitFailure_ExplainsTheCauseWithoutGitsText(t *testing.T) {
 // on this machine only, and gets connection-failed rather than not-found-or-no-access.
 func TestImport_ReportsAHostItCantConnectToApartFromAMissingRepository(t *testing.T) {
 	h := newHistory(t)
-	config, err := rules.ParseConfiguration(json.RawMessage(`{"schemaVersion":1,"sources":{"team":{"repository":"https://127.0.0.1:1/acme/rules.git","groups":["techs/go"]}}}`))
+	config, err := rules.ParseConfiguration(json.RawMessage(`{"schemaVersion":2,"sources":{"team":{"repository":"https://127.0.0.1:1/acme/rules.git","rules":{"include":["techs/go/*"]}}}}`))
 	if err != nil {
 		t.Fatal(err)
 	}

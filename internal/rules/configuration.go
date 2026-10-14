@@ -21,7 +21,7 @@ type Configuration struct {
 }
 
 // Source declares one remote library, the rules it selects, and the project's pins and exceptions.
-// Rule IDs in Rules, Pins, and Exclude are library-relative and checked for syntax only;
+// Rule IDs and selectors in Groups, Rules, Pins, and Exclude are library-relative and checked for syntax only;
 // whether each names a rule the library supplies is checked against the imported catalog.
 type Source struct {
 	Name       string `json:"name"`
@@ -29,13 +29,16 @@ type Source struct {
 	// Ref is the tag or full commit SHA the source imports, keeping its authored text, or the zero GitRef when the
 	// source follows rule versions.
 	Ref GitRef `json:"ref,omitzero"`
-	// Groups is an empty explicit list when the source selects only individual rules.
+	// Groups holds the wildcard and group selectors of rules.include, such as techs/go/*; it is empty when the
+	// source selects only individual rules.
 	Groups GroupSelection `json:"groups"`
-	// Rules lists individually selected rule IDs in sorted order; it is empty, never nil, when there are none.
+	// Rules lists the rule IDs rules.include selects individually, sorted; it is empty, never nil, when there are none.
 	Rules []string `json:"rules"`
-	// Pins is empty, never nil, when no rule is pinned, and always empty when Ref is set.
+	// Pins maps rule IDs to pins; it is empty, never nil, when no rule is pinned, and always empty when Ref is set.
 	Pins map[string]Pin `json:"pins"`
-	// Exclude is empty, never nil, when the source has no exceptions.
+	// Exclude maps each excluded selector, a rule ID or a selector ending in *, to its exclusion; it is empty, never
+	// nil, when the source has no exceptions. Only an exclusion of a rule ID can have a replacement. Look a rule up
+	// with Exclusion, which also finds the selectors that match it.
 	Exclude map[string]Exclusion `json:"exclude"`
 }
 
@@ -45,10 +48,10 @@ type Pin struct {
 	Reason  string                `json:"reason" yaml:"reason"`
 }
 
-// Exclusion leaves one rule out of generated guidance, with the project's reason.
+// Exclusion leaves one rule, or every rule a selector matches, out of generated guidance, with the project's reason.
 type Exclusion struct {
 	Reason string `json:"reason" yaml:"reason"`
-	// ReplacedBy is empty, or a contained path under local/ naming the local rule agents read instead.
+	// ReplacedBy is empty, or the ID of the local rule agents read instead, whose file ReplacementFile returns.
 	ReplacedBy string `json:"replacedBy,omitempty" yaml:"replacedBy,omitempty"`
 	// BasedOn is the library version of the excluded rule that the replacement incorporates, which updates compare
 	// the library's newer versions with; it is nil when the project doesn't record one, and only a replacement has
@@ -56,10 +59,57 @@ type Exclusion struct {
 	BasedOn *coderules.RuleVersion `json:"basedOn,omitempty" yaml:"basedOn,omitempty"`
 }
 
+// Exclusion returns the exclusion that leaves rule id out of generated guidance: the entry for id itself, or else
+// the entry of the narrowest selector that matches it, from a group's selector to "*". It reports false when no
+// entry excludes the rule.
+func (s Source) Exclusion(id string) (Exclusion, bool) {
+	if exclusion, ok := s.Exclude[id]; ok {
+		return exclusion, true
+	}
+	selectors := []string{"*"}
+	if parts := strings.SplitN(id, "/", 3); len(parts) == 3 {
+		selectors = []string{parts[0] + "/" + parts[1] + "/*", parts[0] + "/*", "*"}
+	}
+	for _, text := range selectors {
+		if exclusion, ok := s.Exclude[text]; ok {
+			return exclusion, true
+		}
+	}
+	return Exclusion{}, false
+}
+
+// ReplacementFile returns the path of the local rule that replaces the excluded rule, such as
+// local/techs/go/wrap-errors.md for ReplacedBy techs/go/wrap-errors, or "" when nothing replaces it.
+func (e Exclusion) ReplacementFile() string {
+	if e.ReplacedBy == "" {
+		return ""
+	}
+	return "local/" + e.ReplacedBy + ".md"
+}
+
 var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
-// ParseConfiguration validates schema version 1, rejecting unknown fields and
-// contradictory source declarations. Errors return no partial configuration.
+// versionOneProblem explains how to rewrite a version 1 configuration, which Code Rules no longer reads, as version 2.
+const versionOneProblem = `version 1 configuration is no longer supported, and Code Rules doesn't convert it. Rewrite .code-rules/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as "*"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the local rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md.
+
+schemaVersion: 2
+sources:
+  team:
+    repository: https://github.com/example/rules.git
+    rules:
+      include: [techs/go/*, practices/testing/verify-retry-limits]
+      exclude:
+        - id: techs/go/wrap-errors
+          reason: Our errors package covers this.
+      pins:
+        - id: practices/testing/verify-retry-limits
+          version: "1.3.0"
+          reason: Waiting on the author's answer.
+
+After rewriting it, run code-rules project check.`
+
+// ParseConfiguration validates schema version 2, rejecting unknown fields and contradictory source declarations,
+// and a version 1 configuration with an example of the version 2 shape. Errors return no partial configuration.
 // Strings retain authored spacing. Source aliases, group IDs, and rule IDs are sorted.
 func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	fields, err := decode.Object(input, "configuration")
@@ -69,12 +119,16 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	if _, ok := fields["localGroups"]; ok {
 		return Configuration{}, invalid("localGroups", "remove localGroups; local groups are discovered from local/<group>/_group.yaml")
 	}
+	var schema float64
+	versioned := json.Unmarshal(fields["schemaVersion"], &schema) == nil
+	if versioned && schema == 1 {
+		return Configuration{}, invalid("schemaVersion", versionOneProblem)
+	}
 	if err := decode.KnownFields(fields, []string{"schemaVersion", "sources"}, "configuration"); err != nil {
 		return Configuration{}, err
 	}
-	var schema float64
-	if json.Unmarshal(fields["schemaVersion"], &schema) != nil || schema != 1 {
-		return Configuration{}, invalid("schemaVersion", "only version 1 is supported")
+	if !versioned || schema != 2 {
+		return Configuration{}, invalid("schemaVersion", "only version 2 is supported")
 	}
 	sources, err := decode.Object(fields["sources"], "sources")
 	if err != nil {
@@ -93,6 +147,13 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 	return result, nil
 }
 
+// movedSourceFields maps each version 1 source field to where version 2 keeps it.
+var movedSourceFields = map[string]string{
+	"groups":  "select groups in rules.include with selectors such as techs/go/*",
+	"pins":    "pins moved to rules.pins, a list of entries with an id",
+	"exclude": "exclude moved to rules.exclude, a list of entries with an id",
+}
+
 // parseSource validates identity, then revision, then selection, then pins and exclusions.
 func parseSource(name string, input json.RawMessage, repositories map[string]string) (Source, error) {
 	where := "sources." + name
@@ -103,7 +164,12 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 	if err != nil {
 		return Source{}, err
 	}
-	if err := decode.KnownFields(fields, []string{"repository", "groups", "rules", "pins", "ref", "exclude"}, where); err != nil {
+	for _, field := range slices.Sorted(maps.Keys(movedSourceFields)) {
+		if _, ok := fields[field]; ok {
+			return Source{}, invalid(where+"."+field, field+" isn't a version 2 source field; "+movedSourceFields[field])
+		}
+	}
+	if err := decode.KnownFields(fields, []string{"repository", "ref", "rules"}, where); err != nil {
 		return Source{}, err
 	}
 	repository, err := decode.Text(fields["repository"], where+".repository")
@@ -120,9 +186,6 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 	repositories[address.Identity] = name
 	result := Source{Name: name, Repository: repository}
 	if raw, ok := fields["ref"]; ok {
-		if _, pinned := fields["pins"]; pinned {
-			return Source{}, invalid(where, "pins and ref can't be combined; remove ref to pin individual rules, or remove pins to import one revision")
-		}
 		if first := strings.TrimSpace(string(raw)); first != "" && strings.ContainsRune("-0123456789", rune(first[0])) {
 			return Source{}, invalid(where+".ref", "expected a tag or full commit SHA in quotes; YAML reads an unquoted value of digits as a number")
 		}
@@ -134,71 +197,79 @@ func parseSource(name string, input json.RawMessage, repositories map[string]str
 			return Source{}, err
 		}
 	}
-	if result.Groups, result.Rules, err = parseSelection(fields, where); err != nil {
-		return Source{}, err
-	}
-	if result.Pins, err = parsePins(fields["pins"], where+".pins"); err != nil {
-		return Source{}, err
-	}
-	if result.Exclude, err = parseExclusions(fields["exclude"], where+".exclude"); err != nil {
+	if err := parseRuleFields(fields["rules"], where, &result); err != nil {
 		return Source{}, err
 	}
 	return result, nil
 }
 
-// parseSelection returns the group selection and sorted rule IDs, requiring at least one group,
-// wildcard, or rule. A missing groups field is an empty explicit list.
-func parseSelection(fields map[string]json.RawMessage, where string) (GroupSelection, []string, error) {
-	groups := GroupSelection{Groups: []string{}}
-	if raw, ok := fields["groups"]; ok {
-		var err error
-		if groups, err = ParseGroupSelection(raw, where+".groups"); err != nil {
-			return GroupSelection{}, nil, err
-		}
+// parseRuleFields reads a source's rules object into source: include, which must select something, then pins,
+// which can't be combined with a ref, then exclude.
+func parseRuleFields(input json.RawMessage, where string, source *Source) error {
+	if input == nil {
+		return invalid(where, "select rules in rules.include, such as rules: {include: [techs/go/*]}")
 	}
-	ids := []string{}
-	if raw, ok := fields["rules"]; ok {
-		var err error
-		if ids, err = ParseRuleList(raw, where+".rules"); err != nil {
-			return GroupSelection{}, nil, err
-		}
+	location := where + ".rules"
+	fields, err := decode.Object(input, location)
+	if err != nil {
+		return err
 	}
-	if groups.Pattern == "" && len(groups.Groups) == 0 && len(ids) == 0 {
-		return GroupSelection{}, nil, invalid(where, "select at least one group in groups or one rule in rules")
+	if err := decode.KnownFields(fields, []string{"include", "exclude", "pins"}, location); err != nil {
+		return err
 	}
-	return groups, ids, nil
+	if _, ok := fields["include"]; !ok {
+		return invalid(location, "select rules in include, such as include: [techs/go/*]")
+	}
+	if source.Groups, source.Rules, err = ParseRuleSelection(fields["include"], location+".include"); err != nil {
+		return err
+	}
+	if source.Groups.IsEmpty() && len(source.Rules) == 0 {
+		return invalid(location+".include", "select at least one group, wildcard, or rule, such as techs/go/*")
+	}
+	if _, pinned := fields["pins"]; pinned && !source.Ref.IsZero() {
+		return invalid(where, "rules.pins and ref can't be combined; remove ref to pin individual rules, or remove rules.pins to import one revision")
+	}
+	if source.Pins, err = parsePins(fields["pins"], location+".pins"); err != nil {
+		return err
+	}
+	if source.Exclude, err = parseExclusions(fields["exclude"], location+".exclude"); err != nil {
+		return err
+	}
+	return nil
 }
 
-// ParseRuleList validates a JSON array of distinct library rule IDs, reporting each original index, and returns them sorted.
-// Element text errors precede duplicates, then ID syntax errors, matching group selection.
-func ParseRuleList(input json.RawMessage, location string) ([]string, error) {
+// listEntries decodes a list of entry objects, each identified by its id, and returns each entry's fields and
+// location by id, in list order. An entry's location before its id is known uses its index, such as
+// sources.team.rules.pins[0].id; afterward it uses the id, such as sources.team.rules.pins.techs/go/errors. validate
+// checks the id's syntax at its location. A repeated id fails at the repeated entry.
+func listEntries(input json.RawMessage, location string, validate func(id, location string) error) ([]string, map[string]map[string]json.RawMessage, error) {
 	var items []json.RawMessage
 	if json.Unmarshal(input, &items) != nil || items == nil {
-		return nil, invalid(location, "expected an array of rule IDs, such as practices/testing/verify-retry-limits")
+		return nil, nil, invalid(location, "expected a list of entries, each with an id")
 	}
-	ids := make([]string, len(items))
+	ids := []string{}
+	entries := map[string]map[string]json.RawMessage{}
 	for i, item := range items {
-		text, err := decode.Text(item, fmt.Sprintf("%s[%d]", location, i))
+		where := fmt.Sprintf("%s[%d]", location, i)
+		fields, err := decode.Object(item, where)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		ids[i] = text
-	}
-	seen := make(map[string]bool, len(ids))
-	for _, id := range ids {
-		if seen[id] {
-			return nil, invalid(location, "duplicate entries")
+		id, err := decode.Text(fields["id"], where+".id")
+		if err != nil {
+			return nil, nil, err
 		}
-		seen[id] = true
-	}
-	for i, id := range ids {
-		if err := librarytree.ValidateRuleID(id, fmt.Sprintf("%s[%d]", location, i)); err != nil {
-			return nil, err
+		if err := validate(id, where+".id"); err != nil {
+			return nil, nil, err
 		}
+		if _, repeated := entries[id]; repeated {
+			return nil, nil, invalid(location+"."+id, "listed more than once; keep one entry")
+		}
+		delete(fields, "id")
+		ids = append(ids, id)
+		entries[id] = fields
 	}
-	// Valid IDs are ASCII, so byte order is also code-point order.
-	slices.Sort(ids)
-	return ids, nil
+	return ids, entries, nil
 }
 
 // parsePins validates each pin's rule ID, exact version, and reason; a missing field is no pins.
@@ -207,19 +278,18 @@ func parsePins(input json.RawMessage, location string) (map[string]Pin, error) {
 	if input == nil {
 		return result, nil
 	}
-	entries, err := decode.Object(input, location)
+	ids, entries, err := listEntries(input, location, func(id, where string) error {
+		if strings.Contains(id, "*") || librarytree.ValidateGroupID(id, where) == nil {
+			return invalid(where, "a pin keeps one rule at a version, so its id is a rule ID, such as techs/go/wrap-errors, not "+decode.Quote(id))
+		}
+		return librarytree.ValidateRuleID(id, where)
+	})
 	if err != nil {
 		return nil, err
 	}
-	for _, id := range slices.Sorted(maps.Keys(entries)) {
+	for _, id := range ids {
 		where := location + "." + id
-		if err := librarytree.ValidateRuleID(id, where); err != nil {
-			return nil, err
-		}
-		fields, err := decode.Object(entries[id], where)
-		if err != nil {
-			return nil, err
-		}
+		fields := entries[id]
 		if err := decode.KnownFields(fields, []string{"version", "reason"}, where); err != nil {
 			return nil, err
 		}
@@ -245,27 +315,25 @@ func quotedVersion(raw json.RawMessage, location string) (coderules.RuleVersion,
 	return coderules.ParseRuleVersion(text, location)
 }
 
-// parseExclusions validates each exclusion's rule ID, reason, optional contained local replacement, and, for a
-// replacement, the optional version it's based on. A missing field is no exclusions. Whether the replacement file
-// exists is checked when rules resolve, and whether the library published the basedOn version when sync reads it.
+// parseExclusions validates each exclusion's selector, reason, and, for a rule ID, the optional ID of the local rule
+// that replaces it and the optional version the replacement is based on. A missing field is no exclusions. Whether
+// the replacement's file exists is checked when rules resolve, and whether the library published the basedOn version
+// when sync reads it.
 func parseExclusions(input json.RawMessage, location string) (map[string]Exclusion, error) {
 	result := map[string]Exclusion{}
 	if input == nil {
 		return result, nil
 	}
-	entries, err := decode.Object(input, location)
+	ids, entries, err := listEntries(input, location, func(id, where string) error {
+		_, err := parseSelector(id, where)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
-	for _, id := range slices.Sorted(maps.Keys(entries)) {
+	for _, id := range ids {
 		where := location + "." + id
-		if err := librarytree.ValidateRuleID(id, where); err != nil {
-			return nil, err
-		}
-		fields, err := decode.Object(entries[id], where)
-		if err != nil {
-			return nil, err
-		}
+		fields := entries[id]
 		if err := decode.KnownFields(fields, []string{"reason", "replacedBy", "basedOn"}, where); err != nil {
 			return nil, err
 		}
@@ -275,14 +343,20 @@ func parseExclusions(input json.RawMessage, location string) (map[string]Exclusi
 		}
 		exclusion := Exclusion{Reason: reason}
 		if raw, ok := fields["replacedBy"]; ok {
-			file, err := decode.Path(raw, where+".replacedBy")
+			if isSelectorPattern(id) {
+				return nil, invalid(where+".replacedBy", "a replacement takes the place of one rule, so its id is a rule ID, not a selector ending in *")
+			}
+			replacement, err := decode.Text(raw, where+".replacedBy")
 			if err != nil {
 				return nil, err
 			}
-			if !strings.HasPrefix(file, "local/") {
-				return nil, invalid(where+".replacedBy", "replacement files must be under local/")
+			if named := strings.TrimSuffix(strings.TrimPrefix(replacement, "local/"), ".md"); named != replacement && librarytree.ValidateRuleID(named, where) == nil {
+				return nil, invalid(where+".replacedBy", "replacedBy names the local rule by its ID, "+named+", not by its file")
 			}
-			exclusion.ReplacedBy = file
+			if err := librarytree.ValidateRuleID(replacement, where+".replacedBy"); err != nil {
+				return nil, err
+			}
+			exclusion.ReplacedBy = replacement
 		}
 		if raw, ok := fields["basedOn"]; ok {
 			if exclusion.ReplacedBy == "" {

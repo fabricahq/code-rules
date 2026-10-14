@@ -251,7 +251,7 @@ func syncFailure(t *testing.T, binary, repository string, environment []string, 
 	if out, diagnostic, exit := runCLIWithEnvironment(t, binary, dir, environment, "project", "init"); exit != 0 {
 		t.Fatal(exit, out, diagnostic)
 	}
-	config := "schemaVersion: 1\nsources:\n  team:\n    repository: " + repository + "\n    groups:\n      - techs/go\n"
+	config := "schemaVersion: 2\nsources:\n  team:\n    repository: " + repository + "\n    rules:\n      include:\n        - techs/go/*\n"
 	if err := os.WriteFile(filepath.Join(dir, ".code-rules", "config.yaml"), []byte(config), 0600); err != nil {
 		t.Fatal(err)
 	}

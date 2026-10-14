@@ -66,7 +66,7 @@ func syncWithConfiguration(t *testing.T, f *gitfixture.Fixture, fields string, a
 	if out, diagnostic, code := runCLI(t, binary, directory, "project", "init"); code != 0 {
 		t.Fatal(code, out, diagnostic)
 	}
-	config := `{"schemaVersion":1,"sources":{"team":{"repository":"` + f.Repository + `",` + fields + `}}}`
+	config := `{"schemaVersion":2,"sources":{"team":{"repository":"` + f.Repository + `",` + fields + `}}}`
 	if err := os.WriteFile(filepath.Join(directory, ".code-rules", "config.yaml"), []byte(config), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -79,9 +79,9 @@ func TestSyncJSON_ReportsRuleVersionCodes(t *testing.T) {
 		name, fields, code string
 		released           bool
 	}{
-		{"no library release", `"groups":["techs/go"]`, "releases-not-found", false},
-		{"pin to an unpublished version", `"groups":["techs/go"],"pins":{"techs/go/errors":{"version":"2.0.0","reason":"Typo."}}`, "version-not-found", true},
-		{"missing ref", `"groups":["techs/go"],"ref":"release/7"`, "version-not-found", true},
+		{"no library release", `"rules":{"include":["techs/go/*"]}`, "releases-not-found", false},
+		{"pin to an unpublished version", `"rules":{"include":["techs/go/*"],"pins":[{"id":"techs/go/errors","version":"2.0.0","reason":"Typo."}]}`, "version-not-found", true},
+		{"missing ref", `"rules":{"include":["techs/go/*"]},"ref":"release/7"`, "version-not-found", true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			out, _, code := syncWithConfiguration(t, versionedLibrary(t, test.released), test.fields, "--json")
@@ -103,7 +103,7 @@ func TestSync_PrintsWarningsForUnreleasedRefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fields := `"groups":["techs/go"],"ref":"` + commit + `"`
+	fields := `"rules":{"include":["techs/go/*"]},"ref":"` + commit + `"`
 	out, diagnostic, code := syncWithConfiguration(t, f, fields)
 	if code != 0 || !strings.Contains(out, "Warning: Source team imports "+commit+", which isn't a library release") || !strings.Contains(out, "Unreleased rules: techs/go/errors.") {
 		t.Fatalf("exit %d\n%s%s", code, out, diagnostic)

@@ -68,8 +68,8 @@ type resolvedSource struct {
 	Rules      []string                        `json:"ruleSelection"`
 	Groups     []string                        `json:"groups"`
 	Versions   map[string]library.ImportedRule `json:"rules"`
-	// Exclude is the source's configured exclusions, which the library README marks in its rule versions table.
-	Exclude map[string]rules.Exclusion `json:"-"`
+	// Configured is the source's configuration, whose exclusions the library README marks in its rule versions table.
+	Configured rules.Source `json:"-"`
 	// Retired lists the rules the library retired, as the source record does, so the README marks one it imports.
 	Retired []string                  `json:"-"`
 	License *rules.LicenseDeclaration `json:"license"`
@@ -120,7 +120,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		if !ok {
 			return resolution{}, invalid(source.Name, "missing library; load or sync the source")
 		}
-		if supplied.Catalog.Selection.Pattern != source.Groups.Pattern || !slices.Equal(supplied.Catalog.Selection.Groups, source.Groups.Groups) {
+		if !supplied.Catalog.Selection.Equal(source.Groups) {
 			return resolution{}, invalid(source.Name, "loaded group selection differs from configuration; reload the source")
 		}
 		for _, id := range supplied.Catalog.Rules {
@@ -168,12 +168,9 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			}
 		}
 		slices.Sort(ids)
-		if source.Groups.Pattern == "" && !slices.Equal(ids, source.Groups.Groups) {
-			return resolution{}, invalid(source.Name, "loaded groups differ from configured selection")
-		}
-		for _, id := range ids {
-			if source.Groups.Pattern != "" && source.Groups.Pattern != "*" && !strings.HasPrefix(id, strings.TrimSuffix(source.Groups.Pattern, "*")) {
-				return resolution{}, invalid(source.Name, "loaded group outside configured selection")
+		for _, id := range source.Groups.Groups {
+			if !slices.Contains(ids, id) {
+				return resolution{}, invalid(source.Name, "loaded groups differ from configured selection")
 			}
 		}
 		retained := maps.Clone(supplied.Catalog.SupportingFiles)
@@ -182,7 +179,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 		}
 		for _, id := range slices.Sorted(maps.Keys(candidates)) {
 			parsed := candidates[id]
-			exclusion, excluded := source.Exclude[id]
+			exclusion, excluded := source.Exclusion(id)
 			if excluded && exclusion.ReplacedBy == "" {
 				retained[parsed.Path] = []byte(parsed.Document)
 				continue
@@ -194,16 +191,16 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			origin := ruleOrigin{Source: source.Name, File: parsed.Path, Repository: source.Repository, Ref: source.Ref.String(), Commit: version.Commit, Version: version.Version, Release: version.Release}
 			active := resolvedRule{Rule: parsed, Origin: origin, License: supplied.Catalog.License}
 			if excluded {
-				file := strings.TrimPrefix(exclusion.ReplacedBy, "local/")
+				file := exclusion.ReplacedBy + ".md"
 				replacementRule, ok := localRules[file]
 				if !ok {
-					return resolution{}, invalid(exclusion.ReplacedBy, "missing local replacement rule")
+					return resolution{}, invalid(exclusion.ReplacementFile(), "missing local replacement rule")
 				}
 				if used[file] {
-					return resolution{}, invalid(exclusion.ReplacedBy, "replacement file is reused for multiple targets")
+					return resolution{}, invalid(exclusion.ReplacementFile(), "replacement file is reused for multiple targets")
 				}
 				if replacementRule.Group != parsed.Group {
-					return resolution{}, invalid(exclusion.ReplacedBy, "replacement must stay within the target group")
+					return resolution{}, invalid(exclusion.ReplacementFile(), "replacement must stay within the target group")
 				}
 				retained[parsed.Path] = []byte(parsed.Document)
 				used[file] = true
@@ -212,7 +209,7 @@ func resolve(config rules.Configuration, libraries map[string]Library, localFile
 			group := ensureGroup(groups, parsed.Group)
 			group.Rules = append(group.Rules, active)
 		}
-		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, Exclude: source.Exclude, Retired: snapshot.RetiredRules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
+		result.Sources = append(result.Sources, resolvedSource{Name: source.Name, Repository: source.Repository, Ref: source.Ref.String(), Pins: source.Pins, Release: snapshot.Release, Commit: ref.Canonical(), Selection: source.Groups, Rules: source.Rules, Groups: ids, Versions: snapshot.Rules, Configured: source, Retired: snapshot.RetiredRules, License: supplied.Catalog.License, Paths: supplied.Catalog.Paths(), Files: retained})
 	}
 	for _, file := range slices.Sorted(maps.Keys(localRules)) {
 		if used[file] {

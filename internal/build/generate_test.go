@@ -77,7 +77,7 @@ func TestGenerateFailureReturnsNoFiles(t *testing.T) {
 
 func generationInputs(t *testing.T) (rules.Configuration, map[string][]byte) {
 	t.Helper()
-	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":1,"sources":{}}`))
+	config, err := rules.ParseConfiguration([]byte(`{"schemaVersion":2,"sources":{}}`))
 	if err != nil {
 		t.Fatal(err)
 	}

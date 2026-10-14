@@ -440,7 +440,7 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 	for _, id := range ids {
 		current := before.rules[id]
 		latest, published := newest.Rules[id]
-		exclusion, excluded := p.source.Exclude[id]
+		exclusion, excluded := p.source.Exclusion(id)
 		listed := !excluded || exclusion.ReplacedBy != ""
 		pin, pinned := p.source.Pins[id]
 		switch {
@@ -457,7 +457,7 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 				baseline = exclusion.BasedOn
 			}
 			if latest.Compare(*baseline) > 0 {
-				row := RuleUpdate{ID: id, Change: UpdateReplaced, From: current.Version, To: &latest, LocalRule: exclusion.ReplacedBy, BasedOn: exclusion.BasedOn}
+				row := RuleUpdate{ID: id, Change: UpdateReplaced, From: current.Version, To: &latest, LocalRule: exclusion.ReplacementFile(), BasedOn: exclusion.BasedOn}
 				if pinned {
 					row.To, row.Newest, row.Pin = nil, &latest, &pin
 				}
@@ -505,6 +505,10 @@ func (p *planner) update(before sourcePlan, scope []string) (map[string]library.
 			if after[id], err = p.publishedVersion(id, version); err != nil {
 				return nil, nil, err
 			}
+			// A selector that excludes the new rule decided it already, so the preview doesn't ask.
+			if _, excluded := p.source.Exclusion(id); excluded {
+				continue
+			}
 			row := RuleUpdate{ID: id, Change: UpdateNew, To: &version}
 			row.Summaries, row.SummaryVersions = history.summaries(id, nil, version)
 			rows = append(rows, row)
@@ -527,7 +531,7 @@ func (p *planner) settle(plan *sourcePlan) error {
 		if _, imported := plan.rules[id]; imported {
 			plan.individual = append(plan.individual, id)
 		} else {
-			plan.warnings = append(plan.warnings, p.retiredEntry("rules", id))
+			plan.warnings = append(plan.warnings, p.retiredEntry("rules.include", id))
 		}
 	}
 	if err := p.requireEntries(plan); err != nil {
@@ -563,8 +567,8 @@ func (p *planner) withReplacementLocalRule(row RuleUpdate) RuleUpdate {
 	if row.ReplacementRetired {
 		replacement = row.CurrentReplacement
 	}
-	if exclusion, excluded := p.source.Exclude[replacement]; excluded && replacement != "" {
-		row.ReplacementLocalRule = exclusion.ReplacedBy
+	if exclusion, excluded := p.source.Exclusion(replacement); excluded && replacement != "" {
+		row.ReplacementLocalRule = exclusion.ReplacementFile()
 	}
 	return row
 }

@@ -23,8 +23,9 @@ func ParseConfigurationYAML(input []byte) (Configuration, error) {
 	return ParseConfiguration(data)
 }
 
-// AppendConfigurationSource adds a source without dropping existing comments or reordering entries.
-// Empty optional fields are omitted, and groups is omitted when only individual rules are selected.
+// AppendConfigurationSource adds a source without dropping existing comments or reordering entries. Its rules.include
+// lists the source's wildcard, then its groups as selectors such as techs/go/*, then its individually selected rules;
+// its pins and exclude lists follow in rule ID order, and are omitted when empty, as ref is.
 // Pinned versions are written quoted, such as version: "1.3.0".
 // Folded scalars use literal style in the result because the YAML encoder can change their values.
 // The complete resulting configuration is validated before any bytes are returned.
@@ -40,26 +41,31 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 	if mappingValue(sources, alias) != nil {
 		return nil, invalid("sources."+alias, "source already exists")
 	}
-	var groups any
+	include := []string{}
 	if source.Groups.Pattern != "" {
-		groups = source.Groups.Pattern
-	} else if len(source.Groups.Groups) > 0 {
-		groups = source.Groups.Groups
+		include = append(include, source.Groups.Pattern)
 	}
+	for _, group := range source.Groups.Groups {
+		include = append(include, group+"/*")
+	}
+	include = append(include, source.Rules...)
 	declaration := struct {
-		Repository string   `yaml:"repository"`
-		Groups     any      `yaml:"groups,omitempty"`
-		Rules      []string `yaml:"rules,omitempty"`
-		Ref        string   `yaml:"ref,omitempty"`
-	}{source.Repository, groups, source.Rules, source.Ref.String()}
+		Repository string `yaml:"repository"`
+		Ref        string `yaml:"ref,omitempty"`
+		Rules      struct {
+			Include []string `yaml:"include"`
+		} `yaml:"rules"`
+	}{Repository: source.Repository, Ref: source.Ref.String()}
+	declaration.Rules.Include = include
 	var entry yaml.Node
 	if err := entry.Encode(declaration); err != nil {
 		return nil, err
 	}
-	if err := addEntries(&entry, "pins", pinNodes(source.Pins), "sources."+alias); err != nil {
+	ruleFields := mappingValue(&entry, "rules")
+	if err := addEntries(ruleFields, "pins", pinNodes(source.Pins), "sources."+alias+".rules"); err != nil {
 		return nil, err
 	}
-	if err := addEntries(&entry, "exclude", exclusionNodes(source.Exclude), "sources."+alias); err != nil {
+	if err := addEntries(ruleFields, "exclude", exclusionNodes(source.Exclude), "sources."+alias+".rules"); err != nil {
 		return nil, err
 	}
 	sources.Content = append(sources.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: alias}, &entry)
@@ -81,11 +87,11 @@ type SourceEdit struct {
 // EditConfigurationSource adds pins and exclusions to the existing source alias, removes the pins edit.Unpin
 // names, and sets the basedOn version of the existing replacements edit.BasedOn names, keeping a replaced value's
 // comment, without dropping other comments or reordering entries. Setting basedOn of a rule the source doesn't
-// replace fails. A pins map left empty is removed; a pin to remove
-// that the source lacks fails. New entries follow the source's existing ones in rule ID order, in a pins or exclude map
-// that is created when absent. Versions are written quoted, such as version: "1.3.0", so YAML reads them as text.
-// A rule the source already pins or excludes fails rather than being replaced. Folded scalars use literal style,
-// as in AppendConfigurationSource. The complete resulting configuration is validated before any bytes are returned.
+// replace fails. A rules.pins list left empty is removed; a pin to remove that the source lacks fails. New entries
+// follow the source's existing ones in rule ID order, in a rules.pins or rules.exclude list that is created when
+// absent. Versions are written quoted, such as version: "1.3.0", so YAML reads them as text. A rule the source
+// already pins or excludes by its ID fails rather than being replaced. Folded scalars use literal style, as in
+// AppendConfigurationSource. The complete resulting configuration is validated before any bytes are returned.
 func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byte, error) {
 	document, data, err := decode.YAML(input, "configuration")
 	if err != nil {
@@ -99,25 +105,30 @@ func EditConfigurationSource(input []byte, alias string, edit SourceEdit) ([]byt
 		return nil, invalid("sources."+alias, "source doesn't exist")
 	}
 	source.Style = 0
-	if err := removeEntries(source, "pins", edit.Unpin, "sources."+alias); err != nil {
+	// A parsed configuration's source always has rules, which holds its include.
+	ruleFields := mappingValue(source, "rules")
+	ruleFields.Style = 0
+	where := "sources." + alias + ".rules"
+	if err := removeEntries(ruleFields, "pins", edit.Unpin, where); err != nil {
 		return nil, err
 	}
-	if err := addEntries(source, "pins", pinNodes(edit.Pins), "sources."+alias); err != nil {
+	if err := addEntries(ruleFields, "pins", pinNodes(edit.Pins), where); err != nil {
 		return nil, err
 	}
-	if err := addEntries(source, "exclude", exclusionNodes(edit.Exclude), "sources."+alias); err != nil {
+	if err := addEntries(ruleFields, "exclude", exclusionNodes(edit.Exclude), where); err != nil {
 		return nil, err
 	}
 	for _, id := range slices.Sorted(maps.Keys(edit.BasedOn)) {
-		exclusion := mappingValue(mappingValue(source, "exclude"), id)
+		_, exclusion := listEntry(mappingValue(ruleFields, "exclude"), id)
 		if exclusion == nil || mappingValue(exclusion, "replacedBy") == nil {
-			return nil, invalid("sources."+alias+".exclude."+id, "the source doesn't replace this rule, so it has no basedOn version to set")
+			return nil, invalid(where+".exclude."+id, "the source doesn't replace this rule, so it has no basedOn version to set")
 		}
 		version := edit.BasedOn[id]
 		if existing := mappingValue(exclusion, "basedOn"); existing != nil {
 			existing.Kind, existing.Tag, existing.Value, existing.Style = yaml.ScalarNode, "!!str", version.String(), yaml.DoubleQuotedStyle
 			continue
 		}
+		exclusion.Style = 0
 		exclusion.Content = append(exclusion.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "basedOn"}, versionNode(version))
 	}
 	return encodeConfiguration(document)
@@ -136,31 +147,38 @@ func mappingValue(mapping *yaml.Node, key string) *yaml.Node {
 	return nil
 }
 
-// removeEntries deletes each of ids from the map field of source, and the field itself once it's empty. An ID the
-// map lacks fails with its location under where.
-func removeEntries(source *yaml.Node, field string, ids []string, where string) error {
+// listEntry returns the index and mapping of the entry whose id is id in list, or -1 and nil when list is nil or
+// has no such entry.
+func listEntry(list *yaml.Node, id string) (int, *yaml.Node) {
+	if list == nil {
+		return -1, nil
+	}
+	for i, entry := range list.Content {
+		if key := mappingValue(entry, "id"); key != nil && key.Value == id {
+			return i, entry
+		}
+	}
+	return -1, nil
+}
+
+// removeEntries deletes the entry of each of ids from the list field of parent, and the field itself once it's
+// empty. An ID the list lacks fails with its location under where.
+func removeEntries(parent *yaml.Node, field string, ids []string, where string) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	target := mappingValue(source, field)
+	target := mappingValue(parent, field)
 	for _, id := range ids {
-		index := -1
-		if target != nil {
-			for i := 0; i+1 < len(target.Content); i += 2 {
-				if target.Content[i].Value == id {
-					index = i
-				}
-			}
-		}
+		index, _ := listEntry(target, id)
 		if index < 0 {
 			return invalid(where+"."+field+"."+id, "the source has no such entry to remove")
 		}
-		target.Content = slices.Delete(target.Content, index, index+2)
+		target.Content = slices.Delete(target.Content, index, index+1)
 	}
 	if len(target.Content) == 0 {
-		for i := 0; i+1 < len(source.Content); i += 2 {
-			if source.Content[i].Value == field {
-				source.Content = slices.Delete(source.Content, i, i+2)
+		for i := 0; i+1 < len(parent.Content); i += 2 {
+			if parent.Content[i].Value == field {
+				parent.Content = slices.Delete(parent.Content, i, i+2)
 				break
 			}
 		}
@@ -168,28 +186,31 @@ func removeEntries(source *yaml.Node, field string, ids []string, where string) 
 	return nil
 }
 
-// addEntries appends entries, in key order, to the map field of source, creating the field when it's absent and
-// entries isn't empty. A key the map already holds fails with its location under where.
-func addEntries(source *yaml.Node, field string, entries map[string]*yaml.Node, where string) error {
+// addEntries appends entries, in ID order, to the list field of parent, each a mapping that begins with its id,
+// creating the field when it's absent and entries isn't empty. An ID the list already holds fails with its location
+// under where.
+func addEntries(parent *yaml.Node, field string, entries map[string]*yaml.Node, where string) error {
 	if len(entries) == 0 {
 		return nil
 	}
-	target := mappingValue(source, field)
+	target := mappingValue(parent, field)
 	if target == nil {
-		target = &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-		source.Content = append(source.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: field}, target)
+		target = &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq"}
+		parent.Content = append(parent.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: field}, target)
 	}
 	target.Style = 0
 	for _, id := range slices.Sorted(maps.Keys(entries)) {
-		if mappingValue(target, id) != nil {
+		if _, existing := listEntry(target, id); existing != nil {
 			return invalid(where+"."+field+"."+id, "the source already has this entry; edit it in the configuration instead")
 		}
-		target.Content = append(target.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: id}, entries[id])
+		entry := entries[id]
+		entry.Content = append([]*yaml.Node{{Kind: yaml.ScalarNode, Tag: "!!str", Value: "id"}, textNode(id)}, entry.Content...)
+		target.Content = append(target.Content, entry)
 	}
 	return nil
 }
 
-// pinNodes encodes each pin as a mapping whose version is double-quoted.
+// pinNodes encodes each pin, without its id, as a mapping whose version is double-quoted.
 func pinNodes(pins map[string]Pin) map[string]*yaml.Node {
 	nodes := map[string]*yaml.Node{}
 	for id, pin := range pins {
@@ -203,7 +224,8 @@ func pinNodes(pins map[string]Pin) map[string]*yaml.Node {
 	return nodes
 }
 
-// exclusionNodes encodes each exclusion as a mapping with its reason and, when set, replacedBy and basedOn.
+// exclusionNodes encodes each exclusion, without its id, as a mapping with its reason and, when set, replacedBy and
+// basedOn.
 func exclusionNodes(exclude map[string]Exclusion) map[string]*yaml.Node {
 	nodes := map[string]*yaml.Node{}
 	for id, exclusion := range exclude {

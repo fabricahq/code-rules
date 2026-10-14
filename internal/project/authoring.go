@@ -68,7 +68,7 @@ func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 			return nil, err
 		}
 		if old == nil {
-			data := []byte("schemaVersion: 1\nsources: {}\n")
+			data := []byte("schemaVersion: 2\nsources: {}\n")
 			files = append(files, filetxn.File{Path: configurationFile, Content: data})
 		}
 		if readme == nil {

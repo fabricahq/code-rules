@@ -52,7 +52,8 @@ func validFiles() map[string]string {
 	return map[string]string{"rule-library.yaml": `{"formatVersion":1}`, "techs/go/_group.yaml": metadata, "techs/go/errors.md": document, "practices/testing/_group.yaml": metadata}
 }
 
-// TestLoadCatalog checks wildcard expansion, empty groups, exact bytes, and explicit empty selection.
+// TestLoadCatalog checks wildcard expansion, a wildcard combined with listed groups, empty groups, exact bytes, and
+// explicit empty selection.
 func TestLoadCatalog(t *testing.T) {
 	files := validFiles()
 	files["techs/go/assets/errors/image.bin"] = "\xff\x00"
@@ -79,6 +80,10 @@ func TestLoadCatalog(t *testing.T) {
 	techs, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"})
 	if err != nil || len(techs.Groups) != 1 {
 		t.Fatalf("techs: %+v, %v", techs, err)
+	}
+	mixed, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*", Groups: []string{"practices/testing", "techs/go"}})
+	if err != nil || len(mixed.Groups) != 2 || mixed.Groups[0].ID != "practices/testing" || mixed.Groups[1].ID != "techs/go" {
+		t.Fatalf("wildcard with groups: %+v, %v", mixed, err)
 	}
 	empty, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Groups: []string{}})
 	if err != nil || len(empty.Groups) != 0 || !reflect.DeepEqual(empty.Paths(), []string{"rule-library.yaml"}) {
@@ -232,7 +237,7 @@ func TestLoadRejectsDirectoryLinksAndInvalidSelections(t *testing.T) {
 	if _, err := library.Load(context.Background(), root, "team", rules.GroupSelection{Pattern: "techs/*"}); err == nil {
 		t.Fatal("accepted linked group")
 	}
-	for _, selection := range []rules.GroupSelection{{}, {Pattern: "other/*"}, {Pattern: "*", Groups: []string{}}, {Groups: []string{"techs/go", "techs/go"}}} {
+	for _, selection := range []rules.GroupSelection{{Pattern: "other/*"}, {Groups: []string{"techs"}}, {Groups: []string{"techs/go", "techs/go"}}, {Pattern: "*", Groups: []string{"techs/missing"}}} {
 		if _, err := library.Load(context.Background(), root, "team", selection); err == nil {
 			t.Fatalf("accepted selection %+v", selection)
 		}

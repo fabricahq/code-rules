@@ -8,6 +8,7 @@ import (
 	"go.yaml.in/yaml/v4"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -90,7 +91,7 @@ func TestSourceAnswerRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := config.Sources["team"]
-	if source["repository"] != "https://github.com/acme/rules" || source["ref"] != nil || source["groups"] != "techs/*" {
+	if source["repository"] != "https://github.com/acme/rules" || source["ref"] != nil || !reflect.DeepEqual(source["rules"], map[string]any{"include": []any{"techs/*"}}) {
 		t.Fatal(string(data))
 	}
 }
