@@ -61,7 +61,7 @@ The repository address and groups are illustrative; replace them with a library 
 code-rules project add group ID [options]
 ```
 
-Create a local group with `_group.yaml` metadata and an authoring README. `ID` is a group path such as `practices/testing` or `techs/typescript`.
+Create a local group with `_group.yaml` metadata and an authoring README. `ID` is a group path such as `practices/testing`, `techs/typescript`, or `areas/billing`. Use an [area group](/concepts/groups/#areas) for rules about one part of this project.
 
 | Option | Meaning |
 | --- | --- |
@@ -242,7 +242,7 @@ If you omit the license options, `rule-library.yaml` leaves the license undeclar
 code-rules library add group ID [options]
 ```
 
-Create a group with `_group.yaml` metadata and an authoring README in the library. `ID` is a group path such as `practices/testing` or `techs/typescript`.
+Create a group with `_group.yaml` metadata and an authoring README in the library. `ID` is a group path such as `practices/testing` or `techs/typescript`. Area groups are project-only, so `areas/` IDs are rejected.
 
 | Option | Meaning |
 | --- | --- |

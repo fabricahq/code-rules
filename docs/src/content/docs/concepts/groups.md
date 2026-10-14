@@ -9,7 +9,7 @@ Groups can live in a **library** for projects to import, or locally in a **proje
 
 ## Group types
 
-Every group must be either a **technology group** under `techs/` or a **practice group** under `practices/`.
+Every group is a **technology group** under `techs/`, a **practice group** under `practices/`, or an **area group** under `areas/`.
 
 ### Technologies
 
@@ -23,9 +23,22 @@ For example, `techs/playwright` holds rules about writing browser tests with Pla
 
 For example, `practices/testing` holds rules about testing behavior, regardless of the language or test framework.
 
+### Areas
+
+**Area groups** live under `areas/` and cover one part of a specific project, such as its billing module, contact form, or documentation sync. They exist only in a project's local rules, never in a library.
+
+For example, `areas/billing` might hold rules like these for an app's billing module:
+
+- "Change prices only in the plan catalog."
+- "Charge customers only through the billing service, never by calling the payment provider directly."
+
+### Why only these types
+
+Group types are fixed so that group IDs mean the same thing in every library. That's what makes [canonical group IDs](#canonical-group-ids) and the `techs/*` and `practices/*` selectors work across libraries. If any directory name could become a group type, each library would invent its own.
+
 ## Group identities
 
-A group's ID is its path starting with `techs/` or `practices/`. A group named "Automated Tests" might have the ID `practices/testing`.
+A group's ID is its path starting with `techs/`, `practices/`, or `areas/`. A group named "Automated Tests" might have the ID `practices/testing`.
 
 When a project builds or syncs, local and imported rules with the same group ID appear together in the generated group.
 
@@ -33,7 +46,7 @@ Use `--name` when creating a group to give it a readable title; the title does n
 
 ## Canonical group IDs
 
-Each library chooses its own group IDs, so the same technology could be `techs/go` in one library and `techs/golang` in another. The canonical group list, `canonical-groups.yaml` at the root of the [Code Rules repository](https://github.com/fabricahq/code-rules), names the shared IDs, such as `techs/go` and `practices/testing`. Each entry has a display name and a line saying which rules belong in the group.
+Each library chooses its own group IDs, so the same technology could be `techs/go` in one library and `techs/golang` in another. The canonical group list, `canonical-groups.yaml` at the root of the [Code Rules repository](https://github.com/fabricahq/code-rules), names the shared IDs, such as `techs/go` and `practices/testing`. It never lists area groups, which belong to one project. Each entry has a display name and a line saying which rules belong in the group.
 
 When you create a group, use a canonical ID if one fits. Tools and catalogs can read the list to combine groups across libraries, for example to show every library's Go rules together. A group whose ID isn't on the list works the same way in projects, but those tools show it on its own. The list has no aliases: a group ID is part of every rule's ID, so another name for the same group is a different group.
 

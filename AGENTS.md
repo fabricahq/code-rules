@@ -54,10 +54,11 @@ A rule retains its identity and provenance when imported or rendered as a resolv
 
 #### Group
 
-A group collects related rules and explains when an agent should read them. There are two types of groups:
+A group collects related rules and explains when an agent should read them. There are three types of groups:
 
 1. Technology groups live under `techs/` and cover named languages, frameworks, tools, platforms, or protocols.
 2. Practice groups live under `practices/` and cover concerns such as testing, observability, error handling, and architecture.
+3. Area groups live under `areas/` and cover one part of a specific project, such as its billing module. They are local only; libraries can't contain them.
 
 Groups guide selection; individual rules determine applicability. A testing rule may matter even when a change touches no test files. See [Group](docs/src/content/docs/concepts/groups.md).
 

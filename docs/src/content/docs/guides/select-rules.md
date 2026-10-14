@@ -48,7 +48,7 @@ Source-prefixed IDs keep matching rule paths distinct.
 Neither source automatically overrides the other.
 
 Define local groups with `_group.yaml` under `local/`; a separate configuration declaration is unnecessary.
-The [Group concept](/concepts/groups/) explains the distinction between technology and practice groups.
+The [Group concept](/concepts/groups/) explains the distinction between technology, practice, and area groups.
 
 ## Adapt the import to your project
 
@@ -70,6 +70,7 @@ The rule joins the inherited rules and receives a `local:`-prefixed ID.
 Use the [authoring format](/guides/write-rules/) for its metadata and body.
 
 For a local-only group, include its own `_group.yaml`. It is discovered automatically.
+Rules about one part of this project, rather than a technology or practice, belong in a local [area group](/concepts/groups/#areas), such as `.code-rules/local/areas/billing/`.
 When a library later supplies that group, the local metadata and rules stay in place. Local metadata supplies the project's group description; imported rules join the group.
 Imported groups retain source-labeled metadata from every contributing library.
 

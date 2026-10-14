@@ -7,6 +7,8 @@ A **rule** is a Markdown file that tells an agent how to apply one engineering p
 
 This guide explains how to draft and review a rule using the shared template and quality criteria. You'll choose a group for the rule, work through an example, and learn how to keep its identity and source attribution intact.
 
+If you're not sure the guidance should be a rule rather than a script, lint rule, skill, or README, start with [Decide what belongs in a rule](/guides/choose-rules/).
+
 You can write rules with any agent or editor. For the CLI steps to create your first rule, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
 ## Rubric, template, and skill
@@ -38,9 +40,11 @@ It should ask about missing policy decisions instead of silently choosing them f
 
 ## Choose a group
 
-Use a technology group when the obligation depends on a named technology.
-Use a practice group when it transfers across technologies.
-Place project-specific contracts in the applicable project's local rules.
+Use a [technology group](/concepts/groups/#technologies) when the obligation depends on a named technology.
+Use a [practice group](/concepts/groups/#practices) when it transfers across technologies.
+Use an [area group](/concepts/groups/#areas) when it describes how one part of a specific project works, such as its billing module or a content sync, and stops being true outside that part.
+
+Area groups exist only in a project's local rules. Not every project-specific rule belongs in one, though. If a rule is about a technology or practice, put it in a local technology or practice group, even when only this project follows it. For example, a project's own testing conventions belong in its local `practices/testing` group.
 
 For a new group, use a [canonical group ID](/concepts/groups/#canonical-group-ids) if one fits, and add [group metadata](/reference/rule-format/#group-metadata) that helps agents recognize relevant work.
 

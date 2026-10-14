@@ -46,7 +46,7 @@ Many teams also deliver guidance through **skills**. Skills are an excellent way
 
 ### The Code Rules approach
 
-The Code Rules philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)**, and they are represented as Markdown files that optionally follow the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules can give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs.
+The Code Rules philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)**, and they are represented as Markdown files that optionally follow the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules can give guidance on **technologies** like Go or TypeScript, on **practices** like testing, observability, or even writing good READMEs, or on **areas** of one project, like its billing module.
 
 You can write your own project-specific rules, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/)**, which are collections of rules meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
 

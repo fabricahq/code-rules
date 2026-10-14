@@ -84,7 +84,7 @@ header.header { border-bottom: 1px solid var(--cr-border); }
 .sidebar-content a { border-radius: var(--cr-radius-small); }
 .sidebar-content a[aria-current='page'] { background: var(--cr-surface); color: var(--cr-ink); font-weight: 600; box-shadow: inset 2px 0 var(--cr-current-page-indicator); }
 h1[data-page-title] { color: var(--cr-ink); font-weight: 500; letter-spacing: -.045em; line-height: 1.13; }
-.sl-markdown-content { --sl-text-h2: 1.4rem; --sl-text-h3: 1.125rem; --sl-text-h4: 1rem; font-size: var(--cr-text-body); line-height: var(--cr-line-height-body); }
+.sl-markdown-content { --sl-text-h2: 1.625rem; --sl-text-h3: 1.3125rem; --sl-text-h4: 1.0625rem; font-size: var(--cr-text-body); line-height: var(--cr-line-height-body); }
 .sl-markdown-content h2 { color: var(--cr-ink); letter-spacing: -.035em; }
 /* Starlight positions permalink icons relative to the wrapper's heading size. */
 .sl-markdown-content .sl-heading-wrapper { --sl-anchor-icon-size: .7em; --sl-anchor-icon-gap: .4em; }

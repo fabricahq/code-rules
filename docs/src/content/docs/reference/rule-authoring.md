@@ -120,6 +120,10 @@ For example, a code-design group could say:
 
 > Before planning, writing, changing, or reviewing how code is organized, how responsibilities are divided, or how functions and modules work together.
 
+For an area group, name the part of the project in terms an agent can recognize from its task, such as the files, routes, or workflows involved:
+
+> When planning, changing, or reviewing billing, including plan prices, checkout, invoices, or handling the payment provider's webhooks.
+
 Describe the group's intended scope even if it contains only one rule. After opening a group, agents use each rule's cue to decide what to read next. Opening the group does not mean every rule applies.
 
 ### Make the cue recognizable
