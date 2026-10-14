@@ -34,7 +34,7 @@ A relevant rule is not evidence of a violation. Its full instruction and excepti
 
 ## Markdown template
 
-Copy the template below and replace the placeholders. The [local rule command](/start-here/set-up-project/) uses this same starting structure.
+Copy the template below and replace the placeholders. The [rule creation command](/start-here/set-up-project/) uses this same starting structure.
 
 Keep sections that add useful information and remove unused prompts. You do not need a separate Implementation or Validation section if the instruction and examples already answer those questions.
 
@@ -216,7 +216,7 @@ Put prerequisites and instructions in the body. Mention them in `whenToRead` onl
 
 ## Supporting material
 
-Keep the instruction and its exceptions in the rule itself. Put optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory. Put material shared by several rules in the library-root `assets/` directory.
+Keep the instruction and its exceptions in the rule itself. Put optional explanations, images, and sample data in the adjacent `assets/<rule-name>/` directory. Put material shared by several rules in the library's `.code-rules/assets/` directory.
 
 Link to supporting files using ordinary Markdown. Markdown in an asset directory is supporting text, not another rule.
 
