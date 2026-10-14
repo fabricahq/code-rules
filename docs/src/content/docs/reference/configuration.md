@@ -64,7 +64,7 @@ sources:
         reason: Waiting on feedback about the new review step.
   pstack:
     repository: https://github.com/cursor/plugins.git
-    follow: main
+    ref: main
     skillsRoot: pstack/skills
     skills: [skills/how, skills/architect]
     skillUses:
@@ -87,8 +87,7 @@ This project starts from the `fabrica-defaults` preset, which selects `skills/fi
 | `sources.<name>.skills` | Optional skills to install: an array of skill IDs such as `skills/build-feature`, or `"*"` for every skill in the source. See [Select skills](#select-skills). |
 | `sources.<name>.exclude` | Optional map of this source's rule or skill IDs to a `reason` and, optionally, a local rule or skill that `replacedBy` names to use instead, with the version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
 | `sources.<name>.pins` | Optional map of this library's rule or skill IDs to an exact `version` and a `reason`. Libraries only. See [Pin a rule](#pin-a-rule). |
-| `sources.<name>.ref` | Optional and advanced for a library: import it exactly as it was at one tag or commit, and can't be combined with `pins`; see [Import one revision](#import-one-revision). For a plain repository, `ref` or `follow` is required; see [Plain repositories](#plain-repositories). |
-| `sources.<name>.follow` | Plain repositories only. A branch to track; `code-rules project update` moves the source to the branch's newest commit. |
+| `sources.<name>.ref` | Optional and advanced for a library: import it exactly as it was at one tag or commit, and can't be combined with `pins`; see [Import one revision](#import-one-revision). Required for a plain repository, where it can also name a branch to track; see [Plain repositories](#plain-repositories). |
 | `sources.<name>.skillsRoot` | Plain repositories only. The folder that holds the repository's skill folders. Defaults to `skills`. |
 | `sources.<name>.skillUses` | Optional map of a skill ID to the skill IDs it uses that the skill itself doesn't declare. See [Declare a skill's dependencies](#declare-a-skills-dependencies). |
 
@@ -106,7 +105,7 @@ Sources have no `version` or `replace` field. Rule and skill versions are chosen
 
 | Version | Accepts |
 | --- | --- |
-| `1` | Every field above except `skillTargets`, `extends`, and a source's `skills`, `follow`, `skillsRoot`, and `skillUses`. |
+| `1` | Every field above except `skillTargets`, `extends`, and a source's `skills`, `skillsRoot`, and `skillUses`. |
 | `2` | Everything version 1 does, plus those fields. |
 
 A version 1 configuration that uses a version 2 field fails and names the field; set `schemaVersion: 2`. Code Rules writes `2` only when it writes one of those fields, such as when `code-rules project init` writes `skillTargets`, or `code-rules project add library --skills` adds a source's `skills`, so a project that uses only rules keeps version 1 when you upgrade Code Rules, and stays readable by earlier versions. It never lowers the version. `code-rules project init --skill-targets none` writes no `skillTargets`, and so writes version 1.
@@ -236,7 +235,7 @@ Two optional source fields change that:
 
 A source can use `pins` or `ref`, not both. Neither changes which rules and skills are imported; `groups`, `rules`, and `skills` do that.
 
-Plain repositories have no versions. They follow a branch or stay on one revision instead; see [Plain repositories](#plain-repositories).
+Plain repositories have no versions. Their `ref` tracks a branch or stays on one revision instead; see [Plain repositories](#plain-repositories).
 
 ### Pin a rule
 
@@ -472,7 +471,7 @@ A **plain repository** is any Git repository that holds skill folders but no `ru
 sources:
   pstack:
     repository: https://github.com/cursor/plugins.git
-    follow: main
+    ref: main
     skillsRoot: pstack/skills
     skills:
       - skills/how
@@ -484,19 +483,19 @@ sources:
 | Skills | `skills/` at the library root | Under `skillsRoot` |
 | Selection | `groups`, `rules`, and `skills` | `skills` only |
 | Versions | Per skill, from library releases | None; `_source.json` records the exact commit |
-| Update | Previews each skill's new version and summaries | With `follow`, previews added, changed, and removed skill folders between the recorded and newest commits; with `ref`, never moves |
+| Update | Previews each skill's new version and summaries | When `ref` names a branch, previews added, changed, and removed skill folders between the recorded and newest commits; when it names a tag or commit, never moves |
 | Validation | Strict, as `code-rules library check` applies | Lenient: violations of the Agent Skills format are warnings, and the skill installs as it is |
 | Licenses | From `rule-library.yaml` | Found in the skill or the repository; see [Plain repositories](/reference/imports/#plain-repositories) |
 | Dependencies | `cr-skills-used`, plus `skillUses` | `skillUses` |
 
 A plain repository source:
 
-- Sets exactly one of `follow` and `ref`. `follow` names a branch; `code-rules project update` moves the source to the branch's newest commit, and `code-rules project sync` keeps the commit recorded in `_source.json`. `ref` names a tag or full commit SHA, as for a library, and never moves.
+- Sets `ref`, which is required. A branch name, such as `main`, tracks that branch: the first sync installs the branch's newest commit and records it in `_source.json`, `code-rules project sync` keeps the recorded commit, and `code-rules project update` moves the source to the branch's newest commit. A tag or full commit SHA, as for a library, never moves. Code Rules asks the remote whether the name is a branch; when a name is both a branch and a tag, write `refs/heads/<name>` or `refs/tags/<name>`. A library's `ref` can't name a branch, because a library without `ref` already moves to its newest library release.
 - Selects skills with `skills`, which is required. `groups`, `rules`, and `pins` are rejected, because a plain repository has no rules or versions.
 - Can set `skillsRoot`, the folder holding its skill folders, relative to the repository root, such as `pstack/skills`, or `.` for the root itself. It defaults to `skills`. Each skill is a folder directly inside it with a `SKILL.md` file. The path can't contain `..` segments.
 - Can use `exclude` and `skillUses`.
 
-`follow` and `skillsRoot` are rejected on a library. When a repository gains or loses `rule-library.yaml`, so that a source's fields no longer fit it, `code-rules project update` fails and names the fields to change.
+`skillsRoot` is rejected on a library. When a repository gains or loses `rule-library.yaml`, so that a source's fields no longer fit it, `code-rules project update` fails and names the fields to change.
 
 ## Extend a preset
 
@@ -521,7 +520,7 @@ Code Rules reads the preset from the library's newest library release, records t
 The preset's configuration combines with the project's:
 
 - Each source the preset declares is added under its own name.
-- When the project declares a source with the same name, its `repository` must match the preset's. Its selections, `groups`, `rules`, and `skills`, are added to the preset's. Its `exclude`, `pins`, and `skillUses` entries win over the preset's for the same key, and its `ref`, `follow`, and `skillsRoot` win when set.
+- When the project declares a source with the same name, its `repository` must match the preset's. Its selections, `groups`, `rules`, and `skills`, are added to the preset's. Its `exclude`, `pins`, and `skillUses` entries win over the preset's for the same key, and its `ref` and `skillsRoot` win when set.
 - The project's `skillTargets` wins when set.
 - The project can't remove a preset's selection or exclusion. To diverge that far, stop extending the preset: copy the sources you want into the project's configuration, remove `extends`, and run `code-rules project sync`.
 
@@ -543,7 +542,7 @@ See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an 
 Each library's `formatVersion` describes its authoring format.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
-Each source's `pins`, and its `ref` or `follow` when present, state which versions the project wants; every other rule and skill follows its newest version when the project updates.
+Each source's `pins`, and its `ref` when present, state which versions the project wants; every other rule and skill follows its newest version when the project updates.
 Vendored provenance records each imported rule's and skill's version, library release, and commit, or a plain repository's commit, used by offline commands. It is importer-owned output, not a second user-selected version.
 A project imports multiple sources directly, and can start from one [preset](#extend-a-preset).
 A preset selects sources, groups, rules, and skills; it never republishes them. Each comes from its own library or repository, and a preset can't extend another preset.

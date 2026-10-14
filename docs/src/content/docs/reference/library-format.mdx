@@ -145,7 +145,7 @@ A preset uses the same shape as [project configuration](/reference/configuration
 | --- | --- |
 | `schemaVersion` | Required. `2`. |
 | `skillTargets` | Optional. The install targets for projects that extend the preset and don't set their own. |
-| `sources` | Required. Map of source names to library or plain repository configurations, with the same fields a project's sources accept: `repository`, `groups`, `rules`, `skills`, `exclude`, `pins`, `ref`, `follow`, `skillsRoot`, and `skillUses`. |
+| `sources` | Required. Map of source names to library or plain repository configurations, with the same fields a project's sources accept: `repository`, `groups`, `rules`, `skills`, `exclude`, `pins`, `ref`, `skillsRoot`, and `skillUses`. |
 
 A preset has no `extends`: a preset can't extend another. It can't refer to a project's local files, so its exclusions take a `reason` but no `replacedBy` or `basedOn`. Unknown fields are rejected, and duplicate keys, anchors, aliases, and explicit tags are rejected as in other YAML files. A preset can list the library it belongs to as one of its sources, by the library's repository address.
 

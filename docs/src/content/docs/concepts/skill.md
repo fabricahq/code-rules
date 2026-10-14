@@ -77,7 +77,7 @@ Skills don't belong to [groups](/concepts/groups/), and selecting a group never 
 A project gets skills from three places:
 
 - **Libraries.** A [library](/concepts/libraries/) can hold skills in `skills/` beside its rule groups. Library skills are versioned and checked strictly.
-- **Plain repositories.** Any Git repository with skill folders, such as a third party's skill collection, without a `rule-library.yaml`. You either follow a branch or stay on one revision, and Code Rules records the exact commit.
+- **Plain repositories.** Any Git repository with skill folders, such as a third party's skill collection, without a `rule-library.yaml`. Its `ref` either tracks a branch or stays on one revision, and Code Rules records the exact commit.
 - **Your project.** Local skills live in `.code-rules/local/skills/`.
 
 When you select a skill, Code Rules also installs every skill it uses, from the same source.

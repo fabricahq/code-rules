@@ -13,8 +13,8 @@ Start with a project that already [imports rules](/guides/select-rules/). To pub
 
 Two commands import library rules, and they do different things:
 
-- **`code-rules project sync`** imports the rule and skill versions already recorded in `.code-rules/vendor/`, the commit recorded for each plain repository, and the library release recorded for your preset. Everyone who syncs the project gets the same rules and skills. It chooses a version only for a newly added source or selected rule or skill, a changed repository, or when you add or change a pin, `ref`, `follow`, or `extends`.
-- **`code-rules project update`** looks for newer rule and skill versions, new rules and skills, retirements, new commits on followed branches, and preset changes, shows you a preview, and applies the changes once you confirm.
+- **`code-rules project sync`** imports the rule and skill versions already recorded in `.code-rules/vendor/`, the commit recorded for each plain repository, and the library release recorded for your preset. Everyone who syncs the project gets the same rules and skills. It chooses a version only for a newly added source or selected rule or skill, a changed repository, or when you add or change a pin, `ref`, or `extends`.
+- **`code-rules project update`** looks for newer rule and skill versions, new rules and skills, retirements, new commits on branches that plain repositories track, and preset changes, shows you a preview, and applies the changes once you confirm.
 
 Neither command runs during ordinary coding, review, or `code-rules project check`, so rules and skills never change underneath your agents.
 
@@ -121,7 +121,7 @@ After you confirm, the update rewrites the installed copies in your target folde
 
 ## Update a plain repository
 
-A [plain repository](/reference/configuration/#plain-repositories) has no versions. With `follow`, the update moves it to the newest commit on the branch, and the preview lists each installed skill folder that changed between the recorded commit and that one, with the files that changed:
+A [plain repository](/reference/configuration/#plain-repositories) has no versions. When its `ref` names a branch, the update moves it to the newest commit on the branch, and the preview lists each installed skill folder that changed between the recorded commit and that one, with the files that changed:
 
 ```text
 pstack  main: 3f9c2e1 -> 8a41d07
@@ -137,7 +137,7 @@ pstack  main: 3f9c2e1 -> 8a41d07
 - `added` lists a new skill folder that the source's `"*"` selects. New folders you haven't selected aren't listed; run `code-rules project list skills` to see them.
 - `removed` lists an installed skill whose folder is gone. Applying the update stops installing it. When the skill is in your `skills` list, the entry no longer does anything, and sync and update warn about it so you can delete it.
 
-Read the changed files before you confirm: without versions or summaries, the diff is the only record of what changed. A plain repository with `ref` never moves; change `ref` and run `code-rules project sync` instead. `--keep` and pins don't apply to plain repositories; to hold one at a commit, replace `follow` with `ref` set to the commit recorded in its `_source.json`.
+Read the changed files before you confirm: without versions or summaries, the diff is the only record of what changed. A plain repository whose `ref` names a tag or commit never moves; change `ref` and run `code-rules project sync` instead. `--keep` and pins don't apply to plain repositories; to hold one that tracks a branch at its current commit, set its `ref` to the commit recorded in its `_source.json`.
 
 ## Update a preset
 
@@ -264,4 +264,4 @@ A failed import, or an update you didn't confirm, preserves the previous working
 Interrupted installations must be detected and recovered before another operation can claim success.
 
 Rules and skills never change automatically during coding, review, or offline checks.
-Code Rules keeps the versions and commits it recorded until you change your selection, pins, `ref`, `follow`, or `extends`, or confirm an update.
+Code Rules keeps the versions and commits it recorded until you change your selection, pins, `ref`, or `extends`, or confirm an update.

@@ -49,7 +49,7 @@ sources:
         reason: Our services use one test per behavior.
 ```
 
-Each source works exactly as it does in a [project's configuration](/reference/configuration/#fields): libraries with `groups`, `rules`, `skills`, `exclude`, `pins`, and `ref`, and [plain repositories](/reference/configuration/#plain-repositories) with `follow` or `ref`. A preset can name its own library as a source, as `fabrica-org` does here. A preset can't:
+Each source works exactly as it does in a [project's configuration](/reference/configuration/#fields): libraries with `groups`, `rules`, `skills`, `exclude`, `pins`, and `ref`, and [plain repositories](/reference/configuration/#plain-repositories) with `ref`. A preset can name its own library as a source, as `fabrica-org` does here. A preset can't:
 
 - Extend another preset: `extends` is rejected.
 - Name local files: an exclusion's `replacedBy` and `basedOn` are rejected, because a preset has no `local/` folder. A project that replaces a rule or skill writes the replacement in its own configuration.
@@ -96,7 +96,7 @@ The project's configuration adds to the preset's:
 
 - **New sources.** A source with a name the preset doesn't use is added beside the preset's sources.
 - **The same source.** When you declare a source with the same name as one in the preset, its `repository` must match the preset's. Your `groups`, `rules`, and `skills` are added to the preset's selections.
-- **Exceptions and versions.** Your `exclude`, `pins`, and `skillUses` entries win over the preset's for the same rule or skill. Your `ref`, `follow`, and `skillsRoot` win when you set them.
+- **Exceptions and versions.** Your `exclude`, `pins`, and `skillUses` entries win over the preset's for the same rule or skill. Your `ref` and `skillsRoot` win when you set them.
 - **Install targets.** Your `skillTargets` wins when you set it, including to `[]` for none.
 
 For example, this project adds a group and a skill to the preset's `fabrica` source, replaces one of its skills with a local fork, and pins another:

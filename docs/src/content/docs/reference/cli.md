@@ -73,25 +73,24 @@ Record a **plain repository**, a Git repository of skill folders without `rule-l
 | Option | Meaning |
 | --- | --- |
 | `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
-| `--follow BRANCH` | Track a branch, such as `main`. Sync installs the commit recorded in `_source.json`, and `code-rules project update` moves the source to the branch's newest commit. Recorded as the source's `follow`. |
-| `--ref REF` | Stay on one revision: a tag or a full commit SHA. Recorded as the source's `ref`. |
+| `--ref REF` | Required. A branch to track, such as `main`, or one revision to stay on: a tag or a full commit SHA. Recorded as the source's `ref`. |
 | `--skills-root PATH` | The folder that holds the repository's skill folders, relative to the repository root, such as `pstack/skills`, or `.` for the root itself. Defaults to `skills`, which isn't recorded. |
 | `--skills SKILL` | Required. Skills to install, such as `skills/how`, together with the skills that `skillUses` says they use. Repeat for multiple skills, or supply `*` for every skill in the skills root. Quote `*` so your shell does not expand it. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Supply exactly one of `--follow` and `--ref`. A skill's ID is `skills/<folder-name>`, whatever the skills root: with `--skills-root pstack/skills`, `skills/how` is the folder `pstack/skills/how/`. The command writes `schemaVersion: 2`.
+With a branch, sync installs the commit recorded in `_source.json`, and `code-rules project update` moves the source to the branch's newest commit; a tag or commit never moves. See [Plain repositories](/reference/configuration/#plain-repositories). A skill's ID is `skills/<folder-name>`, whatever the skills root: with `--skills-root pstack/skills`, `skills/how` is the folder `pstack/skills/how/`. The command writes `schemaVersion: 2`.
 
 ```sh
 code-rules project add repository pstack \
   --repository https://github.com/cursor/plugins.git \
-  --follow main \
+  --ref main \
   --skills-root pstack/skills \
   --skills skills/how \
   --skills skills/architect \
   --non-interactive
 ```
 
-A plain repository has no rules or versions, so the command takes no `--groups` or `--rules`, and pins don't apply. To declare skills a skill uses without saying so in its `SKILL.md`, add [`skillUses`](/reference/configuration/#declare-a-skills-dependencies) to the source. Sync reads the repository and checks that it has no `rule-library.yaml`; if it has one, sync fails and asks you to add it with `code-rules project add library` instead. A `--follow` branch that doesn't exist fails sync with `version-not-found`, and a skill with no license terms fails it with `license-not-found`; see [License rules](/guides/license-rules/#license-skills). Existing sources aren't overwritten.
+A plain repository has no rules or versions, so the command takes no `--groups` or `--rules`, and pins don't apply. To declare skills a skill uses without saying so in its `SKILL.md`, add [`skillUses`](/reference/configuration/#declare-a-skills-dependencies) to the source. Sync reads the repository and checks that it has no `rule-library.yaml`; if it has one, sync fails and asks you to add it with `code-rules project add library` instead. A `--ref` that names no branch, tag, or commit fails sync with `version-not-found`, and a skill with no license terms fails it with `license-not-found`; see [License rules](/guides/license-rules/#license-skills). Existing sources aren't overwritten.
 
 ### project add group
 
@@ -204,7 +203,7 @@ Sync needs access to every configured repository and uses your existing Git cred
 
 | Situation | Version sync imports |
 | --- | --- |
-| A new source, a changed repository, or a newly selected group, rule, or skill | Each new rule's and skill's newest version, and the library-wide files from the newest library release. For a new plain repository with `follow`, the branch's newest commit. |
+| A new source, a changed repository, or a newly selected group, rule, or skill | Each new rule's and skill's newest version, and the library-wide files from the newest library release. For a new plain repository whose `ref` names a branch, the branch's newest commit. |
 | A pin added or changed | The pinned version, up or down. |
 | A pin removed | The recorded version, unchanged. The next update offers newer versions. |
 | `ref` added or changed | The rule as it was at that revision: the version a library release published, or `null` for unreleased changes. |
@@ -251,7 +250,7 @@ The preview lists, for each source:
 
 Skills from a library appear in the same list, with the same changes, by their skill IDs. A skill that a moving skill newly uses appears as `new`, naming the skill that uses it, and a rule it newly cites appears as `new`, marked reference-only unless the project also selects it; they join only when the skill that brings them in moves. A skill or cited rule that no installed skill needs any longer is dropped.
 
-A plain repository with `follow` lists its commit move, such as `main: 3f9c2e1 -> 8a41d07`, and one row for each installed skill folder that differs between the recorded and newest commits:
+A plain repository whose `ref` names a branch lists its commit move, such as `main: 3f9c2e1 -> 8a41d07`, and one row for each installed skill folder that differs between the recorded and newest commits:
 
 | Change | Meaning |
 | --- | --- |
@@ -295,7 +294,7 @@ Regenerate `generated/` from project configuration, verified imported files, and
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Run sync first if the imported repository, selection, pins, `ref`, or `follow` no longer match configuration, or if the stored library files need repair. Build validates local skills, and fails on an unfinished draft, as sync does.
+Run sync first if the imported repository, selection, pins, or `ref` no longer match configuration, or if the stored library files need repair. Build validates local skills, and fails on an unfinished draft, as sync does.
 
 ### project check
 
@@ -307,7 +306,7 @@ Check generated guidance, installed skills, and the managed Code Rules guide wit
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Use check in CI to detect files that need regeneration. It uses recorded commits and rule and skill versions, and does not check whether remote tags moved, a followed branch moved, or newer library releases exist. Success means the managed files agree with their inputs; it does not establish that application code follows the rules.
+Use check in CI to detect files that need regeneration. It uses recorded commits and rule and skill versions, and does not check whether remote tags moved, a branch a plain repository tracks moved, or newer library releases exist. Success means the managed files agree with their inputs; it does not establish that application code follows the rules.
 
 ### project list skills
 
@@ -315,7 +314,7 @@ Use check in CI to detect files that need regeneration. It uses recorded commits
 code-rules project list skills [options]
 ```
 
-List the skills the project's sources and preset offer, so you can choose which to install. Lists never write files. The command reads each source's newest library release, or, for a plain repository, the newest commit on the branch it follows or the revision its `ref` names, and needs access to every configured repository.
+List the skills the project's sources and preset offer, so you can choose which to install. Lists never write files. The command reads each source's newest library release, or, for a plain repository, the newest commit on the branch its `ref` names, or the tag or commit it names, and needs access to every configured repository.
 
 | Option | Meaning |
 | --- | --- |

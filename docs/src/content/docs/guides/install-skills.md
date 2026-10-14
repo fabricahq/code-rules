@@ -40,7 +40,7 @@ pstack:skills/sketch                     8a41d07  available
 skills/plan-migration          playbook  2.1.0    available, from preset fabrica-defaults
 ```
 
-Each row shows a skill's ID, its [type](/concepts/skill/#skill-types) when it has one, and its newest version, or, for a plain repository, the newest commit on the branch it follows. `installed` means the project installs it, as a selection or a dependency; `available` means a source offers it and the project doesn't install it. When your project [extends a preset](/guides/presets/), skills in the preset's own library are listed too, marked `available, from preset <name>`; to install one, add that library as a source.
+Each row shows a skill's ID, its [type](/concepts/skill/#skill-types) when it has one, and its newest version, or, for a plain repository, the newest commit on the branch its `ref` names. `installed` means the project installs it, as a selection or a dependency; `available` means a source offers it and the project doesn't install it. When your project [extends a preset](/guides/presets/), skills in the preset's own library are listed too, marked `available, from preset <name>`; to install one, add that library as a source.
 
 Narrow the list:
 
@@ -186,7 +186,7 @@ Not every useful skill lives in a library. A **plain repository** is any Git rep
 ```sh
 code-rules project add repository pstack \
   --repository https://github.com/cursor/plugins.git \
-  --follow main \
+  --ref main \
   --skills-root pstack/skills \
   --skills skills/architect \
   --non-interactive
@@ -198,7 +198,7 @@ This adds a source to your configuration:
 sources:
   pstack:
     repository: https://github.com/cursor/plugins.git
-    follow: main
+    ref: main
     skillsRoot: pstack/skills
     skills:
       - skills/architect
@@ -206,7 +206,7 @@ sources:
 
 Then run `code-rules project sync`.
 
-- **Follow a branch or stay on one revision.** With `follow`, sync installs the newest commit on the branch and records it; later syncs keep that commit, and `code-rules project update` moves to the branch's newest commit and shows which skill folders and files changed. With `ref`, a tag or full commit SHA, the source never moves. Use exactly one.
+- **Track a branch or stay on one revision.** `ref` is required. When it names a branch, sync installs the newest commit on the branch and records it; later syncs keep that commit, and `code-rules project update` moves to the branch's newest commit and shows which skill folders and files changed. When it names a tag or full commit SHA, the source never moves.
 - **Point at the skills.** `skillsRoot` is the folder that holds the skill folders, `skills` by default. Each skill's ID is `skills/<folder-name>`, whatever the root.
 - **Declare dependencies.** A plain repository's skills declare none that Code Rules reads. When one uses another, list it under `skillUses`, so Code Rules installs both:
 

@@ -3,7 +3,7 @@ title: "Sync and recovery"
 description: "When to run sync, build, or check, which files they change, who owns installed skill folders, and how to recover from problems."
 ---
 
-The `code-rules project sync` command imports your project's library files, regenerates the guidance your agents read, and installs your project's skills. Run it after adding a source, changing its selected groups, rules, or skills, pins, `ref`, or `follow`, changing `skillTargets` or `extends`, or to restore imported files.
+The `code-rules project sync` command imports your project's library files, regenerates the guidance your agents read, and installs your project's skills. Run it after adding a source, changing its selected groups, rules, or skills, pins, or `ref`, changing `skillTargets` or `extends`, or to restore imported files.
 
 Sync imports the rule and skill versions recorded for each source, the commit recorded for each plain repository, and the library release recorded for a preset, so it never adopts newer versions on its own. To move to newer versions, run `code-rules project update`, which previews every change and applies it only after you confirm, offering to pin each major change or retirement instead. See [Update rules](/guides/update/).
 
@@ -12,7 +12,7 @@ This page explains how to run sync, what it changes, and what to do when files a
 ## Choose the right command
 
 - **`code-rules project sync`**: Import the recorded rule and skill versions, or choose versions for new and changed sources. Sync validates the library files, regenerates agent guidance, and installs skills into the target folders.
-- **`code-rules project update`**: Preview newer versions, new rules and skills, retirements, new commits on followed branches, and preset changes, and apply them after you confirm. Pinned rules and skills, and sources that use `ref`, don't move. Update then does everything sync does.
+- **`code-rules project update`**: Preview newer versions, new rules and skills, retirements, new commits on branches that plain repositories track, and preset changes, and apply them after you confirm. Pinned rules and skills, and sources that use `ref`, don't move. Update then does everything sync does.
 - **`code-rules project build`**: Apply local rule and skill changes or exceptions using the files you already have. Build regenerates guidance and installed skills without contacting a repository.
 - **`code-rules project check`**: Find out whether generated guidance, installed skills, and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 

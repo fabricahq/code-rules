@@ -132,7 +132,7 @@ Besides `rules` and `skills`, the same `generated/provenance.json` file contains
 | `generatedNotice` | A reminder that Code Rules generates the file, and how to regenerate it. |
 | `toolVersion` | The Code Rules version that generated the files. |
 | `preset` | The preset the project extends: its `repository`, `preset` name, `ref` when set, `release`, and `resolvedCommit`. `null` when the project extends none. |
-| `sources` | Each named source, its `kind`, `library` or `repository`, its repository, its `pins` and `ref`, or its `follow` branch and `skillsRoot`, the library release or commit that supplied its group metadata and terms, selected groups and skills, declared terms, and `fromPreset`, which is `true` when the preset declares the source. |
+| `sources` | Each named source, its `kind`, `library` or `repository`, its repository, its `pins` and `ref`, or, for a plain repository, its `ref` and `skillsRoot`, the library release or commit that supplied its group metadata and terms, selected groups and skills, declared terms, and `fromPreset`, which is `true` when the preset declares the source. |
 | `groups` | Each group's ID, descriptions and reading guidance, and which sources supply the effective guidance. |
 
 For each source, `groupSelection`, `ruleSelection`, and `skillSelection` record what you asked for, combined with the preset's, while `groups` lists the groups imported. For example, `"practices/*"` asks for all practice groups; the list records which ones existed in the imported library.
@@ -290,7 +290,7 @@ A plain repository's record has no `release`, `groupSelection`, `ruleSelection`,
   "kind": "repository",
   "checksum": "6f3a…c2d8",
   "repository": "https://github.com/cursor/plugins.git",
-  "follow": "main",
+  "ref": "main",
   "resolvedCommit": "8a41d07c3e5b9f2a1d6c4e8b7a90f3c2d1e5b6a4",
   "skillsRoot": "pstack/skills",
   "skillSelection": [
@@ -316,7 +316,7 @@ A plain repository's record has no `release`, `groupSelection`, `ruleSelection`,
 }
 ```
 
-`follow` or `ref` records the configured value, and `resolvedCommit` the exact commit every skill came from. `code-rules project sync` keeps that commit; only `code-rules project update` moves a `follow` source.
+`ref` records the configured value, and `resolvedCommit` the exact commit every skill came from. `code-rules project sync` keeps that commit; only `code-rules project update` moves a source whose `ref` names a branch.
 
 The preset record, `vendor/_preset/_source.json`, records which preset the project extends and where it came from. The preset file itself is stored beside it, at its path in the library, so offline commands can combine it with your configuration:
 
@@ -346,7 +346,7 @@ The preset record, `vendor/_preset/_source.json`, records which preset the proje
 | Newest versions, the default | Each pinned rule records its pinned version. Other rules may record any published version. `release` is at least as new as every rule's `release`. |
 | One revision, with `ref` | For a commit SHA, `resolvedCommit` equals it. For a library release `release/N`, the source records release N, and every rule records a published version from library release N or earlier. A tag's recorded commit is used without checking where the tag points now. |
 
-For every source, offline checks first verify the record's `checksum`, so a record changed outside sync fails until you restore a record sync wrote or import the source again. They also verify that `rules` and `skills` list exactly the imported rules and skills, that each skill's dependencies and cited rules match its recorded version's metadata, and that generated provenance, guidance, and installed skills show the same versions. For a plain repository, they verify that `resolvedCommit` equals a `ref` that is a commit SHA; a `follow` source may record any commit. Each exclusion must name a rule in `rules` or `retiredRules`; any other exclusion could be a typo that leaves the rule you meant active, so the check reports that it names no rule the library supplies and asks you to run `code-rules project sync`, which checks it against the library.
+For every source, offline checks first verify the record's `checksum`, so a record changed outside sync fails until you restore a record sync wrote or import the source again. They also verify that `rules` and `skills` list exactly the imported rules and skills, that each skill's dependencies and cited rules match its recorded version's metadata, and that generated provenance, guidance, and installed skills show the same versions. For a plain repository, they verify that `resolvedCommit` equals a `ref` that is a full commit SHA; a source whose `ref` names a branch or tag may record any commit. Each exclusion must name a rule in `rules` or `retiredRules`; any other exclusion could be a typo that leaves the rule you meant active, so the check reports that it names no rule the library supplies and asks you to run `code-rules project sync`, which checks it against the library.
 
 Offline checks cannot prove that a recorded version was the newest available, or that recorded versions match the library's release tags; `code-rules project sync` checks the latter against the release records before it imports anything. These records also cannot authenticate files against the remote repository if someone changed both the local files and their records.
 
