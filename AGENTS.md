@@ -114,7 +114,7 @@ Apply the portable guidance; identify app-specific assumptions and explain any a
 For comments, this repository's comment rules supersede the app's comment policy.
 
 The Go CLI is released. The installable authoring skill remains separate work.
-Describe proposed behavior honestly, and verify availability against the implementation before claiming support.
+Describe proposed behavior honestly, and verify availability against the implementation before claiming support; the one exception is previewing a feature's docs while you build it.
 
 When a product decision changes, update the owning concept, guide, or reference and its examples together.
 Keep configuration details and command contracts in those documents rather than duplicating them here.
