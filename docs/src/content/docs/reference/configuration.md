@@ -58,10 +58,6 @@ sources:
         reason: We use our own bug workflow.
         replacedBy: local/skills/fix-bug
         basedOn: "1.0.0"
-    pins:
-      skills/build-feature:
-        version: "1.2.0"
-        reason: Waiting on feedback about the new review step.
   pstack:
     repository: https://github.com/cursor/plugins.git
     ref: main
@@ -71,7 +67,7 @@ sources:
       skills/architect: [skills/how]
 ```
 
-This project starts from the `fabrica-defaults` preset, which selects `skills/fix-bug` and other skills from the same `fabrica` repository. The project adds `practices/testing` and `skills/build-feature` to the preset's `fabrica` selection, replaces the preset's `skills/fix-bug` with a local fork, and keeps `skills/build-feature` at version 1.2.0. `pstack` is a [plain repository](#plain-repositories): Code Rules installs two of its skills from the newest commit on `main` when the project updates.
+This project starts from the `fabrica-defaults` preset, which selects `skills/fix-bug` and other skills from the same `fabrica` repository. The project adds `practices/testing` and `skills/build-feature` to the preset's `fabrica` selection, and replaces the preset's `skills/fix-bug` with a local fork. `pstack` is a [plain repository](#plain-repositories): Code Rules installs two of its skills from the newest commit on `main` when the project updates.
 
 ## Fields
 
@@ -86,7 +82,7 @@ This project starts from the `fabrica-defaults` preset, which selects `skills/fi
 | `sources.<name>.rules` | Optional individual rules to import without the rest of their group: an array of library rule IDs. Libraries only. See [Select individual rules](#select-individual-rules). |
 | `sources.<name>.skills` | Optional skills to install: an array of skill IDs such as `skills/build-feature`, or `"*"` for every skill in the source. See [Select skills](#select-skills). |
 | `sources.<name>.exclude` | Optional map of this source's rule or skill IDs to a `reason` and, optionally, a local rule or skill that `replacedBy` names to use instead, with the version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
-| `sources.<name>.pins` | Optional map of this library's rule or skill IDs to an exact `version` and a `reason`. Libraries only. See [Pin a rule](#pin-a-rule). |
+| `sources.<name>.pins` | Optional map of this library's rule IDs to an exact `version` and a `reason`. Libraries only; skills can't be pinned. See [Pin a rule](#pin-a-rule). |
 | `sources.<name>.ref` | Optional and advanced for a library: import it exactly as it was at one tag or commit, and can't be combined with `pins`; see [Import one revision](#import-one-revision). Required for a plain repository, where it can also name a branch to track; see [Plain repositories](#plain-repositories). |
 | `sources.<name>.skillsRoot` | Plain repositories only. The folder that holds the repository's skill folders. Defaults to `skills`. |
 | `sources.<name>.skillUses` | Optional map of a skill ID to the skill IDs it uses that the skill itself doesn't declare. See [Declare a skill's dependencies](#declare-a-skills-dependencies). |
@@ -99,7 +95,7 @@ Each source must select at least one group, rule, or skill, counting what its [p
 
 Each source owns its selection, pins, and exceptions.
 The earlier singular `source` and top-level `groups`, `exclude`, and `replace` fields are not part of this format.
-Sources have no `version` or `replace` field. Rule and skill versions are chosen one by one; use `pins` to keep individual rules or skills at exact versions, and `exclude` with `replacedBy` to replace one.
+Sources have no `version` or `replace` field. Rule versions are chosen one by one; use `pins` to keep individual rules at exact versions, and `exclude` with `replacedBy` to replace a rule or skill. A library source's skills all come from one library release; see [Choose versions](#choose-versions).
 
 ### Schema versions
 
@@ -221,17 +217,19 @@ Project IDs keep skills from different sources distinct in configuration, genera
 
 ## Choose versions
 
-Each rule and skill in a library has its own [version](/reference/rule-versions/). By default, a project follows each one's newest version, but only when someone updates:
+Each rule and skill in a library has its own [version](/reference/rule-versions/). By default, a project follows each rule's newest version, and its skills follow the newest library release, but only when someone updates:
 
 - `vendor/<source-name>/_source.json` records the exact version of every imported rule and skill, like a lockfile. [`code-rules project sync`](/reference/cli/#project-sync) restores those versions, so every checkout imports the same content.
-- [`code-rules project update`](/reference/cli/#project-update) previews newer versions, new rules, and retirements, and applies them after you confirm.
+- [`code-rules project update`](/reference/cli/#project-update) previews newer versions, new rules and skills, and retirements, and applies them after you confirm.
 
-Two optional source fields change that:
+A project chooses rule versions one by one, but not skill versions. All of a source's skills come from one revision: the library release that supplies the source's [library-wide files](#where-each-rules-files-come-from), or the commit its `ref` names. When that release moves, every installed skill from the source moves with it. A skill's version still says what changed, in release notes, `generated/SKILLS.md`, the installed copy's marker line, provenance, and the update preview.
+
+Two optional source fields change what an update does:
 
 | Field | Use it to |
 | --- | --- |
-| `pins` | Keep individual rules or skills at exact versions while the rest follow updates. |
-| `ref` | Import the library exactly as it was at one Git revision. Advanced. |
+| `pins` | Keep individual rules at exact versions while the rest follow updates. |
+| `ref` | Import the library exactly as it was at one Git revision, rules and skills alike. Advanced. |
 
 A source can use `pins` or `ref`, not both. Neither changes which rules and skills are imported; `groups`, `rules`, and `skills` do that.
 
@@ -251,26 +249,17 @@ pins:
 | `version` | Required. An exact published version of the rule, such as `"1.3.0"`. Quote it so YAML reads it as text. |
 | `reason` | Required non-blank text explaining why the rule stays at this version. `code-rules project update` shows it next to any newer version, so the decision keeps its context. |
 
-Pin a skill the same way, by its skill ID:
+Pins are for rules only. A pin that names a skill fails and says how to hold the skill back instead: [exclude it](#exclude-or-replace-a-skill), [fork it](/reference/cli/#project-add-skill), or set the source's [`ref`](#import-one-revision), which holds every rule and skill from that source.
 
-```yaml
-pins:
-  skills/build-feature:
-    version: "1.2.0"
-    reason: Waiting on feedback about the new review step.
-```
-
-A pinned skill's version decides its whole folder, the skills it uses, and the rules it cites: Code Rules reads its `cr-skills-used` and `cr-rules-used` lists from the pinned version. The skills it uses and the rules it cites still follow their own versions, so a pinned skill can run with newer versions of them than it was published with.
-
-A pin keeps the rule or skill at exactly that version:
+A pin keeps the rule at exactly that version:
 
 - `code-rules project update` never moves a pinned rule. Its preview lists the pin, the newest available version, and your reason.
 - When you add or change a pin, `code-rules project sync` moves the rule to the pinned version, up or down.
 - Removing a pin doesn't move the rule; the next `code-rules project update` offers its newest version.
 
-To keep a rule at the version you have, pin it to the version recorded in `_source.json`, which also appears in the rule's generated file, or, for a skill, in its installed copy's marker line. `code-rules project update --keep` writes that pin for you.
+To keep a rule at the version you have, pin it to the version recorded in `_source.json`, which also appears in the rule's generated file. `code-rules project update --keep` writes that pin for you.
 
-A pin must name a rule or skill the source imports. A pinned rule that its library retires stays at its version, and update reports the retirement. To keep a rule the library is retiring, pin it before or during the update that retires it; once the retirement is applied, the rule is no longer imported and can't be pinned.
+A pin must name a rule the source imports. A pinned rule that its library retires stays at its version, and update reports the retirement. To keep a rule the library is retiring, pin it before or during the update that retires it; once the retirement is applied, the rule is no longer imported and can't be pinned.
 
 ### Import one revision
 
@@ -297,7 +286,7 @@ Importing a revision other than a library release opts that source out of versio
 
 ### Where each rule's files come from
 
-Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Each skill's whole folder comes from the library release that published its version. Library-wide files, such as group metadata, shared assets, and license files, come from one library release, recorded as `release` in the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files), or from the revision your `ref` names. A new source, and newly selected groups or rules, take them from the newest library release, and `code-rules project update` moves them to the newest library release; `code-rules project sync` keeps the recorded one. That library release is never older than the one that published any imported rule version. When that library release no longer has the metadata of an imported rule's group, such as the group of a retired rule you kept, the group's metadata comes from the newest library release among its imported rule versions that still has it.
+Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as group metadata, shared assets, and license files, and every skill's whole folder come from one library release, recorded as `release` in the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files), or from the revision your `ref` names. A new source, and newly selected groups or rules, take them from the newest library release, and `code-rules project update` moves them to the newest library release; `code-rules project sync` keeps the recorded one. That library release is never older than the one that published any imported rule version. When that library release no longer has the metadata of an imported rule's group, such as the group of a retired rule you kept, the group's metadata comes from the newest library release among its imported rule versions that still has it.
 
 Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
 
@@ -353,7 +342,7 @@ Full paths distinguish matching filenames in different groups of the same librar
 
 Generated files and review findings retain source-qualified IDs because they appear outside the configuration's source nesting.
 
-An `exclude` or `pins` key must name a rule or skill this source imports: through its groups or its `rules` list, through its `skills` list, as a skill an installed skill uses, or as a rule an installed skill cites. Any other ID fails validation. When the library retires a rule or skill that an exclusion names, the entry no longer does anything. `code-rules project sync` and `code-rules project update` warn about it so you can delete it; nothing else is blocked. Offline, `code-rules project build` and `code-rules project check` accept a pin at the version the source imports, an exclusion of an imported rule, and a pin or exclusion naming a rule the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files) lists as retired. For any other pin or exclusion, they ask you to run `code-rules project sync`, which checks it against the library. The snapshot record doesn't hold pins, so adding, rewording, or removing a pin that moves no rule never changes it.
+An `exclude` key must name a rule or skill this source imports, and a `pins` key a rule it imports: through its groups or its `rules` list, through its `skills` list, as a skill an installed skill uses, or as a rule an installed skill cites. Any other ID fails validation. When the library retires a rule or skill that an exclusion names, the entry no longer does anything. `code-rules project sync` and `code-rules project update` warn about it so you can delete it; nothing else is blocked. Offline, `code-rules project build` and `code-rules project check` accept a pin at the version the source imports, an exclusion of an imported rule, and a pin or exclusion naming a rule the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files) lists as retired. For any other pin or exclusion, they ask you to run `code-rules project sync`, which checks it against the library. The snapshot record doesn't hold pins, so adding, rewording, or removing a pin that moves no rule never changes it.
 
 ## Group selection
 
@@ -482,7 +471,7 @@ sources:
 | --- | --- | --- |
 | Skills | `skills/` at the library root | Under `skillsRoot` |
 | Selection | `groups`, `rules`, and `skills` | `skills` only |
-| Versions | Per skill, from library releases | None; `_source.json` records the exact commit |
+| Versions | Per skill, for display; all of a source's skills come from one library release | None; `_source.json` records the exact commit |
 | Update | Previews each skill's new version and summaries | When `ref` names a branch, previews added, changed, and removed skill folders between the recorded and newest commits; when it names a tag or commit, never moves |
 | Validation | Strict, as `code-rules library check` applies | Lenient: violations of the Agent Skills format are warnings, and the skill installs as it is |
 | Licenses | From `rule-library.yaml` | Found in the skill or the repository; see [Plain repositories](/reference/imports/#plain-repositories) |
@@ -542,7 +531,7 @@ See [Resolve conflicting rules](/guides/conflicting-guidance/) for examples, an 
 Each library's `formatVersion` describes its authoring format.
 The caller-supplied `toolVersion` identifies the tool that generated the output.
 
-Each source's `pins`, and its `ref` when present, state which versions the project wants; every other rule and skill follows its newest version when the project updates.
+Each source's `pins`, and its `ref` when present, state which versions the project wants; every other rule follows its newest version, and the source's skills follow its newest library release, when the project updates.
 Vendored provenance records each imported rule's and skill's version, library release, and commit, or a plain repository's commit, used by offline commands. It is importer-owned output, not a second user-selected version.
 A project imports multiple sources directly, and can start from one [preset](#extend-a-preset).
 A preset selects sources, groups, rules, and skills; it never republishes them. Each comes from its own library or repository, and a preset can't extend another preset.

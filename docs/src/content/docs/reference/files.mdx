@@ -182,7 +182,6 @@ Skills this skill uses: `tdd`
 
 - A rule the project replaced shows the replacement, its version when it has one, and the rule it replaces.
 - A rule the project excluded without a replacement shows "excluded by this project" and the exclusion's reason, with no link.
-- A rule the library retired, which a [pinned](/reference/configuration/#pin-a-rule) skill still cites, shows its last version followed by "retired", and "replaced by" its replacement when it has one. The link points at the last version, which the project still imports.
 - The "Skills this skill uses" line names each skill it uses by its installed name, including those your configuration's [`skillUses`](/reference/configuration/#declare-a-skills-dependencies) adds, and those a local skill replaces. It appears only when the skill uses others, and without a heading when the skill cites no rules.
 
 Links are relative to the installed `SKILL.md`, so they work from either target. A skill that cites no rules and uses no skills gets no generated section.

@@ -77,7 +77,7 @@ A rule's version describes its obligation. A skill's version describes what the 
 
 A skill's version doesn't change when a rule it cites gets a new version. The skill names the rule, not a version of it, so a project applies the rule at whatever version it imports. Adding a rule to `cr-rules-used`, or a skill to `cr-skills-used`, is major, because a project that installs the new version imports that rule or skill too.
 
-Projects see skill changes in their update preview, beside rule changes, and can pin a skill to a version with a reason, as they pin rules. See [Rule and skill versions](/reference/rule-versions/#choose-a-skills-version-change) for the exact definitions.
+Projects see skill changes in their update preview, beside rule changes. Unlike rules, skills can't be pinned: a project installs all of a library's skills from one library release, and they move together when the project updates. See [Rule and skill versions](/reference/rule-versions/#choose-a-skills-version-change) for the exact definitions.
 
 ## Library releases
 

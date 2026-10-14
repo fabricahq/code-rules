@@ -90,6 +90,7 @@ If resolved rules conflict, identify both IDs and ask the project owner to resol
 Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review criteria and explicit resolution options.
 Keep the recorded ruleset during ordinary work. Adopting upstream changes is a separate step, `code-rules project update`, and major changes need the project owner's consent; don't run it as part of another task.
 When asked to keep an imported rule at its current version, read the rule's version from `.code-rules/vendor/<source-name>/_source.json` and add a pin under that source's `pins`, with the version and the reason you were given, such as `practices/testing/verify-retry-limits: {version: "1.3.0", reason: "…"}`. Then run `code-rules project sync`.
+Skills can't be pinned. When asked to keep an imported skill as it is, ask whether to fork it, exclude it, or hold its whole source with `ref`; see [Install skills](/guides/install-skills/#exclude-a-skill).
 
 ## Write or review rules and skills themselves
 

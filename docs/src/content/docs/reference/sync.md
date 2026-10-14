@@ -5,14 +5,14 @@ description: "When to run sync, build, or check, which files they change, who ow
 
 The `code-rules project sync` command imports your project's library files, regenerates the guidance your agents read, and installs your project's skills. Run it after adding a source, changing its selected groups, rules, or skills, pins, or `ref`, changing `skillTargets` or `extends`, or to restore imported files.
 
-Sync imports the rule and skill versions recorded for each source, the commit recorded for each plain repository, and the library release recorded for a preset, so it never adopts newer versions on its own. To move to newer versions, run `code-rules project update`, which previews every change and applies it only after you confirm, offering to pin each major change or retirement instead. See [Update rules](/guides/update/).
+Sync imports the rule and skill versions recorded for each source, the commit recorded for each plain repository, and the library release recorded for a preset, so it never adopts newer versions on its own. To move to newer versions, run `code-rules project update`, which previews every change and applies it only after you confirm, offering to pin each major rule change or retirement instead. See [Update rules](/guides/update/).
 
 This page explains how to run sync, what it changes, and what to do when files are missing, outdated, or left by an interrupted update. It also explains when `code-rules project build` or `code-rules project check` is enough. For how Code Rules selects and combines library rules, see [How imports work](/reference/imports/).
 
 ## Choose the right command
 
 - **`code-rules project sync`**: Import the recorded rule and skill versions, or choose versions for new and changed sources. Sync validates the library files, regenerates agent guidance, and installs skills into the target folders.
-- **`code-rules project update`**: Preview newer versions, new rules and skills, retirements, new commits on branches that plain repositories track, and preset changes, and apply them after you confirm. Pinned rules and skills, and sources that use `ref`, don't move. Update then does everything sync does.
+- **`code-rules project update`**: Preview newer versions, new rules and skills, retirements, new commits on branches that plain repositories track, and preset changes, and apply them after you confirm. Pinned rules, and sources that use `ref`, don't move. Update then does everything sync does.
 - **`code-rules project build`**: Apply local rule and skill changes or exceptions using the files you already have. Build regenerates guidance and installed skills without contacting a repository.
 - **`code-rules project check`**: Find out whether generated guidance, installed skills, and the managed Code Rules guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 
@@ -32,7 +32,7 @@ In a Git repository, project commands find the nearest repository root and use i
 
 | File or directory | What it contains | What the commands do |
 | --- | --- | --- |
-| `config.yaml` | Your sources, preset, install targets, selected groups, rules, and skills, pins, and exceptions. | Sync, build, and check read it without changing it. Update reads it, and writes a pin when you keep a rule or skill at its current version, or an exclusion when you decline a new rule or skill. |
+| `config.yaml` | Your sources, preset, install targets, selected groups, rules, and skills, pins, and exceptions. | Sync, build, and check read it without changing it. Update reads it, and writes a pin when you keep a rule at its current version, or an exclusion when you decline a new rule or skill. |
 | `README.md` | The managed Code Rules guide. | Init, build, and sync refresh an older, unedited guide. Check verifies it without changing it. |
 | `local/` | Rules, replacements, and skills you author for this project. | Sync, build, and check preserve these files. Sync and update add `local/<group-id>/_group.yaml` only when your local rules in a group would otherwise lose the group's metadata; see [Keep a local rule's group](#keep-a-local-rules-group). Update replaces a forked rule or skill only when you pass `--update-fork` or answer `replace`. |
 | `vendor/` | Original files copied from the selected rule and skill versions, and the preset file. | Sync and update replace this directory. Build and check validate it without changing it. |

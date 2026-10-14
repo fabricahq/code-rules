@@ -82,19 +82,19 @@ A project gets skills from three places:
 
 When you select a skill, Code Rules also installs every skill it uses, from the same source.
 
-A skill's ID is its path in the library, `skills/<name>`. In a project, it's qualified by the source name you chose, such as `fabrica:skills/build-feature`. Configuration uses these IDs to select, exclude, replace, and pin skills, the same way it does for rules.
+A skill's ID is its path in the library, `skills/<name>`. In a project, it's qualified by the source name you chose, such as `fabrica:skills/build-feature`. Configuration uses these IDs to select, exclude, and replace skills, the same way it does for rules.
 
 See [Install skills](/guides/install-skills/) to add skills to a project.
 
 ## How a skill is versioned
 
-A library skill is versioned exactly like a [rule](/concepts/rule/#how-a-rule-is-versioned). It has its own semantic version, which covers its whole folder:
+A library skill has its own semantic version, which covers its whole folder and follows the same levels as a [rule's](/concepts/rule/#how-a-rule-is-versioned):
 
 - **Major:** the skill now produces or requires something different, such as a removed or reordered step that people rely on, a new required input, or a new rule or skill it uses.
 - **Minor:** the skill adds steps or guidance without breaking how it was used.
 - **Patch:** the skill only clarifies its wording.
 
-Library authors record each change in a change note, and a library release publishes the new versions. Projects see each skill's version in their generated files, adopt new versions with `code-rules project update`, and can pin a skill to a version or exclude it. Local skills and skills from plain repositories have no versions.
+Library authors record each change in a change note, and a library release publishes the new versions. Unlike rules, a project doesn't choose skill versions one by one: all of a source's skills come from the same library release, the one that supplies the source's library-wide files. A skill's version tells you what changed. Projects see it in their generated files and in the `code-rules project update` preview, and every installed skill moves when its source updates. To hold a skill back, exclude it, [fork it](/guides/install-skills/#fork-a-skill), or set the source's `ref`, which holds everything from that source. Local skills and skills from plain repositories have no versions.
 
 See [Rule and skill versions](/reference/rule-versions/) for the details.
 

@@ -3,9 +3,9 @@ title: "Install skills"
 description: "Install skills from libraries and plain repositories into the folders your agents read, and manage their versions, dependencies, and exceptions."
 ---
 
-A **[skill](/concepts/skill/)** tells an agent how to carry out one kind of task, step by step, and which rules each step applies. Installing skills with Code Rules gives every checkout of your project the same skills, at versions you choose, beside the rules they cite.
+A **[skill](/concepts/skill/)** tells an agent how to carry out one kind of task, step by step, and which rules each step applies. Installing skills with Code Rules gives every checkout of your project the same skills, at the versions you adopt, beside the rules they cite.
 
-In this guide, you'll see which skills your sources offer, install some from a library, and find out where they land. You'll also exclude, pin, or fork a skill, write a local one, install skills from a plain Git repository, and commit the result.
+In this guide, you'll see which skills your sources offer, install some from a library, and find out where they land. You'll also exclude or fork a skill, write a local one, install skills from a plain Git repository, and commit the result.
 
 Start with a project that already has a `.code-rules/` directory. If you haven't created one, follow [Set up your first project](/start-here/set-up-project/). To choose rules as well, see [Import rules](/guides/select-rules/).
 
@@ -81,7 +81,7 @@ Then sync:
 code-rules project sync
 ```
 
-Sync installs each skill at its newest version and records that version in `.code-rules/vendor/fabrica/_source.json`, as it does for rules. Later syncs keep it there; adopt newer versions with [`code-rules project update`](/guides/update/#update-skills). See [Select skills](/reference/configuration/#select-skills) for the exact rules.
+Sync installs every skill from the source's newest library release and records that release and each skill's version in `.code-rules/vendor/fabrica/_source.json`. All of a source's skills come from that one release. Later syncs keep them there; adopt newer versions with [`code-rules project update`](/guides/update/#update-skills). See [Select skills](/reference/configuration/#select-skills) for the exact rules.
 
 ## What lands where
 
@@ -114,9 +114,9 @@ A skill can use other skills and cite rules. When you install it, Code Rules ins
 
 If you exclude or replace a cited rule, the installed skill follows your choice: it links to your replacement, or says the rule is excluded by this project, with your reason. A cited rule your project also selects through a group is an ordinary imported rule.
 
-Two skills with the same name can't both be installed, because agents find skills by name. Sync fails with `skill-name-conflict`, naming both; [exclude](#exclude-or-pin-a-skill) one of them.
+Two skills with the same name can't both be installed, because agents find skills by name. Sync fails with `skill-name-conflict`, naming both; [exclude](#exclude-a-skill) one of them.
 
-## Exclude or pin a skill
+## Exclude a skill
 
 Exclude a skill you don't want, such as one that `"*"`, your preset, or another skill brings in:
 
@@ -130,18 +130,7 @@ sources:
 
 These are partial snippets, not complete source definitions. An excluded skill isn't installed, but it's still imported into `vendor/`, so updates can show you its changes. When another installed skill uses it, sync warns that the skill it uses isn't installed.
 
-Keep a skill at its current version with a pin, as you would a rule:
-
-```yaml
-sources:
-  fabrica:
-    pins:
-      skills/build-feature:
-        version: "1.2.0"
-        reason: Waiting on feedback about the new review step.
-```
-
-A pinned skill also keeps the dependencies and cited rules its pinned version declares. Those skills and rules still follow their own versions. See [Keep a rule at its current version](/guides/update/#keep-a-rule-at-its-current-version); `code-rules project update --keep fabrica:skills/build-feature --reason '...'` writes the pin for you.
+You can't pin a skill to a version the way you pin a rule: all of a source's skills come from one library release and move together when the source updates. To keep a skill as it is, [fork it](#fork-a-skill), or set the source's `ref` to a release tag or commit, which holds every rule and skill from that source. See [Update skills](/guides/update/#update-skills).
 
 ## Fork a skill
 
@@ -219,7 +208,7 @@ Then run `code-rules project sync`.
 - **Expect warnings, not failures.** Code Rules checks these skills leniently: where one doesn't follow the Agent Skills format, sync warns and installs it as it is. A plain repository has no rules, versions, or pins, so `groups`, `rules`, and `pins` are rejected on it.
 - **Check the license.** Code Rules looks for terms in the skill's `license` field, then a `LICENSE*` file in its folder, then `LICENSE*` and `NOTICE*` files at the repository root, and records what it finds in provenance. When a skill has none, sync fails with `license-not-found`; ask the owner to add a license, or stop selecting the skill.
 
-Code Rules never runs a skill's scripts. Before you install or update a skill from a repository you don't control, read its files, scripts included: your agents may run them. See [Plain repositories](/reference/configuration/#plain-repositories).
+Code Rules never runs a skill's scripts. Before you install or update a skill from a repository you don't control, read its files, scripts included: your agents may run them. To help, the `code-rules project update` preview flags each new or changed script and warns you to read it; see [Update skills](/guides/update/#update-skills). See [Plain repositories](/reference/configuration/#plain-repositories).
 
 ## Commit the installed skills
 

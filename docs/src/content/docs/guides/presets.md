@@ -96,10 +96,10 @@ The project's configuration adds to the preset's:
 
 - **New sources.** A source with a name the preset doesn't use is added beside the preset's sources.
 - **The same source.** When you declare a source with the same name as one in the preset, its `repository` must match the preset's. Your `groups`, `rules`, and `skills` are added to the preset's selections.
-- **Exceptions and versions.** Your `exclude`, `pins`, and `skillUses` entries win over the preset's for the same rule or skill. Your `ref` and `skillsRoot` win when you set them.
+- **Exceptions and versions.** Your `exclude` and `skillUses` entries win over the preset's for the same rule or skill, and your `pins` for the same rule. Your `ref` and `skillsRoot` win when you set them.
 - **Install targets.** Your `skillTargets` wins when you set it, including to `[]` for none.
 
-For example, this project adds a group and a skill to the preset's `fabrica` source, replaces one of its skills with a local fork, and pins another:
+For example, this project adds a group and a skill to the preset's `fabrica` source, replaces one of its skills with a local fork, and pins one of its rules:
 
 ```yaml
 schemaVersion: 2
@@ -119,9 +119,9 @@ sources:
         replacedBy: local/skills/fix-bug
         basedOn: "1.0.0"
     pins:
-      skills/build-feature:
-        version: "1.2.0"
-        reason: Waiting on feedback about the new review step.
+      practices/testing/verify-retry-limits:
+        version: "1.3.0"
+        reason: Waiting on the author's response to fabricahq/public-rules#45.
 ```
 
 You can add to the preset and make exceptions to it, but you can't remove its selections or its exclusions. To diverge that far, stop extending it: copy the sources you want to keep into your configuration, remove `extends`, and run `code-rules project sync`. Removing `extends` without copying them removes everything the preset selected.
