@@ -65,13 +65,13 @@ Groups guide selection; individual rules determine applicability. A testing rule
 
 A skill is an Agent Skills folder whose `SKILL.md` tells an agent how to carry out one kind of task, step by step. Rules say what good work looks like; skills say what to do and in what order, and cite the rules each step applies. Skills don't belong to groups. A skill may declare a type, `playbook` or `review`, as a label only.
 
-Code Rules installs selected skills into the folders agents read and checks them; it doesn't run them, decide when agents use them, or check that agents followed them. See [Skill](docs/src/content/docs/concepts/skill.md).
+Code Rules installs included skills into the folders agents read and checks them; it doesn't run them, decide when agents use them, or check that agents followed them. See [Skill](docs/src/content/docs/concepts/skill.md).
 
 #### Library
 
-A library is a collection of groups and skills published in a Git repository. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries, groups, rules, and skills to import.
+A library is a Git repository whose manifest publishes its groups and skills. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. A library sets a level for each skill it offers: required, recommended, or offered. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`, whose required skills install in every project that uses it and whose recommended skills install in projects that include them; a project explicitly chooses which sources, rules, and skills to include.
 
-Projects may import multiple sources, adopt each rule's published versions, and each source's skills, on their own schedule, and add or override rules and skills locally. Projects can also install skills from plain Git repositories and extend an organization's preset.
+Projects may take from multiple sources, move to each rule's published versions, and each source's skills, on their own schedule, and add or replace rules and skills of their own. A source can also be a Git repository of skills that isn't a library. One configuration file and one `.code-rules/` layout serve projects and libraries alike.
 Source-qualified IDs distinguish rules from different libraries; they do not resolve contradictory instructions.
 See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](docs/src/content/docs/reference/configuration.md).
 
