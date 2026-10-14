@@ -51,7 +51,7 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.rules` | Optional individual rules to import without the rest of their group: an array of library rule IDs. See [Select individual rules](#select-individual-rules). |
 | `sources.<name>.exclude` | Optional map of this library's rule IDs to a `reason` and, optionally, a local rule that `replacedBy` names to use instead, with the library version it's `basedOn`. See [Exclude or replace a rule](#exclude-or-replace-a-rule). |
 | `sources.<name>.pins` | Optional map of this library's rule IDs to an exact `version` and a `reason`. See [Pin a rule](#pin-a-rule). |
-| `sources.<name>.ref` | Optional and advanced. Import the library exactly as it was at one tag or commit. Can't be combined with `pins`. See [Import one revision](#import-one-revision). |
+| `sources.<name>.ref` | Optional and advanced. Import the library from a branch, tag, or commit instead of following rule versions. Can't be combined with `pins`. See [Import a branch, tag, or commit](#import-a-branch-tag-or-commit). |
 
 Unknown configuration fields are rejected, including unknown source and exclusion fields.
 Local groups are discovered from `local/<group-id>/_group.yaml`; no source entry or separate group list is required.
@@ -172,7 +172,7 @@ Two optional source fields change that:
 | Field | Use it to |
 | --- | --- |
 | `pins` | Keep individual rules at exact versions while the rest follow updates. |
-| `ref` | Import the library exactly as it was at one Git revision. Advanced. |
+| `ref` | Import the library from a branch, tag, or commit. Advanced. |
 
 A source can use `pins` or `ref`, not both. Neither changes which rules are imported; `groups` and `rules` do that.
 
@@ -200,9 +200,9 @@ To keep a rule at the version you have, pin it to the version recorded in `_sour
 
 A pin must name a rule the source imports. A pinned rule that its library retires stays at its version, and update reports the retirement. To keep a rule the library is retiring, pin it before or during the update that retires it; once the retirement is applied, the rule is no longer imported and can't be pinned.
 
-### Import one revision
+### Import a branch, tag, or commit
 
-Set a source's `ref` to import the library exactly as it was at one Git revision:
+Set a source's `ref` to import the library as it is at one Git revision, instead of following rule versions:
 
 ```yaml
 sources:
@@ -212,20 +212,34 @@ sources:
     ref: release/5
 ```
 
-`ref` accepts a tag name, such as the library release tag `release/5`, or a full 40-character commit SHA. A tag may also use the explicit `refs/tags/<name>` form. Branch names and abbreviated SHAs aren't supported, so every import can be reproduced. Code Rules resolves the tag when you add or change `ref`, then keeps the recorded commit even if someone later moves the tag.
+`ref` accepts:
 
-What you get depends on what the revision is:
+- a branch, such as `main`, or the explicit `refs/heads/main` form;
+- a tag, such as the library release tag `release/5`, or the explicit `refs/tags/release/5` form;
+- a full 40-character commit SHA. Abbreviated SHAs aren't supported.
 
-- **A [library release](/reference/rule-versions/#library-releases)**, which is the usual case. Every selected rule is imported at the version that library release published, as recorded in its release record.
-- **Any other commit or tag**, such as unreleased changes a library author wants to test in a real project, or a library that hasn't published its first library release. Rules whose files match a published version record that version. Rules with unreleased changes record their version as `null`, and generated guidance shows no version for them.
+When a bare name, such as `main`, is both a branch and a tag in the library, sync and update fail with `ambiguous-ref`; use the `refs/heads/<name>` or `refs/tags/<name>` form to say which one you mean.
 
-Importing a revision other than a library release opts that source out of rule versions: rules with unreleased changes have no version to cite, and no update preview reviews their changes. To keep that from shipping by accident, `code-rules project sync` and `code-rules project update` print a warning naming the source and its unreleased rules, and the generated library summary in `generated/libraries/<source-name>/README.md` says the source is imported from unreleased changes. `code-rules project check` still passes.
+Code Rules resolves `ref` to a commit when you add or change it, and records that commit in `vendor/<source-name>/_source.json`. `code-rules project sync` keeps the recorded commit, even after the branch gets new commits or someone moves the tag, so every checkout imports the same files. `code-rules project update` resolves `ref` again:
 
-`code-rules project update` doesn't move a source that uses `ref`. To import another revision, change `ref` and run `code-rules project sync`. To go back to following versions, remove `ref` and run `code-rules project sync`: rules keep their recorded versions when those are published versions, and the rest get their newest version.
+- A branch moves to its newest commit.
+- A tag moves to the commit it names now, if someone moved it, and update prints a warning naming the tag and both commits. Sync doesn't check whether a tag moved.
+- A full commit SHA never moves.
+
+Update previews the rules and shared files that changed between the two commits and moves the source as a whole after you confirm; see [project update](/reference/cli/#project-update). To keep the exact commits you have, run sync, not update.
+
+What you get depends on what the commit is:
+
+- **A [library release](/reference/rule-versions/#library-releases)**, named by its tag, which is the usual case. Every selected rule is imported at the version that library release published, as recorded in its release record.
+- **Any other branch, tag, or commit**, such as a branch with unreleased changes a library author wants to test in a real project, or a library that hasn't published its first library release. Rules whose files match a published version record that version. Rules with unreleased changes record their version as `null`, and generated guidance shows no version for them.
+
+Importing a revision other than a library release opts that source out of rule versions: rules with unreleased changes have no version to cite, and update previews list the files that changed but no summaries of the changes. To keep that from shipping by accident, `code-rules project sync` and `code-rules project update` print a warning naming the source and its unreleased rules, and the generated library summary in `generated/libraries/<source-name>/README.md` says the source is imported from unreleased changes. `code-rules project check` still passes.
+
+To import another revision, change `ref` and run `code-rules project sync`. To go back to following versions, remove `ref` and run `code-rules project sync`: rules keep their recorded versions when those are published versions, and the rest get their newest version. To update individual rules, or keep some where they are while the rest move, follow versions instead: a source that uses `ref` moves as a whole.
 
 ### Where each rule's files come from
 
-Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as group metadata, shared assets, and license files, come from one library release, recorded as `release` in the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files), or from the revision your `ref` names. A new source, and newly selected groups or rules, take them from the newest library release, and `code-rules project update` moves them to the newest library release; `code-rules project sync` keeps the recorded one. That library release is never older than the one that published any imported rule version. When that library release no longer has the metadata of an imported rule's group, such as the group of a retired rule you kept, the group's metadata comes from the newest library release among its imported rule versions that still has it.
+Each rule's [Markdown file and asset directory](/reference/rule-versions/#what-a-version-covers) come from the library release that published its version. Library-wide files, such as group metadata, shared assets, and license files, come from one library release, recorded as `release` in the source's [snapshot record](/reference/provenance/#inspect-the-original-imported-files), or from the commit your `ref` resolved to. A new source, and newly selected groups or rules, take them from the newest library release, and `code-rules project update` moves them to the newest library release; `code-rules project sync` keeps the recorded one. That library release is never older than the one that published any imported rule version. When that library release no longer has the metadata of an imported rule's group, such as the group of a retired rule you kept, the group's metadata comes from the newest library release among its imported rule versions that still has it.
 
 Offline `code-rules project build`, `code-rules project check`, and ordinary agent work use the recorded versions without contacting the repository.
 

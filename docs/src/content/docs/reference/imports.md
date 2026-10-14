@@ -79,7 +79,7 @@ The same files support implementation and review. Your project chooses how to ch
 
 Each source's `vendor/<source-name>/_source.json` records the version of every rule it imported. Running `code-rules project sync` again imports those same versions, so every checkout of the project gets the same rules. `code-rules project sync` chooses a rule's version only for a newly selected rule, a new source or changed repository, a pin you add or change, or a `ref` you add, change, or remove; see [project sync](/reference/cli/#project-sync).
 
-`code-rules project update` previews each rule's newest version, and applies it once you confirm, unless the rule is [pinned](/reference/configuration/#pin-a-rule). Sources that use `ref` don't move.
+`code-rules project update` previews each rule's newest version, and applies it once you confirm, unless the rule is [pinned](/reference/configuration/#pin-a-rule). A source that uses `ref` instead moves as a whole to the commit its branch or tag names now; one that names a full commit SHA doesn't move. See [Update a source that uses `ref`](/reference/cli/#update-a-source-that-uses-ref).
 
 With the same configuration and recorded versions, an import produces the same paths and file contents. With unchanged imported files, local rules, tool version, and rendering options, a build produces the same generated guidance. Reordering libraries, groups, or rules in configuration does not change their generated order.
 
@@ -169,8 +169,8 @@ When finding the newest library release, Code Rules can report:
 | Error | Meaning and next step |
 | --- | --- |
 | `releases-not-found` | The library has no `release/<number>` tags, because it hasn't published its first library release. Ask the maintainer to publish a library release, or import a commit with the source's `ref`. |
-| `version-not-found` | A pin names a version the rule never published, the tag or commit in `ref` doesn't exist, or the server says it doesn't have a commit that `vendor/<source-name>/_source.json` records, because the library rewrote its history. Check the pin or `ref`. For a missing recorded commit, ask the library's maintainer to restore it, or set `ref` to a tag or commit the library still has; deleting `vendor/<source-name>/` and syncing is the last resort, because it chooses versions again. A fetch that fails for any other reason, such as a dropped connection, reports that reason's code instead, never this one. |
-| `ref-is-branch` | The source's `ref` names a branch. `ref` accepts only a tag or a full commit SHA, so every import can be reproduced. |
+| `version-not-found` | A pin names a version the rule never published, the branch, tag, or commit in `ref` doesn't exist, or the server says it doesn't have a commit that `vendor/<source-name>/_source.json` records, because the library rewrote its history. Check the pin or `ref`. For a missing recorded commit, ask the library's maintainer to restore it, or set `ref` to a tag or commit the library still has; deleting `vendor/<source-name>/` and syncing is the last resort, because it chooses versions again. A fetch that fails for any other reason, such as a dropped connection, reports that reason's code instead, never this one. |
+| `ambiguous-ref` | The source's `ref` is a bare name, such as `main`, that the library has as both a branch and a tag. Set `ref` to `refs/heads/<name>` for the branch or `refs/tags/<name>` for the tag. |
 | `unsupported-release-record` | A library release's [release record](/reference/rule-versions/#release-record) uses a newer format than this Code Rules reads, because a later Code Rules published it. Upgrade Code Rules. |
 
 When Code Rules can't read the library's repository, it can report:

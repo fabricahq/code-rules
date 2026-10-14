@@ -5,7 +5,7 @@ description: "Upgrade the rules your project imports to newer versions: preview 
 
 This guide is for projects that import rules from libraries. Updating rules brings changes from those libraries into your project. Library authors may improve advice, fix mistakes, add rules, make rules stricter, or retire them. Your project adopts those changes only when you run `code-rules project update` and confirm them. Plain `code-rules project sync` keeps the rule versions your project recorded, as [Sync and update](#sync-and-update) explains, and a [pin](#keep-a-rule-at-its-current-version) holds a rule back even when you update.
 
-In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one library](#update-one-library) or [upgrade a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how to import one library release, change which rules you import, and recover from a failed update.
+In this guide, you'll preview and apply updates, keep a rule at its current version when you're not ready for a change, [update one library](#update-one-library) or [upgrade a single rule](#update-one-rule-to-its-newest-version), and commit the result. You'll also learn how to import one library release, update a source that follows a branch, change which rules you import, and recover from a failed update.
 
 Start with a project that already [imports rules](/guides/select-rules/). To publish new rule versions from a library you maintain, see [Version your rules](/guides/version-rules/) instead. For details about how commands change files, see [Sync and recovery](/reference/sync/).
 
@@ -14,7 +14,7 @@ Start with a project that already [imports rules](/guides/select-rules/). To pub
 Two commands import library rules, and they do different things:
 
 - **`code-rules project sync`** imports the rule versions already recorded in `.code-rules/vendor/`. Everyone who syncs the project gets the same rules. It chooses a version only for a newly added source or selected rule, a changed repository, or when you add or change a pin or `ref`.
-- **`code-rules project update`** looks for newer rule versions, new rules, and retirements, shows you a preview, and applies the changes once you confirm.
+- **`code-rules project update`** looks for newer rule versions, new rules, and retirements, or newer commits for a source that uses `ref`, shows you a preview, and applies the changes once you confirm.
 
 Neither command runs during ordinary coding, review, or `code-rules project check`, so rules never change underneath your agents.
 
@@ -100,7 +100,7 @@ code-rules project update team:techs/react/prefer-server-components
 
 The preview and the update cover only that rule. The library's new rules, its other rule changes, and its shared files stay where they are, with one exception: when the rule's new version comes from a newer library release than your shared files, they move to that library release, because a rule version can rely on the shared files its library release published. To upgrade several rules together, name each of them.
 
-A pinned rule doesn't move; [delete its pin](#keep-a-rule-at-its-current-version) first.
+A pinned rule doesn't move; [delete its pin](#keep-a-rule-at-its-current-version) first. A source that uses `ref` moves only as a whole; see [Update a source that uses `ref`](#update-a-source-that-uses-ref).
 
 ## Keep a rule at its current version
 
@@ -160,9 +160,31 @@ sources:
     ref: release/5
 ```
 
-`code-rules project update` doesn't move this source. To import another library release, change the tag and run `code-rules project sync`. To go back to following rule versions, remove `ref`.
+Library release tags don't move, so `code-rules project update` leaves this source where it is. To import another library release, change the tag and run `code-rules project sync`. To go back to following rule versions, remove `ref`.
 
-`ref` also accepts any other tag or a full commit SHA, which library authors use to test unreleased changes. Rules with unreleased changes have no version, so Code Rules warns about them every time you sync or update. See [Import one revision](/reference/configuration/#import-one-revision).
+`ref` also accepts a branch, such as `main`, any other tag, or a full commit SHA, which library authors use to test unreleased changes. Rules with unreleased changes have no version, so Code Rules warns about them every time you sync or update. See [Import a branch, tag, or commit](/reference/configuration/#import-a-branch-tag-or-commit).
+
+## Update a source that uses `ref`
+
+For a source that follows a branch, such as `ref: main`, `code-rules project sync` keeps the commit your project recorded, and `code-rules project update` moves the source to the branch's newest commit. The preview names the branch and both commits, then lists each rule and shared file that changed, with the paths that changed:
+
+```text
+team
+  ref main: 3f9c2e1 -> 8a41d07 (unreleased changes)
+  changed   practices/testing/verify-retry-limits
+            practices/testing/verify-retry-limits.md
+  new       practices/testing/verify-retries
+            practices/testing/verify-retries.md
+  removed   practices/testing/check-retry-backoff
+            practices/testing/check-retry-backoff.md
+  shared    techs/react/_group.yaml
+```
+
+Unreleased changes have no change notes, so the preview has no summaries; read the diff of `.code-rules/vendor/` to see what changed. You confirm the move once, for the whole source. Rules whose files match a published version still record that version.
+
+The source moves as a whole, so `code-rules project update team:<rule>` is refused for it; run `code-rules project update team` instead. To hold one rule back while the rest move, [fork](/reference/cli/#fork-a-library-rule) a published version of it into your local rules. To move rules one at a time, remove `ref` and follow library releases. Otherwise, wait until you're ready to take the whole move.
+
+A tag moves only if someone points it at another commit. When that happens, update moves the source to the tag's new commit, shows the move in the preview, and prints a warning naming the tag and both commits. Sync doesn't check the remote, so it keeps the recorded commit. A full commit SHA never moves. To keep the exact commits you have, run sync, not update. See [Update a source that uses `ref`](/reference/cli/#update-a-source-that-uses-ref) for the details.
 
 ## Review and commit the update
 

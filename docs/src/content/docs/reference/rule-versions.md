@@ -91,7 +91,7 @@ For a repository on GitHub.com, each library release also creates one **GitHub R
 
 The release notes are generated from the change notes and the release record: an opening line that counts the changes; sections for new rules, major, minor, and patch changes, and retired rules, in that order, each included only when it has entries; a sentence saying the library release also updates shared files, when `libraryFiles` isn't empty, except in the first library release, which adds them all; and a collapsed table of every rule's version. A library release that changes no rules opens with a line saying so and that it updates shared files. The first library release opens by saying how many rules it publishes, and lists its new rules without their summaries, which are all the same placeholder, `Add the rule.`, in its release record. The notes never list library-wide files by path; `libraryFiles` in the release record does. [Publish a library release](/guides/version-rules/#publish-a-library-release) shows a complete example. You can edit the GitHub Release page on GitHub, for example to add an introduction; the tag message keeps the generated text.
 
-A project normally follows each rule's newest version, but it can also import exactly what one library release published, by naming its tag; see [Import one revision](/reference/configuration/#import-one-revision).
+A project normally follows each rule's newest version, but it can also import exactly what one library release published, by naming its tag; see [Import a branch, tag, or commit](/reference/configuration/#import-a-branch-tag-or-commit).
 
 ## Choose a version change
 
