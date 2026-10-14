@@ -73,7 +73,7 @@ sources:
       - skills/build-feature
 ```
 
-To install every skill the library offers, now and when it adds more, set `skills: "*"`. Skills don't belong to groups: selecting `practices/testing` installs none of its skills, and selecting a skill selects no group.
+To install every skill the library offers, now and when it adds more, set `skills: "*"`. Skills don't belong to groups: selecting `practices/testing` installs no skill, and selecting a skill selects no group.
 
 Then sync:
 
@@ -97,7 +97,7 @@ After sync, each installed skill appears in several places:
 An installed copy matches the library's folder, scripts and their executable bits included, with two additions to `SKILL.md`:
 
 - A marker comment as the first line after the frontmatter, naming the skill's project ID and version, such as `<!-- code-rules:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with code-rules project add skill --from. -->`.
-- A generated section at the end, **Rules this skill applies**, which links to your project's version of each rule the skill cites, and a **Skills this skill uses** line when it uses others.
+- When the skill cites rules, a generated section at the end, **Rules this skill applies**, which links to your project's version of each rule the skill cites, and a **Skills this skill uses** line when it uses others.
 
 Don't edit installed copies: the next sync replaces them, and `code-rules project check` reports the difference. To change a skill, [fork it](#fork-a-skill).
 
@@ -141,7 +141,7 @@ sources:
         reason: Waiting on feedback about the new review step.
 ```
 
-A pinned skill also keeps the dependencies and cited rules its pinned version declares. Those skills and rules still follow their own versions. See [Keep a rule at its current version](/guides/update/#keep-a-rule-at-its-current-version); `code-rules project update --keep fabrica:skills/build-feature` writes the pin for you.
+A pinned skill also keeps the dependencies and cited rules its pinned version declares. Those skills and rules still follow their own versions. See [Keep a rule at its current version](/guides/update/#keep-a-rule-at-its-current-version); `code-rules project update --keep fabrica:skills/build-feature --reason '...'` writes the pin for you.
 
 ## Fork a skill
 

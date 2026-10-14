@@ -220,7 +220,7 @@ When a project installs a skill, Code Rules writes a copy of its folder into eac
   <!-- code-rules:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with code-rules project add skill --from. -->
   ```
 
-- A generated **Rules this skill applies** section is appended at the end. It links to the project's version of each rule the skill cites, including a local rule that replaces one, and marks a rule the project excluded. A **Skills this skill uses** line follows when the skill uses others.
+- When the skill cites rules, a generated **Rules this skill applies** section is appended at the end. It links to the project's version of each rule the skill cites, including a local rule that replaces one, and marks a rule the project excluded. A **Skills this skill uses** line follows when the skill uses others.
 
 Don't edit installed copies: sync rewrites them, and `code-rules project check` fails when one differs from what sync would write. [Installed skills](/reference/files/#installed-skills) shows the complete generated section and how Code Rules records the folders it owns.
 
@@ -228,7 +228,7 @@ Don't edit installed copies: sync rewrites them, and `code-rules project check` 
 
 A project's local skills live in `.code-rules/local/skills/<name>/` and use this format, with two differences:
 
-- They cite rules and skills by project ID, with the source name, because a project can use several sources: `fabrica:practices/testing/test-behavior-not-implementation`, `local:practices/architecture/follow-bounded-contexts`, or `fabrica:skills/tdd`. Each cited rule must be one the project imports or authors, and each used skill must be one the project can install.
+- They cite rules and skills by project ID, with the source name, because a project can use several sources: `fabrica:practices/testing/test-behavior-not-implementation`, `local:practices/architecture/follow-bounded-contexts`, or `fabrica:skills/tdd`. Each ID must name a configured source, or `local`; Code Rules imports each cited rule, and installs each used skill, from the source it names.
 - They have no versions and need no change notes.
 
 `code-rules project add skill` creates one, and `code-rules project add skill --from` forks an imported skill into one; see [project add skill](/reference/cli/#project-add-skill). Sync and build validate local skills with the checks above and fail on the first problem.

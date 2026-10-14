@@ -94,7 +94,7 @@ A library skill is versioned exactly like a [rule](/concepts/rule/#how-a-rule-is
 - **Minor:** the skill adds steps or guidance without breaking how it was used.
 - **Patch:** the skill only clarifies its wording.
 
-Library authors record each change in a change note, and a library release publishes the new versions. Projects see each skill's version in their generated files, adopt new versions with `code-rules project update`, and can pin a skill to a version or retire it. Local skills and skills from plain repositories have no versions.
+Library authors record each change in a change note, and a library release publishes the new versions. Projects see each skill's version in their generated files, adopt new versions with `code-rules project update`, and can pin a skill to a version or exclude it. Local skills and skills from plain repositories have no versions.
 
 See [Rule and skill versions](/reference/rule-versions/) for the details.
 
@@ -102,8 +102,8 @@ See [Rule and skill versions](/reference/rule-versions/) for the details.
 
 When you sync, Code Rules writes a copy of each selected skill into the folders your agents read: `.claude/skills/` for Claude Code and `.agents/skills/` for Codex, Cursor, and other agents that follow the shared convention. You commit these copies, so every checkout and every fresh cloud session has the same skills.
 
-Each installed `SKILL.md` ends with a generated section, **Rules this skill applies**, that points at your project's version of every rule the skill cites, including any local rule that replaces one. Agents read those rules in full before the step that uses them.
+When a skill cites rules, its installed `SKILL.md` ends with a generated section, **Rules this skill applies**, that points at your project's version of every rule the skill cites, including any local rule that replaces one. Agents read those rules in full before the step that uses them.
 
-Code Rules also writes `.code-rules/generated/SKILLS.md`, which lists every installed skill, its version, the rules it applies, and the skills it uses. Agents in tools without native skill support can read it there.
+Code Rules also writes `.code-rules/generated/SKILLS.md`, which lists every installed skill, its version, how many rules it applies, and the skills it uses. Agents in tools without native skill support can read it there.
 
 When a skill and a rule disagree, agents should follow the rule and report the conflict, so someone can fix the skill. See [For agents](/for-agents/).

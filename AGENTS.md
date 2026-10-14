@@ -69,7 +69,7 @@ Code Rules installs selected skills into the folders agents read and checks them
 
 #### Library
 
-A library is a collection of groups and skills published in a Git repository. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries, groups, and rules to import.
+A library is a collection of groups and skills published in a Git repository. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries, groups, rules, and skills to import.
 
 Projects may import multiple sources, adopt each rule's and skill's published versions on their own schedule, and add or override rules and skills locally. Projects can also install skills from plain Git repositories and extend an organization's preset.
 Source-qualified IDs distinguish rules from different libraries; they do not resolve contradictory instructions.

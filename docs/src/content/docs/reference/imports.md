@@ -22,9 +22,9 @@ These files live in the **Code Rules directory**, `.code-rules/` at the project 
 
 | Directory | What it contains |
 | --- | --- |
-| `vendor/` | Original files copied from the libraries you selected. |
-| `local/` | Rules you author for this project, including replacements for imported rules. |
-| `generated/` | The rules and reading indexes your agents use. |
+| `vendor/` | Original files copied from the libraries and plain repositories you selected. |
+| `local/` | Rules and skills you author for this project, including replacements for imported ones. |
+| `generated/` | The rules and reading indexes your agents use, including `SKILLS.md`. |
 
 Installed skills live outside it, in the target folders at the project root. For the complete layout, see [Project files](/reference/files/). Once the library files are stored, `code-rules project build` can regenerate guidance and installed skills without network access.
 

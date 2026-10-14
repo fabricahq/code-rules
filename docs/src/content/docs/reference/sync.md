@@ -95,7 +95,7 @@ For skills, check also fails when:
 - `generated/installed-skills.json` or `generated/SKILLS.md` doesn't match the skills the configuration installs.
 - Two skills the project installs have the same name, or a target folder has a folder Code Rules would install a skill into but doesn't own.
 
-Check never inspects target folders Code Rules doesn't own.
+Check never reads the contents of target folders Code Rules doesn't own.
 
 Checksums detect changes relative to the stored record. They cannot establish that files are authentic if someone also changed that record. For record fields and rule origins, see [Provenance](/reference/provenance/).
 

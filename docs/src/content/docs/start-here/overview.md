@@ -77,7 +77,7 @@ The linked group page contains the rules in full, or links to their full definit
 
 ### Installed skills
 
-Code Rules writes each selected skill into `.claude/skills/` and `.agents/skills/`, where coding agents find skills, and lists them in `.code-rules/generated/SKILLS.md`. Each installed skill ends with links to your project's version of every rule it applies. See [Skill](/concepts/skill/#how-agents-use-installed-skills).
+Code Rules writes each selected skill into `.claude/skills/` and `.agents/skills/`, where coding agents find skills, and lists them in `.code-rules/generated/SKILLS.md`. Each installed skill that cites rules ends with links to your project's version of every rule it applies. See [Skill](/concepts/skill/#how-agents-use-installed-skills).
 
 ## What Code Rules does not do
 

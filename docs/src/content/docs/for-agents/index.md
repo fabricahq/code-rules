@@ -61,7 +61,7 @@ A project can also install [skills](/concepts/skill/): step-by-step procedures f
 
 When you use a skill:
 
-1. Read its `SKILL.md` in full, including the generated **Rules this skill applies** section at the end.
+1. Read its `SKILL.md` in full, including the generated **Rules this skill applies** section at the end, when it has one.
 2. Before each step, read in full every rule that section lists for the work the step does, at the generated path it gives. These are the project's versions of the rules: a local rule the project uses instead of a library rule is listed in its place, and a rule the project excluded is marked as excluded, with the reason. Don't apply an excluded rule.
 3. Follow the steps in order. When the skill uses other skills, its **Skills this skill uses** line names them; use their installed copies.
 4. Keep selecting groups from `RULES.md` as described above. A skill doesn't replace that selection: a rule that applies to the work applies whether or not the skill cites it.

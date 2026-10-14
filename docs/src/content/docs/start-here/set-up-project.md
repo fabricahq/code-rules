@@ -109,7 +109,7 @@ This checks the rule files, not whether your application follows the rules.
 
 ## 4. Import a rule from the public library
 
-Now let's reuse a rule someone else has written. A **library** is an independently maintained collection of rule groups that projects can import.
+Now let's reuse a rule someone else has written. A **library** is an independently maintained collection of rule groups and skills that projects can import.
 
 The [Fabrica public library](https://github.com/fabricahq/public-rules) includes a code-design group. Its rules help agents structure functions, modules, and folders, such as **Express operations as meaningful steps**, which keeps functions understandable without extracting unnecessary helpers. Read them before deciding to adopt them.
 

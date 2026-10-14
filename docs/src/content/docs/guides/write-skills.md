@@ -259,7 +259,7 @@ skills:
   skills/fix-bug: new
 ```
 
-In a project, replace an imported skill with a local one by forking it with `code-rules project add skill --from`, or by writing your own and excluding the imported skill with `replacedBy: local/skills/<name>`; see [Configuration](/reference/configuration/#exclude-or-replace-a-rule). To remove a local skill, delete its folder and any exclusion that names it as `replacedBy`, then run `code-rules project build`.
+In a project, replace an imported skill with a local one by forking it with `code-rules project add skill --from`, or by writing your own and excluding the imported skill with `replacedBy: local/skills/<name>`; see [Configuration](/reference/configuration/#exclude-or-replace-a-skill). To remove a local skill, delete its folder and any exclusion that names it as `replacedBy`, then run `code-rules project build`.
 
 ## Next steps
 
