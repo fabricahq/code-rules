@@ -3,11 +3,15 @@ title: "Skill"
 description: "A reusable procedure that tells an agent what to do, step by step, and which rules each step applies."
 ---
 
+:::caution[Preview]
+Skill support isn't in a released version of Code Rules yet. This page describes how it will work.
+:::
+
 A **skill** is an [Agent Skills](https://agentskills.io) folder: a `SKILL.md` file that tells an agent how to carry out one kind of task, plus any scripts, references, or assets it bundles.
 
 Rules say what good work looks like. Skills say what to do and in what order. A skill that builds a feature might tell the agent to read the spec, decide where the code lives, write a failing test, implement, and verify the result in the browser. The rules it applies say how each of those steps should be done well.
 
-Code Rules installs skills into your project, keeps them versioned, and checks them. It doesn't run skills, decide when an agent uses one, or check that the agent followed it.
+Code Rules installs skills into your repository, records where each one came from and which version it is, and checks them. It doesn't run skills, decide when an agent uses one, or check that the agent followed it.
 
 ## What a skill contains
 
@@ -42,10 +46,10 @@ metadata:
 ...
 ```
 
-- `name` and `description` come from the Agent Skills format. Agents read the description to decide when to use the skill.
+- `name` and `description` come from the Agent Skills format. Agents find a skill by its `name`, and read the description to decide when to use it.
 - `fg-skill-type` labels what kind of skill it is. See [Skill types](#skill-types).
 - `fg-rules-used` lists the rules the skill applies.
-- `fg-skills-used` lists other skills it uses.
+- `fg-skills-used` lists other skills it calls.
 
 All three `fg-` keys are optional. For every field and check, see [Skill format](/reference/skill-format/). To write one, follow [Write a skill](/guides/write-skills/).
 
@@ -60,7 +64,7 @@ A skill can declare one type:
 
 The test is the skill's main job: a playbook changes the work, and a review judges work that already exists. A review may offer to fix what it found, and a playbook may include a review step.
 
-A skill that fits neither type leaves the field out. The type is a label for people and catalogs, such as `code-rules project list skills --type review`. Code Rules installs, checks, and updates typed and untyped skills the same way.
+A skill that fits neither type leaves the field out. The type is a plain label for people and catalogs, such as `code-rules project list skills --type review`. Code Rules installs, checks, and updates typed and untyped skills the same way.
 
 ## Skills and rules
 
@@ -70,21 +74,43 @@ Keep opinions in rules and order in skills. When a skill needs a practice follow
 - When the rule gets a new version, every skill that cites it applies the new version, without a change to the skill.
 - Reviewers check work against the same rules the implementing agent followed.
 
-Skills don't belong to [groups](/concepts/groups/), and selecting a group never installs a skill. When you install a skill, Code Rules also imports the rules it cites, even from groups your project didn't select. Those rules are for reference: the skill links to them, but they don't join `RULES.md`, so installing a skill never widens the rules that apply to all of your project's work.
+Skills don't belong to [groups](/concepts/groups/), and including a group's rules never installs a skill. When you install a skill, Code Rules also takes the rules it cites, even ones your rule `include` doesn't name. These **cited rules** are for reference: the skill links to them, but they don't join `RULES.md`, so installing a skill never widens the rules that apply to all of your project's work.
 
 ## Where skills come from
 
-A project gets skills from three places:
+A repository gets skills from three places:
 
-- **Libraries.** A [library](/concepts/libraries/) can hold skills in `skills/` beside its rule groups. Library skills are versioned and checked strictly.
-- **Plain repositories.** Any Git repository with skill folders, such as a third party's skill collection, without a `rule-library.yaml`. Its `ref` either tracks a branch or stays on one revision, and Code Rules records the exact commit.
-- **Your project.** Local skills live in `.code-rules/local/skills/`.
+- **Libraries.** A [library](/concepts/libraries/) publishes the skills in its `.code-rules/skills/` folder, and can list skills it **borrows** from other repositories. It sets a level for each one; see [Skill levels](#skill-levels).
+- **Non-library sources.** Any Git repository with skill folders and no library manifest, such as a third party's skill collection. Every skill in it is offered. Because it has no library releases, its `ref` names a branch, tag, or commit, and Code Rules records the exact commit.
+- **Your repository.** Skills you author live in `.code-rules/skills/`.
 
-When you select a skill, Code Rules also installs every skill it uses, from the same source.
+When a skill calls others, Code Rules installs them alongside it, from the same repository and revision.
 
-A skill's ID is its path in the library, `skills/<name>`. In a project, it's qualified by the source name you chose, such as `fabrica:skills/build-feature`. Configuration uses these IDs to select, exclude, and replace skills, the same way it does for rules.
+A skill's ID is its folder's path in the repository that holds it, such as `skills/build-feature`. Its identity is that repository plus that path, so two sources that reach the same repository name the same skill. In a project, an ID is qualified by the source name you chose, such as `fabrica:skills/build-feature`. Configuration uses these IDs to include, exclude, rename, and replace skills.
 
 See [Install skills](/guides/install-skills/) to add skills to a project.
+
+## Skill levels
+
+A library sets a **level** for each skill it publishes, saying how strongly it asks its projects to install it:
+
+| Level | What a project that uses the library gets |
+| --- | --- |
+| **Required** | Always installed, whatever the project's `include` says. The project can't exclude or fork it. |
+| **Recommended** | Installed when the project includes `recommended`. |
+| **Offered** | Installed when the project names it, or includes `"*"`. |
+
+A library's own skill that no level lists is offered, so a library lists only the skills it has an opinion about. An organization can make some skills the floor for every project by requiring them in its org library: a project that takes anything from that library installs them. A project sees only the levels of the libraries it names; levels don't chain through a library's own sources.
+
+A library can also list skills from another repository at a level, such as a third party's skill its teams should use. Projects fetch those **borrowed skills** from the original repository, at a commit each project resolves when it updates, and record which library required, recommended, or offered them. See [Borrowed skills](/reference/configuration/#borrowed-skills).
+
+## Names, renames, and clashes
+
+Agents find skills by name, so the folder an installed skill goes in is named after its install name, which is its own `name` unless your project renames it. Two installed skills can't share a name. When two sources ship skills with the same name, rename one of them in configuration; sync fails until no clash remains. A rename changes only the installed name: it doesn't rewrite the old name where other skills mention it, and every sync that applies one warns about that. See [Rename a skill](/reference/configuration/#rename-a-skill).
+
+A person can also install **personal skills** outside any repository, which their agents load in every repository. When a personal skill has the same name as a skill your repository installs, each agent decides which one to use: Claude Code uses the personal skill, Codex shows both, and VS Code uses the repository's. Code Rules never writes to your home directory; it warns when it finds such a pair. See [Personal skills with the same name](/reference/sync/#personal-skills-with-the-same-name).
+
+Skill decisions layer in this order, each overriding the ones before it: a library, an org library, the project, then each person's personal skills. Required skills are a floor the project can't remove.
 
 ## How a skill is versioned
 
@@ -94,16 +120,16 @@ A library skill has its own semantic version, which covers its whole folder and 
 - **Minor:** the skill adds steps or guidance without breaking how it was used.
 - **Patch:** the skill only clarifies its wording.
 
-Library authors record each change in a change note, and a library release publishes the new versions. Unlike rules, a project doesn't choose skill versions one by one: all of a source's skills come from the same library release, the one that supplies the source's library-wide files. A skill's version tells you what changed. Projects see it in their generated files and in the `code-rules project update` preview, and every installed skill moves when its source updates. To hold a skill back, exclude it, [fork it](/guides/install-skills/#fork-a-skill), or set the source's `ref`, which holds everything from that source. Local skills and skills from plain repositories have no versions.
+Library authors record each change in a change note, and a library release publishes the new versions. Unlike rules, a project doesn't choose skill versions or pin skills: all of a source's skills come from one revision, the library release or commit the project recorded for that source, so skills that call each other always match. A skill's version tells you what changed. Projects see it in their generated files and in the `code-rules project update` preview, and every installed skill moves when its source updates. To hold a skill back, exclude it, [fork it](/guides/install-skills/#fork-a-skill), or set the source's `ref`, which holds everything from that source. Authored skills and skills from non-library sources have no versions.
 
 See [Rule and skill versions](/reference/rule-versions/) for the details.
 
 ## How agents use installed skills
 
-When you sync, Code Rules writes a copy of each selected skill into the folders your agents read: `.claude/skills/` for Claude Code and `.agents/skills/` for Codex, Cursor, and other agents that follow the shared convention. You commit these copies, so every checkout and every fresh cloud session has the same skills.
+When you sync, Code Rules writes a copy of each installed skill into the folders your agents read: `.claude/skills/` for Claude Code and `.agents/skills/` for Codex, Cursor, and other agents that follow the shared convention. You commit these copies, so every checkout and every fresh cloud session has the same skills.
 
-When a skill cites rules, its installed `SKILL.md` ends with a generated section, **Rules this skill applies**, that points at your project's version of every rule the skill cites, including any local rule that replaces one. Agents read those rules in full before the step that uses them.
+When a skill cites rules, its installed `SKILL.md` ends with a generated section, **Rules this skill applies**, that points at your project's version of every rule the skill cites, including any authored rule that replaces one. Agents read those rules in full before the step that uses them.
 
-Code Rules also writes `.code-rules/generated/SKILLS.md`, which lists every installed skill, its version, how many rules it applies, and the skills it uses. Agents in tools without native skill support can read it there.
+Code Rules also writes `.code-rules/generated/SKILLS.md`, which lists every installed skill, its source, level, and version, how many rules it applies, and the skills it calls. Agents in tools without native skill support can read it there.
 
 When a skill and a rule disagree, agents should follow the rule and report the conflict, so someone can fix the skill. See [For agents](/for-agents/).

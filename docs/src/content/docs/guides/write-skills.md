@@ -3,9 +3,13 @@ title: "Write a skill"
 description: "Turn a repeatable task into ordered steps that cite the rules each step applies, then check, version, and retire it."
 ---
 
+:::caution[Preview]
+Skill support isn't in a released version of Code Rules yet. This guide describes how it will work.
+:::
+
 A **skill** tells an agent how to carry out one kind of task, step by step. Writing a skill turns a workflow you keep explaining, such as how your team fixes a bug or reviews tests, into steps every agent follows the same way. A useful skill names the task that should trigger it, orders the steps, and cites the rules each step applies.
 
-This guide covers deciding between a skill and a rule, creating a skill in a library or a project, writing and checking it, and versioning it. For every field and check, see [Skill format](/reference/skill-format/).
+This guide covers deciding between a skill and a rule, creating a skill, writing and checking it, setting its level in a library, and versioning it. For every field and check, see [Skill format](/reference/skill-format/).
 
 ## Skill or rule?
 
@@ -40,9 +44,11 @@ Ask what the skill's main job is: a playbook changes the work, and a review judg
 
 ## Create the skill
 
+Skills you author live in `.code-rules/skills/`, in a library and in a project alike.
+
 ### In a library
 
-Create a draft in your library's `skills/` directory:
+Create a draft:
 
 ```sh
 code-rules library add skill fix-bug \
@@ -50,15 +56,15 @@ code-rules library add skill fix-bug \
   --type playbook
 ```
 
-This writes `skills/fix-bug/SKILL.md`, with your name, description, and type in its frontmatter, and a body with the `code-rules:draft` marker. `code-rules library check` fails until you replace the body and remove the marker.
+This writes `.code-rules/skills/fix-bug/SKILL.md`, with your name, description, and type in its frontmatter, and a body with the `code-rules:draft` marker. `code-rules library check` fails until you replace the body and remove the marker.
 
-The name becomes the skill's ID, `skills/fix-bug`, and the folder name of every installed copy. Use 1 to 64 lowercase letters, digits, and hyphens, and keep the name stable once projects install the skill; see [Skill IDs](/reference/skill-format/#skill-ids).
+The folder's path becomes the skill's ID, `skills/fix-bug`, and its name becomes the folder name of every installed copy, unless a project renames it. Use 1 to 64 lowercase letters, digits, and hyphens, and keep the name stable once projects install the skill; see [Skill IDs](/reference/skill-format/#skill-ids).
 
 Write the description for an agent deciding whether to load the skill: say what the skill does, then when to use it, naming the task or request that should trigger it.
 
 ### In a project
 
-A skill that only one project needs can stay local to it:
+A skill that only one project needs can stay in that project:
 
 ```sh
 code-rules project add skill release-checklist \
@@ -66,23 +72,23 @@ code-rules project add skill release-checklist \
   --type playbook
 ```
 
-This writes `.code-rules/local/skills/release-checklist/SKILL.md`. Local skills have no versions, and they cite rules and skills by project ID, with the source name, such as `fabrica:practices/testing/verify-retry-limits` or `local:practices/release/tag-from-main`.
+This writes `.code-rules/skills/release-checklist/SKILL.md`. A skill in a repository that isn't a library has no version. It can cite rules from your sources by project ID, with the source name, such as `fabrica:practices/testing/verify-retry-limits`, and your own rules by their bare ID, such as `practices/release/tag-from-main`.
 
-To change an imported skill for one project, fork it instead of starting over:
+To change a skill you include from a source for one project, fork it instead of starting over:
 
 ```sh
 code-rules project add skill --from fabrica:skills/fix-bug \
   --reason 'We fix bugs behind a feature flag first.'
 ```
 
-The fork copies the version the project installs into `.code-rules/local/skills/fix-bug/`, rewrites its citations to project IDs, and excludes the imported skill in favor of the fork. See [project add skill](/reference/cli/#project-add-skill).
+The fork copies the version the project installs into `.code-rules/skills/fix-bug/`, rewrites its citations to project IDs, and excludes the source's skill in favor of the fork. A required skill can't be forked. See [project add skill](/reference/cli/#project-add-skill).
 
 ## Write the steps
 
 Replace the draft's body with the skill's instructions:
 
 - **Number the steps, in the order the agent takes them.** Give each step one outcome the agent can check before moving on, such as "a test that fails because of the bug."
-- **Name the rules each step applies.** Mention the rule by its ID in the step, such as `practices/testing/test-behavior-not-implementation`, and list it in `fg-rules-used`. The installed copy ends with a section that maps each ID to the project's version of the rule, including a local rule that replaces it.
+- **Name the rules each step applies.** Mention the rule by its ID in the step, such as `practices/testing/test-behavior-not-implementation`, and list it in `fg-rules-used`. The installed copy ends with a section that maps each ID to the project's version of the rule, including an authored rule that replaces it.
 - **Say when to stop.** Tell the agent what to do when a step can't be completed, such as a bug it can't reproduce, instead of leaving it to improvise.
 - **Say what to report.** End with what the agent hands back: what it changed, what it verified, and what it couldn't.
 - **Keep `SKILL.md` short.** Agents load the whole file when they use the skill. Move long background, examples, and checklists into `references/`, and link to them from the step that needs them. The Agent Skills format recommends keeping `SKILL.md` under 500 lines.
@@ -104,15 +110,15 @@ metadata:
     skills/review-tests
 ```
 
-In a library, both lists name IDs in the same library, without a source name, because each project chooses its own source names. A project that installs the skill imports every cited rule, even from groups it didn't select, and installs every skill it uses.
+A bare ID names a rule or skill this repository authors. A library's skills cite only bare IDs, because each project chooses its own source names. A project that installs the skill takes every cited rule, even ones its rule `include` doesn't name, and installs every skill it calls.
 
-The cited rules are for the skill. They don't join the project's `RULES.md`, so installing your skill never adds rules to unrelated work. Cite every rule a step depends on, including rules from groups you'd expect projects to select anyway: a project may not have selected them.
+The cited rules are for the skill. They don't join the project's `RULES.md`, so installing your skill never adds rules to unrelated work. Cite every rule a step depends on, including rules from groups you'd expect projects to include anyway: a project may not have included them.
 
-A skill can't cite a rule from another library or use a skill from another library. If your skill depends on another library's practice, write or adapt the rule in your library first.
+A library's skill can't cite a rule or call a skill from another library. If your skill depends on another library's practice, write or adapt the rule in your library first. A skill in a repository that isn't a library can cite its sources' rules with project IDs, such as `fabrica:practices/testing/verify-retries`; `code-rules project check` fails when one of those rules is retired, so your skill never points at a rule that's gone.
 
 ## Example: a playbook
 
-This original example is a complete playbook in a library, `skills/fix-bug/SKILL.md`:
+This original example is a complete playbook in a library, `.code-rules/skills/fix-bug/SKILL.md`:
 
 ```markdown
 ---
@@ -164,7 +170,7 @@ Each step has one outcome, names the rules it applies, and says what to do when 
 
 ## Example: a review
 
-A review skill states what it examines, the criteria, and what it reports, and leaves the work unchanged. This is `skills/review-tests/SKILL.md` in the same library:
+A review skill states what it examines, the criteria, and what it reports, and leaves the work unchanged. This is `.code-rules/skills/review-tests/SKILL.md` in the same library:
 
 ```markdown
 ---
@@ -204,9 +210,26 @@ Error: skills don't pass library check:
 
 [Validation](/reference/skill-format/#validation) lists every check and its message.
 
-For a local skill, run `code-rules project build`, which validates it and installs it into the project's install targets, then `code-rules project check`.
+In a project, run `code-rules project build`, which validates your skills and installs them into the project's skill targets, then `code-rules project check`.
 
 Check validates the format, not the guidance. Before publishing, try the skill: ask an agent to carry out a real task with it, and revise any step the agent skipped, misread, or had to ask about.
+
+## Set the skill's level
+
+In a library, decide how strongly projects should take the skill, and list it in the manifest in `.code-rules/config.yaml`:
+
+```yaml
+library:
+  skills:
+    required: [skills/ship-service]
+    recommended: [skills/fix-bug, skills/review-tests]
+```
+
+- **Required** skills install in every project that uses the library, whatever the project includes, and no project can exclude or fork them. Require only what every project must follow, such as your organization's release procedure.
+- **Recommended** skills install in projects that include `recommended`.
+- **Offered** skills install only when a project names them or includes `"*"`. A skill you don't list is offered, so list only the skills you have an opinion about.
+
+Levels are library-wide settings, like group metadata: changing one needs no change note, and the next library release publishes it. Projects see a level change, such as recommended to required, in their update preview. `code-rules library check` fails when two skills you list, including skills you [borrow](/reference/configuration/#borrowed-skills) from other repositories, have the same name, so your projects never inherit a clash.
 
 ## Record a change note
 
@@ -233,11 +256,11 @@ code-rules library change skills/fix-bug \
 
 When unsure, choose the larger level. Any change in the folder counts, including scripts, references, and a script's executable bit. [Version your rules](/guides/version-rules/#skill-versions) covers the levels and publishing in full.
 
-Local skills have no versions and need no notes.
+Skills in a repository that isn't a library have no versions and need no notes.
 
 ## Retire or replace a skill
 
-To stop publishing a library skill, delete its folder and record the retirement. Name the skill that replaces it, when there is one:
+To stop publishing a library skill, delete its folder, remove it from any level in the manifest, and record the retirement. Name the skill that replaces it, when there is one:
 
 ```sh
 code-rules library change skills/triage-bug \
@@ -259,11 +282,11 @@ skills:
   skills/fix-bug: new
 ```
 
-In a project, replace an imported skill with a local one by forking it with `code-rules project add skill --from`, or by writing your own and excluding the imported skill with `replacedBy: local/skills/<name>`; see [Configuration](/reference/configuration/#exclude-or-replace-a-skill). To remove a local skill, delete its folder and any exclusion that names it as `replacedBy`, then run `code-rules project build`.
+In a project, replace a skill you include from a source by forking it with `code-rules project add skill --from`, or by writing your own and excluding the source's skill with `replacedBy: skills/<name>`; see [Configuration](/reference/configuration/#exclude-or-replace-a-skill). To remove one of your own skills, delete its folder and any exclusion that names it as `replacedBy`, then run `code-rules project build`.
 
 ## Next steps
 
 - [Skill format](/reference/skill-format/) defines every field and check.
-- [Install skills](/guides/install-skills/) shows how projects select and install your skills.
+- [Install skills](/guides/install-skills/) shows how projects include and install your skills.
 - [Version your rules](/guides/version-rules/) covers change notes and publishing library releases.
 - [Write a rule](/guides/write-rules/) covers the rules your skills cite.

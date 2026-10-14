@@ -3,13 +3,17 @@ title: "Skill format"
 description: "What Code Rules accepts in a skill folder and its SKILL.md: IDs, frontmatter, metadata keys, links, files, and every library check."
 ---
 
-This page defines what Code Rules accepts in a [skill](/concepts/skill/): its folder, its `SKILL.md` file, and the Code Rules keys in its metadata. The same format applies to skills in a library and to a project's local skills. For how to write a skill well, see [Write a skill](/guides/write-skills/).
+:::caution[Preview]
+Skill support isn't in a released version of Code Rules yet. This page describes how it will work.
+:::
+
+This page defines what Code Rules accepts in a [skill](/concepts/skill/): its folder, its `SKILL.md` file, and the Code Rules keys in its metadata. The same format applies to every skill a repository authors, whether it's a library, a project, or both. For how to write a skill well, see [Write a skill](/guides/write-skills/).
 
 A skill uses the [Agent Skills](https://agentskills.io) format. Code Rules adds three optional `metadata` keys and checks the rest of the format as the Agent Skills specification defines it, so a skill that passes `code-rules library check` also works in tools that read Agent Skills directly.
 
 ## Skill folders
 
-A library's skills live in its root `skills/` directory, one folder per skill, beside its rule groups. [Library format](/reference/library-format/) shows the whole layout.
+A repository's authored skills live in `.code-rules/skills/`, one folder per skill, beside `rules/`. [Project files](/reference/files/) shows the whole layout.
 
 ```text
 skills/
@@ -23,29 +27,29 @@ skills/
     SKILL.md
 ```
 
-Each skill folder holds a `SKILL.md` file and anything the skill bundles. The Agent Skills format suggests `scripts/` for code the agent runs, `references/` for documents it reads when needed, and `assets/` for templates and other files it uses, but any layout inside the folder works. The `assets/` folder inside a skill belongs to the skill; it isn't a rule asset directory, and the library-root `assets/` directory isn't part of any skill.
+Each skill folder holds a `SKILL.md` file and anything the skill bundles. The Agent Skills format suggests `scripts/` for code the agent runs, `references/` for documents it reads when needed, and `assets/` for templates and other files it uses, but any layout inside the folder works. The `assets/` folder inside a skill belongs to the skill; it isn't a rule asset directory, and the shared `.code-rules/assets/` directory isn't part of any skill.
 
-`skills/` holds only skill folders, and is flat: a skill folder can't contain another skill's `SKILL.md`, and it can't contain `_group.yaml`. Skills don't belong to groups, so a skill folder is never inside `techs/` or `practices/`.
-
-A project's local skills use the same format in `.code-rules/local/skills/<name>/`. See [Local skills](#local-skills).
+`skills/` holds only skill folders, and is flat: a skill folder can't contain another skill's `SKILL.md`, and it can't contain `_group.yaml`. Skills don't belong to groups, so a skill folder is never inside `rules/`.
 
 ### Git-tracked files
 
-A skill's content is the files Git tracks in its folder. Files Git ignores, such as `__pycache__/`, `node_modules/`, or `.venv/` that a skill's scripts create, are neither versioned nor installed. `code-rules library check` warns about a file in a skill folder that Git neither tracks nor ignores, because it isn't part of the skill until you commit it. A library outside a Git repository has no library releases, and check reads every file in each skill folder.
+A skill's content is the files Git tracks in its folder. Files Git ignores, such as `__pycache__/`, `node_modules/`, or `.venv/` that a skill's scripts create, are neither versioned nor installed. `code-rules library check` warns about a file in a skill folder that Git neither tracks nor ignores, because it isn't part of the skill until you commit it. A repository outside Git has no library releases, and Code Rules reads every file in each skill folder.
 
-Symbolic links, submodules, and Git LFS pointers aren't supported in a skill folder, as for every file Code Rules imports.
+Symbolic links, submodules, and Git LFS pointers aren't supported in a skill folder, as for every file Code Rules takes from a source.
 
 ### File modes
 
-A file's executable bit is part of the skill's content. Git records it as mode `100755` for an executable file and `100644` for any other file. Code Rules keeps the mode in the library's vendored copy in a project and in every installed copy, so a step that runs `./scripts/verify.sh` works after install. Changing only a file's mode is a change to the skill, and after the first library release it needs a change note, like any other change.
+A file's executable bit is part of the skill's content. Git records it as mode `100755` for an executable file and `100644` for any other file. Code Rules keeps the mode in a project's vendor snapshot and in every installed copy, so a step that runs `./scripts/verify.sh` works after install. Changing only a file's mode is a change to the skill, and after the first library release it needs a change note, like any other change.
 
 ### File contents
 
-Markdown files in a skill folder, including `SKILL.md`, must be UTF-8, so their links can be checked. Other files can be binary; Code Rules keeps their original bytes. The [import limits](/reference/imports/#import-limits-and-version-errors) on file size and count apply to skill files as to any other imported file.
+Markdown files in a skill folder, including `SKILL.md`, must be UTF-8, so their links can be checked. Other files can be binary; Code Rules keeps their original bytes. The [source limits](/reference/imports/#source-limits-and-version-errors) on file size and count apply to skill files as to any other vendored file.
 
 ## Skill IDs
 
-A skill's ID is its path in the library without the trailing `/SKILL.md`: `skills/<name>`, such as `skills/build-feature`. In a project, the ID is qualified by the source name the project chose, such as `fabrica:skills/build-feature`, and a local skill's ID is `local:skills/<name>`.
+A skill's ID is its folder's path in the repository that holds it. For a skill a repository authors, that's its path in the Code Rules directory, `skills/<name>`, such as `skills/build-feature`. For a skill in a [non-library source](#skills-from-non-library-sources), it's the folder's path from the repository root, such as `skills/engineering/to-spec`. A skill's identity is its repository plus its ID, so two sources that reach the same repository name the same skill.
+
+In a project, an ID from a source is qualified by the source name the project chose, such as `fabrica:skills/build-feature`. A skill a library borrows adds the borrowed source's name, such as `fabrica:mattpocock:skills/engineering/to-spec`. An authored skill's ID has no source name. See [Source names and IDs](/reference/configuration/#source-names-and-ids).
 
 `<name>` follows the Agent Skills name grammar:
 
@@ -56,7 +60,7 @@ A skill's ID is its path in the library without the trailing `/SKILL.md`: `skill
 
 The folder name is the skill's name, and it must equal the `name` field in its `SKILL.md`. Renaming the folder changes the skill's ID. In a library, a rename retires the old ID, replaced by the new one; see [Retire or replace a skill](/guides/write-skills/#retire-or-replace-a-skill). A retired skill's ID can't be reused.
 
-The name is also the folder name of every installed copy, such as `.claude/skills/build-feature/`, so two skills with the same name can't be installed in one project, even from different sources. See [Project files](/reference/files/).
+The name is also the skill's install name, the folder name of every installed copy, such as `.claude/skills/build-feature/`, so two skills with the same name can't be installed in one project, even from different sources. A project resolves a clash by [renaming](/reference/configuration/#rename-a-skill) one of them, which changes the install name but not the ID.
 
 ## Frontmatter
 
@@ -102,16 +106,16 @@ Code Rules adds three optional keys under `metadata`. Each value is a string, as
 | Key | Value | Checks |
 | --- | --- | --- |
 | `fg-skill-type` | `playbook` or `review` | Must be a type on the canonical list. Unknown values fail `code-rules library check`. |
-| `fg-rules-used` | The IDs of the rules the skill applies, one per line | Each must be a current rule in this library. |
-| `fg-skills-used` | The IDs of the skills this skill uses, `skills/<name>`, one per line | Each must be a current skill in this library, other than this one, and the skills used can't form a cycle. |
+| `fg-rules-used` | The IDs of the rules the skill applies, one per line | Each must be a current rule in this repository, or, outside a library, in a source the project names. |
+| `fg-skills-used` | The IDs of the skills this skill calls, one per line | Each must be a current skill in the same repository, other than this one, and the skills called can't form a cycle. |
 
 Other `metadata` keys, such as `author`, are preserved and ignored. Keys that start with `fg-` are reserved for Code Rules, so any other `fg-` key fails `code-rules library check`.
 
 ### Skill type
 
-`fg-skill-type` labels the skill as a `playbook` or a `review`; see [Skill types](/concepts/skill/#skill-types). Leave it out when neither fits. Code Rules shows the type, and `code-rules project list skills --type` filters by it, but it installs, checks, and updates every skill the same way, whatever its type.
+`fg-skill-type` labels the skill as a `playbook` or a `review`; see [Skill types](/concepts/skill/#skill-types). Leave it out when neither fits. The type is a plain label: Code Rules shows it, and `code-rules project list skills --type` filters by it, but it installs, checks, and updates every skill the same way, whatever its type.
 
-The canonical type list is `canonical-skill-types.yaml` in the Code Rules repository. Each Code Rules release builds the list in, so a new type needs a Code Rules release, and your library's CI must use that release before a skill can declare the type. Only `code-rules library check` checks the type: a project imports a skill whose type its Code Rules doesn't know without complaint, and shows the type as written.
+The canonical type list is `canonical-skill-types.yaml` in the Code Rules repository. Each Code Rules release builds the list in, so a new type needs a Code Rules release, and your library's CI must use that release before a skill can declare the type. Only `code-rules library check` checks the type: a project installs a skill whose type its Code Rules doesn't know without complaint, and shows the type as written.
 
 ### Rules a skill applies
 
@@ -125,13 +129,13 @@ metadata:
     practices/verification/verify-on-the-surface-users-touch
 ```
 
-Each line is a rule ID in this library: the rule's path without `.md`, and without a source name, because each project chooses its own source names. Surrounding whitespace and blank lines are ignored. Each ID can appear once. A skill can cite rules from any group in its library, and only rules in its library.
+In a library, each line is a rule ID in this library: the rule's path in `rules/` without `.md`, and without a source name, because each project chooses its own source names. Surrounding whitespace and blank lines are ignored. Each ID can appear once. A library's skill can cite rules from any group in its library, and only rules in its library. A skill in a repository that isn't a library can also cite its sources' rules by project ID; see [Skills in a project](#skills-in-a-project).
 
-When a project installs the skill, Code Rules imports every cited rule, even from groups the project didn't select, and appends a generated section to the installed `SKILL.md` that links to the project's version of each one. See [Installed copies](#installed-copies).
+When a project installs the skill, Code Rules takes every cited rule, even ones the project's rule `include` doesn't name, and appends a generated section to the installed `SKILL.md` that links to the project's version of each one. Cited rules are for reference only: they never join `RULES.md`. See [Installed copies](#installed-copies).
 
 ### Skills a skill uses
 
-`fg-skills-used` lists the other skills this skill uses, one skill ID per line, in the same form:
+`fg-skills-used` lists the other skills this skill calls, one skill ID per line, in the same form:
 
 ```yaml
 metadata:
@@ -140,17 +144,17 @@ metadata:
     skills/tdd
 ```
 
-Each line is a skill ID in this library, `skills/<name>`. A skill can't use itself, and the skills used can't form a cycle, directly or through other skills. When a project installs the skill, Code Rules also installs every skill it uses, and the skills those use in turn, from the same source.
+Each line is a skill ID in the same repository, `skills/<name>`. A skill can't call itself, and the skills called can't form a cycle, directly or through other skills. When a project installs the skill, Code Rules also installs every skill it calls, and the skills those call in turn, from the same repository and revision. A project declares calls a skill's metadata leaves out with [`skills.uses`](/reference/configuration/#declare-the-skills-a-skill-calls); Code Rules doesn't search skill text for them.
 
 ## Links
 
-Links in a skill's Markdown files must be absolute URLs, such as `https://agentskills.io`, or relative paths that stay inside the skill's own folder, such as `references/slicing.md` or `scripts/verify.sh`. Installed copies are self-contained, so a skill can't link to a rule file, another skill, the library-root `assets/` directory, or any other file in the library. Cite rules with `fg-rules-used` instead, and the installed copy links to the project's version of each one.
+Links in a skill's Markdown files must be absolute URLs, such as `https://agentskills.io`, or relative paths that stay inside the skill's own folder, such as `references/slicing.md` or `scripts/verify.sh`. Installed copies are self-contained, so a skill can't link to a rule file, another skill, the shared `assets/` directory, or any other file in the repository. Cite rules with `fg-rules-used` instead, and the installed copy links to the project's version of each one.
 
 Code Rules checks Markdown links, images, reference definitions, and the `href` and `src` attributes of HTML. Relative links must point to a file that exists in the skill's folder. Links to a heading in the same file, such as `#verify`, are allowed. Code Rules keeps external URLs as links and never downloads them. Files other than Markdown, such as scripts, aren't checked for links.
 
 ## Licenses
 
-A library's license, declared in `rule-library.yaml`, covers its skills as it covers its rules. The `license` field in `SKILL.md` is informational: Code Rules preserves it, and when it differs from the library's SPDX expression, `code-rules library check` warns. Skills from a plain repository have no library declaration, so their license comes from the skill or the repository instead. See [License rules](/guides/license-rules/#license-skills).
+A library's license, declared in its [manifest](/reference/library-format/#license-metadata), covers its skills as it covers its rules. The `license` field in `SKILL.md` is informational: Code Rules preserves it, and when it differs from the library's SPDX expression, `code-rules library check` warns. Skills from a non-library source have no library declaration, so their license comes from the skill or the repository instead. See [License rules](/guides/license-rules/#license-skills).
 
 ## Validation
 
@@ -169,6 +173,10 @@ Check fails with these problems:
 | Problem | Message |
 | --- | --- |
 | A file directly in `skills/` | `skills/README.md: skills/ holds only skill folders` |
+| Two skills the manifest lists, authored or borrowed, with the same name | `library.skills lists skills/review and mattpocock:skills/review, which both install as review; list one of them, or rename the folder of your own skill` |
+| A skill listed in more than one level | `library.skills lists skills/fix-bug as both required and recommended; list it once` |
+| A listed skill that doesn't exist | `library.skills.recommended names skills/fix-bugs, which isn't a skill in this library` |
+| A borrowed skill whose source isn't in `sources`, or that the source doesn't have at its `ref` | `library.skills.offered names mattpocock:skills/productivity/grill, which mattpocock doesn't have at main` |
 | A folder name that breaks the [name grammar](#skill-ids) | `skills/Build_Feature: a skill name uses 1 to 64 lowercase letters, digits, and hyphens, without a leading, trailing, or doubled hyphen` |
 | A skill folder without `SKILL.md` | `skills/build-feature: expected SKILL.md in the skill folder` |
 | A skill inside another skill's folder | `skills/build-feature/steps/SKILL.md: a skill folder can't contain another skill; move it to its own folder in skills/` |
@@ -204,15 +212,17 @@ After the first library release, check also compares every skill with the latest
 
 Check warns, without failing, when:
 
-- A skill's `license` differs from the library's declared SPDX expression: `skills/build-feature/SKILL.md: license is Apache-2.0, but rule-library.yaml declares MIT. The library's license applies to its skills; make them match.`
-- A skill declares a `license` and the library declares none: `skills/build-feature/SKILL.md: license is MIT, but rule-library.yaml declares no license. Declare the library's terms.`
+- A skill's `license` differs from the library's declared SPDX expression: `skills/build-feature/SKILL.md: license is Apache-2.0, but the library declares MIT. The library's license applies to its skills; make them match.`
+- A skill declares a `license` and the library declares none: `skills/build-feature/SKILL.md: license is MIT, but the library declares no license. Declare the library's terms in library.license.`
 - A file in a skill folder is neither tracked nor ignored by Git: `skills/build-feature/scripts/new-check.sh isn't tracked by Git, so it isn't part of the skill. Add it with git add, or ignore it.`
+
+To find borrowed skills' names, check reads each borrowed source at its `ref`, so it needs access to those repositories.
 
 Check validates the format, not whether the steps are good. Use [Write a skill](/guides/write-skills/) to review a skill's guidance.
 
 ## Installed copies
 
-When a project installs a skill, Code Rules writes a copy of its folder into each of the project's install targets, such as `.claude/skills/build-feature/`. Every file is copied as the source has it, with its executable bit, and `SKILL.md` gets two changes:
+When a project installs a skill, Code Rules writes a copy of its folder into each of the project's skill targets, such as `.claude/skills/build-feature/`. Every file is copied as the source has it, with its executable bit, and `SKILL.md` gets two changes, plus a new `name` when the project [renames](/reference/configuration/#rename-a-skill) the skill:
 
 - A marker comment becomes the first line after the frontmatter, so the frontmatter still starts the file:
 
@@ -220,22 +230,22 @@ When a project installs a skill, Code Rules writes a copy of its folder into eac
   <!-- code-rules:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with code-rules project add skill --from. -->
   ```
 
-- When the skill cites rules, a generated **Rules this skill applies** section is appended at the end. It links to the project's version of each rule the skill cites, including a local rule that replaces one, and marks a rule the project excluded. A **Skills this skill uses** line follows when the skill uses others.
+- When the skill cites rules, a generated **Rules this skill applies** section is appended at the end. It links to the project's version of each rule the skill cites, including an authored rule that replaces one, and marks a rule the project excluded. A **Skills this skill uses** line follows when the skill calls others.
 
 Don't edit installed copies: sync rewrites them, and `code-rules project check` fails when one differs from what sync would write. [Installed skills](/reference/files/#installed-skills) shows the complete generated section and how Code Rules records the folders it owns.
 
-## Local skills
+## Skills in a project
 
-A project's local skills live in `.code-rules/local/skills/<name>/` and use this format, with two differences:
+A repository that isn't a library authors skills in the same `.code-rules/skills/<name>/` folders, with the same format, and two differences:
 
-- They cite rules and skills by project ID, with the source name, because a project can use several sources: `fabrica:practices/testing/test-behavior-not-implementation`, `local:practices/architecture/follow-bounded-contexts`, or `fabrica:skills/tdd`. Each ID must name a configured source, or `local`; Code Rules imports each cited rule, and installs each used skill, from the source it names.
+- They can cite rules and call skills from the project's sources, by project ID with the source name, because a project can use several sources: `fabrica:practices/testing/test-behavior-not-implementation` or `fabrica:skills/tdd`. Bare IDs, such as `practices/architecture/follow-bounded-contexts`, name the repository's own rules and skills. Code Rules takes each cited rule, and installs each called skill, from the source it names.
 - They have no versions and need no change notes.
 
-`code-rules project add skill` creates one, and `code-rules project add skill --from` forks an imported skill into one; see [project add skill](/reference/cli/#project-add-skill). Sync and build validate local skills with the checks above and fail on the first problem.
+`code-rules project add skill` creates one, and `code-rules project add skill --from` forks a skill from a source into one; see [project add skill](/reference/cli/#project-add-skill). Sync and build validate these skills with the checks above and fail on the first problem. `code-rules project check` also fails when one cites a rule its library retired, naming the replacement when there is one, so a project's skills never point at a rule that's gone.
 
-## Skills from plain repositories
+## Skills from non-library sources
 
-A plain repository, one without `rule-library.yaml`, can supply skills too. Each folder directly inside its skills root that has a `SKILL.md` file is a skill, with the ID `skills/<folder-name>`. Code Rules checks these skills leniently: where a skill breaks this format, such as a `name` that doesn't match its folder, a missing `description`, or a link outside its folder, sync warns and installs the skill as it is. The checks that protect your project still fail: unsafe paths, symbolic links, submodules, Git LFS pointers, and the import limits. A plain repository's `fg-rules-used` and `fg-skills-used` are ignored; the project declares the skills one uses with `skillUses` instead. See [Plain repositories](/reference/imports/#plain-repositories).
+A repository without a library manifest, such as a third party's skill collection, can supply skills too. Each folder in it that has a `SKILL.md` file is a skill, and its ID is the folder's path from the repository root, such as `skills/engineering/to-spec`. Code Rules checks these skills leniently: where a skill breaks this format, such as a `name` that doesn't match its folder, a missing `description`, or a link outside its folder, sync warns and installs the skill as it is. The checks that protect your project still fail: unsafe paths, symbolic links, submodules, Git LFS pointers, and the [source limits](/reference/imports/#source-limits-and-version-errors). A non-library source's `fg-rules-used` lists are ignored, because it has no rules. Its `fg-skills-used` lists name skills in the same repository; the project declares calls they leave out with `skills.uses`. See [Non-library sources](/reference/imports/#non-library-sources).
 
 ## Related pages
 
