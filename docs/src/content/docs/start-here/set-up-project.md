@@ -195,7 +195,7 @@ For your first task, check that the agent reads the relevant rules and validates
 
 ## 7. Commit the guidance for your team
 
-Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.code-rules/` directory, the installed skills in `.claude/skills/` and `.agents/skills/`, and your agent instruction changes (`AGENTS.md`) together. This includes your configuration, local rules, imported library files, and generated guidance. If your `.gitignore` excludes `.claude/`, add an exception such as `!/.claude/skills/`.
+Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.code-rules/` directory, the installed skills in `.claude/skills/` and `.agents/skills/`, and your agent instruction changes (`AGENTS.md`) together. This includes your configuration, local rules, imported library files, and generated guidance. If your `.gitignore` excludes `/.claude/`, change that line to `/.claude/*` and add `!/.claude/skills/`, because Git can't re-include a folder inside an excluded one.
 
 Anyone who checks out the repository, including a fresh cloud session, will then have the same rules, skills, and instructions for their agent on future tasks.
 

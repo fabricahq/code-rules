@@ -32,6 +32,7 @@ In `.code-rules/config.yaml`, each library you import gets a named entry under `
 - **Which versions to use:** by default, each rule follows its newest version when you update. Add `pins` to keep individual rules at exact versions. See [Choose versions](/reference/configuration/#choose-versions).
 - **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`. A selected group includes rules the library adds to it later.
 - **Which individual rules to import:** optionally, `rules` lists single rules to import without the rest of their group, such as `techs/go/wrap-errors-with-operation`. Rules added to that group later don't join. See [Select individual rules](/reference/configuration/#select-individual-rules).
+- **Which skills to install:** optionally, `skills` lists skills from the library, such as `skills/build-feature`. Selecting a group never installs a skill. See [Install skills](/guides/install-skills/).
 
 You can also use `exclude` to leave out individual rules, optionally replacing them with your own. We'll cover both below.
 
@@ -132,3 +133,4 @@ Use [Resolve conflicting rules](/guides/conflicting-guidance/) to review the com
 Review `generated/RULES.md`, each relevant group index, and the full resolved definitions. Check exclusions and replacements against configuration and provenance.
 Commit configuration, local rules, vendor snapshots, and generated files together.
 Use [Update rules](/guides/update/) when you adopt new library releases or change the selected groups later.
+To add procedures that apply these rules step by step, see [Install skills](/guides/install-skills/).

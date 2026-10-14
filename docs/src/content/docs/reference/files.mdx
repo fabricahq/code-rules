@@ -1,18 +1,31 @@
 ---
 title: "Project files"
-description: "What to edit, what Code Rules manages, and where your agent starts reading."
+description: "What to edit, what Code Rules manages, where installed skills go, and where your agent starts reading."
 ---
 
 import { FileTree } from '@astrojs/starlight/components';
 
-A **project** is the codebase whose rules Code Rules manages. Its **Code Rules directory**, `.code-rules/` at the project root, contains project configuration, project-only rules, imported library snapshots, and generated guidance. These files define which rules the project uses and give your agents a shared place to read them.
+A **project** is the codebase whose rules and skills Code Rules manages. Its **Code Rules directory**, `.code-rules/` at the project root, contains project configuration, project-only rules and skills, imported library snapshots, and generated guidance. When the project installs skills, Code Rules also writes them into **target folders** outside that directory, where agents look for skills. These files define which rules and skills the project uses and give your agents a shared place to read them.
 
 ## Project layout
 
-The tree below shows **`/.code-rules/` at the project root**, the top-level directory of your codebase. The leading `/` refers to the project root, not your computer's filesystem root.
+The tree below shows the **project root**, the top-level directory of your codebase. The leading `/` refers to the project root, not your computer's filesystem root.
 
 <FileTree>
 
+- /.agents/skills/
+  - build-feature/
+    - SKILL.md
+    - scripts/
+      - verify.sh
+  - tdd/
+    - ...
+- /.claude/skills/
+  - build-feature/
+    - ...
+  - tdd/
+    - ...
+  - release/ another tool's skill, which Code Rules leaves alone
 - /.code-rules/
   - config.yaml
   - README.md
@@ -20,25 +33,39 @@ The tree below shows **`/.code-rules/` at the project root**, the top-level dire
     - README.md
     - practices/testing/
       - test-failure-paths.md
+    - skills/
+      - fix-bug/
+        - SKILL.md
   - vendor/
+    - _preset/
+      - _source.json
+      - presets/
+        - fabrica-defaults.yaml
     - fabrica/
       - _source.json
       - rule-library.yaml
       - practices/testing/
         - ...
+      - skills/
+        - build-feature/
+          - ...
+        - tdd/
+          - ...
   - generated/
     - RULES.md
+    - SKILLS.md
     - groups/
       - ...
     - rules/
       - ...
     - libraries/
       - ...
+    - installed-skills.json
     - provenance.json
 
 </FileTree>
 
-Your `AGENTS.md` stays outside the Code Rules directory, at the project root. The **project configuration** is `.code-rules/config.yaml`.
+`.claude/skills/` and `.agents/skills/` exist only for the [install targets](/reference/configuration/#install-targets) the project configures, and only once it installs a skill. Your `AGENTS.md` stays outside the Code Rules directory, at the project root. The **project configuration** is `.code-rules/config.yaml`.
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/` directory. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
 
@@ -46,11 +73,13 @@ Initialize from the project root. In Git repositories, other project commands fi
 
 The three directories serve different purposes:
 
-- **`local/`: rules you author for this project.** Add your own rules here, or write replacements for imported rules and select those replacements in `config.yaml`. You maintain these files; syncing libraries preserves them.
-- **`vendor/`: source files imported from libraries.** Code Rules keeps a snapshot of each selected rule at its recorded version, along with the library files it needs. These files let you rebuild offline and trace rules back to their source. Do not customize them here; put your changes in `local/` instead.
-- **`generated/`: the resolved rules your agents read.** Code Rules combines the imported and local rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes. Do not edit this directory directly; rebuild it after changing your inputs.
+- **`local/`: rules and skills you author for this project.** Add your own rules here, or write replacements for imported rules and select those replacements in `config.yaml`. Local skills, including forks of imported skills, live in `local/skills/<name>/`. You maintain these files; syncing libraries preserves them.
+- **`vendor/`: source files imported from libraries and plain repositories.** Code Rules keeps a snapshot of each selected rule and skill at its recorded version, along with the library files it needs. Skills are stored at their path in the source, such as `vendor/fabrica/skills/build-feature/`. A project that [extends a preset](/reference/configuration/#extend-a-preset) also keeps the preset file and its record in `vendor/_preset/`. These files let you rebuild offline and trace rules and skills back to their source. Do not customize them here; put your changes in `local/` instead.
+- **`generated/`: the resolved rules your agents read.** Code Rules combines the imported and local rules according to `config.yaml`, applies exclusions and replacements, and creates the reading indexes, including `SKILLS.md`. Do not edit this directory directly; rebuild it after changing your inputs.
 
-Think of `local/` and `vendor/` as inputs, and `generated/` as the output for your agent.
+Installed skills are also output: Code Rules writes a copy of each installed skill into every target folder, such as `.claude/skills/build-feature/`, from its vendored or local source. See [Installed skills](#installed-skills).
+
+Think of `local/` and `vendor/` as inputs, and `generated/` and the installed skills as the output for your agent.
 For example, when you replace a library rule, its imported source stays in `vendor/`, your replacement lives in `local/`, and `generated/` presents the replacement to your agent.
 
 ## What to edit
@@ -58,21 +87,24 @@ For example, when you replace a library rule, its imported source stays in `vend
 | File or directory | Who maintains it | Purpose |
 | --- | --- | --- |
 | `AGENTS.md` | You | Tell your agent to read the generated rules. |
-| `.code-rules/config.yaml` | You | Choose libraries, groups, rule versions, and exceptions. |
-| `.code-rules/local/` | You, after initialization | Add project rules, replacements, and local group metadata. |
+| `.code-rules/config.yaml` | You | Choose libraries, groups, skills, versions, install targets, a preset, and exceptions. |
+| `.code-rules/local/` | You, after initialization | Add project rules, replacements, local group metadata, and local skills. |
 | `.code-rules/README.md` | `code-rules project init`, `code-rules project build`, and `code-rules project sync` | Explain the project's rule setup and commands. |
-| `.code-rules/vendor/` | `code-rules project sync` and `code-rules project update` | Store imported source files and their records of each rule's version. |
-| `.code-rules/generated/` | `code-rules project sync`, `code-rules project update`, and `code-rules project build` | Provide resolved rules and indexes for your agent. |
+| `.code-rules/vendor/` | `code-rules project sync` and `code-rules project update` | Store imported source files and their records of each rule's and skill's version. |
+| `.code-rules/generated/` | `code-rules project sync`, `code-rules project update`, and `code-rules project build` | Provide resolved rules, indexes, and the record of installed skills. |
+| Skill folders that Code Rules installed in `.claude/skills/` and `.agents/skills/` | `code-rules project sync`, `code-rules project update`, and `code-rules project build` | Provide installed copies of skills where agents look for them. |
+| Other folders in `.claude/skills/` and `.agents/skills/` | You, or the tool that installed them | Code Rules never changes or removes them. |
 
-Keep authored changes in configuration and `local/`. Edits in `vendor/` or `generated/` will be replaced or removed.
-Commit configuration, local rules, and both managed directories so your team and agents can use the same rules offline.
+Keep authored changes in configuration and `local/`. Edits in `vendor/`, `generated/`, or an installed skill folder will be replaced or removed. To change an imported skill, [fork it](/reference/cli/#project-add-skill) into `local/skills/`.
+Commit configuration, local rules and skills, both managed directories, and the installed skill folders, so your team, CI, and every fresh checkout use the same rules and skills offline.
 Commit the project instructions and README as well.
+If your `.gitignore` excludes a target folder, such as with `/.claude/`, change the line to `/.claude/*` and add the exception `!/.claude/skills/`, or `code-rules project check` reports the missing folders. Git can't re-include a folder inside an excluded folder, so `!/.claude/skills/` alone doesn't work after `/.claude/`.
 
 Use `code-rules project build` to regenerate guidance from stored inputs, and `code-rules project check` to verify consistency without changing files.
 Missing or mismatched imported snapshots require `code-rules project sync`.
 For recovery and file ownership details, see [Sync and recovery](/reference/sync/).
 
-Generated Markdown and the managed Code Rules guide include a "Generated by Code Rules" notice and regeneration instructions. `generated/provenance.json` stores that notice in `generatedNotice`. Copied license and notice files retain their original bytes.
+Generated Markdown and the managed Code Rules guide include a "Generated by Code Rules" notice and regeneration instructions. `generated/provenance.json` and `generated/installed-skills.json` store that notice in `generatedNotice`. Copied license and notice files retain their original bytes. An installed `SKILL.md` carries a [marker line](#installed-skills) instead, because its frontmatter must start at the first byte.
 
 ## Project and group guides
 
@@ -88,14 +120,17 @@ Local and library group creation also writes a `README.md` beside `_group.yaml`.
 
 Point your agent to `.code-rules/generated/RULES.md`. It lists the groups and explains when to read each one.
 Agents then open relevant groups and read the applicable rules in full.
+When the project installs skills, `RULES.md` also has one line pointing to `SKILLS.md`, so the same instructions reach agents whose tools don't load skills from the target folders.
 See [Plan, write, and review](/for-agents/) for instructions you can add to `AGENTS.md`.
 
 | Generated path | Contents |
 | --- | --- |
 | `RULES.md` | The entry point for discovering relevant groups. |
+| `SKILLS.md` | One entry per installed skill. Present only when the project installs skills. |
 | `groups/` | Group pages containing full rules or summaries with links to full definitions. |
-| `rules/` | Individual resolved rules, available even when a group also includes them inline. |
+| `rules/` | Individual resolved rules, available even when a group also includes them inline, and the reference-only rules that installed skills cite. |
 | `libraries/` | Source summaries and retained license and notice files. |
+| `installed-skills.json` | The skill folders Code Rules installed in the target folders. Present only when the project installs skills. |
 | `provenance.json` | Machine-readable source versions, origins, and replacement decisions. |
 
 Large indexes can span multiple pages. Follow the page directory and navigation links before selecting rules, and complete any truncated reads.
@@ -103,8 +138,112 @@ Full rule definitions are never shortened to fit an index.
 
 A rule's source name appears in its generated path. For example, `fabrica:practices/testing/test-failure-paths` lives at `rules/fabrica/practices/testing/test-failure-paths.md` under `generated/`.
 Local rules and replacements use `local/` in place of the imported source name. Excluded rules and replaced upstream bodies have no generated rule file.
+A rule that only an installed skill cites has a generated rule file at the same kind of path, but no group page or `RULES.md` entry lists it.
 
 For rule versions, replacement history, and retained license records, see [Provenance](/reference/provenance/).
+
+## Installed skills
+
+For each installed skill, Code Rules writes the folder `<target>/<name>/` in every [install target](/reference/configuration/#install-targets), such as `.claude/skills/build-feature/`. The folder holds every file of the skill as its source has it, with each file's executable bit, plus two changes to `SKILL.md`.
+
+First, a marker comment is the first line after the frontmatter:
+
+```markdown
+---
+name: build-feature
+description: Build a feature from an agreed spec, one slice at a time. Use when starting implementation of a new feature or a change to an existing one.
+metadata:
+  cr-skill-type: playbook
+  cr-rules-used: |
+    practices/testing/test-behavior-not-implementation
+    practices/verification/verify-on-the-surface-users-touch
+  cr-skills-used: |
+    skills/tdd
+---
+<!-- code-rules:installed fabrica:skills/build-feature 1.3.0. Do not edit; fork it with code-rules project add skill --from. -->
+
+1. Read the spec and name the slice you're building.
+```
+
+The marker names the skill's project ID and its version. A skill from a plain repository shows its full commit SHA in place of a version. A local skill has no version, and its marker says where to edit it instead: `<!-- code-rules:installed local:skills/fix-bug. Do not edit; edit .code-rules/local/skills/fix-bug/ instead. -->`. A `SKILL.md` without frontmatter, which only a plain repository can supply, gets the marker as its first line. The marker never includes the Code Rules version, so upgrading Code Rules doesn't change installed copies.
+
+Second, a generated section is appended to the end of `SKILL.md`. When the skill cites rules, it lists each one's project ID, version, and generated rule file:
+
+```markdown
+## Rules this skill applies
+
+Read each rule in full before the step that applies it.
+
+- `fabrica:practices/testing/test-behavior-not-implementation` 2.0.0: [.code-rules/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md](../../../.code-rules/generated/rules/fabrica/practices/testing/test-behavior-not-implementation.md)
+- `local:practices/verification/verify-in-staging`, which replaces `fabrica:practices/verification/verify-on-the-surface-users-touch`: [.code-rules/generated/rules/local/practices/verification/verify-in-staging.md](../../../.code-rules/generated/rules/local/practices/verification/verify-in-staging.md)
+
+Skills this skill uses: `tdd`
+```
+
+- A rule the project replaced shows the replacement, its version when it has one, and the rule it replaces.
+- A rule the project excluded without a replacement shows "excluded by this project" and the exclusion's reason, with no link.
+- The "Skills this skill uses" line names each skill it uses by its installed name, including those your configuration's [`skillUses`](/reference/configuration/#declare-a-skills-dependencies) adds, and those a local skill replaces. It appears only when the skill uses others, and without a heading when the skill cites no rules.
+
+Links are relative to the installed `SKILL.md`, so they work from either target. A skill that cites no rules and uses no skills gets no generated section.
+
+Code Rules records what it installed in `generated/installed-skills.json`:
+
+```json
+{
+  "formatVersion": 1,
+  "generatedNotice": "Generated by Code Rules. …",
+  "skills": [
+    {
+      "name": "build-feature",
+      "id": "fabrica:skills/build-feature",
+      "version": "1.3.0",
+      "commit": null,
+      "targets": [
+        ".agents/skills/build-feature",
+        ".claude/skills/build-feature"
+      ],
+      "digest": "8c2f…d41a"
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `formatVersion` | The record's format version, `1`. |
+| `name` | The installed folder name. |
+| `id` | The skill's project ID. |
+| `version` | The installed version, or `null` for a local skill, a skill from a plain repository, or one with unreleased changes. |
+| `commit` | For a skill from a plain repository, the full commit SHA it came from; otherwise `null`. |
+| `targets` | Each folder Code Rules installed the skill in, relative to the project root, sorted. When one target folder links to the other, both paths are listed, though the files are written once. Empty when the project has no install targets. |
+| `digest` | The SHA-256 checksum of the installed folder: every file's path, executable bit, and contents, as sync wrote them. |
+
+This record is how Code Rules knows which folders it owns: it replaces and removes only the folders listed here, and refuses to write over any other. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders).
+
+### SKILLS.md: find a skill
+
+`generated/SKILLS.md` has one entry per installed skill, so people, and agents whose tools don't load skills from the target folders, can see what's installed and why:
+
+```md
+### build-feature
+
+Build a feature from an agreed spec, one slice at a time. Use when starting implementation of a new feature or a change to an existing one.
+
+- **Skill:** `fabrica:skills/build-feature`, version 1.3.0
+- **Type:** playbook
+- **Installed at:** `.agents/skills/build-feature/SKILL.md`, `.claude/skills/build-feature/SKILL.md`
+- **Applies:** 2 rules
+- **Uses:** `tdd`
+- **Installed because:** selected
+```
+
+A skill installed only because another one uses it says so, such as `**Installed because:** used by build-feature`. **Type** is absent for a skill without one, and **Uses** for a skill that uses none. A skill from a plain repository shows its commit in place of a version. With no install targets, **Installed at** gives the skill's source folder in `vendor/` or `local/` instead, and **Applies** lists the generated file of each rule it cites, because no installed copy carries that list.
+
+`RULES.md` points to this file with one line:
+
+```md
+This project also installs agent skills. See [SKILLS.md](SKILLS.md) for what each one does and where it's installed.
+```
 
 ## Example: follow a rule from the index
 
@@ -164,8 +303,8 @@ The authored version stays in `.code-rules/local/practices/testing/test-changed-
 
 ### Examples of other project files
 
-- [Project configuration](/reference/configuration/#complete-example): the libraries, groups, exclusions, and replacements declared in `config.yaml`.
+- [Project configuration](/reference/configuration/#complete-example): the libraries, groups, exclusions, and replacements declared in `config.yaml`, and [an example with skills](/reference/configuration/#example-with-skills).
 - [Group metadata](/reference/rule-format/#group-metadata): the name and reading cues in `_group.yaml`.
 - [Authored rule](/reference/rule-authoring/#markdown-template): the Markdown and metadata you write before building.
-- [Imported source record](/reference/provenance/#inspect-the-original-imported-files): the rule versions stored in `vendor/<source>/_source.json`.
+- [Imported source record](/reference/provenance/#inspect-the-original-imported-files): the rule and skill versions stored in `vendor/<source>/_source.json`.
 - [Provenance](/reference/provenance/#trace-a-rule-to-its-source): how `generated/provenance.json` records a rule's origin.
