@@ -61,11 +61,17 @@ A group collects related rules and explains when an agent should read them. Ther
 
 Groups guide selection; individual rules determine applicability. A testing rule may matter even when a change touches no test files. See [Group](docs/src/content/docs/concepts/groups.md).
 
+#### Skill
+
+A skill is an Agent Skills folder whose `SKILL.md` tells an agent how to carry out one kind of task, step by step. Rules say what good work looks like; skills say what to do and in what order, and cite the rules each step applies. Skills don't belong to groups. A skill may declare a type, `playbook` or `review`, as a label only.
+
+Code Rules installs selected skills into the folders agents read and checks them; it doesn't run them, decide when agents use them, or check that agents followed them. See [Skill](docs/src/content/docs/concepts/skill.md).
+
 #### Library
 
-A library is a collection of groups published in a Git repository. Each library rule has its own version, and a library release publishes new versions of the rules that changed. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries, groups, and rules to import.
+A library is a collection of groups and skills published in a Git repository. Each library rule and skill has its own version, and a library release publishes new versions of the ones that changed. Libraries own their engineering opinions and can be public or private. An organization can publish shared defaults in `<organization>/.code-rules`; a project explicitly chooses which libraries, groups, and rules to import.
 
-Projects may import multiple sources, adopt each rule's published versions on their own schedule, and add or override rules locally.
+Projects may import multiple sources, adopt each rule's and skill's published versions on their own schedule, and add or override rules and skills locally. Projects can also install skills from plain Git repositories and extend an organization's preset.
 Source-qualified IDs distinguish rules from different libraries; they do not resolve contradictory instructions.
 See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](docs/src/content/docs/reference/configuration.md).
 
@@ -89,7 +95,7 @@ See [Library](docs/src/content/docs/concepts/libraries.md) and [Configuration](d
 
 5. **Keep rule management independent of enforcement.**
    Projects choose their agent prompts, validation tools, and enforcement mechanisms.
-   Deliver clear rule files that those workflows can consume.
+   Deliver clear rule files and installed skills that those workflows can consume.
 
 ### Ownership and boundaries
 
@@ -98,9 +104,9 @@ Independently owned libraries supply the engineering policies.
 Keep Fabrica's private rule corpus separate; public examples must be original or authorized for redistribution.
 
 Projects retain their product vision, domain knowledge, and architecture context.
-Code Rules manages which versioned rules a codebase adopts and delivers their resolved definitions.
-Projects choose how to apply, validate, and enforce those rules through agent prompts or separate tooling. Code Rules does not prescribe or run that workflow; its agent instructions are a suggested integration.
-Rule-input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
+Code Rules manages which versioned rules and skills a codebase adopts, delivers the rules' resolved definitions, and installs the skills.
+Projects choose how to apply, validate, and enforce those rules through agent prompts, skills, or separate tooling. Code Rules does not run skills or that workflow; its agent instructions are a suggested integration.
+Rule and skill input validation and generated-file consistency checks are in scope; checking application compliance is not. See [product scope](docs/src/content/docs/start-here/overview.md#what-code-rules-does-not-do).
 
 ## Working in this repository
 

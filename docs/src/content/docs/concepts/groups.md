@@ -7,6 +7,8 @@ A **rule group** is a collection of related [rules](/concepts/rule/) and tells a
 
 Groups can live in a **library** for projects to import, or locally in a **project** for that project alone. Projects can combine imported groups with their own local rules.
 
+Groups hold rules only. [Skills](/concepts/skill/) don't belong to groups, and selecting a group never installs a skill.
+
 ## Group types
 
 Every group must be either a **technology group** under `techs/` or a **practice group** under `practices/`.

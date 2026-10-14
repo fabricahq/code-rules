@@ -1,6 +1,6 @@
 <h1 align="center">Code Rules</h1>
 
-<h3 align="center">The package manager for your engineering&nbsp;rules.</h3>
+<h3 align="center">The package manager for your agent skills and&nbsp;rules.</h3>
 
 <p align="center">
   Write your best practices once. Version them, share them across repositories,
@@ -24,13 +24,14 @@
 
 ## What is Code Rules?
 
-Code Rules is a **package manager** for engineering practices.
+Code Rules is a **package manager** for your agent skills and engineering rules.
 
 That means you can:
 
 - Capture engineering best practices as individual Markdown files
 - Organize and version them in a central Git repo
 - Configure each project to import just the rules it needs, so your agents read the right ones when they write or review code
+- Install versioned skills, the step-by-step procedures your agents follow, into every repo that needs them
 
 Your agents then follow the same rules whether they're writing code or reviewing it.
 
@@ -42,19 +43,21 @@ Agents are capable of writing testable, maintainable, and well-organized code. B
 
 To solve the problem of "how," most teams start by writing guidance into an instruction file like `AGENTS.md` or `CLAUDE.md`. That works for one repository, but the file keeps growing, and when you copy it into the next repo and tweak it, the copies drift apart until nobody knows which one is current.
 
-Many teams also deliver guidance through **skills**. Skills are an excellent way to repeat the same guidance in the same situation, but the skills themselves rarely evolve with you based on the real-world feedback you give to agents. Skills are also coarse-grained, making it hard to use a subset of a skill's guidance on a specific project.
+Many teams also deliver guidance through **skills**. Skills are an excellent way to repeat the same procedure in the same situation, but copied skill folders drift just like copied instruction files. A skill that bundles many practices is also coarse-grained, making it hard to use a subset of its guidance on a specific project.
 
 ### The Code Rules approach
 
 The Code Rules philosophy is that the best approach to scaling agent guidance is to carefully consider one unit of guidance at a time. We call those units **[rules](https://code-rules.fabricahq.com/concepts/rule/)**, and they are represented as Markdown files that optionally follow the [Code Rules rule template](https://code-rules.fabricahq.com/reference/rule-authoring/). Rules can give guidance on **technologies** like Go or TypeScript, or on **practices** like testing, observability, or even writing good READMEs.
 
-You can write your own project-specific rules, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/)**, which are collections of rules meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
+**[Skills](https://code-rules.fabricahq.com/concepts/skill/)** keep the order of the work, such as how to build a feature or review a pull request, and cite the rules each step applies. A project can exclude or replace one rule without forking the skill.
+
+You can write your own project-specific rules and skills, or pull them from **[libraries](https://code-rules.fabricahq.com/concepts/libraries/)**, which are collections of rules and skills meant for use by many projects. For example, see the [Fabrica Public Rules Library](https://github.com/fabricahq/public-rules).
 
 Pulling many files from versioned libraries into a project, and keeping them up to date, is a familiar problem. Programming languages have solved it for more than 20 years with the humble package manager. Code Rules applies that same approach, not to reusable code, but to agent guidance.
 
 As with packages for code, you can:
 
-- **Version every rule.** Each rule has its own semantic version, so an update shows exactly which rules changed and whether a change could break code that followed them. Projects record the exact version of every rule they import, and accept major changes explicitly.
+- **Version every rule and skill.** Each has its own semantic version, so an update shows exactly what changed and whether a change could break code that followed it. Projects record the exact version of everything they import, and accept major changes explicitly.
 - **Customize without forking the library.** Exclude an imported rule or replace it with your own, with the decision recorded in config.
 - **Build reproducibly.** Every imported rule is vendored at its exact version, and keeps its source and license terms.
 - **Catch drift in CI.** `code-rules project check` fails when generated files are out of date.

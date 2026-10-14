@@ -1,11 +1,11 @@
 ---
 title: "What is Code Rules?"
-description: "The package manager for engineering rules that agents follow when they write and review code."
+description: "The package manager for the agent skills and engineering rules agents follow when they write and review code."
 ---
 
-Code Rules is the package manager for your engineering rules.
+Code Rules is the package manager for your agent skills and rules.
 
-Create a `.code-rules` directory in your repo, then write the rules you want agents to follow, or import rules from a "rule library." Agents configured to read your project guidance can then use the same rules.
+Create a `.code-rules` directory in your repo, then write the rules you want agents to follow, or import rules and skills from a library. Agents configured to read your project guidance can then use the same rules, and Code Rules installs the skills where your agents look for them.
 
 ## Why we built Code Rules
 
@@ -47,13 +47,17 @@ You write a single best practice as a [rule](/concepts/rule/), written as a Mark
 
 You organize rules into [groups](/concepts/groups/), where a group represents either a _technology_ like Go, Tailwind, Next.js, Typescript, or Playwright, or a _practice_ like testing, logging, or error handling.
 
+### Skills
+
+A [skill](/concepts/skill/) is a reusable procedure, such as how to build a feature or review a pull request. Rules say what good work looks like; skills say what to do and in what order, citing the rules each step applies.
+
 ### Projects
 
-You declare the rules you want in a [project](/concepts/project/), specifically in the `/.code-rules` folder in your project repo. You (or your agent) can use the `code-rules` CLI to initialize a new project, and add local rules and groups. We recommend committing `/.code-rules` to version control.
+You declare the rules and skills you want in a [project](/concepts/project/), specifically in the `/.code-rules` folder in your project repo. You (or your agent) can use the `code-rules` CLI to initialize a new project, and add local rules, groups, and skills. We recommend committing `/.code-rules`, and the skills Code Rules installs, to version control.
 
 ### Libraries
 
-Finally, you probably want to import some pre-existing rules from a [library](/concepts/libraries/), which is a collection of rules and groups maintained by a third-party. Libraries can optionally declare license terms, which Code Rules carries into your project.
+Finally, you probably want to import some pre-existing rules and skills from a [library](/concepts/libraries/), which is a collection of rule groups and skills maintained by a third party. You can also install skills from any Git repository that holds them. Libraries can optionally declare license terms, which Code Rules carries into your project.
 
 ### RULES.md
 
@@ -71,8 +75,12 @@ An abbreviated `RULES.md` entry:
 
 The linked group page contains the rules in full, or links to their full definitions. For example, it might tell an agent to add a regression test when fixing a bug. See [the generated file layout](/reference/files/) for details.
 
+### Installed skills
+
+Code Rules writes each selected skill into `.claude/skills/` and `.agents/skills/`, where coding agents find skills, and lists them in `.code-rules/generated/SKILLS.md`. Each installed skill ends with links to your project's version of every rule it applies. See [Skill](/concepts/skill/#how-agents-use-installed-skills).
+
 ## What Code Rules does not do
 
-Code Rules assembles collections of rules from multiple sources (libraries) into a cohesive, agent-friendly collection of local files in your repo.
+Code Rules assembles rules and skills from multiple sources into a cohesive, agent-friendly collection of files in your repo, and checks that those files are valid and current.
 
-That is where Code Rules stops. It is not opinionated about how your agents consume these rules. At least for now, that part is up to you, though we'll share best practices as we discover them.
+That is where Code Rules stops. It installs and checks skills, but it doesn't run them, decide when your agents use them, or check that your agents followed them or your rules. At least for now, how your agents consume rules and skills is up to you, though we'll share best practices as we discover them.

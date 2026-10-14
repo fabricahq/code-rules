@@ -1,15 +1,15 @@
 ---
 title: "Project"
-description: "The codebase that uses rules, and the files Code Rules adds to it."
+description: "The codebase that uses rules and skills, and the files Code Rules adds to it."
 ---
 
-A **project** is the codebase whose rules Code Rules manages, such as a web application, a service, or a CLI tool. The **project root** is that codebase's top-level directory.
+A **project** is the codebase whose rules and skills Code Rules manages, such as a web application, a service, or a CLI tool. The **project root** is that codebase's top-level directory.
 
-A project can use rules written just for it, rules imported from one or more [libraries](/concepts/libraries/), or both. Each project chooses which rules to use and when to adopt library updates.
+A project can use rules and skills written just for it, ones imported from [libraries](/concepts/libraries/) and other repositories, or both. Each project chooses which ones to use and when to adopt updates.
 
 ## What a project includes
 
-Your codebase keeps its existing files. Code Rules adds a **Code Rules directory**, `.code-rules/`, at the project root:
+Your codebase keeps its existing files. Code Rules adds a **Code Rules directory**, `.code-rules/`, at the project root, and, once you install skills, a copy of each skill in the folders your agents read:
 
 ```text
 my-project/
@@ -20,16 +20,20 @@ my-project/
     local/
     vendor/
     generated/
+  .claude/skills/
+  .agents/skills/
 ```
 
 Inside `.code-rules/`:
 
-- **Configuration** in `config.yaml` selects libraries, groups, and rule versions, plus any rules to exclude or replace.
-- **Local rules** in `local/` hold groups and rules you author for this project.
-- **Imported rules** in `vendor/` are copies of the library content your project imports.
-- **Generated guidance** in `generated/` combines your selected rules into `RULES.md`, group pages, and rule files that agents can read.
+- **Configuration** in `config.yaml` selects libraries, groups, skills, and versions, plus any rules or skills to exclude or replace.
+- **Local rules and skills** in `local/` hold groups, rules, and skills you author for this project.
+- **Imported content** in `vendor/` is a copy of the library and repository content your project imports.
+- **Generated guidance** in `generated/` combines your selected rules into `RULES.md`, group pages, and rule files that agents can read, and lists installed skills in `SKILLS.md`.
 
-You maintain the configuration and local rules. Code Rules manages the imported copies and generated files. For examples of each file, see [Project files](/reference/files/).
+Outside `.code-rules/`, Code Rules writes **installed skills** into `.claude/skills/` and `.agents/skills/`, the targets your configuration names. It manages only the skill folders it installed there; other tools' skills in the same folders stay untouched.
+
+You maintain the configuration and local rules and skills. Code Rules manages the imported copies, generated files, and installed skills. For examples of each file, see [Project files](/reference/files/).
 
 ## Set up a project
 

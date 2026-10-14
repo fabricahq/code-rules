@@ -1,6 +1,6 @@
 ---
 title: "Set up your first project"
-description: "Write a rule for your coding agent, then reuse rules written by others."
+description: "Write a rule for your coding agent, then reuse rules and skills written by others."
 ---
 
 We're going to enable your coding agent to get consistent instructions for how to write and review code in your codebase. In Code Rules, that codebase is your **project**.
@@ -11,9 +11,10 @@ In this walkthrough, you'll:
 
 1. Write a rule just for your project. We call this a **local rule**.
 2. Build the files your agent will read from that rule.
-3. Add a rule written by someone else. You'll get it from a **library**, a collection of rules maintained separately for projects to reuse. We'll use Fabrica's public library as an example.
-4. Tell your coding agent where to find and read both rules, then try a task.
-5. Commit the guidance so everyone working on the project can use it.
+3. Add a rule written by someone else. You'll get it from a **library**, a collection of rules and skills maintained separately for projects to reuse. We'll use Fabrica's public library as an example.
+4. Install a **skill** from the same library: a step-by-step procedure your agent can follow, which applies the library's rules.
+5. Tell your coding agent where to find and read the rules, then try a task.
+6. Commit the guidance and skills so everyone working on the project can use them.
 
 Start in the **project root**, the top-level directory of the codebase you want to work on. You need [Code Rules installed](/start-here/install/), and Git to import the library. To publish rules for other projects to use instead, follow [Create your first library](/start-here/create-library/).
 
@@ -23,7 +24,7 @@ Start in the **project root**, the top-level directory of the codebase you want 
 code-rules project init
 ```
 
-This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `local/`. Initializing Code Rules does not change your project's `README.md` or agent instructions.
+This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules and skills in `local/`. The configuration also sets `skillTargets: [claude, agents]`, so skills you install later are written where Claude Code and other agents look for them. Initializing Code Rules does not change your project's `README.md` or agent instructions, and writes nothing outside `.code-rules/` until you install a skill.
 
 Later, when you import a library, Code Rules saves a copy of its files, at the rule versions your configuration selects, in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
@@ -133,9 +134,38 @@ code-rules project check
 
 Open `.code-rules/generated/RULES.md` again. You'll now see your local Testing group and the imported "Code design" group. Your local rule remains yours to edit. Each imported rule shows its version and retains its source and license information.
 
-## 5. Give the rules to your agent
+## 5. Install a skill
 
-Your local and imported rules are now available in the repository, but you haven't yet told your coding agent to read them. Let's add that instruction.
+Rules say what good work looks like. A **skill** says what to do, step by step, for one kind of task, and cites the rules each step applies. Fabrica's library includes a **Build a feature** skill, `skills/build-feature`.
+
+Open `.code-rules/config.yaml` and add a `skills` list to the `fabrica` source:
+
+```yaml
+schemaVersion: 2
+skillTargets: [claude, agents]
+sources:
+  fabrica:
+    repository: https://github.com/fabricahq/public-rules.git
+    groups:
+      - practices/code-design
+    skills:
+      - skills/build-feature
+```
+
+Then sync and check again:
+
+```sh
+code-rules project sync
+code-rules project check
+```
+
+Code Rules writes the skill to `.claude/skills/build-feature/` and `.agents/skills/build-feature/`, where your coding agent finds skills. It also installs any skill that `build-feature` uses, and imports the rules it cites, even from groups you didn't select, so its links always work. Those rules are there for the skill to reference; they don't join `RULES.md`.
+
+Open `.claude/skills/build-feature/SKILL.md`. The steps come from the library. The section at the end, **Rules this skill applies**, is generated for your project: it links to your project's version of each rule the skill cites. `.code-rules/generated/SKILLS.md` lists every installed skill. To edit a skill, don't change the installed copy, which `code-rules project check` would reject; see [Install skills](/guides/install-skills/) to fork it.
+
+## 6. Give the rules to your agent
+
+Your local and imported rules are now available in the repository, but you haven't yet told your coding agent to read them. Let's add that instruction. Agents that support skills find installed skills on their own; for other agents, `RULES.md` points to `SKILLS.md`.
 
 Add this section to your existing `AGENTS.md`, or the equivalent project instruction file your coding agent reads. Create that file if you don't have one; preserve any existing instructions.
 
@@ -163,14 +193,14 @@ You don't need to mention Code Rules in each request. The project instructions t
 
 For your first task, check that the agent reads the relevant rules and validates its changes. In this example, the testing rule calls for a test covering the expired coupon. These instructions guide the agent; they don't guarantee compliance. For a more detailed implementation and review workflow, see [For agents](/for-agents/).
 
-## 6. Commit the guidance for your team
+## 7. Commit the guidance for your team
 
-Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.code-rules/` directory and your agent instruction changes (`AGENTS.md`) together. This includes your configuration, local rules, imported library files, and generated guidance.
+Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.code-rules/` directory, the installed skills in `.claude/skills/` and `.agents/skills/`, and your agent instruction changes (`AGENTS.md`) together. This includes your configuration, local rules, imported library files, and generated guidance. If your `.gitignore` excludes `.claude/`, add an exception such as `!/.claude/skills/`.
 
-Anyone who checks out the repository will then have the same rules and instructions for their agent to read on future tasks.
+Anyone who checks out the repository, including a fresh cloud session, will then have the same rules, skills, and instructions for their agent on future tasks.
 
 ## Next steps
 
-When you're ready, [import and customize more rules](/guides/select-rules/) or [update the rules you use](/guides/update/).
+When you're ready, [import and customize more rules](/guides/select-rules/), [install more skills](/guides/install-skills/), or [update the rules and skills you use](/guides/update/).
 
-To share rules of your own, continue with [Create your first library](/start-here/create-library/).
+To share rules and skills of your own, continue with [Create your first library](/start-here/create-library/).

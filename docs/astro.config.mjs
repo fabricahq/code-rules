@@ -30,7 +30,7 @@ export default defineConfig({
   markdown: { processor: unified({ rehypePlugins: [accessibleAsideTitles] }) },
   integrations: [starlight({
     title: 'Code Rules',
-    description: 'The package manager for your engineering rules',
+    description: 'The package manager for your agent skills and rules',
     favicon: '/favicon.svg',
     head: [
       { tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' } },
@@ -58,14 +58,18 @@ export default defineConfig({
       { label: 'Concepts', collapsed: true, items: [
         { label: 'Rule', slug: 'concepts/rule' },
         { label: 'Group', slug: 'concepts/groups' },
+        { label: 'Skill', slug: 'concepts/skill' },
         { label: 'Library', slug: 'concepts/libraries' },
         { label: 'Project', slug: 'concepts/project' },
       ] },
       { label: 'Guides', collapsed: true, items: [
         { label: 'Write a rule', slug: 'guides/write-rules' },
+        { label: 'Write a skill', slug: 'guides/write-skills' },
         { label: 'Projects', collapsed: true, items: [
           { label: 'Import rules', slug: 'guides/select-rules' },
-          { label: 'Update rules', slug: 'guides/update' },
+          { label: 'Install skills', slug: 'guides/install-skills' },
+          { label: 'Update rules and skills', slug: 'guides/update' },
+          { label: 'Share defaults with presets', slug: 'guides/presets' },
           { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
         ] },
         { label: 'Libraries', collapsed: true, items: [
@@ -82,11 +86,12 @@ export default defineConfig({
           { label: 'Sync and recovery', slug: 'reference/sync' },
           { label: 'Provenance', slug: 'reference/provenance' },
         ] },
-        { label: 'Rules and libraries', collapsed: true, items: [
+        { label: 'Rules, skills, and libraries', collapsed: true, items: [
           { label: 'Rule and group format', slug: 'reference/rule-format' },
           { label: 'Rule rubric and template', slug: 'reference/rule-authoring' },
+          { label: 'Skill format', slug: 'reference/skill-format' },
           { label: 'Library format', slug: 'reference/library-format' },
-          { label: 'Rule versions', slug: 'reference/rule-versions' },
+          { label: 'Rule and skill versions', slug: 'reference/rule-versions' },
         ] },
         { label: 'CLI commands', slug: 'reference/cli' },
       { label: 'Brand', slug: 'reference/brand' },
