@@ -29,19 +29,18 @@ Agents choose which installed groups apply to each task using the [rule-loading 
 In `.code-rules/config.yaml`, each library you import gets a named entry under `sources`, such as `fabrica`. For each library, choose:
 
 - **Where to get it:** `repository` is the library's Git URL.
-- **Which versions to use:** by default, each rule follows its newest version when you update. Add `pins` to keep individual rules at exact versions. See [Choose versions](/reference/configuration/#choose-versions).
-- **Which groups to import:** `groups` lists the groups you want, such as `practices/testing`. A selected group includes rules the library adds to it later.
-- **Which individual rules to import:** optionally, `rules` lists single rules to import without the rest of their group, such as `techs/go/wrap-errors-with-operation`. Rules added to that group later don't join. See [Select individual rules](/reference/configuration/#select-individual-rules).
+- **Which rules to import:** `rules.include` lists selectors. A group's selector, such as `practices/testing/*`, includes every rule in the group, including rules the library adds to it later. A rule ID, such as `techs/go/wrap-errors-with-operation`, imports one rule without the rest of its group; rules added to that group later don't join. See [Select individual rules](/reference/configuration/#select-individual-rules).
+- **Which versions to use:** by default, each rule follows its newest version when you update. Add `rules.pins` to keep individual rules at exact versions. See [Choose versions](/reference/configuration/#choose-versions).
 
-You can also use `exclude` to leave out individual rules, optionally replacing them with your own. We'll cover both below.
+You can also use `rules.exclude` to leave out rules, optionally replacing one with your own. We'll cover both below.
 
 See the [complete configuration example](/reference/configuration/#complete-example) for how these fields fit together.
 
-To adopt an entire library, set `groups` to `"*"` instead of an array.
-Use `"practices/*"` for all practice groups, or `"techs/*"` for all technology groups.
+To adopt an entire library, include `"*"`.
+Use `practices/*` for all practice groups, or `techs/*` for all technology groups, alone or beside other selectors.
 All groups within that scope in the imported library are included, and exclusions and replacements still apply.
-When a library adds groups within your selector, `code-rules project update` adds them. Review them as part of that update.
-See [Import every group](/reference/configuration/#import-every-group) for an example and snapshot requirements.
+When a library adds rules or groups within your selector, `code-rules project update` adds them. Review them as part of that update.
+See [Select rules](/reference/configuration/#select-rules) for every selector form and snapshot requirements.
 
 If two sources supply `practices/testing`, their rules combine into one generated testing page, with full rules or summaries and links to individual resolved rules.
 Source-prefixed IDs keep matching rule paths distinct.
@@ -75,35 +74,40 @@ Imported groups retain source-labeled metadata from every contributing library.
 
 ### Exclude a rule
 
-Add its library-relative ID and a reason to `sources.<name>.exclude`:
+Add an entry with its library-relative ID and a reason to `sources.<name>.rules.exclude`:
 
 ```yaml
 sources:
   acme:
-    exclude:
-      practices/testing/avoid-snapshot-tests:
-        reason: Contract snapshots follow our separate review policy.
+    rules:
+      exclude:
+        - id: practices/testing/avoid-snapshot-tests
+          reason: Contract snapshots follow our separate review policy.
 ```
 
 These are partial snippets, not complete source definitions.
-Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, pins, and groups.
-Rule IDs are illustrative and must name rules the source imports, through its groups or its `rules` list.
+Merge them into the `acme` and `fabrica` sources from the [configuration example](/reference/configuration/), retaining their repository, `rules.include`, and pins.
+Rule IDs are illustrative and must name rules the source imports.
+To exclude every rule in a group, or every rule of a type, use a selector as the `id`, such as `practices/observability/*`; rules the library adds there later stay excluded too.
 An exclusion removes only the named source's rule, without introducing a replacement.
 The same rule path in another source remains active.
 The exclusion reason stays in project configuration; the generated files contain only active rules.
 
 ### Replace a rule
 
-Write a complete local definition, then exclude the imported rule and name your file as its `replacedBy`:
+Write a complete local definition, then exclude the imported rule and name your rule's ID as its `replacedBy`:
 
 ```yaml
 sources:
   fabrica:
-    exclude:
-      techs/typescript/prefer-type-aliases:
-        reason: Our public extension API relies on declaration merging.
-        replacedBy: local/techs/typescript/prefer-interfaces.md
+    rules:
+      exclude:
+        - id: techs/typescript/prefer-type-aliases
+          reason: Our public extension API relies on declaration merging.
+          replacedBy: techs/typescript/prefer-interfaces
 ```
+
+Here the local rule is `.code-rules/local/techs/typescript/prefer-interfaces.md`.
 
 To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `local/` and writes the exclusion for you, with the forked version as `basedOn`. With `basedOn`, `code-rules project update` lists the library's changes after that version, so you can decide whether your rule needs them; see [Exclude or replace a rule](/reference/configuration/#exclude-or-replace-a-rule).
 

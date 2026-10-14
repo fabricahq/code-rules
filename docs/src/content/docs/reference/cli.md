@@ -36,12 +36,12 @@ Record a library in project configuration without fetching it. `ALIAS` is the so
 | Option | Meaning |
 | --- | --- |
 | `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
-| `--groups GROUP` | Groups to import in full. Repeat for multiple group IDs, or supply one selector: `*`, `practices/*`, or `techs/*`. Quote wildcard values so your shell does not expand them. |
+| `--groups GROUP` | Groups to import in full. Repeat for multiple group IDs and the selectors `*`, `practices/*`, and `techs/*`, which can be combined with group IDs. Quote wildcard values so your shell does not expand them. |
 | `--rules RULE` | Individual rules to import without the rest of their group, such as `practices/testing/verify-retry-limits`. Repeat for multiple rules. |
 | `--ref REF` | Optional and advanced. Import the library exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as the source's `ref`. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Supply at least one `--groups` or `--rules`. Without `--ref`, the source follows each rule's newest version when the project updates. To pin individual rules, add `pins` to the source in configuration, or use `code-rules project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
+Supply at least one `--groups` or `--rules`. Without `--ref`, the source follows each rule's newest version when the project updates. The configuration records each group in the source's `rules.include` as its selector, such as `techs/go/*`, and each rule by its ID. To pin individual rules, add `rules.pins` to the source in configuration, or use `code-rules project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
 
 Library addition preserves existing source exceptions and local files. Pass each group ID as a separate option, rather than a comma-separated flag value:
 
@@ -110,7 +110,7 @@ Metadata options and `--body-file` don't apply to a fork. The command:
 1. Finds the library release that published `<VERSION>` from the release records in the library's `release/<number>` tags, and reads the rule and its asset directory at that tag's commit.
 2. Writes them under `local/`. When neither local metadata nor a library the project imports supplies the rule's group, it also creates the local group from the library's group metadata.
 3. Adds an `attribution` entry that links to the rule at the tag's commit. Libraries hosted outside GitHub.com and GitLab.com get an attribution entry only when the repository address is an HTTPS URL, and the entry links to that address.
-4. When the configuration of the `LIBRARY` source selects the rule and its last sync imported it, adds an `exclude` entry for it with your reason, the fork as `replacedBy`, and the forked version as [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule), so agents read only the fork, and updates list the library's later changes to it. If the source pins the rule, the same edit removes the pin and warns that it did: the fork, not a pinned import, now decides what agents read. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
+4. When the configuration of the `LIBRARY` source selects the rule and its last sync imported it, adds a `rules.exclude` entry for it with your reason, the fork's rule ID as `replacedBy`, and the forked version as [`basedOn`](/reference/configuration/#exclude-or-replace-a-rule), so agents read only the fork, and updates list the library's later changes to it. If the source pins the rule, the same edit removes the pin and warns that it did: the fork, not a pinned import, now decides what agents read. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
 
 If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing local rules and exclusions are never overwritten. A forked rule has no version; it changes only when you edit it. Run `code-rules project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
 
@@ -134,13 +134,13 @@ Sync needs access to every configured repository and uses your existing Git cred
 | `ref` added or changed | The rule as it was at that revision: the version a library release published, or `null` for unreleased changes. |
 | `ref` removed | The recorded version when it's a published version; otherwise the newest version. |
 
-When you change `groups`, a group is newly selected if the record didn't import it as a whole, even when the previous value matched it. For example, after a sync with `groups: "*"`, a group that a later library release adds is newly selected once you change `groups` to a list that names it.
+When you change `rules.include`, a group is newly selected if the record didn't import it as a whole, even when the previous value matched it. For example, after a sync with `include: ["*"]`, a group that a later library release adds is newly selected once you change `rules.include` to name its selector instead.
 
 Sync trusts only a record it wrote: a record whose [checksum](/reference/provenance/#inspect-the-original-imported-files) doesn't match, or that has none, such as after a hand edit or a merge resolution, fails, and sync writes nothing and never records it again. To recover, restore a record sync wrote with `git checkout -- .code-rules/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `code-rules project sync`, which applies any configuration changes; or delete `.code-rules/vendor/<source-name>/` and run `code-rules project sync`, which imports the source again, with its unpinned rules at their newest versions. Before importing from a record it wrote, sync also checks it against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist. A source using `ref` keeps the commit its `ref` named when it was recorded, even after the tag moves or is gone, so sync checks it against the release records only when choosing versions reads them anyway.
 
 These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
-When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything. It also warns about an individually selected rule whose group `groups` already selects, since the entry changes nothing.
+When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything. It also warns about an entry in `rules.include` that another selector in the list already covers, such as a rule whose group's selector is listed, since the entry changes nothing.
 
 ### project update
 

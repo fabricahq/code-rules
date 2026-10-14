@@ -184,13 +184,14 @@ code-rules project sync
 The dependency lands in `.code-rules/config.yaml`, the file you review and commit:
 
 ```yaml
-schemaVersion: 1
+schemaVersion: 2
 sources:
   fabrica:
     repository: https://github.com/fabricahq/public-rules.git
-    groups:
-      - practices/testing
-      - techs/go
+    rules:
+      include:
+        - practices/testing/*
+        - techs/go/*
 ```
 
 `code-rules project sync` imports each rule's newest version, snapshots them into `.code-rules/vendor/` with their versions, and rebuilds. Improve a rule in the library and publish it in a library release: each project picks up the improvement when it runs `code-rules project update`, on its own schedule. Update previews every changed, new, and retired rule, and applies them only after you confirm.

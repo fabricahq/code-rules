@@ -74,13 +74,14 @@ For example, if the project adopts Acme's interface rule, exclude Fabrica's type
 ```yaml
 sources:
   fabrica:
-    exclude:
-      techs/typescript/prefer-type-aliases:
-        reason: This project follows Acme's interface rule for object types.
+    rules:
+      exclude:
+        - id: techs/typescript/prefer-type-aliases
+          reason: This project follows Acme's interface rule for object types.
 ```
 
 This is a partial configuration snippet.
-Merge it into the existing source while retaining its repository, pins, groups, and other exceptions.
+Merge it into the existing source while retaining its repository, `rules.include`, pins, and other exceptions.
 It affects only Fabrica's rule; Acme's rule stays active.
 
 For a conflicting local addition, edit its authored file under `local/`.

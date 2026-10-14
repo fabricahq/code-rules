@@ -110,13 +110,12 @@ When an update brings a change you're not ready for, keep that rule where it is 
 sources:
   team:
     repository: https://github.com/acme/.code-rules.git
-    groups:
-      - techs/react
-      - practices/testing
-    pins:
-      practices/testing/verify-retry-limits:
-        version: "1.3.0"
-        reason: Waiting on the author's response to acme/.code-rules#45.
+    rules:
+      include: [techs/react/*, practices/testing/*]
+      pins:
+        - id: practices/testing/verify-retry-limits
+          version: "1.3.0"
+          reason: Waiting on the author's response to acme/.code-rules#45.
 ```
 
 There are three ways to add one:
@@ -156,8 +155,9 @@ To import exactly what one library release published, set the source's `ref` to 
 sources:
   vendor-rules:
     repository: https://github.com/example/engineering-rules.git
-    groups: "*"
     ref: release/5
+    rules:
+      include: ["*"]
 ```
 
 `code-rules project update` doesn't move this source. To import another library release, change the tag and run `code-rules project sync`. To go back to following rule versions, remove `ref`.
@@ -176,7 +176,7 @@ Commit the configuration, vendor snapshots, and generated files together.
 
 ## Change selected groups or rules
 
-Edit the relevant `sources.<name>.groups` or `sources.<name>.rules` and run `code-rules project sync`.
+Edit the relevant `sources.<name>.rules.include` and run `code-rules project sync`.
 `code-rules project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
