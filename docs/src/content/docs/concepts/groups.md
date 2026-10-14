@@ -3,15 +3,19 @@ title: "Group"
 description: "How groups organize rules and help agents find relevant guidance."
 ---
 
+:::caution[Preview]
+The `.code-rules/rules/` path on this page is the version 2 layout, which isn't in a released version of Code Rules yet. The released CLI reads a library's groups at the repository root, and a project's own groups in `.code-rules/local/`.
+:::
+
 A **rule group** is a collection of related [rules](/concepts/rule/) and tells agents when to read them.
 
-Groups can live in a **library** for projects to import, or locally in a **project** for that project alone. Projects can combine imported groups with their own local rules.
+Groups can live in a **library** for projects to take, or in a **project** for that project alone. Projects can combine groups from libraries with their own rules.
 
-Groups hold rules only. [Skills](/concepts/skill/) don't belong to groups, and selecting a group never installs a skill.
+Groups hold rules only. [Skills](/concepts/skill/) don't belong to groups, and including a group's rules never installs a skill.
 
 ## Group types
 
-Every group must be either a **technology group** under `techs/` or a **practice group** under `practices/`.
+Every group must be either a **technology group** under `techs/` or a **practice group** under `practices/`. Both live in the `rules/` folder of the Code Rules directory, `.code-rules/rules/`.
 
 ### Technologies
 
@@ -29,7 +33,7 @@ For example, `practices/testing` holds rules about testing behavior, regardless 
 
 A group's ID is its path starting with `techs/` or `practices/`. A group named "Automated Tests" might have the ID `practices/testing`.
 
-When a project builds or syncs, local and imported rules with the same group ID appear together in the generated group.
+When a project builds or syncs, its own rules and the rules it includes from sources with the same group ID appear together in the generated group.
 
 Use `--name` when creating a group to give it a readable title; the title does not change its ID.
 
@@ -50,16 +54,16 @@ A group is a folder containing:
 - **Metadata** in `_group.yaml`: its name, description, and when agents should read it.
 - **Rules**: one Markdown file per rule.
 
-For example, from a library repository's root:
+For example, relative to the repository root:
 
 ```text
-/practices/testing/
+/.code-rules/rules/practices/testing/
   _group.yaml
   verify-retry-limits.md
   test-changed-behavior.md
 ```
 
-For a local group, the same files live in `/.code-rules/local/practices/testing/`, relative to the project root.
+The layout is the same whether the group belongs to a library or only to a project.
 
 You maintain the metadata and rules you author. The CLI supplies group READMEs; you don't need to keep them in sync. Building or syncing creates the guidance agents read.
 
@@ -73,4 +77,4 @@ Rules can optionally link to diagrams, sample data, or longer explanations in `a
 
 Agents start at the generated `RULES.md`, choose groups using their `whenToRead` descriptions, then read those groups' rules. Each rule's conditions and exceptions determine whether it applies to the task.
 
-For the complete reading process, see the [agent workflow](/for-agents/). To choose groups for your project, follow [Import rules](/guides/select-rules/).
+For the complete reading process, see the [agent workflow](/for-agents/). To choose groups for your project, follow [Include rules](/guides/select-rules/).

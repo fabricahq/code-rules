@@ -5,7 +5,7 @@ description: "The package manager for the agent skills and engineering rules age
 
 Code Rules is the package manager for your agent skills and rules.
 
-Create a `.code-rules` directory in your repo, then write the rules you want agents to follow, or import rules and skills from a library. Agents configured to read your project guidance can then use the same rules, and Code Rules installs the skills where your agents look for them.
+Create a `.code-rules` directory in your repo, then write the rules you want agents to follow, or take rules and skills from a library. Agents configured to read your project guidance can then use the same rules, and Code Rules installs the skills where your agents look for them.
 
 ## Why we built Code Rules
 
@@ -53,15 +53,15 @@ A [skill](/concepts/skill/) is a reusable procedure, such as how to build a feat
 
 ### Projects
 
-You declare the rules and skills you want in a [project](/concepts/project/), specifically in the `/.code-rules` folder in your project repo. You (or your agent) can use the `code-rules` CLI to initialize a new project, and add local rules, groups, and skills. We recommend committing `/.code-rules`, and the skills Code Rules installs, to version control.
+You declare the rules and skills you want in a [project](/concepts/project/), specifically in the `/.code-rules` folder in your project repo. You (or your agent) can use the `code-rules` CLI to initialize a new project, and add your own rules, groups, and skills. We recommend committing `/.code-rules`, and the skills Code Rules installs, to version control.
 
 ### Libraries
 
-Finally, you probably want to import some pre-existing rules and skills from a [library](/concepts/libraries/), which is a collection of rule groups and skills maintained by a third party. You can also install skills from any Git repository that holds them. Libraries can optionally declare license terms, which Code Rules carries into your project.
+Finally, you probably want to include some pre-existing rules and skills from a [library](/concepts/libraries/), a repository that publishes rule groups and skills for other projects. A library can require or recommend skills for every project that uses it. You can also install skills from a Git repository that isn't a library, such as a third party's skill collection. Libraries can optionally declare license terms, which Code Rules carries into your project.
 
 ### RULES.md
 
-Code Rules combines project-only and imported rules into guidance under `.code-rules/generated/`. Agents start with `RULES.md`, an index that tells them which groups to read.
+Code Rules combines your own rules and the ones you include from sources into guidance under `.code-rules/generated/`. Agents start with `RULES.md`, an index that tells them which groups to read.
 
 An abbreviated `RULES.md` entry:
 
@@ -77,7 +77,7 @@ The linked group page contains the rules in full, or links to their full definit
 
 ### Installed skills
 
-Code Rules writes each selected skill into `.claude/skills/` and `.agents/skills/`, where coding agents find skills, and lists them in `.code-rules/generated/SKILLS.md`. Each installed skill that cites rules ends with links to your project's version of every rule it applies. See [Skill](/concepts/skill/#how-agents-use-installed-skills).
+Code Rules writes each installed skill into `.claude/skills/` and `.agents/skills/`, where coding agents find skills, and lists them in `.code-rules/generated/SKILLS.md`. Each installed skill that cites rules ends with links to your project's version of every rule it applies. See [Skill](/concepts/skill/#how-agents-use-installed-skills).
 
 ## What Code Rules does not do
 
