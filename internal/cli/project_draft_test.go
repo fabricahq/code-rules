@@ -26,7 +26,7 @@ func TestProjectDraftBlocksConsumption(t *testing.T) {
 			t.Fatal(args, code, out, diagnostic)
 		}
 	}
-	draftPath := filepath.Join(directory, ".code-rules/local/techs/go/draft.md")
+	draftPath := filepath.Join(directory, ".code-rules/rules/techs/go/draft.md")
 	draft, err := os.ReadFile(draftPath)
 	if err != nil || !strings.Contains(string(draft), "<!-- code-rules:draft -->") {
 		t.Fatal("unmarked draft", err, string(draft))
@@ -34,7 +34,7 @@ func TestProjectDraftBlocksConsumption(t *testing.T) {
 	before := projectFileContents(t, directory)
 	for _, action := range []string{"build", "sync", "check"} {
 		out, diagnostic, code := runCLI(t, binary, directory, "project", action)
-		if code != 1 || out != "" || !strings.Contains(diagnostic, "local/techs/go/draft.md") || !strings.Contains(diagnostic, "remove its code-rules:draft marker") {
+		if code != 1 || out != "" || !strings.Contains(diagnostic, "rules/techs/go/draft.md") || !strings.Contains(diagnostic, "remove its code-rules:draft marker") {
 			t.Fatal(action, code, out, diagnostic)
 		}
 		if after := projectFileContents(t, directory); !reflect.DeepEqual(before, after) {

@@ -256,7 +256,7 @@ func TestUpdate_AppliesAnUnreleasedCommitRefWithoutReadingReleaseTags(t *testing
 
 // TestUpdate_RefusesAProjectChangedAfterThePreview writes nothing when configuration changed in between.
 func TestUpdate_RefusesAProjectChangedAfterThePreview(t *testing.T) {
-	for _, file := range []string{configurationFile, "local/techs/go/errors.md", "vendor/team/techs/go/errors.md", "generated/RULES.md"} {
+	for _, file := range []string{configurationFile, "rules/techs/go/errors.md", "vendor/team/techs/go/errors.md", "generated/RULES.md"} {
 		t.Run(file, func(t *testing.T) {
 			options, git, _ := syncedProject(t)
 			plan, err := PlanUpdate(context.Background(), options, git, nil, nil)

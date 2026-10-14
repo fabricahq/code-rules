@@ -93,7 +93,7 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 
 // TestAuthoringRefusesUnsafeAndIncompleteInput verifies failure paths preserve existing project bytes.
 func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
-	for _, scenario := range []string{"invalid-config", "linked-local", "case-alias", "hardlink", "pending-recovery", "cancelled"} {
+	for _, scenario := range []string{"invalid-config", "linked-rules", "case-alias", "hardlink", "pending-recovery", "cancelled"} {
 		t.Run(scenario, func(t *testing.T) {
 			ctx := context.Background()
 			directory := filepath.Join(t.TempDir(), ".code-rules")
@@ -104,13 +104,13 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 			switch scenario {
 			case "invalid-config":
 				os.WriteFile(filepath.Join(directory, "config.yaml"), []byte(`{`), 0600)
-			case "linked-local":
-				os.RemoveAll(filepath.Join(directory, "local"))
-				if err := os.Symlink(t.TempDir(), filepath.Join(directory, "local")); err != nil {
+			case "linked-rules":
+				os.RemoveAll(filepath.Join(directory, "rules"))
+				if err := os.Symlink(t.TempDir(), filepath.Join(directory, "rules")); err != nil {
 					t.Fatal(err)
 				}
 			case "case-alias":
-				os.MkdirAll(filepath.Join(directory, "local", "Techs"), 0700)
+				os.MkdirAll(filepath.Join(directory, "rules", "Techs"), 0700)
 			case "hardlink":
 				if err := os.Link(filepath.Join(directory, "config.yaml"), filepath.Join(directory, "alias")); err != nil {
 					t.Fatal(err)
@@ -131,7 +131,7 @@ func TestAuthoringRefusesUnsafeAndIncompleteInput(t *testing.T) {
 			if !bytes.Equal(before, after) {
 				t.Fatal("changed config on failure")
 			}
-			if _, err = os.Lstat(filepath.Join(directory, "local", "techs", "go", "_group.yaml")); !os.IsNotExist(err) {
+			if _, err = os.Lstat(filepath.Join(directory, "rules", "techs", "go", "_group.yaml")); !os.IsNotExist(err) {
 				t.Fatal("created group on failure", err)
 			}
 		})
@@ -146,15 +146,15 @@ func TestRuleRequiresGroup(t *testing.T) {
 	if _, err := Initialize(ctx, options); err != nil {
 		t.Fatal(err)
 	}
-	os.MkdirAll(filepath.Join(directory, "local/techs/go"), 0700)
-	target := filepath.Join(directory, "local/techs/go/errors.md")
+	os.MkdirAll(filepath.Join(directory, "rules/techs/go"), 0700)
+	target := filepath.Join(directory, "rules/techs/go/errors.md")
 	os.WriteFile(target, []byte("authored content"), 0600)
 	body := "Return failures."
 	_, err := AddLocalRule(ctx, "techs/go/errors", rules.RuleMetadata{Title: "Errors", Impact: "HIGH", ImpactDescription: "Failures.", WhenToRead: "When calling."}, RuleOptions{Options: options, Body: &body})
 	if err == nil {
 		t.Fatal("accepted collision")
 	}
-	if _, err = os.Stat(filepath.Join(directory, "local/techs/go/_group.yaml")); !os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(directory, "rules/techs/go/_group.yaml")); !os.IsNotExist(err) {
 		t.Fatal("published partial group", err)
 	}
 	data, _ := os.ReadFile(target)
@@ -204,7 +204,7 @@ func TestRuleUsesImportedGroup(t *testing.T) {
 	if err != nil || len(result.Written()) != 1 {
 		t.Fatal(result, err)
 	}
-	if _, err := os.Stat(filepath.Join(directory, "local/techs/go/_group.yaml")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(directory, "rules/techs/go/_group.yaml")); !os.IsNotExist(err) {
 		t.Fatal("rule creation created local override", err)
 	}
 }

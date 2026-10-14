@@ -127,13 +127,13 @@ func TestProjectGuideExamples(t *testing.T) {
 			if err != nil || string(authored) != readme {
 				t.Fatal("changed authored README", err)
 			}
-			for _, file := range []string{"local/README.md", "local/techs/go/README.md"} {
+			for _, file := range []string{"rules/README.md", "rules/techs/go/README.md"} {
 				content, err := os.ReadFile(filepath.Join(directory, ".code-rules", file))
 				if err != nil || !strings.Contains(string(content), "/README.md)") {
 					t.Fatalf("%s does not link to the managed guide: %v", file, err)
 				}
 			}
-			for _, path := range []string{"local/techs/go/return-errors.md", "vendor/team/techs/go/shared.md", "generated/RULES.md", "generated/groups/techs/go.md"} {
+			for _, path := range []string{"rules/techs/go/return-errors.md", "vendor/team/techs/go/shared.md", "generated/RULES.md", "generated/groups/techs/go.md"} {
 				if _, err := os.Stat(filepath.Join(directory, ".code-rules", path)); err != nil {
 					t.Fatalf("README did not produce %s: %v", path, err)
 				}

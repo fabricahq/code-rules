@@ -21,7 +21,7 @@ func TestProjectGuideRefresh(t *testing.T) {
 	old := stampProjectGuide([]byte("# Earlier release guide\n"))
 	config := []byte("{\n  \"schemaVersion\": 2, \"sources\": {}\n}\n")
 	local := []byte("My local authoring notes.\n")
-	for name, data := range map[string][]byte{"README.md": old, "config.yaml": config, "local/README.md": local} {
+	for name, data := range map[string][]byte{"README.md": old, "config.yaml": config, "rules/README.md": local} {
 		if err := os.WriteFile(filepath.Join(directory, name), data, 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -30,7 +30,7 @@ func TestProjectGuideRefresh(t *testing.T) {
 	if err != nil || len(result.Written()) != 1 || result.Written()[0] != filepath.Join(directory, "README.md") {
 		t.Fatal(result, err)
 	}
-	for name, want := range map[string][]byte{"README.md": renderProjectGuide(), "config.yaml": config, "local/README.md": local} {
+	for name, want := range map[string][]byte{"README.md": renderProjectGuide(), "config.yaml": config, "rules/README.md": local} {
 		got, err := os.ReadFile(filepath.Join(directory, name))
 		if err != nil || !bytes.Equal(got, want) {
 			t.Fatal(name, err)

@@ -78,19 +78,20 @@ func (s Source) Exclusion(id string) (Exclusion, bool) {
 	return Exclusion{}, false
 }
 
-// ReplacementFile returns the path of the local rule that replaces the excluded rule, such as
-// local/techs/go/wrap-errors.md for ReplacedBy techs/go/wrap-errors, or "" when nothing replaces it.
+// ReplacementFile returns the path, relative to the Code Rules directory, of the authored rule that replaces the
+// excluded rule, such as rules/techs/go/wrap-errors.md for ReplacedBy techs/go/wrap-errors, or "" when nothing
+// replaces it.
 func (e Exclusion) ReplacementFile() string {
 	if e.ReplacedBy == "" {
 		return ""
 	}
-	return "local/" + e.ReplacedBy + ".md"
+	return "rules/" + e.ReplacedBy + ".md"
 }
 
 var sourceNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 
 // versionOneProblem explains how to rewrite a version 1 configuration, which Code Rules no longer reads, as version 2.
-const versionOneProblem = `version 1 configuration is no longer supported, and Code Rules doesn't convert it. Rewrite .code-rules/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as "*"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the local rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md.
+const versionOneProblem = `version 1 configuration is no longer supported, and Code Rules doesn't convert it. Rewrite .code-rules/config.yaml as version 2, as in the example below: in each source, move groups and rules into rules.include, writing each group as its selector, such as techs/go/*, and keeping wildcards such as "*"; then move exclude and pins under rules as lists of entries with an id, writing each replacedBy as the ID of the authored rule it names, such as techs/go/our-errors for local/techs/go/our-errors.md. Move authored rules and groups from .code-rules/local/ to .code-rules/rules/, and shared assets from .code-rules/local/assets/ to .code-rules/assets/.
 
 schemaVersion: 2
 sources:
@@ -117,7 +118,7 @@ func ParseConfiguration(input json.RawMessage) (Configuration, error) {
 		return Configuration{}, err
 	}
 	if _, ok := fields["localGroups"]; ok {
-		return Configuration{}, invalid("localGroups", "remove localGroups; local groups are discovered from local/<group>/_group.yaml")
+		return Configuration{}, invalid("localGroups", "remove localGroups; authored groups are discovered from rules/<group>/_group.yaml")
 	}
 	var schema float64
 	versioned := json.Unmarshal(fields["schemaVersion"], &schema) == nil
@@ -350,8 +351,8 @@ func parseExclusions(input json.RawMessage, location string) (map[string]Exclusi
 			if err != nil {
 				return nil, err
 			}
-			if named := strings.TrimSuffix(strings.TrimPrefix(replacement, "local/"), ".md"); named != replacement && librarytree.ValidateRuleID(named, where) == nil {
-				return nil, invalid(where+".replacedBy", "replacedBy names the local rule by its ID, "+named+", not by its file")
+			if named := strings.TrimSuffix(strings.TrimPrefix(strings.TrimPrefix(replacement, "local/"), "rules/"), ".md"); named != replacement && librarytree.ValidateRuleID(named, where) == nil {
+				return nil, invalid(where+".replacedBy", "replacedBy names the authored rule by its ID, "+named+", not by its file")
 			}
 			if err := librarytree.ValidateRuleID(replacement, where+".replacedBy"); err != nil {
 				return nil, err

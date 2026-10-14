@@ -60,10 +60,10 @@ func forkedProject(t *testing.T, repository string) forkFixture {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	writeFixture(t, root, "local/techs/go/errors.md", forkedRule("Our edited wording."))
-	writeFixture(t, root, "local/techs/go/assets/errors/mine.md", "Our notes.\n")
-	writeFixture(t, root, "local/techs/go/own.md", forkedRule("See [our notes](assets/own/notes.md)."))
-	writeFixture(t, root, "local/techs/go/assets/own/notes.md", "Own notes.\n")
+	writeFixture(t, root, "rules/techs/go/errors.md", forkedRule("Our edited wording."))
+	writeFixture(t, root, "rules/techs/go/assets/errors/mine.md", "Our notes.\n")
+	writeFixture(t, root, "rules/techs/go/own.md", forkedRule("See [our notes](assets/own/notes.md)."))
+	writeFixture(t, root, "rules/techs/go/assets/own/notes.md", "Own notes.\n")
 	if _, err := Build(context.Background(), f.options); err != nil {
 		t.Fatal(err)
 	}
@@ -85,13 +85,13 @@ func planForkUpdate(t *testing.T, f forkFixture, decisions []UpdateDecision) (*U
 	return plan, preview
 }
 
-// localFork returns the files of the local rule at file, relative to local/, and of its asset directory.
+// localFork returns the files of the local rule at file, relative to rules/, and of its asset directory.
 func localFork(files map[string][]byte, file string) map[string]string {
 	fork := map[string]string{}
-	assets := "local/" + strings.TrimSuffix(file, ".md")
+	assets := "rules/" + strings.TrimSuffix(file, ".md")
 	assets = filepath.ToSlash(filepath.Join(filepath.Dir(assets), "assets", filepath.Base(assets))) + "/"
 	for name, data := range files {
-		if name == "local/"+file || strings.HasPrefix(name, assets) {
+		if name == "rules/"+file || strings.HasPrefix(name, assets) {
 			fork[name] = string(data)
 		}
 	}
@@ -108,8 +108,8 @@ func TestUpdate_ReplacesAForkWithItsNewestVersion(t *testing.T) {
 	plan, preview := planForkUpdate(t, f, updateFork)
 	row := previewRow(preview.Sources, "team", "techs/go/errors")
 	// The new fork writes its rule again and has none of the old assets, which it removes.
-	removes := []string{"local/techs/go/assets/errors/data.bin", "local/techs/go/assets/errors/diagrams/flow.svg", "local/techs/go/assets/errors/guide.md", "local/techs/go/assets/errors/mine.md", "local/techs/go/assets/errors/more.md", "local/techs/go/assets/errors/notes.md"}
-	if row == nil || row.Decision != "update-fork" || row.To.String() != "2.0.0" || !reflect.DeepEqual(row.Overwrites, []string{"local/techs/go/errors.md"}) || !reflect.DeepEqual(row.Removes, removes) {
+	removes := []string{"rules/techs/go/assets/errors/data.bin", "rules/techs/go/assets/errors/diagrams/flow.svg", "rules/techs/go/assets/errors/guide.md", "rules/techs/go/assets/errors/mine.md", "rules/techs/go/assets/errors/more.md", "rules/techs/go/assets/errors/notes.md"}
+	if row == nil || row.Decision != "update-fork" || row.To.String() != "2.0.0" || !reflect.DeepEqual(row.Overwrites, []string{"rules/techs/go/errors.md"}) || !reflect.DeepEqual(row.Removes, removes) {
 		t.Fatalf("row %+v, want update-fork to 2.0.0 overwriting the rule and removing %v", row, removes)
 	}
 	if !reflect.DeepEqual(f.files(t), before) {
@@ -129,10 +129,10 @@ func TestUpdate_ReplacesAForkWithItsNewestVersion(t *testing.T) {
 	if got := localFork(after, "techs/go/errors.md"); !reflect.DeepEqual(got, want) {
 		t.Fatalf("updated fork:\n%v\nwant the new fork:\n%v", got, want)
 	}
-	if !strings.Contains(want["local/techs/go/errors.md"], "[the diagram](assets/errors/diagrams/new.svg)") || !strings.Contains(want["local/techs/go/errors.md"], "Forked from version 2.0.0 of techs/go/errors") {
-		t.Fatalf("the new fork doesn't rewrite its links or cite 2.0.0:\n%s", want["local/techs/go/errors.md"])
+	if !strings.Contains(want["rules/techs/go/errors.md"], "[the diagram](assets/errors/diagrams/new.svg)") || !strings.Contains(want["rules/techs/go/errors.md"], "Forked from version 2.0.0 of techs/go/errors") {
+		t.Fatalf("the new fork doesn't rewrite its links or cite 2.0.0:\n%s", want["rules/techs/go/errors.md"])
 	}
-	for _, name := range []string{"local/techs/go/own.md", "local/techs/go/assets/own/notes.md", "local/techs/go/_group.yaml"} {
+	for _, name := range []string{"rules/techs/go/own.md", "rules/techs/go/assets/own/notes.md", "rules/techs/go/_group.yaml"} {
 		if string(after[name]) != string(before[name]) {
 			t.Fatalf("%s changed", name)
 		}
@@ -141,7 +141,7 @@ func TestUpdate_ReplacesAForkWithItsNewestVersion(t *testing.T) {
 	if !strings.Contains(config, "          replacedBy: techs/go/errors\n          basedOn: \"2.0.0\"\n") {
 		t.Fatalf("configuration:\n%s", config)
 	}
-	if !slices.Contains(applied.Changed, "local/techs/go/errors.md") || !slices.Contains(applied.Changed, "config.yaml") || !slices.Contains(applied.Added, "local/techs/go/assets/errors/table.md") || !slices.Contains(applied.Removed, "local/techs/go/assets/errors/mine.md") {
+	if !slices.Contains(applied.Changed, "rules/techs/go/errors.md") || !slices.Contains(applied.Changed, "config.yaml") || !slices.Contains(applied.Added, "rules/techs/go/assets/errors/table.md") || !slices.Contains(applied.Removed, "rules/techs/go/assets/errors/mine.md") {
 		t.Fatalf("reported %+v", applied.FileChanges)
 	}
 	if !strings.Contains(string(after["generated/rules/local/techs/go/errors.md"]), "Read [the table]") {
@@ -188,29 +188,29 @@ func TestUpdate_ReplacesAHandWrittenReplacementAndRecordsBasedOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	writeFixture(t, root, "local/techs/go/our-errors.md", forkedRule("Our own rule."))
-	writeFixture(t, root, "local/techs/go/assets/our-errors/old.md", "Old.\n")
+	writeFixture(t, root, "rules/techs/go/our-errors.md", forkedRule("Our own rule."))
+	writeFixture(t, root, "rules/techs/go/assets/our-errors/old.md", "Old.\n")
 	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"      exclude:\n        - id: techs/go/errors\n          reason: Ours.\n          replacedBy: techs/go/our-errors\n")
 	if _, err := Build(context.Background(), f.options); err != nil {
 		t.Fatal(err)
 	}
 	thirdRelease(t, f.fixture, false)
 	plan, preview := planForkUpdate(t, f, updateFork)
-	if row := previewRow(preview.Sources, "team", "techs/go/errors"); row == nil || !reflect.DeepEqual(row.Overwrites, []string{"local/techs/go/our-errors.md"}) || !reflect.DeepEqual(row.Removes, []string{"local/techs/go/assets/our-errors/old.md"}) {
+	if row := previewRow(preview.Sources, "team", "techs/go/errors"); row == nil || !reflect.DeepEqual(row.Overwrites, []string{"rules/techs/go/our-errors.md"}) || !reflect.DeepEqual(row.Removes, []string{"rules/techs/go/assets/our-errors/old.md"}) {
 		t.Fatalf("row %+v", row)
 	}
 	if _, err := plan.Apply(context.Background(), updateFork); err != nil {
 		t.Fatal(err)
 	}
 	after := f.files(t)
-	if got := string(after["local/techs/go/our-errors.md"]); got != forkedRule("Read [the table](assets/our-errors/table.md) and [the diagram](assets/our-errors/diagrams/new.svg).") {
+	if got := string(after["rules/techs/go/our-errors.md"]); got != forkedRule("Read [the table](assets/our-errors/table.md) and [the diagram](assets/our-errors/diagrams/new.svg).") {
 		t.Fatalf("fork %q", got)
 	}
-	want := map[string]string{"local/techs/go/our-errors.md": forkedRule("Read [the table](assets/our-errors/table.md) and [the diagram](assets/our-errors/diagrams/new.svg)."), "local/techs/go/assets/our-errors/table.md": "| Wrap |\n", "local/techs/go/assets/our-errors/diagrams/new.svg": "<svg id=\"new\"/>"}
+	want := map[string]string{"rules/techs/go/our-errors.md": forkedRule("Read [the table](assets/our-errors/table.md) and [the diagram](assets/our-errors/diagrams/new.svg)."), "rules/techs/go/assets/our-errors/table.md": "| Wrap |\n", "rules/techs/go/assets/our-errors/diagrams/new.svg": "<svg id=\"new\"/>"}
 	if got := localFork(after, "techs/go/our-errors.md"); !reflect.DeepEqual(got, want) {
 		t.Fatalf("fork files %v", got)
 	}
-	if _, ok := after["local/techs/go/errors.md"]; ok {
+	if _, ok := after["rules/techs/go/errors.md"]; ok {
 		t.Fatal("the update wrote a fork at the library rule's path")
 	}
 	if config := string(after["config.yaml"]); !strings.Contains(config, "          replacedBy: techs/go/our-errors\n          basedOn: \"2.0.0\"\n") {
@@ -219,7 +219,7 @@ func TestUpdate_ReplacesAHandWrittenReplacementAndRecordsBasedOn(t *testing.T) {
 }
 
 // TestUpdate_GivesAReplacementItsGroupsFirstAssetDirectory replaces a replacement without assets, in a group whose
-// local rules have none, with a fork that has some, creating local/techs/go/assets.
+// local rules have none, with a fork that has some, creating rules/techs/go/assets.
 func TestUpdate_GivesAReplacementItsGroupsFirstAssetDirectory(t *testing.T) {
 	f := newForkFixture(t, "")
 	root, err := openProject(context.Background(), f.options, false)
@@ -227,7 +227,7 @@ func TestUpdate_GivesAReplacementItsGroupsFirstAssetDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer root.Close()
-	writeFixture(t, root, "local/techs/go/our-errors.md", forkedRule("Our own rule."))
+	writeFixture(t, root, "rules/techs/go/our-errors.md", forkedRule("Our own rule."))
 	writeFixture(t, root, configurationFile, string(f.files(t)["config.yaml"])+"      exclude:\n        - id: techs/go/errors\n          reason: Ours.\n          replacedBy: techs/go/our-errors\n")
 	if _, err := Build(context.Background(), f.options); err != nil {
 		t.Fatal(err)
@@ -237,7 +237,7 @@ func TestUpdate_GivesAReplacementItsGroupsFirstAssetDirectory(t *testing.T) {
 	if _, err := plan.Apply(context.Background(), updateFork); err != nil {
 		t.Fatal(err)
 	}
-	if got := string(f.files(t)["local/techs/go/assets/our-errors/table.md"]); got != "| Wrap |\n" {
+	if got := string(f.files(t)["rules/techs/go/assets/our-errors/table.md"]); got != "| Wrap |\n" {
 		t.Fatalf("asset %q", got)
 	}
 }
@@ -261,7 +261,7 @@ func TestUpdate_ReplacesAForkWhosePinKeepsTheImportedCopy(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := f.files(t)
-	if got := string(after["local/techs/go/errors.md"]); got != forkedRule("Read [the table](assets/errors/table.md) and [the diagram](assets/errors/diagrams/new.svg).") {
+	if got := string(after["rules/techs/go/errors.md"]); got != forkedRule("Read [the table](assets/errors/table.md) and [the diagram](assets/errors/diagrams/new.svg).") {
 		t.Fatalf("fork %q", got)
 	}
 	if config := string(after["config.yaml"]); !strings.Contains(config, "      pins:\n        - id: techs/go/errors\n          version: \"1.0.0\"\n") || !strings.Contains(config, "          basedOn: \"2.0.0\"\n") {
@@ -394,7 +394,7 @@ func TestUpdate_RefusesAForkWhoseReleaseTagMovedAfterThePreview(t *testing.T) {
 				t.Fatalf("wanted invalid-release-tag, got %v", err)
 			}
 			if after := f.files(t); !reflect.DeepEqual(after, before) {
-				t.Fatalf("a refused update changed the project; the fork is now:\n%s", after["local/techs/go/errors.md"])
+				t.Fatalf("a refused update changed the project; the fork is now:\n%s", after["rules/techs/go/errors.md"])
 			}
 		})
 	}
@@ -428,7 +428,7 @@ func TestUpdate_ForkUpdateWritesNothingWhenTheUpdateFails(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer root.Close()
-			writeFixture(t, root, "local/techs/go/assets/errors/mine.md", "Edited after the preview.\n")
+			writeFixture(t, root, "rules/techs/go/assets/errors/mine.md", "Edited after the preview.\n")
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

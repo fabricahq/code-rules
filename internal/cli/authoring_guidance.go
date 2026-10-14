@@ -7,7 +7,7 @@ import "fmt"
 func groupIntroduction(groupPath string, isLibrary bool) string {
 	heading := fmt.Sprintf("Adding a group at: %s", groupPath)
 	if !isLibrary {
-		heading = fmt.Sprintf("Adding a project-only group at: %s\n\nThis group belongs to this project.\nIts files are stored in .code-rules/local/%s/.", groupPath, groupPath)
+		heading = fmt.Sprintf("Adding a project-only group at: %s\n\nThis group belongs to this project.\nIts files are stored in .code-rules/rules/%s/.", groupPath, groupPath)
 	}
 	return fmt.Sprintf(`%s
 
@@ -28,7 +28,7 @@ Enter your group's details below.
 func ruleIntroduction(rulePath, bodyFile string, isLibrary bool) string {
 	heading := fmt.Sprintf("Adding a rule at: %s", rulePath)
 	if !isLibrary {
-		heading = fmt.Sprintf("Adding a project-only rule at: %s\n\nThis rule belongs to this project.\nIts file is stored in:\n  .code-rules/local/%s.md", rulePath, rulePath)
+		heading = fmt.Sprintf("Adding a project-only rule at: %s\n\nThis rule belongs to this project.\nIts file is stored in:\n  .code-rules/rules/%s.md", rulePath, rulePath)
 	}
 	next := "Then edit the created Markdown file to write the full rule."
 	if bodyFile != "" {

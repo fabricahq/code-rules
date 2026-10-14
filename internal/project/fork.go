@@ -1,4 +1,4 @@
-// Fork one published version of a library rule into local/, and replace the imported rule with it.
+// Fork one published version of a library rule into rules/, and replace the imported rule with it.
 
 package project
 
@@ -54,16 +54,16 @@ type ForkPlan struct {
 	// version is the forked version, which the exclusion records as basedOn.
 	version coderules.RuleVersion
 	release int
-	// files holds the fork's files by path relative to local/, and groupMetadata the library's metadata for the
-	// rule's group, which Commit copies when the project has no local metadata for it.
+	// files holds the fork's files by path relative to rules/, and groupMetadata the library's metadata for the
+	// rule's group, which Commit copies when the project has no authored metadata for it.
 	files         map[string][]byte
 	groupMetadata []byte
 }
 
 // PlanFork checks the project, reads the published rule version from the library, and prepares the fork's files,
 // without writing. The fork replaces the rule when the configured source for the library imports it, as the
-// source's synced record shows. It fails before reading the library when local/ already has the rule, when that
-// source already excludes it, since existing local rules and exclusions are never replaced, or when the source
+// source's synced record shows. It fails before reading the library when rules/ already has the rule, when that
+// source already excludes it, since existing authored rules and exclusions are never replaced, or when the source
 // selects the rule but the project hasn't synced the source's current configuration.
 func PlanFork(ctx context.Context, id string, from ForkSource, options Options, git imports.Options) (*ForkPlan, error) {
 	plan := &ForkPlan{id: id, version: from.Version}
@@ -152,7 +152,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 			return nil, err
 		}
 		for name, data := range p.files {
-			files = append(files, filetxn.File{Path: path.Join("local", name), Content: data})
+			files = append(files, filetxn.File{Path: path.Join("rules", name), Content: data})
 		}
 		slices.SortFunc(files, func(a, b filetxn.File) int { return strings.Compare(a.Path, b.Path) })
 		for _, file := range files {
@@ -185,7 +185,7 @@ func (p *ForkPlan) Commit(ctx context.Context, reason string) (AuthoringResult, 
 // replace that library's description of the group. It fails when the library has no metadata for the group either.
 func (p *ForkPlan) groupFiles(ctx context.Context, root *os.Root, config rules.Configuration) ([]filetxn.File, error) {
 	group := p.group
-	directory := path.Join("local", group)
+	directory := path.Join("rules", group)
 	metadata, err := filetxn.ReadOptional(ctx, root, path.Join(directory, "_group.yaml"))
 	if err != nil || metadata != nil {
 		return nil, err
@@ -234,7 +234,7 @@ func importedGroup(ctx context.Context, root *os.Root, config rules.Configuratio
 	return false, nil
 }
 
-// checkForkTarget checks that id names a rule path and that local/ doesn't have the rule yet, and returns the
+// checkForkTarget checks that id names a rule path and that rules/ doesn't have the rule yet, and returns the
 // rule's group.
 func checkForkTarget(ctx context.Context, root *os.Root, id string) (string, error) {
 	if strings.HasSuffix(id, ".md") {
@@ -244,7 +244,7 @@ func checkForkTarget(ctx context.Context, root *os.Root, id string) (string, err
 	if err != nil {
 		return "", err
 	}
-	return group, filetxn.RequireAbsent(ctx, root, path.Join("local", id+".md"))
+	return group, filetxn.RequireAbsent(ctx, root, path.Join("rules", id+".md"))
 }
 
 // forkLibrary returns the library that name identifies, labeled for diagnostics, and the configured source that
@@ -327,7 +327,7 @@ func forkAttribution(repository, id string, version coderules.RuleVersion, publi
 	return &coderules.Attribution{URL: url, Description: fmt.Sprintf("Forked from version %s of %s, published in library release %d at commit %s.", version, id, published.Release, published.Commit)}, nil
 }
 
-// forkFiles returns the files of a fork of rule id at rulePath, by path relative to local/: the rule moves to
+// forkFiles returns the files of a fork of rule id at rulePath, by path relative to rules/: the rule moves to
 // rulePath and its asset directory to rulePath's, so a fork at the rule's own path, id.md, keeps their library
 // paths; each shared asset moves from assets/ into that asset directory, keeping its path below assets/. Markdown
 // links to moved files are rewritten, and attribution, when not nil, is added to the rule. It fails when two files

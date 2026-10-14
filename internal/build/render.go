@@ -116,13 +116,12 @@ func escapeText(value string) string {
 	return result.String()
 }
 
-// workspaceLink links from generated output back to retained local or vendor input.
+// workspaceLink links from generated output back to authored or retained vendor input.
 func workspaceLink(outputPath, source, file string) string {
-	root := "vendor/" + source
 	if source == "local" {
-		root = "local"
+		return rules.RelativeLink("generated/"+outputPath, authoredLocation(file))
 	}
-	return rules.RelativeLink("generated/"+outputPath, root+"/"+file)
+	return rules.RelativeLink("generated/"+outputPath, "vendor/"+source+"/"+file)
 }
 
 // sourceLink prefers a recognized repository's immutable commit URL and falls back to retained source.
@@ -148,7 +147,11 @@ func relocatedURL(destination string, active resolvedRule, paths []string, outpu
 		}
 		return destination, nil
 	}
-	target, suffix, local, err := rules.RelativeTarget(destination, active.Origin.File)
+	resolveTarget := rules.RelativeTarget
+	if active.Origin.Source == "local" {
+		resolveTarget = authoredTarget
+	}
+	target, suffix, local, err := resolveTarget(destination, active.Origin.File)
 	if err != nil {
 		return "", err
 	}

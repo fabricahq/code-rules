@@ -41,7 +41,7 @@ func forkRule(cmd *cobra.Command, id string, f *authoringFlags, options Options,
 		if !f.interactive() {
 			return usage(fmt.Errorf("--reason is required: the project imports %s from %s, so the fork replaces it, and the exclusion that makes it the replacement records why", id, plan.Replaces()))
 		}
-		f.introduction = fmt.Sprintf("Forking %s %s from %s into:\n  .code-rules/local/%s.md\n\nThe project imports this rule from %s, so the fork replaces it: config.yaml\ngets an exclusion that names the fork and records your reason.\n\n", id, from.Version, from.Library, id, plan.Replaces())
+		f.introduction = fmt.Sprintf("Forking %s %s from %s into:\n  .code-rules/rules/%s.md\n\nThe project imports this rule from %s, so the fork replaces it: config.yaml\ngets an exclusion that names the fork and records your reason.\n\n", id, from.Version, from.Library, id, plan.Replaces())
 		if reason, err = f.askValidated("Why use the fork instead of the imported rule?", func(value string) error { return validateAnswer("reason", value) }); err != nil {
 			return err
 		}

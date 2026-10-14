@@ -35,8 +35,8 @@ const maxJournalFormat = 6
 const lockName = ".code-rules-lock"
 const cleanupName = ".code-rules-cleanup"
 
-// Target is a managed directory, project guide, the project configuration, a local group's metadata, or a local
-// rule or its asset directory, which only update replaces, when it replaces a fork.
+// Target is a managed directory, project guide, the project configuration, an authored group's metadata, or an
+// authored rule or its asset directory, which only update replaces, when it replaces a fork.
 type Target string
 
 const (
@@ -605,7 +605,7 @@ func recoverWithRename(root *os.Root, rename func(string, string) error) error {
 		}
 	}
 	// Parent directories the transaction created stay, even when empty: a path proves nothing about who made the
-	// directory there now, and an empty directory under local/ is harmless.
+	// directory there now, and an empty directory under rules/ is harmless.
 	return root.RemoveAll(transactionName)
 }
 
