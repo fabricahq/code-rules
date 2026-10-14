@@ -66,10 +66,9 @@ export default defineConfig({
         { label: 'Write a rule', slug: 'guides/write-rules' },
         { label: 'Write a skill', slug: 'guides/write-skills' },
         { label: 'Projects', collapsed: true, items: [
-          { label: 'Import rules', slug: 'guides/select-rules' },
+          { label: 'Include rules', slug: 'guides/select-rules' },
           { label: 'Install skills', slug: 'guides/install-skills' },
           { label: 'Update rules and skills', slug: 'guides/update' },
-          { label: 'Share defaults with presets', slug: 'guides/presets' },
           { label: 'Resolve conflicting rules', slug: 'guides/conflicting-guidance' },
         ] },
         { label: 'Libraries', collapsed: true, items: [
@@ -82,7 +81,7 @@ export default defineConfig({
         { label: 'Projects', collapsed: true, items: [
           { label: 'Project files', slug: 'reference/files' },
           { label: 'Configuration', slug: 'reference/configuration' },
-          { label: 'How imports work', slug: 'reference/imports' },
+          { label: 'How sources work', slug: 'reference/imports' },
           { label: 'Sync and recovery', slug: 'reference/sync' },
           { label: 'Provenance', slug: 'reference/provenance' },
         ] },
