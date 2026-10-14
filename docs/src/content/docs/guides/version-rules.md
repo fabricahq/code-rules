@@ -3,6 +3,10 @@ title: "Version your rules"
 description: "How rules and skills change, how their versions describe those changes, and how to publish new versions from your library."
 ---
 
+:::caution[Preview]
+Skill versions, skill levels, and the `.code-rules/` library layout aren't in a released version of Code Rules yet. The released CLI versions rules only, and keeps change notes in a root-level `changes/` directory.
+:::
+
 Rules change over time. Some changes are small: an author fixes a typo, rewords a confusing sentence, or adds an example. Others are large: a rule becomes stricter, starts requiring something it previously only recommended, or is retired entirely.
 
 Just as with code, you can track these changes by versioning your rules. This guide explains how rule versions work, then shows how to record changes and publish new versions from your library. A library's [skills](/concepts/skill/) are versioned the same way; [Skill versions](#skill-versions) covers what differs.
@@ -20,10 +24,10 @@ A version covers the rule's Markdown file and its own supporting files. Library-
 Releasing a new version of a rule takes three steps, and in none of them do you type a version number:
 
 1. **Update the rule.** Edit the rule's Markdown file, and its supporting files if it has any, as needed.
-2. **Run `code-rules library change` with the rule's ID**, such as `code-rules library change practices/testing/verify-retry-limits`. The command asks how large the change was, [major, minor, or patch](#semantic-versions), and for a one-line summary of what changed, then saves your answers in a **change note** in the library's `changes/` directory. In a script, pass `--bump` and `--summary` instead of answering. Commit the note in the same pull request as the rule edit. Once the pull request merges, the change is **pending**: it's on your default branch, but the rule keeps its old version, and projects don't receive the change.
+2. **Run `code-rules library change` with the rule's ID**, such as `code-rules library change practices/testing/verify-retry-limits`. The command asks how large the change was, [major, minor, or patch](#semantic-versions), and for a one-line summary of what changed, then saves your answers in a **change note** in the library's `.code-rules/changes/` directory. In a script, pass `--bump` and `--summary` instead of answering. Commit the note in the same pull request as the rule edit. Once the pull request merges, the change is **pending**: it's on your default branch, but the rule keeps its old version, and projects don't receive the change.
 3. **Publish a library release.** `code-rules library release` turns the pending change notes into new versions. If the rule was at `1.3.0` and its note says `minor`, the library release publishes the rule as `1.4.0`, with your summary.
 
-The new version is then available to every project that imports the rule, and each project adopts it when someone runs `code-rules project update`. You can't release one rule on its own, but a [library release](#library-releases) can contain a single changed rule, so you can publish as soon as a change is ready. Before your library's first library release, rules have no versions and need no change notes; the first library release gives every rule `1.0.0`.
+The new version is then available to every project that includes the rule, and each project takes it when someone runs `code-rules project update`. You can't release one rule on its own, but a [library release](#library-releases) can contain a single changed rule, so you can publish as soon as a change is ready. Before your library's first library release, rules have no versions and need no change notes; the first library release gives every rule `1.0.0`.
 
 For the commands step by step, see [Change rules after the first library release](#change-rules-after-the-first-library-release) and [Publish a library release](#publish-a-library-release).
 
@@ -48,7 +52,7 @@ A few more conventions:
 
 Sometimes a rule shouldn't change; it should stop. **Retiring** a rule ends its history: the library stops publishing it, and its last version stays its final version. A retirement always explains why, and it usually happens for one of two reasons:
 
-- **A better rule replaces it.** For example, you fold a narrow rule about retry limits into a broader rule about testing retries. The retirement names the replacement, so projects know what to adopt instead.
+- **A better rule replaces it.** For example, you fold a narrow rule about retry limits into a broader rule about testing retries. The retirement names the replacement, so projects know what to include instead.
 - **The practice is no longer recommended.** For example, you published a rule about how agents should comment code, then concluded from feedback that agents shouldn't add those comments at all. There's no replacement; the summary explains why the advice was withdrawn.
 
 The library release that publishes a retirement records it with its summary and any replacement. A retired rule's ID is never reused.
@@ -57,15 +61,15 @@ Retiring a rule a project uses is as disruptive as a major change, because its a
 
 ## How projects use rule versions
 
-Projects import rules from your library. Each imported rule's version appears in the project's generated guidance, so agents and reviewers can cite the exact version they followed.
+Projects take rules from your library. Each included rule's version appears in the project's generated guidance, so agents and reviewers can cite the exact version they followed.
 
-A project keeps the versions it imported until someone runs `code-rules project update`, which previews each rule that changed, with its old and new versions and your summaries, plus new and retired rules. Nothing applies until someone on the project confirms, so major changes, which can change what the project's code must do, get reviewed first. See [Update rules](/guides/update/).
+A project keeps the versions it recorded until someone runs `code-rules project update`, which previews each rule that changed, with its old and new versions and your summaries, plus new and retired rules. Nothing applies until someone on the project confirms, so major changes, which can change what the project's code must do, get reviewed first. See [Update rules and skills](/guides/update/).
 
-A project can also pin a rule to a version, with a reason, while the rest moves forward. That's how projects hold back one major change, often while they give you feedback on it. Projects import only published versions, unless one deliberately imports an exact commit, so changes waiting for a library release don't reach them.
+A project can also pin a rule to a version, with a reason, while the rest moves forward. That's how projects hold back one major change, often while they give you feedback on it. Projects take only published versions, unless one deliberately takes an exact commit, so changes waiting for a library release don't reach them.
 
 ## Skill versions
 
-Each skill in a library has its own version too, recorded in the same library releases, with the same change notes, commands, and retirements as rules. A skill version covers the skill's whole folder, `skills/<name>/`: every file Git tracks in it, and each file's executable bit. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
+Each skill in a library has its own version too, recorded in the same library releases, with the same change notes, commands, and retirements as rules. A skill version covers the skill's whole folder, `.code-rules/skills/<name>/`: every file Git tracks in it, and each file's executable bit. See [What a version covers](/reference/rule-versions/#what-a-version-covers).
 
 A rule's version describes its obligation. A skill's version describes what the skill produces and requires: the steps an agent takes, the inputs it needs, and the rules and skills it depends on.
 
@@ -75,7 +79,7 @@ A rule's version describes its obligation. A skill's version describes what the 
 | **Minor**, such as `1.3.0` to `1.4.0` | The skill adds steps or guidance, and everything that relied on the previous version still works. | Add an optional accessibility check, or a reference with more examples. |
 | **Patch**, such as `1.3.0` to `1.3.1` | The skill only clarifies its wording. | Fix a typo, or reword a step without changing what it asks for. |
 
-A skill's version doesn't change when a rule it cites gets a new version. The skill names the rule, not a version of it, so a project applies the rule at whatever version it imports. Adding a rule to `fg-rules-used`, or a skill to `fg-skills-used`, is major, because a project that installs the new version imports that rule or skill too.
+A skill's version doesn't change when a rule it cites gets a new version. The skill names the rule, not a version of it, so a project applies the rule at whatever version it takes. Adding a rule to `fg-rules-used`, or a skill to `fg-skills-used`, is major, because a project that installs the new version takes that rule or skill too.
 
 Projects see skill changes in their update preview, beside rule changes. Unlike rules, skills can't be pinned: a project installs all of a library's skills from one library release, and they move together when the project updates. See [Rule and skill versions](/reference/rule-versions/#choose-a-skills-version-change) for the exact definitions.
 
@@ -92,25 +96,25 @@ A library release produces:
 - a release tag, such as `release/4`, whose message records every rule's version and the release notes, and
 - on GitHub.com, a **GitHub Release page** that announces the library release with the same release notes. The page is only an announcement; the library release itself is the tag.
 
-Publish a library release whenever you want your pending changes to reach projects. There's no schedule, and no need to wait for a major change: smaller library releases are easier for projects to review. Projects don't have to take a whole library release, either. Each project chooses versions rule by rule, and can import one specific library release when it wants a known snapshot of the library.
+Publish a library release whenever you want your pending changes to reach projects. There's no schedule, and no need to wait for a major change: smaller library releases are easier for projects to review. Projects don't have to take a whole library release, either. Each project chooses versions rule by rule, and can take one specific library release when it wants a known snapshot of the library.
 
 ### Find a rule's current version
 
 A rule's current version is the one in the newest library release. Rule files carry no version, and files on the default branch can include unreleased edits, so look in the library release instead. Each `release/<number>` tag's [release record](/reference/rule-versions/#release-record) lists the version of every current rule, not only the ones that changed, and tools read it from the tag. For a library on GitHub.com, the newest library release's GitHub Release page, when it has one, shows the same versions under **All rule versions in this library release**.
 
-In a project, the versions you import are listed under **Rule versions** in `.code-rules/generated/libraries/<source-name>/README.md`, and recorded in `.code-rules/generated/provenance.json`; see [Provenance](/reference/provenance/). A skill's current version is found the same way: the release record lists every current skill under `skills.versions`, the GitHub Release page shows them under **All skill versions in this library release**, and a project lists the versions it installs in `.code-rules/generated/SKILLS.md`. To adopt a newer version, see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version).
+In a project, the versions you take are listed under **Rule versions** in `.code-rules/generated/libraries/<source-name>/README.md`, and recorded in `.code-rules/generated/provenance.json`; see [Provenance](/reference/provenance/). A skill's current version is found the same way: the release record lists every current skill under `skills.versions`, the GitHub Release page shows them under **All skill versions in this library release**, and a project lists the versions it installs in `.code-rules/generated/SKILLS.md`. To take a newer version, see [Update one rule to its newest version](/guides/update/#update-one-rule-to-its-newest-version).
 
 ## How library releases work
 
 You manage versions and library releases with three Code Rules commands. You never set versions or create tags by hand.
 
-- **`code-rules library change`** records a change. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file in the library's `changes/` directory.
+- **`code-rules library change`** records a change. You say how large the change is (major, minor, or patch) and summarize it. The command saves this in a **change note**, a small file in the library's `.code-rules/changes/` directory.
 - **`code-rules library check`** confirms that every changed rule and skill has a change note, and previews the versions the next library release will publish.
 - **`code-rules library release`** publishes a [library release](#library-releases).
 
 Change notes pile up on `main` as you merge changes, and they're never deleted. Publishing a library release doesn't change any files: `code-rules library release` computes each rule's next version from the notes added since the previous library release, using the largest change when several notes name the same rule, and records the result in a new `release/<number>` tag. The next library release starts from that tag.
 
-Change notes start with the second library release. Your library's [first library release](#publish-the-first-library-release) gives every rule version `1.0.0`, so it needs no notes. For the exact formats, see [Rule versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
+Change notes start with the second library release. Your library's [first library release](#publish-the-first-library-release) gives every rule version `1.0.0`, so it needs no notes. For the exact formats, see [Rule and skill versions](/reference/rule-versions/) and [Change notes](/reference/rule-versions/#change-notes).
 
 ## Publish the first library release
 
@@ -132,7 +136,7 @@ code-rules library change practices/testing/verify-retry-limits \
   --summary 'Add a Python example of the retry-limit test.'
 ```
 
-This writes a new note, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`:
+This writes a new note, such as `.code-rules/changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`:
 
 ```yaml
 summary: Add a Python example of the retry-limit test.
@@ -251,13 +255,13 @@ code-rules library change skills/triage-bug \
   --summary 'Covered by the fix-bug playbook, which also writes the regression test.'
 ```
 
-A skill can only be replaced by a skill, and a rule only by a rule. Update every skill whose `fg-skills-used` names the retired skill in the same pull request; `code-rules library check` fails until you do. To rename a skill, retire the old ID, replaced by the new one, and add the new ID as `new` in the same note, as you would [rename a rule](#rename-a-rule).
+A skill can only be replaced by a skill, and a rule only by a rule. Remove the retired skill from the manifest's levels, and update every skill whose `fg-skills-used` names the retired skill in the same pull request; `code-rules library check` fails until you do. To rename a skill, retire the old ID, replaced by the new one, and add the new ID as `new` in the same note, as you would [rename a rule](#rename-a-rule).
 
-### Change a shared file or group description
+### Change a shared file, group description, or skill level
 
-Files in the library's shared `assets/` directory, such as a diagram, and group descriptions in `_group.yaml` are library-wide files. They aren't part of any rule version, so changing them needs no change note. `code-rules library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
+Files in the library's shared `.code-rules/assets/` directory, such as a diagram, group descriptions in `_group.yaml`, and the manifest in `.code-rules/config.yaml`, with its [skill levels](/reference/library-format/#skill-levels), are library-wide files. They aren't part of any rule version, so changing them needs no change note. `code-rules library check` lists the ones that changed, and the next library release publishes them, even if no rule changed.
 
-A project receives library-wide files from one library release at a time. `code-rules project update` moves them to the newest library release, even when no rule moves, so a library release that changes only shared files reaches projects with their next update. A project that starts importing your library, or selects more of it, also gets them from the newest library release.
+A project receives library-wide files from one library release at a time. `code-rules project update` moves them to the newest library release, even when no rule moves, so a library release that changes only shared files reaches projects with their next update. A project that adds your library as a source gets them from the newest library release; one that only includes more of it keeps the library release it recorded.
 
 Keep everything that defines a rule's obligation in the rule itself. A rule pinned to an older version can link to newer shared files, from the library release that supplies the project's library-wide files, so shared files should only explain and illustrate.
 
@@ -303,7 +307,7 @@ Preview exactly what will be published:
 code-rules library release --dry-run
 ```
 
-The preview shows the repository, branch, commit, release number, each rule's and skill's change and versions, and the complete release notes. The release notes are generated from the change notes, so to change their wording, edit the notes in `changes/` in a normal pull request, then preview again.
+The preview shows the repository, branch, commit, release number, each rule's and skill's change and versions, and the complete release notes. The release notes are generated from the change notes, so to change their wording, edit the notes in `.code-rules/changes/` in a normal pull request, then preview again.
 
 ### Publish
 
@@ -484,12 +488,12 @@ To make the check required before merging, add a branch ruleset in **Settings > 
 | --- | --- |
 | `code-rules library release` stopped after pushing the tag, such as when GitHub was unavailable. | Run it again. It finds the tag on the current commit and creates the GitHub Release page. |
 | The remote refused the tag push, such as a server hook or a GitHub tag ruleset. | The error names the cause Code Rules recognized, such as a repository rule with GitHub's error code `GH013`, a server hook that declined the tag, or denied access, but not the server's own message, which can hold anything, including credentials. Check the repository's tag rules and hooks. To read the server's message, push a test tag yourself, as [the CLI reference](/reference/cli/#library-release) shows. Fix the cause, such as getting permission to create `release/<number>` tags, then run `code-rules library release` again. The command deleted the tag it created, so the rerun starts over. |
-| A release tag points to a different commit. | Someone created or moved a `release/<number>` tag by hand. Don't move published tags; projects may have imported them. Ask the tag's author, then restore it to its original commit. |
+| A release tag points to a different commit. | Someone created or moved a `release/<number>` tag by hand. Don't move published tags; projects may have recorded them. Ask the tag's author, then restore it to its original commit. |
 | Check fails in a shallow clone. | Fetch the full history and tags, such as with `git fetch --unshallow --tags`, or `fetch-depth: 0` in CI. |
 | Check fails because the clone has change notes but no release tags, such as a clone made with `git clone --no-tags`. | Fetch the tags with `git fetch --tags`, or check out with `fetch-depth: 0` in CI. Without them, the library would look as if it had never published a library release. |
 
 ## Next steps
 
 - [Write a rule](/guides/write-rules/) covers authoring guidance.
-- [Update rules](/guides/update/) shows how projects review and adopt your library releases.
+- [Update rules and skills](/guides/update/) shows how projects review and take your library releases.
 - The [CLI reference](/reference/cli/#library-release) lists every option.
