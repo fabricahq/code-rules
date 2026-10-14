@@ -52,7 +52,7 @@ Local origins use `source: "local"`. Their `repository`, `resolvedCommit`, `vers
 
 ### Example: explain a local replacement
 
-Suppose your project imports the `team` library but replaces its `check-retries` rule with `local/practices/testing/service-retries.md`. You record the reason in configuration: “Use the retry limits required by this service.”
+Suppose your project imports the `team` library but replaces its `check-retries` rule with `rules/practices/testing/service-retries.md`. You record the reason in configuration: “Use the retry limits required by this service.”
 
 The replacement's entry contains these fields. This excerpt omits the other origin and license fields:
 

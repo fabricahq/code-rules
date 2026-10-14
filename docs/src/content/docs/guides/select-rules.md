@@ -46,7 +46,7 @@ If two sources supply `practices/testing`, their rules combine into one generate
 Source-prefixed IDs keep matching rule paths distinct.
 Neither source automatically overrides the other.
 
-Define local groups with `_group.yaml` under `local/`; a separate configuration declaration is unnecessary.
+Define your own groups with `_group.yaml` under `rules/`; a separate configuration declaration is unnecessary.
 The [Group concept](/concepts/groups/) explains the distinction between technology and practice groups.
 
 ## Adapt the import to your project
@@ -57,14 +57,15 @@ Keep those decisions in configuration and local files so agents read the resolve
 
 ### Add a rule
 
-Write a Markdown rule under the matching local group:
+Write a Markdown rule under the matching group in `rules/`:
 
 ```text
-.code-rules/local/practices/testing/test-project-contracts.md
+.code-rules/rules/practices/testing/test-project-contracts.md
 ```
 
-The group needs `_group.yaml` metadata from a selected library or from `local/<group-id>/`.
-If you later deselect or remove the last library supplying the group, sync copies the group's last imported metadata to `local/<group-id>/_group.yaml` and warns that it did, so the rule keeps its group; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group).
+The group needs `_group.yaml` metadata from a selected library or from `rules/<group-id>/`.
+If you later deselect or remove the last library supplying the group, sync copies the group's last imported metadata to `rules/<group-id>/_group.yaml` and warns that it did, so the rule keeps its group; see [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group).
+Put supporting files that several of your rules share in `.code-rules/assets/`, and link to them from the rule as `../../../assets/<file>`.
 The rule joins the inherited rules and receives a `local:`-prefixed ID.
 Use the [authoring format](/guides/write-rules/) for its metadata and body.
 
@@ -107,9 +108,9 @@ sources:
           replacedBy: techs/typescript/prefer-interfaces
 ```
 
-Here the local rule is `.code-rules/local/techs/typescript/prefer-interfaces.md`.
+Here the local rule is `.code-rules/rules/techs/typescript/prefer-interfaces.md`.
 
-To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `local/` and writes the exclusion for you, with the forked version as `basedOn`. With `basedOn`, `code-rules project update` lists the library's changes after that version, so you can decide whether your rule needs them; see [Exclude or replace a rule](/reference/configuration/#exclude-or-replace-a-rule).
+To start from the library's text instead of writing your own, [fork the rule](/reference/cli/#fork-a-library-rule), which copies it into `rules/` and writes the exclusion for you, with the forked version as `basedOn`. With `basedOn`, `code-rules project update` lists the library's changes after that version, so you can decide whether your rule needs them; see [Exclude or replace a rule](/reference/configuration/#exclude-or-replace-a-rule).
 
 The resolved rule uses the complete local definition, including its local ID, title, reading cue, impact, body, attribution, and asset references.
 In this example, the generated ID is `local:techs/typescript/prefer-interfaces`.

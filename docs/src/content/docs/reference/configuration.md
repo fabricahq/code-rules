@@ -3,7 +3,7 @@ title: "Configuration"
 description: "Fields in .code-rules/config.yaml."
 ---
 
-The **project configuration**, `.code-rules/config.yaml`, records the project's sources, the rules it includes from each, and its exceptions. The **Code Rules directory**, `.code-rules/`, also holds `local/`, `vendor/`, and `generated/`.
+The **project configuration**, `.code-rules/config.yaml`, records the project's sources, the rules it includes from each, and its exceptions. The **Code Rules directory**, `.code-rules/`, also holds `rules/`, `assets/`, `vendor/`, and `generated/`.
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.code-rules/config.yaml`. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
 A project can import rules directly from multiple canonical libraries, choosing versions for each one independently.
@@ -42,7 +42,7 @@ Replace them with libraries and rules your project can access.
 | Field | Meaning |
 | --- | --- |
 | `schemaVersion` | Configuration format version; Code Rules accepts only `2`. See [Version 1 configuration](#version-1-configuration). |
-| `sources` | Map of stable source names to library configurations. Use an empty object for a project with only local groups. |
+| `sources` | Map of stable source names to library configurations. Use an empty object for a project with only its own groups. |
 | `sources.<name>.repository` | Explicit HTTPS or SSH Git address, including scp-style SSH. See [Repository addresses](#repository-addresses). |
 | `sources.<name>.ref` | Optional and advanced. Import the library exactly as it was at one tag or commit. Can't be combined with `rules.pins`. See [Import one revision](#import-one-revision). |
 | `sources.<name>.rules` | Required. The rules to include from this library, and the project's exceptions. |
@@ -51,7 +51,7 @@ Replace them with libraries and rules your project can access.
 | `sources.<name>.rules.pins` | Optional list of entries, each with a single rule ID as its `id`, an exact `version`, and a `reason`. See [Pin a rule](#pin-a-rule). |
 
 Unknown configuration fields are rejected, including unknown source and exclusion fields.
-Local groups are discovered from `local/<group-id>/_group.yaml`; no source entry or separate group list is required.
+Groups the project authors are discovered from `rules/<group-id>/_group.yaml`; no source entry or separate group list is required.
 The former `localGroups` field is rejected with migration guidance. Remove it and keep the group metadata files.
 `rules.exclude` and `rules.pins` are optional; omit them when a source has no exceptions.
 
@@ -256,7 +256,7 @@ rules:
 | --- | --- |
 | `id` | Required. A [selector](#select-rules): one rule ID, or a prefix ending in `/*` that excludes every rule it matches, including rules the library adds there later. Each `id` can appear once. When several entries match a rule, the rule's own entry applies, then its group's, then its type's, then `"*"`. |
 | `reason` | Required non-blank text explaining why the project leaves the rule out. |
-| `replacedBy` | Optional, with a single rule ID only. The ID of a local rule, under `local/`, that agents read in place of the excluded rule, such as `techs/typescript/prefer-interfaces` for `local/techs/typescript/prefer-interfaces.md`. It must be in the same group as the rule it replaces, and each local rule can replace only one rule. |
+| `replacedBy` | Optional, with a single rule ID only. The ID of an authored rule, under `rules/`, that agents read in place of the excluded rule, such as `techs/typescript/prefer-interfaces` for `rules/techs/typescript/prefer-interfaces.md`. It must be in the same group as the rule it replaces, and each authored rule can replace only one rule. |
 | `basedOn` | Optional, and only with `replacedBy`. The library version of the excluded rule that your local rule is based on, in quotes, such as `"2.0.0"`. [Forking a rule](/reference/cli/#fork-a-library-rule) records the forked version here, and so does [replacing a fork with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version). Offline commands check only that it's a version; `code-rules project sync` checks that the library published that version of the rule, and otherwise fails with `version-not-found`, listing the versions it did publish. |
 
 An excluded rule is still imported into `vendor/`, so you can review its changes. The `code-rules project update` preview lists a replaced rule as `replaced` so you can decide whether your local rule needs the same change:
@@ -283,7 +283,7 @@ A selected group includes rules the library adds to it later.
 Selecting `practices/testing` from two sources combines both sets of rules into one effective testing group, with a group page and individual resolved rule files.
 Source order never establishes precedence.
 
-Every valid rule file under `local/` automatically joins its adopted group; individual local rules do not need source entries.
+Every valid rule file under `rules/` automatically joins its adopted group; individual authored rules do not need source entries.
 Local rules can join any imported group. A matching filename does not override an imported rule.
 A local rule that an exclusion names as `replacedBy` appears once under its local ID; the excluded rule is removed from active output.
 The complete local definition supplies the metadata, guidance, attribution, and assets. Configuration and provenance retain the replacement relationship.
@@ -291,8 +291,9 @@ A local `_group.yaml` defines a group, including an empty group, without any con
 If local metadata exists for an imported group, its complete description and reading cues take precedence for project discovery.
 Otherwise, descriptions from every contributing library remain source-labeled.
 Provenance retains all group metadata and identifies the sources supplying the effective discovery guidance.
-Local rules without either local or imported group metadata are errors, with the missing `_group.yaml` path in the diagnostic. When a sync or update removes the last import supplying a local rule's group, it writes the group's last imported metadata to `local/<group-id>/_group.yaml` instead of failing; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group).
-The root `local/README.md` and each group-root `README.md` are authoring documentation, not rules; other misplaced Markdown files are still validated.
+Local rules without either local or imported group metadata are errors, with the missing `_group.yaml` path in the diagnostic. When a sync or update removes the last import supplying an authored rule's group, it writes the group's last imported metadata to `rules/<group-id>/_group.yaml` instead of failing; see [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group).
+The root `rules/README.md` and each group-root `README.md` are authoring documentation, not rules; other misplaced Markdown files are still validated.
+Shared assets that authored rules link to sit in `assets/`, beside `rules/`, so a rule in `rules/practices/testing/` links to one as `../../../assets/retry-lifecycle.svg`. A file in `rules/assets/` is an error.
 
 The generated index shows group names, applicability guidance, and explicit **Open group** links. Without local metadata, guidance from multiple libraries remains labeled by source.
 Local metadata supplies the complete project description when present.
@@ -354,7 +355,11 @@ Code Rules reads only version 2. A configuration with `schemaVersion: 1` fails t
 | `rules: [techs/go/wrap-errors]` | The rule ID in `rules.include`. |
 | `exclude:` map keyed by rule ID | `rules.exclude:` list of entries, each with the rule ID as its `id`. |
 | `pins:` map keyed by rule ID | `rules.pins:` list of entries, each with the rule ID as its `id`. |
-| `replacedBy: local/techs/go/x.md` | `replacedBy: techs/go/x`, the local rule's ID. |
+| `replacedBy: local/techs/go/x.md` | `replacedBy: techs/go/x`, the authored rule's ID. |
+| `.code-rules/local/<group-id>/` | `.code-rules/rules/<group-id>/` |
+| `.code-rules/local/assets/` | `.code-rules/assets/` |
+
+Move the files yourself too: every project command fails while `.code-rules/local/` exists, with a message that shows where each file belongs. Rule IDs don't change. A moved rule sits one directory deeper, so add one `../` to its links to shared assets.
 
 Then run `code-rules project check`. A rewrite that selects the same rules keeps the recorded versions in `vendor/`, so it needs no sync.
 

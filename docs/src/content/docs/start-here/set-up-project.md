@@ -23,7 +23,7 @@ Start in the **project root**, the top-level directory of the codebase you want 
 code-rules project init
 ```
 
-This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `local/`. Initializing Code Rules does not change your project's `README.md` or agent instructions.
+This creates the **Code Rules directory**, `.code-rules/`, with your **project configuration** in `.code-rules/config.yaml` and a place for project-only rules in `rules/`. Initializing Code Rules does not change your project's `README.md` or agent instructions.
 
 Later, when you import a library, Code Rules saves a copy of its files, at the rule versions your configuration selects, in `vendor/`. Code Rules prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
@@ -52,7 +52,7 @@ code-rules project add rule practices/testing/test-changed-behavior \
   --impact-description 'Prevents behavior changes from silently breaking existing use cases.'
 ```
 
-Open `.code-rules/local/practices/testing/test-changed-behavior.md` in your editor and replace its entire contents with this complete rule:
+Open `.code-rules/rules/practices/testing/test-changed-behavior.md` in your editor and replace its entire contents with this complete rule:
 
 ```md
 ---
@@ -96,7 +96,7 @@ If two rules give conflicting advice, you decide which to exclude or replace in 
 
 For this first build, open `.code-rules/generated/RULES.md` and follow its links to the Testing group and your rule. You've turned your source rule into part of the organized guidance your agent will use.
 
-Keep editing rules in `local/`, then build again to update the agent's copy. Don't edit `generated/` directly.
+Keep editing rules in `rules/`, then build again to update the agent's copy. Don't edit `generated/` directly.
 
 You can verify that the generated files match your source files:
 

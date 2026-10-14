@@ -84,7 +84,7 @@ This is a partial configuration snippet.
 Merge it into the existing source while retaining its repository, `rules.include`, pins, and other exceptions.
 It affects only Fabrica's rule; Acme's rule stays active.
 
-For a conflicting local addition, edit its authored file under `local/`.
+For a conflicting local addition, edit its authored file under `rules/`.
 Keep edits in source files and configuration, then rebuild the indexes and resolved definitions.
 Do not edit `vendor/` or `generated/` directly.
 

@@ -22,7 +22,8 @@ These files live in the **Code Rules directory**, `.code-rules/` at the project 
 | Directory | What it contains |
 | --- | --- |
 | `vendor/` | Original files copied from the libraries you selected. |
-| `local/` | Rules you author for this project, including replacements for imported rules. |
+| `rules/` | Rules you author for this project, including replacements for imported rules. |
+| `assets/` | Supporting files that several of your rules share. |
 | `generated/` | The rules and reading indexes your agents use. |
 
 For the complete layout, see [Project files](/reference/files/). Once the library files are stored, `code-rules project build` can regenerate guidance without network access.
@@ -38,7 +39,7 @@ The copy includes:
 - Group metadata, which describes each group and when to read it.
 - The library manifest, `rule-library.yaml`, and its declared license and notice files.
 
-Keeping the original rules lets you review library changes even when your project uses a replacement. Make project-specific changes in `local/`; syncing replaces the imported files.
+Keeping the original rules lets you review library changes even when your project uses a replacement. Make project-specific changes in `rules/`; syncing replaces the imported files.
 
 The snapshot contains no Git history or `.git` directory. Code Rules reads the original files through temporary Git storage and removes that temporary storage afterward.
 

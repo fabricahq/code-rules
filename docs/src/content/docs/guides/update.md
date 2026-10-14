@@ -43,7 +43,7 @@ team
             Covered by the broader rule about testing retries.
   replaced  techs/react/use-query-hooks            1.1.0 -> 1.2.0
             Add an example for paginated queries.
-            Your rule: local/techs/react/use-query-hooks.md, based on 1.1.0.
+            Your rule: rules/techs/react/use-query-hooks.md, based on 1.1.0.
             Changes since 1.1.0, the version your rule is based on.
             To replace your rule and its assets with a fork of 1.2.0,
             pass --update-fork team:techs/react/use-query-hooks.
@@ -145,7 +145,7 @@ A pin can also move a rule to a specific version: set `version`, and `code-rules
 
 A retired rule appears in the preview with its last version, the summary explaining why, and its replacement if it has one. If the library later retired the replacement too, the preview says so and names the rule that replaced it, if any. When you confirm, the rule is dropped. For a rule with a replacement, read the replacement, and check that you import its group.
 
-To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only import supplying its group's metadata, the update writes that metadata to `local/<group-id>/_group.yaml` so the fork keeps its group.
+To keep following a rule the library retires, choose to keep it when the update preview offers, or pin it to its last version before you confirm. Once the retirement is applied, the rule is gone and can't be pinned. If you exclude, replace, or individually select a rule that the library retires, that entry no longer does anything; sync and update warn about it so you can delete it. A fork of the retired rule stays; when the retired rule was the only import supplying its group's metadata, the update writes that metadata to `rules/<group-id>/_group.yaml` so the fork keeps its group.
 
 ## Import one library release
 
@@ -180,7 +180,7 @@ Edit the relevant `sources.<name>.rules.include` and run `code-rules project syn
 `code-rules project sync` imports newly selected rules at their newest versions, and leaves the rest of your rules unchanged.
 The vendor snapshot must match that selection before an offline build can use it.
 Regeneration removes a group index only when no source or discovered local group still supplies it.
-You don't need to create group metadata before deselecting, or removing, the last library supplying a local rule's group: sync writes the group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the group, from its last imported copy in `vendor/`, to `local/<group-id>/_group.yaml` and warns that it did. See [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group). Review the file afterward; it's now yours to edit. If `local/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
+You don't need to create group metadata before deselecting, or removing, the last library supplying an authored rule's group: sync writes the group's metadata, from the library release that supplies that library's shared files or, when that library release no longer has the group, from its last imported copy in `vendor/`, to `rules/<group-id>/_group.yaml` and warns that it did. See [Keep an authored rule's group](/reference/sync/#keep-an-authored-rules-group). Review the file afterward; it's now yours to edit. If `rules/<group-id>/_group.yaml` already exists, sync leaves it unchanged.
 
 ## Recover from a failed update
 

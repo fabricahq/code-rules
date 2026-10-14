@@ -3,7 +3,7 @@ title: "Rule and group format"
 description: "What Code Rules accepts in rule files, group metadata, and supporting assets."
 ---
 
-This page defines what Code Rules accepts in a rule file and in group metadata. The same format applies to rules in a library and to a project's local rules. For how to write a rule well, see [Rule rubric and template](/reference/rule-authoring/).
+This page defines what Code Rules accepts in a rule file and in group metadata. The same format applies to rules in a library and to a project's authored rules. For how to write a rule well, see [Rule rubric and template](/reference/rule-authoring/).
 
 Each rule is a Markdown file, and related rules belong to a **group**: a directory under `techs/` or `practices/` that holds a `_group.yaml` file. [Library format](/reference/library-format/) covers where groups live in a library.
 
@@ -89,6 +89,7 @@ Markdown within assets is supporting text and does not need rule frontmatter.
 Keep the rule's obligations and exceptions in the rule itself. Use assets for explanations, images, sample data, and other supporting material.
 Link from the rule with ordinary Markdown, such as `[Explanation](assets/verify-retries/explanation.md)`.
 Use `../../assets/retry-lifecycle.svg` from this rule to reference a shared image.
+In a project, authored rules sit in `.code-rules/rules/` and shared assets in `.code-rules/assets/`, so the same rule links to a shared image as `../../../assets/retry-lifecycle.svg`.
 
 Code Rules preserves each selected rule's complete asset directory, including files that are not individually linked.
 From the library-root `assets/` directory, Code Rules imports only the files a selected rule or its Markdown assets link to, including files those shared files link to in turn. Shared files aren't part of a rule's [version](/reference/rule-versions/#what-a-version-covers): a project gets them from the library release that supplies its library-wide files, which `code-rules project update` moves to the newest library release. Keep a rule's obligations in the rule itself, and use shared files to explain and illustrate.

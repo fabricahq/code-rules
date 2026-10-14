@@ -17,7 +17,8 @@ my-project/
   README.md
   .code-rules/
     config.yaml
-    local/
+    rules/
+    assets/
     vendor/
     generated/
 ```
@@ -25,11 +26,11 @@ my-project/
 Inside `.code-rules/`:
 
 - **Configuration** in `config.yaml` selects libraries, groups, and rule versions, plus any rules to exclude or replace.
-- **Local rules** in `local/` hold groups and rules you author for this project.
+- **Authored rules** in `rules/` hold groups and rules you author for this project, and shared supporting files they link to sit in `assets/`.
 - **Imported rules** in `vendor/` are copies of the library content your project imports.
 - **Generated guidance** in `generated/` combines your selected rules into `RULES.md`, group pages, and rule files that agents can read.
 
-You maintain the configuration and local rules. Code Rules manages the imported copies and generated files. For examples of each file, see [Project files](/reference/files/).
+You maintain the configuration, authored rules, and assets. Code Rules manages the imported copies and generated files. For examples of each file, see [Project files](/reference/files/).
 
 ## Set up a project
 

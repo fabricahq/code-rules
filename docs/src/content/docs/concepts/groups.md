@@ -57,7 +57,7 @@ For example, from a library repository's root:
   test-changed-behavior.md
 ```
 
-For a local group, the same files live in `/.code-rules/local/practices/testing/`, relative to the project root.
+For a group a project authors, the same files live in `/.code-rules/rules/practices/testing/`, relative to the project root.
 
 You maintain the metadata and rules you author. The CLI supplies group READMEs; you don't need to keep them in sync. Building or syncing creates the guidance agents read.
 
