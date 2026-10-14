@@ -45,7 +45,7 @@ Each row shows a skill's ID, its [type](/concepts/skill/#skill-types) when it ha
 Narrow the list:
 
 - `--type review` lists only review skills, and `--type playbook` only playbooks.
-- `--applies-rules-from practices/testing` lists only skills whose `cr-rules-used` names a rule in that group. Skills that cite no rules, including every skill from a plain repository, appear only without this option.
+- `--applies-rules-from practices/testing` lists only skills whose `fg-rules-used` names a rule in that group. Skills that cite no rules, including every skill from a plain repository, appear only without this option.
 - `--json` returns the list for scripts.
 
 To see a library you haven't added yet, browse its `skills/` folder. See [project list skills](/reference/cli/#project-list-skills) for every option.
@@ -109,8 +109,8 @@ Code Rules writes only the skill folders it installs. Other folders in `.claude/
 
 A skill can use other skills and cite rules. When you install it, Code Rules installs those too:
 
-- **Skills it uses.** Every skill in its `cr-skills-used` list, and the skills those use, from the same library. `SKILLS.md` says each was installed because another skill uses it.
-- **Rules it cites.** Every rule in its `cr-rules-used` list, from the same library, even from groups you don't select. These cited rules are reference-only: each gets its generated rule file, and the installed skill links to it, but `RULES.md` doesn't list it. Installing a skill never widens the rules your agents apply to all work.
+- **Skills it uses.** Every skill in its `fg-skills-used` list, and the skills those use, from the same library. `SKILLS.md` says each was installed because another skill uses it.
+- **Rules it cites.** Every rule in its `fg-rules-used` list, from the same library, even from groups you don't select. These cited rules are reference-only: each gets its generated rule file, and the installed skill links to it, but `RULES.md` doesn't list it. Installing a skill never widens the rules your agents apply to all work.
 
 If you exclude or replace a cited rule, the installed skill follows your choice: it links to your replacement, or says the rule is excluded by this project, with your reason. A cited rule your project also selects through a group is an ordinary imported rule.
 
@@ -166,7 +166,7 @@ code-rules project add skill review-migration \
   --non-interactive
 ```
 
-The command writes a draft `.code-rules/local/skills/review-migration/SKILL.md`. Local skills have no versions; they change when you edit them. In `cr-rules-used`, a local skill cites rules by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation` or `local:practices/testing/test-project-contracts`, because it can cite rules from any source. Run `code-rules project build` to install it. Follow [Write a skill](/guides/write-skills/) for how to write one that works.
+The command writes a draft `.code-rules/local/skills/review-migration/SKILL.md`. Local skills have no versions; they change when you edit them. In `fg-rules-used`, a local skill cites rules by project ID, such as `fabrica:practices/testing/test-behavior-not-implementation` or `local:practices/testing/test-project-contracts`, because it can cite rules from any source. Run `code-rules project build` to install it. Follow [Write a skill](/guides/write-skills/) for how to write one that works.
 
 ## Install skills from a plain repository
 

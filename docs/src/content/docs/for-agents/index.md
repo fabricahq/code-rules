@@ -102,4 +102,4 @@ In a library that has published its first library release, add or update the rul
 Report unmet criteria with the relevant passage and a concrete revision.
 Separate unclear wording from unresolved engineering policy; ask the author to resolve the latter.
 
-When the task changes a skill, follow [Write a skill](/guides/write-skills/) and the [Skill format](/reference/skill-format/). Keep opinions in rules: when a step needs a practice followed, cite the rule in `cr-rules-used` instead of restating it, and propose a rule when none exists. In a library that has published its first library release, record the skill's change note with `code-rules library change skills/<name>` in the same change.
+When the task changes a skill, follow [Write a skill](/guides/write-skills/) and the [Skill format](/reference/skill-format/). Keep opinions in rules: when a step needs a practice followed, cite the rule in `fg-rules-used` instead of restating it, and propose a rule when none exists. In a library that has published its first library release, record the skill's change note with `code-rules library change skills/<name>` in the same change.

@@ -29,11 +29,11 @@ build-feature/
 name: build-feature
 description: Build a feature from an agreed spec, one slice at a time. Use when starting implementation of a new feature or a change to an existing one.
 metadata:
-  cr-skill-type: playbook
-  cr-rules-used: |
+  fg-skill-type: playbook
+  fg-rules-used: |
     practices/testing/test-behavior-not-implementation
     practices/verification/verify-on-the-surface-users-touch
-  cr-skills-used: |
+  fg-skills-used: |
     skills/tdd
 ---
 
@@ -43,11 +43,11 @@ metadata:
 ```
 
 - `name` and `description` come from the Agent Skills format. Agents read the description to decide when to use the skill.
-- `cr-skill-type` labels what kind of skill it is. See [Skill types](#skill-types).
-- `cr-rules-used` lists the rules the skill applies.
-- `cr-skills-used` lists other skills it uses.
+- `fg-skill-type` labels what kind of skill it is. See [Skill types](#skill-types).
+- `fg-rules-used` lists the rules the skill applies.
+- `fg-skills-used` lists other skills it uses.
 
-All three `cr-` keys are optional. For every field and check, see [Skill format](/reference/skill-format/). To write one, follow [Write a skill](/guides/write-skills/).
+All three `fg-` keys are optional. For every field and check, see [Skill format](/reference/skill-format/). To write one, follow [Write a skill](/guides/write-skills/).
 
 ## Skill types
 

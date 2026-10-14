@@ -415,14 +415,14 @@ Or set `skills` to the string `"*"` to install every skill in the source, includ
 
 When you install a skill, Code Rules also installs:
 
-- **The skills it uses**, transitively: every skill named in its `cr-skills-used` list, the skills those use, and so on, from the same source, plus any your [`skillUses`](#declare-a-skills-dependencies) adds. These are recorded as dependencies, not selections. A skill that a selected skill uses, and that you also list, counts as selected.
-- **The rules it cites**: every rule in each installed library skill's `cr-rules-used` list, from the same library, even from groups the project doesn't select. These **cited rules** are reference-only: each gets its generated rule file, and the installed skill links to it, but `generated/RULES.md` and the group pages don't list it, so installing a skill never widens the rules that apply to all of the project's work. A cited rule that the project imports anyway, through its groups or `rules`, is an ordinary imported rule. Cited rules follow updates, pins, and exclusions like any other imported rule.
+- **The skills it uses**, transitively: every skill named in its `fg-skills-used` list, the skills those use, and so on, from the same source, plus any your [`skillUses`](#declare-a-skills-dependencies) adds. These are recorded as dependencies, not selections. A skill that a selected skill uses, and that you also list, counts as selected.
+- **The rules it cites**: every rule in each installed library skill's `fg-rules-used` list, from the same library, even from groups the project doesn't select. These **cited rules** are reference-only: each gets its generated rule file, and the installed skill links to it, but `generated/RULES.md` and the group pages don't list it, so installing a skill never widens the rules that apply to all of the project's work. A cited rule that the project imports anyway, through its groups or `rules`, is an ordinary imported rule. Cited rules follow updates, pins, and exclusions like any other imported rule.
 
 Local skills cite rules by project ID, such as `fabrica:practices/testing/test-changed-behavior` or `local:practices/testing/test-project-contracts`, and name the skills they use by project ID too, such as `fabrica:skills/tdd`. Each ID must name a configured source, or `local`. Code Rules imports those rules as cited rules, and installs those skills as dependencies, from the named source. [Forking a skill](/reference/cli/#project-add-skill) rewrites its lists to project IDs for you. See [Skill format](/reference/skill-format/#metadata).
 
 ### Declare a skill's dependencies
 
-A skill may use other skills without listing them in `cr-skills-used`, especially one from a [plain repository](#plain-repositories), which has no such metadata. Declare those dependencies in the source's `skillUses`:
+A skill may use other skills without listing them in `fg-skills-used`, especially one from a [plain repository](#plain-repositories), which has no such metadata. Declare those dependencies in the source's `skillUses`:
 
 ```yaml
 skillUses:
@@ -475,7 +475,7 @@ sources:
 | Update | Previews each skill's new version and summaries | When `ref` names a branch, previews added, changed, and removed skill folders between the recorded and newest commits; when it names a tag or commit, never moves |
 | Validation | Strict, as `code-rules library check` applies | Lenient: violations of the Agent Skills format are warnings, and the skill installs as it is |
 | Licenses | From `rule-library.yaml` | Found in the skill or the repository; see [Plain repositories](/reference/imports/#plain-repositories) |
-| Dependencies | `cr-skills-used`, plus `skillUses` | `skillUses` |
+| Dependencies | `fg-skills-used`, plus `skillUses` | `skillUses` |
 
 A plain repository source:
 

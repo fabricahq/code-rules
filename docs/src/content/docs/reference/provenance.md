@@ -44,7 +44,7 @@ Each rule entry includes:
 | Field | What to look for |
 | --- | --- |
 | `id` and `group` | The active rule's identity and group. |
-| `citedBy` | The project IDs of the installed skills whose `cr-rules-used` list names this rule, sorted, and empty when none does. |
+| `citedBy` | The project IDs of the installed skills whose `fg-rules-used` list names this rule, sorted, and empty when none does. |
 | `referenceOnly` | `true` when the rule is imported only because installed skills cite it, so `RULES.md` and the group pages don't list it; otherwise `false`. |
 | `origin` | The source and file supplying the active rule. Imported origins also identify the repository and the exact commit the rule came from. `version` records the rule's version, such as `"1.3.0"`, and `release` the library release that published it; both are `null` when the imported file isn't a published version. |
 | `upstream` | The imported rule's origin, including its `version`, when a local rule replaces it; otherwise `null`. |
@@ -113,12 +113,12 @@ Installed skills are in the top-level `skills` array, one entry per skill the pr
 | Field | What to look for |
 | --- | --- |
 | `id` and `name` | The skill's project ID and its installed folder name. |
-| `type` | Its `cr-skill-type`, `playbook` or `review`, or `null`. |
+| `type` | Its `fg-skill-type`, `playbook` or `review`, or `null`. |
 | `origin` | The source and folder supplying the installed skill, with the repository and exact commit. `version` and `release` record the skill's version and the library release that published it; both are `null` for a local skill, a skill from a plain repository, or one with unreleased changes. Local origins use `source: "local"` and `null` for `repository` and `resolvedCommit`. |
 | `selected` | `true` when the configuration, or its preset, selects the skill; `false` when it's installed only because other skills use it. |
 | `usedBy` | The project IDs of the installed skills that use this one, sorted, and empty when none does. |
-| `uses` | The project IDs of the skills this one uses, from its `cr-skills-used` list and your configuration's `skillUses`. When your project replaces one, the replacement's ID is listed. |
-| `rulesUsed` | The project IDs of the rules its `cr-rules-used` list names. Each of those rules' entries in `rules` lists this skill in `citedBy`. |
+| `uses` | The project IDs of the skills this one uses, from its `fg-skills-used` list and your configuration's `skillUses`. When your project replaces one, the replacement's ID is listed. |
+| `rulesUsed` | The project IDs of the rules its `fg-rules-used` list names. Each of those rules' entries in `rules` lists this skill in `citedBy`. |
 | `targets` | The folders it's installed in, relative to the project root, as in `generated/installed-skills.json`. Empty when the project has no install targets. |
 | `upstream`, `replacementReason`, and `basedOn` | For a local skill that replaces an imported one, the imported skill's origin, your configured reason, and the version or, for a plain repository, the commit your skill is based on; otherwise `null`. |
 | `license` and `licenseBasis` | Declared terms, explained [below](#find-declared-licenses-and-source-credits). |
