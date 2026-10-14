@@ -9,6 +9,8 @@ This guide explains how to draft and review a rule using the shared template and
 
 You can write rules with any agent or editor. For the CLI steps to create your first rule, follow [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
+A rule states one expectation. To give agents ordered steps for a whole task, such as fixing a bug, that apply several rules, write a [skill](/concepts/skill/) that cites them instead; see [Write a skill](/guides/write-skills/).
+
 ## Rubric, template, and skill
 
 - The [authoring rubric](/reference/rule-authoring/#authoring-rubric) defines what makes a useful rule and how to review it.
@@ -120,7 +122,7 @@ For a step-by-step example with inspectable license provenance, follow [Adapt a 
 
 The original repository does not have to change. The definition you give Code Rules must use its input format: a technology or practice group with `_group.yaml`, a Markdown rule with the required metadata, and retained supporting files. The body follows the flexible authoring rubric; it does not need every template heading.
 
-For an existing compatible Code Rules library, use the normal import workflow. For a linter rule, style guide, skill, or other document that is not a compatible library:
+For an existing compatible Code Rules library, use the normal import workflow. To use a third-party skill as a skill, install it from its repository instead of adapting it into a rule; see [Install skills](/guides/install-skills/). For a linter rule, style guide, skill whose practice you want as a rule, or other document that is not a compatible library:
 
 1. Identify the exact source revision and establish permission to copy, adapt, and redistribute the material for your intended use. Preserve the applicable license and notices.
 2. Create an adapted definition in a compatible library, which may contain just this one rule. Preserve the original separately when useful for reviewing future updates.

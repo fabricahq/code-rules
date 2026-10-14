@@ -3,7 +3,7 @@ title: "Create your first library"
 description: "Write and validate one shared rule, then publish it for projects to import."
 ---
 
-Let's publish rules that other projects can use. A **library** is a collection of rule groups you maintain independently of the projects that import it. A **rule** is a Markdown file that explains one practice you want agents to follow.
+Let's publish rules that other projects can use. A **library** is a collection of rule groups, and optionally skills, that you maintain independently of the projects that import it. A **rule** is a Markdown file that explains one practice you want agents to follow.
 
 In this walkthrough, you'll:
 
@@ -191,12 +191,24 @@ code-rules project check
 
 Open `.code-rules/generated/RULES.md` and follow its "Error handling" group to your shared rule, which shows version `1.0.0`. `code-rules project sync` records that version, so the project keeps the same rules until someone runs `code-rules project update`.
 
-The rules are now in the project, but its agent needs instructions to read them. If you haven't already, [connect the rules to your agent and try a task](/start-here/set-up-project/#5-give-the-rules-to-your-agent). Then commit the project's configuration, imported rules, generated guidance, and agent instructions together.
+The rules are now in the project, but its agent needs instructions to read them. If you haven't already, [connect the rules to your agent and try a task](/start-here/set-up-project/#6-give-the-rules-to-your-agent). Then commit the project's configuration, imported rules, generated guidance, and agent instructions together.
 
 Other projects can import the same library. You maintain the shared rule in the library, and each project chooses when to adopt your updates.
 
+## Optional: add a skill
+
+A library can also hold **skills**: step-by-step procedures, such as how to fix a reported bug, that tell agents what to do and in what order, and cite the rules each step applies. Skills live in `skills/` beside your rule groups and are versioned like rules. Create a draft:
+
+```sh
+code-rules library add skill fix-bug \
+  --description 'Fix a reported bug and prove it with a regression test. Use when a task starts from a bug report.' \
+  --type playbook
+```
+
+Complete `skills/fix-bug/SKILL.md`, list the rules its steps apply, such as `practices/error-handling/make-errors-actionable`, in its `cr-rules-used` metadata, and run `code-rules library check`. Your library has published its first library release, so record the new skill with `code-rules library change skills/fix-bug --summary '...'` before you publish the next one. [Write a skill](/guides/write-skills/) walks through each step.
+
 ## Next steps
 
-As your library grows, [write focused rules](/guides/write-rules/), record each change with `code-rules library change`, and [publish them in library releases](/guides/version-rules/). Projects [choose when to adopt updates](/guides/update/).
+As your library grows, [write focused rules](/guides/write-rules/) and [skills](/guides/write-skills/), record each change with `code-rules library change`, and [publish them in library releases](/guides/version-rules/). Projects [choose when to adopt updates](/guides/update/).
 
-For metadata and supporting files, see [Rule and group format](/reference/rule-format/) and [Library format](/reference/library-format/).
+For metadata and supporting files, see [Rule and group format](/reference/rule-format/), [Skill format](/reference/skill-format/), and [Library format](/reference/library-format/).

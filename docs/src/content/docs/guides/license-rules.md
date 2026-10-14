@@ -1,9 +1,9 @@
 ---
 title: "License rules"
-description: "Choose clear terms for rule content and preserve them when projects import and aggregate rules."
+description: "Choose clear terms for rules and skills, and preserve them when projects import rules and install skills."
 ---
 
-A library's **license** states the terms for using, copying, modifying, and sharing its rules. Clear terms help projects understand what they can do with your guidance and what notices they need to keep.
+A library's **license** states the terms for using, copying, modifying, and sharing its rules and skills. Clear terms help projects understand what they can do with your guidance and what notices they need to keep.
 
 This guide walks through choosing what your terms should cover, declaring them in `rule-library.yaml`, and checking what Code Rules preserves when projects import rules. Code Rules carries declared license text and notices with the rules; it does not choose a license or grant additional rights.
 
@@ -107,6 +107,40 @@ When a group includes multiple libraries, retain each rule's licensing informati
 Copied rule text remains subject to its applicable terms even when the project changes its wording or replaces an imported rule with an adaptation.
 Maintain third-party adaptations in a compatible library with the applicable library-wide declaration. Local rules and replacements are for original project guidance; an ID alone cannot establish licensing.
 
+## License skills
+
+A library's license declaration covers its [skills](/concepts/skill/) as it covers its rules. Your terms should also answer whether teams may run a skill's scripts and copy its files into their repositories, because installing a skill commits a copy of its whole folder in each install target, such as `.claude/skills/`.
+
+### Skills in a library
+
+The Agent Skills format gives `SKILL.md` an optional `license` field. In a library, that field is informational: the library's declaration in `rule-library.yaml` is what applies, and Code Rules keeps the field unchanged. When the field differs from the library's `spdxExpression`, or the library declares no license, `code-rules library check` warns:
+
+```text
+Warning: skills/build-feature/SKILL.md: license is Apache-2.0, but rule-library.yaml declares MIT. The library's license applies to its skills; make them match.
+```
+
+Make the field match the library's expression, or leave it out. A skill whose material needs different terms belongs in a separate library, as a rule's would. A license or notice file inside a skill folder is part of the skill's content, not a declared library file; a library can't declare a file in a skill folder as its license or notice file.
+
+Imports retain the library's license and notice files for skills exactly as they do for rules, at the same generated paths, and `generated/libraries/<source-name>/README.md` lists the source's installed skills with its declared terms. Forking a skill with `code-rules project add skill --from` copies its text into `local/skills/`, where the library's license still applies to it.
+
+### Skills from a plain repository
+
+A plain repository, one without `rule-library.yaml`, has no license declaration. For each skill it installs, Code Rules looks for terms in this order:
+
+1. The `license` field in the skill's `SKILL.md`, which can name a license or a license file the skill bundles.
+2. A file whose name starts with `LICENSE` in the skill's own folder, such as `LICENSE.txt`.
+3. Files whose names start with `LICENSE` or `NOTICE` at the repository root.
+
+Code Rules records what it finds in [provenance](/reference/provenance/), and retains the root files, when present, under `generated/libraries/<source-name>/licenses/`, like a library's declared files. It doesn't infer an SPDX identifier from a file name, or decide whether the terms permit your use. See [Plain repositories](/reference/imports/#plain-repositories).
+
+When a skill has none of these, `code-rules project sync` fails with `license-not-found`, names the source and the skill, and writes nothing:
+
+```text
+Error: source pstack: skills/how has no license terms: its SKILL.md has no license field, its folder has no LICENSE file, and the repository has no LICENSE or NOTICE file at its root. Ask the repository's owner to add a license, or exclude the skill. No files were written.
+```
+
+A repository's visibility isn't a license. Don't install a skill until you know you may copy it into your repository.
+
 ## What a consuming project should understand
 
 The importer leaves the consuming repository's root license unchanged.
@@ -114,7 +148,7 @@ Imported content remains separately identified under its applicable terms.
 The index should explain that boundary so the root license does not appear to relicense imported rules.
 Whether a particular combination or redistribution is permitted depends on the actual licenses and use.
 
-When sharing generated rules, include their library folders and retained license and notice copies.
+When sharing generated rules or installed skills, include their library folders and retained license and notice copies.
 Preserve the vendored sources when sharing the complete consuming workspace.
 Copying a rule file by itself can break its license links and omit required notices.
 

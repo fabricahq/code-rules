@@ -55,6 +55,23 @@ When an obligation depends on local contracts, read project context alongside th
 Completion means the relevant rules informed the work, including their scope and exceptions.
 Reading the index alone is not enough.
 
+## Use installed skills
+
+A project can also install [skills](/concepts/skill/): step-by-step procedures for one kind of task, such as building a feature or reviewing a pull request. Code Rules writes them into `.claude/skills/` and `.agents/skills/`, where tools with native skill support find them. When the project has skills, `RULES.md` links to `.code-rules/generated/SKILLS.md`, which lists each installed skill with its description, type, and installed path. If your tool doesn't load skills on its own, read `SKILLS.md` and open a skill's `SKILL.md` when its description matches the task.
+
+When you use a skill:
+
+1. Read its `SKILL.md` in full, including the generated **Rules this skill applies** section at the end.
+2. Before each step, read in full every rule that section lists for the work the step does, at the generated path it gives. These are the project's versions of the rules: a local rule the project uses instead of a library rule is listed in its place, and a rule the project excluded is marked as excluded, with the reason. Don't apply an excluded rule.
+3. Follow the steps in order. When the skill uses other skills, its **Skills this skill uses** line names them; use their installed copies.
+4. Keep selecting groups from `RULES.md` as described above. A skill doesn't replace that selection: a rule that applies to the work applies whether or not the skill cites it.
+
+Some rules a skill cites aren't listed in `RULES.md`, because the project imports them only for its skills. Read them when the skill's steps call for them; they don't apply to other work.
+
+If a skill's step and a rule disagree, follow the rule and report the conflict, naming the skill's ID and version from its marker line and the rule's ID and version, so someone can fix the skill. If a step can't be followed, such as when it names a script or rule that isn't there, stop and report it rather than improvising a substitute.
+
+Don't edit installed copies; sync rewrites them. To change a skill for this project, fork it with `code-rules project add skill --from`, which copies it into `.code-rules/local/skills/`; see [Write a skill](/guides/write-skills/).
+
 ## Review independently
 
 Select groups from the requested behavior and implementation, rather than accepting the writing agent's selection as complete.
@@ -74,7 +91,7 @@ Use [Resolve conflicting rules](/guides/conflicting-guidance/) for the review cr
 Keep the recorded ruleset during ordinary work. Adopting upstream changes is a separate step, `code-rules project update`, and major changes need the project owner's consent; don't run it as part of another task.
 When asked to keep an imported rule at its current version, read the rule's version from `.code-rules/vendor/<source-name>/_source.json` and add a pin under that source's `pins`, with the version and the reason you were given, such as `practices/testing/verify-retry-limits: {version: "1.3.0", reason: "…"}`. Then run `code-rules project sync`.
 
-## Write or review rules themselves
+## Write or review rules and skills themselves
 
 When the task changes a rule, use the [authoring rubric and template](/reference/rule-authoring/).
 Follow those documents directly. The [Code Rules authoring skill](/guides/write-rules/#write-with-the-skill) is planned and is not available yet.
@@ -83,3 +100,5 @@ Read the target library's conventions and evaluate each rule against every rubri
 In a library that has published its first library release, add or update the rule's change note with `code-rules library change` in the same change, and choose `major` whenever work that complied with the previous version could fail the new one. See [Record changes to a library rule](/reference/rule-authoring/#record-changes-to-a-library-rule).
 Report unmet criteria with the relevant passage and a concrete revision.
 Separate unclear wording from unresolved engineering policy; ask the author to resolve the latter.
+
+When the task changes a skill, follow [Write a skill](/guides/write-skills/) and the [Skill format](/reference/skill-format/). Keep opinions in rules: when a step needs a practice followed, cite the rule in `cr-rules-used` instead of restating it, and propose a rule when none exists. In a library that has published its first library release, record the skill's change note with `code-rules library change skills/<name>` in the same change.

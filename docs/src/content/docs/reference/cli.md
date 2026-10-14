@@ -7,7 +7,7 @@ Find each command's syntax and options below. Every command also accepts `--json
 
 ## Project commands
 
-`code-rules project` manages rules for a **project**, the codebase whose rules Code Rules manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
+`code-rules project` manages rules and skills for a **project**, the codebase whose rules and skills Code Rules manages. Initialize from the project root. In Git repositories, other project commands also work from subdirectories.
 
 Configuration lives in `.code-rules/config.yaml` at the project root. See [Working directories](#working-directories) for repository discovery and input-file paths.
 
@@ -21,7 +21,12 @@ Create project configuration, the local rules directory, and the managed Code Ru
 
 | Option | Meaning |
 | --- | --- |
+| `--skill-targets TARGET` | Where to install skills: `claude` for `.claude/skills/`, `agents` for `.agents/skills/`, or `none`. Repeat for both targets. `none` can't be combined with a target. |
 | `--non-interactive` | Accepted; init runs without prompts even when this flag is omitted. |
+
+A new configuration gets `skillTargets: [claude, agents]` and `schemaVersion: 2`. With `--skill-targets none`, init leaves `skillTargets` out and writes `schemaVersion: 1`, so the configuration stays readable by earlier versions of Code Rules; see [Schema versions](/reference/configuration/#schema-versions). Init creates no target folders: sync writes them when the project first installs a skill.
+
+Rerunning init on an existing configuration changes `skillTargets` only when you pass `--skill-targets`, and `none` then removes it. Without the option, init leaves a configuration that has no `skillTargets` without one, so upgrading Code Rules never starts installing skills into a project that didn't choose targets.
 
 Init does not fetch libraries or generate rule guidance. It refuses to overwrite a manually edited Code Rules guide. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
 
@@ -31,29 +36,62 @@ Init does not fetch libraries or generate rule guidance. It refuses to overwrite
 code-rules project add library ALIAS [options]
 ```
 
-Record a library in project configuration without fetching it. `ALIAS` is the source name, such as `team`. Run `code-rules project sync` afterward to import the selected rules.
+Record a library in project configuration without fetching it. `ALIAS` is the source name, such as `team`. Run `code-rules project sync` afterward to import the selected rules and install the selected skills. To add a Git repository of skills that has no `rule-library.yaml`, use [project add repository](#project-add-repository) instead.
 
 | Option | Meaning |
 | --- | --- |
 | `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
 | `--groups GROUP` | Groups to import in full. Repeat for multiple group IDs, or supply one selector: `*`, `practices/*`, or `techs/*`. Quote wildcard values so your shell does not expand them. |
 | `--rules RULE` | Individual rules to import without the rest of their group, such as `practices/testing/verify-retry-limits`. Repeat for multiple rules. |
+| `--skills SKILL` | Skills to install, such as `skills/build-feature`, together with the skills they use and the rules they cite. Repeat for multiple skills, or supply `*` for every skill in the library. Quote `*` so your shell does not expand it. |
 | `--ref REF` | Optional and advanced. Import the library exactly as it was at one revision: a tag, such as the library release tag `release/5`, or a full commit SHA. Recorded as the source's `ref`. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-Supply at least one `--groups` or `--rules`. Without `--ref`, the source follows each rule's newest version when the project updates. To pin individual rules, add `pins` to the source in configuration, or use `code-rules project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
+Supply at least one `--groups`, `--rules`, or `--skills`. `--skills` records the source's `skills`, a version 2 field, so the command also sets `schemaVersion: 2`. Without `--ref`, the source follows each rule's newest version when the project updates. To pin individual rules, add `pins` to the source in configuration, or use `code-rules project update --keep`; see [Choose versions](/reference/configuration/#choose-versions).
 
-Library addition preserves existing source exceptions and local files. Pass each group ID as a separate option, rather than a comma-separated flag value:
+Library addition preserves existing source exceptions and local files. Pass each group or skill ID as a separate option, rather than a comma-separated flag value:
 
 ```sh
 code-rules project add library team \
   --repository https://github.com/example/rules.git \
   --groups practices/testing \
   --groups techs/typescript \
+  --skills skills/build-feature \
   --non-interactive
 ```
 
-The repository address and groups are illustrative; replace them with a library you can access.
+The repository address, groups, and skill are illustrative; replace them with a library you can access.
+
+### project add repository
+
+```sh
+code-rules project add repository ALIAS [options]
+```
+
+Record a **plain repository**, a Git repository of skill folders without `rule-library.yaml`, in project configuration without fetching it. `ALIAS` is the source name, such as `pstack`. Run `code-rules project sync` afterward to install the selected skills. See [Configuration](/reference/configuration/#plain-repositories).
+
+| Option | Meaning |
+| --- | --- |
+| `--repository URL` | Required. An accepted HTTPS or SSH [Git repository address](/reference/configuration/#repository-addresses). |
+| `--follow BRANCH` | Track a branch, such as `main`. Sync installs the commit recorded in `_source.json`, and `code-rules project update` moves the source to the branch's newest commit. Recorded as the source's `follow`. |
+| `--ref REF` | Stay on one revision: a tag or a full commit SHA. Recorded as the source's `ref`. |
+| `--skills-root PATH` | The folder that holds the repository's skill folders, relative to the repository root, such as `pstack/skills`, or `.` for the root itself. Defaults to `skills`, which isn't recorded. |
+| `--skills SKILL` | Required. Skills to install, such as `skills/how`, together with the skills that `skillUses` says they use. Repeat for multiple skills, or supply `*` for every skill in the skills root. Quote `*` so your shell does not expand it. |
+| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
+
+Supply exactly one of `--follow` and `--ref`. A skill's ID is `skills/<folder-name>`, whatever the skills root: with `--skills-root pstack/skills`, `skills/how` is the folder `pstack/skills/how/`. The command writes `schemaVersion: 2`.
+
+```sh
+code-rules project add repository pstack \
+  --repository https://github.com/cursor/plugins.git \
+  --follow main \
+  --skills-root pstack/skills \
+  --skills skills/how \
+  --skills skills/architect \
+  --non-interactive
+```
+
+A plain repository has no rules or versions, so the command takes no `--groups` or `--rules`, and pins don't apply. To declare skills a skill uses without saying so in its `SKILL.md`, add [`skillUses`](/reference/configuration/#declare-a-skills-dependencies) to the source. Sync reads the repository and checks that it has no `rule-library.yaml`; if it has one, sync fails and asks you to add it with `code-rules project add library` instead. A `--follow` branch that doesn't exist fails sync with `version-not-found`, and a skill with no license terms fails it with `license-not-found`; see [License rules](/guides/license-rules/#license-skills). Existing sources aren't overwritten.
 
 ### project add group
 
@@ -114,21 +152,59 @@ Metadata options and `--body-file` don't apply to a fork. The command:
 
 If the rule links to files in the library's shared `assets/` directory, the fork copies them into its own asset directory and updates the links, because local rules can't depend on library files. For the same reason, the command refuses a fork whose links would point outside the copied files, such as links to declared license or notice files, or raw HTML links. Existing local rules and exclusions are never overwritten. A forked rule has no version; it changes only when you edit it. Run `code-rules project build` afterward. The library's license still applies to the copied text; see [License rules](/guides/license-rules/).
 
+### project add skill
+
+```sh
+code-rules project add skill NAME [options]
+```
+
+Create a local skill in `.code-rules/local/skills/NAME/`. `NAME` follows the [skill name grammar](/reference/skill-format/#skill-ids), such as `release-checklist`; the skill's ID is `local:skills/NAME`.
+
+| Option | Meaning |
+| --- | --- |
+| `--description TEXT` | Required. What the skill does and when to use it, at most 1,024 characters. |
+| `--type TYPE` | Optional. `playbook` or `review`, recorded as `cr-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
+| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
+
+The command writes `SKILL.md` with the name, description, and type in its frontmatter, and a body with the `code-rules:draft` marker. Complete it and remove the marker before building; a local skill that still has the marker fails sync and build. Local skills cite rules and skills by project ID, such as `fabrica:practices/testing/verify-retry-limits`; see [Local skills](/reference/skill-format/#local-skills). Existing local skills are not overwritten. When a skill the project installs from a source already has the name, the command warns that sync will fail with `skill-name-conflict` until you exclude one of them.
+
+#### Fork a skill
+
+```sh
+code-rules project add skill --from SOURCE:SKILL [options]
+```
+
+Copy a skill the project installs into `local/skills/` so the project controls its steps. `SOURCE:SKILL` names a configured source and the skill's ID in it, such as `fabrica:skills/fix-bug`. The fork keeps the skill's name, so leave out `NAME`.
+
+| Option | Meaning |
+| --- | --- |
+| `--from SOURCE:SKILL` | Required for a fork. A skill that the source's last sync installed, whether the project selected it or another skill uses it. |
+| `--reason TEXT` | Required. Why the project uses the fork instead of the imported skill, recorded with the exclusion. |
+| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
+
+`--description` and `--type` don't apply to a fork. The command:
+
+1. Copies the skill's folder from `vendor/`, exactly as the project installs it, with every file's executable bit, to `local/skills/<name>/`: the version recorded in `vendor/<source-name>/_source.json`, or, for a plain repository, the recorded commit.
+2. Rewrites the fork's `cr-rules-used` and `cr-skills-used` to project IDs, such as `fabrica:practices/testing/verify-retry-limits`, because a local skill cites by project ID. For a plain repository, it writes the skills that `skillUses` lists for the skill into `cr-skills-used`.
+3. Adds an `exclude` entry for the skill with your reason, `local/skills/<name>` as `replacedBy`, and the forked version as `basedOn`, or, for a plain repository, the full commit SHA. If the source pins the skill, the same edit removes the pin and warns that it did. If you changed that source's configuration since its last sync, run `code-rules project sync` first.
+
+Links in a skill stay inside its folder, so the fork needs no link changes. Existing local skills and exclusions are never overwritten. A forked skill has no version; it changes only when you edit it. Run `code-rules project build` afterward. The source's license still applies to the copied files; see [License rules](/guides/license-rules/#license-skills).
+
 ### project sync
 
 ```sh
 code-rules project sync [options]
 ```
 
-Import the rule versions recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Code Rules directory with the complete result. Sync also refreshes an older, unedited managed Code Rules guide.
+Import the rule and skill versions recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Code Rules directory with the complete result. Sync also writes each installed skill's folder into the project's install targets, removes the folders of skills it no longer installs, and refreshes an older, unedited managed Code Rules guide.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Sync needs access to every configured repository and uses your existing Git credentials. It never moves a rule to a newer version on its own: it restores the version recorded in `vendor/<source-name>/_source.json`. Sync chooses a rule's version only when configuration asks for something the record doesn't have:
+Sync needs access to every configured repository and uses your existing Git credentials. It never moves a rule or skill to a newer version on its own: it restores the version recorded in `vendor/<source-name>/_source.json`, or, for a plain repository, the recorded commit. Sync chooses a version only when configuration asks for something the record doesn't have:
 
 | Situation | Version sync imports |
 | --- | --- |
-| A new source, a changed repository, or a newly selected group or rule | Each new rule's newest version, and the library-wide files from the newest library release. |
+| A new source, a changed repository, or a newly selected group, rule, or skill | Each new rule's and skill's newest version, and the library-wide files from the newest library release. For a new plain repository with `follow`, the branch's newest commit. |
 | A pin added or changed | The pinned version, up or down. |
 | A pin removed | The recorded version, unchanged. The next update offers newer versions. |
 | `ref` added or changed | The rule as it was at that revision: the version a library release published, or `null` for unreleased changes. |
@@ -138,9 +214,11 @@ When you change `groups`, a group is newly selected if the record didn't import 
 
 Sync trusts only a record it wrote: a record whose [checksum](/reference/provenance/#inspect-the-original-imported-files) doesn't match, or that has none, such as after a hand edit or a merge resolution, fails, and sync writes nothing and never records it again. To recover, restore a record sync wrote with `git checkout -- .code-rules/vendor/<source-name>/_source.json`, or, during a merge conflict, take one side with `git checkout --ours` or `git checkout --theirs` for that file, then run `code-rules project sync`, which applies any configuration changes; or delete `.code-rules/vendor/<source-name>/` and run `code-rules project sync`, which imports the source again, with its unpinned rules at their newest versions. Before importing from a record it wrote, sync also checks it against the library's release records: each recorded rule version must be the version its recorded library release publishes, and each recorded library release must exist. A source using `ref` keeps the commit its `ref` named when it was recorded, even after the tag moves or is gone, so sync checks it against the release records only when choosing versions reads them anyway.
 
+Sync installs each selected skill, every skill it uses, transitively, and every rule an installed library skill cites; see [Select skills](/reference/configuration/#select-skills). It writes a skill folder in a target only when `generated/installed-skills.json` records that Code Rules installed it there, or when no folder with that name exists. It fails, writing nothing, with `skill-folder-not-managed` when a folder with an installed skill's name exists in a target that Code Rules didn't install, and with `skill-name-conflict` when two skills would install under the same name, from any sources, local skills, or both; exclude one of them. See [Who owns the target folders](/reference/sync/#who-owns-the-target-folders). A preset that its library doesn't publish fails with `preset-not-found`.
+
 These changes come from edits you made to configuration, so sync applies them without a preview. To move rules to newer versions, use [project update](#project-update). If a source fails, the previous complete output is preserved. For recovery behavior, see [Sync and recovery](/reference/sync/).
 
-When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules. When an exclusion or individually selected rule names a rule the library retired, sync warns that the entry no longer does anything. It also warns about an individually selected rule whose group `groups` already selects, since the entry changes nothing.
+When a source imports unreleased changes through `ref`, sync prints a warning naming the source and its unreleased rules and skills. When an exclusion, individually selected rule, or selected skill names a rule or skill the library retired, or a skill folder a plain repository no longer has, sync warns that the entry no longer does anything. It also warns about an individually selected rule whose group `groups` already selects, since the entry changes nothing. For a plain repository, it warns about each place a skill breaks the [skill format](/reference/skill-format/), and installs the skill as it is. When a library release has no `skills` field because an older Code Rules published it, sync warns that skill versions come from an earlier library release; see [Skills in the release record](/reference/rule-versions/#skills-in-the-release-record).
 
 ### project update
 
@@ -148,14 +226,16 @@ When a source imports unreleased changes through `ref`, sync prints a warning na
 code-rules project update [SOURCE | SOURCE:RULE ...] [options]
 ```
 
-Preview newer rule versions, new rules, and retirements, then apply them after you confirm, and regenerate guidance like sync. With no arguments, every source is updated. `SOURCE`, such as `team`, limits the update to one library. `SOURCE:RULE`, such as `team:techs/react/prefer-server-components`, moves only that rule; nothing else changes, including new rules.
+Preview newer rule and skill versions, new rules and skills, and retirements, then apply them after you confirm, and regenerate guidance and installed skills like sync. With no arguments, every source is updated, and the project's [preset](/reference/configuration/#extend-a-preset) moves to its library's newest library release. `SOURCE`, such as `team`, limits the update to one source. `SOURCE:RULE`, such as `team:techs/react/prefer-server-components`, moves only that rule; nothing else changes, including new rules.
+
+Wherever this section names `SOURCE:RULE`, a skill works the same way, as `SOURCE:SKILL`, such as `fabrica:skills/build-feature`. Moving one skill also installs the skills its new version uses and imports the rules it cites, at their newest versions, and moves nothing that's already installed. A plain repository's skills all come from one commit, so `SOURCE:SKILL` refuses a skill from a plain repository; update the whole source instead.
 
 | Option | Meaning |
 | --- | --- |
 | `--yes` | Apply the previewed changes without asking. Required to apply changes without a terminal, or with `--json`. |
-| `--keep SOURCE:RULE` | Pin this rule at its current version before applying the update, so it stays where it is. Repeat for several rules. Requires `--reason`. |
-| `--exclude SOURCE:RULE` | Exclude this new rule before applying the update, so it doesn't join. Repeat for several rules. Requires `--reason`. |
-| `--update-fork SOURCE:RULE` | Replace your local rule for this `replaced` rule with a fork of the library's newest version, overwriting your edits, and set its exclusion's `basedOn` to that version. Repeat for several rules. Takes no `--reason`. See [Replace a fork with the newest version](#replace-a-fork-with-the-newest-version). |
+| `--keep SOURCE:RULE` | Pin this rule or skill at its current version before applying the update, so it stays where it is. Repeat for several. Requires `--reason`. Refused for a skill from a plain repository, which has no versions. |
+| `--exclude SOURCE:RULE` | Exclude this new rule or skill before applying the update, so it doesn't join. Repeat for several. Requires `--reason`. |
+| `--update-fork SOURCE:RULE` | Replace your local rule or skill for this `replaced` row with a fork of the source's newest version, overwriting your edits, and set its exclusion's `basedOn` to that version, or, for a plain repository, the newest commit. Repeat for several. Takes no `--reason`. See [Replace a fork with the newest version](#replace-a-fork-with-the-newest-version). |
 | `--reason TEXT` | The reason recorded with each pin that `--keep` writes and each exclusion that `--exclude` writes. |
 
 The preview lists, for each source:
@@ -168,15 +248,31 @@ The preview lists, for each source:
 | `replaced` | A rule you [replaced with a local rule](/reference/configuration/#exclude-or-replace-a-rule), with your local rule's path. When the exclusion records `basedOn`, the row appears whenever the library's newest version is newer than `basedOn`, and lists every change after it, labeled with its version when there are several, also when a pin keeps the imported copy where it is. Without `basedOn`, it compares with the version the project imports instead: it appears whenever the library's newest version is newer, also when a pin keeps the imported copy where it is, and lists the changes since, which your local rule may already have. Your local rule doesn't change unless you pass `--update-fork`; compare the two to decide whether it needs the same change. |
 | `pinned` | A pinned rule that has a newer version. It doesn't move; the preview shows the pin's reason. |
 
+Skills from a library appear in the same list, with the same changes, by their skill IDs. A skill that a moving skill newly uses appears as `new`, naming the skill that uses it, and a rule it newly cites appears as `new`, marked reference-only unless the project also selects it; they join only when the skill that brings them in moves. A skill or cited rule that no installed skill needs any longer is dropped.
+
+A plain repository with `follow` lists its commit move, such as `main: 3f9c2e1 -> 8a41d07`, and one row for each installed skill folder that differs between the recorded and newest commits:
+
+| Change | Meaning |
+| --- | --- |
+| `changed` | A skill folder whose files differ, with the paths of the files that changed, including a file whose executable bit changed. |
+| `added` | A new skill folder that the source's `skills: "*"` selects. |
+| `removed` | An installed skill whose folder no longer exists. Applying the update stops installing it. |
+
+A full update also lists what the preset changed, such as `preset fabrica-defaults: release 6 -> 7`, with each selection, exclusion, pin, or source it added or removed. The rules and skills those changes bring in or drop appear under their sources. See [Update rules](/guides/update/) for examples.
+
 In a terminal, `code-rules project update` shows the preview and asks for confirmation. For each major change and retirement, you can choose to keep the rule at its current version instead; the command then asks for a reason and writes a pin. For each new rule, you can choose to add it or exclude it; excluding asks for a reason and writes an exclusion. For each `replaced` rule, including one whose imported copy a pin keeps, it names the local files that replacing your rule would replace or remove, and you can review the changes later, or replace your rule with a fork of the newest version, as `--update-fork` does. When your answers keep, exclude, or replace rules, it lists them before you confirm, with the files each replaced fork replaces and those it removes. The terminal shows the preview once; the result after you confirm lists the files the update changed. Before each wait on the libraries, such as reading their releases or fetching the update after you confirm, a terminal also shows a short status line, such as `Fetching the update...`, on standard error; JSON output and output that isn't a terminal never include it. Without a terminal, or with `--json`, it shows the preview and writes nothing unless you pass `--yes`. The update applies exactly the versions the preview showed, and writes its pins, exclusions, `basedOn` versions, and replaced forks in the same step that replaces `vendor/` and `generated/`. When the preview has no rule to move, add, or drop, and no shared files to move, a terminal update applies without asking, as sync would, and when that changes no files, says, as a preview would, that no rule updates are available and no files were written.
 
 A preview that writes nothing exits `0`, because available updates aren't an error; so does declining the confirmation. In JSON output, `value.applied` is `false` for a preview and `true` once the update is applied, and `value.sources` lists each source's `rules`, each with its `id`, `change`, versions (`from`, `to`, and, where they apply, `newest` or `lastVersion`), `summaries`, `summaryVersions` (the version each summary belongs to, in the same order), and, where they apply, `replacedBy` (with `replacementRetired: true` and any `currentReplacement` when the library retired the replacement too, and `replacementLocalRule` when your project already replaces that replacement with a local rule), `localRule`, `basedOn`, `pin`, and the `decision` (`keep`, `exclude`, or `update-fork`) that `--keep`, `--exclude`, `--update-fork`, or your answers recorded, with the `reason` of a pin or exclusion. For an `update-fork` decision, a row's `overwrites` lists the local files that the new fork replaces with its own copies, and `removes` those it deletes because the new fork doesn't have them, relative to the Code Rules directory; both are empty for other rows. A `replaced` row's `from` is the version the project imports and `to` the newest version, or `newest` instead when a pin keeps the imported copy; with `basedOn`, its `summaries` are the library's changes after `basedOn`, and otherwise the changes since `from`, not the changes its `localRule` lacks. A source that uses `ref` has its `ref` and no rules. The `added`, `changed`, and `removed` lists are empty for a preview; once applied, they include `config.yaml` when the update wrote pins, exclusions, or `basedOn` versions, and the files of each fork it replaced.
 
-The preview doesn't list changes to rules you excluded without a replacement. `--keep` and pins in configuration never change which rules are imported. When a rule you exclude or select individually is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update. When the update, or a sync, would leave your local rules in a group with no metadata, such as a fork of a retired rule, it writes the group's metadata to `local/<group-id>/_group.yaml` in the same step, lists the file as added, and warns that it did; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group).
+In JSON output, each source in `value.sources` also has a `skills` list, whose rows have the same fields as its `rules`. A plain repository source has `commit`, with the commits `from` and `to`, absent when it doesn't move, and its `skills` rows have a `change` of `added`, `changed`, or `removed`, and `files`, the paths of the changed files relative to the skill's folder, empty for other rows. When the preset moves, `value.preset` has its `name`, the library releases `from` and `to`, and `added` and `removed`, each a list of entries with the `source`, the `field` (`source`, `groups`, `rules`, `skills`, `exclude`, or `pins`), and the `id` or repository address; it's absent when the preset doesn't move.
+
+The preview doesn't list changes to rules or skills you excluded without a replacement. `--keep` and pins in configuration never change which rules are imported. When a rule you exclude or select individually is retired, the entry no longer does anything; update warns about it so you can delete it, and applies the rest of the update. When the update, or a sync, would leave your local rules in a group with no metadata, such as a fork of a retired rule, it writes the group's metadata to `local/<group-id>/_group.yaml` in the same step, lists the file as added, and warns that it did; see [Keep a local rule's group](/reference/sync/#keep-a-local-rules-group).
 
 Sources that use `ref` don't move; change `ref` and run `code-rules project sync` instead. An update of a whole source also moves its [library-wide files](/reference/rule-versions/#what-a-version-covers), such as group metadata, shared assets, and the library's license files, to the newest library release, even when no rule moves; the preview shows it as `Shared files: release 3 -> 4`, and JSON output as the source's `sharedFiles`, with the library releases `from` and `to`, which is absent when they don't move. A `SOURCE:RULE` update leaves them where they are, unless a rule it moves comes from a newer library release: then they move to that library release, since a rule version can rely on the shared files its library release published.
 
 #### Replace a fork with the newest version
+
+For a skill, `--update-fork SOURCE:SKILL` replaces the whole local skill folder that the exclusion's `replacedBy` names with what [`code-rules project add skill --from SOURCE:SKILL`](#fork-a-skill) writes for the source's newest version, or a plain repository's newest commit, and removes files you added to the folder. The rest of this section describes rules; it applies to skills the same way.
 
 `--update-fork SOURCE:RULE` replaces the local rule that a `replaced` row names, the exclusion's `replacedBy`, with a fork of the version the row lists changes up to: the library's newest version, also when a pin keeps the imported copy at an older one. The new fork is exactly what [`code-rules project add rule RULE --from SOURCE@VERSION`](#fork-a-library-rule) writes, with its attribution, its assets, and the shared assets its links reach, placed at the `replacedBy` path, with links rewritten for that path. The update sets the exclusion's `basedOn` to that version, adding it to a replacement you wrote yourself, and installs the fork, `config.yaml`, `vendor/`, and `generated/` in one step, so an interrupted update restores or finishes them together.
 
@@ -194,11 +290,11 @@ See [Update rules](/guides/update/) for the workflow.
 code-rules project build [options]
 ```
 
-Regenerate `generated/` from project configuration, verified imported files, and local rules. Build works offline and does not change imported revisions. It also creates a missing managed Code Rules guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
+Regenerate `generated/` from project configuration, verified imported files, and local rules and skills, and rewrite the installed skill folders in the project's install targets. Build works offline and does not change imported revisions. It also creates a missing managed Code Rules guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Run sync first if the imported repository, selection, pins, or `ref` no longer match configuration, or if the stored library files need repair.
+Run sync first if the imported repository, selection, pins, `ref`, or `follow` no longer match configuration, or if the stored library files need repair. Build validates local skills, and fails on an unfinished draft, as sync does.
 
 ### project check
 
@@ -206,15 +302,44 @@ Run sync first if the imported repository, selection, pins, or `ref` no longer m
 code-rules project check [options]
 ```
 
-Check generated guidance and the managed Code Rules guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including a source record in `vendor/` that was changed outside `code-rules project sync`, which no command trusts until you restore it or import the source again; see [the source record's checksum](/reference/provenance/#inspect-the-original-imported-files).
+Check generated guidance, installed skills, and the managed Code Rules guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including an installed skill folder that differs from what sync would write, a folder that `generated/installed-skills.json` records but that's missing, such as when `.gitignore` excludes the target folders so they were never committed, and a stale `installed-skills.json`, including a source record in `vendor/` that was changed outside `code-rules project sync`, which no command trusts until you restore it or import the source again; see [the source record's checksum](/reference/provenance/#inspect-the-original-imported-files).
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
-Use check in CI to detect files that need regeneration. It uses recorded commits and rule versions, and does not check whether remote tags moved or newer library releases exist. Success means the managed files agree with their inputs; it does not establish that application code follows the rules.
+Use check in CI to detect files that need regeneration. It uses recorded commits and rule and skill versions, and does not check whether remote tags moved, a followed branch moved, or newer library releases exist. Success means the managed files agree with their inputs; it does not establish that application code follows the rules.
+
+### project list skills
+
+```sh
+code-rules project list skills [options]
+```
+
+List the skills the project's sources and preset offer, so you can choose which to install. Lists never write files. The command reads each source's newest library release, or, for a plain repository, the newest commit on the branch it follows or the revision its `ref` names, and needs access to every configured repository.
+
+| Option | Meaning |
+| --- | --- |
+| `--type TYPE` | Only skills of this type: `playbook` or `review`. |
+| `--applies-rules-from GROUP` | Only skills whose `cr-rules-used` names a rule in this group, such as `practices/architecture`. |
+
+```text
+$ code-rules project list skills --applies-rules-from practices/architecture
+ID                              TYPE      VERSION  STATUS
+fabrica:skills/build-feature    playbook  1.3.0    installed
+fabrica:skills/write-design-doc playbook  1.1.0    available
+org:skills/review-architecture  review    2.0.1    available, from preset fabrica-defaults
+
+3 skills cite rules in practices/architecture. Skills that cite no rules, including those from plain repositories, show up only without --applies-rules-from.
+```
+
+Each skill shows its project ID, its type, when it declares one, and its newest version, or, for a skill from a plain repository, which has no versions, the commit it would come from. `STATUS` is `installed` for a skill the project installs, selected or used by another skill, and `available` for one a source offers that the project doesn't install. `available, from preset <name>` marks a skill in the library that publishes the project's preset, when that library isn't one of the project's sources. Local skills aren't listed. Skills are sorted by project ID. To install one, add it to that source's `skills` and run `code-rules project sync`.
+
+Skills don't belong to groups, so `--applies-rules-from` finds skills by the rules they cite: a skill that cites rules in several groups appears under each of them, and a skill that cites no rules, including every skill from a plain repository, appears only without the option. Both options can be combined.
+
+JSON output lists the skills in `value.skills`, each with its `id`, `status` (`installed` or `available`), and, where they apply, its `type`, `version` or `commit`, and `preset`, the preset's name.
 
 ## Library commands
 
-`code-rules library` manages a **library**, an independently maintained collection of rule groups that projects can import. Initialize from the library repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
+`code-rules library` manages a **library**, an independently maintained collection of rule groups and skills that projects can import. Initialize from the library repository root. Other library commands find that root from subdirectories. Use `--directory PATH` to target another library; see [Working directories](#working-directories).
 
 ### library init
 
@@ -274,25 +399,44 @@ Create a rule in an existing library group. `ID` includes the group path and rul
 
 Create the group first with `code-rules library add group`; rule creation does not create missing groups. Without `--body-file`, complete the draft and remove its `code-rules:draft` marker before validation. Existing rules are not overwritten. After the first library release, the next steps include adding the new rule's change note with `code-rules library change`. Like `code-rules library check`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags, where it can't tell whether the library has a library release.
 
+### library add skill
+
+```sh
+code-rules library add skill NAME [options]
+```
+
+Create a skill in the library's `skills/` directory. `NAME` follows the [skill name grammar](/reference/skill-format/#skill-ids), such as `fix-bug`; the skill's ID is `skills/NAME`.
+
+| Option | Meaning |
+| --- | --- |
+| `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
+| `--description TEXT` | Required. What the skill does and when to use it, at most 1,024 characters. |
+| `--type TYPE` | Optional. `playbook` or `review`, recorded as `cr-skill-type`. See [Skill types](/concepts/skill/#skill-types). |
+| `--non-interactive` | Never prompt. Supply all required inputs as flags. |
+
+The command writes `skills/NAME/SKILL.md` with the name, description, and type in its frontmatter, and a body with the `code-rules:draft` marker. Complete the draft and remove the marker before validation; see [Write a skill](/guides/write-skills/). An invalid name, or a description that's blank or too long, fails before prompts with exit code `2`. Existing skills are not overwritten, and the ID of a skill a library release retired can't be reused. After the first library release, the next steps include adding the new skill's change note with `code-rules library change`. Like `code-rules library add rule`, it fails with instructions in a shallow clone, or a clone with change notes but no release tags.
+
 ### library change
 
 ```sh
 code-rules library change ID... [options]
 ```
 
-Write a new [change note](/reference/rule-versions/#change-notes) for one or more rules. `ID` is a rule ID, such as `practices/testing/verify-retry-limits`; name several rules to cover related changes in one note. Before the first library release, rules need no notes, so the command fails and says so.
+Write a new [change note](/reference/rule-versions/#change-notes) for one or more rules and skills. `ID` is a rule ID, such as `practices/testing/verify-retry-limits`, or a skill ID, such as `skills/build-feature`; name several to cover related changes in one note. Before the first library release, rules and skills need no notes, so the command fails and says so.
 
 | Option | Meaning |
 | --- | --- |
-| `--bump LEVEL` | `major`, `minor`, or `patch`. Required for rules that have a version. Not accepted for new or retired rules. |
+| `--bump LEVEL` | `major`, `minor`, or `patch`. Required for rules and skills that have a version. Not accepted for new or retired ones. |
 | `--summary TEXT` | Required. One line describing the change for project maintainers. |
-| `--retire` | Record that the rules are [retired](/reference/rule-versions/#retired-rules). Their Markdown files and asset directories must already be gone. |
-| `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces the retired one. If it isn't a rule in the library yet, the command warns; add it before the next library release. |
+| `--retire` | Record that the rules or skills are retired; see [Retired rules](/reference/rule-versions/#retired-rules) and [Retired skills](/reference/rule-versions/#retired-skills). A rule's Markdown file and asset directory, or a skill's folder, must already be gone. |
+| `--replaced-by ID` | Optional with `--retire` and a single `ID`: the rule that replaces a retired rule, or the skill that replaces a retired skill. If it isn't a rule or skill in the library yet, the command warns; add it before the next library release. |
 | `--non-interactive` | Never prompt. Supply all required inputs as flags. |
 
-The command writes a new file in `changes/` with a unique name, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. A rule without any version is recorded as `new`. It rejects an ID that isn't a rule in the library, unless `--retire` is supplied for a rule that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release: edit the rule first, then record the change. A rule that was never published can't be retired: delete its Markdown file, and remove it from any pending note.
+The command writes a new file in `changes/` with a unique name, such as `changes/2026-09-29-verify-retry-limits-7f3a9c.yaml`, and never edits or deletes existing notes. Rule IDs go in the note's `rules` map and skill IDs in its `skills` map. A rule or skill without any version is recorded as `new`. It rejects an ID that isn't a rule or skill in the library, unless `--retire` is supplied for one that has a version. It also rejects a rule that has a version but whose Markdown file and asset directory are unchanged since the latest library release, and a skill whose folder's tracked files and their modes are unchanged: edit it first, then record the change. A rule or skill that was never published can't be retired: delete it, and remove it from any pending note.
 
-See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL`.
+`--replaced-by` must be the same kind as the retired ID: a rule for a rule, a skill for a skill. Naming a rule to replace a skill, or the reverse, fails as a usage error with exit code `2`, such as `--replaced-by practices/testing/verify-retries is a rule, but skills/triage-bug is a skill. A skill can only be replaced by a skill.`
+
+See [Choose a version change](/reference/rule-versions/#choose-a-version-change) for picking `LEVEL` for a rule, and [Choose a skill's version change](/reference/rule-versions/#choose-a-skills-version-change) for a skill.
 
 ### library check
 
@@ -300,31 +444,35 @@ See [Choose a version change](/reference/rule-versions/#choose-a-version-change)
 code-rules library check [options]
 ```
 
-Validate `rule-library.yaml`, all groups and rules, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
+Validate `rule-library.yaml`, all groups and rules, all skills, presets, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule and skill has a change note. Does not change files.
 
 | Option | Meaning |
 | --- | --- |
 | `--directory PATH` | Directory to operate in. Defaults to your working directory; repository discovery applies. |
 | `--non-interactive` | Accepted; library check does not prompt. |
 
-Reports group and rule counts, `value.groupCount` and `value.ruleCount` in JSON, and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations, missing declared files, and declared files inside a rule's version (a rule's Markdown file or its asset directory) fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
+Reports group, rule, and skill counts, `value.groupCount`, `value.ruleCount`, and `value.skillCount` in JSON, such as `Library is valid: 3 group(s), 6 rule(s), 3 skill(s).`, and file-specific errors. Empty groups are valid. Unfinished marked drafts fail. Undeclared licenses produce warnings; invalid declarations, missing declared files, and declared files inside a rule's version (a rule's Markdown file or its asset directory) fail validation. Library check validates the format, not writing quality or legal permissions. Use the [authoring rubric](/reference/rule-authoring/#authoring-rubric) to review guidance quality.
 
-After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file and its asset directory, with the latest `release/<number>` tag in the current branch's history. Notes added since that tag are pending. Check fails when:
+Check validates every skill folder and its `SKILL.md`: the folder's name and contents, the frontmatter fields, the `cr-skill-type`, `cr-rules-used`, and `cr-skills-used` metadata keys, and links. It lists every skill problem it finds and fails with the code `invalid-skill`. It warns when a skill's `license` differs from the library's SPDX expression, and about a file in a skill folder that Git neither tracks nor ignores. [Validation](/reference/skill-format/#validation) lists each check and its message. Check also validates each preset in `presets/`; see [Presets](/reference/library-format/#presets).
+
+After the first library release, check compares each rule's [versioned content](/reference/rule-versions/#what-a-version-covers), meaning its Markdown file and its asset directory, and each skill's, meaning the tracked files in its folder and their modes, with the latest `release/<number>` tag in the current branch's history. Notes added since that tag are pending. Check fails when any of the following is true of a rule, and the same for a skill, with the message naming the skill:
 
 - A rule changed and no pending note names it. The error names the rule and its latest version, and gives the `code-rules library change` command to run.
 - A new rule has no pending note.
 - A published rule was deleted without a pending note that retires it.
-- A retired rule's `replacedBy` isn't a rule in the library.
+- A retired rule's `replacedBy` isn't a rule in the library, or a retired skill's `replacedBy` isn't a skill in it.
 - A rule reuses the ID of a retired rule.
 - A pending note names a rule that's unchanged since the latest library release, so the note is stale.
 - A pending note names a rule that doesn't exist and isn't being retired.
-- A note is invalid, such as an unknown change or a blank summary.
+- A note is invalid, such as an unknown change, a blank summary, a skill ID under `rules`, or neither `rules` nor `skills`.
 
 Check warns when a note that a library release already published was edited, because the edit has no effect. It also warns when such a note was deleted, because notes are never deleted; restore it. When a pending note retires a rule that an earlier library release named as a retired rule's replacement, check warns about it: when the note names a replacement, that updates will point projects still importing the earlier rule on to it; otherwise, that they would be pointed at a retired rule, suggesting a replacement as `replacedBy`. A pending retirement whose `replacedBy` isn't a rule in the library fails.
 
+A skill is compared with the newest library release whose release record has a `skills` field; when a later library release lacks it, because an older Code Rules published it, check warns, as [Skills in the release record](/reference/rule-versions/#skills-in-the-release-record) describes.
+
 This comparison needs the repository's history and tags. Check fails with instructions in a shallow clone, with `shallow-clone`, and in a clone whose commit has change notes but no `release/<number>` tags, such as one made with `git clone --no-tags`, with `missing-release-tags`; fetch the tags with `git fetch --tags`. Check never fetches, so it refuses such a clone; `code-rules library release` fetches the remote's release tags itself. In CI, check out with full history, such as `fetch-depth: 0`. Before the first library release, rules need no notes, and check validates everything else. A library outside a Git repository has no library releases.
 
-When checks pass, the result previews the pending library release: each rule, its change, and its current and next version. When nothing is pending, it says there is nothing to publish, as `code-rules library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as group metadata, shared assets, or license files, changed since the latest library release, the preview lists them too, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `code-rules project update` name them. `code-rules library release` reports the rules it publishes in `value.rules` the same way.
+When checks pass, the result previews the pending library release: each rule and skill, its change, and its current and next version, in one list sorted by ID. When no rule or skill change is pending and no library-wide file changed, it says there is nothing to publish, as `code-rules library release` does, except before the first library release, which always publishes the library-wide files, even without rules, so check says that instead. When library-wide files, such as group metadata, shared assets, license files, or presets, changed since the latest library release, the preview lists them too, so you know a library release would publish them even when no rule changed. JSON output includes this preview in `value.pendingRelease`, with its `release` number, a `rules` list, and a `libraryFiles` list of the changed library-wide files, which is empty before the first library release. Each rule has its `id` and `change`; `from` and `to`, its version before and after the library release (`from` is absent for a new rule); for a retired rule, `lastVersion` and any `replacedBy` instead; and `summaries`, one per change note that names it, in note order, as the release record and `code-rules project update` name them. `value.pendingRelease.skills` lists pending skill changes in the same form. `code-rules library release` reports the rules and skills it publishes in `value.rules` and `value.skills` the same way.
 
 ### library release
 
@@ -332,7 +480,7 @@ When checks pass, the result previews the pending library release: each rule, it
 code-rules library release [options]
 ```
 
-Publish the pending change notes, and any changes to library-wide files, as a [library release](/reference/rule-versions/#library-releases). See [Version your rules](/guides/version-rules/#publish-a-library-release) for the workflow.
+Publish the pending change notes for rules and skills, and any changes to library-wide files, as a [library release](/reference/rule-versions/#library-releases). A library release that changes only skills publishes like any other. See [Version your rules](/guides/version-rules/#publish-a-library-release) for the workflow.
 
 | Option | Meaning |
 | --- | --- |
@@ -347,11 +495,11 @@ Before publishing, the command fetches from the branch's upstream remote. It ref
 - the branch matches the remote exactly, so the library release contains no unpushed commits and misses none, and
 - `code-rules library check` passes.
 
-It then computes each changed rule's next version from the pending notes, using the largest change when several notes name the same rule. The first library release gives every rule version `1.0.0`. It creates the annotated `release/<number>` tag on the current commit, with the release notes and [release record](/reference/rule-versions/#release-record) as its message, and pushes it. No files change and nothing is committed. Finally, it creates the GitHub Release page.
+It then computes each changed rule's and skill's next version from the pending notes, using the largest change when several notes name the same rule or skill. The first library release gives every rule and skill version `1.0.0`. The release record lists skills in its [`skills` field](/reference/rule-versions/#skills-in-the-release-record), and the release notes list skill changes in a section of their own. It creates the annotated `release/<number>` tag on the current commit, with the release notes and [release record](/reference/rule-versions/#release-record) as its message, and pushes it. No files change and nothing is committed. Finally, it creates the GitHub Release page.
 
-`--dry-run` shows the repository, branch, commit, release number, each rule's change and versions, and the complete release notes.
+`--dry-run` shows the repository, branch, commit, release number, each rule's and skill's change and versions, and the complete release notes.
 
-If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Code Rules created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Code Rules and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created. JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.libraryFiles`, and `value.notes`. Like other optional values that aren't lists, `value.githubRelease` is left out when the library release has no GitHub Release page: on a dry run, with `code-rules library release --no-github-release`, or for a repository that isn't on GitHub.com. When the tag is published but the page can't be created, the command fails with `github-release-failed`, and the JSON response still includes `value`, with `tagCreated` and without `value.githubRelease`, so a script can tell the tag is published and only the page is missing. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, `value.rules` and `value.libraryFiles` empty, and `value.tag` and `value.notes` left out, as optional values that don't apply always are, and succeeds. A tool such as `jq` reads a left-out value as `null`.
+If a run stops after pushing the tag, such as when the GitHub Release page can't be created, run it again: it finds the tag on the current commit and creates what's missing. A run that stopped before pushing leaves its tag only in your clone; the next run checks it against the library release the commit publishes after the remote's latest one, pushes it only when its release notes and record match exactly, and otherwise refuses with `release-tag-mismatch` and asks you to delete it. A tag that a later Code Rules created in a newer [release record](/reference/rule-versions/#release-record) format instead fails with `unsupported-release-record`: upgrade Code Rules and run it again rather than deleting the tag. The result reports separately whether the tag and the GitHub Release page were created. JSON output gives them as `value.tagCreated` and `value.githubRelease.created`, and describes the library release in `value.release`, `value.rules`, `value.skills`, `value.libraryFiles`, and `value.notes`. Like other optional values that aren't lists, `value.githubRelease` is left out when the library release has no GitHub Release page: on a dry run, with `code-rules library release --no-github-release`, or for a repository that isn't on GitHub.com. When the tag is published but the page can't be created, the command fails with `github-release-failed`, and the JSON response still includes `value`, with `tagCreated` and without `value.githubRelease`, so a script can tell the tag is published and only the page is missing. With no pending notes and no library-wide changes, the command reports that there is nothing to publish, with `value.release` set to `0`, `value.rules`, `value.skills`, and `value.libraryFiles` empty, and `value.tag` and `value.notes` left out, as optional values that don't apply always are, and succeeds. A tool such as `jq` reads a left-out value as `null`.
 
 The tag uses Git's configured identity as its tagger, including the `GIT_COMMITTER_*` environment variables.
 
@@ -394,8 +542,8 @@ If that push succeeds, delete the test tag from the remote with `git push origin
 | `invalid-release-tag` | A release tag reachable from the commit isn't a valid annotated tag with a release record. |
 | `unsupported-release-record` | A release tag uses a newer release record format. Upgrade Code Rules. |
 | `uncommitted-changes` | Library files differ from the checked-out commit. |
-| `change-notes` | Change notes don't match the rule changes, as `code-rules library check` reports; other check failures keep their own codes. |
-| `version-limit` | A change would take a rule's version past the largest version number. |
+| `change-notes` | Change notes don't match the rule or skill changes, as `code-rules library check` reports; other check failures keep their own codes, such as `invalid-skill`. |
+| `version-limit` | A change would take a rule's or skill's version past the largest version number. |
 | `git-identity` | Git doesn't know your name and email for the tag's tagger. |
 | `github-cli-missing` | A GitHub Release page applies, but `gh` isn't installed. |
 | `github-cli-signed-out` | A GitHub Release page applies, but `gh` isn't signed in to GitHub.com. |
@@ -435,9 +583,9 @@ Use `-h` or `--help` to inspect command syntax and options. For example, run `co
 | `--license` | At the root, print the full embedded MIT license and copyright notice. |
 | `--json` | Return help, version, or license text in `value.text` inside a JSON response. |
 
-Running `code-rules` or a command group such as `code-rules library` without a subcommand displays help. The `code-rules project`, `code-rules project add`, `code-rules library`, and `code-rules library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
+Running `code-rules` or a command group such as `code-rules library` without a subcommand displays help. The `code-rules project`, `code-rules project add`, `code-rules project list`, `code-rules library`, and `code-rules library add` groups organize commands; they do not perform operations themselves. Help never prompts or writes files.
 
-The root `--version` flag prints the tool version. To choose which versions of a library's rules to import, see [Choose versions](/reference/configuration/#choose-versions).
+The root `--version` flag prints the tool version. To choose which versions of a library's rules and skills to import, see [Choose versions](/reference/configuration/#choose-versions).
 
 ## Working directories
 
@@ -455,11 +603,11 @@ Every command accepts `--json`, which prints one JSON response and disables prom
 
 Authoring commands accept `--non-interactive`. Without it, commands can prompt for missing required metadata or source selections when running in a terminal. With `--non-interactive`, `--json`, or no terminal, missing required inputs cause an error. Positional arguments such as `ID` and `ALIAS` must always be supplied.
 
-Invalid interactive answers repeat the same question while retaining earlier answers; for a choice, such as `[yes/no]`, the error lists the valid answers. Without a terminal, or with `--json` or `--non-interactive`, a missing required input fails with exit code `2` and names the flag to pass, such as `--summary`. Explicit flags are validated without prompting for replacement values. Existing groups, rules, and library aliases fail before prompts.
+Invalid interactive answers repeat the same question while retaining earlier answers; for a choice, such as `[yes/no]`, the error lists the valid answers. Without a terminal, or with `--json` or `--non-interactive`, a missing required input fails with exit code `2` and names the flag to pass, such as `--summary`. Explicit flags are validated without prompting for replacement values. Existing groups, rules, skills, and source names fail before prompts.
 
-Both init commands, both check commands, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; `code-rules project check`, `code-rules project sync`, `code-rules project update`, and `code-rules project build` do not need or accept it.
+Both init commands, both check commands, `code-rules project list skills`, and `code-rules library release` run without prompts. Of these, `code-rules library check` and `code-rules library release` accept `--non-interactive`; `code-rules project check`, `code-rules project sync`, `code-rules project update`, `code-rules project build`, and `code-rules project list skills` do not need or accept it.
 
-String options accept one value and cannot be repeated, except `--groups`, `--rules`, `--keep`, `--exclude`, and `--update-fork`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
+String options accept one value and cannot be repeated, except `--groups`, `--rules`, `--skills`, `--skill-targets`, `--keep`, `--exclude`, and `--update-fork`, which accept repeated values. For a value beginning with `-`, use the equals form, such as `--description='-prefixed text'`.
 
 Scaffolding commands validate paths and detect collisions before writing. They preserve existing authored files and roll back failed creation attempts. They do not publish content or convert arbitrary third-party material. For the authoring workflow, see [Set up your first project](/start-here/set-up-project/) or [Create your first library](/start-here/create-library/).
 
@@ -481,11 +629,11 @@ JSON mode writes one response to stdout:
 
 Every list in a value is always present, empty when there's nothing to report, including `warnings`. Enumerated values, such as statuses, kinds, changes, and codes, are kebab-case. Only optional values that aren't lists, such as a `ref` or a `githubRelease` object, are left out when they don't apply.
 
-Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, or `outdated-readme`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Code Rules directory. Both generated guidance and the managed Code Rules guide must be current for success.
+Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, or `outdated-readme`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Code Rules directory, except paths in a skill install target, which are relative to the project root. Generated guidance, installed skills, and the managed Code Rules guide must all be current for success.
 
 Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or group creation.
 
-Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Code Rules directory, or to `generated/` for build. Authoring commands, such as init, add group, add rule, add library, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
+Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Code Rules directory, or to `generated/` for build, except paths in a skill install target, such as `.claude/skills/build-feature/SKILL.md`, which are relative to the project root. Authoring commands, such as init, add group, add rule, add skill, add library, add repository, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Code Rules guide, `value.guide` reports its path relative to the Code Rules directory and whether it was `created`. Help, version, and license return their text in `value.text`.
 
 In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. Human output, prompts, and errors show control characters, which could make a terminal clear or rewrite what it displays, as visible escapes: ESC as `\x1b`, other controls from `\x00` to `\x1f` and `\x7f` the same way, C1 controls as `\u0080` to `\u009f`, and bytes that aren't valid UTF-8 as `\xNN`. Libraries supply much of that text, such as change summaries and rule IDs. JSON output encodes text as JSON strings instead. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [Test a PR build](https://github.com/fabricahq/code-rules/blob/main/CONTRIBUTING.md#test-a-pr-build) in the contributing guide.
 

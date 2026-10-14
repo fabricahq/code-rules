@@ -1,0 +1,269 @@
+---
+title: "Write a skill"
+description: "Turn a repeatable task into ordered steps that cite the rules each step applies, then check, version, and retire it."
+---
+
+A **skill** tells an agent how to carry out one kind of task, step by step. Writing a skill turns a workflow you keep explaining, such as how your team fixes a bug or reviews tests, into steps every agent follows the same way. A useful skill names the task that should trigger it, orders the steps, and cites the rules each step applies.
+
+This guide covers deciding between a skill and a rule, creating a skill in a library or a project, writing and checking it, and versioning it. For every field and check, see [Skill format](/reference/skill-format/).
+
+## Skill or rule?
+
+Keep opinions in rules and order in skills.
+
+- A **rule** states one expectation and when it applies, such as "test that requests stop at the configured retry limit." It applies to any work that matches it, in any order, whatever task the agent is doing.
+- A **skill** says what to do and in what order for one kind of task, such as "reproduce the bug, find the cause, fix it, then check the test." It applies when an agent takes on that task.
+
+When a step needs a practice followed, cite the rule rather than restating it. A project can then exclude or replace the rule, and the skill follows the project's choice; when the rule gets a new version, the skill applies it without a change of its own; and reviewers check the work against the same rule the implementing agent read.
+
+Write a rule when:
+
+- You'd correct the same mistake whatever the task, such as a missing test at a retry limit.
+- The expectation needs its own exceptions, examples, or validation.
+
+Write a skill when:
+
+- The order of the work matters, such as writing a failing test before the fix.
+- A task combines several rules, tools, or scripts that agents keep combining differently.
+- You'd like an agent to run the same review the same way every time.
+
+If a step in your draft explains how to do something well, and the explanation would hold outside this task, move it into a rule and cite the rule. See [Write a rule](/guides/write-rules/).
+
+## Choose a type
+
+A skill can declare one [type](/concepts/skill/#skill-types) in `cr-skill-type`:
+
+- **`playbook`**: ordered steps for carrying out one kind of engineering task, citing the rules each step applies, such as building a feature or fixing a bug.
+- **`review`**: examines existing work, such as a diff, a plan, or a test suite, against stated criteria and reports findings.
+
+Ask what the skill's main job is: a playbook changes the work, and a review judges work that already exists. A playbook can include a review step, and a review can offer to fix what it found. If neither fits, leave the type out. The type is a label for people and for filters such as `code-rules project list skills --type review`; Code Rules treats every skill the same way.
+
+## Create the skill
+
+### In a library
+
+Create a draft in your library's `skills/` directory:
+
+```sh
+code-rules library add skill fix-bug \
+  --description 'Fix a reported bug and prove it with a regression test. Use when a task starts from a bug report, a failing behavior, or an error someone saw.' \
+  --type playbook
+```
+
+This writes `skills/fix-bug/SKILL.md`, with your name, description, and type in its frontmatter, and a body with the `code-rules:draft` marker. `code-rules library check` fails until you replace the body and remove the marker.
+
+The name becomes the skill's ID, `skills/fix-bug`, and the folder name of every installed copy. Use 1 to 64 lowercase letters, digits, and hyphens, and keep the name stable once projects install the skill; see [Skill IDs](/reference/skill-format/#skill-ids).
+
+Write the description for an agent deciding whether to load the skill: say what the skill does, then when to use it, naming the task or request that should trigger it.
+
+### In a project
+
+A skill that only one project needs can stay local to it:
+
+```sh
+code-rules project add skill release-checklist \
+  --description "Prepare this service's release pull request. Use when asked to cut or prepare a release." \
+  --type playbook
+```
+
+This writes `.code-rules/local/skills/release-checklist/SKILL.md`. Local skills have no versions, and they cite rules and skills by project ID, with the source name, such as `fabrica:practices/testing/verify-retry-limits` or `local:practices/release/tag-from-main`.
+
+To change an imported skill for one project, fork it instead of starting over:
+
+```sh
+code-rules project add skill --from fabrica:skills/fix-bug \
+  --reason 'We fix bugs behind a feature flag first.'
+```
+
+The fork copies the version the project installs into `.code-rules/local/skills/fix-bug/`, rewrites its citations to project IDs, and excludes the imported skill in favor of the fork. See [project add skill](/reference/cli/#project-add-skill).
+
+## Write the steps
+
+Replace the draft's body with the skill's instructions:
+
+- **Number the steps, in the order the agent takes them.** Give each step one outcome the agent can check before moving on, such as "a test that fails because of the bug."
+- **Name the rules each step applies.** Mention the rule by its ID in the step, such as `practices/testing/test-behavior-not-implementation`, and list it in `cr-rules-used`. The installed copy ends with a section that maps each ID to the project's version of the rule, including a local rule that replaces it.
+- **Say when to stop.** Tell the agent what to do when a step can't be completed, such as a bug it can't reproduce, instead of leaving it to improvise.
+- **Say what to report.** End with what the agent hands back: what it changed, what it verified, and what it couldn't.
+- **Keep `SKILL.md` short.** Agents load the whole file when they use the skill. Move long background, examples, and checklists into `references/`, and link to them from the step that needs them. The Agent Skills format recommends keeping `SKILL.md` under 500 lines.
+- **Put repeatable commands in scripts.** A script in `scripts/` runs the same way every time. Make it executable and commit it with its mode; Code Rules keeps the mode when it installs the skill.
+
+Links must stay inside the skill's folder or be absolute URLs, because each installed copy stands alone. Cite rules in `cr-rules-used` instead of linking to them.
+
+## Cite rules and skills
+
+List the rules the skill applies in `cr-rules-used`, and the other skills it uses in `cr-skills-used`, one ID per line in a YAML block string:
+
+```yaml
+metadata:
+  cr-skill-type: playbook
+  cr-rules-used: |
+    practices/testing/reproduce-bugs-with-a-failing-test
+    practices/testing/test-behavior-not-implementation
+  cr-skills-used: |
+    skills/review-tests
+```
+
+In a library, both lists name IDs in the same library, without a source name, because each project chooses its own source names. A project that installs the skill imports every cited rule, even from groups it didn't select, and installs every skill it uses.
+
+The cited rules are for the skill. They don't join the project's `RULES.md`, so installing your skill never adds rules to unrelated work. Cite every rule a step depends on, including rules from groups you'd expect projects to select anyway: a project may not have selected them.
+
+A skill can't cite a rule from another library or use a skill from another library. If your skill depends on another library's practice, write or adapt the rule in your library first.
+
+## Example: a playbook
+
+This original example is a complete playbook in a library, `skills/fix-bug/SKILL.md`:
+
+```markdown
+---
+name: fix-bug
+description: Fix a reported bug and prove it with a regression test. Use when a task starts from a bug report, a failing behavior, or an error someone saw.
+license: MIT
+metadata:
+  cr-skill-type: playbook
+  cr-rules-used: |
+    practices/testing/reproduce-bugs-with-a-failing-test
+    practices/testing/test-behavior-not-implementation
+    practices/error-handling/make-errors-actionable
+  cr-skills-used: |
+    skills/review-tests
+---
+
+# Fix a bug
+
+Fix one reported bug and leave a test that would catch it again. Before each step, read in full the rules it names, using the project's versions listed under "Rules this skill applies".
+
+## 1. Reproduce the bug
+
+Restate the report as the behavior observed and the behavior expected. Write a test that fails because of the bug, following practices/testing/reproduce-bugs-with-a-failing-test, and run it. Confirm it fails for the reported reason, not because of its setup.
+
+If you can't reproduce the bug, stop. Report what you tried and what you observed instead, and ask for more detail.
+
+## 2. Find the cause
+
+Trace the failing test to the code that produces the wrong behavior. Name the cause in one sentence before changing anything. If several causes are plausible, add a check that tells them apart rather than fixing all of them.
+
+## 3. Fix the cause
+
+Make the smallest change that removes the cause. Don't refactor unrelated code in the same change. If the bug showed a user or caller a misleading error, fix the message too, following practices/error-handling/make-errors-actionable.
+
+## 4. Check the test
+
+Run the new test and confirm it passes. Then check that it tests behavior, following practices/testing/test-behavior-not-implementation: temporarily undo the fix, confirm the test fails again, and restore the fix. Run the rest of the test suite.
+
+## 5. Review the tests
+
+Use the review-tests skill on every test you added or changed. Fix the findings that apply to your change.
+
+## 6. Report
+
+Report the cause, the fix, the test that now covers the bug, and the result of the full test suite. List anything you couldn't verify.
+```
+
+Each step has one outcome, names the rules it applies, and says what to do when it can't be completed. The opinions about how to write a failing test or an actionable error live in the cited rules, so a project that replaces one of those rules gets its own practice in step 1 or step 3.
+
+## Example: a review
+
+A review skill states what it examines, the criteria, and what it reports, and leaves the work unchanged. This is `skills/review-tests/SKILL.md` in the same library:
+
+```markdown
+---
+name: review-tests
+description: Review added or changed tests for whether they would catch the behavior they claim to cover. Use when reviewing a pull request or diff that adds or changes tests.
+license: MIT
+metadata:
+  cr-skill-type: review
+  cr-rules-used: |
+    practices/testing/test-behavior-not-implementation
+    practices/testing/verify-retry-limits
+---
+
+# Review tests
+
+1. List each test the change adds or modifies, and the behavior it claims to cover.
+2. Check each test against every rule listed under "Rules this skill applies" whose conditions match it, and against any other testing rule the project's RULES.md selects for this work.
+3. For each finding, report the test, the rule's ID and version, the evidence, and the consequence. Separate confirmed failures from suspicions you couldn't verify.
+4. Don't change the code. Offer fixes only when asked.
+```
+
+## Check the skill
+
+In a library, check every skill, along with the rest of the library:
+
+```sh
+code-rules library check
+```
+
+Check validates the folder, the frontmatter, the `cr-` keys, the rules and skills they name, and every link, and lists each problem it finds:
+
+```text
+Error: skills don't pass library check:
+  - skills/fix-bug/SKILL.md: cr-rules-used names practices/testing/reproduce-bug-with-a-failing-test, which isn't a rule in this library
+  - skills/fix-bug/SKILL.md: cr-skill-type is workflow; use playbook or review, or leave it out
+```
+
+[Validation](/reference/skill-format/#validation) lists every check and its message.
+
+For a local skill, run `code-rules project build`, which validates it and installs it into the project's install targets, then `code-rules project check`.
+
+Check validates the format, not the guidance. Before publishing, try the skill: ask an agent to carry out a real task with it, and revise any step the agent skipped, misread, or had to ask about.
+
+## Record a change note
+
+Skills are versioned like rules. Before your library's first library release, skills need no change notes; the first library release gives every skill version `1.0.0`. After it, record every new or changed skill with `code-rules library change`, in the same pull request as the change.
+
+For a new skill, leave out `--bump`:
+
+```sh
+code-rules library change skills/fix-bug \
+  --summary 'Add a playbook for fixing a reported bug with a regression test.'
+```
+
+For a changed skill, choose the level from what the change does to what the skill produces and requires:
+
+```sh
+code-rules library change skills/fix-bug \
+  --bump minor \
+  --summary 'Add a step that reviews the changed tests.'
+```
+
+- **Major:** someone relying on the previous version could get a different result, such as a removed or reordered step people rely on, a new required input, or a new rule or skill the skill uses.
+- **Minor:** the skill adds steps or guidance without breaking that.
+- **Patch:** the skill only clarifies its wording.
+
+When unsure, choose the larger level. Any change in the folder counts, including scripts, references, and a script's executable bit. [Version your rules](/guides/version-rules/#skill-versions) covers the levels and publishing in full.
+
+Local skills have no versions and need no notes.
+
+## Retire or replace a skill
+
+To stop publishing a library skill, delete its folder and record the retirement. Name the skill that replaces it, when there is one:
+
+```sh
+code-rules library change skills/triage-bug \
+  --retire \
+  --replaced-by skills/fix-bug \
+  --summary 'Covered by the fix-bug playbook, which also writes the regression test.'
+```
+
+Only a skill can replace a skill. A retired skill's ID can't be reused, and projects see the retirement, with its replacement, in their update preview. Update any skill that names the retired one in `cr-skills-used` in the same pull request; `code-rules library check` fails until you do.
+
+To rename a skill, rename its folder and its `name` field, then record one note that retires the old ID, replaced by the new one, and adds the new ID:
+
+```yaml
+summary: Rename to say what the playbook produces.
+skills:
+  skills/triage-bug:
+    change: retired
+    replacedBy: skills/fix-bug
+  skills/fix-bug: new
+```
+
+In a project, replace an imported skill with a local one by forking it with `code-rules project add skill --from`, or by writing your own and excluding the imported skill with `replacedBy: local/skills/<name>`; see [Configuration](/reference/configuration/#exclude-or-replace-a-rule). To remove a local skill, delete its folder and any exclusion that names it as `replacedBy`, then run `code-rules project build`.
+
+## Next steps
+
+- [Skill format](/reference/skill-format/) defines every field and check.
+- [Install skills](/guides/install-skills/) shows how projects select and install your skills.
+- [Version your rules](/guides/version-rules/) covers change notes and publishing library releases.
+- [Write a rule](/guides/write-rules/) covers the rules your skills cite.
