@@ -6,6 +6,7 @@ package library
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
@@ -21,10 +22,14 @@ import (
 )
 
 // TestLibraryCommands_RefuseTheLayoutBeforeVersion2 refuses rule-library.yaml and rule folders at the repository
-// root, whatever their kind, in every library command, before writing anything.
+// root, whatever their kind, in every library command, before writing anything, and lists where the file belongs.
 func TestLibraryCommands_RefuseTheLayoutBeforeVersion2(t *testing.T) {
 	ctx := context.Background()
-	for name, location := range map[string]string{"rule-library.yaml": "rule-library.yaml", "techs/go/errors.md": "techs/", "practices": "practices"} {
+	for name, want := range map[string]struct{ location, moves string }{
+		"rule-library.yaml":  {"rule-library.yaml", ":\n\n  rule-library.yaml  ->  the library section of .syllabus/config.yaml\n\nThen delete rule-library.yaml."},
+		"techs/go/errors.md": {"techs/", ":\n\n  techs/go/errors.md  ->  .syllabus/rules/techs/go/errors.md\n\nRule IDs and versions don't change."},
+		"practices":          {"practices", ":\n\n  practices  ->  .syllabus/rules/practices\n\nRule IDs and versions don't change."},
+	} {
 		commands := map[string]func(Options) error{
 			"init":  func(options Options) error { _, err := Initialize(ctx, options, nil, "1.2.3"); return err },
 			"check": func(options Options) error { _, err := Check(ctx, options); return err },
@@ -64,14 +69,113 @@ func TestLibraryCommands_RefuseTheLayoutBeforeVersion2(t *testing.T) {
 				before := tree(t, options.Directory)
 				err := run(options)
 				var invalid *ValidationError
-				if !errors.As(err, &invalid) || invalid.Location != location || invalid.Problem != legacyLayoutProblem {
-					t.Fatalf("got %v; want the layout refused at %s", err, location)
+				if !errors.As(err, &invalid) || invalid.Location != want.location || !strings.Contains(invalid.Problem, want.moves) {
+					t.Fatalf("got %v; want the layout refused at %s, listing\n%s", err, want.location, want.moves)
 				}
 				if after := tree(t, options.Directory); !slices.Equal(after, before) {
 					t.Fatalf("wrote files:\n%q\nwant:\n%q", after, before)
 				}
 			})
 		}
+	}
+}
+
+// TestCheck_ListsTheMovesOfALibrarysOwnFiles refuses a library in the layout before version 2 and lists where each
+// of its files at the repository root belongs now, the manifest first, up to legacyLayoutMoves of them, then how many
+// more there are, and asks to rewrite the manifest only when there is one.
+func TestCheck_ListsTheMovesOfALibrarysOwnFiles(t *testing.T) {
+	ctx := context.Background()
+	manyRules := map[string]string{"rule-library.yaml": "formatVersion: 1\n"}
+	var manyMoves []string
+	for index := range legacyLayoutMoves + 5 {
+		name := fmt.Sprintf("practices/testing/rule-%02d.md", index+1)
+		manyRules[name] = ruleText("Test it.")
+		if index < legacyLayoutMoves-1 {
+			manyMoves = append(manyMoves, "  "+name+"  ->  .syllabus/rules/"+name)
+		}
+	}
+	for _, test := range []struct {
+		name  string
+		files map[string]string
+		want  []string
+		// manifest is whether the problem asks to rewrite rule-library.yaml.
+		manifest bool
+		// empty makes the repository root hold an empty techs/ folder, whose problem only asks to delete it.
+		empty bool
+	}{
+		{
+			name: "a library",
+			files: map[string]string{
+				"rule-library.yaml":                     "formatVersion: 1\n",
+				"LICENSE.md":                            "MIT License\n",
+				"README.md":                             "# Library\n",
+				"assets/retry.svg":                      "<svg/>\n",
+				"changes/2026-10-01-retry.yaml":         "summary: Retry.\nrules:\n  practices/testing/a: patch\n",
+				"practices/testing/_group.yaml":         "name: Testing\ndescription: Testing guidance.\nwhenToRead: When testing.\n",
+				"practices/testing/a.md":                ruleText("Test the retry limit."),
+				"practices/testing/assets/a/example.go": "package example\n",
+				"techs/go/errors.md":                    ruleText("Return errors."),
+				".syllabus/config.yaml":                 "schemaVersion: 2\nsources: {}\n",
+			},
+			want: []string{
+				"  rule-library.yaml                      ->  the library section of .syllabus/config.yaml",
+				"  assets/retry.svg                       ->  .syllabus/assets/retry.svg",
+				"  changes/2026-10-01-retry.yaml          ->  .syllabus/changes/2026-10-01-retry.yaml",
+				"  practices/testing/_group.yaml          ->  .syllabus/rules/practices/testing/_group.yaml",
+				"  practices/testing/a.md                 ->  .syllabus/rules/practices/testing/a.md",
+				"  practices/testing/assets/a/example.go  ->  .syllabus/rules/practices/testing/assets/a/example.go",
+				"  techs/go/errors.md                     ->  .syllabus/rules/techs/go/errors.md",
+			},
+			manifest: true,
+		},
+		{
+			name:     "more files than the list shows",
+			files:    manyRules,
+			want:     append(append([]string{"  rule-library.yaml" + strings.Repeat(" ", 13) + "->  the library section of .syllabus/config.yaml"}, manyMoves...), "  and 6 more files, moved the same way"),
+			manifest: true,
+		},
+		{
+			name:  "rule folders without a manifest",
+			files: map[string]string{"techs/go/errors.md": ruleText("Return errors.")},
+			want:  []string{"  techs/go/errors.md  ->  .syllabus/rules/techs/go/errors.md"},
+		},
+		{name: "an empty rule folder", empty: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			options := Options{Directory: t.TempDir()}
+			for name, text := range test.files {
+				path := filepath.Join(options.Directory, filepath.FromSlash(name))
+				if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(path, []byte(text), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if test.empty {
+				if err := os.Mkdir(filepath.Join(options.Directory, "techs"), 0700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, err := Check(ctx, options)
+			var invalid *ValidationError
+			if !errors.As(err, &invalid) {
+				t.Fatalf("got %v; want the layout refused", err)
+			}
+			if test.empty {
+				if want := "The rule folders there hold no files: delete them, then run syllabus library check."; invalid.Location != "techs/" || !strings.HasSuffix(invalid.Problem, want) {
+					t.Fatalf("got %v; want a problem ending %q", err, want)
+				}
+				return
+			}
+			want := ":\n\n" + strings.Join(test.want, "\n") + "\n\n"
+			if !strings.Contains(invalid.Problem, want) {
+				t.Fatalf("got %s\nwant a problem listing\n%s", invalid.Problem, want)
+			}
+			if got := strings.Contains(invalid.Problem, "delete rule-library.yaml") && strings.Contains(invalid.Problem, "License and notice paths"); got != test.manifest {
+				t.Fatalf("asks to rewrite the manifest: %t; want %t\n%s", got, test.manifest, invalid.Problem)
+			}
+		})
 	}
 }
 

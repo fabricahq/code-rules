@@ -11,20 +11,18 @@ import (
 	"testing"
 )
 
-// localFolderProblem is the problem every project command reports for a project with a local/ folder.
+// localFolderProblem is the problem every project command reports for the project below, which still keeps a
+// group, a rule, and a shared asset in local/.
 const localFolderProblem = `this version of Syllabus reads authored rules and groups from .syllabus/rules/, and shared assets from .syllabus/assets/. It no longer reads .syllabus/local/, and doesn't move its files. Move them yourself, keeping each path below local/, then delete local/:
 
-  local/techs/go/_group.yaml         ->  rules/techs/go/_group.yaml
-  local/techs/go/errors.md           ->  rules/techs/go/errors.md
-  local/techs/go/assets/errors/      ->  rules/techs/go/assets/errors/
-  local/practices/testing/           ->  rules/practices/testing/
-  local/README.md                    ->  rules/README.md
-  local/assets/retry-lifecycle.svg   ->  assets/retry-lifecycle.svg
+  local/assets/retry.svg              ->  assets/retry.svg
+  local/practices/legacy/_group.yaml  ->  rules/practices/legacy/_group.yaml
+  local/practices/legacy/old-rule.md  ->  rules/practices/legacy/old-rule.md
 
 Rule IDs don't change, so config.yaml needs no edits. A moved rule sits one folder deeper, so its links to shared assets need one more ../, such as ../../../assets/retry-lifecycle.svg. Then run syllabus project build.`
 
 // TestProjectCommands_RejectALocalFolder refuses, writing nothing, every project command in a project whose Code
-// Rules directory still has local/, and says where its files belong now, in human and JSON output.
+// Rules directory still has local/, and lists where each of its files belongs now, in human and JSON output.
 func TestProjectCommands_RejectALocalFolder(t *testing.T) {
 	binary := buildCLI(t)
 	directory := t.TempDir()
@@ -32,9 +30,9 @@ func TestProjectCommands_RejectALocalFolder(t *testing.T) {
 		t.Fatal(code, out, diagnostic)
 	}
 	for name, content := range map[string]string{
-		"local/techs/go/_group.yaml": `{"name":"Go","description":"Go guidance.","whenToRead":"When writing Go."}`,
-		"local/techs/go/errors.md":   "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Keep failures visible.\nwhenToRead: When calling functions.\n---\nSee [the diagram](../../assets/retry.svg).\n",
-		"local/assets/retry.svg":     "<svg/>",
+		"local/practices/legacy/_group.yaml": `{"name":"Legacy","description":"Legacy guidance.","whenToRead":"When writing code."}`,
+		"local/practices/legacy/old-rule.md": "---\ntitle: Return errors\nimpact: HIGH\nimpactDescription: Keep failures visible.\nwhenToRead: When calling functions.\n---\nSee [the diagram](../../assets/retry.svg).\n",
+		"local/assets/retry.svg":             "<svg/>",
 	} {
 		path := filepath.Join(directory, ".syllabus", name)
 		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {

@@ -13,16 +13,14 @@ import (
 	"github.com/fabricahq/code-rules/internal/test/gitfixture"
 )
 
-// legacyLibraryProblem is the problem every library command reports for a library in the layout before version 2.
+// legacyLibraryProblem is the problem every library command reports for the library below, in the layout before
+// version 2.
 const legacyLibraryProblem = `this version of Syllabus reads a library's manifest from the library section of .syllabus/config.yaml, and its groups, shared assets, and change notes from .syllabus/. It no longer reads rule-library.yaml or rule folders at the repository root, and doesn't move them. Move them yourself, keeping each path below its folder:
 
-  rule-library.yaml                 ->  the library section of .syllabus/config.yaml
-  techs/go/_group.yaml              ->  .syllabus/rules/techs/go/_group.yaml
-  techs/go/errors.md                ->  .syllabus/rules/techs/go/errors.md
-  techs/go/assets/errors/           ->  .syllabus/rules/techs/go/assets/errors/
-  practices/testing/                ->  .syllabus/rules/practices/testing/
-  assets/retry-lifecycle.svg        ->  .syllabus/assets/retry-lifecycle.svg
-  changes/                          ->  .syllabus/changes/
+  rule-library.yaml              ->  the library section of .syllabus/config.yaml
+  practices/testing/_group.yaml  ->  .syllabus/rules/practices/testing/_group.yaml
+  practices/testing/a.md         ->  .syllabus/rules/practices/testing/a.md
+  practices/testing/b.md         ->  .syllabus/rules/practices/testing/b.md
 
 Then delete rule-library.yaml. Write its license fields, without formatVersion, in .syllabus/config.yaml, beside the sources the repository uses as a project, if any:
 
@@ -37,8 +35,8 @@ Then delete rule-library.yaml. Write its license fields, without formatVersion, 
 License and notice paths stay relative to the repository root. Rule IDs and versions don't change. A moved rule sits two folders deeper, so its relative links to shared assets need one more ../, such as ../../../assets/retry-lifecycle.svg, and its links to license files at the repository root need two more; links that start with /assets/ still work. Once the library has a library release, record each rule whose links change with syllabus library change --bump patch. Then run syllabus library check.`
 
 // TestLibraryCommands_RejectTheLayoutBeforeVersion2 refuses, writing nothing, every library command in a released
-// library that keeps rule-library.yaml and its rule folders at the repository root, and says where its files belong
-// now, in human and JSON output.
+// library that keeps rule-library.yaml and its rule folders at the repository root, and lists where each of its files
+// belongs now, in human and JSON output.
 func TestLibraryCommands_RejectTheLayoutBeforeVersion2(t *testing.T) {
 	binary := buildCLI(t)
 	ctx := context.Background()
