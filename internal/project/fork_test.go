@@ -374,24 +374,28 @@ func TestFork_RefusesWithoutWriting(t *testing.T) {
 }
 
 // TestFork_NeverReplacesAnExistingExclusion refuses before reading the library when the source already excludes
-// the rule.
+// the rule, by its ID or by a selector that matches it.
 func TestFork_NeverReplacesAnExistingExclusion(t *testing.T) {
-	f := newForkFixture(t, "")
-	root, err := openProject(context.Background(), f.options, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer root.Close()
-	config := string(f.files(t)["config.yaml"]) + "      exclude:\n        - id: techs/go/errors\n          reason: Not for us.\n"
-	writeFixture(t, root, configurationFile, config)
-	source, _ := ParseForkSource("team@1.0.0")
-	_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
-	var invalid errs.ValidationError
-	if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.rules.exclude.techs/go/errors" {
-		t.Fatalf("got %v", err)
-	}
-	if got := string(f.files(t)["config.yaml"]); got != config {
-		t.Fatalf("configuration changed to %q", got)
+	for _, entry := range []string{"techs/go/errors", "techs/go/*", "techs/*", `"*"`} {
+		t.Run(entry, func(t *testing.T) {
+			f := newForkFixture(t, "")
+			root, err := openProject(context.Background(), f.options, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			config := string(f.files(t)["config.yaml"]) + "      exclude:\n        - id: " + entry + "\n          reason: Not for us.\n"
+			writeFixture(t, root, configurationFile, config)
+			source, _ := ParseForkSource("team@1.0.0")
+			_, err = PlanFork(context.Background(), "techs/go/errors", source, f.options, imports.Options{GitPath: "/nonexistent/git"})
+			var invalid errs.ValidationError
+			if !errors.As(err, &invalid) || invalid.ValidationLocation() != "sources.team.rules.exclude" {
+				t.Fatalf("got %v", err)
+			}
+			if got := string(f.files(t)["config.yaml"]); got != config {
+				t.Fatalf("configuration changed to %q", got)
+			}
+		})
 	}
 }
 
