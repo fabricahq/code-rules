@@ -333,6 +333,21 @@ func TestProjectInputRecheckRejectsLaterEdits(t *testing.T) {
 	projectCode(t, requireUnchanged(context.Background(), root, state), "concurrent-change")
 }
 
+// TestProjectInputRecheckRejectsALaterLocalFolder refuses a local/ folder that appears after the project opened,
+// which the rechecked trees don't cover.
+func TestProjectInputRecheckRejectsALaterLocalFolder(t *testing.T) {
+	root, _ := localProject(t)
+	state, err := readProject(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFixture(t, root, "local/techs/go/errors.md", projectRule)
+	var validation *ValidationError
+	if err := requireUnchanged(context.Background(), root, state); !errors.As(err, &validation) || validation.Location != ".code-rules/local/" {
+		t.Fatalf("recheck error = %v, want the local/ refusal", err)
+	}
+}
+
 // TestOfflineRendersOnlyVerifiedSnapshotBytes loads the bytes whose digests were verified, so an edit made after
 // verification can't reach generated output, and the final recheck reports it.
 func TestOfflineRendersOnlyVerifiedSnapshotBytes(t *testing.T) {
