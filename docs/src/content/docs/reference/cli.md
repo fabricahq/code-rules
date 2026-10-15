@@ -316,7 +316,7 @@ code-rules library check [options]
 
 Validate the `library` section of `.code-rules/config.yaml`, all groups and rules, the skills in `.code-rules/skills/`, change notes, supporting assets, and declared license and notice files. After the first library release, also check that every changed rule has a change note. Does not change files.
 
-Each folder in `.code-rules/skills/` must be named by the skill name grammar and hold a `SKILL.md` whose `name` equals the folder's name. Its `metadata.syllabus-skill-type` must be `playbook` or `review`, no other `syllabus-` key may appear, and each line of `syllabus-rules-used` must be a current rule in the library, by its ID without a source name, and of `syllabus-skills-used` a skill ID such as `skills/tdd`, other than the skill's own. A cited rule that the library retired, in a published library release or a pending change note, fails, naming its replacement when there is one. Check lists every skill problem and fails with `invalid-skill`. It checks the form of `syllabus-skills-used`, not that the skills exist.
+Each folder in `.code-rules/skills/` must be named by the skill name grammar and hold a `SKILL.md` whose `name` equals the folder's name. Its `metadata.syllabus-skill-type` must be `playbook` or `review`, no other `syllabus-` key may appear, and each line of `syllabus-rules-used` must be a current rule in the library, by its ID without a source name, and of `syllabus-skills-used` the ID of another skill in `.code-rules/skills/`, such as `skills/tdd`. A cited rule that the library retired, in a published library release or a pending change note, fails, naming its replacement when there is one. Check lists every skill problem and fails with `invalid-skill`.
 
 | Option | Meaning |
 | --- | --- |

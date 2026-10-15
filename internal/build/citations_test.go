@@ -48,7 +48,7 @@ func TestGenerateLinksAnInstalledSkillToEachRuleItCites(t *testing.T) {
 		"authored rule":       {`[]`, "techs/go/custom", custom, false, "- `local:techs/go/custom`: " + link("rules/local/techs/go/custom.md")},
 		"replaced rule":       {`[{"id":"techs/go/errors","reason":"Ours","replacedBy":"techs/go/custom"}]`, "team:techs/go/errors", custom, false, "- `local:techs/go/custom`, which replaces `team:techs/go/errors`: " + link("rules/local/techs/go/custom.md")},
 		"excluded rule":       {`[{"id":"techs/go/*","reason":"We *log* instead"}]`, "team:techs/go/errors", nil, false, "- `team:techs/go/errors`: excluded by this project: We \\*log\\* instead"},
-		"rule not included":   {`[]`, "team:techs/go/other", nil, false, "- `team:techs/go/other`: not included by this project, so it has no version of it"},
+		"rule not included":   {`[]`, "team:practices/testing/verify", nil, false, "- `team:practices/testing/verify`: not included by this project, so it has no version of it"},
 		"retired rule":        {`[]`, "team:techs/go/old", nil, true, "- `team:techs/go/old`: retired by its library, so the project has no version of it"},
 		"pinned retired rule": {`[]`, "team:techs/go/errors", nil, true, "- `team:techs/go/errors` 1.0.0: " + link("rules/team/techs/go/errors.md")},
 	}
@@ -93,7 +93,7 @@ func TestGenerateKeepsCitedRulesOutOfTheRuleIndexes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	with, err := generateCiting(t, `[]`, nil, citingSkill("team:techs/go/errors", "team:techs/go/other", "team:practices/testing/verify"), nil)
+	with, err := generateCiting(t, `[]`, nil, citingSkill("team:techs/go/errors", "team:techs/rust/other", "team:practices/testing/verify"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,6 +175,30 @@ func TestGenerateRejectsInvalidAuthoredSkills(t *testing.T) {
 				t.Fatalf("got %v; want a validation error at skills/fix/SKILL.md: %s", err, test.want)
 			}
 		})
+	}
+}
+
+// TestGenerateRejectsACitedRuleItsSourceDoesntHave fails at an authored skill's SKILL.md when it cites a rule in a
+// group its source includes in full, whose snapshot then holds every rule the group has or retired, that isn't one
+// of them, however the project excludes the group. A rule in a group the source doesn't include in full may exist,
+// so it stays not included.
+func TestGenerateRejectsACitedRuleItsSourceDoesntHave(t *testing.T) {
+	const problem = "syllabus-rules-used names team:techs/go/error, which isn't a rule in team's library; correct the rule ID, or remove it from syllabus-rules-used"
+	for name, exclude := range map[string]string{
+		"included group":          `[]`,
+		"group excluded by group": `[{"id":"techs/go/*","reason":"Ours"}]`,
+		"group excluded by all":   `[{"id":"*","reason":"Ours"}]`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			output, err := generateCiting(t, exclude, nil, citingSkill("team:techs/go/errors", "team:techs/go/error"), nil)
+			var validation errs.ValidationError
+			if !errors.As(err, &validation) || validation.ValidationLocation() != "skills/fix/SKILL.md" || validation.ValidationProblem() != problem || output.Files != nil {
+				t.Fatalf("got %v; want a validation error at skills/fix/SKILL.md: %s", err, problem)
+			}
+		})
+	}
+	if _, err := generateCiting(t, `[]`, nil, citingSkill("team:techs/rust/fmt", "team:practices/testing/verify"), nil); err != nil {
+		t.Fatalf("rejected rules in groups the source doesn't include: %v", err)
 	}
 }
 
