@@ -145,25 +145,9 @@ Paths relative to .syllabus/generated:
 **Open group:** [Testing](groups/practices/testing.md)
 ```
 
-Then point your agent at it. Add this to `AGENTS.md`, `CLAUDE.md`, or whichever instruction file your agent reads:
+`syllabus project init` also added a section to `AGENTS.md`, creating the file if needed, that tells your agent to read `RULES.md` before planning, writing, or reviewing a change. Syllabus keeps that section current and leaves the rest of the file to you. If your agent reads `CLAUDE.md` instead, add the line `@AGENTS.md` to it.
 
-```markdown
-## Engineering rules
-
-Before planning, implementing, reviewing, testing, or debugging a change:
-
-1. Read `.syllabus/generated/RULES.md` and follow its instructions to
-   select relevant groups and read their rules in full, including linked
-   files and additional index pages.
-2. Follow the applicable rules and their exceptions while doing the work.
-3. Before finishing, check your work against those rules and run the
-   relevant validation. Briefly report what you verified and any gaps.
-
-If required rule files are unavailable or give conflicting instructions,
-report the issue rather than silently skipping them or choosing a policy.
-```
-
-Commit `.syllabus/` and you're done. Now ask your agent for a change as you normally would; you don't need to mention Syllabus in each request.
+Commit `.syllabus/` and `AGENTS.md`, and you're done. Now ask your agent for a change as you normally would; you don't need to mention Syllabus in each request.
 
 ➡️ The full walkthrough is in [Set up your first project](https://code-rules.fabricahq.com/start-here/set-up-project/).
 

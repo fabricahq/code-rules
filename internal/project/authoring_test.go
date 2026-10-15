@@ -20,7 +20,8 @@ func TestProjectAuthoringLifecycle(t *testing.T) {
 	directory := filepath.Join(t.TempDir(), ".syllabus")
 	options := Options{Directory: filepath.Dir(directory)}
 	result, err := Initialize(ctx, options)
-	if err != nil || len(result.Written()) != 3 {
+	// config.yaml, rules/README.md, README.md, and AGENTS.md.
+	if err != nil || len(result.Written()) != 4 {
 		t.Fatal(result, err)
 	}
 	original, err := os.ReadFile(filepath.Join(directory, "config.yaml"))

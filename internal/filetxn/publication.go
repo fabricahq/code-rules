@@ -464,3 +464,14 @@ func jsonText(value any) ([]byte, error) {
 	err := e.Encode(value)
 	return out.Bytes(), err
 }
+
+// Publish publishes files relative to root under w's ownership, as Edit does, so a command that writes managed output
+// can also update an authored file outside the Syllabus directory, such as the repository's AGENTS.md. root may
+// differ from the writer's. The publication is separate from Apply's transaction, whose recovery doesn't cover it.
+func (w *Writer) Publish(root *os.Root, files []File) (Changes, error) {
+	if w == nil || !w.active {
+		return Changes{}, failure("invalid-operation", "writer is outside its ownership callback", nil)
+	}
+	err := publishAuthored(w.ctx, root, files)
+	return finishPublication(root, files, publicationComplete(err), err)
+}

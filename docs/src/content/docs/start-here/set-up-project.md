@@ -23,7 +23,7 @@ Start in the **project root**, the top-level directory of the codebase you want 
 syllabus project init
 ```
 
-This creates the **Syllabus directory**, `.syllabus/`, with your **project configuration** in `.syllabus/config.yaml` and a place for project-only rules in `rules/`. Initializing Syllabus does not change your project's `README.md` or agent instructions.
+This creates the **Syllabus directory**, `.syllabus/`, with your **project configuration** in `.syllabus/config.yaml` and a place for project-only rules in `rules/`. It also adds a section to your project's `AGENTS.md`, creating the file if needed, which you'll look at in step 5. Initializing Syllabus doesn't change your project's `README.md` or your own text in `AGENTS.md`.
 
 Later, when you import a library, Syllabus saves a copy of its files, at the rule versions your configuration selects, in `vendor/`. Syllabus prepares your local and selected imported rules in `generated/`, with a `RULES.md` index that helps agents find the rules to read.
 
@@ -135,9 +135,7 @@ Open `.syllabus/generated/RULES.md` again. You'll now see your local Testing gro
 
 ## 5. Give the rules to your agent
 
-Your local and imported rules are now available in the repository, but you haven't yet told your coding agent to read them. Let's add that instruction.
-
-Add this section to your existing `AGENTS.md`, or the equivalent project instruction file your coding agent reads. Create that file if you don't have one; preserve any existing instructions.
+Your local and imported rules are now available in the repository. Your coding agent reads them because `syllabus project init` added this section to `AGENTS.md`, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers:
 
 ```markdown
 ## Engineering rules
@@ -153,7 +151,13 @@ Before planning, implementing, reviewing, testing, or debugging a change:
 
 If required rule files are unavailable or give conflicting instructions,
 report the issue rather than silently skipping them or choosing a policy.
+
+To add, change, or update rules or skills, follow `.syllabus/README.md`.
 ```
+
+Once the project installs [skills](/concepts/skill/), the section also points agents to `.syllabus/generated/SKILLS.md`. Syllabus keeps the section current whenever you run `init`, `build`, `sync`, or `update`, and never changes your text outside the markers. Don't edit the section itself; write your own instructions above or below it.
+
+If your agent reads a different instruction file, have it import or link `AGENTS.md`. For Claude Code, add the line `@AGENTS.md` to `CLAUDE.md`.
 
 Now ask your agent for a change as you normally would. For example, in a checkout project:
 
@@ -165,7 +169,7 @@ For your first task, check that the agent reads the relevant rules and validates
 
 ## 6. Commit the guidance for your team
 
-Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.syllabus/` directory and your agent instruction changes (`AGENTS.md`) together. This includes your configuration, local rules, imported library files, and generated guidance.
+Once you've confirmed your agent reads and applies the rules to your liking, review and commit the entire `.syllabus/` directory and `AGENTS.md` together. This includes your configuration, local rules, imported library files, and generated guidance.
 
 Anyone who checks out the repository will then have the same rules and instructions for their agent to read on future tasks.
 

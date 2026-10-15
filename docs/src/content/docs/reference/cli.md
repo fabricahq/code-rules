@@ -21,7 +21,7 @@ Configuration lives in `.syllabus/config.yaml` at the project root. See [Working
 syllabus project init [options]
 ```
 
-Create project configuration, the authored rules directory, and the managed Syllabus guide. Rerunning init preserves valid configuration and authored rules and refreshes an unmodified guide.
+Create project configuration, the authored rules directory, and the managed Syllabus guide, and add the Syllabus section to the repository's `AGENTS.md`, creating the file if needed. Rerunning init preserves valid configuration and authored rules and refreshes an unmodified guide and section.
 
 | Option | Meaning |
 | --- | --- |
@@ -30,7 +30,7 @@ Create project configuration, the authored rules directory, and the managed Syll
 
 A new configuration gets `skillTargets: [claude, agents]`, or `skillTargets: []` with `--skill-targets none`. Rerunning init on an existing configuration changes `skillTargets` only when you pass `--skill-targets`. Init creates no skill target folders: build and sync write them when the project first installs a skill.
 
-Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Syllabus guide. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
+Init does not fetch sources or generate rule guidance. It refuses to overwrite a manually edited Syllabus guide or `AGENTS.md` section, and leaves an `AGENTS.md` that already points to `generated/RULES.md` outside the section alone. For file locations and ownership, see [Project and group guides](/reference/files/#project-and-group-guides).
 
 ### project add source
 
@@ -155,7 +155,7 @@ It refuses a source that isn't configured, a skill the source's last sync didn't
 syllabus project sync [options]
 ```
 
-Import the rule versions and skills recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Syllabus directory, and the installed skill folders in each skill target, with the complete result. Sync also refreshes an older, unedited managed Syllabus guide.
+Import the rule versions and skills recorded for each source, validate their files, and replace `vendor/` and `generated/` in the Syllabus directory, and the installed skill folders in each skill target, with the complete result. Sync also refreshes an older, unedited managed Syllabus guide, and adds or refreshes the Syllabus section of `AGENTS.md`, as build does.
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -251,7 +251,7 @@ See [Update rules](/guides/update/) for the workflow.
 syllabus project build [options]
 ```
 
-Regenerate `generated/` from project configuration, verified imported files, and local rules, and reinstall every skill into the skill targets, as sync does. Build works offline and does not change imported revisions, so it's how you install an authored skill you just wrote or changed. It also creates a missing managed Syllabus guide or refreshes an older, unedited guide alongside generated output. A manually edited guide stops the build before it changes output.
+Regenerate `generated/` from project configuration, verified imported files, and local rules, and reinstall every skill into the skill targets, as sync does. Build works offline and does not change imported revisions, so it's how you install an authored skill you just wrote or changed. It also creates a missing managed Syllabus guide or refreshes an older, unedited guide alongside generated output, then adds or refreshes the Syllabus section of the repository's `AGENTS.md`. A manually edited guide or section stops the build before it changes output. See [Where agents start](/reference/files/#where-agents-start).
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -263,7 +263,7 @@ Run sync first if the imported repository, selection, pins, or `ref` no longer m
 syllabus project check [options]
 ```
 
-Check generated guidance and the managed Syllabus guide without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including a source record in `vendor/` that was changed outside `syllabus project sync`, which no command trusts until you restore it or import the source again; see [the source record's checksum](/reference/provenance/#inspect-the-original-imported-files).
+Check generated guidance, the managed Syllabus guide, and the Syllabus section of `AGENTS.md` without writing files or contacting repositories. Reports stale, missing, or unexpected output and invalid inputs, including a source record in `vendor/` that was changed outside `syllabus project sync`, which no command trusts until you restore it or import the source again; see [the source record's checksum](/reference/provenance/#inspect-the-original-imported-files).
 
 Accepts the [shared options](#shared-options-and-prompts) only.
 
@@ -536,16 +536,16 @@ JSON mode writes one response to stdout:
 | --- | --- |
 | `ok` | `true` for success; `false` for failure or an out-of-date project check. |
 | `value` | The command's result, when available. An out-of-date check still includes its report here. |
-| `error` | On failure, an object with `kind` (`usage`, `validation`, `operation`, `cancelled`, or `out-of-date` for a stale project check) and `message`, plus `location` when available. Domain failures include a stable `code`, such as `needs-init`, `missing-group`, or `guide-edited`, and every `usage` error has the code `invalid-arguments`. |
+| `error` | On failure, an object with `kind` (`usage`, `validation`, `operation`, `cancelled`, or `out-of-date` for a stale project check) and `message`, plus `location` when available. Domain failures include a stable `code`, such as `needs-init`, `missing-group`, `guide-edited`, or `agents-section-edited`, and every `usage` error has the code `invalid-arguments`. |
 | `warnings` | Present only when there is a warning about how the command found the project, such as a project that still keeps its files in `.code-rules/`; see [Upgrade from Code Rules](/start-here/install/#upgrade-from-code-rules). It accompanies success and failure alike. Human output prints these warnings to stderr. |
 
 Every list in a value is always present, empty when there's nothing to report, including `warnings`. Enumerated values, such as statuses, kinds, changes, and codes, are kebab-case. Only optional values that aren't lists, such as a `ref` or a `githubRelease` object, are left out when they don't apply.
 
-Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, or `outdated-readme`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Syllabus directory. Both generated guidance and the managed Syllabus guide must be current for success.
+Project check returns `value.status` as `up-to-date` or `out-of-date`, and a `value.problems` list. Each problem has a `kind` (`missing-file`, `stale-contents`, `unexpected-file`, `outdated-readme`, or `outdated-agents-section`), `path`, `message`, and `nextSteps`, a list of repair steps in the same form as authoring results use. Paths are relative to the Syllabus directory, so the `AGENTS.md` problem's path is `../AGENTS.md`. Generated guidance, the managed Syllabus guide, and the `AGENTS.md` section must all be current for success.
 
 Authoring results include `value.nextSteps`, an ordered list of steps, each an `instruction` and its copyable `commands`. Human output shows those steps after initialization and rule or group creation.
 
-Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Syllabus directory, or to `generated/` for build. The files of installed skill copies are listed by the same relative path, such as `../.claude/skills/build-feature/SKILL.md` for sync and `../../.claude/skills/build-feature/SKILL.md` for build. Authoring commands, such as init, add source, add group, add rule, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, skills installed nowhere because the project has no skill targets, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Syllabus guide, `value.guide` reports its path relative to the Syllabus directory and whether it was `created`. Help, version, and license return their text in `value.text`.
+Sync, update, and build report `added`, `changed`, and `removed` file lists, with paths relative to the Syllabus directory, or to `generated/` for build. The files of installed skill copies are listed by the same relative path, such as `../.claude/skills/build-feature/SKILL.md` for sync and `../../.claude/skills/build-feature/SKILL.md` for build. Authoring commands, such as init, add source, add group, add rule, and library change, report the absolute paths of the files they created in `added` and of those they modified, such as `config.yaml`, in `changed`. Their human output lists the same files under `Added:` and `Changed:`, relative to the working directory when they're inside it. Update also reports each source's rule changes in `value.sources`. Sync and update list their warnings, such as for an unreleased `ref`, an entry naming a retired rule, skills installed nowhere because the project has no skill targets, or local group metadata they wrote, in `value.warnings`, which is empty when there are none. When they refresh the managed Syllabus guide, `value.guide` reports its path relative to the Syllabus directory and whether it was `created`. When they change the Syllabus section of `AGENTS.md`, `value.agents` reports the file's path relative to the repository root and an `action`: `created` for a new file, `added` for a section added to an existing file, or `updated`. Init lists `AGENTS.md` among its `added` or `changed` files instead. Help, version, and license return their text in `value.text`.
 
 In human mode, operational errors go to stderr. An out-of-date check prints its status, problems, and next steps on stdout. Human output, prompts, and errors show control characters, which could make a terminal clear or rewrite what it displays, as visible escapes: ESC as `\x1b`, other controls from `\x00` to `\x1f` and `\x7f` the same way, C1 controls as `\u0080` to `\u009f`, and bytes that aren't valid UTF-8 as `\xNN`. Libraries supply much of that text, such as change summaries and rule IDs. JSON output encodes text as JSON strings instead. In JSON mode, errors go in the response; stderr is reserved for failures writing that response. Unreleased preview builds also print a non-production warning with their source commit to stderr before every command, including help, version, and JSON commands. JSON output on stdout is unchanged. See [Test a PR build](https://github.com/fabricahq/code-rules/blob/main/CONTRIBUTING.md#test-a-pr-build) in the contributing guide.
 

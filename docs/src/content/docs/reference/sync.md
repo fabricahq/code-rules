@@ -18,7 +18,7 @@ This page explains how to run sync, what it changes, and what to do when files a
 - **`syllabus project sync`**: Import the recorded rule versions, or choose versions for new and changed sources. Sync validates the library files and regenerates agent guidance.
 - **`syllabus project update`**: Preview newer versions, new rules, and retirements, and apply them after you confirm. Pinned rules and sources that use `ref` don't move. Update then does everything sync does.
 - **`syllabus project build`**: Apply local rule changes, exceptions, or authored skills using the library files you already have. Build regenerates guidance and reinstalls skills without contacting a repository.
-- **`syllabus project check`**: Find out whether generated guidance and the managed Syllabus guide are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
+- **`syllabus project check`**: Find out whether generated guidance, the managed Syllabus guide, and the `AGENTS.md` section are up to date. Check validates stored inputs and output, reports problems, and leaves files unchanged.
 
 You do not need to run build after a successful sync or update; both already generate the guidance. Run check when you want to verify consistency without making changes.
 
@@ -43,6 +43,7 @@ In a Git repository, project commands find the nearest repository root and use i
 | `skills/` | Skills you author for this project, one folder per skill. | Sync, build, and check read them without changing them. |
 | `vendor/` | Original files copied from the selected rule versions. | Sync and update replace this directory. Build and check validate it without changing it. |
 | `generated/` | Rules, reading indexes, and the skills index for your agents. | Sync, update, and build replace this directory. Check compares it with the expected output. |
+| `../AGENTS.md` | Your instructions for agents, with a section Syllabus maintains. | After replacing their other files, init, sync, update, and build add or refresh the section between the `syllabus:begin` and `syllabus:end` markers, and never change the rest. Check verifies the section. See [Where agents start](/reference/files/#where-agents-start). |
 | `../.claude/skills/<name>/`, `../.agents/skills/<name>/` | Installed copies of your skills, in each [skill target](/reference/configuration/#skill-targets). | Sync, update, and build replace the folders Syllabus installed and remove those of skills no longer included. They never touch other folders there. |
 
 Replacement includes removing files that no longer belong in the output, such as removed rules, old index pages, and unused library folders. Files you add or edit inside `vendor/` or `generated/` can be replaced or removed. Keep your changes in configuration, `rules/`, and `assets/`. Every project command fails while a `local/` directory exists, where earlier versions kept authored rules; its message shows where to move each file.
@@ -62,10 +63,11 @@ Sync, update, and build report counts and sorted lists of added, changed, and re
 - Sync and update paths start with `vendor/` or `generated/`. Update also lists `config.yaml` when it writes a pin or an exclusion, and both list a `rules/<group-id>/_group.yaml` they add.
 - Build paths are relative to `generated/`.
 - Installed skill files are listed by their path relative to the same directory, such as `../.claude/skills/build-feature/SKILL.md` for sync.
+- A change to `AGENTS.md` is reported on its own line, and in JSON in `agents`.
 
 `syllabus project update` also reports each rule's change, versions, and summary. There is no separate structured summary of added or removed groups. To see which library revisions changed, review the source records and generated [provenance records](/reference/provenance/).
 
-Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies both generated guidance and the managed Syllabus guide without writing either.
+Check reports `status` and `problems`, including each problem's path and suggested repair command. It verifies generated guidance, the managed Syllabus guide, and the `AGENTS.md` section without writing any of them.
 
 | Check exit code | Meaning |
 | --- | --- |
@@ -82,6 +84,7 @@ Use the problem reported by `syllabus project check` to choose a repair:
 | Generated guidance is missing or outdated, but imported files are valid. | Run `syllabus project build`. |
 | Imported files are missing, modified, or no longer match your configured sources or groups. | Run `syllabus project sync`. Preserve any edits you intended to keep as local rules first. |
 | The managed Syllabus guide is missing or outdated. | Run `syllabus project build` or `syllabus project sync` to refresh it and regenerate guidance. Run `syllabus project init` to refresh only setup files. |
+| The `AGENTS.md` section is missing or outdated. | Run `syllabus project build`. If build reports that the section was edited, move your text outside the markers and delete the section first. |
 | Configuration or rule metadata is invalid. | Correct the reported input, then retry the appropriate command. |
 
 Run `syllabus project check` again after repairing the problem.
@@ -112,7 +115,7 @@ An authored rule needs its group's metadata, from `rules/<group-id>/_group.yaml`
 
 ## Recover from an interrupted update
 
-Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml`, and each fork it [replaces with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version), in the same step, so recovery restores or finishes `config.yaml`, the replaced authored rules and their asset directories, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `rules/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`. A failed or interrupted update may leave empty directories under `rules/`, such as a group's first `assets/` directory that [replacing a fork](/reference/cli/#replace-a-fork-with-the-newest-version) created. They're harmless: every command ignores them, and you can delete them.
+Sync, update, and build keep the previous output while installing replacement files. If installation fails, the command restores the previous directories. If the process stops during replacement, the next sync, update, or build recovers the previous output before starting its own work. Update installs the pins and exclusions it writes to `config.yaml`, and each fork it [replaces with the newest version](/reference/cli/#replace-a-fork-with-the-newest-version), in the same step, so recovery restores or finishes `config.yaml`, the replaced authored rules and their asset directories, `vendor/`, and `generated/` together. Likewise, recovery keeps or removes a `rules/<group-id>/_group.yaml` that sync or update added together with `vendor/` and `generated/`. A failed or interrupted update may leave empty directories under `rules/`, such as a group's first `assets/` directory that [replacing a fork](/reference/cli/#replace-a-fork-with-the-newest-version) created. They're harmless: every command ignores them, and you can delete them. The `AGENTS.md` section isn't part of that step: commands refresh it after the step completes, so an interrupted command can leave it outdated, and the next build or sync refreshes it.
 
 If the update completed but cleanup was interrupted, the next sync or build finishes deleting the backups. The completed update remains complete.
 

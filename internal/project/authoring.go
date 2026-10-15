@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -40,7 +41,9 @@ type RuleOptions struct {
 
 // Initialize creates missing scaffolding and refreshes an unmodified managed guide; valid configuration and authored
 // files are preserved. A new configuration installs skills into both skill targets, claude and agents. It fails,
-// writing nothing, when the project still has a local/ folder.
+// writing nothing, when the project still has a local/ folder. Then it adds or refreshes the Syllabus section of the
+// repository's AGENTS.md, as build does, listing the file among the changed files, or the added ones when it created
+// it; a failure there comes after the other files were written, and running init again finishes it.
 func Initialize(ctx context.Context, options Options) (AuthoringResult, error) {
 	return InitializeWithSkillTargets(ctx, options, nil)
 }
@@ -104,7 +107,43 @@ func InitializeWithSkillTargets(ctx context.Context, options Options, skillTarge
 		}
 		return files, nil
 	})
-	return authoringResult(changes, err)
+	result, err := authoringResult(changes, err)
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	return initializeAgents(ctx, root, options, result)
+}
+
+// initializeAgents adds or refreshes the AGENTS.md section of the initialized project at root, adding its path to
+// result. The section mentions SKILLS.md when the project has already generated one.
+func initializeAgents(ctx context.Context, root *os.Root, options Options, result AuthoringResult) (AuthoringResult, error) {
+	err := filetxn.WithWriter(ctx, root, func(w *filetxn.Writer) error {
+		skills, err := filetxn.ReadOptional(ctx, root, path.Join("generated", skillsIndexFile))
+		if err != nil {
+			return err
+		}
+		agents, err := planAgentsSection(ctx, root, options, skills != nil)
+		if err != nil {
+			return err
+		}
+		defer agents.close()
+		change, warnings, err := agents.publish(w)
+		if err != nil || change == nil {
+			return err
+		}
+		written := filepath.Join(agents.repository.Name(), change.Path)
+		if change.Action == "created" {
+			result.Added = append(result.Added, written)
+		} else {
+			result.Changed = append(result.Changed, written)
+		}
+		result.Warnings = append(result.Warnings, warnings...)
+		return nil
+	})
+	if err != nil {
+		return AuthoringResult{}, err
+	}
+	return result, nil
 }
 
 // editProject revalidates configuration and rules/ under exclusive ownership before publishing authored files.

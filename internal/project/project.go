@@ -32,15 +32,17 @@ type Options struct {
 // FileChanges lists sorted changed paths. Build uses generated-relative paths; sync and update prefix managed tree
 // names, list rules/<group>/_group.yaml when they add an authored group's metadata, and update also lists
 // config.yaml when it writes pins or exclusions.
-// Empty lists mean matching tree output; Guide reports a separate managed-guide update.
+// Empty lists mean matching tree output; Guide reports a separate managed-guide update, and Agents a change to the
+// Syllabus section of the repository's AGENTS.md.
 type FileChanges struct {
-	Added   []string     `json:"added"`
-	Changed []string     `json:"changed"`
-	Removed []string     `json:"removed"`
-	Guide   *GuideChange `json:"guide,omitempty"`
+	Added   []string      `json:"added"`
+	Changed []string      `json:"changed"`
+	Removed []string      `json:"removed"`
+	Guide   *GuideChange  `json:"guide,omitempty"`
+	Agents  *AgentsChange `json:"agents,omitempty"`
 	// Warnings explain configuration sync and update tolerated, in source order: entries naming retired rules, and
 	// sources importing a ref that isn't a library release. Then, in group order, each authored group metadata file
-	// they wrote. Build reports none.
+	// they wrote. Build reports none of those. Any command can end with a cleanup warning after it wrote AGENTS.md.
 	Warnings []string `json:"warnings"`
 	// Recovered reports that the command first recovered an interrupted earlier command, restoring or finishing
 	// that command's files, which the lists above don't include.
@@ -53,8 +55,10 @@ type GuideChange struct {
 	Created bool   `json:"created"`
 }
 
-// Build generates rules offline and refreshes the managed project guide in one recoverable transaction.
-// Cancellation, validation failure, or detected edits preserve existing output; errors return no changes.
+// Build generates rules offline and refreshes the managed project guide in one recoverable transaction, then
+// refreshes the Syllabus section of the repository's AGENTS.md. Cancellation, validation failure, or detected edits
+// preserve existing output; errors return no changes, except that a failure to write AGENTS.md comes after the
+// transaction committed.
 func Build(ctx context.Context, options Options) (FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, err
@@ -84,13 +88,18 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 		if err != nil {
 			return err
 		}
+		agents, err := planAgentsSection(ctx, root, options, listsSkills(output))
+		if err != nil {
+			return err
+		}
+		defer agents.close()
 		changes = compareFiles(treeFiles(before.generated), output.Files)
 		// Build reports paths relative to generated/, two folders below the repository root.
 		mergeChanges(&changes, prefixChanges(installs.changes, "../../"))
 		targets := map[filetxn.Target]map[string][]byte{filetxn.Generated: output.Files}
 		maps.Copy(targets, installs.targets)
 		includeProjectGuide(targets, guide, &changes)
-		return w.ApplyModes(targets, installs.executable, func() error {
+		err = w.ApplyModes(targets, installs.executable, func() error {
 			if err := requireUnchanged(ctx, root, before); err != nil {
 				return err
 			}
@@ -99,6 +108,10 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 			}
 			return requireGuideUnchanged(ctx, root, guide)
 		})
+		if err != nil {
+			return err
+		}
+		return includeAgents(w, agents, &changes)
 	})
 	if err != nil {
 		return FileChanges{}, err
@@ -110,6 +123,12 @@ func Build(ctx context.Context, options Options) (FileChanges, error) {
 // checkWithFiles checks generated output and additional root-relative files in one optimistic snapshot.
 // Missing files are reported as additions; invalid paths, unreadable files, and concurrent edits are errors.
 func checkWithFiles(ctx context.Context, options Options, expected map[string][]byte) (FileChanges, FileChanges, error) {
+	return checkProjectFiles(ctx, options, expected, nil)
+}
+
+// checkProjectFiles is checkWithFiles, also calling inspect, when not nil, with the Syllabus directory and the
+// expected output before it rechecks the snapshot, for checks of files outside the Syllabus directory.
+func checkProjectFiles(ctx context.Context, options Options, expected map[string][]byte, inspect func(*os.Root, build.Output) error) (FileChanges, FileChanges, error) {
 	if err := ctx.Err(); err != nil {
 		return FileChanges{}, FileChanges{}, err
 	}
@@ -135,6 +154,11 @@ func checkWithFiles(ctx context.Context, options Options, expected map[string][]
 	output, err := prepareProject(ctx, before, options)
 	if err != nil {
 		return FileChanges{}, FileChanges{}, err
+	}
+	if inspect != nil {
+		if err := inspect(root, output); err != nil {
+			return FileChanges{}, FileChanges{}, err
+		}
 	}
 	if err := requireCheckUnchanged(ctx, root, before, expected, files); err != nil {
 		return FileChanges{}, FileChanges{}, err
@@ -257,10 +281,7 @@ func renderProject(ctx context.Context, state projectState, libraries map[string
 	if err := ctx.Err(); err != nil {
 		return build.Output{}, err
 	}
-	version := options.ToolVersion
-	if version == "" {
-		version = "0.0.0-development"
-	}
+	version := toolVersion(options)
 	authored, err := authoredFiles(state)
 	if err != nil {
 		return build.Output{}, err

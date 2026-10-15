@@ -90,10 +90,12 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(changes.Added) != len(stale.Problems) {
+			// Init wrote AGENTS.md's section without a version, so check reports it last, and build updates it.
+			last := len(stale.Problems) - 1
+			if len(changes.Added) != last || stale.Problems[last] != (Problem{Kind: OutdatedAgents, Path: "../AGENTS.md", Repair: Rebuild}) || changes.Agents == nil || *changes.Agents != (AgentsChange{Path: "AGENTS.md", Action: "updated"}) {
 				t.Fatalf("build/check differ: %+v %+v", changes, stale)
 			}
-			for i, problem := range stale.Problems {
+			for i, problem := range stale.Problems[:last] {
 				if problem.Kind != MissingFile || problem.Path != "generated/"+changes.Added[i] || problem.Repair != Rebuild {
 					t.Fatalf("unexpected initial problem: %+v", problem)
 				}
@@ -106,7 +108,7 @@ func TestOfflineBuildCheckAndRepeat(t *testing.T) {
 				t.Fatal("short group not delivered in full")
 			}
 			again, err := Build(context.Background(), options)
-			if err != nil || len(again.Added)+len(again.Changed)+len(again.Removed) != 0 {
+			if err != nil || len(again.Added)+len(again.Changed)+len(again.Removed) != 0 || again.Agents != nil {
 				t.Fatalf("not idempotent: %+v %v", again, err)
 			}
 			clean, err := Check(context.Background(), options)

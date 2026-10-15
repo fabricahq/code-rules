@@ -58,7 +58,7 @@ The tree below shows **`/.syllabus/` at the project root**, the top-level direct
 
 </FileTree>
 
-Your `AGENTS.md` stays outside the Syllabus directory, at the project root. The **project configuration** is `.syllabus/config.yaml`.
+Your `AGENTS.md` stays outside the Syllabus directory, at the project root. Syllabus maintains one section of it, between `<!-- syllabus:begin -->` and `<!-- syllabus:end -->` markers, and leaves the rest to you. The **project configuration** is `.syllabus/config.yaml`.
 
 Initialize from the project root. In Git repositories, other project commands find the nearest Git root and use its `.syllabus/` directory. Outside Git, run commands from the project root. See [Working directories](/reference/cli/#working-directories).
 
@@ -84,7 +84,8 @@ Syllabus doesn't read a `local/` directory, where earlier versions kept authored
 
 | File or directory | Who maintains it | Purpose |
 | --- | --- | --- |
-| `AGENTS.md` | You | Tell your agent to read the generated rules. |
+| `AGENTS.md` | You, outside the Syllabus section | Your instructions for agents. |
+| The Syllabus section of `AGENTS.md` | `syllabus project init`, `syllabus project build`, `syllabus project sync`, and `syllabus project update` | Tell your agent to read the generated rules and skills. |
 | `.syllabus/config.yaml` | You | Choose libraries, groups, rule versions, and exceptions. |
 | `.syllabus/rules/` | You, after initialization | Add project rules, replacements, and group metadata. |
 | `.syllabus/assets/` | You | Add supporting files that several of your rules share. |
@@ -116,9 +117,13 @@ Local and library group creation also writes a `README.md` beside `_group.yaml`.
 
 ## Where agents start
 
-Point your agent to `.syllabus/generated/RULES.md`. It lists the groups and explains when to read each one.
+The Syllabus section of `AGENTS.md` points your agent to `.syllabus/generated/RULES.md`. It lists the groups and explains when to read each one.
 Agents then open relevant groups and read the applicable rules in full.
-See [Plan, write, and review](/for-agents/) for instructions you can add to `AGENTS.md`.
+See [Plan, write, and review](/for-agents/) for the section's text and a workflow built on it.
+
+The commands that write the section create `AGENTS.md` when it's missing, and add the section after your text. Each refresh replaces only the lines between the markers. The begin marker records the Syllabus version that wrote the section and a digest of its lines, so build, sync, update, and init refuse to replace a section edited by hand: move your text outside the markers and delete the section, then rerun the command. `syllabus project check` reports a missing or outdated section.
+
+When `AGENTS.md` already points to `.syllabus/generated/RULES.md` outside the markers, as the section that earlier versions asked you to paste does, Syllabus leaves the file alone and `syllabus project check` accepts it. To switch to the maintained section, delete your pasted section and run `syllabus project build`.
 
 | Generated path | Contents |
 | --- | --- |

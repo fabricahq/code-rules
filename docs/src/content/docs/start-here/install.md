@@ -46,7 +46,7 @@ Syllabus was called Code Rules. Its command was `code-rules`, and projects and l
    git mv .code-rules .syllabus
    ```
 
-2. In `AGENTS.md`, `CLAUDE.md`, or the instruction file your agent reads, change `.code-rules/generated/RULES.md` to `.syllabus/generated/RULES.md`.
+2. In `AGENTS.md`, `CLAUDE.md`, or the instruction file your agent reads, delete the section that points to `.code-rules/generated/RULES.md`. The next step adds a section to `AGENTS.md` that Syllabus keeps current. If your agent reads `CLAUDE.md`, add the line `@AGENTS.md` to it.
 3. Rebuild and check the project:
 
    ```sh
