@@ -117,12 +117,13 @@ func escapeText(value string) string {
 	return result.String()
 }
 
-// workspaceLink links from generated output back to authored or retained vendor input.
+// workspaceLink links from generated output back to authored input, or to an imported source's file at library path
+// file, where the source's snapshot in vendor/ stores it.
 func workspaceLink(outputPath, source, file string) string {
 	if source == "local" {
 		return rules.RelativeLink("generated/"+outputPath, authoredLocation(file))
 	}
-	return rules.RelativeLink("generated/"+outputPath, "vendor/"+source+"/"+file)
+	return rules.RelativeLink("generated/"+outputPath, "vendor/"+source+"/"+librarytree.SnapshotPath(file))
 }
 
 // sourceLink prefers a recognized repository's immutable commit URL and falls back to retained source.

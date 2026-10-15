@@ -344,23 +344,40 @@ func commits(count uint64) string {
 	return strconv.FormatUint(count, 10) + " commits"
 }
 
-// requireCommitted refuses unless head commits exactly the bytes check read, as regular files, so the library
-// release publishes what check validated, even where a Git filter such as Git LFS stores other content.
+// requireCommitted refuses unless head commits exactly the bytes check read, as regular files, including the
+// library's skills, so the library release publishes what check validated, even where a Git filter such as Git LFS
+// stores other content.
 func (g *libraryGit) requireCommitted(ctx context.Context, head string, input checkInput) error {
-	entries, err := g.libraryEntries(ctx, head, libraryPaths(rules.LicensePaths(input.license)))
+	library, err := g.libraryEntries(ctx, head, libraryPaths(rules.LicensePaths(input.license)))
 	if err != nil {
 		return fmt.Errorf("list the files of commit=%s: %w", head, err)
+	}
+	skillEntries, err := g.treeEntries(ctx, head, []string{skillsDirectory})
+	if err != nil {
+		return fmt.Errorf("list the skills of commit=%s: %w", head, err)
 	}
 	format, err := g.runner.Output(ctx, g.dir, []string{"rev-parse", "--show-object-format"}, 4096)
 	if err != nil {
 		return fmt.Errorf("find the library's object format: %w", err)
 	}
-	captured := maps.Clone(input.tree.Files)
-	maps.Copy(captured, input.notes)
+	// Both maps are keyed by repository path, which the problems name.
+	entries, captured := skillEntries, map[string][]byte{}
+	for name, entry := range library {
+		entries[librarytree.RepositoryPath(name)] = entry
+	}
+	for _, files := range []map[string][]byte{input.tree.Files, input.notes} {
+		for name, data := range files {
+			captured[librarytree.RepositoryPath(name)] = data
+		}
+	}
+	if input.skills != nil {
+		for name, data := range input.skills.Files {
+			captured[skillsDirectory+"/"+name] = data
+		}
+	}
 	var problems []string
-	for name, entry := range entries {
-		data, ok := captured[name]
-		location := librarytree.RepositoryPath(name)
+	for location, entry := range entries {
+		data, ok := captured[location]
 		switch {
 		case !ok:
 			problems = append(problems, location+" was deleted, and the deletion isn't committed")
@@ -370,9 +387,9 @@ func (g *libraryGit) requireCommitted(ctx context.Context, head string, input ch
 			problems = append(problems, location+" differs from its committed copy")
 		}
 	}
-	for name := range captured {
-		if _, ok := entries[name]; !ok {
-			problems = append(problems, librarytree.RepositoryPath(name)+" isn't committed")
+	for location := range captured {
+		if _, ok := entries[location]; !ok {
+			problems = append(problems, location+" isn't committed")
 		}
 	}
 	if len(problems) > 0 {
@@ -476,7 +493,7 @@ func (g *libraryGit) releasedTerms(ctx context.Context, latest *publishedRelease
 		if err != nil {
 			return nil, fmt.Errorf("read %s:%s: %w", latest.tagName(), librarytree.LegacyManifest, err)
 		}
-		return legacyTerms(manifest), nil
+		return LegacyTerms(manifest), nil
 	}
 	location := latest.tagName() + ":" + manifestPath
 	manifest, err := g.runner.Output(ctx, g.dir, []string{"cat-file", "blob", latest.object + ":" + manifestPath}, maxFileBytes)
@@ -493,9 +510,9 @@ func (g *libraryGit) releasedTerms(ctx context.Context, latest *publishedRelease
 	return rules.LicensePaths(declaration.License), nil
 }
 
-// legacyTerms returns the license and notice paths that a rule-library.yaml written before the layout of version 2
-// declares, which are library paths, or none when it declares no license.
-func legacyTerms(manifest []byte) []string {
+// LegacyTerms returns the license and notice paths that a rule-library.yaml written before the layout of version 2
+// declares, which are library paths, or none when it declares no license or doesn't parse.
+func LegacyTerms(manifest []byte) []string {
 	_, data, err := decode.YAML(manifest, librarytree.LegacyManifest)
 	if err != nil {
 		return nil

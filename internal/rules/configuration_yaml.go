@@ -26,8 +26,9 @@ func ParseConfigurationYAML(input []byte) (Configuration, error) {
 // AppendConfigurationSource adds a source without dropping existing comments or reordering entries. Its rules.include
 // lists the source's wildcard, then its groups as selectors such as techs/go/*, then its individually selected rules;
 // its pins and exclude lists follow in rule ID order, and are omitted when empty, as ref is. rules is omitted for a
-// source that includes no rules, and skills.include, which lists the source's skill selectors, for one that includes
-// no skills. Pinned versions are written quoted, such as version: "1.3.0".
+// source that includes no rules. skills.include lists the source's skill selectors, and skills.uses the skills each
+// skill uses beyond what it declares, in skill ID order; each is omitted when empty, and skills when both are.
+// Pinned versions are written quoted, such as version: "1.3.0".
 // Folded scalars use literal style in the result because the YAML encoder can change their values.
 // The complete resulting configuration is validated before any bytes are returned.
 func AppendConfigurationSource(input []byte, alias string, source Source) ([]byte, error) {
@@ -53,17 +54,21 @@ func AppendConfigurationSource(input []byte, alias string, source Source) ([]byt
 	type selection struct {
 		Include []string `yaml:"include"`
 	}
+	type skillSelection struct {
+		Include []string            `yaml:"include,omitempty"`
+		Uses    map[string][]string `yaml:"uses,omitempty"`
+	}
 	declaration := struct {
-		Repository string     `yaml:"repository"`
-		Ref        string     `yaml:"ref,omitempty"`
-		Rules      *selection `yaml:"rules,omitempty"`
-		Skills     *selection `yaml:"skills,omitempty"`
+		Repository string          `yaml:"repository"`
+		Ref        string          `yaml:"ref,omitempty"`
+		Rules      *selection      `yaml:"rules,omitempty"`
+		Skills     *skillSelection `yaml:"skills,omitempty"`
 	}{Repository: source.Repository, Ref: source.Ref.String()}
 	if len(include) > 0 {
 		declaration.Rules = &selection{include}
 	}
-	if len(source.Skills) > 0 {
-		declaration.Skills = &selection{source.Skills}
+	if len(source.Skills) > 0 || len(source.SkillUses) > 0 {
+		declaration.Skills = &skillSelection{source.Skills, source.SkillUses}
 	}
 	var entry yaml.Node
 	if err := entry.Encode(declaration); err != nil {

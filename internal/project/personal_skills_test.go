@@ -21,13 +21,15 @@ const installedRecord = `{"formatVersion":1,"skills":[` +
 	`{"name":"plan","id":"skills/plan","targets":[]},` +
 	`{"name":"review","id":"team:skills/review","targets":[".agents/skills/review",".claude/skills/review"]}]}`
 
+// claudeCodeLine is the warning's line for Claude Code, which reads both a personal skill in ~/.claude/skills and the
+// project's copy in .claude/skills.
+const claudeCodeLine = "  Claude Code uses your personal skill.\n"
+
 // reviewWarning is the warning for a personal skill review in folder, such as .claude/skills, when the project installs
-// team:skills/review into both skill targets.
-func reviewWarning(folder string) string {
+// team:skills/review into both skill targets, with agentLines between its first and last lines.
+func reviewWarning(folder string, agentLines ...string) string {
 	return "your personal skill ~/" + folder + "/review has the same name as this project's review (team:skills/review, installed at .agents/skills/review and .claude/skills/review).\n" +
-		"  Claude Code uses your personal skill.\n" +
-		"  Codex shows both.\n" +
-		"  VS Code uses this project's skill.\n" +
+		strings.Join(agentLines, "") +
 		"Rename or remove your personal skill to use the project's."
 }
 
@@ -61,13 +63,13 @@ func TestPersonalSkillWarnings_NamesEachPersonalSkillWithAnInstalledSkillsName(t
 		{"a Claude Code skill", func(t *testing.T, home, repository string) (string, string) {
 			writeHomeFile(t, home, ".claude/skills/review/SKILL.md", "# Mine\n")
 			return home, repository
-		}, []string{reviewWarning(".claude/skills")}},
+		}, []string{reviewWarning(".claude/skills", claudeCodeLine)}},
 		{"one in every known folder", func(t *testing.T, home, repository string) (string, string) {
 			for _, folder := range []string{".codex/skills", ".agents/skills", ".claude/skills"} {
 				writeHomeFile(t, home, folder+"/review/SKILL.md", "# Mine\n")
 			}
 			return home, repository
-		}, []string{reviewWarning(".claude/skills"), reviewWarning(".agents/skills"), reviewWarning(".codex/skills")}},
+		}, []string{reviewWarning(".claude/skills", claudeCodeLine), reviewWarning(".agents/skills"), reviewWarning(".codex/skills")}},
 		{"a folder without SKILL.md", func(t *testing.T, home, repository string) (string, string) {
 			writeHomeFile(t, home, ".claude/skills/review/notes.md", "# Notes\n")
 			return home, repository
@@ -95,7 +97,7 @@ func TestPersonalSkillWarnings_NamesEachPersonalSkillWithAnInstalledSkillsName(t
 				t.Fatal(err)
 			}
 			return home, repository
-		}, []string{reviewWarning(".claude/skills")}},
+		}, []string{reviewWarning(".claude/skills", claudeCodeLine)}},
 		{"a skills folder linked to another", func(t *testing.T, home, repository string) (string, string) {
 			writeHomeFile(t, home, ".claude/skills/review/SKILL.md", "# Mine\n")
 			if err := os.MkdirAll(filepath.Join(home, ".agents"), 0o755); err != nil {
@@ -105,7 +107,7 @@ func TestPersonalSkillWarnings_NamesEachPersonalSkillWithAnInstalledSkillsName(t
 				t.Fatal(err)
 			}
 			return home, repository
-		}, []string{reviewWarning(".claude/skills")}},
+		}, []string{reviewWarning(".claude/skills", claudeCodeLine)}},
 		{"a repository that is the home directory", func(t *testing.T, _, repository string) (string, string) {
 			writeHomeFile(t, repository, ".claude/skills/review/SKILL.md", "# Installed\n")
 			writeHomeFile(t, repository, ".agents/skills/review/SKILL.md", "# Installed\n")
@@ -118,6 +120,33 @@ func TestPersonalSkillWarnings_NamesEachPersonalSkillWithAnInstalledSkillsName(t
 			got := personalSkillWarnings(home, repository, []byte(installedRecord))
 			if got == nil || !slices.Equal(got, test.want) {
 				t.Fatalf("warnings = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestPersonalSkillWarnings_NamesClaudeCodeOnlyWhenItReadsBothCopies(t *testing.T) {
+	tests := []struct {
+		name, personal, target string
+		want                   string
+	}{
+		{"both in Claude Code's folders", ".claude/skills", ".claude/skills",
+			"your personal skill ~/.claude/skills/review has the same name as this project's review (team:skills/review, installed at .claude/skills/review).\n" +
+				claudeCodeLine + "Rename or remove your personal skill to use the project's."},
+		{"a personal skill Claude Code doesn't read", ".agents/skills", ".claude/skills",
+			"your personal skill ~/.agents/skills/review has the same name as this project's review (team:skills/review, installed at .claude/skills/review).\n" +
+				"Rename or remove your personal skill to use the project's."},
+		{"a project copy Claude Code doesn't read", ".claude/skills", ".agents/skills",
+			"your personal skill ~/.claude/skills/review has the same name as this project's review (team:skills/review, installed at .agents/skills/review).\n" +
+				"Rename or remove your personal skill to use the project's."},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			home := t.TempDir()
+			writeHomeFile(t, home, test.personal+"/review/SKILL.md", "# Mine\n")
+			record := `{"formatVersion":1,"skills":[{"name":"review","id":"team:skills/review","targets":["` + test.target + `/review"]}]}`
+			if got := personalSkillWarnings(home, t.TempDir(), []byte(record)); !slices.Equal(got, []string{test.want}) {
+				t.Fatalf("warnings = %q, want %q", got, []string{test.want})
 			}
 		})
 	}
@@ -181,7 +210,7 @@ func TestSyncCheckAndUpdate_WarnAboutPersonalSkillsWithAnInstalledSkillsName(t *
 
 	writeHomeFile(t, options.Home, ".claude/skills/review/SKILL.md", "# My review\n")
 	before := homeState(t, options.Home)
-	want := []string{reviewWarning(".claude/skills")}
+	want := []string{reviewWarning(".claude/skills", claudeCodeLine)}
 	changes, err = Sync(ctx, options, git)
 	if err != nil || !slices.Equal(changes.Warnings, want) {
 		t.Fatalf("sync: warnings %q, %v", changes.Warnings, err)
